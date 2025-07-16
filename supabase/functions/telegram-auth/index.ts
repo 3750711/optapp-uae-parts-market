@@ -328,121 +328,33 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       }
     }
     
-    // Check if user already exists by telegram_id as fallback
-    console.log('Checking for existing user with telegram_id:', telegramId);
-    const { data: existingProfile, error: profileError } = await publicClient
-      .from('profiles')
-      .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id')
-      .eq('telegram_id', telegramId)
-      .maybeSingle();
-      
-    // Also check if the generated email already exists (but with different telegram_id)
-    console.log('Checking for email conflicts with:', email);
-    const { data: emailProfile, error: emailError } = await publicClient
-      .from('profiles')
-      .select('id, email, telegram_id')
-      .eq('email', email)
-      .maybeSingle();
+    // Simplified logic: always return data for signUp flow
+    // Let Supabase Auth handle existing users automatically
+    console.log('🎯 Using simplified flow - always returning data for signUp');
     
-    if (profileError) {
-      console.error('Error checking existing profile:', profileError);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Database error',
-          details: profileError.message
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 500 
+    return new Response(
+      JSON.stringify({
+        success: true,
+        is_existing_user: false, // Always false to use signUp flow
+        telegram_data: {
+          id: telegramId,
+          first_name: telegramData.first_name,
+          last_name: telegramData.last_name,
+          username: telegramData.username,
+          photo_url: telegramData.photo_url,
+          auth_date: telegramData.auth_date,
+          hash: telegramData.hash,
+          email: email,
+          full_name: generateFullName(telegramData),
+          auth_method: 'telegram',
+          user_type: 'buyer'
         }
-      );
-    }
-    
-    // Handle email conflicts
-    if (emailProfile && !emailError) {
-      console.log('⚠️ Email conflict detected:', {
-        generated_email: email,
-        existing_telegram_id: emailProfile.telegram_id,
-        current_telegram_id: telegramId
-      });
-      
-      if (emailProfile.telegram_id !== telegramId) {
-        return new Response(
-          JSON.stringify({ 
-            error: 'Email conflict',
-            details: 'This email is already registered with a different Telegram account',
-            conflicting_email: email,
-            suggestion: 'Please contact support if this is your account'
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 409 
-          }
-        );
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        status: 200 
       }
-    }
-
-    if (existingProfile) {
-      console.log('🔍 Found existing user by telegram_id:', {
-        id: existingProfile.id,
-        email: existingProfile.email,
-        profile_completed: existingProfile.profile_completed
-      });
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          is_existing_user: true,
-          profile_completed: Boolean(existingProfile.profile_completed),
-          user_data: {
-            email: existingProfile.email,
-            full_name: existingProfile.full_name,
-            avatar_url: existingProfile.avatar_url,
-            user_type: existingProfile.user_type || 'buyer'
-          },
-          telegram_data: {
-            id: telegramId,
-            first_name: telegramData.first_name,
-            last_name: telegramData.last_name,
-            username: telegramData.username,
-            photo_url: telegramData.photo_url
-          }
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 200 
-        }
-      );
-      
-    } else {
-      console.log('🆕 New user - returning Telegram data for frontend registration');
-      
-      // For new users, return Telegram data so frontend can handle registration
-      return new Response(
-        JSON.stringify({
-          success: true,
-          is_existing_user: false,
-          profile_completed: false,
-          telegram_data: {
-            id: telegramId,
-            first_name: telegramData.first_name,
-            last_name: telegramData.last_name,
-            username: telegramData.username,
-            photo_url: telegramData.photo_url,
-            auth_date: telegramData.auth_date,
-            hash: telegramData.hash,
-            email: email,
-            full_name: generateFullName(telegramData),
-            auth_method: 'telegram',
-            user_type: 'buyer'
-          }
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 200 
-        }
-      );
-    }
+    );
     
   } catch (error) {
     console.error('=== TELEGRAM VERIFICATION ERROR ===');
