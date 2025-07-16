@@ -81,7 +81,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     if (!scriptLoadedRef.current && widgetRef.current) {
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
-      script.setAttribute('data-telegram-login', 'YOUR_BOT_USERNAME'); // This will need to be configured
+      script.setAttribute('data-telegram-login', 'Optnewads_bot'); // Configured bot username
       script.setAttribute('data-size', 'large');
       script.setAttribute('data-onauth', 'TelegramLoginWidget.dataOnauth(user)');
       script.setAttribute('data-request-access', 'write');
