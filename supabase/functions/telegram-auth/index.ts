@@ -254,11 +254,11 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     const email = generateEmailFromTelegram(telegramData);
     console.log(`Checking for existing user by telegram_id: ${telegramId}`);
     
-    // Check if user exists by telegram_id in profiles table
+    // Check if user exists by telegram_id in profiles table (cast to bigint for proper comparison)
     const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
       .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id')
-      .eq('telegram_id', telegramId)
+      .eq('telegram_id', BigInt(telegramId).toString())
       .maybeSingle();
 
     console.log('Profile search by telegram_id result:', existingProfile ? 'Found' : 'Not found');
