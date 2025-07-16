@@ -50,54 +50,24 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       }
 
       if (data.is_existing_user) {
-        // Existing user - try to sign in, with fallback for auth/profiles desync
-        const email = data.user_data.email;
+        // Existing user - try to sign in with fallback handling
+        const email = data.existing_user_data?.email || data.user_data?.email;
         console.log('Attempting sign in for existing user:', email);
+        
+        const password = `telegram_${data.telegram_data.id}`;
         
         try {
           const { data: signInResult, error: signInError } = await supabase.auth.signInWithPassword({
             email: email,
-            password: `telegram_${data.telegram_data.id}`
+            password: password
           });
 
           if (signInError) {
             console.error('Sign in error:', signInError.message);
-            
-            // If user exists in profiles but not in auth.users, create auth account
-            if (signInError.message.includes('Invalid login credentials')) {
-              console.log('User exists in profiles but not in auth.users, creating auth account...');
-              
-              const fullName = data.telegram_data.first_name + 
-                (data.telegram_data.last_name ? ` ${data.telegram_data.last_name}` : '');
+            throw new Error(`Ошибка входа: ${signInError.message}`);
+          }
 
-              const { data: signUpResult, error: signUpError } = await supabase.auth.signUp({
-                email: email,
-                password: `telegram_${data.telegram_data.id}`,
-                options: {
-                  emailRedirectTo: `${window.location.origin}/`,
-                  data: {
-                    auth_method: 'telegram',
-                    telegram_id: data.telegram_data.id,
-                    full_name: fullName,
-                    photo_url: data.telegram_data.photo_url,
-                    telegram: data.telegram_data.username,
-                    user_type: 'buyer'
-                  }
-                }
-              });
-
-              if (signUpError) {
-                console.error('Fallback signup error:', signUpError);
-                throw new Error(`Ошибка создания аккаунта: ${signUpError.message}`);
-              }
-
-              if (!signUpResult.session) {
-                throw new Error('No session created after fallback signup');
-              }
-            } else {
-              throw new Error(`Ошибка входа: ${signInError.message}`);
-            }
-          } else if (!signInResult.session) {
+          if (!signInResult.session) {
             throw new Error('No session created after sign in');
           }
         } catch (error) {
@@ -110,28 +80,52 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         const fullName = data.telegram_data.first_name + 
           (data.telegram_data.last_name ? ` ${data.telegram_data.last_name}` : '');
 
-        const { data: signUpResult, error: signUpError } = await supabase.auth.signUp({
-          email: email,
-          password: `telegram_${data.telegram_data.id}`,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              auth_method: 'telegram',
-              telegram_id: data.telegram_data.id,
-              full_name: fullName,
-              photo_url: data.telegram_data.photo_url,
-              telegram: data.telegram_data.username,
-              user_type: 'buyer'
+        try {
+          const { data: signUpResult, error: signUpError } = await supabase.auth.signUp({
+            email: email,
+            password: `telegram_${data.telegram_data.id}`,
+            options: {
+              emailRedirectTo: `${window.location.origin}/`,
+              data: {
+                auth_method: 'telegram',
+                telegram_id: data.telegram_data.id,
+                full_name: fullName,
+                photo_url: data.telegram_data.photo_url,
+                telegram: data.telegram_data.username,
+                user_type: 'buyer'
+              }
             }
+          });
+
+          if (signUpError) {
+            console.error('Signup error:', signUpError);
+            
+            // If "User already registered", try sign in as fallback
+            if (signUpError.message.includes('User already registered')) {
+              console.log('User already registered, trying sign in as fallback...');
+              
+              const { data: fallbackSignInResult, error: fallbackSignInError } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: `telegram_${data.telegram_data.id}`
+              });
+
+              if (fallbackSignInError) {
+                console.error('Fallback sign in error:', fallbackSignInError.message);
+                throw new Error(`Ошибка входа: ${fallbackSignInError.message}`);
+              }
+
+              if (!fallbackSignInResult.session) {
+                throw new Error('No session created after fallback sign in');
+              }
+            } else {
+              throw new Error(`Ошибка регистрации: ${signUpError.message}`);
+            }
+          } else if (!signUpResult.session) {
+            throw new Error('No session created after sign up');
           }
-        });
-
-        if (signUpError) {
-          throw signUpError;
-        }
-
-        if (!signUpResult.session) {
-          throw new Error('No session created after sign up');
+        } catch (error) {
+          console.error('Registration process failed:', error);
+          throw error;
         }
       }
 

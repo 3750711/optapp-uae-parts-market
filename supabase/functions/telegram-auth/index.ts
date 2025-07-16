@@ -245,17 +245,24 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     const telegramId = typeof telegramData.id === 'string' ? parseInt(telegramData.id) : telegramData.id;
     console.log('Processed telegram_id:', telegramId);
     
-    // Create public client for user lookup (no service role key needed)
+    // Create both public and service role clients
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const publicClient = createClient(supabaseUrl, supabaseKey);
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Check if user already exists by telegram_id (using public client)
-    // Check for existing user by generated email (more reliable than telegram_id)
+    // Generate email for this user
     const generatedEmail = generateEmailFromTelegram(telegramData);
     console.log('Checking for existing user by email:', generatedEmail);
     console.log('Telegram ID for reference:', telegramId, 'type:', typeof telegramId);
     
+    // First check auth.users to see if user exists there
+    const { data: authUsers, error: authError } = await serviceClient.auth.admin.listUsers();
+    const existingAuthUser = authUsers?.users?.find(user => user.email === generatedEmail);
+    console.log('Auth.users search result:', existingAuthUser ? 'Found' : 'Not found');
+    
+    // Check profiles table
     const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
       .select('id, email, profile_completed, full_name, avatar_url, telegram_id')
@@ -277,7 +284,93 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     }
     
     console.log('Profile search result:', existingProfile);
-    console.log('Profile search error:', profileError);
+    
+    // Check for telegram_id uniqueness to prevent duplicates
+    const { data: existingTelegramProfile, error: telegramError } = await publicClient
+      .from('profiles')
+      .select('id, email, telegram_id')
+      .eq('telegram_id', telegramId)
+      .neq('email', generatedEmail) // Different email but same telegram_id
+      .maybeSingle();
+      
+    if (existingTelegramProfile) {
+      console.log('Found duplicate telegram_id with different email:', existingTelegramProfile);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Telegram ID already associated with another account',
+          details: `This Telegram account is already linked to another user`
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
+      );
+    }
+    
+    // Handle existing auth user without profile
+    if (existingAuthUser && !existingProfile) {
+      console.log('🔧 User exists in auth.users but not in profiles, recreating profile...');
+      
+      const fullName = generateFullName(telegramData);
+      
+      // Recreate profile for existing auth user
+      const { data: newProfile, error: createError } = await publicClient
+        .from('profiles')
+        .insert({
+          id: existingAuthUser.id,
+          email: generatedEmail,
+          full_name: fullName,
+          avatar_url: telegramData.photo_url,
+          telegram_id: telegramId,
+          telegram: telegramData.username,
+          auth_method: 'telegram',
+          user_type: 'buyer',
+          profile_completed: true
+        })
+        .select()
+        .single();
+        
+      if (createError) {
+        console.error('Error recreating profile:', createError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Failed to recreate user profile',
+            details: createError.message
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 500 
+          }
+        );
+      }
+      
+      console.log('✅ Profile recreated successfully:', newProfile);
+      
+      // Return existing user data
+      return new Response(
+        JSON.stringify({
+          success: true,
+          is_existing_user: true,
+          profile_completed: true,
+          existing_user_data: {
+            email: generatedEmail,
+            full_name: fullName,
+            avatar_url: telegramData.photo_url
+          },
+          telegram_data: {
+            id: telegramId,
+            first_name: telegramData.first_name,
+            last_name: telegramData.last_name,
+            username: telegramData.username,
+            photo_url: telegramData.photo_url
+          }
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 200 
+        }
+      );
+    }
     
     if (existingProfile) {
       console.log('🔍 Found existing user:', {
@@ -286,30 +379,25 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         profile_completed: existingProfile.profile_completed
       });
       
-      // For existing users, return user data without login credentials
-      // The frontend will handle the sign up/sign in process
-      const responseData = {
-        success: true,
-        is_existing_user: true,
-        profile_completed: Boolean(existingProfile.profile_completed),
-        user_data: {
-          email: existingProfile.email,
-          full_name: existingProfile.full_name,
-          avatar_url: existingProfile.avatar_url
-        },
-        telegram_data: {
-          id: telegramId,
-          first_name: telegramData.first_name,
-          last_name: telegramData.last_name,
-          username: telegramData.username,
-          photo_url: telegramData.photo_url
-        }
-      };
-      
-      console.log('Returning response for existing user:', responseData);
-      
+      // Return existing user data for sign in
       return new Response(
-        JSON.stringify(responseData),
+        JSON.stringify({
+          success: true,
+          is_existing_user: true,
+          profile_completed: Boolean(existingProfile.profile_completed),
+          existing_user_data: {
+            email: existingProfile.email,
+            full_name: existingProfile.full_name,
+            avatar_url: existingProfile.avatar_url
+          },
+          telegram_data: {
+            id: telegramId,
+            first_name: telegramData.first_name,
+            last_name: telegramData.last_name,
+            username: telegramData.username,
+            photo_url: telegramData.photo_url
+          }
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
           status: 200 
@@ -367,7 +455,7 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
   }
 }
 
-const FUNCTION_VERSION = '1.2.0-email-search';
+const FUNCTION_VERSION = '1.3.0-auth-sync-fix';
 console.log('🚀 Telegram Auth Function starting up...');
 console.log('Function version:', FUNCTION_VERSION);
 console.log('Environment variables check:');
