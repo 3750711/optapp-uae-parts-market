@@ -161,7 +161,7 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
   }
 }
 
-async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> {
+async function handleTelegramCompleteAuth(telegramData: any, req: Request): Promise<Response> {
   console.log('=== TELEGRAM AUTH START ===');
   console.log('Raw data received:', JSON.stringify(telegramData, null, 2));
   
@@ -257,7 +257,8 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Invalid Telegram data structure',
+          error: 'INVALID_DATA_STRUCTURE',
+          message: 'Invalid Telegram data structure',
           received_data: telegramData
         }),
         {
@@ -265,6 +266,61 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
+    }
+
+    // Check for replay attacks (nonce protection)
+    console.log('🔒 Checking for replay attacks...');
+    const { data: usedAuth, error: nonceError } = await supabase
+      .from('telegram_auth_logs')
+      .select('auth_date')
+      .eq('telegram_id', telegramData.id)
+      .eq('auth_date', telegramData.auth_date)
+      .maybeSingle();
+
+    if (nonceError) {
+      console.error('❌ Nonce check error:', nonceError);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'DATABASE_ERROR',
+        message: 'Failed to check authentication logs',
+        details: nonceError.message
+      }), { 
+        status: 500,
+        headers: corsHeaders 
+      });
+    }
+
+    if (usedAuth) {
+      console.error('❌ Replay attack detected - auth_date already used');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'REPLAY_ATTACK',
+        message: 'This authentication request has already been used'
+      }), { 
+        status: 403,
+        headers: corsHeaders 
+      });
+    }
+
+    // Log this auth attempt to prevent replay attacks
+    const userAgent = req.headers.get('user-agent') || 'Unknown';
+    const xForwardedFor = req.headers.get('x-forwarded-for');
+    const clientIP = xForwardedFor ? xForwardedFor.split(',')[0].trim() : null;
+
+    const { error: logError } = await supabase
+      .from('telegram_auth_logs')
+      .insert({
+        telegram_id: telegramData.id,
+        auth_date: telegramData.auth_date,
+        ip_address: clientIP,
+        user_agent: userAgent
+      });
+
+    if (logError) {
+      console.error('❌ Failed to log auth attempt:', logError);
+      // Continue anyway - logging failure shouldn't block auth
+    } else {
+      console.log('✅ Auth attempt logged successfully');
     }
 
     // Verify Telegram signature
@@ -275,10 +331,11 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Invalid Telegram signature'
+          error: 'INVALID_SIGNATURE',
+          message: 'Telegram signature verification failed'
         }),
         {
-          status: 403,
+          status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -319,7 +376,32 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     }
 
     if (existingProfile) {
-      console.log('✅ User already exists, updating Telegram info...');
+      console.log('✅ User already exists, updating Telegram info and password...');
+      
+      // Update existing user's password in auth.users to match the temporary password
+      console.log('🔑 Updating password for existing user...');
+      const { error: passwordError } = await supabase.auth.admin.updateUserById(
+        existingProfile.id,
+        { password: temporaryPassword }
+      );
+
+      if (passwordError) {
+        console.error('❌ Error updating password for existing user:', passwordError);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'PASSWORD_UPDATE_FAILED',
+            message: 'Failed to update password for existing user',
+            details: passwordError.message
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
+      console.log('✅ Password updated successfully for existing user');
       
       // Update existing user's Telegram info
       const { error: updateError } = await supabase
@@ -334,6 +416,8 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
 
       if (updateError) {
         console.error('❌ Error updating existing profile:', updateError);
+        // Don't fail the entire auth process for profile update errors
+        console.log('⚠️ Profile update failed, but authentication can continue');
       } else {
         console.log('✅ Profile updated successfully');
       }
@@ -483,7 +567,7 @@ serve(async (req) => {
     const reqData = await req.json();
     console.log('Received request data:', reqData);
 
-    return await handleTelegramCompleteAuth(reqData);
+    return await handleTelegramCompleteAuth(reqData, req);
   } catch (error) {
     console.error('=== TELEGRAM COMPLETE AUTH FUNCTION ERROR ===');
     console.error('Error details:', error);

@@ -1002,6 +1002,33 @@ export type Database = {
           },
         ]
       }
+      telegram_auth_logs: {
+        Row: {
+          auth_date: number
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          telegram_id: number
+          user_agent: string | null
+        }
+        Insert: {
+          auth_date: number
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          telegram_id: number
+          user_agent?: string | null
+        }
+        Update: {
+          auth_date?: number
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          telegram_id?: number
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       user_favorites: {
         Row: {
           created_at: string
