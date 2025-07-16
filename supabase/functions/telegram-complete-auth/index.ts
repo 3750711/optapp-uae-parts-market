@@ -410,23 +410,22 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       }
     }
     
-    // Generate magic link to get access tokens
-    console.log('Generating magic link for user:', user.id);
+    // Generate temporary password for client-side authentication
+    const tempPassword = `tg_${telegramData.id}_${Date.now()}`;
+    console.log('Generated temporary password for Telegram user');
     
-    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'magiclink',
-      email: user.email,
-      options: {
-        redirectTo: `${Deno.env.get('SUPABASE_URL')}/auth/v1/callback`
-      }
-    });
+    // Update user with temporary password using Admin API
+    const { data: updateData, error: updateError } = await adminClient.auth.admin.updateUserById(
+      user.id,
+      { password: tempPassword }
+    );
     
-    if (linkError) {
-      console.error('Magic link generation error:', linkError);
+    if (updateError) {
+      console.error('Failed to set temporary password:', updateError);
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to generate authentication tokens',
-          details: linkError.message
+          error: 'Failed to set temporary password',
+          details: updateError.message
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -435,40 +434,13 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       );
     }
 
-    console.log('Magic link generated successfully:', {
-      hasProperties: !!linkData.properties,
-      propertiesKeys: linkData.properties ? Object.keys(linkData.properties) : [],
-      hasAccessToken: !!(linkData.properties?.access_token),
-      hasRefreshToken: !!(linkData.properties?.refresh_token)
-    });
-
-    // Extract tokens from the properties object
-    const accessToken = linkData.properties?.access_token;
-    const refreshToken = linkData.properties?.refresh_token;
-
-    // Ensure we have the required tokens
-    if (!accessToken || !refreshToken) {
-      console.error('Missing tokens in link data. Available properties:', {
-        hasAccessToken: !!accessToken,
-        hasRefreshToken: !!refreshToken,
-        allProperties: linkData.properties
-      });
-      return new Response(
-        JSON.stringify({ 
-          error: 'Token generation failed: missing authentication tokens',
-          debug: { properties: linkData.properties }
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 500 
-        }
-      );
-    }
+    console.log('Temporary password set successfully for user:', user.id);
     
+    // Return user data and temporary password for client-side authentication
     authResult = {
       success: true,
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      email: user.email,
+      password: tempPassword,
       user_data: {
         id: user.id,
         email: user.email,

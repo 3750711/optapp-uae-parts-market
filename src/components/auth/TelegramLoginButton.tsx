@@ -54,7 +54,7 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
         try {
           console.log('Telegram auth data received:', user);
           
-          // Send auth data to our new complete auth Edge Function
+          // Send auth data to our Edge Function for verification and user creation
           const { data, error } = await supabase.functions.invoke('telegram-complete-auth', {
             body: user
           });
@@ -65,14 +65,32 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
             return;
           }
 
-          if (!data.success) {
-            console.error('Telegram auth failed:', data.error);
-            onError(data.error || 'Authentication failed');
-            return;
-          }
+          if (data?.success && data?.email && data?.password) {
+            console.log('Telegram verification successful, signing in with password...');
+            
+            // Use the email and temporary password to sign in via Supabase auth
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+              email: data.email,
+              password: data.password
+            });
 
-          console.log('Telegram auth successful:', data);
-          onAuth(user, data);
+            if (authError) {
+              console.error('Supabase sign in error:', authError);
+              onError(authError.message || 'Sign in failed');
+              return;
+            }
+
+            if (authData?.session) {
+              console.log('Telegram authentication successful:', authData);
+              onAuth(user, authData);
+            } else {
+              console.error('No session created');
+              onError('Failed to create session');
+            }
+          } else {
+            console.error('Telegram authentication failed:', data);
+            onError(data?.error || 'Authentication failed');
+          }
         } catch (error) {
           console.error('Error during Telegram authentication:', error);
           onError('Authentication failed. Please try again.');
