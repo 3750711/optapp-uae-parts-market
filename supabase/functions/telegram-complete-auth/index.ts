@@ -410,17 +410,23 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       }
     }
     
-    // Generate access token for the user
-    console.log('Generating access token for user:', user.id);
+    // Generate magic link to get access tokens
+    console.log('Generating magic link for user:', user.id);
     
-    const { data: tokenData, error: tokenError } = await adminClient.auth.admin.generateAccessToken(user.id);
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: user.email,
+      options: {
+        redirectTo: `${Deno.env.get('SUPABASE_URL')}/auth/v1/callback`
+      }
+    });
     
-    if (tokenError) {
-      console.error('Access token generation error:', tokenError);
+    if (linkError) {
+      console.error('Magic link generation error:', linkError);
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to generate access token',
-          details: tokenError.message
+          error: 'Failed to generate authentication tokens',
+          details: linkError.message
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -429,24 +435,28 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       );
     }
 
-    console.log('Access token generated successfully:', {
-      hasAccessToken: !!tokenData.access_token,
-      hasRefreshToken: !!tokenData.refresh_token,
-      hasUser: !!tokenData.user,
-      accessTokenLength: tokenData.access_token?.length || 0,
-      refreshTokenLength: tokenData.refresh_token?.length || 0
+    console.log('Magic link generated successfully:', {
+      hasProperties: !!linkData.properties,
+      propertiesKeys: linkData.properties ? Object.keys(linkData.properties) : [],
+      hasAccessToken: !!(linkData.properties?.access_token),
+      hasRefreshToken: !!(linkData.properties?.refresh_token)
     });
 
+    // Extract tokens from the properties object
+    const accessToken = linkData.properties?.access_token;
+    const refreshToken = linkData.properties?.refresh_token;
+
     // Ensure we have the required tokens
-    if (!tokenData.access_token || !tokenData.refresh_token) {
-      console.error('Missing tokens in token data. TokenData:', {
-        hasAccessToken: !!tokenData.access_token,
-        hasRefreshToken: !!tokenData.refresh_token,
-        tokenKeys: Object.keys(tokenData || {})
+    if (!accessToken || !refreshToken) {
+      console.error('Missing tokens in link data. Available properties:', {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        allProperties: linkData.properties
       });
       return new Response(
         JSON.stringify({ 
-          error: 'Token generation failed: missing authentication tokens'
+          error: 'Token generation failed: missing authentication tokens',
+          debug: { properties: linkData.properties }
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -457,8 +467,8 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     
     authResult = {
       success: true,
-      access_token: tokenData.access_token,
-      refresh_token: tokenData.refresh_token,
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user_data: {
         id: user.id,
         email: user.email,
