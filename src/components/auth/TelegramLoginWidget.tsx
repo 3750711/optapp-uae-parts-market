@@ -50,26 +50,22 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       }
 
       if (data.is_existing_user) {
-        // Existing Telegram user - use magic link via OTP
+        // Existing user - sign in using same credentials as registration
         const email = data.user_data.email;
         
-        const { error: otpError } = await supabase.auth.signInWithOtp({
+        const { data: signInResult, error: signInError } = await supabase.auth.signInWithPassword({
           email: email,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`
-          }
+          password: `telegram_${data.telegram_data.id}` // Same password as used during registration
         });
 
-        if (otpError) {
-          console.error('OTP sign in error:', otpError);
-          throw new Error(`Ошибка входа: ${otpError.message}`);
+        if (signInError) {
+          console.error('Sign in error:', signInError);
+          throw new Error(`Ошибка входа: ${signInError.message}`);
         }
 
-        toast.dismiss();
-        toast.success('Магическая ссылка отправлена на ваш email!');
-        toast.info('Проверьте почту для завершения входа.');
-        onSuccess?.();
-        return; // Exit early to prevent further execution
+        if (!signInResult.session) {
+          throw new Error('No session created after sign in');
+        }
       } else {
         // New user - sign them up
         const email = `user.${data.telegram_data.id}@telegram.partsbay.ae`;
