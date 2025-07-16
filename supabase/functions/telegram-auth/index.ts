@@ -313,8 +313,8 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       
       const fullName = generateFullName(telegramData);
       
-      // Recreate profile for existing auth user
-      const { data: newProfile, error: createError } = await publicClient
+      // Recreate profile for existing auth user using service client to bypass RLS
+      const { data: newProfile, error: createError } = await serviceClient
         .from('profiles')
         .insert({
           id: existingAuthUser.id,
