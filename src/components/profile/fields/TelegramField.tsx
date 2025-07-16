@@ -30,9 +30,8 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
 }) => {
   const { isAdmin } = useAdminAccess();
   
-  // Regular users can only edit if they've never set a Telegram or haven't used their one edit
-  // Admins can edit at any time
-  const isEditable = isAdmin || (initialValue === "" && telegram_edit_count === 0);
+  // Admins can edit at any time, regular users can always edit now
+  const isEditable = true;
   
   return (
     <FormField
@@ -51,21 +50,9 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
           </FormControl>
           {description ? (
             <FormDescription>{description}</FormDescription>
-          ) : !isEditable && !isAdmin && initialValue ? (
-            <FormDescription className="text-yellow-600">
-              Если вам нужно изменить telegram пожалуйста свяжитесь с администратором
-            </FormDescription>
-          ) : initialValue === "" && !isAdmin ? (
-            <FormDescription>
-              У вас есть одна попытка указать Telegram ID
-            </FormDescription>
-          ) : !isAdmin ? (
-            <FormDescription>
-              Если вам нужно изменить telegram пожалуйста свяжитесь с администратором
-            </FormDescription>
           ) : (
-            <FormDescription className="text-green-600">
-              Как администратор, вы можете изменять Telegram ID пользователей
+            <FormDescription>
+              Укажите ваш Telegram username для связи
             </FormDescription>
           )}
           <FormMessage />

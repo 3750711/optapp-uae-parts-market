@@ -611,10 +611,6 @@ export type Database = {
           rating: number | null
           telegram: string | null
           telegram_edit_count: number | null
-          telegram_first_name: string | null
-          telegram_id: number | null
-          telegram_photo_url: string | null
-          telegram_username: string | null
           user_type: Database["public"]["Enums"]["user_type"]
           verification_status: Database["public"]["Enums"]["verification_status"]
         }
@@ -641,10 +637,6 @@ export type Database = {
           rating?: number | null
           telegram?: string | null
           telegram_edit_count?: number | null
-          telegram_first_name?: string | null
-          telegram_id?: number | null
-          telegram_photo_url?: string | null
-          telegram_username?: string | null
           user_type?: Database["public"]["Enums"]["user_type"]
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }
@@ -671,10 +663,6 @@ export type Database = {
           rating?: number | null
           telegram?: string | null
           telegram_edit_count?: number | null
-          telegram_first_name?: string | null
-          telegram_id?: number | null
-          telegram_photo_url?: string | null
-          telegram_username?: string | null
           user_type?: Database["public"]["Enums"]["user_type"]
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }
@@ -1001,33 +989,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      telegram_auth_logs: {
-        Row: {
-          auth_date: number
-          created_at: string
-          id: string
-          ip_address: unknown | null
-          telegram_id: number
-          user_agent: string | null
-        }
-        Insert: {
-          auth_date: number
-          created_at?: string
-          id?: string
-          ip_address?: unknown | null
-          telegram_id: number
-          user_agent?: string | null
-        }
-        Update: {
-          auth_date?: number
-          created_at?: string
-          id?: string
-          ip_address?: unknown | null
-          telegram_id?: number
-          user_agent?: string | null
-        }
-        Relationships: []
       }
       user_favorites: {
         Row: {

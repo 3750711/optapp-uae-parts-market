@@ -13,7 +13,7 @@ import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
 import { useRateLimit } from '@/hooks/useRateLimit';
-import TelegramLoginButton from '@/components/auth/TelegramLoginButton';
+
 
 
 const Login = () => {
@@ -22,12 +22,11 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showEmailForm, setShowEmailForm] = useState(false);
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { checkRateLimit } = useRateLimit();
-  const { signIn, signInWithTelegram } = useAuth();
+  const { signIn } = useAuth();
   
   const from = searchParams.get('from') || '/';
 
@@ -37,36 +36,6 @@ const Login = () => {
   // Показываем email как приоритетный, OPT ID как альтернативу
   const isEmailFormat = inputType === 'email' || loginInput.length === 0;
 
-  const handleTelegramAuth = async (user: any, authResult: any) => {
-    try {
-      console.log('🔧 Starting Telegram authentication...');
-      
-      const { error } = await signInWithTelegram(user);
-      
-      if (error) {
-        console.error('❌ Telegram authentication failed:', error);
-        setError(error);
-        return;
-      }
-      
-      console.log('✅ Telegram authentication successful');
-      
-      toast({
-        title: "Вход выполнен успешно",
-        description: `Добро пожаловать через Telegram!`,
-      });
-      
-      navigate(from, { replace: true });
-      
-    } catch (error) {
-      console.error('❌ Error handling Telegram auth:', error);
-      setError('Authentication failed');
-    }
-  };
-
-  const handleTelegramError = (error: string) => {
-    setError(error);
-  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,44 +104,9 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Telegram Login - Priority */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-center text-muted-foreground">
-                Быстрый вход
-              </h3>
-              <div className="flex justify-center">
-            <TelegramLoginButton
-              botUsername="Optnewads_bot"
-              onAuth={handleTelegramAuth}
-              onError={handleTelegramError}
-              size="large"
-            />
-              </div>
-            </div>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">или</span>
-              </div>
-            </div>
-
-            {/* Email/Password Form - Alternative */}
-            <div className="space-y-3">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setShowEmailForm(!showEmailForm)}
-                type="button"
-              >
-                {showEmailForm ? 'Скрыть' : 'Войти через Email/OPT ID'}
-              </Button>
-
-              {showEmailForm && (
-                <form onSubmit={handleEmailSubmit} className="space-y-4">
+            {/* Email/Password Form */}
+            <div className="space-y-4">
+              <form onSubmit={handleEmailSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="loginInput" className="flex items-center gap-2">
                       {isEmailFormat ? (
@@ -241,8 +175,7 @@ const Login = () => {
                       'Войти'
                     )}
                   </Button>
-                </form>
-              )}
+              </form>
             </div>
 
             {error && (

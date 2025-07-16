@@ -35,7 +35,6 @@ interface AuthContextType {
   isAdmin: boolean | null;
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signInWithTelegram: (telegramData: any) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
   refreshProfile: () => Promise<void>;
@@ -209,57 +208,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   }, []);
 
-  // Этап 3: Исправленная установка сессии для Telegram
-  const signInWithTelegram = useCallback(async (telegramData: any) => {
-    try {
-      console.log('📝 Starting Telegram authentication in AuthContext');
-      
-      const { data, error } = await supabase.functions.invoke('telegram-auth-simple', {
-        body: { telegramData }
-      });
-
-      if (error) {
-        console.error('❌ Error from telegram-auth-simple:', error);
-        return { error: error.message || 'Telegram authentication failed' };
-      }
-
-      if (data.success && data.session) {
-        console.log('✅ Telegram authentication successful, setting session...');
-        
-        // Принудительно устанавливаем полученную сессию
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token
-        });
-
-        if (sessionError) {
-          console.error('❌ Error setting session:', sessionError);
-          return { error: sessionError.message || 'Session setup failed' };
-        }
-
-        console.log('✅ Session set successfully');
-        
-        // Устанавливаем состояние напрямую для быстрого отклика
-        setUser(data.user);
-        setSession(data.session);
-        
-        // Обновляем профиль асинхронно
-        if (data.user) {
-          setTimeout(() => {
-            fetchUserProfile(data.user.id);
-          }, 0);
-        }
-        
-        return { error: null };
-      } else {
-        console.error('❌ Telegram authentication failed:', data.error || 'No session returned');
-        return { error: data.error || 'Authentication failed - no session' };
-      }
-    } catch (error) {
-      console.error('❌ Error in signInWithTelegram:', error);
-      return { error: error instanceof Error ? error.message : 'Telegram authentication failed' };
-    }
-  }, [fetchUserProfile]);
 
   const signOut = useCallback(async () => {
     try {
@@ -292,14 +240,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAdmin,
     signUp,
     signIn,
-    signInWithTelegram,
     signOut,
     updateProfile,
     refreshProfile,
     refreshAdminStatus,
     isLoading,
     isProfileLoading
-  }), [user, profile, session, isAdmin, signUp, signIn, signInWithTelegram, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading, isProfileLoading]);
+  }), [user, profile, session, isAdmin, signUp, signIn, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading, isProfileLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>
