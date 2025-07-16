@@ -162,164 +162,306 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
 }
 
 async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> {
-  console.log('=== TELEGRAM AUTH DIAGNOSTIC START ===');
+  console.log('=== TELEGRAM AUTH START ===');
   console.log('Raw data received:', JSON.stringify(telegramData, null, 2));
   
   try {
-    // === PHASE 1: COMPREHENSIVE ENVIRONMENT VARIABLE CHECK ===
-    console.log('🔍 Starting comprehensive environment check...');
+    // === PHASE 1: ENVIRONMENT VARIABLE CHECK ===
+    console.log('🔍 Starting environment check...');
     
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
     const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     
-    // Log detailed info about each variable
     console.log('📊 Environment Variables Status:');
-    console.log('- TELEGRAM_BOT_TOKEN:', {
-      exists: !!botToken,
-      length: botToken?.length || 0,
-      starts_with: botToken?.substring(0, 10) || 'N/A'
-    });
-    console.log('- SERVICE_ROLE_KEY:', {
-      exists: !!serviceRoleKey,
-      length: serviceRoleKey?.length || 0,
-      starts_with: serviceRoleKey?.substring(0, 10) || 'N/A',
-      is_jwt_format: serviceRoleKey?.startsWith('eyJ') || false
-    });
-    console.log('- SUPABASE_URL:', {
-      exists: !!supabaseUrl,
-      value: supabaseUrl || 'N/A'
-    });
-    console.log('- SUPABASE_ANON_KEY:', {
-      exists: !!supabaseAnonKey,
-      length: supabaseAnonKey?.length || 0
-    });
-    
-    // Detailed missing variable analysis
-    const missingVars = [];
-    if (!botToken) missingVars.push('TELEGRAM_BOT_TOKEN');
-    if (!serviceRoleKey) missingVars.push('SERVICE_ROLE_KEY'); 
-    if (!supabaseUrl) missingVars.push('SUPABASE_URL');
-    
-    if (missingVars.length > 0) {
-      console.error('❌ CRITICAL: Missing environment variables:', missingVars);
+    console.log(`- SUPABASE_URL: { exists: ${!!supabaseUrl}, value: "${supabaseUrl}" }`);
+    console.log(`- SUPABASE_ANON_KEY: { exists: ${!!supabaseAnonKey}, length: ${supabaseAnonKey?.length || 0} }`);
+    console.log(`- SERVICE_ROLE_KEY: {
+  exists: ${!!serviceRoleKey},
+  length: ${serviceRoleKey?.length || 0},
+  starts_with: "${serviceRoleKey?.substring(0, 10) || 'N/A'}",
+  is_jwt_format: ${serviceRoleKey?.startsWith('eyJhbGciOi') || false}
+}`);
+    console.log(`- TELEGRAM_BOT_TOKEN: { exists: ${!!botToken}, length: ${botToken?.length || 0}, starts_with: "${botToken?.substring(0, 10) || 'N/A'}" }`);
+
+    if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey || !botToken) {
+      const missingVars = [];
+      if (!supabaseUrl) missingVars.push('SUPABASE_URL');
+      if (!supabaseAnonKey) missingVars.push('SUPABASE_ANON_KEY');
+      if (!serviceRoleKey) missingVars.push('SERVICE_ROLE_KEY');
+      if (!botToken) missingVars.push('TELEGRAM_BOT_TOKEN');
+
+      console.error('❌ Missing environment variables:', missingVars);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Server configuration error - missing environment variables',
-          diagnostics: {
-            missing_variables: missingVars,
-            all_env_vars: Object.keys(Deno.env.toObject()).sort(),
-            telegram_bot_token: {
-              exists: !!botToken,
-              length: botToken?.length || 0
-            },
-            service_role_key: {
-              exists: !!serviceRoleKey,
-              length: serviceRoleKey?.length || 0,
-              format_check: serviceRoleKey?.startsWith('eyJ') || false
-            },
-            supabase_url: {
-              exists: !!supabaseUrl,
-              value: supabaseUrl
-            }
-          }
+        JSON.stringify({
+          success: false,
+          error: 'Missing environment variables',
+          missing_variables: missingVars
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       );
     }
-    
+
     console.log('✅ All required environment variables are present');
-    
-    // === PHASE 2: BASIC SUPABASE CONNECTION TEST ===
+
+    // === PHASE 2: SUPABASE CONNECTION TEST ===
     console.log('🔗 Testing Supabase connection...');
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+    
     try {
-      const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-        auth: { autoRefreshToken: false, persistSession: false }
-      });
-      
-      // Simple connection test
-      const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .select('count')
-        .limit(1);
-        
-      if (error) {
-        console.error('❌ Supabase connection test failed:', error);
+      const { error: connectionError } = await supabase.from('profiles').select('count').limit(1);
+      if (connectionError) {
+        console.error('❌ Supabase connection test failed:', connectionError);
         return new Response(
-          JSON.stringify({ 
-            success: false, 
+          JSON.stringify({
+            success: false,
             error: 'Supabase connection failed',
-            diagnostics: {
-              connection_error: error.message,
-              error_code: error.code,
-              supabase_url: supabaseUrl,
-              service_key_format: serviceRoleKey.startsWith('eyJ')
-            }
+            details: connectionError.message
           }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
         );
       }
-      
       console.log('✅ Supabase connection successful');
-      
-    } catch (connectionError) {
-      console.error('❌ Supabase connection exception:', connectionError);
+    } catch (exception) {
+      console.error('❌ Supabase connection exception:', exception);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: 'Supabase connection exception',
-          diagnostics: {
-            exception_message: connectionError.message,
-            exception_stack: connectionError.stack
-          }
+          details: exception.message
         }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       );
     }
-    
-    // === PHASE 3: RETURN SUCCESS WITH DIAGNOSTICS ===
+
     console.log('🎉 All environment checks passed successfully!');
-    
+
+    // === PHASE 3: TELEGRAM AUTHENTICATION ===
+    console.log('🔐 Starting Telegram authentication process...');
+
+    // Validate Telegram data structure
+    if (!validateTelegramData(telegramData)) {
+      console.error('❌ Invalid Telegram data structure');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid Telegram data structure',
+          received_data: telegramData
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Verify Telegram signature
+    console.log('🔍 Verifying Telegram signature...');
+    const isValidSignature = await verifyTelegramAuth(telegramData, botToken);
+    if (!isValidSignature) {
+      console.error('❌ Invalid Telegram signature');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Invalid Telegram signature'
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('✅ Telegram signature verified successfully');
+
+    // === PHASE 4: USER MANAGEMENT ===
+    // Generate user credentials
+    const email = generateEmailFromTelegram(telegramData);
+    const fullName = generateFullName(telegramData);
+    const temporaryPassword = `telegram_${telegramData.id}_${Date.now()}`;
+
+    console.log(`📧 Generated email: ${email}`);
+    console.log(`👤 Generated full name: ${fullName}`);
+
+    // Check if user already exists
+    console.log('🔍 Checking if user already exists...');
+    const { data: existingProfile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('telegram_id', telegramData.id)
+      .single();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('❌ Error checking existing profile:', profileError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Database error while checking existing user',
+          details: profileError.message
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    if (existingProfile) {
+      console.log('✅ User already exists, updating Telegram info...');
+      
+      // Update existing user's Telegram info
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          telegram_username: telegramData.username || null,
+          telegram_first_name: telegramData.first_name || null,
+          telegram_photo_url: telegramData.photo_url || null,
+          last_login: new Date().toISOString()
+        })
+        .eq('telegram_id', telegramData.id);
+
+      if (updateError) {
+        console.error('❌ Error updating existing profile:', updateError);
+      } else {
+        console.log('✅ Profile updated successfully');
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          email: existingProfile.email,
+          password: temporaryPassword,
+          user: {
+            id: existingProfile.id,
+            email: existingProfile.email,
+            full_name: existingProfile.full_name,
+            telegram_id: telegramData.id
+          }
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // === PHASE 5: CREATE NEW USER ===
+    console.log('👤 Creating new user...');
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: email,
+      password: temporaryPassword,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName,
+        telegram_id: telegramData.id,
+        telegram_username: telegramData.username,
+        telegram_first_name: telegramData.first_name,
+        telegram_photo_url: telegramData.photo_url
+      }
+    });
+
+    if (authError) {
+      console.error('❌ Error creating auth user:', authError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Failed to create user account',
+          details: authError.message
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('✅ Auth user created successfully:', authUser.user?.id);
+
+    // Create profile
+    console.log('📝 Creating user profile...');
+    const { error: profileCreateError } = await supabase
+      .from('profiles')
+      .insert({
+        id: authUser.user!.id,
+        email: email,
+        full_name: fullName,
+        telegram_id: telegramData.id,
+        telegram_username: telegramData.username || null,
+        telegram_first_name: telegramData.first_name || null,
+        telegram_photo_url: telegramData.photo_url || null,
+        auth_method: 'telegram',
+        user_type: 'buyer',
+        first_login_completed: false,
+        last_login: new Date().toISOString()
+      });
+
+    if (profileCreateError) {
+      console.error('❌ Error creating profile:', profileCreateError);
+      // Try to clean up auth user if profile creation failed
+      try {
+        await supabase.auth.admin.deleteUser(authUser.user!.id);
+        console.log('🧹 Cleaned up auth user after profile creation failure');
+      } catch (cleanupError) {
+        console.error('❌ Failed to cleanup auth user:', cleanupError);
+      }
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Failed to create user profile',
+          details: profileCreateError.message
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log('✅ Profile created successfully');
+
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Environment diagnostic completed successfully',
-        diagnostics: {
-          telegram_bot_token: {
-            exists: true,
-            length: botToken.length,
-            format_preview: botToken.substring(0, 15) + '...'
-          },
-          service_role_key: {
-            exists: true,
-            length: serviceRoleKey.length,
-            is_jwt_format: serviceRoleKey.startsWith('eyJ')
-          },
-          supabase_url: {
-            exists: true,
-            value: supabaseUrl
-          },
-          connection_test: 'passed',
-          timestamp: new Date().toISOString()
+        email: email,
+        password: temporaryPassword,
+        user: {
+          id: authUser.user!.id,
+          email: email,
+          full_name: fullName,
+          telegram_id: telegramData.id
         }
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
 
   } catch (error) {
-    console.error('❌ CRITICAL ERROR in handleTelegramCompleteAuth:', error);
-    console.error('Error stack:', error?.stack);
-    
+    console.error('❌ Unexpected error during authentication:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: 'Internal server error',
-        details: error?.message || 'Unknown critical error',
-        timestamp: new Date().toISOString()
+      JSON.stringify({
+        success: false,
+        error: 'Unexpected error during authentication',
+        details: error.message
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
   }
 }
