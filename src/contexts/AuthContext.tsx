@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
@@ -94,11 +94,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAdmin(adminStatus);
         // Кэшируем результат
         setCachedAdminRights(userId, adminStatus);
+      } else {
+        // Профиль не найден - создаем базовый профиль
+        console.log('Profile not found for user:', userId, 'Creating basic profile...');
+        await createMissingProfile(userId);
       }
     } catch (error) {
       console.error('Profile fetch error:', error);
     } finally {
       setIsProfileLoading(false);
+    }
+  }, []);
+
+  // Функция создания отсутствующего профиля
+  const createMissingProfile = useCallback(async (userId: string) => {
+    try {
+      // Получаем данные пользователя из auth.users через функцию
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (!userData.user) {
+        console.error('Cannot create profile: user not found in auth');
+        return;
+      }
+
+      const user = userData.user;
+      const metadata = user.user_metadata || {};
+      
+      const profileData = {
+        id: userId,
+        email: user.email || '',
+        auth_method: metadata.auth_method || 'email',
+        full_name: metadata.full_name || null,
+        telegram_id: metadata.telegram_id ? parseInt(metadata.telegram_id) : null,
+        telegram: metadata.telegram || null,
+        avatar_url: metadata.photo_url || null,
+        user_type: metadata.user_type || 'buyer'
+      };
+
+      console.log('Creating profile with data:', profileData);
+
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('Error creating profile:', createError);
+        return;
+      }
+
+      if (newProfile) {
+        console.log('Profile created successfully:', newProfile);
+        setProfile(newProfile);
+        const adminStatus = newProfile.user_type === 'admin';
+        setIsAdmin(adminStatus);
+        setCachedAdminRights(userId, adminStatus);
+      }
+    } catch (error) {
+      console.error('Error in createMissingProfile:', error);
     }
   }, []);
 
