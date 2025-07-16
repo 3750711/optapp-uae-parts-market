@@ -252,90 +252,52 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     const publicClient = createClient(supabaseUrl, supabaseKey);
     
     const email = generateEmailFromTelegram(telegramData);
-    console.log(`Checking for existing user by email: ${email}`);
+    console.log(`Checking for existing user by telegram_id: ${telegramId}`);
     
-    // First check auth.users using service role if available
-    if (serviceRoleKey) {
-      const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+    // Check if user exists by telegram_id in profiles table
+    const { data: existingProfile, error: profileError } = await publicClient
+      .from('profiles')
+      .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id')
+      .eq('telegram_id', telegramId)
+      .maybeSingle();
+
+    console.log('Profile search by telegram_id result:', existingProfile ? 'Found' : 'Not found');
+
+    if (existingProfile && !profileError) {
+      // User exists, return data for signInWithPassword flow
+      console.log('✅ Existing user found, returning for signInWithPassword flow');
       
-      try {
-        const { data: authUser, error: authError } = await serviceClient.auth.admin.getUserByEmail(email);
-        
-        if (!authError && authUser) {
-          console.log('Auth.users search result: Found');
-          console.log('Telegram ID for reference:', telegramId, 'type:', typeof telegramId);
-          
-          // User exists in auth.users, check if profile exists
-          const { data: existingProfile, error: profileError } = await publicClient
-            .from('profiles')
-            .select('id, email, profile_completed, full_name, avatar_url, user_type')
-            .eq('id', authUser.user.id)
-            .maybeSingle();
-
-          console.log('Profile search result:', existingProfile ? 'Found' : 'null');
-
-          if (!existingProfile && !profileError) {
-            // User exists in auth.users but not in profiles, recreate profile...
-            console.log('🔧 User exists in auth.users but not in profiles, recreating profile...');
-            
-            const fullName = generateFullName(telegramData);
-            const { error: createProfileError } = await serviceClient
-              .from('profiles')
-              .insert({
-                id: authUser.user.id,
-                email: email,
-                auth_method: 'telegram',
-                full_name: fullName,
-                telegram_id: telegramId,
-                telegram: telegramData.username,
-                avatar_url: telegramData.photo_url,
-                user_type: 'buyer'
-              });
-
-            if (createProfileError) {
-              console.error('Error recreating profile:', createProfileError);
-            }
+      return new Response(
+        JSON.stringify({
+          success: true,
+          is_existing_user: true,
+          profile_completed: Boolean(existingProfile.profile_completed),
+          telegram_data: {
+            id: telegramId,
+            first_name: telegramData.first_name,
+            last_name: telegramData.last_name,
+            username: telegramData.username,
+            photo_url: telegramData.photo_url,
+            email: existingProfile.email, // Use existing email
+            full_name: existingProfile.full_name || generateFullName(telegramData),
+            auth_method: 'telegram',
+            user_type: existingProfile.user_type || 'buyer'
           }
-
-          // Return existing user data
-          return new Response(
-            JSON.stringify({
-              success: true,
-              is_existing_user: true,
-              profile_completed: Boolean(existingProfile?.profile_completed),
-              user_data: {
-                email: email,
-                full_name: existingProfile?.full_name || generateFullName(telegramData),
-                avatar_url: existingProfile?.avatar_url || telegramData.photo_url,
-                user_type: existingProfile?.user_type || 'buyer'
-              },
-              telegram_data: {
-                id: telegramId,
-                first_name: telegramData.first_name,
-                last_name: telegramData.last_name,
-                username: telegramData.username,
-                photo_url: telegramData.photo_url
-              }
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-              status: 200 
-            }
-          );
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 200 
         }
-      } catch (authCheckError) {
-        console.log('Auth check error (user may not exist):', authCheckError.message);
-      }
+      );
     }
     
-    // Simplified logic: always return data for signUp flow
-    // Let Supabase Auth handle existing users automatically
-    console.log('🎯 Using simplified flow - always returning data for signUp');
+    // New user: return data for signUp flow
+    console.log('🎯 New user detected - returning data for signUp flow');
     
     return new Response(
       JSON.stringify({
         success: true,
-        is_existing_user: false, // Always false to use signUp flow
+        is_existing_user: false, // New user - use signUp flow
         telegram_data: {
           id: telegramId,
           first_name: telegramData.first_name,

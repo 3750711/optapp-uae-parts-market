@@ -54,35 +54,42 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         return `telegram_${telegramId}_${email.split('@')[0]}`;
       };
 
-      // Simplified logic: always use signUp for both new and existing users
-      // Supabase Auth will handle existing users automatically
       const email = data.telegram_data.email;
       const password = generateTelegramPassword(data.telegram_data.id, email);
 
-      console.log('🎯 Using simplified signUp flow for:', email);
+      if (data.is_existing_user) {
+        // Existing user: use signInWithPassword
+        console.log('🔄 Using signInWithPassword for existing user:', email);
+        
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
 
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            auth_method: 'telegram',
-            telegram_id: data.telegram_data.id.toString(),
-            full_name: data.telegram_data.full_name,
-            photo_url: data.telegram_data.photo_url,
-            telegram: data.telegram_data.username,
-            user_type: data.telegram_data.user_type || 'buyer'
-          }
+        if (signInError) {
+          throw signInError;
         }
-      });
+      } else {
+        // New user: use signUp
+        console.log('🎯 Using signUp for new user:', email);
 
-      if (signUpError) {
-        // If it's a "User already registered" error, that's actually success
-        // because Supabase will automatically sign in the existing user
-        if (signUpError.message?.includes('User already registered')) {
-          console.log('✅ User already exists - Supabase handled it automatically');
-        } else {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              auth_method: 'telegram',
+              telegram_id: data.telegram_data.id.toString(),
+              full_name: data.telegram_data.full_name,
+              photo_url: data.telegram_data.photo_url,
+              telegram: data.telegram_data.username,
+              user_type: data.telegram_data.user_type || 'buyer'
+            }
+          }
+        });
+
+        if (signUpError) {
           throw signUpError;
         }
       }
