@@ -36,9 +36,9 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     try {
       toast.loading('Авторизация через Telegram...');
 
-      // Call Edge Function to verify and get credentials
-      const { data, error } = await supabase.functions.invoke('telegram-widget-auth', {
-        body: { authData }
+      // Call the stable telegram-auth Edge Function
+      const { data, error } = await supabase.functions.invoke('telegram-auth', {
+        body: authData
       });
 
       if (error) {
@@ -49,18 +49,73 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         throw new Error(data.error || 'Authentication failed');
       }
 
-      // Use standard Supabase auth with returned credentials
-      const { data: authResult, error: signInError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password
-      });
+      if (data.is_existing_user) {
+        // Existing user - try to sign in using their email
+        const email = data.user_data.email;
+        
+        // For Telegram users, we need to sign them up first if they don't exist in auth.users
+        // Then sign them in. Let's try sign in first.
+        const { data: signInResult, error: signInError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: `telegram_${data.telegram_data.id}` // Use telegram_id as password
+        });
 
-      if (signInError) {
-        throw signInError;
-      }
+        if (signInError) {
+          // If sign in fails, the user might not exist in auth.users yet
+          // Try to sign them up first
+          const { data: signUpResult, error: signUpError } = await supabase.auth.signUp({
+            email: email,
+            password: `telegram_${data.telegram_data.id}`,
+            options: {
+              emailRedirectTo: `${window.location.origin}/`,
+              data: {
+                auth_method: 'telegram',
+                telegram_id: data.telegram_data.id,
+                full_name: data.user_data.full_name,
+                photo_url: data.user_data.avatar_url,
+                telegram: data.telegram_data.username
+              }
+            }
+          });
 
-      if (!authResult.session) {
-        throw new Error('No session created');
+          if (signUpError) {
+            throw signUpError;
+          }
+
+          if (!signUpResult.session) {
+            throw new Error('No session created after sign up');
+          }
+        } else if (!signInResult.session) {
+          throw new Error('No session created after sign in');
+        }
+      } else {
+        // New user - sign them up
+        const email = `user.${data.telegram_data.id}@telegram.partsbay.ae`;
+        const fullName = data.telegram_data.first_name + 
+          (data.telegram_data.last_name ? ` ${data.telegram_data.last_name}` : '');
+
+        const { data: signUpResult, error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: `telegram_${data.telegram_data.id}`,
+          options: {
+            emailRedirectTo: `${window.location.origin}/`,
+            data: {
+              auth_method: 'telegram',
+              telegram_id: data.telegram_data.id,
+              full_name: fullName,
+              photo_url: data.telegram_data.photo_url,
+              telegram: data.telegram_data.username
+            }
+          }
+        });
+
+        if (signUpError) {
+          throw signUpError;
+        }
+
+        if (!signUpResult.session) {
+          throw new Error('No session created after sign up');
+        }
       }
 
       toast.dismiss();
