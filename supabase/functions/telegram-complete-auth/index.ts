@@ -273,7 +273,6 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     
     let user;
     let authResult;
-    let isNewUser = false;
     
     if (existingProfile) {
       console.log('🔍 Found existing user by telegram_id:', existingProfile.id);
@@ -376,13 +375,9 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       } else {
         console.log('🆕 Creating new user...');
         
-        // Generate temporary password for new user
-        const tempPassword = `tg_${telegramId}_${Date.now()}`;
-        
-        // Create new user using admin client - set as buyer by default
+        // Create new user using admin client
         const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
           email: email,
-          password: tempPassword,
           email_confirm: true,
           user_metadata: {
             auth_method: 'telegram',
@@ -412,41 +407,12 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
         
         user = userData.user;
         console.log('✅ User created successfully:', user.id);
-        
-        // Return credentials for new user
-        const authResult = {
-          success: true,
-          email: user.email,
-          password: tempPassword,
-          user_data: {
-            id: user.id,
-            email: user.email,
-            user_metadata: user.user_metadata || user.raw_user_meta_data,
-            telegram_data: {
-              id: telegramData.id,
-              first_name: telegramData.first_name,
-              last_name: telegramData.last_name,
-              username: telegramData.username,
-              photo_url: telegramData.photo_url
-            }
-          }
-        };
-        
-        console.log('✅ Returning credentials for new user');
-        
-        return new Response(
-          JSON.stringify(authResult),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 200 
-          }
-        );
       }
     }
     
-    // For existing users, generate temporary password for client-side authentication
+    // Generate temporary password for client-side authentication
     const tempPassword = `tg_${telegramData.id}_${Date.now()}`;
-    console.log('Generated temporary password for existing user');
+    console.log('Generated temporary password for Telegram user');
     
     // Update user with temporary password using Admin API
     const { data: updateData, error: updateError } = await adminClient.auth.admin.updateUserById(
@@ -468,9 +434,9 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       );
     }
 
-    console.log('Temporary password set successfully for existing user:', user.id);
+    console.log('Temporary password set successfully for user:', user.id);
     
-    // Return user data for automatic sign-in
+    // Return user data and temporary password for client-side authentication
     authResult = {
       success: true,
       email: user.email,
@@ -478,14 +444,7 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       user_data: {
         id: user.id,
         email: user.email,
-        user_metadata: user.user_metadata || user.raw_user_meta_data,
-        telegram_data: {
-          id: telegramData.id,
-          first_name: telegramData.first_name,
-          last_name: telegramData.last_name,
-          username: telegramData.username,
-          photo_url: telegramData.photo_url
-        }
+        user_metadata: user.user_metadata || user.raw_user_meta_data
       }
     };
     

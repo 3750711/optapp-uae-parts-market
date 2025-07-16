@@ -16,7 +16,6 @@ import { useRateLimit } from '@/hooks/useRateLimit';
 import TelegramLoginButton from '@/components/auth/TelegramLoginButton';
 
 
-
 const Login = () => {
   const [loginInput, setLoginInput] = useState('');
   const [password, setPassword] = useState('');
@@ -73,7 +72,6 @@ const Login = () => {
     setError(error);
   };
 
-
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -129,7 +127,6 @@ const Login = () => {
       setIsLoading(false);
     }
   };
-
 
   return (
     <Layout>
