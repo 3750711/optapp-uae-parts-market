@@ -410,20 +410,48 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       }
     }
     
-    // Generate session using magic link
-    console.log('Generating magic link for user:', user.id);
+    // Create session directly instead of using magic link
+    console.log('Creating session for user:', user.id);
     
-    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-      type: 'magiclink',
-      email: user.email!
+    const { data: sessionData, error: sessionError } = await adminClient.auth.admin.createSession({
+      user_id: user.id,
+      session: {
+        expires_in: 3600 // 1 hour
+      }
     });
     
-    if (linkError) {
-      console.error('Error generating magic link:', linkError);
+    if (sessionError) {
+      console.error('Session creation error:', sessionError);
       return new Response(
         JSON.stringify({ 
           error: 'Failed to create session',
-          details: linkError.message
+          details: sessionError.message
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
+      );
+    }
+
+    console.log('Session created successfully:', {
+      hasAccessToken: !!sessionData.access_token,
+      hasRefreshToken: !!sessionData.refresh_token,
+      hasUser: !!sessionData.user,
+      accessTokenLength: sessionData.access_token?.length || 0,
+      refreshTokenLength: sessionData.refresh_token?.length || 0
+    });
+
+    // Ensure we have the required tokens
+    if (!sessionData.access_token || !sessionData.refresh_token) {
+      console.error('Missing tokens in session data. SessionData:', {
+        hasAccessToken: !!sessionData.access_token,
+        hasRefreshToken: !!sessionData.refresh_token,
+        sessionKeys: Object.keys(sessionData || {})
+      });
+      return new Response(
+        JSON.stringify({ 
+          error: 'Session creation failed: missing authentication tokens'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -434,8 +462,8 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     
     authResult = {
       success: true,
-      access_token: linkData.properties?.access_token,
-      refresh_token: linkData.properties?.refresh_token,
+      access_token: sessionData.access_token,
+      refresh_token: sessionData.refresh_token,
       user_data: {
         id: user.id,
         email: user.email,
