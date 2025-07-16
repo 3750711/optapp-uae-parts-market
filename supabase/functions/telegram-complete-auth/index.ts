@@ -273,6 +273,7 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     
     let user;
     let authResult;
+    let isNewUser = false;
     
     if (existingProfile) {
       console.log('🔍 Found existing user by telegram_id:', existingProfile.id);
@@ -374,8 +375,9 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
         
       } else {
         console.log('🆕 Creating new user...');
+        isNewUser = true;
         
-        // Create new user using admin client
+        // Create new user using admin client - without user_type and with profile_completed: false
         const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
           email: email,
           email_confirm: true,
@@ -386,8 +388,8 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
             telegram_first_name: telegramData.first_name,
             telegram_last_name: telegramData.last_name,
             photo_url: telegramData.photo_url,
-            full_name: fullName,
-            user_type: 'buyer'
+            full_name: fullName
+            // Note: user_type is not set for new users - they need to complete registration
           }
         });
         
@@ -436,15 +438,23 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
 
     console.log('Temporary password set successfully for user:', user.id);
     
-    // Return user data and temporary password for client-side authentication
+    // Return user data and registration status
     authResult = {
       success: true,
+      is_new_user: isNewUser,
       email: user.email,
       password: tempPassword,
       user_data: {
         id: user.id,
         email: user.email,
-        user_metadata: user.user_metadata || user.raw_user_meta_data
+        user_metadata: user.user_metadata || user.raw_user_meta_data,
+        telegram_data: {
+          id: telegramData.id,
+          first_name: telegramData.first_name,
+          last_name: telegramData.last_name,
+          username: telegramData.username,
+          photo_url: telegramData.photo_url
+        }
       }
     };
     

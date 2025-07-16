@@ -19,7 +19,7 @@ interface TelegramRegistrationFormProps {
   userId: string;
   authTokens?: {
     email: string;
-    temp_password: string;
+    password: string;
   } | null;
   onComplete: () => void;
   onError: (error: string) => void;
@@ -56,64 +56,43 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
         throw new Error('Имя обязательно для заполнения');
       }
 
-      console.log('🚀 Starting Telegram registration process with frontend...');
+      console.log('🚀 Completing Telegram user registration...');
       
-      // Generate email from Telegram data
-      const generateEmailFromTelegram = (telegramData: any): string => {
-        const telegramId = telegramData.id;
-        
-        // Try username first (if available and valid)
-        if (telegramData.username && telegramData.username.trim().length > 0) {
-          const cleanUsername = telegramData.username.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-          if (cleanUsername.length >= 3) {
-            return `${cleanUsername}.${telegramId}@telegram.partsbay.ae`;
-          }
-        }
-        
-        // Fallback to first_name + telegram_id
-        if (telegramData.first_name && telegramData.first_name.trim().length > 0) {
-          const cleanFirstName = telegramData.first_name.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-          if (cleanFirstName.length >= 2) {
-            return `${cleanFirstName}.${telegramId}@telegram.partsbay.ae`;
-          }
-        }
-        
-        // Ultimate fallback
-        return `user.${telegramId}@telegram.partsbay.ae`;
-      };
-
-      const generatedEmail = generateEmailFromTelegram(telegramUser);
-      console.log('Generated email:', generatedEmail);
-
-      // Use supabase.auth.signUp with metadata - this will trigger the handle_new_user trigger
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: generatedEmail,
-        password: crypto.randomUUID() + Date.now().toString(), // Random password
-        options: {
-          data: {
-            auth_method: 'telegram',
-            telegram_id: telegramUser.id,
-            telegram_username: telegramUser.username,
-            telegram_first_name: telegramUser.first_name,
-            telegram_last_name: telegramUser.last_name,
-            photo_url: telegramUser.photo_url,
-            full_name: formData.full_name.trim(),
-            user_type: formData.user_type
-          }
+      // Update the existing user's metadata with registration completion data
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          auth_method: 'telegram',
+          telegram_id: telegramUser.id,
+          telegram_username: telegramUser.username,
+          telegram_first_name: telegramUser.first_name,
+          telegram_last_name: telegramUser.last_name,
+          photo_url: telegramUser.photo_url,
+          full_name: formData.full_name.trim(),
+          user_type: formData.user_type
         }
       });
 
-      if (signUpError) {
-        console.error('❌ Sign up error:', signUpError);
-        throw new Error(`Ошибка при регистрации: ${signUpError.message}`);
+      if (updateError) {
+        console.error('❌ Update user error:', updateError);
+        throw new Error(`Ошибка при обновлении профиля: ${updateError.message}`);
       }
 
-      if (!authData.user) {
-        throw new Error('Пользователь не был создан');
+      // Update the profile in the database to mark as completed
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.full_name.trim(),
+          user_type: formData.user_type,
+          profile_completed: true
+        })
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('❌ Profile update error:', profileError);
+        throw new Error(`Ошибка при обновлении профиля: ${profileError.message}`);
       }
 
-      console.log('✅ User created successfully:', authData.user.id);
-      
+      console.log('✅ Registration completed successfully');
       onComplete();
 
     } catch (error) {

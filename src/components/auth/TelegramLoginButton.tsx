@@ -66,26 +66,40 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
           }
 
           if (data?.success && data?.email && data?.password) {
-            console.log('Telegram verification successful, signing in with password...');
+            console.log('Telegram verification successful');
             
-            // Use the email and temporary password to sign in via Supabase auth
-            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-              email: data.email,
-              password: data.password
-            });
-
-            if (authError) {
-              console.error('Supabase sign in error:', authError);
-              onError(authError.message || 'Sign in failed');
-              return;
-            }
-
-            if (authData?.session) {
-              console.log('Telegram authentication successful:', authData);
-              onAuth(user, authData);
+            if (data.is_new_user) {
+              console.log('New user detected, registration completion required');
+              // For new users, pass the auth data without signing in
+              onAuth(user, {
+                is_new_user: true,
+                user_data: data.user_data,
+                auth_tokens: {
+                  email: data.email,
+                  password: data.password
+                }
+              });
             } else {
-              console.error('No session created');
-              onError('Failed to create session');
+              console.log('Existing user, signing in with password...');
+              // For existing users, sign in normally
+              const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email: data.email,
+                password: data.password
+              });
+
+              if (authError) {
+                console.error('Supabase sign in error:', authError);
+                onError(authError.message || 'Sign in failed');
+                return;
+              }
+
+              if (authData?.session) {
+                console.log('Telegram authentication successful:', authData);
+                onAuth(user, authData);
+              } else {
+                console.error('No session created');
+                onError('Failed to create session');
+              }
             }
           } else {
             console.error('Telegram authentication failed:', data);
