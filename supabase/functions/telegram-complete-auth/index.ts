@@ -55,9 +55,9 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
   return hashHex === hash;
 }
 
-// Функция обработки Telegram авторизации через готовую сессию
+// Функция обработки Telegram авторизации через Magic Links
 async function handleTelegramAuth(telegramData: TelegramAuthData): Promise<Response> {
-  console.log('🚀 Starting Telegram auth with session...');
+  console.log('🚀 Starting Telegram auth with Magic Links...');
   console.log('📱 Telegram ID:', telegramData.id);
   
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -65,7 +65,8 @@ async function handleTelegramAuth(telegramData: TelegramAuthData): Promise<Respo
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')!;
 
-  // Создаем admin клиент для управления пользователями
+  // Создаем клиенты
+  const publicSupabase = createClient(supabaseUrl, supabaseAnonKey);
   const adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
@@ -96,7 +97,7 @@ async function handleTelegramAuth(telegramData: TelegramAuthData): Promise<Respo
     console.log('📧 Generated email:', email);
     console.log('👤 Generated name:', fullName);
 
-    // 3. Проверяем/создаем пользователя
+    // 3. Проверяем существует ли пользователь
     const { data: existingUsers } = await adminSupabase.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find(user => user.email === email);
     
@@ -131,68 +132,86 @@ async function handleTelegramAuth(telegramData: TelegramAuthData): Promise<Respo
       console.log('👤 User already exists');
     }
 
-    // 4. Создаем сессию для пользователя
-    console.log('🎫 Creating session...');
-    const { data: sessionData, error: sessionError } = await adminSupabase.auth.admin.createSession({
-      provider_token: null,
-      provider_refresh_token: null
+    // 4. Генерируем Magic Link для создания сессии
+    console.log('🔗 Generating magic link...');
+    const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email
     });
 
-    if (sessionError) {
-      console.error('❌ Session creation failed:', sessionError);
-      // Fallback: генерируем access token через generateLink
-      console.log('🔄 Trying generateLink approach...');
-      const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
-        type: 'magiclink',
-        email
-      });
-
-      if (linkError) {
-        console.error('❌ Link generation failed:', linkError);
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Failed to create session'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // Возвращаем токены из магической ссылки
+    if (linkError) {
+      console.error('❌ Magic link generation failed:', linkError);
       return new Response(JSON.stringify({
-        success: true,
-        user: {
-          id: linkData.user.id,
-          email: linkData.user.email,
-          user_metadata: linkData.user.user_metadata
-        },
-        session: {
-          access_token: linkData.session?.access_token || '',
-          refresh_token: linkData.session?.refresh_token || '',
-          expires_in: linkData.session?.expires_in || 3600,
-          token_type: linkData.session?.token_type || 'bearer'
-        }
+        success: false,
+        error: 'Failed to generate authentication link'
       }), {
-        status: 200,
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('✅ Session created');
+    console.log('✅ Magic link generated successfully');
 
-    // 5. Возвращаем готовую сессию
+    // 5. Создаем и сохраняем профиль пользователя если это новый пользователь
+    if (!existingUser) {
+      console.log('👤 Creating user profile...');
+      const userId = linkData.user.id;
+      
+      const { error: profileError } = await adminSupabase
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: email,
+          full_name: fullName,
+          auth_method: 'telegram',
+          telegram_id: telegramData.id,
+          telegram_username: telegramData.username,
+          telegram_first_name: telegramData.first_name,
+          telegram_photo_url: telegramData.photo_url,
+          user_type: 'buyer',
+          verification_status: 'verified',
+          first_login_completed: true,
+          profile_completed: true
+        }, {
+          onConflict: 'id'
+        });
+
+      if (profileError) {
+        console.error('❌ Profile creation failed:', profileError);
+        // Не прерываем процесс, так как пользователь уже создан
+      } else {
+        console.log('✅ Profile created');
+      }
+    }
+
+    // 6. Возвращаем сессию из Magic Link
+    const session = linkData.session;
+    if (!session) {
+      console.error('❌ No session in magic link response');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Failed to create session'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('✅ Session ready');
+
     return new Response(JSON.stringify({
       success: true,
       user: {
-        id: sessionData.user.id,
-        email: sessionData.user.email,
-        user_metadata: sessionData.user.user_metadata
+        id: linkData.user.id,
+        email: linkData.user.email,
+        user_metadata: linkData.user.user_metadata
       },
       session: {
-        access_token: sessionData.session.access_token,
-        refresh_token: sessionData.session.refresh_token,
-        expires_in: sessionData.session.expires_in,
-        token_type: sessionData.session.token_type
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+        expires_in: session.expires_in,
+        token_type: session.token_type,
+        expires_at: session.expires_at
       }
     }), {
       status: 200,
