@@ -56,14 +56,13 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
 }
 
 // Функция обработки Telegram авторизации через Magic Links
-async function handleTelegramAuth(telegramData: TelegramAuthData): Promise<Response> {
+async function handleTelegramAuth(telegramData: TelegramAuthData, botToken: string): Promise<Response> {
   console.log('🚀 Starting Telegram auth with Magic Links...');
   console.log('📱 Telegram ID:', telegramData.id);
   
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')!;
 
   // Создаем клиенты
   const publicSupabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -264,18 +263,19 @@ serve(async (req: Request) => {
       telegramData = await req.json();
       console.log('✅ Parsed as JSON');
     } else if (contentType.includes('application/x-www-form-urlencoded')) {
-      // Form data format
-      const formData = await req.formData();
+      // Form data format - handle properly for Telegram Widget
+      const text = await req.text();
+      const params = new URLSearchParams(text);
       telegramData = {
-        id: parseInt(formData.get('id') as string),
-        first_name: formData.get('first_name') as string || undefined,
-        last_name: formData.get('last_name') as string || undefined,
-        username: formData.get('username') as string || undefined,
-        photo_url: formData.get('photo_url') as string || undefined,
-        auth_date: parseInt(formData.get('auth_date') as string),
-        hash: formData.get('hash') as string
+        id: parseInt(params.get('id') as string),
+        first_name: params.get('first_name') || undefined,
+        last_name: params.get('last_name') || undefined,
+        username: params.get('username') || undefined,
+        photo_url: params.get('photo_url') || undefined,
+        auth_date: parseInt(params.get('auth_date') as string),
+        hash: params.get('hash') as string
       };
-      console.log('✅ Parsed as form data');
+      console.log('✅ Parsed as form-urlencoded data');
     } else {
       // Try to parse as text and then as JSON
       const rawBody = await req.text();
@@ -304,7 +304,21 @@ serve(async (req: Request) => {
       hasHash: !!telegramData.hash
     });
 
-    return await handleTelegramAuth(telegramData);
+    // Check if bot token is available
+    const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+    if (!botToken) {
+      console.error('❌ TELEGRAM_BOT_TOKEN not found in environment variables');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Server configuration error',
+        details: 'Missing bot token'
+      }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    return await handleTelegramAuth(telegramData, botToken);
     
   } catch (error) {
     console.error('❌ Request processing error:', error);
