@@ -73,7 +73,7 @@ serve(async (req) => {
       .from('profiles')
       .select('id, email')
       .eq('telegram_id', authData.id)
-      .single()
+      .maybeSingle()
 
     let email: string
     let tempPassword: string
