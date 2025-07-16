@@ -30,29 +30,59 @@ function generateFullName(telegramData: TelegramAuthData): string {
   return `${firstName} ${lastName}`.trim() || telegramData.username || `User ${telegramData.id}`;
 }
 
-// Функция проверки подписи Telegram
+// Функция проверки подписи Telegram согласно официальной документации
 async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string): Promise<boolean> {
-  const hash = authData.hash;
-  const dataCheckString = Object.keys(authData)
-    .filter(key => key !== 'hash')
+  const { hash, ...dataWithoutHash } = authData;
+  
+  // Проверяем auth_date (данные не должны быть старше 1 дня)
+  const authTime = authData.auth_date * 1000; // Конвертируем в миллисекунды
+  const now = Date.now();
+  const oneDayInMs = 24 * 60 * 60 * 1000;
+  
+  if (now - authTime > oneDayInMs) {
+    console.log('❌ Auth data is too old:', new Date(authTime));
+    return false;
+  }
+  
+  // Создаем строку данных для проверки (сортированную по ключу)
+  const dataString = Object.keys(dataWithoutHash)
     .sort()
-    .map(key => `${key}=${authData[key as keyof TelegramAuthData]}`)
+    .filter(key => dataWithoutHash[key as keyof typeof dataWithoutHash] !== undefined)
+    .map(key => `${key}=${dataWithoutHash[key as keyof typeof dataWithoutHash]}`)
     .join('\n');
-
+  
+  console.log('🔍 Verification data string:', dataString);
+  
+  // Создаем секретный ключ из токена бота
   const encoder = new TextEncoder();
-  const secretKey = await crypto.subtle.importKey(
+  const secretKeyData = await crypto.subtle.importKey(
     'raw',
-    await crypto.subtle.digest('SHA-256', encoder.encode(botToken)),
+    encoder.encode('WebAppData'),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign']
   );
-
-  const signature = await crypto.subtle.sign('HMAC', secretKey, encoder.encode(dataCheckString));
-  const hashArray = Array.from(new Uint8Array(signature));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-  return hashHex === hash;
+  
+  const secretKey = await crypto.subtle.sign('HMAC', secretKeyData, encoder.encode(botToken));
+  
+  // Создаем HMAC-SHA256 хэш используя секретный ключ
+  const hashKeyData = await crypto.subtle.importKey(
+    'raw',
+    secretKey,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  const signature = await crypto.subtle.sign('HMAC', hashKeyData, encoder.encode(dataString));
+  const expectedHash = Array.from(new Uint8Array(signature))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+  
+  console.log('🔍 Expected hash:', expectedHash);
+  console.log('🔍 Received hash:', hash);
+  
+  return expectedHash === hash;
 }
 
 // Функция обработки Telegram авторизации через Magic Links
@@ -79,13 +109,7 @@ async function handleTelegramAuth(telegramData: TelegramAuthData, botToken: stri
     const isValid = await verifyTelegramAuth(telegramData, botToken);
     if (!isValid) {
       console.log('❌ Invalid Telegram signature');
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Invalid Telegram signature'
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return createErrorPageResponse('Invalid Telegram signature', 'The authentication data could not be verified. Please try again.');
     }
     console.log('✅ Signature verified');
 
@@ -117,13 +141,7 @@ async function handleTelegramAuth(telegramData: TelegramAuthData, botToken: stri
 
       if (createError) {
         console.error('❌ User creation failed:', createError);
-        return new Response(JSON.stringify({
-          success: false,
-          error: createError.message
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return createErrorPageResponse('Account creation failed', 'Could not create your account. Please try again.');
       }
       
       console.log('✅ User created:', newUser.user?.id);
@@ -140,13 +158,7 @@ async function handleTelegramAuth(telegramData: TelegramAuthData, botToken: stri
 
     if (linkError) {
       console.error('❌ Magic link generation failed:', linkError);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Failed to generate authentication link'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return createErrorPageResponse('Authentication failed', 'Could not generate authentication token. Please try again.');
     }
 
     console.log('✅ Magic link generated successfully');
@@ -187,19 +199,13 @@ async function handleTelegramAuth(telegramData: TelegramAuthData, botToken: stri
     const session = linkData.session;
     if (!session) {
       console.error('❌ No session in magic link response');
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Failed to create session'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return createErrorPageResponse('Session error', 'Could not create user session. Please try again.');
     }
 
     console.log('✅ Session ready');
 
-    return new Response(JSON.stringify({
-      success: true,
+    // Возвращаем HTML страницу с JavaScript для закрытия popup и передачи данных
+    return createSuccessPageResponse({
       user: {
         id: linkData.user.id,
         email: linkData.user.email,
@@ -212,21 +218,137 @@ async function handleTelegramAuth(telegramData: TelegramAuthData, botToken: stri
         token_type: session.token_type,
         expires_at: session.expires_at
       }
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
     console.error('❌ Unexpected error:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return createErrorPageResponse('Unexpected error', 'An unexpected error occurred. Please try again.');
   }
+}
+
+// Создает HTML страницу для успешной авторизации
+function createSuccessPageResponse(data: { user: any; session: any }): Response {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Telegram Login Success</title>
+      <style>
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          margin: 0;
+          background: #f5f5f5;
+        }
+        .container {
+          text-align: center;
+          background: white;
+          padding: 40px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success { color: #28a745; font-size: 24px; margin-bottom: 16px; }
+        .message { color: #666; margin-bottom: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="success">✅ Authentication Successful</div>
+        <div class="message">You can now close this window.</div>
+      </div>
+      <script>
+        try {
+          // Send success message to parent window
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'TELEGRAM_AUTH_SUCCESS',
+              user: ${JSON.stringify(data.user)},
+              session: ${JSON.stringify(data.session)}
+            }, 'https://partsbay.ae');
+            window.close();
+          } else {
+            console.log('No opener window found');
+          }
+        } catch (error) {
+          console.error('Error sending message to parent:', error);
+        }
+      </script>
+    </body>
+    </html>
+  `;
+  
+  return new Response(html, {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'text/html' }
+  });
+}
+
+// Создает HTML страницу для ошибки авторизации
+function createErrorPageResponse(title: string, message: string): Response {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Telegram Login Error</title>
+      <style>
+        body { 
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          margin: 0;
+          background: #f5f5f5;
+        }
+        .container {
+          text-align: center;
+          background: white;
+          padding: 40px;
+          border-radius: 8px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .error { color: #dc3545; font-size: 24px; margin-bottom: 16px; }
+        .message { color: #666; margin-bottom: 20px; }
+        .retry { 
+          background: #007bff; 
+          color: white; 
+          border: none; 
+          padding: 10px 20px; 
+          border-radius: 4px; 
+          cursor: pointer;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="error">❌ ${title}</div>
+        <div class="message">${message}</div>
+        <button class="retry" onclick="window.close()">Close Window</button>
+      </div>
+      <script>
+        try {
+          // Send error message to parent window
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'TELEGRAM_AUTH_ERROR',
+              error: '${title}: ${message}'
+            }, 'https://partsbay.ae');
+          }
+        } catch (error) {
+          console.error('Error sending message to parent:', error);
+        }
+      </script>
+    </body>
+    </html>
+  `;
+  
+  return new Response(html, {
+    status: 400,
+    headers: { ...corsHeaders, 'Content-Type': 'text/html' }
+  });
 }
 
 serve(async (req: Request) => {

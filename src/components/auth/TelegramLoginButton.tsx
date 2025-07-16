@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface TelegramUser {
   id: number;
@@ -21,14 +20,6 @@ interface TelegramLoginButtonProps {
   requestAccess?: 'write';
 }
 
-declare global {
-  interface Window {
-    TelegramLoginWidget: {
-      dataOnAuth: (user: TelegramUser) => void;
-    };
-  }
-}
-
 const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
   botUsername,
   onAuth,
@@ -48,55 +39,25 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
     console.log('Protocol:', window.location.protocol);
     console.log('Bot username:', botUsername);
 
-    // Define the callback function for Telegram widget
-    window.TelegramLoginWidget = {
-      dataOnAuth: async (user: TelegramUser) => {
-        try {
-          console.log('Telegram auth data received:', user);
-          
-          // Send auth data to our Edge Function for verification and user creation
-          const { data, error } = await supabase.functions.invoke('telegram-complete-auth', {
-            body: user
-          });
-
-          if (error) {
-            console.error('Telegram auth error:', error);
-            onError(error.message || 'Authentication failed');
-            return;
-          }
-
-          if (data?.success && data?.session) {
-            console.log('✅ Telegram verification successful, setting session...');
-            
-            // Set the session returned by the Edge Function
-            const { data: authData, error: authError } = await supabase.auth.setSession({
-              access_token: data.session.access_token,
-              refresh_token: data.session.refresh_token
-            });
-
-            if (authError) {
-              console.error('❌ Session setting failed:', authError);
-              onError(`Session failed: ${authError.message}`);
-              return;
-            }
-
-            if (authData?.session) {
-              console.log('✅ Authentication complete');
-              onAuth(user, authData);
-            } else {
-              console.error('❌ No session created');
-              onError('Failed to create session');
-            }
-          } else {
-            console.error('❌ Edge Function failed:', data);
-            onError(data?.error || 'Authentication failed');
-          }
-        } catch (error) {
-          console.error('Error during Telegram authentication:', error);
-          onError('Authentication failed. Please try again.');
-        }
+    // Message listener for popup communication
+    const handleMessage = (event: MessageEvent) => {
+      // Check origin for security
+      if (event.origin !== 'https://vfiylfljiixqkjfqubyq.supabase.co') {
+        return;
+      }
+      
+      console.log('Received message from popup:', event.data);
+      
+      if (event.data.type === 'TELEGRAM_AUTH_SUCCESS') {
+        console.log('✅ Authentication successful from popup');
+        onAuth(event.data.user, { session: event.data.session });
+      } else if (event.data.type === 'TELEGRAM_AUTH_ERROR') {
+        console.error('❌ Authentication error from popup:', event.data.error);
+        onError(event.data.error || 'Authentication failed');
       }
     };
+    
+    window.addEventListener('message', handleMessage);
 
     // Create and append the Telegram widget script
     const script = document.createElement('script');
@@ -106,7 +67,7 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
     script.setAttribute('data-size', size);
     script.setAttribute('data-radius', cornerRadius.toString());
     script.setAttribute('data-request-access', requestAccess);
-    script.setAttribute('data-onauth', 'TelegramLoginWidget.dataOnAuth(user)');
+    script.setAttribute('data-auth-url', 'https://vfiylfljiixqkjfqubyq.supabase.co/functions/v1/telegram-complete-auth');
 
     // Add error handling for script loading
     script.onerror = () => {
@@ -138,7 +99,7 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
       if (widgetRef.current && script.parentNode) {
         script.parentNode.removeChild(script);
       }
-      delete window.TelegramLoginWidget;
+      window.removeEventListener('message', handleMessage);
     };
   }, [botUsername, size, cornerRadius, requestAccess, onAuth, onError]);
 
