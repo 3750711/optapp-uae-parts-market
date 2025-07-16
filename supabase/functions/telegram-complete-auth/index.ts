@@ -337,32 +337,84 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
 }
 
 serve(async (req: Request) => {
+  console.log('🚀 Starting improved Telegram auth...');
+  console.log('📝 Request method:', req.method);
+  console.log('📝 Content-Type:', req.headers.get('content-type'));
+  console.log('📝 User-Agent:', req.headers.get('user-agent'));
+  console.log('📝 Request URL:', req.url);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('⚡ Handling CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
+    console.log('❌ Invalid method:', req.method);
     return new Response(JSON.stringify({
       success: false,
       error: 'Method not allowed'
     }), { 
       status: 405, 
-      headers: corsHeaders 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 
   try {
-    const telegramData = await req.json();
+    console.log('📝 Attempting to read request body...');
+    
+    // Get content length
+    const contentLength = req.headers.get('content-length');
+    console.log('📝 Content-Length:', contentLength);
+    
+    // Get raw text first to see what we're receiving
+    const rawBody = await req.text();
+    console.log('📝 Raw body length:', rawBody.length);
+    console.log('📝 Raw body preview (first 500 chars):', rawBody.substring(0, 500));
+    
+    if (!rawBody || rawBody.trim().length === 0) {
+      console.log('❌ Empty request body');
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Empty request body'
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Try to parse as JSON
+    let telegramData;
+    try {
+      telegramData = JSON.parse(rawBody);
+      console.log('✅ JSON parsed successfully');
+      console.log('📝 Telegram data keys:', Object.keys(telegramData));
+      console.log('📝 Telegram data:', JSON.stringify(telegramData, null, 2));
+    } catch (parseError) {
+      console.error('❌ JSON parse error:', parseError);
+      console.log('📝 Raw body that failed to parse:', rawBody);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Invalid JSON in request body',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parse error',
+        receivedData: rawBody.substring(0, 200)
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     return await handleTelegramCompleteAuth(telegramData);
   } catch (error) {
     console.error('❌ Request parsing error:', error);
+    console.log('📝 Error details:', error instanceof Error ? error.stack : error);
     return new Response(JSON.stringify({
       success: false,
-      error: 'Invalid request format'
+      error: 'Invalid request format',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), { 
       status: 400, 
-      headers: corsHeaders 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
