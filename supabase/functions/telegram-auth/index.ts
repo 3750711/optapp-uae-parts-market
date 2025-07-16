@@ -254,12 +254,14 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     // Convert to string to handle bigint properly and add detailed logging
     const telegramIdStr = telegramId.toString();
     console.log('Checking for existing user with telegram_id:', telegramId, 'as string:', telegramIdStr);
-    console.log('Using query: profiles.telegram_id =', telegramIdStr);
+    console.log('Raw telegram_id type:', typeof telegramId);
+    console.log('Using SQL query with type casting: telegram_id::text =', telegramIdStr);
     
+    // Use explicit type casting in SQL to handle bigint properly
     const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
       .select('id, email, profile_completed, full_name, avatar_url')
-      .eq('telegram_id', telegramIdStr)
+      .eq('telegram_id::text', telegramIdStr)
       .maybeSingle();
     
     if (profileError && profileError.code !== 'PGRST116') {
@@ -276,6 +278,9 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       );
     }
     
+    console.log('Profile search result:', existingProfile);
+    console.log('Profile search error:', profileError);
+    
     if (existingProfile) {
       console.log('🔍 Found existing user:', {
         id: existingProfile.id,
@@ -285,24 +290,28 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       
       // For existing users, return user data without login credentials
       // The frontend will handle the sign up/sign in process
+      const responseData = {
+        success: true,
+        is_existing_user: true,
+        profile_completed: Boolean(existingProfile.profile_completed),
+        user_data: {
+          email: existingProfile.email,
+          full_name: existingProfile.full_name,
+          avatar_url: existingProfile.avatar_url
+        },
+        telegram_data: {
+          id: telegramId,
+          first_name: telegramData.first_name,
+          last_name: telegramData.last_name,
+          username: telegramData.username,
+          photo_url: telegramData.photo_url
+        }
+      };
+      
+      console.log('Returning response for existing user:', responseData);
+      
       return new Response(
-        JSON.stringify({
-          success: true,
-          is_existing_user: true,
-          profile_completed: Boolean(existingProfile.profile_completed),
-          user_data: {
-            email: existingProfile.email,
-            full_name: existingProfile.full_name,
-            avatar_url: existingProfile.avatar_url
-          },
-          telegram_data: {
-            id: telegramId,
-            first_name: telegramData.first_name,
-            last_name: telegramData.last_name,
-            username: telegramData.username,
-            photo_url: telegramData.photo_url
-          }
-        }),
+        JSON.stringify(responseData),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
           status: 200 
