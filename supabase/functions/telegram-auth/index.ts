@@ -245,20 +245,98 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     const telegramId = typeof telegramData.id === 'string' ? parseInt(telegramData.id) : telegramData.id;
     console.log('Processed telegram_id:', telegramId);
     
-    // Create public client for user lookup (no service role key needed)
+    // Create clients
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const publicClient = createClient(supabaseUrl, supabaseKey);
     
-    // Check if user already exists by telegram_id (using public client)
+    const email = generateEmailFromTelegram(telegramData);
+    console.log(`Checking for existing user by email: ${email}`);
+    
+    // First check auth.users using service role if available
+    if (serviceRoleKey) {
+      const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+      
+      try {
+        const { data: authUser, error: authError } = await serviceClient.auth.admin.getUserByEmail(email);
+        
+        if (!authError && authUser) {
+          console.log('Auth.users search result: Found');
+          console.log('Telegram ID for reference:', telegramId, 'type:', typeof telegramId);
+          
+          // User exists in auth.users, check if profile exists
+          const { data: existingProfile, error: profileError } = await publicClient
+            .from('profiles')
+            .select('id, email, profile_completed, full_name, avatar_url, user_type')
+            .eq('id', authUser.user.id)
+            .maybeSingle();
+
+          console.log('Profile search result:', existingProfile ? 'Found' : 'null');
+
+          if (!existingProfile && !profileError) {
+            // User exists in auth.users but not in profiles, recreate profile...
+            console.log('🔧 User exists in auth.users but not in profiles, recreating profile...');
+            
+            const fullName = generateFullName(telegramData);
+            const { error: createProfileError } = await serviceClient
+              .from('profiles')
+              .insert({
+                id: authUser.user.id,
+                email: email,
+                auth_method: 'telegram',
+                full_name: fullName,
+                telegram_id: telegramId,
+                telegram: telegramData.username,
+                avatar_url: telegramData.photo_url,
+                user_type: 'buyer'
+              });
+
+            if (createProfileError) {
+              console.error('Error recreating profile:', createProfileError);
+            }
+          }
+
+          // Return existing user data
+          return new Response(
+            JSON.stringify({
+              success: true,
+              is_existing_user: true,
+              profile_completed: Boolean(existingProfile?.profile_completed),
+              user_data: {
+                email: email,
+                full_name: existingProfile?.full_name || generateFullName(telegramData),
+                avatar_url: existingProfile?.avatar_url || telegramData.photo_url,
+                user_type: existingProfile?.user_type || 'buyer'
+              },
+              telegram_data: {
+                id: telegramId,
+                first_name: telegramData.first_name,
+                last_name: telegramData.last_name,
+                username: telegramData.username,
+                photo_url: telegramData.photo_url
+              }
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 200 
+            }
+          );
+        }
+      } catch (authCheckError) {
+        console.log('Auth check error (user may not exist):', authCheckError.message);
+      }
+    }
+    
+    // Check if user already exists by telegram_id as fallback
     console.log('Checking for existing user with telegram_id:', telegramId);
     const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
-      .select('id, email, profile_completed, full_name, avatar_url')
+      .select('id, email, profile_completed, full_name, avatar_url, user_type')
       .eq('telegram_id', telegramId)
-      .single();
+      .maybeSingle();
     
-    if (profileError && profileError.code !== 'PGRST116') {
+    if (profileError) {
       console.error('Error checking existing profile:', profileError);
       return new Response(
         JSON.stringify({ 
@@ -273,14 +351,12 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     }
     
     if (existingProfile) {
-      console.log('🔍 Found existing user:', {
+      console.log('🔍 Found existing user by telegram_id:', {
         id: existingProfile.id,
         email: existingProfile.email,
         profile_completed: existingProfile.profile_completed
       });
       
-      // For existing users, return user data without login credentials
-      // The frontend will handle the sign up/sign in process
       return new Response(
         JSON.stringify({
           success: true,
@@ -289,7 +365,8 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
           user_data: {
             email: existingProfile.email,
             full_name: existingProfile.full_name,
-            avatar_url: existingProfile.avatar_url
+            avatar_url: existingProfile.avatar_url,
+            user_type: existingProfile.user_type || 'buyer'
           },
           telegram_data: {
             id: telegramId,
@@ -321,7 +398,11 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
             username: telegramData.username,
             photo_url: telegramData.photo_url,
             auth_date: telegramData.auth_date,
-            hash: telegramData.hash
+            hash: telegramData.hash,
+            email: email,
+            full_name: generateFullName(telegramData),
+            auth_method: 'telegram',
+            user_type: 'buyer'
           }
         }),
         { 

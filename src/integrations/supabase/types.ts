@@ -1301,6 +1301,10 @@ export type Database = {
         Args: { "": string }
         Returns: string[]
       }
+      sync_orphaned_telegram_users_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_order_media: {
         Args: {
           p_order_id: string
