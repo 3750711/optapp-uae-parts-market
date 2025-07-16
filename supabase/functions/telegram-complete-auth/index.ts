@@ -363,15 +363,65 @@ serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Handle GET requests (from Telegram Widget with data-auth-url)
+  if (req.method === 'GET') {
+    try {
+      const url = new URL(req.url);
+      const searchParams = url.searchParams;
+      
+      console.log('📝 GET parameters:', Object.fromEntries(searchParams.entries()));
+      
+      // Extract and decode Telegram auth data from URL parameters
+      const telegramData: TelegramAuthData = {
+        id: parseInt(searchParams.get('id') || '0'),
+        first_name: searchParams.get('first_name') || undefined,
+        last_name: searchParams.get('last_name') || undefined,
+        username: searchParams.get('username') || undefined,
+        photo_url: searchParams.get('photo_url') || undefined,
+        auth_date: parseInt(searchParams.get('auth_date') || '0'),
+        hash: searchParams.get('hash') || ''
+      };
+      
+      console.log('📝 Parsed Telegram data:', telegramData);
+      
+      // Validate required fields
+      if (!telegramData.id || !telegramData.auth_date || !telegramData.hash) {
+        console.log('❌ Missing required fields');
+        return createErrorPageResponse(
+          'Invalid Request',
+          'Missing required Telegram authentication parameters'
+        );
+      }
+      
+      // Get bot token from environment
+      const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+      if (!botToken) {
+        console.log('❌ Bot token not found');
+        return createErrorPageResponse(
+          'Configuration Error',
+          'Telegram bot token not configured'
+        );
+      }
+      
+      // Process authentication
+      return await handleTelegramAuth(telegramData, botToken);
+      
+    } catch (error) {
+      console.error('❌ Error processing GET request:', error);
+      return createErrorPageResponse(
+        'Processing Error',
+        `Error processing authentication: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  // Handle POST requests (for compatibility)
   if (req.method !== 'POST') {
     console.log('❌ Invalid method:', req.method);
-    return new Response(JSON.stringify({
-      success: false,
-      error: 'Method not allowed'
-    }), { 
-      status: 405, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return createErrorPageResponse(
+      'Invalid Request Method',
+      `Only GET and POST requests are supported. Received: ${req.method}`
+    );
   }
 
   try {
