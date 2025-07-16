@@ -66,29 +66,29 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
           }
 
           if (data?.success && data?.email && data?.password) {
-            console.log('Telegram verification successful, signing in with password...');
+            console.log('✅ Telegram verification successful, signing in...');
             
-            // Use the email and temporary password to sign in via Supabase auth
+            // Simple sign in with returned credentials
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
               email: data.email,
               password: data.password
             });
 
             if (authError) {
-              console.error('Supabase sign in error:', authError);
-              onError(authError.message || 'Sign in failed');
+              console.error('❌ Sign in failed:', authError);
+              onError(`Sign in failed: ${authError.message}`);
               return;
             }
 
             if (authData?.session) {
-              console.log('Telegram authentication successful:', authData);
+              console.log('✅ Authentication complete');
               onAuth(user, authData);
             } else {
-              console.error('No session created');
+              console.error('❌ No session created');
               onError('Failed to create session');
             }
           } else {
-            console.error('Telegram authentication failed:', data);
+            console.error('❌ Edge Function failed:', data);
             onError(data?.error || 'Authentication failed');
           }
         } catch (error) {
