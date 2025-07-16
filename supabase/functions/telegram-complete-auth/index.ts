@@ -1,16 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// Configuration
+// CORS Headers
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
-
-const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_ROLE_KEY = Deno.env.get('SERVICE_ROLE_KEY');
 
 interface TelegramAuthData {
   id: number;
@@ -166,163 +162,136 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
 }
 
 async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> {
+  console.log('=== TELEGRAM AUTH PROCESSING ===');
+  
   try {
-    console.log('=== STARTING TELEGRAM COMPLETE AUTH ===');
-    
-    // 1. Validate incoming data
+    // 1. Validate data
     if (!validateTelegramData(telegramData)) {
+      console.log('❌ Invalid Telegram data');
       return new Response(
-        JSON.stringify({ error: 'Invalid authentication data format' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({ success: false, error: 'Invalid Telegram data' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 2. Verify signature
+    const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+    const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY');
+    
+    if (!botToken || !serviceRoleKey) {
+      console.log('❌ Missing environment variables');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    // 2. Check required environment variables
-    if (!BOT_TOKEN || !SERVICE_ROLE_KEY) {
+    if (!await verifyTelegramAuth(telegramData, botToken)) {
+      console.log('❌ Signature verification failed');
       return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        JSON.stringify({ success: false, error: 'Invalid signature' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    // 3. Verify Telegram signature
-    const isValidSignature = await verifyTelegramAuth(telegramData, BOT_TOKEN);
-    if (!isValidSignature) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid Telegram signature' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-      );
-    }
-    
-    console.log('✅ Telegram signature verified');
-    
-    // 4. Create Supabase admin client
-    const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-    
-    // 5. Generate user data from Telegram
-    const telegramId = typeof telegramData.id === 'string' ? parseInt(telegramData.id) : telegramData.id;
+
+    console.log('✅ Signature verified');
+
+    // 3. Prepare user data
+    const telegramId = telegramData.id;
     const email = generateEmailFromTelegram(telegramData);
     const fullName = generateFullName(telegramData);
-    const tempPassword = `tg_${telegramId}_${Date.now()}`;
+    const temporaryPassword = `tg_${telegramId}_${Date.now()}`;
     
-    console.log('Processing user:', { email, telegramId, fullName });
-    
-    // 6. Check if user exists by telegram_id
-    const { data: existingProfile } = await adminClient
+    console.log('User data:', { email, telegramId, fullName });
+
+    // 4. Initialize Supabase Admin
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      serviceRoleKey,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // 5. Check if user exists
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
       .select('id, email')
       .eq('telegram_id', telegramId)
-      .maybeSingle();
-    
-    let user;
-    
+      .single();
+
     if (existingProfile) {
-      // User exists - get auth user and update password
-      console.log('Found existing user:', existingProfile.id);
-      const { data: authUser } = await adminClient.auth.admin.getUserById(existingProfile.id);
-      user = authUser.user;
+      console.log('📝 Updating existing user password');
       
-      // Update password for existing user
-      await adminClient.auth.admin.updateUserById(user.id, { password: tempPassword });
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(
+        existingProfile.id,
+        { password: temporaryPassword }
+      );
       
-      // Update profile with latest Telegram data
-      await adminClient
-        .from('profiles')
-        .update({
-          telegram_username: telegramData.username,
-          telegram_first_name: telegramData.first_name,
-          telegram_photo_url: telegramData.photo_url,
-          avatar_url: telegramData.photo_url
-        })
-        .eq('id', user.id);
-        
-    } else {
-      // Create new user
-      console.log('Creating new user');
-      
-      // Create auth user with temporary password
-      const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
-        email: email,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
-          auth_method: 'telegram',
-          telegram_id: telegramId,
-          full_name: fullName
-        }
-      });
-      
-      if (userError) {
-        console.error('Error creating user:', userError);
+      if (error) {
+        console.error('❌ Password update failed:', error);
         return new Response(
-          JSON.stringify({ error: 'Failed to create user', details: userError.message }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+          JSON.stringify({ success: false, error: 'Failed to update credentials' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      
-      user = userData.user;
-      
-      // Create profile
-      await adminClient
-        .from('profiles')
-        .insert({
-          id: user.id,
-          email: user.email,
-          full_name: fullName,
-          auth_method: 'telegram',
-          profile_completed: true,
-          telegram_id: telegramId,
-          telegram_username: telegramData.username,
-          telegram_first_name: telegramData.first_name,
-          telegram_photo_url: telegramData.photo_url,
-          avatar_url: telegramData.photo_url
-        });
+
+      console.log('✅ Password updated');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          email: existingProfile.email,
+          temporaryPassword
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    // 6. Create new user - let trigger handle profile creation
+    console.log('👤 Creating new user');
     
-    console.log('✅ User processed successfully:', user.id);
-    
-    // 7. Return email and temporary password for client-side authentication
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: temporaryPassword,
+      email_confirm: true,
+      user_metadata: {
+        auth_method: 'telegram',
+        telegram_id: telegramId,
+        full_name: fullName,
+        telegram_username: telegramData.username || null,
+        telegram_first_name: telegramData.first_name,
+        telegram_photo_url: telegramData.photo_url || null,
+        user_type: 'buyer' // For trigger
+      }
+    });
+
+    if (createError) {
+      console.error('❌ User creation failed:', createError);
+      return new Response(
+        JSON.stringify({ success: false, error: createError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('✅ User created:', newUser.user?.id);
+
     return new Response(
       JSON.stringify({
         success: true,
-        email: user.email,
-        password: tempPassword
+        email,
+        temporaryPassword
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-        status: 200 
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-    
+
   } catch (error) {
-    console.error('=== TELEGRAM COMPLETE AUTH ERROR ===');
-    console.error('Error details:', error);
-    
+    console.error('❌ Unexpected error:', error);
     return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        details: error?.message || 'An unexpected error occurred',
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json'
-        },
-        status: 500
-      }
+      JSON.stringify({ success: false, error: 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 }
 
 console.log('🚀 Telegram Complete Auth Function starting up...');
-console.log('Environment check:');
-console.log('- SUPABASE_URL:', !!SUPABASE_URL);
-console.log('- SUPABASE_ANON_KEY:', !!Deno.env.get('SUPABASE_ANON_KEY'));
-console.log('- SERVICE_ROLE_KEY:', !!SERVICE_ROLE_KEY);
-console.log('- TELEGRAM_BOT_TOKEN:', !!BOT_TOKEN);
 
 serve(async (req) => {
   console.log('=== TELEGRAM COMPLETE AUTH FUNCTION CALLED ===');
