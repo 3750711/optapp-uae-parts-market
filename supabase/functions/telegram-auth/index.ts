@@ -252,37 +252,91 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     const publicClient = createClient(supabaseUrl, supabaseKey);
     
     const email = generateEmailFromTelegram(telegramData);
-    console.log(`Checking for existing user by telegram_id: ${telegramId}`);
+    console.log(`📧 Generated email for search: ${email}`);
+    console.log(`🔍 Checking for existing user by telegram_id: ${telegramId} (type: ${typeof telegramId})`);
     
-    // Check if user exists by telegram_id in profiles table
+    // Step 1: Check if user exists by telegram_id in profiles table with detailed logging
     const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
       .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id')
       .eq('telegram_id', telegramId)
       .maybeSingle();
 
-    console.log('Profile search by telegram_id result:', existingProfile ? 'Found' : 'Not found');
+    console.log('📊 Profile search by telegram_id result:', {
+      found: !!existingProfile,
+      profileError: profileError?.message,
+      telegram_id_in_db: existingProfile?.telegram_id,
+      email_in_db: existingProfile?.email
+    });
 
-    if (existingProfile && !profileError) {
-      // User exists, return data for signInWithPassword flow
-      console.log('✅ Existing user found, returning for signInWithPassword flow');
+    // Step 2: If not found by telegram_id, try searching by email
+    let finalProfile = existingProfile;
+    if (!existingProfile && !profileError) {
+      console.log(`🔄 Fallback: Searching by email: ${email}`);
+      const { data: profileByEmail, error: emailError } = await publicClient
+        .from('profiles')
+        .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id')
+        .eq('email', email)
+        .maybeSingle();
+      
+      console.log('📊 Profile search by email result:', {
+        found: !!profileByEmail,
+        emailError: emailError?.message,
+        telegram_id_in_db: profileByEmail?.telegram_id,
+        email_in_db: profileByEmail?.email
+      });
+      
+      finalProfile = profileByEmail;
+    }
+
+    // Step 3: If still not found, check auth.users table
+    let authUser = null;
+    if (!finalProfile) {
+      console.log(`🔄 Fallback: Checking auth.users for email: ${email}`);
+      
+      if (serviceRoleKey) {
+        const adminClient = createClient(supabaseUrl, serviceRoleKey);
+        const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers();
+        
+        if (!authError && authUsers?.users) {
+          authUser = authUsers.users.find(user => user.email === email);
+          console.log('📊 Auth.users search result:', {
+            found: !!authUser,
+            authError: authError?.message,
+            user_email: authUser?.email,
+            user_id: authUser?.id
+          });
+        }
+      }
+    }
+
+    // Step 4: Determine final result and standardize response
+    const isExistingUser = !!(finalProfile || authUser);
+    console.log(`📋 Final decision: is_existing_user = ${isExistingUser}`);
+
+    if (isExistingUser) {
+      // Use profile email if exists, otherwise use auth user email, fallback to generated
+      const userEmail = finalProfile?.email || authUser?.email || email;
+      const userData = {
+        id: telegramId,
+        first_name: telegramData.first_name,
+        last_name: telegramData.last_name,
+        username: telegramData.username,
+        photo_url: telegramData.photo_url,
+        email: userEmail,
+        full_name: finalProfile?.full_name || generateFullName(telegramData),
+        auth_method: 'telegram',
+        user_type: finalProfile?.user_type || 'buyer'
+      };
+
+      console.log('✅ Existing user found, returning for signInWithPassword flow with email:', userEmail);
       
       return new Response(
         JSON.stringify({
           success: true,
           is_existing_user: true,
-          profile_completed: Boolean(existingProfile.profile_completed),
-          telegram_data: {
-            id: telegramId,
-            first_name: telegramData.first_name,
-            last_name: telegramData.last_name,
-            username: telegramData.username,
-            photo_url: telegramData.photo_url,
-            email: existingProfile.email, // Use existing email
-            full_name: existingProfile.full_name || generateFullName(telegramData),
-            auth_method: 'telegram',
-            user_type: existingProfile.user_type || 'buyer'
-          }
+          profile_completed: Boolean(finalProfile?.profile_completed),
+          telegram_data: userData
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
