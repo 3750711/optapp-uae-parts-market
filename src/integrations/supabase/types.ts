@@ -611,6 +611,7 @@ export type Database = {
           rating: number | null
           telegram: string | null
           telegram_edit_count: number | null
+          telegram_id: number | null
           user_type: Database["public"]["Enums"]["user_type"]
           verification_status: Database["public"]["Enums"]["verification_status"]
         }
@@ -637,6 +638,7 @@ export type Database = {
           rating?: number | null
           telegram?: string | null
           telegram_edit_count?: number | null
+          telegram_id?: number | null
           user_type?: Database["public"]["Enums"]["user_type"]
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }
@@ -663,6 +665,7 @@ export type Database = {
           rating?: number | null
           telegram?: string | null
           telegram_edit_count?: number | null
+          telegram_id?: number | null
           user_type?: Database["public"]["Enums"]["user_type"]
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }

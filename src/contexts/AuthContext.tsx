@@ -35,6 +35,7 @@ interface AuthContextType {
   isAdmin: boolean | null;
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithTelegram: (authData: any) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
   refreshProfile: () => Promise<void>;
@@ -208,6 +209,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   }, []);
 
+  const signInWithTelegram = useCallback(async (authData: any) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('telegram-widget-auth', {
+        body: { authData }
+      });
+
+      if (error) {
+        return { error };
+      }
+
+      if (!data.success) {
+        return { error: new Error(data.error || 'Authentication failed') };
+      }
+
+      // Set session using the tokens from the response
+      if (data.accessToken && data.refreshToken) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.accessToken,
+          refresh_token: data.refreshToken
+        });
+
+        if (sessionError) {
+          return { error: sessionError };
+        }
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -240,13 +272,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAdmin,
     signUp,
     signIn,
+    signInWithTelegram,
     signOut,
     updateProfile,
     refreshProfile,
     refreshAdminStatus,
     isLoading,
     isProfileLoading
-  }), [user, profile, session, isAdmin, signUp, signIn, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading, isProfileLoading]);
+  }), [user, profile, session, isAdmin, signUp, signIn, signInWithTelegram, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading, isProfileLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

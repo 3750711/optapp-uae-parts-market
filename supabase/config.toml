@@ -72,10 +72,7 @@ verify_jwt = false
 [functions.send-telegram-notification]
 verify_jwt = false
 
-[functions.telegram-auth]
-verify_jwt = false
-
-[functions.telegram-auth-simple]
+[functions.telegram-widget-auth]
 verify_jwt = false
 
 [analytics]

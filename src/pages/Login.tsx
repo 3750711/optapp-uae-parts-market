@@ -13,6 +13,8 @@ import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
 import { useRateLimit } from '@/hooks/useRateLimit';
+import { TelegramLoginWidget } from '@/components/auth/TelegramLoginWidget';
+import { Separator } from '@/components/ui/separator';
 
 
 
@@ -176,6 +178,24 @@ const Login = () => {
                     )}
                   </Button>
               </form>
+            </div>
+
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <Separator className="w-full" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">или</span>
+              </div>
+            </div>
+
+            {/* Telegram Login */}
+            <div className="space-y-4">
+              <TelegramLoginWidget 
+                onSuccess={() => navigate(from, { replace: true })}
+                onError={(error) => setError(error)}
+              />
             </div>
 
             {error && (
