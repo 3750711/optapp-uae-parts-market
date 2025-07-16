@@ -76,7 +76,33 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         }
       } else {
         // New user - sign them up
-        const email = `user.${data.telegram_data.id}@telegram.partsbay.ae`;
+        // Use same email generation logic as Edge Function
+        const telegramId = data.telegram_data.id;
+        let email;
+        
+        // Try username first (if available and valid)
+        if (data.telegram_data.username && data.telegram_data.username.trim().length > 0) {
+          const cleanUsername = data.telegram_data.username.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+          if (cleanUsername.length >= 3) {
+            email = `${cleanUsername}.${telegramId}@telegram.partsbay.ae`;
+          }
+        }
+        
+        // Fallback to first_name + telegram_id
+        if (!email && data.telegram_data.first_name && data.telegram_data.first_name.trim().length > 0) {
+          const cleanFirstName = data.telegram_data.first_name.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+          if (cleanFirstName.length >= 2) {
+            email = `${cleanFirstName}.${telegramId}@telegram.partsbay.ae`;
+          }
+        }
+        
+        // Ultimate fallback
+        if (!email) {
+          email = `user.${telegramId}@telegram.partsbay.ae`;
+        }
+        
+        console.log('Generated email for new user:', email);
+        
         const fullName = data.telegram_data.first_name + 
           (data.telegram_data.last_name ? ` ${data.telegram_data.last_name}` : '');
 

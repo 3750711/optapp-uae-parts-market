@@ -379,6 +379,30 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         profile_completed: existingProfile.profile_completed
       });
       
+      // For existing users, we need to ensure they can sign in with the password
+      // Set/update the user's password to match the expected format
+      const expectedPassword = `telegram_${telegramId}`;
+      console.log('🔧 Updating password for existing user to ensure sign-in compatibility...');
+      
+      try {
+        const { error: updateError } = await serviceClient.auth.admin.updateUserById(
+          existingProfile.id,
+          {
+            password: expectedPassword
+          }
+        );
+        
+        if (updateError) {
+          console.error('Password update error:', updateError);
+          // Don't fail here, just log the error
+        } else {
+          console.log('✅ Password updated successfully for existing user');
+        }
+      } catch (passwordUpdateError) {
+        console.error('Exception during password update:', passwordUpdateError);
+        // Don't fail here, just log the error
+      }
+      
       // Return existing user data for sign in
       return new Response(
         JSON.stringify({
@@ -455,7 +479,7 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
   }
 }
 
-const FUNCTION_VERSION = '1.3.0-auth-sync-fix';
+const FUNCTION_VERSION = '1.4.0-error-fix';
 console.log('🚀 Telegram Auth Function starting up...');
 console.log('Function version:', FUNCTION_VERSION);
 console.log('Environment variables check:');
