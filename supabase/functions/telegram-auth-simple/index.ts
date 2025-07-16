@@ -18,47 +18,79 @@ interface TelegramAuthData {
 
 // Проверка подписи Telegram согласно официальной документации
 async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string): Promise<boolean> {
-  const { hash, ...dataWithoutHash } = authData;
-  
-  // Проверяем auth_date (данные не должны быть старше 1 дня)
-  const authTime = authData.auth_date * 1000;
-  const now = Date.now();
-  const oneDayInMs = 24 * 60 * 60 * 1000;
-  
-  if (now - authTime > oneDayInMs) {
-    console.log('❌ Auth data is too old:', new Date(authTime));
+  try {
+    const { hash, ...dataWithoutHash } = authData;
+    
+    console.log('🔐 Starting signature verification...');
+    console.log('📝 Auth data received:', JSON.stringify(authData, null, 2));
+    
+    // Проверяем auth_date (данные не должны быть старше 1 дня)
+    const authTime = authData.auth_date * 1000;
+    const now = Date.now();
+    const oneDayInMs = 24 * 60 * 60 * 1000;
+    
+    if (now - authTime > oneDayInMs) {
+      console.log('❌ Auth data is too old:', new Date(authTime));
+      return false;
+    }
+    
+    console.log('✅ Auth date is valid');
+    
+    // Фильтруем и сортируем данные, исключаем undefined значения
+    const dataKeys = Object.keys(dataWithoutHash)
+      .filter(key => {
+        const value = dataWithoutHash[key as keyof typeof dataWithoutHash];
+        return value !== undefined && value !== null && value !== '';
+      })
+      .sort();
+    
+    console.log('🔍 Data keys for verification:', dataKeys);
+    
+    // Создаем строку данных в формате key=value&key=value (не с \n!)
+    const dataString = dataKeys
+      .map(key => `${key}=${dataWithoutHash[key as keyof typeof dataWithoutHash]}`)
+      .join('&');
+    
+    console.log('🔍 Data check string:', dataString);
+    
+    // Реализуем двухступенчатый HMAC согласно документации Telegram
+    const encoder = new TextEncoder();
+    
+    // Шаг 1: Создаем секретный ключ из bot token
+    const secretKey = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode('WebAppData'), // Используем 'WebAppData' как указано в документации
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const secretKeySignature = await crypto.subtle.sign('HMAC', secretKey, encoder.encode(botToken));
+    
+    // Шаг 2: Используем полученный ключ для подписи данных
+    const dataKey = await crypto.subtle.importKey(
+      'raw',
+      new Uint8Array(secretKeySignature),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const dataSignature = await crypto.subtle.sign('HMAC', dataKey, encoder.encode(dataString));
+    const expectedHash = Array.from(new Uint8Array(dataSignature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    console.log('🔍 Received hash:', hash);
+    console.log('🔍 Expected hash:', expectedHash);
+    console.log('🔍 Hash match:', hash === expectedHash);
+    
+    return hash === expectedHash;
+    
+  } catch (error) {
+    console.error('❌ Error in signature verification:', error);
     return false;
   }
-  
-  // Создаем строку данных для проверки
-  const dataString = Object.keys(dataWithoutHash)
-    .sort()
-    .filter(key => dataWithoutHash[key as keyof typeof dataWithoutHash] !== undefined)
-    .map(key => `${key}=${dataWithoutHash[key as keyof typeof dataWithoutHash]}`)
-    .join('\n');
-  
-  console.log('🔍 Verification data string:', dataString);
-  
-  // Создаем секретный ключ из bot token
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(botToken),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  
-  // Вычисляем HMAC-SHA256 подпись
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(dataString));
-  const expectedHash = Array.from(new Uint8Array(signature))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-  
-  console.log('🔍 Received hash:', hash);
-  console.log('🔍 Expected hash:', expectedHash);
-  
-  return hash === expectedHash;
 }
 
 // Генерация email для Telegram пользователя
