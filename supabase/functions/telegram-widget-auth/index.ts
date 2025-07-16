@@ -175,29 +175,32 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
     console.log('Hash from Telegram:', hash)
     console.log('Data to check:', dataToCheck)
     
-    // Create data_check_string according to Telegram Login Widget spec
-    const dataCheckString = Object.keys(dataToCheck)
+    // Filter out empty values and create data_check_string according to Telegram Login Widget spec
+    const dataCheckString = Object.entries(dataToCheck)
+      .filter(([, value]) => value !== undefined && value !== null && value !== '')
       .sort()
-      .map(key => `${key}=${dataToCheck[key as keyof typeof dataToCheck]}`)
-      .join('&')
+      .map(([key, value]) => `${key}=${value}`)
+      .join('\n')  // Use \n as separator, not &
     
     console.log('Data check string:', dataCheckString)
     
-    // For Telegram Login Widget, use bot token directly as HMAC key
-    // This is different from WebApp which uses the two-step process
+    // For Telegram Login Widget: Create SHA-256 hash of bot token first
     const encoder = new TextEncoder()
-    const key = await crypto.subtle.importKey(
+    const secretKey = await crypto.subtle.digest('SHA-256', encoder.encode(botToken))
+    
+    // Use the SHA-256 hash as HMAC key
+    const cryptoKey = await crypto.subtle.importKey(
       'raw',
-      encoder.encode(botToken),
+      secretKey,
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
     )
     
-    console.log('Bot token key created successfully')
+    console.log('Secret key created successfully')
     
-    // Calculate HMAC of the data_check_string directly with bot token
-    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(dataCheckString))
+    // Calculate HMAC of the data_check_string with the SHA-256 hashed bot token
+    const signature = await crypto.subtle.sign('HMAC', cryptoKey, encoder.encode(dataCheckString))
     const calculatedHash = Array.from(new Uint8Array(signature))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('')
