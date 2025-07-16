@@ -118,8 +118,7 @@ serve(async (req) => {
         .update({
           full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
           avatar_url: authData.photo_url,
-          telegram_username: authData.username,
-          telegram_first_name: authData.first_name
+          telegram: authData.username
         })
         .eq('id', existingProfile.id)
         
@@ -136,8 +135,7 @@ serve(async (req) => {
         user_metadata: {
           auth_method: 'telegram',
           telegram_id: authData.id,
-          telegram_username: authData.username,
-          telegram_first_name: authData.first_name,
+          telegram: authData.username,
           photo_url: authData.photo_url,
           full_name: `${authData.first_name} ${authData.last_name || ''}`.trim()
         }
