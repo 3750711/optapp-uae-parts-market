@@ -55,16 +55,18 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
   return hashHex === hash;
 }
 
-// Упрощенная функция обработки Telegram авторизации через Magic Links
+// Функция обработки Telegram авторизации через готовую сессию
 async function handleTelegramAuth(telegramData: TelegramAuthData): Promise<Response> {
-  console.log('🚀 Starting simplified Telegram auth...');
+  console.log('🚀 Starting Telegram auth with session...');
   console.log('📱 Telegram ID:', telegramData.id);
   
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')!;
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  // Создаем admin клиент для управления пользователями
+  const adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -87,26 +89,22 @@ async function handleTelegramAuth(telegramData: TelegramAuthData): Promise<Respo
     }
     console.log('✅ Signature verified');
 
-    // 2. Генерируем email для пользователя
+    // 2. Генерируем email и данные пользователя
     const email = generateEmailFromTelegram(telegramData);
     const fullName = generateFullName(telegramData);
     
     console.log('📧 Generated email:', email);
     console.log('👤 Generated name:', fullName);
 
-    // 3. Используем Magic Link подход - создаем сессию через OTP
-    console.log('🔗 Creating magic link session...');
+    // 3. Проверяем/создаем пользователя
+    const { data: existingUsers } = await adminSupabase.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(user => user.email === email);
     
-    // Сначала проверяем существует ли пользователь
-    const { data: existingUser } = await supabase.auth.admin.listUsers();
-    const userExists = existingUser?.users?.some(user => user.email === email);
-    
-    if (!userExists) {
-      console.log('👤 Creating new user via Admin API...');
-      // Создаем пользователя через Admin API, если его нет
-      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+    if (!existingUser) {
+      console.log('👤 Creating new user...');
+      const { data: newUser, error: createError } = await adminSupabase.auth.admin.createUser({
         email,
-        email_confirm: true, // Подтверждаем email сразу
+        email_confirm: true,
         user_metadata: {
           auth_method: 'telegram',
           telegram_id: telegramData.id,
@@ -133,42 +131,68 @@ async function handleTelegramAuth(telegramData: TelegramAuthData): Promise<Respo
       console.log('👤 User already exists');
     }
 
-    // 4. Генерируем Magic Link для входа
-    console.log('🎫 Generating magic link...');
-    const { data: magicLinkData, error: magicLinkError } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-      options: {
-        redirectTo: `${Deno.env.get('SITE_URL') || 'https://partsbay.ae'}/`
-      }
+    // 4. Создаем сессию для пользователя
+    console.log('🎫 Creating session...');
+    const { data: sessionData, error: sessionError } = await adminSupabase.auth.admin.createSession({
+      provider_token: null,
+      provider_refresh_token: null
     });
 
-    if (magicLinkError) {
-      console.error('❌ Magic link generation failed:', magicLinkError);
+    if (sessionError) {
+      console.error('❌ Session creation failed:', sessionError);
+      // Fallback: генерируем access token через generateLink
+      console.log('🔄 Trying generateLink approach...');
+      const { data: linkData, error: linkError } = await adminSupabase.auth.admin.generateLink({
+        type: 'magiclink',
+        email
+      });
+
+      if (linkError) {
+        console.error('❌ Link generation failed:', linkError);
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Failed to create session'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Возвращаем токены из магической ссылки
       return new Response(JSON.stringify({
-        success: false,
-        error: magicLinkError.message
+        success: true,
+        user: {
+          id: linkData.user.id,
+          email: linkData.user.email,
+          user_metadata: linkData.user.user_metadata
+        },
+        session: {
+          access_token: linkData.session?.access_token || '',
+          refresh_token: linkData.session?.refresh_token || '',
+          expires_in: linkData.session?.expires_in || 3600,
+          token_type: linkData.session?.token_type || 'bearer'
+        }
       }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('✅ Magic link generated');
+    console.log('✅ Session created');
 
-    // 5. Возвращаем результат с access_token и refresh_token
+    // 5. Возвращаем готовую сессию
     return new Response(JSON.stringify({
       success: true,
       user: {
-        id: magicLinkData.user.id,
-        email: magicLinkData.user.email,
-        user_metadata: magicLinkData.user.user_metadata
+        id: sessionData.user.id,
+        email: sessionData.user.email,
+        user_metadata: sessionData.user.user_metadata
       },
       session: {
-        access_token: magicLinkData.session?.access_token,
-        refresh_token: magicLinkData.session?.refresh_token,
-        expires_in: magicLinkData.session?.expires_in,
-        token_type: magicLinkData.session?.token_type
+        access_token: sessionData.session.access_token,
+        refresh_token: sessionData.session.refresh_token,
+        expires_in: sessionData.session.expires_in,
+        token_type: sessionData.session.token_type
       }
     }), {
       status: 200,
