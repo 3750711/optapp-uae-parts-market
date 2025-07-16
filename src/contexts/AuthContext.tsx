@@ -35,6 +35,7 @@ interface AuthContextType {
   isAdmin: boolean | null;
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signInWithTelegram: (telegramData: any) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
   refreshProfile: () => Promise<void>;
@@ -208,6 +209,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return { error };
   }, []);
 
+  const signInWithTelegram = useCallback(async (telegramData: any) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('telegram-auth-simple', {
+        body: { telegramData }
+      });
+
+      if (error) {
+        console.error('❌ Telegram auth error:', error);
+        return { error: error.message || 'Telegram authentication failed' };
+      }
+
+      if (!data.success) {
+        console.error('❌ Telegram auth failed:', data.error);
+        return { error: data.error || 'Telegram authentication failed' };
+      }
+
+      // Сессия будет автоматически установлена через onAuthStateChange
+      console.log('✅ Telegram authentication successful');
+      return { error: null };
+    } catch (error) {
+      console.error('❌ Telegram auth exception:', error);
+      return { error: error instanceof Error ? error.message : 'Telegram authentication failed' };
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     try {
       clearAdminCache();
@@ -239,13 +265,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAdmin,
     signUp,
     signIn,
+    signInWithTelegram,
     signOut,
     updateProfile,
     refreshProfile,
     refreshAdminStatus,
     isLoading,
     isProfileLoading
-  }), [user, profile, session, isAdmin, signUp, signIn, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading, isProfileLoading]);
+  }), [user, profile, session, isAdmin, signUp, signIn, signInWithTelegram, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading, isProfileLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

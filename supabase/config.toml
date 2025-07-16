@@ -75,7 +75,7 @@ verify_jwt = false
 [functions.telegram-auth]
 verify_jwt = false
 
-[functions.telegram-complete-auth]
+[functions.telegram-auth-simple]
 verify_jwt = false
 
 [analytics]

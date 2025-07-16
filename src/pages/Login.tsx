@@ -27,7 +27,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { checkRateLimit } = useRateLimit();
-  const { signIn } = useAuth();
+  const { signIn, signInWithTelegram } = useAuth();
   
   const from = searchParams.get('from') || '/';
 
@@ -39,32 +39,28 @@ const Login = () => {
 
   const handleTelegramAuth = async (user: any, authResult: any) => {
     try {
-      console.log('Handling Telegram auth result:', authResult);
+      console.log('🔧 Starting Telegram authentication...');
       
-      if (authResult.error) {
-        setError('Ошибка аутентификации Telegram: ' + authResult.error);
+      const { error } = await signInWithTelegram(user);
+      
+      if (error) {
+        console.error('❌ Telegram authentication failed:', error);
+        setError(error);
         return;
       }
       
-      // Check if signInWithPassword was successful (session exists)
-      if (authResult.session) {
-        console.log('✅ Telegram authentication successful');
-        
-        toast({
-          title: "Вход выполнен успешно",
-          description: `Добро пожаловать через Telegram!`,
-        });
-        
-        navigate(from, { replace: true });
-        
-      } else {
-        console.error('No session received from Telegram authentication');
-        setError('Не удалось войти через Telegram');
-      }
+      console.log('✅ Telegram authentication successful');
+      
+      toast({
+        title: "Вход выполнен успешно",
+        description: `Добро пожаловать через Telegram!`,
+      });
+      
+      navigate(from, { replace: true });
       
     } catch (error) {
-      console.error('❌ Telegram authentication error:', error);
-      setError('Ошибка при входе через Telegram: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
+      console.error('❌ Error handling Telegram auth:', error);
+      setError('Authentication failed');
     }
   };
 
