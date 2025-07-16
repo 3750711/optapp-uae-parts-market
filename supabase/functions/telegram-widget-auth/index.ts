@@ -175,51 +175,41 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
     console.log('Hash from Telegram:', hash)
     console.log('Data to check:', dataToCheck)
     
-    // Step 1: Create data_check_string according to Telegram spec
-    // Sort keys alphabetically and join with "&" (not "\n")
+    // Create data_check_string according to Telegram Login Widget spec
     const dataCheckString = Object.keys(dataToCheck)
       .sort()
       .map(key => `${key}=${dataToCheck[key as keyof typeof dataToCheck]}`)
-      .join('&')  // FIXED: Use & instead of \n
+      .join('&')
     
     console.log('Data check string:', dataCheckString)
     
-    // Step 2: Create secret key using two-step HMAC according to Telegram spec
+    // For Telegram Login Widget, use bot token directly as HMAC key
+    // This is different from WebApp which uses the two-step process
     const encoder = new TextEncoder()
-    
-    // First HMAC: HMAC-SHA256(bot_token, "WebAppData")
-    const webAppDataKey = await crypto.subtle.importKey(
+    const key = await crypto.subtle.importKey(
       'raw',
-      encoder.encode('WebAppData'),
+      encoder.encode(botToken),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
     )
     
-    const secretKeyData = await crypto.subtle.sign('HMAC', webAppDataKey, encoder.encode(botToken))
+    console.log('Bot token key created successfully')
     
-    // Second HMAC: Use the result as the key for the actual verification
-    const secretKey = await crypto.subtle.importKey(
-      'raw',
-      secretKeyData,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    )
-    
-    console.log('Secret key created successfully')
-    
-    // Step 3: Create HMAC signature of data_check_string
-    const signature = await crypto.subtle.sign('HMAC', secretKey, encoder.encode(dataCheckString))
-    const hashArray = Array.from(new Uint8Array(signature))
-    const calculatedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    // Calculate HMAC of the data_check_string directly with bot token
+    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(dataCheckString))
+    const calculatedHash = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
     
     console.log('Calculated hash:', calculatedHash)
     console.log('Expected hash:', hash)
     console.log('Hashes match:', calculatedHash === hash)
     
-    return calculatedHash === hash
+    const result = calculatedHash === hash
+    console.log('Auth verification result:', result)
     
+    return result
   } catch (error) {
     console.error('Error in verifyTelegramAuth:', error)
     return false
