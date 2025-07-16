@@ -49,6 +49,12 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         throw new Error(data.error || 'Authentication failed');
       }
 
+      console.log('🔍 Edge Function response:', {
+        is_existing_user: data.is_existing_user,
+        email: data.telegram_data.email,
+        full_response: data
+      });
+
       // Generate consistent password for Telegram users
       const generateTelegramPassword = (telegramId: number, email: string) => {
         return `telegram_${telegramId}_${email.split('@')[0]}`;
@@ -57,7 +63,9 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       const email = data.telegram_data.email;
       const password = generateTelegramPassword(data.telegram_data.id, email);
 
-      if (data.is_existing_user) {
+      console.log('🔑 Generated email and password for:', email);
+
+      if (data.is_existing_user === true) {
         // Existing user: use signInWithPassword
         console.log('🔄 Using signInWithPassword for existing user:', email);
         
@@ -67,6 +75,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         });
 
         if (signInError) {
+          console.error('signInWithPassword error:', signInError);
           throw signInError;
         }
       } else {
@@ -90,6 +99,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         });
 
         if (signUpError) {
+          console.error('signUp error:', signUpError);
           throw signUpError;
         }
       }
