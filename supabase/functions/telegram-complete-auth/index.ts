@@ -386,8 +386,7 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
             telegram_first_name: telegramData.first_name,
             telegram_last_name: telegramData.last_name,
             photo_url: telegramData.photo_url,
-            full_name: fullName,
-            user_type: 'buyer'
+            full_name: fullName
           }
         });
         
