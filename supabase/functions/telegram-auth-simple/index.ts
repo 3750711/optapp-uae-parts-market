@@ -117,14 +117,54 @@ serve(async (req) => {
 
   try {
     console.log('🚀 Starting Telegram authentication...');
+    console.log('📋 Request method:', req.method);
+    console.log('📋 Request headers:', Object.fromEntries(req.headers.entries()));
     
-    const { telegramData } = await req.json();
-    
-    if (!telegramData || !telegramData.id || !telegramData.hash) {
-      console.log('❌ Invalid Telegram data received');
+    // Parse the request body with detailed logging
+    let requestBody;
+    try {
+      const bodyText = await req.text();
+      console.log('📥 Raw request body:', bodyText);
+      requestBody = JSON.parse(bodyText);
+      console.log('📝 Parsed request body:', requestBody);
+    } catch (parseError) {
+      console.error('❌ Error parsing request body:', parseError);
       return new Response(JSON.stringify({
         success: false,
-        error: 'Invalid Telegram authentication data'
+        error: 'Invalid JSON in request body'
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Handle both direct data format and wrapped telegramData format
+    const telegramData = requestBody.telegramData || requestBody;
+    
+    // Validate required fields
+    const requiredFields = ['id', 'auth_date', 'hash'];
+    const missingFields = requiredFields.filter(field => telegramData[field] === undefined || telegramData[field] === null);
+    
+    if (missingFields.length > 0) {
+      console.error('❌ Missing required fields:', missingFields);
+      console.error('❌ Available fields:', Object.keys(telegramData));
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Missing required fields',
+        missingFields,
+        receivedFields: Object.keys(telegramData)
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Validate data types
+    if (typeof telegramData.id !== 'number' || typeof telegramData.auth_date !== 'number') {
+      console.error('❌ Invalid data types - id:', typeof telegramData.id, 'auth_date:', typeof telegramData.auth_date);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Invalid data types - id and auth_date must be numbers'
       }), { 
         status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
