@@ -105,7 +105,7 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
 }
 
 async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> {
-  console.log('🚀 Starting simplified Telegram auth...');
+  console.log('🚀 Starting improved Telegram auth...');
   
   try {
     // Basic validation
@@ -115,23 +115,23 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
         error: 'Invalid data'
       }), { 
         status: 400, 
-        headers: corsHeaders 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     // Check required environment variables
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-    const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
 
     if (!botToken || !serviceRoleKey || !supabaseUrl) {
-      console.error('Missing environment variables');
+      console.error('❌ Missing environment variables');
       return new Response(JSON.stringify({
         success: false,
         error: 'Server configuration error'
       }), { 
         status: 500, 
-        headers: corsHeaders 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
@@ -145,7 +145,7 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
         error: 'Invalid signature'
       }), { 
         status: 401, 
-        headers: corsHeaders 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
@@ -159,90 +159,169 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     // Generate user credentials
     const email = generateEmailFromTelegram(telegramData);
     const fullName = generateFullName(telegramData);
-    const temporaryPassword = `tg_${telegramData.id}_${Date.now()}`;
+    const temporaryPassword = crypto.randomUUID();
 
-    console.log(`📧 Email: ${email}`);
+    console.log(`📧 Processing user with email: ${email}`);
+    console.log(`📱 Telegram ID: ${telegramData.id}`);
 
-    // Check if user already exists
-    const { data: existingProfile } = await supabase
+    // Step 1: Check if user exists in profiles by telegram_id
+    console.log('🔍 Checking for existing user by telegram_id...');
+    const { data: profileByTelegramId, error: profileError1 } = await supabase
       .from('profiles')
-      .select('id, email, full_name')
+      .select('*')
       .eq('telegram_id', telegramData.id)
       .maybeSingle();
 
-    if (existingProfile) {
-      console.log('✅ User exists, updating password...');
+    if (profileError1) {
+      console.error('❌ Error checking profiles by telegram_id:', profileError1);
+    } else if (profileByTelegramId) {
+      console.log('✅ Found existing user by telegram_id:', profileByTelegramId.id);
       
-      // Update password for existing user
-      const { error: passwordError } = await supabase.auth.admin.updateUserById(
-        existingProfile.id,
-        { password: temporaryPassword }
+      // Update user's password and metadata in auth.users
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        profileByTelegramId.id,
+        {
+          password: temporaryPassword,
+          user_metadata: {
+            auth_method: 'telegram',
+            full_name: fullName,
+            telegram_id: telegramData.id,
+            telegram_username: telegramData.username,
+            telegram_first_name: telegramData.first_name,
+            telegram_photo_url: telegramData.photo_url,
+            user_type: profileByTelegramId.user_type || 'buyer'
+          }
+        }
       );
 
-      if (passwordError) {
-        console.error('❌ Password update failed:', passwordError);
+      if (updateError) {
+        console.error('❌ Error updating existing user:', updateError);
         return new Response(JSON.stringify({
           success: false,
-          error: 'Failed to update credentials'
+          error: 'Failed to update user'
         }), { 
           status: 500, 
-          headers: corsHeaders 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
+      console.log('✅ User updated successfully');
       return new Response(JSON.stringify({
         success: true,
-        email: existingProfile.email,
-        password: temporaryPassword,
-        user: {
-          id: existingProfile.id,
-          email: existingProfile.email,
-          full_name: existingProfile.full_name
-        }
+        email: profileByTelegramId.email,
+        password: temporaryPassword
       }), { 
         status: 200, 
-        headers: corsHeaders 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Create new user
+    // Step 2: Check if user exists in profiles by email
+    console.log('🔍 Checking for existing user by email...');
+    const { data: profileByEmail, error: profileError2 } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (profileError2) {
+      console.error('❌ Error checking profiles by email:', profileError2);
+    } else if (profileByEmail) {
+      console.log('✅ Found existing user by email, updating telegram_id...');
+      
+      // Update the profile with telegram data
+      const { error: updateProfileError } = await supabase
+        .from('profiles')
+        .update({
+          telegram_id: telegramData.id,
+          telegram_username: telegramData.username,
+          telegram_first_name: telegramData.first_name,
+          telegram_photo_url: telegramData.photo_url,
+          auth_method: 'telegram'
+        })
+        .eq('id', profileByEmail.id);
+
+      if (updateProfileError) {
+        console.error('❌ Error updating profile:', updateProfileError);
+      }
+
+      // Update user's password in auth.users
+      const { error: updateAuthError } = await supabase.auth.admin.updateUserById(
+        profileByEmail.id,
+        {
+          password: temporaryPassword,
+          user_metadata: {
+            auth_method: 'telegram',
+            full_name: fullName,
+            telegram_id: telegramData.id,
+            telegram_username: telegramData.username,
+            telegram_first_name: telegramData.first_name,
+            telegram_photo_url: telegramData.photo_url,
+            user_type: profileByEmail.user_type || 'buyer'
+          }
+        }
+      );
+
+      if (updateAuthError) {
+        console.error('❌ Error updating auth user:', updateAuthError);
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Failed to update user auth'
+        }), { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      console.log('✅ User updated successfully with telegram data');
+      return new Response(JSON.stringify({
+        success: true,
+        email: profileByEmail.email,
+        password: temporaryPassword
+      }), { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Step 3: Create new user (no existing profile found)
     console.log('👤 Creating new user...');
-    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-      email: email,
+    const { data: authUser, error: createError } = await supabase.auth.admin.createUser({
+      email,
       password: temporaryPassword,
       email_confirm: true,
       user_metadata: {
+        auth_method: 'telegram',
         full_name: fullName,
         telegram_id: telegramData.id,
-        auth_method: 'telegram'
+        telegram_username: telegramData.username,
+        telegram_first_name: telegramData.first_name,
+        telegram_photo_url: telegramData.photo_url,
+        user_type: 'buyer'
       }
     });
 
-    if (authError) {
-      console.error('❌ User creation failed:', authError);
+    if (createError) {
+      console.error('❌ User creation failed:', createError);
       return new Response(JSON.stringify({
         success: false,
-        error: 'Failed to create user'
+        error: createError.message
       }), { 
-        status: 500, 
-        headers: corsHeaders 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('✅ User created successfully');
+    console.log('✅ New user created successfully');
 
+    // Return credentials for client-side authentication
     return new Response(JSON.stringify({
       success: true,
-      email: email,
-      password: temporaryPassword,
-      user: {
-        id: authUser.user!.id,
-        email: email,
-        full_name: fullName
-      }
+      email,
+      password: temporaryPassword
     }), { 
       status: 200, 
-      headers: corsHeaders 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
@@ -252,7 +331,7 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       error: 'Internal server error'
     }), { 
       status: 500, 
-      headers: corsHeaders 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 }
