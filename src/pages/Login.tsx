@@ -41,43 +41,29 @@ const Login = () => {
     try {
       console.log('Handling Telegram auth result:', authResult);
       
-      if (!authResult.success) {
-        setError('Ошибка аутентификации Telegram: ' + (authResult.error || 'Неизвестная ошибка'));
+      if (authResult.error) {
+        setError('Ошибка аутентификации Telegram: ' + authResult.error);
         return;
       }
       
-      // Both new and existing users now get a ready session from the Edge Function
-      if (authResult.access_token && authResult.refresh_token) {
-        console.log('Setting session from Edge Function...');
-        
-        // Set the session directly in Supabase client
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: authResult.access_token,
-          refresh_token: authResult.refresh_token
-        });
-        
-        if (sessionError) {
-          console.error('❌ REGISTRATION ERROR:', sessionError);
-          setError('Ошибка при установке сессии: ' + sessionError.message);
-          return;
-        }
-        
-        console.log('✅ Session set successfully');
+      // Check if signInWithPassword was successful (session exists)
+      if (authResult.session) {
+        console.log('✅ Telegram authentication successful');
         
         toast({
           title: "Вход выполнен успешно",
-          description: `Добро пожаловать, ${authResult.user_data.full_name}!`,
+          description: `Добро пожаловать через Telegram!`,
         });
         
         navigate(from, { replace: true });
         
       } else {
-        console.error('No session data received from Edge Function');
-        setError('Не удалось получить данные сессии');
+        console.error('No session received from Telegram authentication');
+        setError('Не удалось войти через Telegram');
       }
       
     } catch (error) {
-      console.error('❌ REGISTRATION ERROR:', new Error('Ошибка при регистрации: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка')));
+      console.error('❌ Telegram authentication error:', error);
       setError('Ошибка при входе через Telegram: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
     }
   };
