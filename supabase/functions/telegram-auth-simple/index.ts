@@ -16,12 +16,12 @@ interface TelegramAuthData {
   hash: string;
 }
 
-// Проверка подписи Telegram согласно официальной документации
+// Этап 1: Исправленный алгоритм проверки подписи для Login Widget
 async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string): Promise<boolean> {
   try {
     const { hash, ...dataWithoutHash } = authData;
     
-    console.log('🔐 Starting signature verification...');
+    console.log('🔐 Starting Login Widget signature verification...');
     console.log('📝 Auth data received:', JSON.stringify(authData, null, 2));
     
     // Проверяем auth_date (данные не должны быть старше 1 дня)
@@ -36,48 +36,37 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
     
     console.log('✅ Auth date is valid');
     
-    // Фильтруем и сортируем данные, исключаем undefined значения
+    // Фильтруем и сортируем данные, исключаем undefined, null и пустые значения
     const dataKeys = Object.keys(dataWithoutHash)
       .filter(key => {
         const value = dataWithoutHash[key as keyof typeof dataWithoutHash];
-        return value !== undefined && value !== null && value !== '';
+        return value !== undefined && value !== null && value !== '' && String(value).trim() !== '';
       })
       .sort();
     
     console.log('🔍 Data keys for verification:', dataKeys);
     
-    // Создаем строку данных в формате key=value&key=value (не с \n!)
-    const dataString = dataKeys
+    // Создаем строку данных в формате key=value\nkey=value для Login Widget
+    const dataCheckString = dataKeys
       .map(key => `${key}=${dataWithoutHash[key as keyof typeof dataWithoutHash]}`)
-      .join('&');
+      .join('\n');
     
-    console.log('🔍 Data check string:', dataString);
+    console.log('🔍 Data check string:', dataCheckString);
     
-    // Реализуем двухступенчатый HMAC согласно документации Telegram
+    // Прямая подпись bot_token'ом согласно стандарту Login Widget
     const encoder = new TextEncoder();
     
-    // Шаг 1: Создаем секретный ключ из bot token
-    const secretKey = await crypto.subtle.importKey(
+    // Используем bot token напрямую как ключ (НЕ двухступенчатый HMAC!)
+    const key = await crypto.subtle.importKey(
       'raw',
-      encoder.encode('WebAppData'), // Используем 'WebAppData' как указано в документации
+      encoder.encode(botToken),
       { name: 'HMAC', hash: 'SHA-256' },
       false,
       ['sign']
     );
     
-    const secretKeySignature = await crypto.subtle.sign('HMAC', secretKey, encoder.encode(botToken));
-    
-    // Шаг 2: Используем полученный ключ для подписи данных
-    const dataKey = await crypto.subtle.importKey(
-      'raw',
-      new Uint8Array(secretKeySignature),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    
-    const dataSignature = await crypto.subtle.sign('HMAC', dataKey, encoder.encode(dataString));
-    const expectedHash = Array.from(new Uint8Array(dataSignature))
+    const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(dataCheckString));
+    const expectedHash = Array.from(new Uint8Array(signature))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
     
@@ -188,6 +177,47 @@ serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
     // Обычный клиент для логина
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    // Этап 4: Улучшенная проверка на replay атаки с детальным логированием
+    console.log('🔍 Checking for replay attacks...');
+    console.log('📋 Checking for telegram_id:', telegramData.id, 'auth_date:', telegramData.auth_date);
+    
+    const { data: existingLog, error: logError } = await supabaseAdmin
+      .from('telegram_auth_logs')
+      .select('id, created_at')
+      .eq('telegram_id', telegramData.id)
+      .eq('auth_date', telegramData.auth_date)
+      .single();
+
+    if (logError && logError.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('❌ Error checking replay logs:', logError);
+      throw new Error('Failed to verify request authenticity');
+    }
+
+    if (existingLog) {
+      console.log('❌ Replay attack detected - auth already used at:', existingLog.created_at);
+      throw new Error('This authentication request has already been used');
+    }
+
+    console.log('✅ No replay attack detected');
+
+    // Записываем лог с детальной информацией
+    console.log('📝 Recording authentication log...');
+    const { error: insertLogError } = await supabaseAdmin
+      .from('telegram_auth_logs')
+      .insert({
+        telegram_id: telegramData.id,
+        auth_date: telegramData.auth_date,
+        ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
+        user_agent: req.headers.get('user-agent') || 'unknown'
+      });
+
+    if (insertLogError) {
+      console.error('⚠️ Warning: Failed to record auth log:', insertLogError);
+      // Не останавливаемся, так как основная аутентификация прошла успешно
+    } else {
+      console.log('✅ Authentication log recorded');
+    }
 
     const telegramEmail = generateTelegramEmail(telegramData.id);
     const fullName = generateFullName(telegramData);
