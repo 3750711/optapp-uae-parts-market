@@ -410,22 +410,17 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       }
     }
     
-    // Create session directly instead of using magic link
-    console.log('Creating session for user:', user.id);
+    // Generate access token for the user
+    console.log('Generating access token for user:', user.id);
     
-    const { data: sessionData, error: sessionError } = await adminClient.auth.admin.createSession({
-      user_id: user.id,
-      session: {
-        expires_in: 3600 // 1 hour
-      }
-    });
+    const { data: tokenData, error: tokenError } = await adminClient.auth.admin.generateAccessToken(user.id);
     
-    if (sessionError) {
-      console.error('Session creation error:', sessionError);
+    if (tokenError) {
+      console.error('Access token generation error:', tokenError);
       return new Response(
         JSON.stringify({ 
-          error: 'Failed to create session',
-          details: sessionError.message
+          error: 'Failed to generate access token',
+          details: tokenError.message
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -434,24 +429,24 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       );
     }
 
-    console.log('Session created successfully:', {
-      hasAccessToken: !!sessionData.access_token,
-      hasRefreshToken: !!sessionData.refresh_token,
-      hasUser: !!sessionData.user,
-      accessTokenLength: sessionData.access_token?.length || 0,
-      refreshTokenLength: sessionData.refresh_token?.length || 0
+    console.log('Access token generated successfully:', {
+      hasAccessToken: !!tokenData.access_token,
+      hasRefreshToken: !!tokenData.refresh_token,
+      hasUser: !!tokenData.user,
+      accessTokenLength: tokenData.access_token?.length || 0,
+      refreshTokenLength: tokenData.refresh_token?.length || 0
     });
 
     // Ensure we have the required tokens
-    if (!sessionData.access_token || !sessionData.refresh_token) {
-      console.error('Missing tokens in session data. SessionData:', {
-        hasAccessToken: !!sessionData.access_token,
-        hasRefreshToken: !!sessionData.refresh_token,
-        sessionKeys: Object.keys(sessionData || {})
+    if (!tokenData.access_token || !tokenData.refresh_token) {
+      console.error('Missing tokens in token data. TokenData:', {
+        hasAccessToken: !!tokenData.access_token,
+        hasRefreshToken: !!tokenData.refresh_token,
+        tokenKeys: Object.keys(tokenData || {})
       });
       return new Response(
         JSON.stringify({ 
-          error: 'Session creation failed: missing authentication tokens'
+          error: 'Token generation failed: missing authentication tokens'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -462,8 +457,8 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     
     authResult = {
       success: true,
-      access_token: sessionData.access_token,
-      refresh_token: sessionData.refresh_token,
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
       user_data: {
         id: user.id,
         email: user.email,
