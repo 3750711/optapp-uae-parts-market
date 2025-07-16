@@ -251,17 +251,15 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     const publicClient = createClient(supabaseUrl, supabaseKey);
     
     // Check if user already exists by telegram_id (using public client)
-    // Convert to string to handle bigint properly and add detailed logging
-    const telegramIdStr = telegramId.toString();
-    console.log('Checking for existing user with telegram_id:', telegramId, 'as string:', telegramIdStr);
-    console.log('Raw telegram_id type:', typeof telegramId);
-    console.log('Using SQL query with type casting: telegram_id::text =', telegramIdStr);
+    // Check for existing user by generated email (more reliable than telegram_id)
+    const generatedEmail = generateEmailFromTelegram(telegramData);
+    console.log('Checking for existing user by email:', generatedEmail);
+    console.log('Telegram ID for reference:', telegramId, 'type:', typeof telegramId);
     
-    // Use explicit type casting in SQL to handle bigint properly
     const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
-      .select('id, email, profile_completed, full_name, avatar_url')
-      .eq('telegram_id::text', telegramIdStr)
+      .select('id, email, profile_completed, full_name, avatar_url, telegram_id')
+      .eq('email', generatedEmail)
       .maybeSingle();
     
     if (profileError && profileError.code !== 'PGRST116') {
@@ -369,7 +367,9 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
   }
 }
 
+const FUNCTION_VERSION = '1.2.0-email-search';
 console.log('🚀 Telegram Auth Function starting up...');
+console.log('Function version:', FUNCTION_VERSION);
 console.log('Environment variables check:');
 console.log('- SUPABASE_URL exists:', !!Deno.env.get('SUPABASE_URL'));
 console.log('- SUPABASE_ANON_KEY exists:', !!Deno.env.get('SUPABASE_ANON_KEY'));
