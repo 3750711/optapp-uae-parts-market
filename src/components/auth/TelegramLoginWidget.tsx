@@ -50,45 +50,26 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       }
 
       if (data.is_existing_user) {
-        // Existing user - try to sign in using their email
+        // Existing Telegram user - use magic link via OTP
         const email = data.user_data.email;
         
-        // For Telegram users, we need to sign them up first if they don't exist in auth.users
-        // Then sign them in. Let's try sign in first.
-        const { data: signInResult, error: signInError } = await supabase.auth.signInWithPassword({
+        const { error: otpError } = await supabase.auth.signInWithOtp({
           email: email,
-          password: `telegram_${data.telegram_data.id}` // Use telegram_id as password
+          options: {
+            emailRedirectTo: `${window.location.origin}/`
+          }
         });
 
-        if (signInError) {
-          // If sign in fails, the user might not exist in auth.users yet
-          // Try to sign them up first
-          const { data: signUpResult, error: signUpError } = await supabase.auth.signUp({
-            email: email,
-            password: `telegram_${data.telegram_data.id}`,
-            options: {
-              emailRedirectTo: `${window.location.origin}/`,
-              data: {
-                auth_method: 'telegram',
-                telegram_id: data.telegram_data.id,
-                full_name: data.user_data.full_name,
-                photo_url: data.user_data.avatar_url,
-                telegram: data.telegram_data.username,
-                user_type: 'buyer'
-              }
-            }
-          });
-
-          if (signUpError) {
-            throw signUpError;
-          }
-
-          if (!signUpResult.session) {
-            throw new Error('No session created after sign up');
-          }
-        } else if (!signInResult.session) {
-          throw new Error('No session created after sign in');
+        if (otpError) {
+          console.error('OTP sign in error:', otpError);
+          throw new Error(`Ошибка входа: ${otpError.message}`);
         }
+
+        toast.dismiss();
+        toast.success('Магическая ссылка отправлена на ваш email!');
+        toast.info('Проверьте почту для завершения входа.');
+        onSuccess?.();
+        return; // Exit early to prevent further execution
       } else {
         // New user - sign them up
         const email = `user.${data.telegram_data.id}@telegram.partsbay.ae`;
