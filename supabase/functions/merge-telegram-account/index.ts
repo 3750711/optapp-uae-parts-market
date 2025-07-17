@@ -1,6 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+/**
+ * Normalizes a Telegram username by adding @ prefix if missing
+ */
+function normalizeTelegramUsername(username: string | null | undefined): string {
+  if (!username) return '';
+  
+  const trimmed = username.trim();
+  if (!trimmed) return '';
+  
+  // Remove @ from the beginning if present, then add it back to ensure consistency
+  const withoutAt = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
+  
+  return `@${withoutAt}`;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -91,7 +106,7 @@ serve(async (req) => {
         auth_method: 'telegram',
         full_name: `${telegram_data.first_name} ${telegram_data.last_name || ''}`.trim(),
         avatar_url: telegram_data.photo_url,
-        telegram: telegram_data.username,
+        telegram: normalizeTelegramUsername(telegram_data.username),
         email_confirmed: true // Will be handled by our trigger
       })
       .eq('id', authData.user.id)

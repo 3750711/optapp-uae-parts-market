@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode, useMe
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { getCachedAdminRights, setCachedAdminRights, clearAdminCache } from '@/utils/performanceUtils';
+import { normalizeTelegramUsername } from '@/utils/telegramNormalization';
 
 interface Profile {
   id: string;
@@ -138,18 +139,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) return { error: 'No user logged in' };
 
     try {
+      // Normalize telegram username if it's being updated
+      const normalizedUpdates = { ...updates };
+      if (normalizedUpdates.telegram) {
+        normalizedUpdates.telegram = normalizeTelegramUsername(normalizedUpdates.telegram);
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update(normalizedUpdates)
         .eq('id', user.id);
 
       if (error) throw error;
 
-      setProfile(prev => prev ? { ...prev, ...updates } : null);
+      setProfile(prev => prev ? { ...prev, ...normalizedUpdates } : null);
       
       // Обновляем кэш если изменился user_type
-      if (updates.user_type) {
-        const adminStatus = updates.user_type === 'admin';
+      if (normalizedUpdates.user_type) {
+        const adminStatus = normalizedUpdates.user_type === 'admin';
         setIsAdmin(adminStatus);
         setCachedAdminRights(user.id, adminStatus);
       }

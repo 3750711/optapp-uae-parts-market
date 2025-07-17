@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeTelegramUsername } from '@/utils/telegramNormalization';
 
 const STEP_DURATION = 15000; // 15 seconds per step
 
@@ -111,7 +112,7 @@ const RequestProcessing: React.FC<RequestProcessingProps> = ({
       if (contactType === 'whatsapp') {
         updateData = { phone: contactInfo };
       } else {
-        updateData = { telegram: contactInfo };
+        updateData = { telegram: normalizeTelegramUsername(contactInfo) };
       }
       
       if (user) {
@@ -128,7 +129,7 @@ const RequestProcessing: React.FC<RequestProcessingProps> = ({
       const { error: requestError } = await supabase
         .from('requests')
         .update({
-          [contactType === 'whatsapp' ? 'phone' : 'telegram']: contactInfo
+          [contactType === 'whatsapp' ? 'phone' : 'telegram']: contactType === 'telegram' ? normalizeTelegramUsername(contactInfo) : contactInfo
         })
         .eq('id', requestId);
       

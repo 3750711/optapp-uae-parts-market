@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { normalizeTelegramUsername, validateAndNormalizeTelegramUsername } from "@/utils/telegramNormalization";
 
 interface TelegramFieldProps {
   control: any;
@@ -46,6 +47,15 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
               {...field} 
               disabled={disabled || !isEditable}
               className={!isEditable ? "bg-gray-100 cursor-not-allowed" : ""}
+              onChange={(e) => {
+                const normalized = normalizeTelegramUsername(e.target.value);
+                field.onChange(normalized);
+              }}
+              onBlur={(e) => {
+                const validation = validateAndNormalizeTelegramUsername(e.target.value);
+                field.onChange(validation.normalized);
+                field.onBlur();
+              }}
             />
           </FormControl>
           {description ? (

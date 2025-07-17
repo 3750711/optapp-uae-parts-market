@@ -1,6 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+/**
+ * Normalizes a Telegram username by adding @ prefix if missing
+ */
+function normalizeTelegramUsername(username: string | null | undefined): string {
+  if (!username) return '';
+  
+  const trimmed = username.trim();
+  if (!trimmed) return '';
+  
+  // Remove @ from the beginning if present, then add it back to ensure consistency
+  const withoutAt = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
+  
+  return `@${withoutAt}`;
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -132,7 +147,7 @@ serve(async (req) => {
         .update({
           full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
           avatar_url: authData.photo_url,
-          telegram: authData.username
+          telegram: normalizeTelegramUsername(authData.username)
         })
         .eq('id', existingTelegramProfile.id)
         
@@ -149,7 +164,7 @@ serve(async (req) => {
             id: authData.id,
             first_name: authData.first_name,
             last_name: authData.last_name,
-            username: authData.username,
+            username: normalizeTelegramUsername(authData.username),
             photo_url: authData.photo_url
           }
         }),
@@ -171,7 +186,7 @@ serve(async (req) => {
         user_metadata: {
           auth_method: 'telegram',
           telegram_id: authData.id,
-          telegram: authData.username,
+          telegram: normalizeTelegramUsername(authData.username),
           photo_url: authData.photo_url,
           full_name: `${authData.first_name} ${authData.last_name || ''}`.trim()
         }
