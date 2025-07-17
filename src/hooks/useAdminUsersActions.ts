@@ -190,12 +190,99 @@ export const useAdminUsersActions = () => {
     }
   };
 
+  const sendPersonalTelegramMessage = async (userId: string, messageText: string, images?: string[]) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      if (!session.session?.access_token) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось получить токен аутентификации",
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      const { data, error } = await supabase.functions.invoke('send-personal-telegram-message', {
+        body: {
+          user_id: userId,
+          message_text: messageText,
+          images: images || []
+        }
+      });
+
+      if (error) {
+        // Если ошибка 401, попробуем обновить сессию и повторить
+        if (error.message?.includes('401') || error.message?.includes('Authentication failed')) {
+          console.log('Token may be expired, refreshing session...');
+          
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          
+          if (refreshError) {
+            toast({
+              title: "Ошибка аутентификации",
+              description: "Пожалуйста, перезайдите в систему",
+              variant: "destructive"
+            });
+            return false;
+          }
+
+          // Повторная попытка с обновленным токеном
+          const { data: retryData, error: retryError } = await supabase.functions.invoke('send-personal-telegram-message', {
+            body: {
+              user_id: userId,
+              message_text: messageText,
+              images: images || []
+            }
+          });
+
+          if (retryError) {
+            toast({
+              title: "Ошибка",
+              description: `Не удалось отправить сообщение: ${retryError.message}`,
+              variant: "destructive"
+            });
+            return false;
+          }
+
+          toast({
+            title: "Успех",
+            description: "Сообщение в Telegram отправлено"
+          });
+          return true;
+        }
+
+        toast({
+          title: "Ошибка",
+          description: `Не удалось отправить сообщение: ${error.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      toast({
+        title: "Успех",
+        description: "Сообщение в Telegram отправлено"
+      });
+      return true;
+    } catch (error) {
+      console.error('Error sending personal telegram message:', error);
+      toast({
+        title: "Ошибка",
+        description: "Произошла ошибка при отправке сообщения",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   return {
     handleQuickStatusChange,
     handleOptStatusChange,
     handleBulkAction,
     handleExportUsers,
     handleContextAction,
-    handleDeleteUser
+    handleDeleteUser,
+    sendPersonalTelegramMessage
   };
 };

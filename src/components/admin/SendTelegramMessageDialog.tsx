@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Upload, X, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { ProfileType } from '@/components/profile/types';
+import { useAdminUsersActions } from '@/hooks/useAdminUsersActions';
 
 interface SendTelegramMessageDialogProps {
   user: ProfileType;
@@ -24,6 +24,8 @@ export const SendTelegramMessageDialog: React.FC<SendTelegramMessageDialogProps>
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
+  
+  const { sendPersonalTelegramMessage } = useAdminUsersActions();
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -91,29 +93,17 @@ export const SendTelegramMessageDialog: React.FC<SendTelegramMessageDialogProps>
     setSending(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-personal-telegram-message', {
-        body: {
-          user_id: user.id,
-          message_text: message.trim(),
-          images: images.length > 0 ? images : undefined
-        }
-      });
+      const success = await sendPersonalTelegramMessage(
+        user.id,
+        message.trim(),
+        images.length > 0 ? images : undefined
+      );
 
-      if (error) {
-        console.error('Function error:', error);
-        toast.error(error.message || 'Ошибка отправки сообщения');
-        return;
+      if (success) {
+        setMessage('');
+        setImages([]);
+        onOpenChange(false);
       }
-
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      toast.success('Сообщение отправлено!');
-      setMessage('');
-      setImages([]);
-      onOpenChange(false);
     } catch (error) {
       console.error('Send error:', error);
       toast.error('Ошибка отправки сообщения');

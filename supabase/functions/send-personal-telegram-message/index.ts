@@ -34,7 +34,10 @@ serve(async (req) => {
     )
 
     const authHeader = req.headers.get('Authorization')
+    console.log('Auth header received:', authHeader ? 'Present' : 'Missing')
+    
     if (!authHeader) {
+      console.error('No authorization header provided')
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
         { 
@@ -44,14 +47,14 @@ serve(async (req) => {
       )
     }
 
-    // Verify admin permissions
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
-
-    if (authError || !user) {
+    // Extract token properly
+    const token = authHeader.replace('Bearer ', '').trim()
+    console.log('Token extracted, length:', token.length)
+    
+    if (!token || token.length < 20) {
+      console.error('Invalid token format or length')
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ error: 'Invalid token format' }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 401 
@@ -59,13 +62,61 @@ serve(async (req) => {
       )
     }
 
-    const { data: profile } = await supabase
+    // Create supabase client with user token for proper auth
+    const supabaseWithAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: authHeader
+          }
+        }
+      }
+    )
+
+    // Verify user session
+    const { data: { user }, error: authError } = await supabaseWithAuth.auth.getUser(token)
+
+    if (authError || !user) {
+      console.error('Authentication failed:', authError?.message || 'No user found')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authentication failed',
+          details: authError?.message || 'Invalid or expired token'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401 
+        }
+      )
+    }
+
+    console.log('User authenticated:', user.id)
+
+    // Check admin permissions with service role client
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('user_type')
       .eq('id', user.id)
       .single()
 
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError.message)
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to verify user permissions',
+          details: profileError.message 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500 
+        }
+      )
+    }
+
     if (!profile || profile.user_type !== 'admin') {
+      console.error('Admin access denied for user:', user.id, 'type:', profile?.user_type)
       return new Response(
         JSON.stringify({ error: 'Admin access required' }),
         { 
@@ -74,6 +125,8 @@ serve(async (req) => {
         }
       )
     }
+
+    console.log('Admin permissions verified for user:', user.id)
 
     const { user_id, message_text, images } = await req.json()
 
