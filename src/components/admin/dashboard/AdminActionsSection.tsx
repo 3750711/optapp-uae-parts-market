@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Store, Activity, Plus, Car, FileText, Package } from 'lucide-react';
+import { Store, Activity, Plus, Car, FileText, Package, MessageSquare } from 'lucide-react';
 import ActionCard from './ActionCard';
 
 const AdminActionsSection: React.FC = () => {
@@ -48,6 +48,14 @@ const AdminActionsSection: React.FC = () => {
       link: "/admin/free-order",
       bgColor: "bg-accent",
       textColor: "text-accent-foreground"
+    },
+    {
+      title: "Сообщения пользователям",
+      subtitle: "Отправка сообщений и уведомлений",
+      icon: MessageSquare,
+      link: "/admin/messages",
+      bgColor: "bg-blue-500",
+      textColor: "text-white"
     }
   ];
 
