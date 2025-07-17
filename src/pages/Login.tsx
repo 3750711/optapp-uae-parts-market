@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, Mail, Hash } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -15,7 +14,9 @@ import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
 import { useRateLimit } from '@/hooks/useRateLimit';
 import { TelegramLoginWidget } from '@/components/auth/TelegramLoginWidget';
 import { TelegramAuthWarning } from '@/components/auth/TelegramAuthWarning';
+import { AuthErrorAlert } from '@/components/auth/AuthErrorAlert';
 import { Separator } from '@/components/ui/separator';
+import { AuthErrorType, AuthError } from '@/types/auth';
 
 
 
@@ -24,7 +25,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [authError, setAuthError] = useState<AuthError | null>(null);
   const [showTelegramWarning, setShowTelegramWarning] = useState(false);
   
   const navigate = useNavigate();
@@ -40,16 +41,47 @@ const Login = () => {
   // Показываем email как приоритетный, OPT ID как альтернативу
   const isEmailFormat = inputType === 'email' || loginInput.length === 0;
 
+  const createAuthError = (type: AuthErrorType, customMessage?: string): AuthError => {
+    const errorMessages = {
+      [AuthErrorType.INVALID_CREDENTIALS]: 'Неверный пароль. Проверьте правильность введенных данных.',
+      [AuthErrorType.USER_NOT_FOUND]: 'Пользователь с таким email не найден. Возможно, вы еще не зарегистрированы?',
+      [AuthErrorType.OPT_ID_NOT_FOUND]: 'OPT ID не найден в системе. Проверьте правильность введенного ID.',
+      [AuthErrorType.RATE_LIMITED]: 'Слишком много попыток входа. Попробуйте позже через несколько минут.',
+      [AuthErrorType.NETWORK_ERROR]: 'Проблемы с подключением к интернету. Проверьте соединение и попробуйте снова.',
+      [AuthErrorType.GENERIC_ERROR]: 'Произошла неожиданная ошибка. Попробуйте обновить страницу.'
+    };
+
+    const actionConfig = {
+      [AuthErrorType.USER_NOT_FOUND]: { text: 'Зарегистрироваться', link: '/register' },
+      [AuthErrorType.INVALID_CREDENTIALS]: { text: 'Восстановить пароль', link: '/forgot-password' },
+      [AuthErrorType.OPT_ID_NOT_FOUND]: { text: 'Зарегистрироваться', link: '/register' }
+    };
+
+    return {
+      type,
+      message: customMessage || errorMessages[type],
+      actionText: actionConfig[type]?.text,
+      actionLink: actionConfig[type]?.link
+    };
+  };
+
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!loginInput || !password) {
+      setAuthError(createAuthError(AuthErrorType.GENERIC_ERROR, 'Пожалуйста, заполните все поля'));
+      return;
+    }
+    
     if (!checkRateLimit('вход в систему')) {
+      setAuthError(createAuthError(AuthErrorType.RATE_LIMITED));
       return;
     }
 
     setIsLoading(true);
-    setError('');
+    setAuthError(null);
+    setShowTelegramWarning(false);
 
     try {
       let email = loginInput;
@@ -59,12 +91,12 @@ const Login = () => {
         const result = await getEmailByOptId(loginInput);
         
         if (result.isRateLimited) {
-          setError('Слишком много попыток поиска по OPT ID. Попробуйте позже.');
+          setAuthError(createAuthError(AuthErrorType.RATE_LIMITED));
           return;
         }
         
         if (!result.email) {
-          setError('OPT ID не найден в системе');
+          setAuthError(createAuthError(AuthErrorType.OPT_ID_NOT_FOUND));
           return;
         }
         
@@ -77,7 +109,6 @@ const Login = () => {
       });
       
       if (error) {
-        // Проверяем, является ли ошибка связанной с неверными учетными данными
         if (error.message === 'Invalid login credentials') {
           try {
             // Проверяем метод аутентификации пользователя через безопасную функцию
@@ -87,30 +118,40 @@ const Login = () => {
             
             if (authData?.auth_method === 'telegram') {
               setShowTelegramWarning(true);
-              setError('');
+              return;
+            } else if (authData?.auth_method === null) {
+              // Пользователь не найден
+              setAuthError(createAuthError(
+                inputType === 'opt_id' ? AuthErrorType.OPT_ID_NOT_FOUND : AuthErrorType.USER_NOT_FOUND
+              ));
+              return;
+            } else {
+              // Пользователь найден, но пароль неверный
+              setAuthError(createAuthError(AuthErrorType.INVALID_CREDENTIALS));
               return;
             }
           } catch (authCheckError) {
             console.error('Error checking auth method:', authCheckError);
-            // Продолжаем с обычной обработкой ошибки если проверка не удалась
+            // Fallback to generic invalid credentials error
+            setAuthError(createAuthError(AuthErrorType.INVALID_CREDENTIALS));
+            return;
           }
-        }
-        
-        if (isOptId) {
-          setError('Неверный OPT ID или пароль');
         } else {
-          setError(error.message || 'Произошла ошибка при входе');
+          // Other auth errors
+          setAuthError(createAuthError(AuthErrorType.GENERIC_ERROR, error.message));
+          return;
         }
-      } else {
-        toast({
-          title: "Вход выполнен успешно",
-          description: "Добро пожаловать!",
-        });
-        
-        navigate(from, { replace: true });
       }
+
+      toast({
+        title: "Вход выполнен успешно",
+        description: "Добро пожаловать!",
+      });
+      
+      navigate(from, { replace: true });
     } catch (err) {
-      setError('Произошла ошибка при входе');
+      console.error('Login error:', err);
+      setAuthError(createAuthError(AuthErrorType.NETWORK_ERROR));
     } finally {
       setIsLoading(false);
     }
@@ -215,7 +256,7 @@ const Login = () => {
             <div className="space-y-4">
               <TelegramLoginWidget 
                 onSuccess={() => navigate(from, { replace: true })}
-                onError={(error) => setError(error)}
+                onError={(error) => setAuthError(createAuthError(AuthErrorType.GENERIC_ERROR, error))}
               />
             </div>
 
@@ -223,10 +264,11 @@ const Login = () => {
               <TelegramAuthWarning onClose={() => setShowTelegramWarning(false)} />
             )}
 
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+            {authError && (
+              <AuthErrorAlert 
+                error={authError} 
+                onClose={() => setAuthError(null)} 
+              />
             )}
 
             <div className="text-center space-y-2">
