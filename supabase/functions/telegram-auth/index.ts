@@ -253,26 +253,50 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     
     const email = generateEmailFromTelegram(telegramData);
     console.log(`📧 Generated email for search: ${email}`);
-    console.log(`🔍 Checking for existing user by telegram_id: ${telegramId} (type: ${typeof telegramId})`);
+    console.log(`🔍 Step 1: Checking for existing user by telegram_id: ${telegramId} (type: ${typeof telegramId})`);
     
-    // Step 1: Check if user exists by telegram_id in profiles table with detailed logging
-    const { data: existingProfile, error: profileError } = await publicClient
+    // Step 1: Check if user exists by telegram_id in profiles table
+    const { data: existingTelegramProfile, error: profileError } = await publicClient
       .from('profiles')
-      .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id')
+      .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id, telegram')
       .eq('telegram_id', telegramId)
       .maybeSingle();
 
     console.log('📊 Profile search by telegram_id result:', {
-      found: !!existingProfile,
+      found: !!existingTelegramProfile,
       profileError: profileError?.message,
-      telegram_id_in_db: existingProfile?.telegram_id,
-      email_in_db: existingProfile?.email
+      telegram_id_in_db: existingTelegramProfile?.telegram_id,
+      email_in_db: existingTelegramProfile?.email
     });
 
-    // Step 2: If not found by telegram_id, try searching by email
-    let finalProfile = existingProfile;
-    if (!existingProfile && !profileError) {
-      console.log(`🔄 Fallback: Searching by email: ${email}`);
+    // Step 2: If not found by telegram_id, search by telegram username for account merging
+    let existingUsernameProfile = null;
+    if (!existingTelegramProfile && !profileError && telegramData.username) {
+      const telegramUsername = telegramData.username.startsWith('@') ? telegramData.username : `@${telegramData.username}`;
+      console.log(`🔍 Step 2: Searching by telegram username: ${telegramUsername}`);
+      
+      const { data: usernameProfile, error: usernameError } = await publicClient
+        .from('profiles')
+        .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id, telegram')
+        .eq('telegram', telegramUsername)
+        .is('telegram_id', null) // Only email-based accounts without telegram_id
+        .maybeSingle();
+      
+      console.log('📊 Profile search by telegram username result:', {
+        found: !!usernameProfile,
+        usernameError: usernameError?.message,
+        telegram_username: usernameProfile?.telegram,
+        email_in_db: usernameProfile?.email,
+        has_telegram_id: !!usernameProfile?.telegram_id
+      });
+      
+      existingUsernameProfile = usernameProfile;
+    }
+
+    // Step 3: If not found by username either, try searching by generated email as fallback
+    let finalProfile = existingTelegramProfile || existingUsernameProfile;
+    if (!finalProfile && !profileError) {
+      console.log(`🔄 Step 3: Fallback search by generated email: ${email}`);
       const { data: profileByEmail, error: emailError } = await publicClient
         .from('profiles')
         .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id')
@@ -310,12 +334,61 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       }
     }
 
-    // Step 4: Determine final result and standardize response
-    const isExistingUser = !!(finalProfile || authUser);
-    console.log(`📋 Final decision: is_existing_user = ${isExistingUser}`);
+    // Step 4: Handle different scenarios based on search results
+    if (existingTelegramProfile) {
+      // Scenario A: User already has telegram_id linked - direct login
+      console.log('✅ Scenario A: Existing Telegram user found - direct login');
+      const userData = {
+        id: telegramId,
+        first_name: telegramData.first_name,
+        last_name: telegramData.last_name,
+        username: telegramData.username,
+        photo_url: telegramData.photo_url,
+        email: existingTelegramProfile.email,
+        full_name: existingTelegramProfile.full_name || generateFullName(telegramData),
+        auth_method: 'telegram',
+        user_type: existingTelegramProfile.user_type || 'buyer'
+      };
 
-    if (isExistingUser) {
-      // Use profile email if exists, otherwise use auth user email, fallback to generated
+      return new Response(
+        JSON.stringify({
+          success: true,
+          is_existing_user: true,
+          profile_completed: Boolean(existingTelegramProfile.profile_completed),
+          telegram_data: userData
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 200 
+        }
+      );
+    } else if (existingUsernameProfile) {
+      // Scenario B: Account merge required - existing email account with same telegram username
+      console.log('🔗 Scenario B: Account merge required - found email account with matching Telegram username');
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          requires_merge: true,
+          existing_email: existingUsernameProfile.email,
+          telegram_data: {
+            id: telegramId,
+            first_name: telegramData.first_name,
+            last_name: telegramData.last_name,
+            username: telegramData.username,
+            photo_url: telegramData.photo_url
+          },
+          merge_reason: 'telegram_username_match',
+          message: 'An account with this Telegram username already exists. Please enter your password to link accounts.'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 200 
+        }
+      );
+    } else if (finalProfile || authUser) {
+      // Scenario C: Found by email fallback - existing user login
+      console.log('✅ Scenario C: Existing user found by email fallback');
       const userEmail = finalProfile?.email || authUser?.email || email;
       const userData = {
         id: telegramId,
@@ -329,8 +402,6 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         user_type: finalProfile?.user_type || 'buyer'
       };
 
-      console.log('✅ Existing user found, returning for signInWithPassword flow with email:', userEmail);
-      
       return new Response(
         JSON.stringify({
           success: true,
@@ -345,8 +416,8 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       );
     }
     
-    // New user: return data for signUp flow
-    console.log('🎯 New user detected - returning data for signUp flow');
+    // Scenario D: Completely new user - return data for signUp flow
+    console.log('🎯 Scenario D: New user detected - returning data for signUp flow');
     
     return new Response(
       JSON.stringify({

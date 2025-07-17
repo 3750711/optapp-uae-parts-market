@@ -98,26 +98,43 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Check if user exists by telegram_id first
-    console.log('Checking for existing user with telegram_id:', authData.id)
+    // Step 1: Check if user exists by telegram_id first
+    console.log('🔍 Searching for existing user by telegram_id:', authData.id)
     const { data: existingTelegramProfile } = await supabase
       .from('profiles')
-      .select('id, email')
+      .select('id, email, telegram_id, telegram, auth_method')
       .eq('telegram_id', authData.id)
       .maybeSingle()
 
-    // Check if user exists by telegram username (for account merging)
-    let existingEmailProfile = null
+    console.log('📊 Search by telegram_id result:', {
+      found: !!existingTelegramProfile,
+      user_id: existingTelegramProfile?.id,
+      email: existingTelegramProfile?.email,
+      telegram_id: existingTelegramProfile?.telegram_id
+    })
+
+    // Step 2: If not found by telegram_id, check by telegram username (for account merging)
+    let existingUsernameProfile = null
     if (!existingTelegramProfile && authData.username) {
-      console.log('Checking for existing user with telegram username:', authData.username)
-      const { data: emailProfile } = await supabase
+      const normalizedUsername = normalizeTelegramUsername(authData.username)
+      console.log('🔍 Searching for existing user by telegram username:', normalizedUsername)
+      
+      const { data: usernameProfile } = await supabase
         .from('profiles')
-        .select('id, email, auth_method')
-        .eq('telegram', authData.username)
-        .is('telegram_id', null) // Only email-based accounts
+        .select('id, email, telegram_id, telegram, auth_method')
+        .eq('telegram', normalizedUsername)
+        .is('telegram_id', null) // Only accounts without telegram_id (email-based)
         .maybeSingle()
       
-      existingEmailProfile = emailProfile
+      console.log('📊 Search by telegram username result:', {
+        found: !!usernameProfile,
+        user_id: usernameProfile?.id,
+        email: usernameProfile?.email,
+        auth_method: usernameProfile?.auth_method,
+        has_telegram_id: !!usernameProfile?.telegram_id
+      })
+      
+      existingUsernameProfile = usernameProfile
     }
 
     let email: string
@@ -125,10 +142,10 @@ serve(async (req) => {
     let isNewUser = false
 
     if (existingTelegramProfile) {
-      // User already has Telegram account
+      // User already has Telegram account linked
       email = existingTelegramProfile.email
       tempPassword = crypto.randomUUID()
-      console.log('Existing Telegram user found, updating password for login')
+      console.log('✅ Existing Telegram user found, updating password for login')
       
       // Update user password temporarily
       const { error: updateError } = await supabase.auth.admin.updateUserById(
@@ -137,7 +154,7 @@ serve(async (req) => {
       )
       
       if (updateError) {
-        console.error('Error updating user password:', updateError)
+        console.error('❌ Error updating user password:', updateError)
         throw updateError
       }
       
@@ -151,22 +168,24 @@ serve(async (req) => {
         })
         .eq('id', existingTelegramProfile.id)
         
-    } else if (existingEmailProfile) {
-      // Account merge required - existing email account with same telegram username
-      console.log('Found existing email account with same telegram username, requiring merge confirmation')
+    } else if (existingUsernameProfile) {
+      // Account merge required - existing email account with same telegram username but no telegram_id
+      console.log('🔗 Found existing email account with matching telegram username - requesting account merge')
       
       return new Response(
         JSON.stringify({ 
           success: true,
           requires_merge: true,
-          existing_email: existingEmailProfile.email,
+          existing_email: existingUsernameProfile.email,
           telegram_data: {
             id: authData.id,
             first_name: authData.first_name,
             last_name: authData.last_name,
             username: normalizeTelegramUsername(authData.username),
             photo_url: authData.photo_url
-          }
+          },
+          merge_reason: 'telegram_username_match',
+          message: 'Account with this Telegram username already exists. Please enter your account password to link.'
         }),
         { 
           status: 200, 
