@@ -55,13 +55,16 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         full_response: data
       });
 
-      // Generate consistent password for Telegram users
-      const generateTelegramPassword = (telegramId: number, email: string) => {
-        return `telegram_${telegramId}_${email.split('@')[0]}`;
+      // Generate cryptographically secure random password for Telegram users
+      const generateSecurePassword = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+        const array = new Uint8Array(32); // 32 characters minimum
+        crypto.getRandomValues(array);
+        return Array.from(array, byte => chars[byte % chars.length]).join('');
       };
 
       const email = data.telegram_data.email;
-      const password = generateTelegramPassword(data.telegram_data.id, email);
+      const password = generateSecurePassword();
 
       console.log('🔑 Generated email and password for:', email);
 
