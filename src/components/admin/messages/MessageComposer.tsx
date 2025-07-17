@@ -96,6 +96,50 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       return;
     }
 
+    // Check if images are still uploading
+    if (isUploading) {
+      toast({
+        title: "Подождите",
+        description: "Дождитесь завершения загрузки изображений",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if all uploaded images have final URLs
+    const hasFailedUploads = uploadQueue.some(item => item.status === 'error');
+    if (hasFailedUploads) {
+      toast({
+        title: "Ошибка загрузки",
+        description: "Некоторые изображения не удалось загрузить. Удалите их или попробуйте еще раз",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check if there are images still processing
+    const hasProcessingImages = uploadQueue.some(item => 
+      item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading'
+    );
+    if (hasProcessingImages) {
+      toast({
+        title: "Подождите",
+        description: "Дождитесь завершения обработки всех изображений",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    console.log('📤 Sending message with images:', {
+      messageLength: messageText.length,
+      imageUrls: getFinalUrls(),
+      uploadQueueStatus: uploadQueue.map(item => ({ 
+        name: item.file.name, 
+        status: item.status, 
+        finalUrl: item.finalUrl 
+      }))
+    });
+
     // Open confirmation dialog
     setShowConfirmDialog(true);
   };
@@ -138,7 +182,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   };
 
   const hasRecipients = selectedRecipients.length > 0 || selectedGroup;
-  const canSend = messageText.trim() && hasRecipients && !isLoading && !isUploading;
+  const hasFailedUploads = uploadQueue.some(item => item.status === 'error');
+  const hasProcessingImages = uploadQueue.some(item => 
+    item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading'
+  );
+  const canSend = messageText.trim() && hasRecipients && !isLoading && !isUploading && !hasFailedUploads && !hasProcessingImages;
 
   return (
     <Card>
@@ -217,20 +265,46 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           </div>
 
           {/* Upload Progress */}
-          {isUploading && uploadQueue.length > 0 && (
+          {uploadQueue.length > 0 && (
             <div className="space-y-2">
-              <div className="text-sm font-medium">
-                Загрузка изображений...
+              <div className="text-sm font-medium flex items-center gap-2">
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Загрузка изображений...
+                  </>
+                ) : (
+                  hasFailedUploads ? (
+                    <>
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      Ошибки загрузки
+                    </>
+                  ) : (
+                    hasProcessingImages ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Обработка изображений...
+                      </>
+                    ) : (
+                      "Изображения готовы"
+                    )
+                  )
+                )}
               </div>
               {uploadQueue.map((item) => (
                 <div key={item.id} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="truncate">{item.file.name}</span>
-                    <span>
+                    <span className={
+                      item.status === 'error' ? 'text-red-500' : 
+                      item.status === 'success' ? 'text-green-500' : 
+                      'text-muted-foreground'
+                    }>
+                      {item.status === 'pending' && 'Ожидание...'}
                       {item.status === 'compressing' && 'Сжатие...'}
                       {item.status === 'uploading' && `${item.progress}%`}
-                      {item.status === 'success' && '✓'}
-                      {item.status === 'error' && '✗'}
+                      {item.status === 'success' && '✓ Готово'}
+                      {item.status === 'error' && '✗ Ошибка'}
                     </span>
                   </div>
                   {item.status !== 'success' && item.status !== 'error' && (
@@ -285,11 +359,25 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           </div>
         )}
 
-        {/* Warning */}
+        {/* Warnings */}
         {!hasRecipients && (
           <div className="flex items-center gap-2 p-3 bg-orange-50 text-orange-700 rounded-lg">
             <AlertCircle className="h-4 w-4" />
             <span className="text-sm">Выберите получателей для отправки сообщения</span>
+          </div>
+        )}
+        
+        {hasFailedUploads && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-lg">
+            <AlertCircle className="h-4 w-4" />
+            <span className="text-sm">Некоторые изображения не удалось загрузить. Удалите их или попробуйте еще раз</span>
+          </div>
+        )}
+
+        {hasProcessingImages && (
+          <div className="flex items-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-sm">Дождитесь завершения обработки изображений перед отправкой</span>
           </div>
         )}
 
@@ -301,12 +389,16 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : isUploading ? (
+          ) : isUploading || hasProcessingImages ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : (
             <Send className="h-4 w-4 mr-2" />
           )}
-          {isLoading ? 'Отправка...' : isUploading ? 'Загрузка изображений...' : 'Отправить сообщение'}
+          {isLoading ? 'Отправка...' : 
+           isUploading ? 'Загрузка изображений...' : 
+           hasProcessingImages ? 'Обработка изображений...' :
+           hasFailedUploads ? 'Исправьте ошибки загрузки' :
+           'Отправить сообщение'}
         </Button>
 
         <MessageConfirmDialog
