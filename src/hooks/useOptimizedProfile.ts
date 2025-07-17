@@ -46,7 +46,7 @@ export const useOptimizedProfile = () => {
           .from('stores')
           .select('*')
           .eq('seller_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (storeError && storeError.code !== 'PGRST116') {
           console.error('Error fetching store:', storeError);

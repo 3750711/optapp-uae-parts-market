@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
   // Оптимизированная функция загрузки профиля с кэшированием
-  const fetchUserProfile = useCallback(async (userId: string) => {
+  const fetchUserProfile = useCallback(async (userId: string, retryCount = 0) => {
     setIsProfileLoading(true);
     try {
       // Проверяем кэш админских прав
@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
@@ -94,6 +94,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAdmin(adminStatus);
         // Кэшируем результат
         setCachedAdminRights(userId, adminStatus);
+      } else {
+        // Profile doesn't exist yet - for new users (especially Telegram users)
+        console.log('Profile not found for user:', userId);
+        setProfile(null);
+        setIsAdmin(false);
+        
+        // Retry mechanism for new users - wait a bit and try again
+        if (retryCount < 3) {
+          console.log(`Retrying profile fetch (attempt ${retryCount + 1}/3) in 1 second...`);
+          setTimeout(() => {
+            fetchUserProfile(userId, retryCount + 1);
+          }, 1000);
+          return; // Don't set loading to false yet
+        } else {
+          console.log('Profile still not found after retries. User may need to complete profile setup.');
+        }
       }
     } catch (error) {
       console.error('Profile fetch error:', error);
