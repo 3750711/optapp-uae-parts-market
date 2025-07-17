@@ -64,7 +64,18 @@ const MessageHistory = () => {
       return groupLabels[message.recipient_group as keyof typeof groupLabels] || message.recipient_group;
     }
     
+    if (message.recipientDetails?.length) {
+      if (message.recipientDetails.length === 1) {
+        const recipient = message.recipientDetails[0];
+        return recipient.full_name || recipient.email || recipient.telegram || 'Неизвестный получатель';
+      }
+      return `${message.recipientDetails.length} получател${message.recipientDetails.length === 1 ? 'ь' : 'ей'}`;
+    }
+    
     if (message.recipient_ids?.length) {
+      if (message.recipient_ids.length === 1) {
+        return '1 получатель';
+      }
       return `${message.recipient_ids.length} получател${message.recipient_ids.length === 1 ? 'ь' : 'ей'}`;
     }
     

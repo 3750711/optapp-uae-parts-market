@@ -9,6 +9,7 @@ import { MessageSquare, Send, Image, Loader2, AlertCircle, Upload, X } from 'luc
 import { useToast } from '@/hooks/use-toast';
 import { useBulkMessaging } from '@/hooks/useBulkMessaging';
 import { useMessageImageUpload } from '@/hooks/useMessageImageUpload';
+import MessageConfirmDialog from './MessageConfirmDialog';
 
 interface UserProfile {
   id: string;
@@ -32,6 +33,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   getSelectionSummary
 }) => {
   const [messageText, setMessageText] = useState('');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { toast } = useToast();
   
   const { sendBulkMessage, isLoading, progress } = useBulkMessaging();
@@ -94,6 +96,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       return;
     }
 
+    // Open confirmation dialog
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmSend = async () => {
     try {
       const recipients = selectedGroup 
         ? selectedGroup 
@@ -115,6 +122,10 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
 
       // Clear form after successful send
       setMessageText('');
+      setShowConfirmDialog(false);
+      
+      // Clear uploaded images
+      uploadQueue.forEach((_, index) => removeImage(index));
       
     } catch (error) {
       console.error('Error sending bulk message:', error);
@@ -297,6 +308,17 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           )}
           {isLoading ? 'Отправка...' : isUploading ? 'Загрузка изображений...' : 'Отправить сообщение'}
         </Button>
+
+        <MessageConfirmDialog
+          open={showConfirmDialog}
+          onOpenChange={setShowConfirmDialog}
+          onConfirm={handleConfirmSend}
+          messageText={messageText}
+          selectedRecipients={selectedRecipients}
+          selectedGroup={selectedGroup}
+          imageUrls={getFinalUrls()}
+          isLoading={isLoading}
+        />
       </CardContent>
     </Card>
   );
