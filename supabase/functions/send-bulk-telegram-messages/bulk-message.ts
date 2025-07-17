@@ -9,6 +9,27 @@ export async function sendBulkMessages(
 ) {
   console.log('Starting bulk message sending...')
   
+  // Create initial message history record
+  const { data: messageRecord, error: messageRecordError } = await supabase
+    .from('message_history')
+    .insert({
+      sender_id: adminUser.id,
+      recipient_ids: Array.isArray(recipients) ? recipients : [],
+      recipient_group: typeof recipients === 'string' ? recipients : null,
+      message_text: messageText,
+      image_urls: images,
+      status: 'processing'
+    })
+    .select()
+    .single()
+
+  if (messageRecordError) {
+    console.error('Failed to create message history record:', messageRecordError)
+    // Continue anyway, don't block message sending
+  }
+
+  const messageHistoryId = messageRecord?.id
+  
   // Get recipient user IDs
   let recipientIds: string[] = []
   
@@ -101,6 +122,19 @@ export async function sendBulkMessages(
       console.log(`Waiting ${RATE_LIMIT.DELAY_BETWEEN_BATCHES}ms before next batch...`)
       await new Promise(resolve => setTimeout(resolve, RATE_LIMIT.DELAY_BETWEEN_BATCHES))
     }
+  }
+  
+  // Update message history record with final results
+  if (messageHistoryId) {
+    await supabase
+      .from('message_history')
+      .update({
+        status: results.failed === 0 ? 'completed' : 'partial_failure',
+        sent_count: results.sent,
+        failed_count: results.failed,
+        error_details: results.errors.length > 0 ? { errors: results.errors } : null
+      })
+      .eq('id', messageHistoryId)
   }
   
   console.log('Bulk message sending completed:', results)

@@ -237,6 +237,51 @@ export type Database = {
         }
         Relationships: []
       }
+      message_history: {
+        Row: {
+          created_at: string
+          error_details: Json | null
+          failed_count: number | null
+          id: string
+          image_urls: string[] | null
+          message_text: string
+          recipient_group: string | null
+          recipient_ids: string[]
+          sender_id: string
+          sent_count: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_details?: Json | null
+          failed_count?: number | null
+          id?: string
+          image_urls?: string[] | null
+          message_text: string
+          recipient_group?: string | null
+          recipient_ids: string[]
+          sender_id: string
+          sent_count?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_details?: Json | null
+          failed_count?: number | null
+          id?: string
+          image_urls?: string[] | null
+          message_text?: string
+          recipient_group?: string | null
+          recipient_ids?: string[]
+          sender_id?: string
+          sent_count?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_images: {
         Row: {
           created_at: string

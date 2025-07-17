@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { History, Search, MessageSquare, CheckCircle, XCircle, Clock, Image, User, Send, Radio } from 'lucide-react';
-import { useMessageHistory } from '@/hooks/useMessageHistory';
+import { History, Search, MessageSquare, CheckCircle, XCircle, Clock, Image, User, Send, Radio, RefreshCw } from 'lucide-react';
+import { useNewMessageHistory } from '@/hooks/useNewMessageHistory';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -20,28 +20,43 @@ const MessageHistory = () => {
     stats,
     isLive,
     refreshHistory
-  } = useMessageHistory({ searchQuery, statusFilter });
+  } = useNewMessageHistory({ searchQuery, statusFilter });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success':
+      case 'completed':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'failed':
+      case 'partial_failure':
         return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'processing':
+        return <Clock className="h-4 w-4 text-blue-500" />;
       default:
-        return <Clock className="h-4 w-4 text-yellow-500" />;
+        return <Clock className="h-4 w-4 text-gray-500" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'success':
-        return <Badge variant="secondary" className="text-green-700 bg-green-50">Доставлено</Badge>;
+      case 'completed':
+        return <Badge variant="secondary" className="text-green-700 bg-green-50">Завершено</Badge>;
       case 'failed':
         return <Badge variant="destructive">Ошибка</Badge>;
+      case 'partial_failure':
+        return <Badge variant="destructive" className="bg-orange-100 text-orange-700">Частично</Badge>;
+      case 'processing':
+        return <Badge variant="outline" className="text-blue-700 bg-blue-50">В обработке</Badge>;
       default:
-        return <Badge variant="outline">В обработке</Badge>;
+        return <Badge variant="outline">Неизвестно</Badge>;
     }
+  };
+
+  const getRecipientText = (message: any) => {
+    if (message.recipient_group) {
+      return `Группа: ${message.recipient_group}`;
+    }
+    const count = message.recipient_ids?.length || 0;
+    return `${count} ${count === 1 ? 'получатель' : count < 5 ? 'получателя' : 'получателей'}`;
   };
 
   return (
@@ -62,18 +77,22 @@ const MessageHistory = () => {
         </div>
         
         {/* Stats Summary */}
-        <div className="grid grid-cols-3 gap-2 mt-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
           <div className="text-center p-2 bg-muted rounded-lg">
-            <div className="text-lg sm:text-2xl font-bold text-primary">{stats.total}</div>
+            <div className="text-lg sm:text-xl font-bold text-primary">{stats.total}</div>
             <div className="text-xs text-muted-foreground">Всего</div>
           </div>
           <div className="text-center p-2 bg-green-50 rounded-lg">
-            <div className="text-lg sm:text-2xl font-bold text-green-600">{stats.sent}</div>
-            <div className="text-xs text-muted-foreground">Отправлено</div>
+            <div className="text-lg sm:text-xl font-bold text-green-600">{stats.completed}</div>
+            <div className="text-xs text-muted-foreground">Завершено</div>
           </div>
           <div className="text-center p-2 bg-red-50 rounded-lg">
-            <div className="text-lg sm:text-2xl font-bold text-red-600">{stats.failed}</div>
+            <div className="text-lg sm:text-xl font-bold text-red-600">{stats.failed}</div>
             <div className="text-xs text-muted-foreground">Ошибок</div>
+          </div>
+          <div className="text-center p-2 bg-blue-50 rounded-lg">
+            <div className="text-lg sm:text-xl font-bold text-blue-600">{stats.processing}</div>
+            <div className="text-xs text-muted-foreground">В работе</div>
           </div>
         </div>
       </CardHeader>
@@ -84,7 +103,7 @@ const MessageHistory = () => {
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Поиск..."
+              placeholder="Поиск по тексту сообщения..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 text-sm"
@@ -98,12 +117,21 @@ const MessageHistory = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Все статусы</SelectItem>
-                <SelectItem value="success">Доставлено</SelectItem>
-                <SelectItem value="failed">Ошибка</SelectItem>
+                <SelectItem value="completed">Завершено</SelectItem>
+                <SelectItem value="processing">В обработке</SelectItem>
+                <SelectItem value="failed">Ошибки</SelectItem>
+                <SelectItem value="partial_failure">Частичные ошибки</SelectItem>
               </SelectContent>
             </Select>
             
-            <Button variant="outline" size="sm" onClick={refreshHistory} className="text-sm">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={refreshHistory} 
+              className="text-sm gap-2"
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Обновить
             </Button>
           </div>
@@ -113,7 +141,11 @@ const MessageHistory = () => {
         <ScrollArea className="h-80 sm:h-96">
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">
-              Загрузка истории...
+              <div className="animate-pulse space-y-4">
+                <div className="h-4 bg-muted rounded w-3/4 mx-auto"></div>
+                <div className="h-4 bg-muted rounded w-1/2 mx-auto"></div>
+              </div>
+              <p className="mt-4 text-sm">Загрузка истории...</p>
             </div>
           ) : messages.length > 0 ? (
             <div className="space-y-3">
@@ -133,16 +165,16 @@ const MessageHistory = () => {
                       <div className="flex items-center gap-2">
                         <User className="h-3 w-3 text-primary flex-shrink-0" />
                         <span className="font-medium text-xs sm:text-sm truncate">
-                          Кому: {message.recipientName || 'Неизвестный пользователь'}
+                          {getRecipientText(message)}
                         </span>
-                        {getStatusIcon(message.details.status)}
+                        {getStatusIcon(message.status)}
                       </div>
                     </div>
-                    {getStatusBadge(message.details.status)}
+                    {getStatusBadge(message.status)}
                   </div>
                   
                   <div className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">
-                    {message.details.messageText}
+                    {message.message_text}
                   </div>
                   
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs text-muted-foreground">
@@ -153,16 +185,26 @@ const MessageHistory = () => {
                           locale: ru
                         })}
                       </span>
-                      {message.details.imageCount > 0 && (
+                      {message.image_urls?.length > 0 && (
                         <div className="flex items-center gap-1">
                           <Image className="h-3 w-3" />
-                          <span>{message.details.imageCount}</span>
+                          <span>{message.image_urls.length}</span>
                         </div>
                       )}
+                      {message.status !== 'processing' && (
+                        <span className="text-green-600">
+                          ✓ {message.sent_count || 0}
+                        </span>
+                      )}
+                      {message.failed_count > 0 && (
+                        <span className="text-red-600">
+                          ✗ {message.failed_count}
+                        </span>
+                      )}
                     </div>
-                    {message.details.error && (
+                    {message.error_details?.errors?.[0]?.error && (
                       <span className="text-red-500 text-xs truncate max-w-24 sm:max-w-32">
-                        {message.details.error}
+                        {message.error_details.errors[0].error}
                       </span>
                     )}
                   </div>
