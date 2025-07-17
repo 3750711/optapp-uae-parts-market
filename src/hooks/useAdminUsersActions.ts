@@ -137,6 +137,41 @@ export const useAdminUsersActions = () => {
     });
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      // Вызываем функцию для удаления аккаунта пользователя
+      const { error } = await supabase.rpc('delete_user_account', {
+        user_id: userId
+      });
+
+      if (error) {
+        console.error('Error deleting user:', error);
+        toast({
+          title: "Ошибка",
+          description: `Не удалось удалить аккаунт пользователя: ${error.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+
+      toast({
+        title: "Успех",
+        description: "Аккаунт пользователя был успешно удален"
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-optimized'] });
+      return true;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Ошибка",
+        description: "Произошла ошибка при удалении аккаунта",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   const handleContextAction = (userId: string, action: string) => {
     const statusMap: Record<string, 'verified' | 'pending' | 'blocked'> = {
       verify: 'verified',
@@ -147,6 +182,11 @@ export const useAdminUsersActions = () => {
     const newStatus = statusMap[action];
     if (newStatus) {
       handleQuickStatusChange(userId, newStatus);
+    } else if (action === 'delete') {
+      // Добавляем обработку удаления
+      if (confirm('Вы уверены, что хотите удалить этот аккаунт? Это действие нельзя отменить.')) {
+        handleDeleteUser(userId);
+      }
     }
   };
 
@@ -155,6 +195,7 @@ export const useAdminUsersActions = () => {
     handleOptStatusChange,
     handleBulkAction,
     handleExportUsers,
-    handleContextAction
+    handleContextAction,
+    handleDeleteUser
   };
 };
