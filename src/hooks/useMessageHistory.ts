@@ -9,6 +9,7 @@ interface MessageHistoryItem {
   entity_id: string;
   user_id: string;
   recipientName?: string;
+  senderName?: string;
   details: {
     messageText: string;
     imageCount: number;
@@ -72,21 +73,31 @@ export const useMessageHistory = (params: UseMessageHistoryParams = {}) => {
         return;
       }
 
-      // Get recipient names
+      // Get recipient and sender names
       const recipientIds = [...new Set(logData?.map(log => log.entity_id) || [])];
-      const { data: profiles } = await supabase
+      const senderIds = [...new Set(logData?.map(log => log.user_id).filter(Boolean) || [])];
+      
+      const { data: recipientProfiles } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .in('id', recipientIds);
 
-      const profileMap = new Map<string, ProfileData>(profiles?.map(p => [p.id, p]) || []);
+      const { data: senderProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', senderIds);
 
-      // Process messages with recipient names and search filter
+      const recipientMap = new Map<string, ProfileData>(recipientProfiles?.map(p => [p.id, p]) || []);
+      const senderMap = new Map<string, ProfileData>(senderProfiles?.map(p => [p.id, p]) || []);
+
+      // Process messages with recipient and sender names
       let processedMessages = (logData || []).map(log => {
-        const profile = profileMap.get(log.entity_id);
+        const recipientProfile = recipientMap.get(log.entity_id);
+        const senderProfile = senderMap.get(log.user_id);
         return {
           ...log,
-          recipientName: profile?.full_name || profile?.email
+          recipientName: recipientProfile?.full_name || recipientProfile?.email,
+          senderName: senderProfile?.full_name || senderProfile?.email
         };
       });
 
@@ -94,7 +105,8 @@ export const useMessageHistory = (params: UseMessageHistoryParams = {}) => {
       if (debouncedSearchQuery) {
         processedMessages = processedMessages.filter(msg =>
           msg.details.messageText?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-          msg.recipientName?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+          msg.recipientName?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          msg.senderName?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
         );
       }
 

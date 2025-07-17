@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { History, Search, MessageSquare, CheckCircle, XCircle, Clock, Image } from 'lucide-react';
+import { History, Search, MessageSquare, CheckCircle, XCircle, Clock, Image, User, Send } from 'lucide-react';
 import { useMessageHistory } from '@/hooks/useMessageHistory';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -74,7 +74,7 @@ const MessageHistory = () => {
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Поиск по тексту сообщения..."
+              placeholder="Поиск по тексту, отправителю или получателю..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8"
@@ -113,11 +113,20 @@ const MessageHistory = () => {
                   className="p-3 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(message.details.status)}
-                      <span className="font-medium text-sm">
-                        {message.recipientName || 'Неизвестный пользователь'}
-                      </span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <Send className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
+                          От: {message.senderName || 'Система'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-primary" />
+                        <span className="font-medium text-sm">
+                          Кому: {message.recipientName || 'Неизвестный пользователь'}
+                        </span>
+                        {getStatusIcon(message.details.status)}
+                      </div>
                     </div>
                     {getStatusBadge(message.details.status)}
                   </div>
