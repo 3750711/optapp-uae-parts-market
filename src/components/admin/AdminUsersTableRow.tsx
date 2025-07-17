@@ -43,24 +43,26 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
   onDeleteUser
 }) => {
   const [showTelegramDialog, setShowTelegramDialog] = useState(false);
+  
   return (
-    <UserContextMenu
-      user={user}
-      onQuickAction={onContextAction}
-      onOpenProfile={onOpenProfile}
-      onEdit={onEditUser}
-    >
-      <TableRow 
-        className={`${
-          user.verification_status === 'pending'
-            ? 'bg-orange-50/50'
-            : user.verification_status === 'verified'
-            ? 'bg-green-50/50'
-            : user.verification_status === 'blocked'
-            ? 'bg-red-50/50'
-            : ''
-        } hover:bg-muted/50 transition-colors cursor-pointer`}
+    <>
+      <UserContextMenu
+        user={user}
+        onQuickAction={onContextAction}
+        onOpenProfile={onOpenProfile}
+        onEdit={onEditUser}
       >
+        <TableRow 
+          className={`${
+            user.verification_status === 'pending'
+              ? 'bg-orange-50/50'
+              : user.verification_status === 'verified'
+              ? 'bg-green-50/50'
+              : user.verification_status === 'blocked'
+              ? 'bg-red-50/50'
+              : ''
+          } hover:bg-muted/50 transition-colors cursor-pointer`}
+        >
         <TableCell className={isCompactMode ? 'py-2' : ''}>
           <div className="flex items-center gap-1">
             <input
@@ -213,13 +215,16 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
             </DropdownMenu>
           </div>
         </TableCell>
-      </TableRow>
+        </TableRow>
+      </UserContextMenu>
       
-      <SendTelegramMessageDialog
-        user={user}
-        open={showTelegramDialog}
-        onOpenChange={setShowTelegramDialog}
-      />
-    </UserContextMenu>
+      {user.telegram_id && (
+        <SendTelegramMessageDialog
+          user={user}
+          open={showTelegramDialog}
+          onOpenChange={setShowTelegramDialog}
+        />
+      )}
+    </>
   );
 };
