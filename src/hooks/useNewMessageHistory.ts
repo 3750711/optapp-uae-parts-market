@@ -66,20 +66,28 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
         return;
       }
 
-      // Get sender names
+      // Get sender names and recipient details
       const senderIds = [...new Set(messageData?.map(msg => msg.sender_id) || [])];
+      const allRecipientIds = [...new Set(messageData?.flatMap(msg => msg.recipient_ids || []) || [])];
       
       const { data: senderProfiles } = await supabase
         .from('profiles')
         .select('id, full_name, email')
         .in('id', senderIds);
 
-      const senderMap = new Map<string, ProfileData>(senderProfiles?.map(p => [p.id, p]) || []);
+      const { data: recipientProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, telegram')
+        .in('id', allRecipientIds);
 
-      // Process messages with sender names
+      const senderMap = new Map<string, ProfileData>(senderProfiles?.map(p => [p.id, p]) || []);
+      const recipientMap = new Map<string, ProfileData & {telegram?: string}>(recipientProfiles?.map(p => [p.id, p]) || []);
+
+      // Process messages with sender names and recipient details
       let processedMessages = (messageData || []).map(msg => ({
         ...msg,
-        senderName: senderMap.get(msg.sender_id)?.full_name || senderMap.get(msg.sender_id)?.email
+        senderName: senderMap.get(msg.sender_id)?.full_name || senderMap.get(msg.sender_id)?.email,
+        recipientDetails: msg.recipient_ids?.map(id => recipientMap.get(id)).filter(Boolean) || []
       }));
 
       // Apply search filter

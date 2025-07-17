@@ -185,12 +185,15 @@ async function sendTelegramMessage(telegramId: number, messageText: string, imag
     throw new Error('Telegram bot token not configured')
   }
 
+  // Add admin signature
+  const messageWithSignature = `${messageText}\n\n📩 Сообщение от администратора partsbay.ae`
+
   if (images && images.length > 0) {
     // Send as media group if images exist
     const media = images.slice(0, 10).map((imageUrl, index) => ({
       type: 'photo',
       media: imageUrl,
-      caption: index === 0 ? messageText : undefined
+      caption: index === 0 ? messageWithSignature : undefined
     }))
 
     const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMediaGroup`, {
@@ -217,7 +220,7 @@ async function sendTelegramMessage(telegramId: number, messageText: string, imag
       },
       body: JSON.stringify({
         chat_id: telegramId,
-        text: messageText,
+        text: messageWithSignature,
         parse_mode: 'HTML'
       })
     })

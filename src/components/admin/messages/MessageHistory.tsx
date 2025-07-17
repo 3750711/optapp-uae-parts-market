@@ -53,10 +53,45 @@ const MessageHistory = () => {
 
   const getRecipientText = (message: any) => {
     if (message.recipient_group) {
-      return `Группа: ${message.recipient_group}`;
+      const groupLabels = {
+        all_users: 'Все пользователи',
+        sellers: 'Продавцы',
+        buyers: 'Покупатели',
+        verified_users: 'Верифицированные',
+        pending_users: 'Ожидающие верификации',
+        opt_users: 'ОПТ пользователи'
+      };
+      return groupLabels[message.recipient_group as keyof typeof groupLabels] || message.recipient_group;
     }
-    const count = message.recipient_ids?.length || 0;
-    return `${count} ${count === 1 ? 'получатель' : count < 5 ? 'получателя' : 'получателей'}`;
+    
+    if (message.recipient_ids?.length) {
+      return `${message.recipient_ids.length} получател${message.recipient_ids.length === 1 ? 'ь' : 'ей'}`;
+    }
+    
+    return 'Неизвестно';
+  };
+
+  const getDetailedRecipientText = (message: any) => {
+    if (message.recipient_group) {
+      return getRecipientText(message);
+    }
+    
+    if (message.recipientDetails?.length) {
+      const names = message.recipientDetails
+        .map((r: any) => r.full_name || r.email || r.telegram)
+        .filter(Boolean)
+        .slice(0, 3);
+      
+      if (names.length === 0) return `${message.recipient_ids?.length || 0} получателей`;
+      
+      let text = names.join(', ');
+      if (message.recipientDetails.length > 3) {
+        text += ` и еще ${message.recipientDetails.length - 3}`;
+      }
+      return text;
+    }
+    
+    return 'Неизвестно';
   };
 
   return (
@@ -164,7 +199,7 @@ const MessageHistory = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <User className="h-3 w-3 text-primary flex-shrink-0" />
-                        <span className="font-medium text-xs sm:text-sm truncate">
+                        <span className="font-medium text-xs sm:text-sm truncate" title={getDetailedRecipientText(message)}>
                           {getRecipientText(message)}
                         </span>
                         {getStatusIcon(message.status)}
