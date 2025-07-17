@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
 import { useRateLimit } from '@/hooks/useRateLimit';
 import { TelegramLoginWidget } from '@/components/auth/TelegramLoginWidget';
+import { TelegramAuthWarning } from '@/components/auth/TelegramAuthWarning';
 import { Separator } from '@/components/ui/separator';
 
 
@@ -24,6 +25,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showTelegramWarning, setShowTelegramWarning] = useState(false);
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -75,6 +77,22 @@ const Login = () => {
       });
       
       if (error) {
+        // Проверяем, является ли ошибка связанной с неверными учетными данными
+        if (error.message === 'Invalid login credentials') {
+          // Проверяем метод аутентификации пользователя
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('auth_method')
+            .eq('email', email)
+            .single();
+          
+          if (profile?.auth_method === 'telegram') {
+            setShowTelegramWarning(true);
+            setError('');
+            return;
+          }
+        }
+        
         if (isOptId) {
           setError('Неверный OPT ID или пароль');
         } else {
@@ -197,6 +215,10 @@ const Login = () => {
                 onError={(error) => setError(error)}
               />
             </div>
+
+            {showTelegramWarning && (
+              <TelegramAuthWarning onClose={() => setShowTelegramWarning(false)} />
+            )}
 
             {error && (
               <Alert variant="destructive">
