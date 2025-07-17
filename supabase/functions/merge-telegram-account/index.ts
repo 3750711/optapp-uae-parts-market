@@ -76,6 +76,31 @@ serve(async (req) => {
       )
     }
 
+    // Create backup before making changes
+    console.log('Creating backup before account merge')
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('auth_method, telegram_id, telegram, email_confirmed')
+      .eq('id', authData.user.id)
+      .single()
+
+    if (existingProfile) {
+      const { error: backupError } = await supabase
+        .from('account_operation_backups')
+        .insert({
+          user_id: authData.user.id,
+          operation_type: 'telegram_account_merge',
+          backup_data: existingProfile,
+          created_by: authData.user.id
+        })
+
+      if (backupError) {
+        console.log('Failed to create backup:', backupError)
+      } else {
+        console.log('Backup created successfully')
+      }
+    }
+
     console.log('Password verified successfully for user:', authData.user.id)
 
     // Check if telegram_id is already taken

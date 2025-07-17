@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_operation_backups: {
+        Row: {
+          backup_data: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          operation_type: string
+          restored_at: string | null
+          user_id: string
+        }
+        Insert: {
+          backup_data: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          operation_type: string
+          restored_at?: string | null
+          user_id: string
+        }
+        Update: {
+          backup_data?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          operation_type?: string
+          restored_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       car_brands: {
         Row: {
           created_at: string
@@ -1243,6 +1273,10 @@ export type Database = {
       resend_order_notification: {
         Args: { p_order_id: string }
         Returns: boolean
+      }
+      restore_account_from_backup: {
+        Args: { backup_id: string }
+        Returns: Json
       }
       restore_basic_rls_policies: {
         Args: Record<PropertyKey, never>
