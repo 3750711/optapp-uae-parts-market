@@ -44,31 +44,58 @@ export async function sendBulkMessages(
 
   console.log(`Processing ${recipientIds.length} recipients`)
   
-  // Get user profiles with telegram_id
-  const { data: profiles, error: profilesError } = await supabase
+  // Get ALL user profiles first to identify those without telegram_id
+  const { data: allProfiles, error: allProfilesError } = await supabase
     .from('profiles')
-    .select('id, telegram_id, full_name, telegram')
+    .select('id, telegram_id, full_name, telegram, email')
     .in('id', recipientIds)
-    .not('telegram_id', 'is', null)
 
-  if (profilesError) {
-    console.error('Error fetching profiles:', profilesError)
+  if (allProfilesError) {
+    console.error('Error fetching all profiles:', allProfilesError)
     throw new Error('Failed to fetch recipient profiles')
   }
 
-  console.log(`Found ${profiles?.length || 0} profiles with Telegram IDs`)
+  // Separate users with and without telegram_id
+  const usersWithTelegram = allProfiles.filter(profile => profile.telegram_id)
+  const usersWithoutTelegram = allProfiles.filter(profile => !profile.telegram_id)
+  
+  console.log(`Found ${usersWithTelegram.length} users with Telegram ID, ${usersWithoutTelegram.length} without`)
   
   const results = {
     total: recipientIds.length,
     sent: 0,
     failed: 0,
-    errors: [] as any[]
+    no_telegram: usersWithoutTelegram.length,
+    errors: [] as any[],
+    no_telegram_users: [] as any[]
+  }
+
+  // Log errors for users without telegram_id (don't attempt to send)
+  for (const profile of usersWithoutTelegram) {
+    const userName = profile.full_name || profile.telegram || profile.email || 'Неизвестный пользователь'
+    
+    await logMessageSent(supabase, {
+      adminUserId: adminUser.id,
+      recipientUserId: profile.id,
+      messageText,
+      images,
+      status: 'failed',
+      error: 'no_telegram_id'
+    })
+    
+    results.no_telegram_users.push({
+      userId: profile.id,
+      userName,
+      reason: 'no_telegram_id'
+    })
+    
+    console.log(`Skipped user without Telegram ID: ${userName}`)
   }
   
-  // Process in batches
+  // Process in batches only for users with Telegram IDs
   const batches = []
-  for (let i = 0; i < profiles.length; i += RATE_LIMIT.BATCH_SIZE) {
-    batches.push(profiles.slice(i, i + RATE_LIMIT.BATCH_SIZE))
+  for (let i = 0; i < usersWithTelegram.length; i += RATE_LIMIT.BATCH_SIZE) {
+    batches.push(usersWithTelegram.slice(i, i + RATE_LIMIT.BATCH_SIZE))
   }
   
   console.log(`Processing ${batches.length} batches`)
@@ -124,15 +151,30 @@ export async function sendBulkMessages(
     }
   }
   
-  // Update message history record with final results
+  // Update message history record with final results and detailed statistics
   if (messageHistoryId) {
+    const totalFailed = results.failed + results.no_telegram
+    const statusValue = totalFailed === 0 ? 'completed' : 
+                       (results.sent > 0 ? 'partial_failure' : 'failed')
+    
+    const errorDetails = {
+      summary: {
+        total_recipients: results.total,
+        sent_successfully: results.sent,
+        send_failed: results.failed,
+        no_telegram: results.no_telegram
+      },
+      no_telegram_users: results.no_telegram_users,
+      send_failures: results.errors
+    }
+    
     await supabase
       .from('message_history')
       .update({
-        status: results.failed === 0 ? 'completed' : 'partial_failure',
+        status: statusValue,
         sent_count: results.sent,
-        failed_count: results.failed,
-        error_details: results.errors.length > 0 ? { errors: results.errors } : null
+        failed_count: totalFailed,
+        error_details: errorDetails
       })
       .eq('id', messageHistoryId)
   }

@@ -247,12 +247,32 @@ const MessageHistory = () => {
                           ✗ {message.failed_count}
                         </span>
                       )}
+                      {/* Show Telegram ID missing count */}
+                      {message.error_details?.summary?.no_telegram > 0 && (
+                        <span className="text-orange-600">
+                          📵 {message.error_details.summary.no_telegram}
+                        </span>
+                      )}
                     </div>
-                    {message.error_details?.errors?.[0]?.error && (
-                      <span className="text-red-500 text-xs truncate max-w-24 sm:max-w-32">
-                        {message.error_details.errors[0].error}
-                      </span>
-                    )}
+                    <div className="flex flex-col items-end gap-1">
+                      {/* Show specific error types */}
+                      {message.error_details?.summary?.no_telegram > 0 && (
+                        <span className="text-orange-500 text-xs">
+                          Нет Telegram ID: {message.error_details.summary.no_telegram}
+                        </span>
+                      )}
+                      {message.error_details?.send_failures?.length > 0 && (
+                        <span className="text-red-500 text-xs truncate max-w-32">
+                          Ошибки отправки: {message.error_details.send_failures.length}
+                        </span>
+                      )}
+                      {/* Show first error from send failures if exists */}
+                      {message.error_details?.send_failures?.[0]?.error && (
+                        <span className="text-red-500 text-xs truncate max-w-24 sm:max-w-32" title={message.error_details.send_failures[0].error}>
+                          {message.error_details.send_failures[0].error}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
