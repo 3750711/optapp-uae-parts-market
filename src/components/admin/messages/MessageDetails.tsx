@@ -143,8 +143,8 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
       console.log('📋 Error details:', { noTelegramUsers, sendFailures });
 
       // Create status maps
-      const noTelegramSet = new Set(noTelegramUsers.map((u: any) => u.user_id));
-      const failureMap = new Map(sendFailures.map((f: any) => [f.user_id, f.error]));
+      const noTelegramSet = new Set(noTelegramUsers.map((u: any) => u.userId || u.user_id));
+      const failureMap = new Map(sendFailures.map((f: any) => [f.userId || f.user_id, f.error]));
 
       // Combine profile data with delivery status
       const recipientDetails: MessageRecipientDetail[] = profiles?.map(profile => {
