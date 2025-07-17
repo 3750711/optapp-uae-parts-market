@@ -22,6 +22,7 @@ const MessageHistory = () => {
     isLoading,
     stats,
     isLive,
+    lastUpdate,
     refreshHistory
   } = useNewMessageHistory({ searchQuery, statusFilter });
 
@@ -166,6 +167,15 @@ const MessageHistory = () => {
             <div className="text-xs text-muted-foreground">В работе</div>
           </div>
         </div>
+
+        {/* Connection status and last update */}
+        <div className="text-xs text-muted-foreground mt-3 flex items-center justify-between">
+          <span>Последнее обновление: {lastUpdate.toLocaleTimeString()}</span>
+          <span className="flex items-center gap-1">
+            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500' : 'bg-orange-500'}`} />
+            {isLive ? 'Real-time активен' : 'Режим опроса (каждые 3 сек)'}
+          </span>
+        </div>
       </CardHeader>
       
       <CardContent className="px-3 sm:px-6 space-y-4">
@@ -195,16 +205,22 @@ const MessageHistory = () => {
               </SelectContent>
             </Select>
             
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={refreshHistory} 
-              className="text-sm gap-2"
-              disabled={isLoading}
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Обновить
-            </Button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500' : 'bg-orange-500'}`} />
+                {isLive ? 'Онлайн' : 'Опрос'}
+              </div>
+              <Button 
+                onClick={refreshHistory}
+                variant="outline" 
+                size="sm"
+                disabled={isLoading}
+                className="text-sm gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                Обновить
+              </Button>
+            </div>
           </div>
         </div>
 

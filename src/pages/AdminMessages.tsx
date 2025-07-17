@@ -5,9 +5,11 @@ import MessageRecipientSelection from '@/components/admin/messages/MessageRecipi
 import MessageComposer from '@/components/admin/messages/MessageComposer';
 import MessageHistory from '@/components/admin/messages/MessageHistory';
 import { useRecipientSelection } from '@/hooks/useRecipientSelection';
+import { useNewMessageHistory } from '@/hooks/useNewMessageHistory';
 
 const AdminMessages = () => {
   const recipientSelection = useRecipientSelection();
+  const { refreshHistory } = useNewMessageHistory();
 
   return (
     <AdminLayout>
@@ -22,6 +24,7 @@ const AdminMessages = () => {
               selectedRecipients={recipientSelection.selectedRecipients}
               selectedGroup={recipientSelection.selectedGroup}
               getSelectionSummary={recipientSelection.getSelectionSummary}
+              refreshHistory={refreshHistory}
             />
           </div>
           

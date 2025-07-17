@@ -25,12 +25,14 @@ interface MessageComposerProps {
   selectedRecipients: UserProfile[];
   selectedGroup: string | null;
   getSelectionSummary: () => string;
+  refreshHistory?: () => void;
 }
 
 const MessageComposer: React.FC<MessageComposerProps> = ({
   selectedRecipients,
   selectedGroup,
-  getSelectionSummary
+  getSelectionSummary,
+  refreshHistory
 }) => {
   const [messageText, setMessageText] = useState('');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -171,6 +173,20 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       
       // Clear uploaded images using the new clearImages function
       clearImages();
+      
+      // Force refresh message history after delay to ensure Edge Function completes
+      if (refreshHistory) {
+        console.log('🔄 Triggering message history refresh after send');
+        setTimeout(() => {
+          refreshHistory();
+        }, 2000);
+        
+        // Auto-refresh again after 30 seconds to catch any delayed status updates
+        setTimeout(() => {
+          console.log('🔄 Auto-refresh message history for final status update');
+          refreshHistory();
+        }, 30000);
+      }
       
     } catch (error) {
       console.error('Error sending bulk message:', error);

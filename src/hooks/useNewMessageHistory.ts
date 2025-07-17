@@ -41,6 +41,7 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState<MessageStats>({ total: 0, completed: 0, failed: 0, processing: 0 });
   const [isLive, setIsLive] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   const debouncedSearchQuery = useDebounce(params.searchQuery || '', 300);
 
@@ -100,6 +101,7 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
       }
 
       setMessages(processedMessages);
+      setLastUpdate(new Date());
 
       // Calculate stats
       const newStats = {
@@ -109,6 +111,19 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
         processing: processedMessages.filter(msg => msg.status === 'processing').length
       };
       setStats(newStats);
+
+      // Log status changes for debugging
+      console.log('📊 Message history updated:', {
+        timestamp: new Date().toISOString(),
+        stats: newStats,
+        total_messages: processedMessages.length,
+        processing_messages: processedMessages.filter(msg => msg.status === 'processing').map(msg => ({
+          id: msg.id,
+          created_at: msg.created_at,
+          updated_at: msg.updated_at,
+          status: msg.status
+        }))
+      });
 
     } catch (error) {
       console.error('Error in fetchMessageHistory:', error);
@@ -144,7 +159,10 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
         },
         (payload) => {
           console.log('📨 Message history update received:', payload);
-          fetchMessageHistory();
+          // Add small delay to ensure Edge Function has completed
+          setTimeout(() => {
+            fetchMessageHistory();
+          }, 1000);
         }
       )
       .subscribe((status) => {
@@ -159,11 +177,11 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           console.warn('⚠️ Realtime failed, falling back to polling');
           setIsLive(false);
-          // Fallback to polling every 10 seconds
+          // Fallback to polling every 3 seconds for faster updates
           pollInterval = setInterval(() => {
             console.log('🔄 Polling for message history updates (fallback)');
             fetchMessageHistory();
-          }, 10000);
+          }, 3000);
         }
       });
 
@@ -173,8 +191,9 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
         console.log('🔄 Real-time not connected after 5s, enabling polling fallback');
         setIsLive(false);
         pollInterval = setInterval(() => {
+          console.log('🔄 Polling for message history updates (initial fallback)');
           fetchMessageHistory();
-        }, 10000);
+        }, 3000);
       }
     }, 5000);
 
@@ -194,6 +213,7 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
     isLoading,
     stats,
     isLive,
+    lastUpdate,
     refreshHistory
   };
 };
