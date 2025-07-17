@@ -188,18 +188,7 @@ const handler = async (req: Request): Promise<Response> => {
       `;
     } else {
       // Стандартное уведомление о сбросе пароля
-      if (!optId) {
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            message: "Для сброса пароля требуется OPT ID или информация о смене email" 
-          }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
-      }
+      console.log("Password reset requested for email:", email, "optId:", optId || "none");
 
       // Создаем код сброса пароля через функцию базы данных
       const { data: codeResult, error: codeError } = await supabase.rpc(
