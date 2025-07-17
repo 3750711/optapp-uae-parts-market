@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useDebounce } from './useDebounce';
+import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface MessageHistoryItem {
   id: string;
@@ -40,6 +41,7 @@ export const useMessageHistory = (params: UseMessageHistoryParams = {}) => {
   const [messages, setMessages] = useState<MessageHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [stats, setStats] = useState<MessageStats>({ total: 0, sent: 0, failed: 0 });
+  const [isLive, setIsLive] = useState(false);
 
   const debouncedSearchQuery = useDebounce(params.searchQuery || '', 300);
 
@@ -137,10 +139,46 @@ export const useMessageHistory = (params: UseMessageHistoryParams = {}) => {
     fetchHistory();
   }, [debouncedSearchQuery, params.statusFilter]);
 
+  // Set up real-time subscription
+  useEffect(() => {
+    let channel: RealtimeChannel;
+
+    const setupRealtimeSubscription = () => {
+      channel = supabase
+        .channel('message_history_updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'event_logs',
+            filter: 'action_type=eq.bulk_message_send'
+          },
+          () => {
+            // Refresh data when new message log is inserted
+            fetchHistory();
+          }
+        )
+        .subscribe((status) => {
+          setIsLive(status === 'SUBSCRIBED');
+        });
+    };
+
+    setupRealtimeSubscription();
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+        setIsLive(false);
+      }
+    };
+  }, []);
+
   return {
     messages,
     isLoading,
     stats,
+    isLive,
     refreshHistory
   };
 };

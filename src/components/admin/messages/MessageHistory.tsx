@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { History, Search, MessageSquare, CheckCircle, XCircle, Clock, Image, User, Send } from 'lucide-react';
+import { History, Search, MessageSquare, CheckCircle, XCircle, Clock, Image, User, Send, Radio } from 'lucide-react';
 import { useMessageHistory } from '@/hooks/useMessageHistory';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -18,6 +18,7 @@ const MessageHistory = () => {
     messages,
     isLoading,
     stats,
+    isLive,
     refreshHistory
   } = useMessageHistory({ searchQuery, statusFilter });
 
@@ -49,6 +50,12 @@ const MessageHistory = () => {
         <CardTitle className="flex items-center gap-2">
           <History className="h-5 w-5" />
           История сообщений
+          <div className="flex items-center gap-1 ml-auto">
+            <Radio className={`h-3 w-3 ${isLive ? 'text-green-500 animate-pulse' : 'text-gray-400'}`} />
+            <span className="text-xs text-muted-foreground">
+              {isLive ? 'Онлайн' : 'Оффлайн'}
+            </span>
+          </div>
         </CardTitle>
         
         {/* Stats Summary */}
