@@ -40,10 +40,11 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   const { 
     uploadMessageImages, 
     uploadQueue, 
-    isUploading, 
-    getPreviewUrls, 
-    getFinalUrls, 
-    removeImage 
+    isUploading,
+    getPreviewUrls,
+    getFinalUrls,
+    removeImage,
+    clearImages
   } = useMessageImageUpload();
 
   const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,8 +169,8 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       setMessageText('');
       setShowConfirmDialog(false);
       
-      // Clear uploaded images
-      uploadQueue.forEach((_, index) => removeImage(index));
+      // Clear uploaded images using the new clearImages function
+      clearImages();
       
     } catch (error) {
       console.error('Error sending bulk message:', error);

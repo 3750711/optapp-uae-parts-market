@@ -134,10 +134,7 @@ export const useMessageImageUpload = () => {
         )
       );
 
-      // Clean up blob URL
-      if (item.blobUrl) {
-        URL.revokeObjectURL(item.blobUrl);
-      }
+      // Keep blob URL for fallback preview - will be cleaned up on manual removal
 
       return result.mainImageUrl;
     } catch (error) {
@@ -253,10 +250,8 @@ export const useMessageImageUpload = () => {
         });
       }
 
-      // Clear queue after successful upload
-      setTimeout(() => {
-        setUploadQueue(prev => prev.filter(item => item.status !== 'success'));
-      }, 3000);
+      // Don't auto-clear successful uploads - keep them until message is sent or manually removed
+      console.log('✅ Upload process completed. Images will remain visible until sent or manually removed.');
 
       return results;
     } catch (error) {
@@ -285,11 +280,14 @@ export const useMessageImageUpload = () => {
     });
   }, []);
 
-  // Get preview URLs
+  // Get preview URLs - prioritize final URLs over blob URLs
   const getPreviewUrls = useCallback(() => {
     return uploadQueue
       .filter(item => item.status !== 'error' && (item.finalUrl || item.blobUrl))
-      .map(item => item.finalUrl || item.blobUrl!);
+      .map(item => {
+        // Use final URL if available (for uploaded images), otherwise use blob URL (for pending uploads)
+        return item.finalUrl || item.blobUrl!;
+      });
   }, [uploadQueue]);
 
   // Get final URLs
@@ -299,12 +297,25 @@ export const useMessageImageUpload = () => {
       .map(item => item.finalUrl!);
   }, [uploadQueue]);
 
+  // Clear all images (used after message is sent)
+  const clearImages = useCallback(() => {
+    // Clean up blob URLs
+    uploadQueue.forEach(item => {
+      if (item.blobUrl) {
+        URL.revokeObjectURL(item.blobUrl);
+      }
+    });
+    setUploadQueue([]);
+    console.log('🧹 Cleared all message images');
+  }, [uploadQueue]);
+
   return {
     uploadMessageImages,
     uploadQueue,
     isUploading,
     getPreviewUrls,
     getFinalUrls,
-    removeImage
+    removeImage,
+    clearImages
   };
 };
