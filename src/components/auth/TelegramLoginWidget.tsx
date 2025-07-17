@@ -32,6 +32,22 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   const widgetRef = useRef<HTMLDivElement>(null);
   const scriptLoadedRef = useRef(false);
 
+  // Generate deterministic password based on telegram_id
+  const generateDeterministicPassword = async (telegramId: number): Promise<string> => {
+    const salt = "telegram_partsbay_salt_2024"; // Static salt for consistency
+    const data = telegramId.toString() + salt;
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    // Convert to secure password with mixed characters
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    return Array.from(hashHex.slice(0, 32), (char, i) => 
+      chars[hashHex.charCodeAt(i) % chars.length]
+    ).join('');
+  };
+
   const handleTelegramAuth = async (authData: TelegramAuthData) => {
     try {
       toast.loading('Авторизация через Telegram...');
@@ -55,16 +71,8 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         full_response: data
       });
 
-      // Generate cryptographically secure random password for Telegram users
-      const generateSecurePassword = () => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
-        const array = new Uint8Array(32); // 32 characters minimum
-        crypto.getRandomValues(array);
-        return Array.from(array, byte => chars[byte % chars.length]).join('');
-      };
-
       const email = data.telegram_data.email;
-      const password = generateSecurePassword();
+      const password = await generateDeterministicPassword(data.telegram_data.id);
 
       console.log('🔑 Generated email and password for:', email);
 
