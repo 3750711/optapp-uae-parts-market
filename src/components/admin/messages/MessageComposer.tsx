@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Send, Image, Loader2, AlertCircle } from 'lucide-react';
+import { MessageSquare, Send, Image, Loader2, AlertCircle, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkMessaging } from '@/hooks/useBulkMessaging';
+import { useMessageImageUpload } from '@/hooks/useMessageImageUpload';
 
 interface UserProfile {
   id: string;
@@ -31,66 +32,48 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   getSelectionSummary
 }) => {
   const [messageText, setMessageText] = useState('');
-  const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
   
   const { sendBulkMessage, isLoading, progress } = useBulkMessaging();
+  const { 
+    uploadMessageImages, 
+    uploadQueue, 
+    isUploading, 
+    getPreviewUrls, 
+    getFinalUrls, 
+    removeImage 
+  } = useMessageImageUpload();
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files) return;
+
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
     
-    if (images.length + files.length > 10) {
+    if (imageFiles.length === 0) {
       toast({
         title: "Ошибка",
-        description: "Максимум 10 изображений",
-        variant: "destructive",
+        description: "Пожалуйста, выберите файлы изображений",
+        variant: "destructive"
       });
       return;
     }
 
-    files.forEach((file) => {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Ошибка",
-          description: `Файл ${file.name} не является изображением`,
-          variant: "destructive",
-        });
-        return;
-      }
+    if (imageFiles.length > 10) {
+      toast({
+        title: "Слишком много файлов",
+        description: "Максимум 10 изображений за раз",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      // Validate file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: "Ошибка",
-          description: `Файл ${file.name} слишком большой (максимум 10MB)`,
-          variant: "destructive",
-        });
-        return;
-      }
+    // Upload images to Cloudinary
+    await uploadMessageImages(imageFiles);
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-        setImages(prev => [...prev, base64]);
-      };
-      reader.onerror = () => {
-        toast({
-          title: "Ошибка",
-          description: `Не удалось загрузить файл ${file.name}`,
-          variant: "destructive",
-        });
-      };
-      reader.readAsDataURL(file);
-    });
-    
     // Reset input
     event.target.value = '';
-  };
-
-  const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
-  };
+  }, [uploadMessageImages, toast]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim()) {
@@ -116,10 +99,13 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         ? selectedGroup 
         : selectedRecipients.map(r => r.id);
 
+      // Get uploaded image URLs
+      const imageUrls = getFinalUrls();
+
       const result = await sendBulkMessage({
         recipients,
         messageText,
-        images
+        images: imageUrls
       });
 
       toast({
@@ -129,7 +115,6 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
 
       // Clear form after successful send
       setMessageText('');
-      setImages([]);
       
     } catch (error) {
       console.error('Error sending bulk message:', error);
@@ -142,7 +127,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   };
 
   const hasRecipients = selectedRecipients.length > 0 || selectedGroup;
-  const canSend = messageText.trim() && hasRecipients && !isLoading;
+  const canSend = messageText.trim() && hasRecipients && !isLoading && !isUploading;
 
   return (
     <Card>
@@ -180,11 +165,12 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         </div>
 
         {/* Image Upload */}
-        <div>
+        <div className="space-y-3">
           <Label className="text-sm">
-            Изображения (до 10 штук, максимум 10MB каждое)
+            Изображения (до 10 штук, максимум 20MB каждое)
           </Label>
-          <div className="mt-2">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
             <input
               type="file"
               accept="image/*"
@@ -192,42 +178,87 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
               onChange={handleImageUpload}
               className="hidden"
               id="image-upload"
-              disabled={images.length >= 10}
+              disabled={isUploading}
             />
-            <Label
-              htmlFor="image-upload"
-              className="inline-flex items-center gap-2 cursor-pointer bg-background border border-input rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground w-full sm:w-auto justify-center sm:justify-start"
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => document.getElementById('image-upload')?.click()}
+              disabled={isUploading}
+              className="gap-2 w-full sm:w-auto"
             >
-              <Image className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">Добавить изображения ({images.length}/10)</span>
-            </Label>
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Загрузка...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Добавить изображения
+                </>
+              )}
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {getPreviewUrls().length}/10 изображений
+            </span>
           </div>
-          
-          {images.length > 0 && (
-            <div className="mt-2">
-              <div className="text-xs text-muted-foreground mb-2">
-                {images.length}/10 изображений
+
+          {/* Upload Progress */}
+          {isUploading && uploadQueue.length > 0 && (
+            <div className="space-y-2">
+              <div className="text-sm font-medium">
+                Загрузка изображений...
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                {images.map((image, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={image}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-16 sm:h-20 object-cover rounded border"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-1 right-1 h-5 w-5 sm:h-6 sm:w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                      onClick={() => removeImage(index)}
-                    >
-                      ×
-                    </Button>
+              {uploadQueue.map((item) => (
+                <div key={item.id} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="truncate">{item.file.name}</span>
+                    <span>
+                      {item.status === 'compressing' && 'Сжатие...'}
+                      {item.status === 'uploading' && `${item.progress}%`}
+                      {item.status === 'success' && '✓'}
+                      {item.status === 'error' && '✗'}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  {item.status !== 'success' && item.status !== 'error' && (
+                    <Progress value={item.progress} className="h-1" />
+                  )}
+                  {item.status === 'error' && item.error && (
+                    <div className="text-xs text-red-500">{item.error}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Image Previews */}
+          {getPreviewUrls().length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+              {getPreviewUrls().map((imageUrl, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={imageUrl}
+                    alt={`Preview ${index + 1}`}
+                    className="w-full h-16 sm:h-20 object-cover rounded border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-1 right-1 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeImage(index)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                  {uploadQueue[index]?.status === 'success' && (
+                    <div className="absolute bottom-1 right-1 bg-green-500 text-white rounded-full p-1">
+                      <Image className="h-3 w-3" />
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -259,10 +290,12 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          ) : isUploading ? (
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
           ) : (
             <Send className="h-4 w-4 mr-2" />
           )}
-          Отправить сообщение
+          {isLoading ? 'Отправка...' : isUploading ? 'Загрузка изображений...' : 'Отправить сообщение'}
         </Button>
       </CardContent>
     </Card>
