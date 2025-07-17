@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star, Trash2 } from "lucide-react";
+import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star, Trash2, Send } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,7 @@ import { UserAvatar } from './UserAvatar';
 import { EnhancedStatusBadge } from './EnhancedStatusBadge';
 import { CommunicationRatingBadge } from './CommunicationRatingBadge';
 import { UserContextMenu } from './UserContextMenu';
+import { SendTelegramMessageDialog } from './SendTelegramMessageDialog';
 
 interface AdminUsersTableRowProps {
   user: ProfileType;
@@ -41,6 +42,7 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
   onContextAction,
   onDeleteUser
 }) => {
+  const [showTelegramDialog, setShowTelegramDialog] = useState(false);
   return (
     <UserContextMenu
       user={user}
@@ -173,6 +175,12 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
                   <Edit className="mr-2 h-4 w-4" />
                   Редактировать
                 </DropdownMenuItem>
+                {user.telegram_id && (
+                  <DropdownMenuItem onClick={() => setShowTelegramDialog(true)}>
+                    <Send className="mr-2 h-4 w-4 text-blue-600" />
+                    Отправить сообщение
+                  </DropdownMenuItem>
+                )}
                 {user.verification_status !== 'blocked' && (
                   <DropdownMenuItem
                     onClick={() => onQuickStatusChange(user.id, 'blocked')}
@@ -206,6 +214,12 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
           </div>
         </TableCell>
       </TableRow>
+
+      <SendTelegramMessageDialog
+        user={user}
+        open={showTelegramDialog}
+        onOpenChange={setShowTelegramDialog}
+      />
     </UserContextMenu>
   );
 };
