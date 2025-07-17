@@ -142,7 +142,7 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
     fetchMessageHistory();
   }, [fetchMessageHistory]);
 
-  // Real-time subscription with fallback
+  // Real-time subscription with optimized fallback
   useEffect(() => {
     let pollInterval: NodeJS.Timeout;
     
@@ -177,25 +177,25 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
           console.warn('⚠️ Realtime failed, falling back to polling');
           setIsLive(false);
-          // Fallback to polling every 3 seconds for faster updates
+          // Fallback to polling every 30 seconds - much more optimal
           pollInterval = setInterval(() => {
             console.log('🔄 Polling for message history updates (fallback)');
             fetchMessageHistory();
-          }, 3000);
+          }, 30000);
         }
       });
 
-    // Initial check after 5 seconds to see if real-time is working
+    // Initial check after 10 seconds to see if real-time is working
     const initialTimer = setTimeout(() => {
       if (channel.state !== 'joined') {
-        console.log('🔄 Real-time not connected after 5s, enabling polling fallback');
+        console.log('🔄 Real-time not connected after 10s, enabling polling fallback');
         setIsLive(false);
         pollInterval = setInterval(() => {
           console.log('🔄 Polling for message history updates (initial fallback)');
           fetchMessageHistory();
-        }, 3000);
+        }, 30000);
       }
-    }, 5000);
+    }, 10000);
 
     return () => {
       console.log('🔌 Cleaning up message history subscription');
