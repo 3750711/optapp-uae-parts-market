@@ -16,6 +16,7 @@ import { EnhancedStatusBadge } from './EnhancedStatusBadge';
 import { CommunicationRatingBadge } from './CommunicationRatingBadge';
 import { UserContextMenu } from './UserContextMenu';
 import { SendTelegramMessageDialog } from './SendTelegramMessageDialog';
+import { SafeComponentLoader } from './SafeComponentLoader';
 
 interface AdminUsersTableRowProps {
   user: ProfileType;
@@ -215,11 +216,16 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
         </TableCell>
       </TableRow>
 
-      <SendTelegramMessageDialog
-        user={user}
-        open={showTelegramDialog}
-        onOpenChange={setShowTelegramDialog}
-      />
+      <SafeComponentLoader
+        fallback={<div>Ошибка диалога сообщений</div>}
+        errorMessage="Ошибка компонента отправки сообщений"
+      >
+        <SendTelegramMessageDialog
+          user={user}
+          open={showTelegramDialog}
+          onOpenChange={setShowTelegramDialog}
+        />
+      </SafeComponentLoader>
     </UserContextMenu>
   );
 };
