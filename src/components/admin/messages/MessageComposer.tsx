@@ -7,15 +7,33 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Send, Image, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useRecipientSelection } from '@/hooks/useRecipientSelection';
 import { useBulkMessaging } from '@/hooks/useBulkMessaging';
 
-const MessageComposer = () => {
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  telegram?: string;
+  user_type: string;
+  verification_status: string;
+  opt_status: string;
+}
+
+interface MessageComposerProps {
+  selectedRecipients: UserProfile[];
+  selectedGroup: string;
+  getSelectionSummary: () => string;
+}
+
+const MessageComposer: React.FC<MessageComposerProps> = ({
+  selectedRecipients,
+  selectedGroup,
+  getSelectionSummary
+}) => {
   const [messageText, setMessageText] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const { toast } = useToast();
   
-  const { selectedRecipients, selectedGroup, getSelectionSummary } = useRecipientSelection();
   const { sendBulkMessage, isLoading, progress } = useBulkMessaging();
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {

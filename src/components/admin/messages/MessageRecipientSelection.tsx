@@ -7,23 +7,52 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Users, Search, UserCheck, UserX, Shield, Star } from 'lucide-react';
-import { useRecipientSelection } from '@/hooks/useRecipientSelection';
 
-const MessageRecipientSelection = () => {
-  const {
-    selectedRecipients,
-    searchQuery,
-    searchResults,
-    isSearching,
-    predefinedGroups,
-    selectedGroup,
-    setSearchQuery,
-    selectUser,
-    deselectUser,
-    selectGroup,
-    clearSelection,
-    getSelectionSummary
-  } = useRecipientSelection();
+interface UserProfile {
+  id: string;
+  email: string;
+  full_name?: string;
+  telegram?: string;
+  user_type: string;
+  verification_status: string;
+  opt_status: string;
+}
+
+interface PredefinedGroup {
+  value: string;
+  label: string;
+  icon: React.ComponentType<any>;
+}
+
+interface MessageRecipientSelectionProps {
+  selectedRecipients: UserProfile[];
+  searchQuery: string;
+  searchResults: UserProfile[];
+  isSearching: boolean;
+  predefinedGroups: PredefinedGroup[];
+  selectedGroup: string;
+  setSearchQuery: (query: string) => void;
+  selectUser: (user: UserProfile) => void;
+  deselectUser: (userId: string) => void;
+  selectGroup: (groupValue: string) => void;
+  clearSelection: () => void;
+  getSelectionSummary: () => string;
+}
+
+const MessageRecipientSelection: React.FC<MessageRecipientSelectionProps> = ({
+  selectedRecipients,
+  searchQuery,
+  searchResults,
+  isSearching,
+  predefinedGroups,
+  selectedGroup,
+  setSearchQuery,
+  selectUser,
+  deselectUser,
+  selectGroup,
+  clearSelection,
+  getSelectionSummary
+}) => {
 
   const [isExpanded, setIsExpanded] = useState(false);
 
