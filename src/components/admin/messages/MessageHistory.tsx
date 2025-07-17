@@ -5,14 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { History, Search, MessageSquare, CheckCircle, XCircle, Clock, Image, User, Send, Radio, RefreshCw } from 'lucide-react';
+import { History, Search, MessageSquare, CheckCircle, XCircle, Clock, Image, User, Send, Radio, RefreshCw, Eye } from 'lucide-react';
 import { useNewMessageHistory } from '@/hooks/useNewMessageHistory';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import MessageDetails from './MessageDetails';
 
 const MessageHistory = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedMessage, setSelectedMessage] = useState<any>(null);
+  const [showDetails, setShowDetails] = useState(false);
   
   const {
     messages,
@@ -103,6 +106,28 @@ const MessageHistory = () => {
     }
     
     return 'Неизвестно';
+  };
+
+  const handleShowDetails = (message: any) => {
+    setSelectedMessage(message);
+    setShowDetails(true);
+  };
+
+  const getDeliveryStats = (message: any) => {
+    const summary = message.error_details?.summary;
+    if (!summary) {
+      return {
+        sent: message.sent_count || 0,
+        failed: message.failed_count || 0,
+        noTelegram: 0
+      };
+    }
+    
+    return {
+      sent: summary.sent_successfully || 0,
+      failed: summary.send_failed || 0,
+      noTelegram: summary.no_telegram || 0
+    };
   };
 
   return (
@@ -216,7 +241,18 @@ const MessageHistory = () => {
                         {getStatusIcon(message.status)}
                       </div>
                     </div>
-                    {getStatusBadge(message.status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(message.status)}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleShowDetails(message)}
+                        className="text-xs px-2 py-1 h-7"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        Детали
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="text-xs sm:text-sm text-muted-foreground mb-2 line-clamp-2">
@@ -237,41 +273,34 @@ const MessageHistory = () => {
                           <span>{message.image_urls.length}</span>
                         </div>
                       )}
-                      {message.status !== 'processing' && (
-                        <span className="text-green-600">
-                          ✓ {message.sent_count || 0}
-                        </span>
-                      )}
-                      {message.failed_count > 0 && (
-                        <span className="text-red-600">
-                          ✗ {message.failed_count}
-                        </span>
-                      )}
-                      {/* Show Telegram ID missing count */}
-                      {message.error_details?.summary?.no_telegram > 0 && (
-                        <span className="text-orange-600">
-                          📵 {message.error_details.summary.no_telegram}
-                        </span>
-                      )}
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      {/* Show specific error types */}
-                      {message.error_details?.summary?.no_telegram > 0 && (
-                        <span className="text-orange-500 text-xs">
-                          Нет Telegram ID: {message.error_details.summary.no_telegram}
-                        </span>
-                      )}
-                      {message.error_details?.send_failures?.length > 0 && (
-                        <span className="text-red-500 text-xs truncate max-w-32">
-                          Ошибки отправки: {message.error_details.send_failures.length}
-                        </span>
-                      )}
-                      {/* Show first error from send failures if exists */}
-                      {message.error_details?.send_failures?.[0]?.error && (
-                        <span className="text-red-500 text-xs truncate max-w-24 sm:max-w-32" title={message.error_details.send_failures[0].error}>
-                          {message.error_details.send_failures[0].error}
-                        </span>
-                      )}
+                    
+                    {/* Delivery Statistics */}
+                    <div className="flex items-center gap-2 text-xs">
+                      {(() => {
+                        const stats = getDeliveryStats(message);
+                        return (
+                          <>
+                            {stats.sent > 0 && (
+                              <span className="text-green-600 flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                {stats.sent}
+                              </span>
+                            )}
+                            {stats.noTelegram > 0 && (
+                              <span className="text-orange-600 flex items-center gap-1">
+                                📵 {stats.noTelegram}
+                              </span>
+                            )}
+                            {stats.failed > 0 && (
+                              <span className="text-red-600 flex items-center gap-1">
+                                <XCircle className="h-3 w-3" />
+                                {stats.failed}
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -286,6 +315,17 @@ const MessageHistory = () => {
           )}
         </ScrollArea>
       </CardContent>
+
+      {/* Message Details Modal */}
+      {selectedMessage && (
+        <MessageDetails
+          isOpen={showDetails}
+          onClose={() => setShowDetails(false)}
+          messageId={selectedMessage.id}
+          messageText={selectedMessage.message_text}
+          recipientIds={selectedMessage.recipient_ids || []}
+        />
+      )}
     </Card>
   );
 };
