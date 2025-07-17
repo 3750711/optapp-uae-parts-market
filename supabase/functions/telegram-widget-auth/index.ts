@@ -83,27 +83,41 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Check if user exists by telegram_id
+    // Check if user exists by telegram_id first
     console.log('Checking for existing user with telegram_id:', authData.id)
-    const { data: existingProfile } = await supabase
+    const { data: existingTelegramProfile } = await supabase
       .from('profiles')
       .select('id, email')
       .eq('telegram_id', authData.id)
       .maybeSingle()
 
+    // Check if user exists by telegram username (for account merging)
+    let existingEmailProfile = null
+    if (!existingTelegramProfile && authData.username) {
+      console.log('Checking for existing user with telegram username:', authData.username)
+      const { data: emailProfile } = await supabase
+        .from('profiles')
+        .select('id, email, auth_method')
+        .eq('telegram', authData.username)
+        .is('telegram_id', null) // Only email-based accounts
+        .maybeSingle()
+      
+      existingEmailProfile = emailProfile
+    }
+
     let email: string
     let tempPassword: string
-    const isNewUser = !existingProfile
+    let isNewUser = false
 
-    if (existingProfile) {
-      // Existing user - generate new temp password for login
-      email = existingProfile.email
+    if (existingTelegramProfile) {
+      // User already has Telegram account
+      email = existingTelegramProfile.email
       tempPassword = crypto.randomUUID()
-      console.log('Existing user found, updating password for login')
+      console.log('Existing Telegram user found, updating password for login')
       
       // Update user password temporarily
       const { error: updateError } = await supabase.auth.admin.updateUserById(
-        existingProfile.id,
+        existingTelegramProfile.id,
         { password: tempPassword }
       )
       
@@ -120,8 +134,30 @@ serve(async (req) => {
           avatar_url: authData.photo_url,
           telegram: authData.username
         })
-        .eq('id', existingProfile.id)
+        .eq('id', existingTelegramProfile.id)
         
+    } else if (existingEmailProfile) {
+      // Account merge required - existing email account with same telegram username
+      console.log('Found existing email account with same telegram username, requiring merge confirmation')
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          requires_merge: true,
+          existing_email: existingEmailProfile.email,
+          telegram_data: {
+            id: authData.id,
+            first_name: authData.first_name,
+            last_name: authData.last_name,
+            username: authData.username,
+            photo_url: authData.photo_url
+          }
+        }),
+        { 
+          status: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
     } else {
       // New user - create with temp credentials
       email = `telegram_${authData.id}@temp.telegram`
@@ -147,6 +183,7 @@ serve(async (req) => {
       }
 
       console.log('New user created:', { userId: newUser.user.id, email })
+      isNewUser = true
     }
 
     console.log('Returning credentials for client login')

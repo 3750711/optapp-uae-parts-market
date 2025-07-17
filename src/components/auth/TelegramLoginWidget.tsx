@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AccountMergeDialog } from './AccountMergeDialog';
 
 interface TelegramAuthData {
   id: number;
@@ -31,6 +32,11 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 }) => {
   const widgetRef = useRef<HTMLDivElement>(null);
   const scriptLoadedRef = useRef(false);
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergeData, setMergeData] = useState<{
+    existingEmail: string;
+    telegramData: any;
+  } | null>(null);
 
   // Generate deterministic password based on telegram_id
   const generateDeterministicPassword = async (telegramId: number): Promise<string> => {
@@ -52,9 +58,9 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     try {
       toast.loading('Авторизация через Telegram...');
 
-      // Call the simplified telegram-auth Edge Function
-      const { data, error } = await supabase.functions.invoke('telegram-auth', {
-        body: authData
+      // Call the telegram-widget-auth Edge Function
+      const { data, error } = await supabase.functions.invoke('telegram-widget-auth', {
+        body: { authData }
       });
 
       if (error) {
@@ -65,18 +71,35 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         throw new Error(data.error || 'Authentication failed');
       }
 
-      console.log('🔍 Edge Function response:', {
-        is_existing_user: data.is_existing_user,
-        email: data.telegram_data.email,
-        full_response: data
-      });
+      // Check if account merge is required
+      if (data.requires_merge) {
+        toast.dismiss();
+        console.log('🔄 Account merge required for:', data.existing_email);
+        setMergeData({
+          existingEmail: data.existing_email,
+          telegramData: data.telegram_data
+        });
+        setMergeDialogOpen(true);
+        return;
+      }
 
-      const email = data.telegram_data.email;
-      const password = await generateDeterministicPassword(data.telegram_data.id);
+      console.log('🔍 Edge Function response:', data);
 
-      console.log('🔑 Generated email and password for:', email);
+      // Handle normal login flow
+      await handleDirectLogin(data.email, data.password, data.is_new_user);
 
-      if (data.is_existing_user === true) {
+    } catch (error) {
+      toast.dismiss();
+      const errorMessage = error instanceof Error ? error.message : 'Ошибка авторизации';
+      toast.error(errorMessage);
+      onError?.(errorMessage);
+    }
+  };
+
+  const handleDirectLogin = async (email: string, password: string, isNewUser: boolean) => {
+    try {
+
+      if (!isNewUser) {
         // Existing user: use signInWithPassword
         console.log('🔄 Using signInWithPassword for existing user:', email);
         
@@ -90,87 +113,8 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
           throw signInError;
         }
       } else {
-        // New user: use signUp
-        console.log('🎯 Using signUp for new user:', email);
-
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email,
-          password: password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              auth_method: 'telegram',
-              telegram_id: data.telegram_data.id.toString(),
-              full_name: data.telegram_data.full_name,
-              photo_url: data.telegram_data.photo_url,
-              telegram: data.telegram_data.username,
-              user_type: data.telegram_data.user_type || 'buyer'
-            }
-          }
-        });
-
-        if (signUpError) {
-          console.error('signUp error:', signUpError);
-          throw signUpError;
-        }
-
-        console.log('✅ User created successfully:', signUpData);
-        
-        // Verify that the user was created and has a session
-        if (!signUpData.user) {
-          console.error('❌ No user returned from signUp');
-          throw new Error('User creation failed - no user data returned');
-        }
-
-        // Create profile manually since Supabase doesn't allow triggers on auth.users
-        console.log('📝 Creating profile manually for user:', signUpData.user.id);
-        
-        try {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: signUpData.user.id,
-              email: email,
-              auth_method: 'telegram',
-              full_name: data.telegram_data.full_name,
-              telegram_id: data.telegram_data.id,
-              telegram: data.telegram_data.username,
-              avatar_url: data.telegram_data.photo_url,
-              user_type: data.telegram_data.user_type || 'buyer'
-            });
-
-          if (profileError) {
-            // If telegram_id already exists, try without it
-            if (profileError.code === '23505' && profileError.message?.includes('telegram_id')) {
-              console.log('🔄 Telegram ID already exists, creating profile without telegram_id');
-              const { error: retryError } = await supabase
-                .from('profiles')
-                .insert({
-                  id: signUpData.user.id,
-                  email: email,
-                  auth_method: 'telegram',
-                  full_name: data.telegram_data.full_name,
-                  telegram: data.telegram_data.username,
-                  avatar_url: data.telegram_data.photo_url,
-                  user_type: data.telegram_data.user_type || 'buyer'
-                });
-              
-              if (retryError) {
-                console.error('❌ Profile creation failed even without telegram_id:', retryError);
-                throw new Error('Profile creation failed - please contact support');
-              }
-              console.log('✅ Profile created successfully without telegram_id');
-            } else {
-              console.error('❌ Profile creation failed:', profileError);
-              throw new Error('Profile creation failed - please contact support');
-            }
-          } else {
-            console.log('✅ Profile created successfully with telegram_id');
-          }
-        } catch (error) {
-          console.error('❌ Unexpected error during profile creation:', error);
-          throw new Error('Profile creation failed - please contact support');
-        }
+        // New user case is not handled in direct login as it should be processed by Edge Function
+        throw new Error('New user creation should be handled by Edge Function');
       }
 
       toast.dismiss();
@@ -182,6 +126,22 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       toast.error(errorMessage);
       onError?.(errorMessage);
     }
+  };
+
+  const handleMergeSuccess = async (email: string, password: string) => {
+    try {
+      await handleDirectLogin(email, password, false);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Ошибка после объединения аккаунтов';
+      toast.error(errorMessage);
+      onError?.(errorMessage);
+    }
+  };
+
+  const handleMergeCancel = async () => {
+    // User chose to create a new account instead of merging
+    // We can optionally implement creating a new account with a different identifier
+    toast.info('Вы можете создать новый аккаунт через обычную регистрацию');
   };
 
   useEffect(() => {
@@ -213,11 +173,24 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col items-center space-y-4">
-      <div ref={widgetRef} className="telegram-widget-container" />
-      <p className="text-sm text-muted-foreground text-center">
-        Войдите через Telegram для быстрого доступа
-      </p>
-    </div>
+    <>
+      <div className="flex flex-col items-center space-y-4">
+        <div ref={widgetRef} className="telegram-widget-container" />
+        <p className="text-sm text-muted-foreground text-center">
+          Войдите через Telegram для быстрого доступа
+        </p>
+      </div>
+
+      {mergeData && (
+        <AccountMergeDialog
+          open={mergeDialogOpen}
+          onOpenChange={setMergeDialogOpen}
+          existingEmail={mergeData.existingEmail}
+          telegramData={mergeData.telegramData}
+          onMergeSuccess={handleMergeSuccess}
+          onCancel={handleMergeCancel}
+        />
+      )}
+    </>
   );
 };
