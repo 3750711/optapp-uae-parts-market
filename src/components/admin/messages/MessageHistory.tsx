@@ -340,6 +340,7 @@ const MessageHistory = () => {
           messageId={selectedMessage.id}
           messageText={selectedMessage.message_text}
           recipientIds={selectedMessage.recipient_ids || []}
+          messageStatus={selectedMessage.status}
         />
       )}
     </Card>

@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, XCircle, Phone, Search, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CheckCircle, XCircle, Phone, Search, User, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MessageRecipientDetail {
@@ -22,6 +23,7 @@ interface MessageDetailsProps {
   messageId: string;
   messageText: string;
   recipientIds: string[];
+  messageStatus?: string;
 }
 
 const MessageDetails: React.FC<MessageDetailsProps> = ({
@@ -29,18 +31,46 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
   onClose,
   messageId,
   messageText,
-  recipientIds
+  recipientIds,
+  messageStatus
 }) => {
   const [recipients, setRecipients] = useState<MessageRecipientDetail[]>([]);
   const [filteredRecipients, setFilteredRecipients] = useState<MessageRecipientDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   useEffect(() => {
     if (isOpen && messageId) {
       fetchRecipientDetails();
     }
+  }, [isOpen, messageId]);
+
+  // Real-time subscription for message updates
+  useEffect(() => {
+    if (!isOpen || !messageId) return;
+
+    const channel = supabase
+      .channel('message-details')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'message_history',
+          filter: `id=eq.${messageId}`
+        },
+        (payload) => {
+          console.log('💬 Message updated in real-time:', payload);
+          fetchRecipientDetails();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [isOpen, messageId]);
 
   useEffect(() => {
@@ -76,47 +106,56 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
         return;
       }
 
-      // Get event logs for this message
-      const { data: eventLogs, error: logsError } = await supabase
-        .from('event_logs')
-        .select('*')
-        .eq('action_type', 'message_sent')
-        .eq('entity_type', 'telegram_message')
-        .contains('details', { message_id: messageId });
+      // Get message history with error_details
+      const { data: messageData, error: messageError } = await supabase
+        .from('message_history')
+        .select('status, error_details')
+        .eq('id', messageId)
+        .single();
 
-      if (logsError) {
-        console.error('Error fetching event logs:', logsError);
+      if (messageError) {
+        console.error('Error fetching message data:', messageError);
       }
 
-      // Create a map of user statuses from event logs
-      const statusMap = new Map<string, { status: string; error?: string; deliveredAt?: string }>();
+      console.log('📊 Message data:', messageData);
+
+      // If message is still processing, show all recipients as processing
+      if (messageStatus === 'processing' || messageData?.status === 'processing') {
+        const recipientDetails: MessageRecipientDetail[] = profiles?.map(profile => ({
+          userId: profile.id,
+          userName: profile.full_name || 'Не указано',
+          userEmail: profile.email,
+          status: 'processing',
+          error: undefined,
+          deliveredAt: undefined
+        })) || [];
+
+        setRecipients(recipientDetails);
+        setLastUpdate(new Date());
+        return;
+      }
+
+      // Parse error_details to get individual user statuses
+      const errorDetails = messageData?.error_details || {};
+      const noTelegramUsers = errorDetails.no_telegram_users || [];
+      const sendFailures = errorDetails.send_failures || [];
       
-      eventLogs?.forEach(log => {
-        const recipientId = log.details?.recipient_user_id;
-        if (recipientId) {
-          statusMap.set(recipientId, {
-            status: log.details?.status || 'failed',
-            error: log.details?.error,
-            deliveredAt: log.created_at
-          });
-        }
-      });
+      console.log('📋 Error details:', { noTelegramUsers, sendFailures });
+
+      // Create status maps
+      const noTelegramSet = new Set(noTelegramUsers.map((u: any) => u.user_id));
+      const failureMap = new Map(sendFailures.map((f: any) => [f.user_id, f.error]));
 
       // Combine profile data with delivery status
       const recipientDetails: MessageRecipientDetail[] = profiles?.map(profile => {
-        const deliveryInfo = statusMap.get(profile.id);
-        let status: MessageRecipientDetail['status'] = 'processing';
-        
-        if (deliveryInfo) {
-          if (deliveryInfo.status === 'success') {
-            status = 'success';
-          } else if (deliveryInfo.error === 'no_telegram_id' || !profile.telegram) {
-            status = 'no_telegram_id';
-          } else {
-            status = 'failed';
-          }
-        } else if (!profile.telegram) {
+        let status: MessageRecipientDetail['status'] = 'success';
+        let error: string | undefined;
+
+        if (noTelegramSet.has(profile.id)) {
           status = 'no_telegram_id';
+        } else if (failureMap.has(profile.id)) {
+          status = 'failed';
+          error = failureMap.get(profile.id) as string;
         }
 
         return {
@@ -124,17 +163,23 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
           userName: profile.full_name || 'Не указано',
           userEmail: profile.email,
           status,
-          error: deliveryInfo?.error,
-          deliveredAt: deliveryInfo?.deliveredAt
+          error,
+          deliveredAt: status === 'success' ? new Date().toISOString() : undefined
         };
       }) || [];
 
+      console.log('📝 Recipient details:', recipientDetails);
       setRecipients(recipientDetails);
+      setLastUpdate(new Date());
     } catch (error) {
       console.error('Error in fetchRecipientDetails:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchRecipientDetails();
   };
 
   const getStatusIcon = (status: MessageRecipientDetail['status']) => {
@@ -194,9 +239,18 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle className="text-lg">Детали доставки сообщения</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-lg">Детали доставки сообщения</DialogTitle>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Обновить
+            </Button>
+          </div>
           <div className="text-sm text-muted-foreground line-clamp-2">
             {messageText}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Последнее обновление: {lastUpdate.toLocaleString('ru-RU')}
           </div>
         </DialogHeader>
 
