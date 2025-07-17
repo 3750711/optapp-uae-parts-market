@@ -14,14 +14,14 @@ interface UserProfile {
   email: string;
   full_name?: string;
   telegram?: string;
-  user_type: string;
-  verification_status: string;
-  opt_status: string;
+  user_type: 'buyer' | 'seller' | 'admin';
+  verification_status: 'pending' | 'verified' | 'blocked';
+  opt_status: 'free_user' | 'opt_user';
 }
 
 interface MessageComposerProps {
   selectedRecipients: UserProfile[];
-  selectedGroup: string;
+  selectedGroup: string | null;
   getSelectionSummary: () => string;
 }
 
@@ -37,11 +37,55 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
   const { sendBulkMessage, isLoading, progress } = useBulkMessaging();
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
+    const files = Array.from(event.target.files || []);
+    
+    if (images.length + files.length > 10) {
+      toast({
+        title: "Ошибка",
+        description: "Максимум 10 изображений",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-    setImages(prev => [...prev, ...newImages].slice(0, 10)); // Limit to 10 images
+    files.forEach((file) => {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Ошибка",
+          description: `Файл ${file.name} не является изображением`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "Ошибка",
+          description: `Файл ${file.name} слишком большой (максимум 10MB)`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setImages(prev => [...prev, base64]);
+      };
+      reader.onerror = () => {
+        toast({
+          title: "Ошибка",
+          description: `Не удалось загрузить файл ${file.name}`,
+          variant: "destructive",
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    // Reset input
+    event.target.value = '';
   };
 
   const removeImage = (index: number) => {
@@ -110,23 +154,23 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Recipients Info */}
-        <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-3 bg-muted rounded-lg">
           <span className="text-sm font-medium">Получатели:</span>
-          <Badge variant={hasRecipients ? "default" : "outline"}>
+          <Badge variant={hasRecipients ? "default" : "outline"} className="self-start sm:self-auto">
             {hasRecipients ? getSelectionSummary() : "Не выбраны"}
           </Badge>
         </div>
 
         {/* Message Text */}
         <div>
-          <Label htmlFor="messageText">Текст сообщения</Label>
+          <Label htmlFor="messageText" className="text-sm">Текст сообщения</Label>
           <Textarea
             id="messageText"
             placeholder="Введите текст сообщения..."
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
-            rows={4}
-            className="mt-2"
+            rows={3}
+            className="mt-2 text-sm sm:text-base min-h-[80px] sm:min-h-[100px]"
           />
           <div className="flex justify-between mt-1">
             <span className="text-xs text-muted-foreground">
@@ -137,7 +181,9 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
 
         {/* Image Upload */}
         <div>
-          <Label>Изображения (опционально)</Label>
+          <Label className="text-sm">
+            Изображения (до 10 штук, максимум 10MB каждое)
+          </Label>
           <div className="mt-2">
             <input
               type="file"
@@ -150,32 +196,38 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
             />
             <Label
               htmlFor="image-upload"
-              className="inline-flex items-center gap-2 cursor-pointer bg-background border border-input rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+              className="inline-flex items-center gap-2 cursor-pointer bg-background border border-input rounded-md px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground w-full sm:w-auto justify-center sm:justify-start"
             >
-              <Image className="h-4 w-4" />
-              Добавить изображения ({images.length}/10)
+              <Image className="h-4 w-4 flex-shrink-0" />
+              <span className="truncate">Добавить изображения ({images.length}/10)</span>
             </Label>
           </div>
           
           {images.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {images.map((image, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={image}
-                    alt={`Upload ${index + 1}`}
-                    className="w-full h-20 object-cover rounded-md"
-                  />
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="absolute -top-2 -right-2 h-6 w-6 p-0"
-                    onClick={() => removeImage(index)}
-                  >
-                    ×
-                  </Button>
-                </div>
-              ))}
+            <div className="mt-2">
+              <div className="text-xs text-muted-foreground mb-2">
+                {images.length}/10 изображений
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                {images.map((image, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={image}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-16 sm:h-20 object-cover rounded border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-1 right-1 h-5 w-5 sm:h-6 sm:w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                      onClick={() => removeImage(index)}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -203,7 +255,7 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
         <Button
           onClick={handleSendMessage}
           disabled={!canSend}
-          className="w-full"
+          className="w-full text-sm sm:text-base py-2 sm:py-3"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin mr-2" />

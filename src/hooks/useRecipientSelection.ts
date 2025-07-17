@@ -19,6 +19,8 @@ export const useRecipientSelection = () => {
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+  const [groupUsers, setGroupUsers] = useState<UserProfile[]>([]);
+  const [isLoadingGroupUsers, setIsLoadingGroupUsers] = useState(false);
 
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
@@ -76,15 +78,64 @@ export const useRecipientSelection = () => {
     setSelectedRecipients(prev => prev.filter(r => r.id !== userId));
   };
 
+  const loadGroupUsers = async (groupValue: string) => {
+    setIsLoadingGroupUsers(true);
+    try {
+      let query = supabase.from('profiles').select('*');
+      
+      switch (groupValue) {
+        case 'all_users':
+          query = query.neq('user_type', 'admin');
+          break;
+        case 'verified_users':
+          query = query.eq('verification_status', 'verified').neq('user_type', 'admin');
+          break;
+        case 'opt_users':
+          query = query.eq('opt_status', 'opt_user').neq('user_type', 'admin');
+          break;
+        case 'sellers':
+          query = query.eq('user_type', 'seller');
+          break;
+        case 'buyers':
+          query = query.eq('user_type', 'buyer');
+          break;
+        default:
+          return;
+      }
+
+      const { data, error } = await query.order('full_name');
+      
+      if (error) {
+        console.error('Error loading group users:', error);
+        return;
+      }
+
+      setGroupUsers(data || []);
+      setSelectedRecipients(data || []);
+    } catch (error) {
+      console.error('Error loading group users:', error);
+    } finally {
+      setIsLoadingGroupUsers(false);
+    }
+  };
+
   const selectGroup = (groupValue: string) => {
-    // Clear individual selections when group is selected
-    setSelectedRecipients([]);
-    setSelectedGroup(prev => prev === groupValue ? null : groupValue);
+    if (selectedGroup === groupValue) {
+      // Deselect group
+      setSelectedGroup(null);
+      setSelectedRecipients([]);
+      setGroupUsers([]);
+    } else {
+      // Select new group
+      setSelectedGroup(groupValue);
+      loadGroupUsers(groupValue);
+    }
   };
 
   const clearSelection = () => {
     setSelectedRecipients([]);
     setSelectedGroup(null);
+    setGroupUsers([]);
   };
 
   const getSelectionSummary = () => {
@@ -111,11 +162,14 @@ export const useRecipientSelection = () => {
     isSearching,
     predefinedGroups,
     selectedGroup,
+    groupUsers,
+    isLoadingGroupUsers,
     setSearchQuery,
     selectUser,
     deselectUser,
     selectGroup,
     clearSelection,
-    getSelectionSummary
+    getSelectionSummary,
+    setSelectedRecipients
   };
 };

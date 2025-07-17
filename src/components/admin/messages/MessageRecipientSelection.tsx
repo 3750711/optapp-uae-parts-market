@@ -13,9 +13,9 @@ interface UserProfile {
   email: string;
   full_name?: string;
   telegram?: string;
-  user_type: string;
-  verification_status: string;
-  opt_status: string;
+  user_type: 'buyer' | 'seller' | 'admin';
+  verification_status: 'pending' | 'verified' | 'blocked';
+  opt_status: 'free_user' | 'opt_user';
 }
 
 interface PredefinedGroup {
@@ -30,13 +30,16 @@ interface MessageRecipientSelectionProps {
   searchResults: UserProfile[];
   isSearching: boolean;
   predefinedGroups: PredefinedGroup[];
-  selectedGroup: string;
+  selectedGroup: string | null;
+  groupUsers: UserProfile[];
+  isLoadingGroupUsers: boolean;
   setSearchQuery: (query: string) => void;
   selectUser: (user: UserProfile) => void;
   deselectUser: (userId: string) => void;
   selectGroup: (groupValue: string) => void;
   clearSelection: () => void;
   getSelectionSummary: () => string;
+  setSelectedRecipients: (recipients: UserProfile[]) => void;
 }
 
 const MessageRecipientSelection: React.FC<MessageRecipientSelectionProps> = ({
@@ -46,12 +49,15 @@ const MessageRecipientSelection: React.FC<MessageRecipientSelectionProps> = ({
   isSearching,
   predefinedGroups,
   selectedGroup,
+  groupUsers,
+  isLoadingGroupUsers,
   setSearchQuery,
   selectUser,
   deselectUser,
   selectGroup,
   clearSelection,
-  getSelectionSummary
+  getSelectionSummary,
+  setSelectedRecipients
 }) => {
 
   const [isExpanded, setIsExpanded] = useState(false);
@@ -73,17 +79,18 @@ const MessageRecipientSelection: React.FC<MessageRecipientSelectionProps> = ({
         {/* Predefined Groups */}
         <div>
           <Label className="text-sm font-medium">Группы пользователей</Label>
-          <div className="grid grid-cols-2 gap-2 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
             {predefinedGroups.map((group) => (
               <Button
                 key={group.value}
                 variant={selectedGroup === group.value ? "default" : "outline"}
                 size="sm"
                 onClick={() => selectGroup(group.value)}
-                className="justify-start"
+                className="justify-start text-xs sm:text-sm"
+                disabled={isLoadingGroupUsers}
               >
-                <group.icon className="h-4 w-4 mr-2" />
-                {group.label}
+                <group.icon className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="truncate">{group.label}</span>
               </Button>
             ))}
           </div>
@@ -174,21 +181,55 @@ const MessageRecipientSelection: React.FC<MessageRecipientSelectionProps> = ({
         {/* Individual Selected Users */}
         {selectedRecipients.length > 0 && (
           <div>
-            <Label className="text-sm font-medium">Выбранные пользователи</Label>
-            <ScrollArea className="h-24 mt-2">
-              <div className="flex flex-wrap gap-1">
-                {selectedRecipients.map((user) => (
-                  <Badge
-                    key={user.id}
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">
+                Выбранные пользователи ({selectedRecipients.length})
+              </Label>
+              {selectedGroup && (
+                <div className="flex gap-2">
+                  <Button
                     variant="outline"
-                    className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => deselectUser(user.id)}
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setSelectedRecipients(groupUsers)}
+                    disabled={isLoadingGroupUsers}
                   >
-                    {user.full_name || user.email}
-                    <UserX className="h-3 w-3 ml-1" />
-                  </Badge>
-                ))}
-              </div>
+                    Выбрать всех
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => setSelectedRecipients([])}
+                  >
+                    Снять все
+                  </Button>
+                </div>
+              )}
+            </div>
+            <ScrollArea className="h-32 mt-2">
+              {isLoadingGroupUsers ? (
+                <div className="flex items-center justify-center p-4">
+                  <div className="text-sm text-muted-foreground">Загрузка пользователей...</div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {selectedRecipients.map((user) => (
+                    <Badge
+                      key={user.id}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground text-xs max-w-[200px]"
+                      onClick={() => deselectUser(user.id)}
+                      title={`${user.full_name || user.email} - Нажмите чтобы исключить`}
+                    >
+                      <span className="truncate">
+                        {user.full_name || user.email}
+                      </span>
+                      <UserX className="h-3 w-3 ml-1 flex-shrink-0" />
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </ScrollArea>
           </div>
         )}

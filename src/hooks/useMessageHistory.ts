@@ -139,38 +139,49 @@ export const useMessageHistory = (params: UseMessageHistoryParams = {}) => {
     fetchHistory();
   }, [debouncedSearchQuery, params.statusFilter]);
 
-  // Set up real-time subscription
+  // Real-time subscription with fallback
   useEffect(() => {
-    let channel: RealtimeChannel;
-
-    const setupRealtimeSubscription = () => {
-      channel = supabase
-        .channel('message_history_updates')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'event_logs',
-            filter: 'action_type=eq.bulk_message_send'
-          },
-          () => {
-            // Refresh data when new message log is inserted
-            fetchHistory();
+    let pollInterval: NodeJS.Timeout;
+    
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'event_logs'
+        },
+        (payload) => {
+          console.log('New message log received:', payload);
+          fetchHistory();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+        
+        if (status === 'SUBSCRIBED') {
+          setIsLive(true);
+          // Clear polling if realtime is working
+          if (pollInterval) {
+            clearInterval(pollInterval);
           }
-        )
-        .subscribe((status) => {
-          setIsLive(status === 'SUBSCRIBED');
-        });
-    };
-
-    setupRealtimeSubscription();
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('Realtime failed, falling back to polling');
+          setIsLive(false);
+          // Fallback to polling every 5 seconds
+          pollInterval = setInterval(() => {
+            fetchHistory();
+          }, 5000);
+        }
+      });
 
     return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-        setIsLive(false);
+      supabase.removeChannel(channel);
+      if (pollInterval) {
+        clearInterval(pollInterval);
       }
+      setIsLive(false);
     };
   }, []);
 

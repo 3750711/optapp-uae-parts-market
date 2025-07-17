@@ -14,9 +14,9 @@ const AdminMessages = () => {
       <div className="space-y-6">
         <DashboardHeader title="Сообщения пользователям" />
         
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6">
           {/* Left Column - Message Creation */}
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6 order-1">
             <MessageRecipientSelection {...recipientSelection} />
             <MessageComposer 
               selectedRecipients={recipientSelection.selectedRecipients}
@@ -26,7 +26,7 @@ const AdminMessages = () => {
           </div>
           
           {/* Right Column - Message History */}
-          <div>
+          <div className="order-2 lg:order-none">
             <MessageHistory />
           </div>
         </div>
