@@ -2,12 +2,13 @@
 import React from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star } from "lucide-react";
+import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star, Trash2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { ProfileType } from '@/components/profile/types';
 import { UserAvatar } from './UserAvatar';
@@ -25,6 +26,7 @@ interface AdminUsersTableRowProps {
   onEditUser: (user: ProfileType) => void;
   onOpenProfile: (userId: string) => void;
   onContextAction: (userId: string, action: string) => void;
+  onDeleteUser: (userId: string) => void;
 }
 
 export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
@@ -36,7 +38,8 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
   onOptStatusChange,
   onEditUser,
   onOpenProfile,
-  onContextAction
+  onContextAction,
+  onDeleteUser
 }) => {
   return (
     <UserContextMenu
@@ -185,6 +188,18 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
                   )}
                 >
                   Переключить OPT статус
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (confirm(`Вы уверены, что хотите удалить аккаунт пользователя "${user.full_name || user.email}"? Это действие нельзя отменить.`)) {
+                      onDeleteUser(user.id);
+                    }
+                  }}
+                  className="text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Удалить аккаунт
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -24,6 +24,7 @@ interface AdminUsersTableProps {
   onEditUser: (user: ProfileType) => void;
   onOpenProfile: (userId: string) => void;
   onContextAction: (userId: string, action: string) => void;
+  onDeleteUser: (userId: string) => void;
 }
 
 export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
@@ -38,7 +39,8 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
   onOptStatusChange,
   onEditUser,
   onOpenProfile,
-  onContextAction
+  onContextAction,
+  onDeleteUser
 }) => {
   const renderSortIcon = (field: SortField) => {
     if (sortField === field) {
@@ -139,6 +141,7 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
               onEditUser={onEditUser}
               onOpenProfile={onOpenProfile}
               onContextAction={onContextAction}
+              onDeleteUser={onDeleteUser}
             />
           ))}
         </TableBody>

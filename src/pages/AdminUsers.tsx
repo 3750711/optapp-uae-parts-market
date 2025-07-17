@@ -49,7 +49,8 @@ const AdminUsers = () => {
     handleOptStatusChange,
     handleBulkAction,
     handleExportUsers,
-    handleContextAction
+    handleContextAction,
+    handleDeleteUser
   } = useAdminUsersActions();
 
   // Используем единый оптимизированный хук
@@ -215,6 +216,7 @@ const AdminUsers = () => {
                   onEditUser={handleEditUser}
                   onQuickStatusChange={handleQuickStatusChange}
                   onOptStatusChange={handleOptStatusChange}
+                  onDeleteUser={handleDeleteUser}
                 />
               </div>
               

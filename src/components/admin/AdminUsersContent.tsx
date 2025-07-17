@@ -26,6 +26,7 @@ interface AdminUsersContentProps {
   onEditUser: (user: ProfileType) => void;
   onQuickStatusChange: (userId: string, status: 'verified' | 'pending' | 'blocked') => void;
   onOptStatusChange: (userId: string, status: 'free_user' | 'opt_user') => void;
+  onDeleteUser: (userId: string) => void;
 }
 
 export const AdminUsersContent: React.FC<AdminUsersContentProps> = ({
@@ -45,6 +46,7 @@ export const AdminUsersContent: React.FC<AdminUsersContentProps> = ({
   onEditUser,
   onQuickStatusChange,
   onOptStatusChange,
+  onDeleteUser,
 }) => {
   const navigate = useNavigate();
 
@@ -65,6 +67,7 @@ export const AdminUsersContent: React.FC<AdminUsersContentProps> = ({
     onEditUser,
     onOpenProfile: (userId: string) => navigate(`/seller/${userId}`),
     onContextAction,
+    onDeleteUser,
   };
 
   if (isMobile) {

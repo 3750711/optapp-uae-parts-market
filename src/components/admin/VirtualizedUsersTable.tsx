@@ -20,6 +20,7 @@ interface VirtualizedUsersTableProps {
   onEditUser: (user: ProfileType) => void;
   onOpenProfile: (userId: string) => void;
   onContextAction: (userId: string, action: string) => void;
+  onDeleteUser: (userId: string) => void;
 }
 
 const ROW_HEIGHT = 60;
@@ -38,7 +39,8 @@ export const VirtualizedUsersTable: React.FC<VirtualizedUsersTableProps> = ({
   onOptStatusChange,
   onEditUser,
   onOpenProfile,
-  onContextAction
+  onContextAction,
+  onDeleteUser
 }) => {
   const itemHeight = isCompactMode ? ROW_HEIGHT : ROW_HEIGHT_NORMAL;
 
@@ -74,6 +76,7 @@ export const VirtualizedUsersTable: React.FC<VirtualizedUsersTableProps> = ({
           onEditUser={onEditUser}
           onOpenProfile={onOpenProfile}
           onContextAction={onContextAction}
+          onDeleteUser={onDeleteUser}
         />
       </div>
     );

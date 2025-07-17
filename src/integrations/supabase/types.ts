@@ -1186,7 +1186,7 @@ export type Database = {
         Returns: string
       }
       delete_user_account: {
-        Args: Record<PropertyKey, never>
+        Args: Record<PropertyKey, never> | { user_id: string }
         Returns: undefined
       }
       force_user_logout: {
