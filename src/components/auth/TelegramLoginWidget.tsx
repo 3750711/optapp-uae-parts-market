@@ -82,7 +82,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         // New user: use signUp
         console.log('🎯 Using signUp for new user:', email);
 
-        const { error: signUpError } = await supabase.auth.signUp({
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: email,
           password: password,
           options: {
@@ -101,6 +101,52 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         if (signUpError) {
           console.error('signUp error:', signUpError);
           throw signUpError;
+        }
+
+        console.log('✅ User created successfully:', signUpData);
+        
+        // Verify that the user was created and has a session
+        if (!signUpData.user) {
+          console.error('❌ No user returned from signUp');
+          throw new Error('User creation failed - no user data returned');
+        }
+
+        // Wait a moment for the trigger to execute
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Verify profile was created automatically by the trigger
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', signUpData.user.id)
+          .single();
+
+        if (profileError || !profileData) {
+          console.error('❌ Profile creation failed:', profileError);
+          console.log('Attempting to create profile manually...');
+          
+          // Try to create profile manually as fallback
+          const { error: manualProfileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: signUpData.user.id,
+              email: email,
+              auth_method: 'telegram',
+              full_name: data.telegram_data.full_name,
+              telegram_id: data.telegram_data.id,
+              telegram: data.telegram_data.username,
+              avatar_url: data.telegram_data.photo_url,
+              user_type: data.telegram_data.user_type || 'buyer'
+            });
+
+          if (manualProfileError) {
+            console.error('❌ Manual profile creation also failed:', manualProfileError);
+            throw new Error('Profile creation failed - please contact support');
+          }
+          
+          console.log('✅ Profile created manually as fallback');
+        } else {
+          console.log('✅ Profile created successfully by trigger:', profileData);
         }
       }
 
