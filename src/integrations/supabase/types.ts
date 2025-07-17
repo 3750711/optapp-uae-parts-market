@@ -1125,6 +1125,10 @@ export type Database = {
         Args: { p_user_id: string; p_search_type?: string }
         Returns: boolean
       }
+      check_user_auth_method: {
+        Args: { p_login_input: string }
+        Returns: Json
+      }
       cleanup_expired_email_verification_codes: {
         Args: Record<PropertyKey, never>
         Returns: undefined

@@ -79,17 +79,20 @@ const Login = () => {
       if (error) {
         // Проверяем, является ли ошибка связанной с неверными учетными данными
         if (error.message === 'Invalid login credentials') {
-          // Проверяем метод аутентификации пользователя
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('auth_method')
-            .eq('email', email)
-            .single();
-          
-          if (profile?.auth_method === 'telegram') {
-            setShowTelegramWarning(true);
-            setError('');
-            return;
+          try {
+            // Проверяем метод аутентификации пользователя через безопасную функцию
+            const { data: authData } = await supabase.rpc('check_user_auth_method', {
+              p_login_input: loginInput
+            });
+            
+            if (authData?.auth_method === 'telegram') {
+              setShowTelegramWarning(true);
+              setError('');
+              return;
+            }
+          } catch (authCheckError) {
+            console.error('Error checking auth method:', authCheckError);
+            // Продолжаем с обычной обработкой ошибки если проверка не удалась
           }
         }
         
