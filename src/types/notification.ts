@@ -5,6 +5,9 @@ export type NotificationType =
   | 'NEW_PRODUCT'
   | 'ADMIN_MESSAGE'
   | 'PRICE_OFFER'
+  | 'PRICE_OFFER_SUBMITTED'
+  | 'PRICE_OFFER_RESPONSE'
+  | 'PRICE_OFFER_ACCEPTED'
   | 'PROFILE_UPDATE'
   | 'SYSTEM_MESSAGE';
 
