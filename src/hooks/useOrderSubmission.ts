@@ -31,7 +31,7 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
         place_number: formData.place_number ? parseInt(formData.place_number) : 1,
         images,
         videos,
-        status: 'pending',
+        status: 'created',
         created_at: new Date().toISOString()
       };
 

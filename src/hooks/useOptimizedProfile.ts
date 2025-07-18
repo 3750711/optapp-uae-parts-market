@@ -36,7 +36,7 @@ export const useOptimizedProfile = () => {
       const orderStats = {
         totalOrders: orders?.length || 0,
         completedOrders: orders?.filter(o => o.status === 'completed').length || 0,
-        pendingOrders: orders?.filter(o => o.status === 'pending').length || 0,
+        pendingOrders: orders?.filter(o => o.status === 'created').length || 0,
       };
 
       // Fetch store info if user is seller

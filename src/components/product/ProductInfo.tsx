@@ -50,7 +50,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           seller_id: product.seller_id,
           delivery_method: deliveryMethod,
           text_order: orderData.text_order,
-          status: 'pending'
+          status: 'created'
         })
         .select()
         .single();
