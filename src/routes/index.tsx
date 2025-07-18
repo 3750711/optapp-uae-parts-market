@@ -37,6 +37,7 @@ const CreateStore = lazy(() => import('@/pages/CreateStore'));
 const CreateRequest = lazy(() => import('@/pages/CreateRequest'));
 const BuyerOrders = lazy(() => import('@/pages/BuyerOrders'));
 const BuyerCreateOrder = lazy(() => import('@/pages/BuyerCreateOrder'));
+const BuyerPriceOffers = lazy(() => import('@/pages/BuyerPriceOffers'));
 const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
 const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
 
@@ -49,6 +50,7 @@ const SellerOrderDetails = lazy(() => import('@/pages/SellerOrderDetails'));
 const SellerCreateOrder = lazy(() => import('@/pages/SellerCreateOrder'));
 const SellerSellProduct = lazy(() => import('@/pages/SellerSellProduct'));
 const SellerProfile = lazy(() => import('@/pages/SellerProfile'));
+const SellerPriceOffers = lazy(() => import('@/pages/SellerPriceOffers'));
 
 // Критически важные админские страницы - загружаются без lazy loading
 import AdminDashboard from '@/pages/AdminDashboard';
@@ -164,6 +166,11 @@ const AppRoutes: React.FC = () => {
                 <OrdersRedirect />
               </ProtectedRoute>
             } />
+            <Route path="/buyer-price-offers" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <BuyerPriceOffers />
+              </ProtectedRoute>
+            } />
 
             {/* Продавецкие маршруты */}
             <Route path="/seller" element={
@@ -209,6 +216,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/seller/profile" element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <SellerProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/seller/price-offers" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <SellerPriceOffers />
               </ProtectedRoute>
             } />
 

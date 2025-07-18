@@ -168,17 +168,69 @@ export const useUpdatePriceOffer = () => {
       if (error) throw error;
       return result;
     },
-    onSuccess: (data, { data: updateData }) => {
+    onSuccess: async (data, { data: updateData }) => {
       const message = 
         updateData.status === "accepted" ? "Предложение принято" :
         updateData.status === "rejected" ? "Предложение отклонено" :
         updateData.status === "cancelled" ? "Предложение отменено" :
         "Предложение обновлено";
 
-      toast({
-        title: message,
-        description: "Статус предложения обновлен.",
-      });
+      // Если предложение принято, создаем заказ
+      if (updateData.status === "accepted") {
+        try {
+          const { data: createOrderResult, error: orderError } = await supabase.rpc('create_user_order', {
+            p_title: data.product.title,
+            p_price: data.offered_price,
+            p_place_number: 1,
+            p_seller_id: data.seller_id,
+            p_order_seller_name: data.product.seller_name,
+            p_seller_opt_id: data.seller_profile?.opt_id || '',
+            p_buyer_id: data.buyer_id,
+            p_brand: data.product.brand,
+            p_model: data.product.model || '',
+            p_status: 'created',
+            p_order_created_type: 'price_offer_order',
+            p_telegram_url_order: data.seller_profile?.telegram || '',
+            p_images: data.product.product_images?.map(img => img.url) || [],
+            p_product_id: data.product_id,
+            p_delivery_method: 'self_pickup',
+            p_text_order: `Заказ создан из принятого предложения цены. Предложенная цена: ${data.offered_price}`,
+            p_delivery_price_confirm: 0
+          });
+
+          if (orderError) {
+            console.error('Error creating order:', orderError);
+            toast({
+              title: "Предложение принято, но ошибка создания заказа",
+              description: "Обратитесь к администратору",
+              variant: "destructive",
+            });
+          } else {
+            // Обновляем предложение с ID заказа
+            await supabase
+              .from("price_offers")
+              .update({ order_id: createOrderResult })
+              .eq("id", data.id);
+
+            toast({
+              title: "Предложение принято и заказ создан",
+              description: "Заказ автоматически создан из принятого предложения",
+            });
+          }
+        } catch (error) {
+          console.error('Error in order creation process:', error);
+          toast({
+            title: "Предложение принято, но ошибка создания заказа",
+            description: "Обратитесь к администратору",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: message,
+          description: "Статус предложения обновлен.",
+        });
+      }
 
       queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
       queryClient.invalidateQueries({ queryKey: ["seller-price-offers"] });
