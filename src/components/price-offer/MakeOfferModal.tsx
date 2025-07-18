@@ -117,7 +117,7 @@ export const MakeOfferModal = ({
 
   // Mobile-specific component
   const MobileContent = () => (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-4">
       {/* Compact Product Info for Mobile */}
       <div className="bg-gray-50 p-3 rounded-lg border">
         <div className="flex gap-3">
@@ -198,12 +198,14 @@ export const MakeOfferModal = ({
               {errors.offered_price.message}
             </p>
           )}
-          {numericOfferedPrice > 0 && numericOfferedPrice <= product.price && (
-            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
-              <p className="text-green-700">Экономия: ${(product.price - numericOfferedPrice).toLocaleString()}</p>
-              <p className="text-green-700">Скидка: {(((product.price - numericOfferedPrice) / product.price) * 100).toFixed(1)}%</p>
-            </div>
-          )}
+          {/* Fixed height container for price difference */}
+          <div className="min-h-[60px] mt-2">
+            {numericOfferedPrice > 0 && numericOfferedPrice <= product.price && (
+              <div className="p-2 bg-green-50 border border-green-200 rounded text-sm">
+                <p className="text-green-700">на ${(product.price - numericOfferedPrice).toLocaleString()} меньше чем продается</p>
+              </div>
+            )}
+          </div>
         </div>
 
         <div>
@@ -239,28 +241,27 @@ export const MakeOfferModal = ({
           <p>• Предложение действует 6 часов</p>
           <p>• У вас может быть только одно активное предложение</p>
         </div>
-      </form>
 
-      {/* Fixed Mobile Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 space-y-3 z-50">
-        <Button
-          type="submit"
-          disabled={isSubmitting || !offeredPrice || !confirmation || (productStatus && !productStatus.isAvailable)}
-          className="w-full h-12 text-base font-medium"
-          onClick={handleSubmit(onSubmit)}
-        >
-          {isSubmitting ? "Отправка..." : "Отправить предложение"}
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleClose}
-          disabled={isSubmitting}
-          className="w-full h-10"
-        >
-          Отменить
-        </Button>
-      </div>
+        {/* Mobile Actions - not fixed */}
+        <div className="space-y-3 pt-4">
+          <Button
+            type="submit"
+            disabled={isSubmitting || !offeredPrice || !confirmation || (productStatus && !productStatus.isAvailable)}
+            className="w-full h-12 text-base font-medium"
+          >
+            {isSubmitting ? "Отправка..." : "Отправить предложение"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={isSubmitting}
+            className="w-full h-10"
+          >
+            Отменить
+          </Button>
+        </div>
+      </form>
     </div>
   );
 
@@ -379,8 +380,7 @@ export const MakeOfferModal = ({
           )}
           {numericOfferedPrice > 0 && numericOfferedPrice <= product.price && (
             <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
-              <p className="text-green-700">Экономия: ${(product.price - numericOfferedPrice).toLocaleString()}</p>
-              <p className="text-green-700">Скидка: {(((product.price - numericOfferedPrice) / product.price) * 100).toFixed(1)}%</p>
+              <p className="text-green-700">на ${(product.price - numericOfferedPrice).toLocaleString()} меньше чем продается</p>
             </div>
           )}
         </div>
