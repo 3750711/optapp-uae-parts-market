@@ -8,27 +8,24 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Badge } from "@/components/ui/badge";
 
 interface MakeOfferButtonProps {
-  productId: string;
-  sellerId: string;
-  currentPrice: number;
-  productTitle: string;
+  product: Product;
   disabled?: boolean;
 }
 
+// Add Product import
+import { Product } from "@/types/product";
+
 export const MakeOfferButton = ({
-  productId,
-  sellerId,
-  currentPrice,
-  productTitle,
+  product,
   disabled = false,
 }: MakeOfferButtonProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
-  const { data: pendingOffer } = useCheckPendingOffer(productId, !!user);
+  const { data: pendingOffer } = useCheckPendingOffer(product.id, !!user);
 
   // Show button only for buyers and admins, but not for the seller
-  if (!user || !profile || profile.id === sellerId) {
+  if (!user || !profile || profile.id === product.seller_id) {
     return null;
   }
 
@@ -67,10 +64,7 @@ export const MakeOfferButton = ({
       <MakeOfferModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        productId={productId}
-        sellerId={sellerId}
-        currentPrice={currentPrice}
-        productTitle={productTitle}
+        product={product}
       />
     </>
   );

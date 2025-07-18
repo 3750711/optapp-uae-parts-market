@@ -225,14 +225,38 @@ const BuyerPriceOffers = () => {
         </div>
       )}
 
-      {showReofferModal.offer && (
+      {showReofferModal.offer && showReofferModal.offer.product && (
         <MakeOfferModal
           isOpen={showReofferModal.isOpen}
           onClose={() => setShowReofferModal({ isOpen: false })}
-          productId={showReofferModal.offer.product_id}
-          sellerId={showReofferModal.offer.seller_id}
-          currentPrice={showReofferModal.offer.original_price}
-          productTitle={showReofferModal.offer.product?.title || ""}
+          product={{
+            id: showReofferModal.offer.product_id,
+            title: showReofferModal.offer.product.title,
+            price: showReofferModal.offer.original_price,
+            brand: showReofferModal.offer.product.brand,
+            model: showReofferModal.offer.product.model || "",
+            condition: "Б/у", // Default fallback since this info isn't in PriceOffer
+            seller_id: showReofferModal.offer.seller_id,
+            seller_name: showReofferModal.offer.product.seller_name,
+            status: showReofferModal.offer.product.status as any,
+            created_at: "",
+            updated_at: "",
+            lot_number: 0,
+            product_images: showReofferModal.offer.product.product_images,
+            profiles: showReofferModal.offer.seller_profile ? {
+              id: showReofferModal.offer.seller_profile.id,
+              full_name: showReofferModal.offer.seller_profile.full_name,
+              avatar_url: null,
+              rating: null,
+              opt_id: showReofferModal.offer.seller_profile.opt_id,
+              opt_status: 'free_user',
+              description_user: null,
+              telegram: showReofferModal.offer.seller_profile.telegram || null,
+              phone: null,
+              location: null,
+              communication_ability: null,
+            } : undefined,
+          } as any}
         />
       )}
     </div>

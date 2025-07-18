@@ -189,10 +189,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           </Button>
           
           <MakeOfferButton
-            productId={product.id}
-            sellerId={product.seller_id}
-            currentPrice={product.price}
-            productTitle={product.title}
+            product={product}
           />
         </div>
       )}

@@ -175,10 +175,7 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
             {/* Make Offer Button - Mobile Version */}
             <div className="flex-1">
               <MakeOfferButton
-                productId={product.id}
-                sellerId={product.seller_id}
-                currentPrice={product.price}
-                productTitle={product.title}
+                product={product}
               />
             </div>
             
