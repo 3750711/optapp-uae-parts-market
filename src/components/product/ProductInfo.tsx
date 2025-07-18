@@ -42,14 +42,37 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const handleOrderConfirm = async (orderData: { text_order?: string }) => {
     setIsSubmittingOrder(true);
     try {
+      console.log('Creating order with data:', {
+        product_id: product.id,
+        title: product.title,
+        brand: product.brand || '',
+        model: product.model || '',
+        price: product.price,
+        buyer_id: user?.id,
+        seller_id: product.seller_id,
+        order_seller_name: product.seller_name,
+        place_number: product.place_number || 1,
+        delivery_method: deliveryMethod,
+        text_order: orderData.text_order,
+        order_created_type: 'product_order',
+        status: 'created'
+      });
+
       const { data, error } = await supabase
         .from('orders')
         .insert({
           product_id: product.id,
+          title: product.title,
+          brand: product.brand || '',
+          model: product.model || '',
+          price: product.price,
           buyer_id: user?.id,
           seller_id: product.seller_id,
+          order_seller_name: product.seller_name,
+          place_number: product.place_number || 1,
           delivery_method: deliveryMethod,
           text_order: orderData.text_order,
+          order_created_type: 'product_order',
           status: 'created'
         })
         .select()
