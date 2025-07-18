@@ -212,7 +212,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   return (
-    <div className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 w-full h-full flex flex-col relative">
+    <div className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 w-full h-full flex flex-col relative">{/* Добавил relative для позиционирования кнопки */}
       <Link
         to={`/product/${product.id}`}
         className="flex-1 flex flex-col"
@@ -259,7 +259,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </Link>
       
-      {/* Floating offer button positioned outside Link to prevent redirect */}
+      {/* Кнопка предложения цены вынесена за пределы Link */}
       {product.status === 'active' && !hideMakeOfferButton && (
         <div className="absolute bottom-2 right-2 z-10">
           <MakeOfferButton 
