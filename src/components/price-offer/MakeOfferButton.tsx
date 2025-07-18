@@ -38,11 +38,11 @@ export const MakeOfferButton = ({
     return (
       <>
         <Button
-          variant="outline"
+          variant="default"
           size="sm"
           onClick={() => setIsModalOpen(true)}
           disabled={disabled}
-          className="flex items-center gap-1 w-full h-9 text-xs px-2"
+          className="flex items-center gap-1 w-full h-9 text-xs px-2 bg-orange-500 hover:bg-orange-600 text-white"
         >
           <Clock className="h-3 w-3 animate-spin" />
           ${pendingOffer.offered_price}
@@ -65,10 +65,10 @@ export const MakeOfferButton = ({
         size="sm"
         onClick={() => setIsModalOpen(true)}
         disabled={disabled}
-        className="flex items-center gap-2 w-full"
+        className="flex items-center gap-1 w-full h-9 text-xs px-2"
       >
-        <HandCoins className="h-4 w-4" />
-        Предложить цену
+        <HandCoins className="h-3 w-3" />
+        Предложить
       </Button>
 
       <MakeOfferModal
