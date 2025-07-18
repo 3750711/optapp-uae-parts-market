@@ -54,6 +54,7 @@ export const MakeOfferModal = ({
   const [isConfirmed, setIsConfirmed] = useState(false);
   const createOffer = useCreatePriceOffer();
   const updateOffer = useUpdateOfferPrice();
+  const isLoading = createOffer.isPending || updateOffer.isPending;
   const isMobile = useIsMobile();
   
   const isUpdateMode = !!existingOffer;
@@ -123,8 +124,9 @@ export const MakeOfferModal = ({
       if (isUpdateMode && existingOffer) {
         // Update existing offer
         await updateOffer.mutateAsync({
-          oldOfferId: existingOffer.id,
-          offerData,
+          offerId: existingOffer.id,
+          newPrice: offeredPrice,
+          originalMessage: existingOffer.message,
         });
       } else {
         // Create new offer
@@ -289,19 +291,23 @@ export const MakeOfferModal = ({
         <div className="space-y-2 pt-2">
           <Button
             type="submit"
-            disabled={isSubmitting || (!isUpdateMode && !isConfirmed) || (productStatus && !productStatus.isAvailable)}
+            disabled={isSubmitting || isLoading || (!isUpdateMode && !isConfirmed) || (productStatus && !productStatus.isAvailable)}
             className="w-full h-10 text-sm font-medium"
           >
-            {isSubmitting 
-              ? (isUpdateMode ? "Обновление..." : "Отправка...") 
-              : (isUpdateMode ? "Обновить предложение" : "Отправить предложение")
-            }
+            {(isSubmitting || isLoading) ? (
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                {isUpdateMode ? "Обновление..." : "Отправка..."}
+              </div>
+            ) : (
+              isUpdateMode ? "Обновить предложение" : "Отправить предложение"
+            )}
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={handleClose}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading}
             className="w-full h-8 text-sm"
           >
             Отменить
@@ -493,20 +499,24 @@ export const MakeOfferModal = ({
             type="button"
             variant="outline"
             onClick={handleClose}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isLoading}
             className="flex-1"
           >
             Отменить
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting || (!isUpdateMode && !isConfirmed) || (productStatus && !productStatus.isAvailable)}
+            disabled={isSubmitting || isLoading || (!isUpdateMode && !isConfirmed) || (productStatus && !productStatus.isAvailable)}
             className="flex-1"
           >
-            {isSubmitting 
-              ? (isUpdateMode ? "Обновление..." : "Отправка...") 
-              : (isUpdateMode ? "Обновить предложение" : "Отправить предложение")
-            }
+            {(isSubmitting || isLoading) ? (
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                {isUpdateMode ? "Обновление..." : "Отправка..."}
+              </div>
+            ) : (
+              isUpdateMode ? "Обновить предложение" : "Отправить предложение"
+            )}
           </Button>
         </div>
       </form>

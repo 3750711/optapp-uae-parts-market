@@ -300,36 +300,35 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
   });
 };
 
-// Update offer price (cancel old and create new with higher price)
+// Update offer price using UPSERT logic
 export const useUpdateOfferPrice = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ 
-      oldOfferId, 
-      offerData 
+      offerId, 
+      newPrice,
+      originalMessage 
     }: { 
-      oldOfferId: string; 
-      offerData: CreatePriceOfferData; 
+      offerId: string; 
+      newPrice: number;
+      originalMessage?: string;
     }) => {
       const user = await supabase.auth.getUser();
       if (!user.data.user) throw new Error("Not authenticated");
 
-      // Cancel the old offer
-      const { error: cancelError } = await supabase
-        .from("price_offers")
-        .update({ status: "cancelled" })
-        .eq("id", oldOfferId);
-
-      if (cancelError) throw cancelError;
-
-      // Create new offer with updated price
+      // Update existing offer with new price and reset expiry time
       const { data: result, error } = await supabase
         .from("price_offers")
-        .insert({
-          ...offerData,
-          buyer_id: user.data.user.id,
+        .update({ 
+          offered_price: newPrice,
+          expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // +6 hours
+          updated_at: new Date().toISOString(),
+          status: 'pending',
+          message: originalMessage // Keep original message
         })
+        .eq("id", offerId)
+        .eq("buyer_id", user.data.user.id) // Additional safety check
         .select()
         .single();
 
@@ -346,9 +345,17 @@ export const useUpdateOfferPrice = () => {
     },
     onError: (error: any) => {
       console.error("Error updating price offer:", error);
+      
+      let errorMessage = "Не удалось обновить предложение";
+      if (error.message?.includes("duplicate key")) {
+        errorMessage = "У вас уже есть активное предложение для этого товара";
+      } else if (error.message?.includes("not found")) {
+        errorMessage = "Предложение не найдено или уже обработано";
+      }
+      
       toast({
-        title: "Ошибка",
-        description: error.message || "Не удалось обновить предложение",
+        title: "Ошибка обновления предложения",
+        description: errorMessage,
         variant: "destructive",
       });
     },
