@@ -90,24 +90,23 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             </div>
           </div>
           
+          {/* Информация о продавце */}
+          {product.seller_name && (
+            <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
+              <span className="truncate">{product.seller_name}</span>
+              {product.rating_seller && (
+                <div className="flex items-center gap-0.5 flex-shrink-0">
+                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                  <span>{product.rating_seller.toFixed(1)}</span>
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="flex items-center justify-between mt-auto">
             <span className="text-lg sm:text-xl font-bold text-primary">
               {formatPrice(product.price)} $
             </span>
-            
-            <div className="flex items-center gap-2">
-              {product.seller_name && (
-                <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
-                  <span className="truncate">{product.seller_name}</span>
-                  {product.rating_seller && (
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                      <span>{product.rating_seller.toFixed(1)}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </Link>
