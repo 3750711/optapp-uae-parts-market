@@ -9,6 +9,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 interface MakeOfferButtonProps {
   product: Product;
   disabled?: boolean;
+  compact?: boolean; // Для каталога - иконка, для страницы товара - полная кнопка
 }
 
 // Add Product import
@@ -17,6 +18,7 @@ import { Product } from "@/types/product";
 export const MakeOfferButton = ({
   product,
   disabled = false,
+  compact = false,
 }: MakeOfferButtonProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, profile } = useAuth();
@@ -42,10 +44,14 @@ export const MakeOfferButton = ({
           size="sm"
           onClick={() => setIsModalOpen(true)}
           disabled={disabled}
-          className="flex items-center justify-center h-8 w-8 p-0 bg-orange-500 hover:bg-orange-600 text-white rounded-full relative"
-          title={`Ваше предложение: $${pendingOffer.offered_price}`}
+          className={compact 
+            ? "flex items-center justify-center h-8 w-8 p-0 bg-orange-500 hover:bg-orange-600 text-white rounded-full relative"
+            : "flex items-center gap-1 w-full h-9 text-xs px-2 bg-orange-500 hover:bg-orange-600 text-white"
+          }
+          title={compact ? `Ваше предложение: $${pendingOffer.offered_price}` : undefined}
         >
-          <Clock className="h-3 w-3 animate-spin" />
+          <Clock className={compact ? "h-3 w-3 animate-spin" : "h-3 w-3 animate-spin"} />
+          {!compact && `$${pendingOffer.offered_price}`}
         </Button>
 
         <MakeOfferModal
@@ -64,14 +70,18 @@ export const MakeOfferButton = ({
   return (
     <>
       <Button
-        variant="ghost"
+        variant={compact ? "ghost" : "outline"}
         size="sm"
         onClick={() => setIsModalOpen(true)}
         disabled={disabled}
-        className="flex items-center justify-center h-8 w-8 p-0 hover:bg-primary/10 rounded-full"
-        title="Предложить цену"
+        className={compact 
+          ? "flex items-center justify-center h-8 w-8 p-0 hover:bg-primary/10 rounded-full"
+          : "flex items-center gap-1 w-full h-9 text-xs px-2"
+        }
+        title={compact ? "Предложить цену" : undefined}
       >
-        <Gavel className="h-4 w-4 text-primary" />
+        <Gavel className={compact ? "h-4 w-4 text-primary" : "h-3 w-3"} />
+        {!compact && "Предложить"}
       </Button>
 
       <MakeOfferModal

@@ -271,6 +271,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                       lot_number: product.lot_number || 0
                     }}
                     disabled={false}
+                    compact={true}
                   />
                 </div>
               )}

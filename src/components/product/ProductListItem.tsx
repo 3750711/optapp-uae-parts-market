@@ -124,6 +124,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                       lot_number: product.lot_number || 0
                     }}
                     disabled={false}
+                    compact={true}
                   />
                 </div>
               )}
