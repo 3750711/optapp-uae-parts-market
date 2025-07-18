@@ -40,11 +40,18 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
         .from('orders')
         .insert({
           product_id: product.id,
+          title: product.title,
+          brand: product.brand || '',
+          model: product.model || '',
+          price: product.price,
           buyer_id: user?.id,
           seller_id: product.seller_id,
+          order_seller_name: product.seller_name,
+          place_number: product.place_number || 1,
           delivery_method: deliveryMethod,
           text_order: orderData.text_order,
-          status: 'pending'
+          order_created_type: 'product_order',
+          status: 'created'
         })
         .select()
         .single();
