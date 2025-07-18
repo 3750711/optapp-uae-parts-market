@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Gavel, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { MakeOfferModal } from "./MakeOfferModal";
 import { useCheckPendingOffer } from "@/hooks/use-price-offers";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +14,29 @@ interface MakeOfferButtonProps {
 
 // Add Product import
 import { Product } from "@/types/product";
+
+// Кастомная иконка аукциона
+const AuctionIcon = ({ className }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+    className={className}
+  >
+    {/* Рука с поднятым пальцем */}
+    <path d="M8 12V8a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v4" />
+    <path d="M12 12V6a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v6" />
+    <path d="M16 12v-2a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v4" />
+    <path d="M6 14v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2" />
+    <path d="M6 14H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2" />
+    {/* Стрелка вверх для показа роста ставки */}
+    <path d="M18 8l2-2 2 2" />
+    <path d="M20 6v4" />
+  </svg>
+);
 
 export const MakeOfferButton = ({
   product,
@@ -80,7 +103,7 @@ export const MakeOfferButton = ({
         }
         title={compact ? "Предложить цену" : undefined}
       >
-        <Gavel className={compact ? "h-4 w-4 text-primary" : "h-3 w-3"} />
+        <AuctionIcon className={compact ? "h-4 w-4 text-primary" : "h-3 w-3"} />
         {!compact && "Предложить"}
       </Button>
 
