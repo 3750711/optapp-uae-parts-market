@@ -97,35 +97,12 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             
             <div className="flex items-center gap-2">
               {product.seller_name && (
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <div className="flex items-center gap-1 truncate">
-                    <span className="truncate">{product.seller_name}</span>
-                    {product.rating_seller && (
-                      <div className="flex items-center gap-0.5 flex-shrink-0">
-                        <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                        <span>{product.rating_seller.toFixed(1)}</span>
-                      </div>
-                    )}
-                  </div>
-                  {/* Кнопка предложения цены рядом с именем продавца */}
-                  {product.status === 'active' && (
-                    <div className="flex-shrink-0">
-                      <MakeOfferButton 
-                        product={{
-                          ...product,
-                          brand: product.brand || '',
-                          model: product.model || '',
-                          condition: product.condition || 'Новое',
-                          created_at: product.created_at || new Date().toISOString(),
-                          updated_at: product.updated_at || new Date().toISOString(),
-                          seller_name: product.seller_name || '',
-                          seller_id: product.seller_id || '',
-                          status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
-                          lot_number: product.lot_number || 0
-                        }}
-                        disabled={false}
-                        compact={true}
-                      />
+                <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+                  <span className="truncate">{product.seller_name}</span>
+                  {product.rating_seller && (
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                      <span>{product.rating_seller.toFixed(1)}</span>
                     </div>
                   )}
                 </div>
@@ -134,6 +111,28 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           </div>
         </div>
       </Link>
+      
+      {/* Кнопка предложения цены вынесена за пределы Link */}
+      {product.status === 'active' && product.seller_name && (
+        <div className="absolute bottom-4 right-4 z-10">
+          <MakeOfferButton 
+            product={{
+              ...product,
+              brand: product.brand || '',
+              model: product.model || '',
+              condition: product.condition || 'Новое',
+              created_at: product.created_at || new Date().toISOString(),
+              updated_at: product.updated_at || new Date().toISOString(),
+              seller_name: product.seller_name || '',
+              seller_id: product.seller_id || '',
+              status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
+              lot_number: product.lot_number || 0
+            }}
+            disabled={false}
+            compact={true}
+          />
+        </div>
+      )}
       
       
       {showSoldButton && product.status === 'active' && (
