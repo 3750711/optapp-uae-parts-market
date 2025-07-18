@@ -70,6 +70,7 @@ const AdminEvents = lazy(() => import('@/pages/AdminEvents'));
 const AdminLogistics = lazy(() => import('@/pages/AdminLogistics'));
 const AdminCarCatalog = lazy(() => import('@/pages/AdminCarCatalog'));
 const AdminMessages = lazy(() => import('@/pages/AdminMessages'));
+const AdminPriceOffers = lazy(() => import('@/pages/admin/AdminPriceOffers'));
 
 const AppRoutes: React.FC = () => {
   return (
@@ -303,6 +304,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/messages" element={
               <AdminRoute>
                 <AdminMessages />
+              </AdminRoute>
+            } />
+            <Route path="/admin/price-offers" element={
+              <AdminRoute>
+                <AdminPriceOffers />
               </AdminRoute>
             } />
 
