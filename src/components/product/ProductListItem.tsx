@@ -3,6 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Star } from "lucide-react";
+import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ProductProps } from "./ProductCard";
@@ -94,17 +95,39 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               {formatPrice(product.price)} $
             </span>
             
-            {product.seller_name && (
-              <div className="flex items-center gap-1 text-xs text-gray-500 truncate ml-2">
-                <span className="truncate">{product.seller_name}</span>
-                {product.rating_seller && (
-                  <div className="flex items-center gap-0.5 flex-shrink-0">
-                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    <span>{product.rating_seller.toFixed(1)}</span>
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {product.seller_name && (
+                <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+                  <span className="truncate">{product.seller_name}</span>
+                  {product.rating_seller && (
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                      <span>{product.rating_seller.toFixed(1)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {product.status === 'active' && (
+                <div className="flex-shrink-0">
+                  <MakeOfferButton 
+                    product={{
+                      ...product,
+                      brand: product.brand || '',
+                      model: product.model || '',
+                      condition: product.condition || 'Новое',
+                      created_at: product.created_at || new Date().toISOString(),
+                      updated_at: product.updated_at || new Date().toISOString(),
+                      seller_name: product.seller_name || '',
+                      seller_id: product.seller_id || '',
+                      status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
+                      lot_number: product.lot_number || 0
+                    }}
+                    disabled={false}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </Link>

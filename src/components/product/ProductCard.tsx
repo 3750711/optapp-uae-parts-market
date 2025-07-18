@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Star } from "lucide-react";
+import { Star, Gavel } from "lucide-react";
 import { 
   Carousel, 
   CarouselContent, 
@@ -48,13 +48,15 @@ interface ProductCardProps {
   showSoldButton?: boolean;
   onStatusChange?: () => void;
   disableCarousel?: boolean;
+  hideMakeOfferButton?: boolean;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
   product, 
   showSoldButton = false, 
   onStatusChange,
-  disableCarousel = false
+  disableCarousel = false,
+  hideMakeOfferButton = false
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -253,7 +255,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
               )}
               
-              {product.status === 'active' && (
+              {product.status === 'active' && !hideMakeOfferButton && (
                 <div className="flex-shrink-0">
                   <MakeOfferButton 
                     product={{

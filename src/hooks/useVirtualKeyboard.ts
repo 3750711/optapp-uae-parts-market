@@ -29,13 +29,13 @@ export const useVirtualKeyboard = () => {
 
     const viewport = window.visualViewport;
     const currentHeight = viewport.height;
-    const screenHeight = window.screen.height;
-    const isKeyboardVisible = currentHeight < screenHeight * 0.75;
+    const windowHeight = window.innerHeight;
+    const isKeyboardVisible = currentHeight < windowHeight * 0.8;
     
     setKeyboardState({
       isVisible: isKeyboardVisible,
       viewportHeight: currentHeight,
-      keyboardHeight: isKeyboardVisible ? screenHeight - currentHeight : 0,
+      keyboardHeight: isKeyboardVisible ? windowHeight - currentHeight : 0,
     });
   }, [keyboardState.viewportHeight]);
 
@@ -46,13 +46,20 @@ export const useVirtualKeyboard = () => {
     if (!element) return;
 
     setTimeout(() => {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'nearest'
-      });
-    }, 100);
-  }, [keyboardState.isVisible]);
+      const rect = element.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const keyboardHeight = keyboardState.keyboardHeight;
+      
+      // Only scroll if the element is hidden behind keyboard
+      if (rect.bottom > windowHeight - keyboardHeight - 50) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
+      }
+    }, 150);
+  }, [keyboardState.isVisible, keyboardState.keyboardHeight]);
 
   useEffect(() => {
     if (!window.visualViewport) {

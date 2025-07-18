@@ -118,6 +118,7 @@ const SellerProducts: React.FC<SellerProductsProps> = ({
               key={product.id}
               product={product as Product}
               disableCarousel={true}
+              hideMakeOfferButton={true}
             />
           ))}
         </div>

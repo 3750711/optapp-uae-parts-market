@@ -55,13 +55,15 @@ export const MobileKeyboardOptimizedDialog: React.FC<MobileKeyboardOptimizedDial
         <DrawerContent 
           ref={contentRef}
           className={cn(
-            "max-h-[95vh] transition-all duration-300",
-            isKeyboardVisible && "max-h-[50vh]",
+            "transition-all duration-300",
+            isKeyboardVisible ? "h-auto" : "max-h-[95vh]",
             className
           )}
           style={isKeyboardVisible ? { 
-            maxHeight: `${Math.min(viewportHeight * 0.6, 400)}px`,
-            transform: 'translateY(0)'
+            height: `${Math.min(viewportHeight * 0.7, 450)}px`,
+            transform: 'translateY(0)',
+            position: 'fixed',
+            bottom: '0'
           } : undefined}
         >
           <DrawerHeader className="text-left pb-2">
@@ -69,11 +71,11 @@ export const MobileKeyboardOptimizedDialog: React.FC<MobileKeyboardOptimizedDial
           </DrawerHeader>
           <div 
             className={cn(
-              "px-4 pb-4 overflow-y-auto",
-              isKeyboardVisible && "pb-safe"
+              "px-4 pb-4 overflow-y-auto flex-1",
+              isKeyboardVisible && "pb-2"
             )}
             style={isKeyboardVisible ? {
-              maxHeight: `${Math.min(viewportHeight * 0.5, 350)}px`
+              height: `${Math.min(viewportHeight * 0.6, 380)}px`
             } : undefined}
           >
             {children}
