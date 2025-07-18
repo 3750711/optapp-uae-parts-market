@@ -22,7 +22,7 @@ const BidIcon = ({ className }: { className?: string }) => (
     src={bidIcon} 
     alt="Bid" 
     className={className}
-    style={{ filter: 'brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(346deg) brightness(104%) contrast(97%)' }}
+    style={{ filter: 'brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(1352%) hue-rotate(87deg) brightness(119%) contrast(119%)' }}
   />
 );
 
