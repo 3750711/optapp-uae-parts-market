@@ -117,7 +117,7 @@ export const MakeOfferModal = ({
 
   // Mobile-specific component
   const MobileContent = () => (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-3 pb-4">
       {/* Compact Product Info for Mobile */}
       <div className="bg-gray-50 p-3 rounded-lg border">
         <div className="flex gap-3">
@@ -125,33 +125,30 @@ export const MakeOfferModal = ({
             <img 
               src={primaryImage} 
               alt={product.title}
-              className="w-16 h-16 object-cover rounded-md border flex-shrink-0"
+              className="w-12 h-12 object-cover rounded-md border flex-shrink-0"
             />
           ) : (
-            <div className="w-16 h-16 bg-gray-200 rounded-md border flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 bg-gray-200 rounded-md border flex items-center justify-center flex-shrink-0">
               <span className="text-xs text-gray-500">Нет фото</span>
             </div>
           )}
           
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-base truncate">{product.title}</h3>
-            <p className="text-sm text-muted-foreground">{product.brand} {product.model}</p>
-            <p className="text-lg font-bold text-green-600">${product.price.toLocaleString()}</p>
+            <h3 className="font-medium text-sm truncate">{product.title}</h3>
+            <p className="text-xs text-muted-foreground">{product.brand} {product.model}</p>
+            <p className="text-base font-bold text-green-600">${product.price.toLocaleString()}</p>
           </div>
         </div>
       </div>
 
-      {/* Seller Info - Compact */}
+      {/* Compact Seller Info */}
       {product.profiles && (
-        <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="h-4 w-4 text-blue-600" />
-            <span className="font-semibold text-sm">Продавец</span>
-          </div>
-          <div className="text-sm space-y-1">
-            <p>{product.profiles.full_name || product.seller_name}</p>
+        <div className="bg-blue-50 p-2 rounded border border-blue-200">
+          <div className="flex items-center gap-2 text-xs">
+            <Shield className="h-3 w-3 text-blue-600" />
+            <span className="font-medium">{product.profiles.full_name || product.seller_name}</span>
             {product.profiles.rating && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 ml-auto">
                 <Star className="h-3 w-3 text-yellow-500 fill-current" />
                 <span>{product.profiles.rating}</span>
               </div>
@@ -170,9 +167,9 @@ export const MakeOfferModal = ({
       )}
 
       {/* Offer Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <div>
-          <Label htmlFor="offered_price" className="text-base font-medium">Ваше предложение *</Label>
+          <Label htmlFor="offered_price" className="text-sm font-medium">Ваше предложение *</Label>
           <Input
             id="offered_price"
             type="number"
@@ -180,7 +177,7 @@ export const MakeOfferModal = ({
             min="1"
             max={product.price}
             placeholder="Цена в долларах"
-            className="text-lg h-12 mt-2"
+            className="text-base h-10 mt-1"
             {...register("offered_price", {
               required: "Введите предлагаемую цену",
               min: {
@@ -194,60 +191,49 @@ export const MakeOfferModal = ({
             })}
           />
           {errors.offered_price && (
-            <p className="text-sm text-destructive mt-1">
+            <p className="text-xs text-destructive mt-1">
               {errors.offered_price.message}
             </p>
           )}
-          {/* Fixed height container for price difference */}
-          <div className="min-h-[60px] mt-2">
-            {numericOfferedPrice > 0 && numericOfferedPrice <= product.price && (
-              <div className="p-2 bg-green-50 border border-green-200 rounded text-sm">
-                <p className="text-green-700">на ${(product.price - numericOfferedPrice).toLocaleString()} меньше чем продается</p>
-              </div>
-            )}
-          </div>
         </div>
 
         <div>
-          <Label htmlFor="message" className="text-base font-medium">Сообщение продавцу</Label>
+          <Label htmlFor="message" className="text-sm font-medium">Сообщение продавцу</Label>
           <Textarea
             id="message"
             placeholder="Дополнительная информация..."
-            rows={3}
-            className="mt-2"
+            rows={2}
+            className="mt-1 text-sm"
             {...register("message")}
           />
         </div>
 
         {/* Compact Confirmation */}
-        <div className="space-y-3">
-          <div className="flex items-start space-x-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <Checkbox
-              id="confirmation"
-              checked={confirmation}
-              onCheckedChange={(checked) => setValue("confirmation", checked as boolean)}
-              className="mt-1"
-            />
-            <Label 
-              htmlFor="confirmation" 
-              className="text-sm text-yellow-800 cursor-pointer leading-5"
-            >
-              Я ознакомился с товаром и согласен на автоматическое оформление заказа при подтверждении продавцом
-            </Label>
-          </div>
+        <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+          <Checkbox
+            id="confirmation"
+            checked={confirmation}
+            onCheckedChange={(checked) => setValue("confirmation", checked as boolean)}
+            className="mt-0.5"
+          />
+          <Label 
+            htmlFor="confirmation" 
+            className="text-xs text-yellow-800 cursor-pointer leading-tight"
+          >
+            Согласен на автоматическое оформление заказа при подтверждении продавцом
+          </Label>
         </div>
 
-        <div className="text-xs text-muted-foreground bg-gray-50 p-3 rounded">
-          <p>• Предложение действует 6 часов</p>
-          <p>• У вас может быть только одно активное предложение</p>
+        <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded text-center">
+          Предложение действует 6 часов
         </div>
 
-        {/* Mobile Actions - not fixed */}
-        <div className="space-y-3 pt-4">
+        {/* Mobile Actions - compact */}
+        <div className="space-y-2 pt-2">
           <Button
             type="submit"
             disabled={isSubmitting || !offeredPrice || !confirmation || (productStatus && !productStatus.isAvailable)}
-            className="w-full h-12 text-base font-medium"
+            className="w-full h-10 text-sm font-medium"
           >
             {isSubmitting ? "Отправка..." : "Отправить предложение"}
           </Button>
@@ -256,7 +242,7 @@ export const MakeOfferModal = ({
             variant="outline"
             onClick={handleClose}
             disabled={isSubmitting}
-            className="w-full h-10"
+            className="w-full h-8 text-sm"
           >
             Отменить
           </Button>
@@ -377,11 +363,6 @@ export const MakeOfferModal = ({
             <p className="text-sm text-destructive mt-1">
               {errors.offered_price.message}
             </p>
-          )}
-          {numericOfferedPrice > 0 && numericOfferedPrice <= product.price && (
-            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-sm">
-              <p className="text-green-700">на ${(product.price - numericOfferedPrice).toLocaleString()} меньше чем продается</p>
-            </div>
           )}
         </div>
 
