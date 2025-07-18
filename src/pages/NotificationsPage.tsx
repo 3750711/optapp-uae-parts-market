@@ -1,13 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Filter, CheckCheck, Trash2, Settings, ArrowLeft } from 'lucide-react';
+import { Bell, CheckCheck, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
-import { NotificationType } from '@/types/notification';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import Header from '@/components/layout/Header';
@@ -15,17 +13,9 @@ import Header from '@/components/layout/Header';
 const NotificationsPage = () => {
   const navigate = useNavigate();
   const { notifications, unreadCount, markAllAsRead, loading } = useNotifications();
-  const [filterType, setFilterType] = useState<NotificationType | 'all'>('all');
-  const [showOnlyUnread, setShowOnlyUnread] = useState(false);
-
-  const filteredNotifications = notifications.filter(notification => {
-    if (filterType !== 'all' && notification.type !== filterType) return false;
-    if (showOnlyUnread && notification.read) return false;
-    return true;
-  });
 
   // Group notifications by date
-  const groupedNotifications = filteredNotifications.reduce((groups, notification) => {
+  const groupedNotifications = notifications.reduce((groups, notification) => {
     const date = new Date(notification.created_at);
     const today = new Date();
     const yesterday = new Date(today);
@@ -49,20 +39,6 @@ const NotificationsPage = () => {
     groups[groupKey].push(notification);
     return groups;
   }, {} as Record<string, typeof notifications>);
-
-  const getNotificationTypeLabel = (type: NotificationType) => {
-    switch (type) {
-      case 'NEW_ORDER': return 'Новые заказы';
-      case 'ORDER_STATUS_CHANGE': return 'Статус заказов';
-      case 'PRODUCT_STATUS_CHANGE': return 'Статус товаров';
-      case 'NEW_PRODUCT': return 'Новые товары';
-      case 'ADMIN_MESSAGE': return 'Сообщения администратора';
-      case 'PRICE_OFFER': return 'Предложения цены';
-      case 'PROFILE_UPDATE': return 'Обновления профиля';
-      case 'SYSTEM_MESSAGE': return 'Системные сообщения';
-      default: return type;
-    }
-  };
 
   if (loading) {
     return (
@@ -117,58 +93,8 @@ const NotificationsPage = () => {
               <span className="sm:hidden">Все</span>
             </Button>
           )}
-          <Button variant="outline" className="gap-2 text-sm">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Настройки</span>
-          </Button>
         </div>
       </div>
-
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Фильтры
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-              <label className="text-sm font-medium whitespace-nowrap">Тип:</label>
-              <Select value={filterType} onValueChange={(value) => setFilterType(value as NotificationType | 'all')}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все типы</SelectItem>
-                  <SelectItem value="NEW_ORDER">Новые заказы</SelectItem>
-                  <SelectItem value="ORDER_STATUS_CHANGE">Статус заказов</SelectItem>
-                  <SelectItem value="PRODUCT_STATUS_CHANGE">Статус товаров</SelectItem>
-                  <SelectItem value="PRICE_OFFER">Предложения цены</SelectItem>
-                  <SelectItem value="ADMIN_MESSAGE">Сообщения администратора</SelectItem>
-                  <SelectItem value="PROFILE_UPDATE">Обновления профиля</SelectItem>
-                  <SelectItem value="SYSTEM_MESSAGE">Системные сообщения</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <Button
-              variant={showOnlyUnread ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowOnlyUnread(!showOnlyUnread)}
-              className="gap-2 w-full sm:w-auto min-h-[40px]"
-            >
-              <span className="text-sm">Только непрочитанные</span>
-              {showOnlyUnread && (
-                <Badge variant="secondary" className="ml-1">
-                  {filteredNotifications.filter(n => !n.read).length}
-                </Badge>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Notifications */}
       {Object.keys(groupedNotifications).length === 0 ? (
@@ -178,10 +104,7 @@ const NotificationsPage = () => {
               <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
               <h3 className="text-lg font-semibold mb-2">Уведомления не найдены</h3>
               <p className="text-muted-foreground">
-                {filterType !== 'all' || showOnlyUnread 
-                  ? 'Попробуйте изменить фильтры или очистить их'
-                  : 'У вас пока нет уведомлений'
-                }
+                У вас пока нет уведомлений
               </p>
             </div>
           </CardContent>
