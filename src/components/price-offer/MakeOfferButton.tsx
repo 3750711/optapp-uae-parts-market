@@ -15,29 +15,29 @@ interface MakeOfferButtonProps {
 // Add Product import
 import { Product } from "@/types/product";
 
-// Кастомная иконка с надписью BID
-const BidIcon = ({ className }: { className?: string }) => (
+// Иконка руки с деньгами
+const HandMoneyIcon = ({ className }: { className?: string }) => (
   <svg 
     viewBox="0 0 24 24" 
     fill="none" 
     stroke="currentColor" 
-    strokeWidth="1.5" 
+    strokeWidth="1.8" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
     className={className}
   >
-    {/* Прямоугольник с закругленными углами */}
-    <rect x="3" y="6" width="18" height="12" rx="3" ry="3" fill="none" stroke="currentColor" />
-    {/* Текст BID */}
-    <text 
-      x="12" 
-      y="13.5" 
-      textAnchor="middle" 
-      fontSize="6" 
-      fontWeight="bold" 
-      fill="currentColor" 
-      stroke="none"
-    >
-      BID
-    </text>
+    {/* Рука */}
+    <path d="M11 17a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1h-1" />
+    <path d="M11 17V8a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1z" />
+    <path d="M7 7V6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1" />
+    
+    {/* Монеты */}
+    <circle cx="18" cy="6" r="2" fill="currentColor" opacity="0.7" />
+    <circle cx="20" cy="8" r="1.5" fill="currentColor" opacity="0.5" />
+    <circle cx="16" cy="8" r="1" fill="currentColor" opacity="0.6" />
+    
+    {/* Символ доллара на главной монете */}
+    <text x="18" y="7" textAnchor="middle" fontSize="2" fontWeight="bold" fill="white">$</text>
   </svg>
 );
 
@@ -106,7 +106,7 @@ export const MakeOfferButton = ({
         }
         title={compact ? "Предложить цену" : undefined}
       >
-        <BidIcon className={compact ? "h-4 w-4 text-primary" : "h-3 w-3"} />
+        <HandMoneyIcon className={compact ? "h-4 w-4 text-primary" : "h-3 w-3"} />
         {!compact && "Предложить"}
       </Button>
 
