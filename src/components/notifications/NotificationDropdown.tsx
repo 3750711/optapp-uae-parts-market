@@ -86,7 +86,7 @@ export const NotificationDropdown = ({ onClose }: NotificationDropdownProps) => 
           size="sm"
           className="w-full justify-center text-sm h-10 hover:bg-accent/60 transition-all duration-200 font-medium text-primary"
           onClick={() => {
-            // TODO: Navigate to notifications page
+            window.location.href = '/notifications';
             onClose();
           }}
         >

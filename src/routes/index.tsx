@@ -40,6 +40,7 @@ const BuyerCreateOrder = lazy(() => import('@/pages/BuyerCreateOrder'));
 const BuyerPriceOffers = lazy(() => import('@/pages/BuyerPriceOffers'));
 const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
 const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 
 // Lazy loaded продавецкие страницы
 const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
@@ -170,6 +171,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/buyer-price-offers" element={
               <ProtectedRoute allowedRoles={['buyer']}>
                 <BuyerPriceOffers />
+              </ProtectedRoute>
+            } />
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             } />
 

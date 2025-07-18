@@ -1307,6 +1307,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      create_order_reminder_notifications: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_password_reset_code: {
         Args: { p_email: string; p_opt_id?: string }
         Returns: Json
