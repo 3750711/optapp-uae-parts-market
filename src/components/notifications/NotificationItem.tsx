@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { 
@@ -68,7 +68,7 @@ const getNotificationColor = (type: NotificationType) => {
   }
 };
 
-export const NotificationItem = ({ notification, onClose }: NotificationItemProps) => {
+const NotificationItemComponent = ({ notification, onClose }: NotificationItemProps) => {
   const { markAsRead, deleteNotification } = useNotifications();
   const navigate = useNavigate();
 
@@ -175,3 +175,12 @@ export const NotificationItem = ({ notification, onClose }: NotificationItemProp
     </div>
   );
 };
+
+// Memoize the component to prevent unnecessary re-renders
+export const NotificationItem = memo(NotificationItemComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.notification.id === nextProps.notification.id &&
+    prevProps.notification.read === nextProps.notification.read &&
+    prevProps.notification.updated_at === nextProps.notification.updated_at
+  );
+});

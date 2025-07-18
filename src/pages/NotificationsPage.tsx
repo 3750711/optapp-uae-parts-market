@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,42 +15,86 @@ const NotificationsPage = () => {
   const navigate = useNavigate();
   const { notifications, unreadCount, markAllAsRead, loading } = useNotifications();
 
-  // Group notifications by date
-  const groupedNotifications = notifications.reduce((groups, notification) => {
-    const date = new Date(notification.created_at);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    let groupKey: string;
-    
-    if (date.toDateString() === today.toDateString()) {
-      groupKey = 'Сегодня';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      groupKey = 'Вчера';
-    } else if (date > new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)) {
-      groupKey = 'На этой неделе';
-    } else {
-      groupKey = 'Ранее';
-    }
-    
-    if (!groups[groupKey]) {
-      groups[groupKey] = [];
-    }
-    groups[groupKey].push(notification);
-    return groups;
-  }, {} as Record<string, typeof notifications>);
+  // Memoized grouped notifications to prevent recalculation on every render
+  const groupedNotifications = useMemo(() => {
+    return notifications.reduce((groups, notification) => {
+      const date = new Date(notification.created_at);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      let groupKey: string;
+      
+      if (date.toDateString() === today.toDateString()) {
+        groupKey = 'Сегодня';
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        groupKey = 'Вчера';
+      } else if (date > new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)) {
+        groupKey = 'На этой неделе';
+      } else {
+        groupKey = 'Ранее';
+      }
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(notification);
+      return groups;
+    }, {} as Record<string, typeof notifications>);
+  }, [notifications]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Загрузка уведомлений...</p>
+        <div className="container mx-auto px-4 md:px-6 py-4 md:py-8 max-w-4xl">
+          {/* Back Button Skeleton */}
+          <div className="mb-4 md:mb-6">
+            <Skeleton className="h-10 w-20" />
+          </div>
+          
+          {/* Header Skeleton */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 md:mb-8 gap-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-32" />
+                <Skeleton className="h-4 w-24" />
+              </div>
             </div>
+            <Skeleton className="h-10 w-28" />
+          </div>
+
+          {/* Notifications Skeleton */}
+          <div className="space-y-6 md:space-y-8">
+            {Array.from({ length: 3 }).map((_, groupIndex) => (
+              <div key={groupIndex}>
+                <div className="flex items-center gap-2 mb-3 md:mb-4">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-5 w-8" />
+                </div>
+                <Card className="overflow-hidden">
+                  <CardContent className="p-0">
+                    {Array.from({ length: 2 }).map((_, itemIndex) => (
+                      <div key={itemIndex} className="p-3 md:p-4">
+                        <div className="flex items-start gap-4">
+                          <Skeleton className="h-10 w-10 rounded-xl flex-shrink-0" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                            <Skeleton className="h-3 w-1/4" />
+                          </div>
+                          <div className="flex gap-1">
+                            <Skeleton className="h-8 w-8" />
+                            <Skeleton className="h-8 w-8" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
           </div>
         </div>
       </div>
