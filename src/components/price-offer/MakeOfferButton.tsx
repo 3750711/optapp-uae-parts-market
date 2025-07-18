@@ -63,8 +63,8 @@ export const MakeOfferButton = ({
         >
           {compact ? (
             <div className="flex flex-col items-center justify-center">
-              <Clock className="h-2.5 w-2.5 animate-spin mb-0.5" />
-              <span className="text-[8px] font-bold leading-none">${pendingOffer.offered_price}</span>
+              <Clock className="h-1.5 w-1.5 animate-spin mb-0.5" />
+              <span className="text-[10px] font-bold leading-none">${pendingOffer.offered_price}</span>
             </div>
           ) : (
             <>
