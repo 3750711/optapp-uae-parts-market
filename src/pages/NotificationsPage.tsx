@@ -83,42 +83,43 @@ const NotificationsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 md:px-6 py-4 md:py-8 max-w-4xl">
         {/* Back Button */}
-        <div className="mb-6">
+        <div className="mb-4 md:mb-6">
           <Button 
             variant="ghost" 
             onClick={() => navigate(-1)}
-            className="gap-2 hover:bg-primary/10 text-muted-foreground hover:text-primary"
+            className="gap-2 hover:bg-primary/10 text-muted-foreground hover:text-primary p-2 md:px-4"
           >
             <ArrowLeft className="h-4 w-4" />
-            Назад
+            <span className="hidden sm:inline">Назад</span>
           </Button>
         </div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 md:mb-8 gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">
-            <Bell className="h-6 w-6 text-primary" />
+            <Bell className="h-5 w-5 md:h-6 md:w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Уведомления</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Уведомления</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
               {unreadCount > 0 ? `${unreadCount} непрочитанных` : 'Все уведомления прочитаны'}
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {unreadCount > 0 && (
-            <Button onClick={markAllAsRead} className="gap-2">
+            <Button onClick={markAllAsRead} className="gap-2 text-sm">
               <CheckCheck className="h-4 w-4" />
-              Прочитать все
+              <span className="hidden sm:inline">Прочитать все</span>
+              <span className="sm:hidden">Все</span>
             </Button>
           )}
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2 text-sm">
             <Settings className="h-4 w-4" />
-            Настройки
+            <span className="hidden sm:inline">Настройки</span>
           </Button>
         </div>
       </div>
@@ -132,11 +133,11 @@ const NotificationsPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium">Тип:</label>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+              <label className="text-sm font-medium whitespace-nowrap">Тип:</label>
               <Select value={filterType} onValueChange={(value) => setFilterType(value as NotificationType | 'all')}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -156,9 +157,9 @@ const NotificationsPage = () => {
               variant={showOnlyUnread ? "default" : "outline"}
               size="sm"
               onClick={() => setShowOnlyUnread(!showOnlyUnread)}
-              className="gap-2"
+              className="gap-2 w-full sm:w-auto min-h-[40px]"
             >
-              Только непрочитанные
+              <span className="text-sm">Только непрочитанные</span>
               {showOnlyUnread && (
                 <Badge variant="secondary" className="ml-1">
                   {filteredNotifications.filter(n => !n.read).length}
@@ -186,28 +187,28 @@ const NotificationsPage = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8">
           {Object.entries(groupedNotifications).map(([groupKey, groupNotifications]) => (
             <div key={groupKey}>
-              <h2 className="text-xl font-semibold mb-4 text-foreground flex items-center gap-2">
+              <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-foreground flex items-center gap-2">
                 {groupKey}
                 <Badge variant="secondary" className="text-xs">
                   {groupNotifications.length}
                 </Badge>
               </h2>
               
-              <Card>
+              <Card className="overflow-hidden">
                 <CardContent className="p-0">
                   {groupNotifications.map((notification, index) => (
                     <div key={notification.id}>
-                      <div className="p-2">
+                      <div className="p-3 md:p-4">
                         <NotificationItem
                           notification={notification}
                           onClose={() => {}} // No close needed on full page
                         />
                       </div>
                       {index < groupNotifications.length - 1 && (
-                        <div className="border-b border-border/50 mx-6" />
+                        <div className="border-b border-border/50 mx-3 md:mx-6" />
                       )}
                     </div>
                   ))}
