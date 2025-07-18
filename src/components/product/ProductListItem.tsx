@@ -55,7 +55,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   };
 
   return (
-    <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4 relative">{/* Добавил relative */}
+    <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
       <Link to={`/product/${product.id}`} className="flex gap-4">
         {/* Product image */}
         <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
@@ -107,32 +107,31 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   )}
                 </div>
               )}
+              
+              {product.status === 'active' && (
+                <div className="flex-shrink-0">
+                  <MakeOfferButton 
+                    product={{
+                      ...product,
+                      brand: product.brand || '',
+                      model: product.model || '',
+                      condition: product.condition || 'Новое',
+                      created_at: product.created_at || new Date().toISOString(),
+                      updated_at: product.updated_at || new Date().toISOString(),
+                      seller_name: product.seller_name || '',
+                      seller_id: product.seller_id || '',
+                      status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
+                      lot_number: product.lot_number || 0
+                    }}
+                    disabled={false}
+                    compact={true}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
       </Link>
-      
-      {/* Кнопка предложения цены вынесена за пределы Link */}
-      {product.status === 'active' && (
-        <div className="absolute top-2 right-2 z-10">
-          <MakeOfferButton 
-            product={{
-              ...product,
-              brand: product.brand || '',
-              model: product.model || '',
-              condition: product.condition || 'Новое',
-              created_at: product.created_at || new Date().toISOString(),
-              updated_at: product.updated_at || new Date().toISOString(),
-              seller_name: product.seller_name || '',
-              seller_id: product.seller_id || '',
-              status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
-              lot_number: product.lot_number || 0
-            }}
-            disabled={false}
-            compact={true}
-          />
-        </div>
-      )}
       
       {showSoldButton && product.status === 'active' && (
         <div className="mt-3 pt-3 border-t border-gray-100">
