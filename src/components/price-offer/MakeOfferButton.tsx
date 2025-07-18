@@ -42,10 +42,10 @@ export const MakeOfferButton = ({
           size="sm"
           onClick={() => setIsModalOpen(true)}
           disabled={disabled}
-          className="flex items-center gap-2 w-full"
+          className="flex items-center gap-1 w-full h-9 text-xs px-2"
         >
-          <Clock className="h-4 w-4 animate-spin" />
-          ${pendingOffer.offered_price} - Ожидает ответа
+          <Clock className="h-3 w-3 animate-spin" />
+          ${pendingOffer.offered_price}
         </Button>
 
         <MakeOfferModal
