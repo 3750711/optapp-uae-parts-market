@@ -53,7 +53,11 @@ export const MakeOfferButton = ({
         <Button
           variant="default"
           size="sm"
-          onClick={() => setIsModalOpen(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setIsModalOpen(true);
+          }}
           disabled={disabled}
           className={compact 
             ? "flex items-center justify-center h-9 w-9 p-0 bg-orange-500 hover:bg-orange-600 text-white rounded-full relative"
@@ -92,7 +96,11 @@ export const MakeOfferButton = ({
       <Button
         variant={compact ? "ghost" : "outline"}
         size="sm"
-        onClick={() => setIsModalOpen(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          setIsModalOpen(true);
+        }}
         disabled={disabled}
         className={compact 
           ? "flex items-center justify-center h-9 w-9 p-0 hover:bg-primary/10 rounded-full"
