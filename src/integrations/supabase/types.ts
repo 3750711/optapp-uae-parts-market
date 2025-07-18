@@ -503,6 +503,83 @@ export type Database = {
         }
         Relationships: []
       }
+      price_offers: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          message: string | null
+          offered_price: number
+          order_id: string | null
+          original_price: number
+          product_id: string
+          seller_id: string
+          seller_response: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          message?: string | null
+          offered_price: number
+          order_id?: string | null
+          original_price: number
+          product_id: string
+          seller_id: string
+          seller_response?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          message?: string | null
+          offered_price?: number
+          order_id?: string | null
+          original_price?: number
+          product_id?: string
+          seller_id?: string
+          seller_response?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_offers_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_offers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_offers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_offers_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           created_at: string
@@ -1234,6 +1311,10 @@ export type Database = {
         Args: Record<PropertyKey, never> | { user_id: string }
         Returns: undefined
       }
+      expire_old_price_offers: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       force_user_logout: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1423,7 +1504,11 @@ export type Database = {
         | "received"
       delivery_method: "self_pickup" | "cargo_rf" | "cargo_kz"
       opt_user_status: "free_user" | "opt_user"
-      order_created_type: "free_order" | "ads_order" | "product_order"
+      order_created_type:
+        | "free_order"
+        | "ads_order"
+        | "product_order"
+        | "price_offer_order"
       order_status:
         | "created"
         | "seller_confirmed"
@@ -1582,7 +1667,12 @@ export const Constants = {
       ],
       delivery_method: ["self_pickup", "cargo_rf", "cargo_kz"],
       opt_user_status: ["free_user", "opt_user"],
-      order_created_type: ["free_order", "ads_order", "product_order"],
+      order_created_type: [
+        "free_order",
+        "ads_order",
+        "product_order",
+        "price_offer_order",
+      ],
       order_status: [
         "created",
         "seller_confirmed",

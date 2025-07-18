@@ -13,6 +13,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
 
 interface ProductInfoProps {
   product: Product;
@@ -175,9 +176,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         )}
       </div>
       
-      {/* Кнопка "Купить" */}
+      {/* Кнопки "Купить" и "Предложить цену" */}
       {!isOwner && product.status === 'active' && user && (
-        <div className="mb-6">
+        <div className="mb-6 flex gap-4 items-center">
           <Button
             onClick={() => setShowOrderDialog(true)}
             className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 text-lg"
@@ -186,6 +187,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             <ShoppingCart className="mr-2 h-5 w-5" />
             Купить товар
           </Button>
+          
+          <MakeOfferButton
+            productId={product.id}
+            sellerId={product.seller_id}
+            currentPrice={product.price}
+            productTitle={product.title}
+          />
         </div>
       )}
       
