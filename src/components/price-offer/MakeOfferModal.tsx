@@ -43,6 +43,7 @@ export const MakeOfferModal = ({
 }: MakeOfferModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productStatus, setProductStatus] = useState<{ isAvailable: boolean; status: string } | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(false);
   const createOffer = useCreatePriceOffer();
   const isMobile = useIsMobile();
 
@@ -57,8 +58,6 @@ export const MakeOfferModal = ({
     register,
     handleSubmit,
     reset,
-    watch,
-    setValue,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
@@ -68,10 +67,8 @@ export const MakeOfferModal = ({
     },
   });
 
-  const confirmation = watch("confirmation");
-
   const onSubmit = async (data: FormData) => {
-    if (!data.confirmation || !data.offered_price) {
+    if (!isConfirmed || !data.offered_price) {
       return;
     }
 
@@ -106,6 +103,7 @@ export const MakeOfferModal = ({
   };
 
   const handleClose = () => {
+    setIsConfirmed(false);
     reset();
     onClose();
   };
@@ -211,8 +209,8 @@ export const MakeOfferModal = ({
         <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
           <Checkbox
             id="confirmation"
-            checked={confirmation}
-            onCheckedChange={(checked) => setValue("confirmation", checked as boolean)}
+            checked={isConfirmed}
+            onCheckedChange={(checked) => setIsConfirmed(checked as boolean)}
             className="mt-0.5"
           />
           <Label 
@@ -230,7 +228,7 @@ export const MakeOfferModal = ({
         <div className="space-y-2 pt-2">
           <Button
             type="submit"
-            disabled={isSubmitting || (productStatus && !productStatus.isAvailable)}
+            disabled={isSubmitting || !isConfirmed || (productStatus && !productStatus.isAvailable)}
             className="w-full h-10 text-sm font-medium"
           >
             {isSubmitting ? "Отправка..." : "Отправить предложение"}
@@ -379,8 +377,8 @@ export const MakeOfferModal = ({
           <div className="flex items-start space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <Checkbox
               id="confirmation"
-              checked={confirmation}
-              onCheckedChange={(checked) => setValue("confirmation", checked as boolean)}
+              checked={isConfirmed}
+              onCheckedChange={(checked) => setIsConfirmed(checked as boolean)}
               className="mt-0.5"
             />
             <div className="space-y-1">
@@ -415,7 +413,7 @@ export const MakeOfferModal = ({
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting || (productStatus && !productStatus.isAvailable)}
+            disabled={isSubmitting || !isConfirmed || (productStatus && !productStatus.isAvailable)}
             className="flex-1"
           >
             {isSubmitting ? "Отправка..." : "Отправить предложение"}
