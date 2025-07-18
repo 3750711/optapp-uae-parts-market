@@ -52,7 +52,10 @@ export const MakeOfferButton = ({
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           product={product}
-          existingOffer={pendingOffer}
+          existingOffer={pendingOffer ? {
+            ...pendingOffer,
+            message: pendingOffer.message || undefined
+          } : undefined}
         />
       </>
     );

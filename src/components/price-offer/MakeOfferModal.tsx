@@ -33,6 +33,7 @@ interface MakeOfferModalProps {
     offered_price: number;
     status: string;
     expires_at: string;
+    message?: string;
   };
 }
 
@@ -81,7 +82,7 @@ export const MakeOfferModal = ({
   const maxPrice = product.price;
 
   const onSubmit = async (data: FormData) => {
-    if (!isConfirmed || !data.offered_price) {
+    if ((!isUpdateMode && !isConfirmed) || !data.offered_price) {
       return;
     }
 
@@ -116,7 +117,7 @@ export const MakeOfferModal = ({
         seller_id: product.seller_id,
         original_price: product.price,
         offered_price: offeredPrice,
-        message: data.message || undefined,
+        message: isUpdateMode ? existingOffer?.message : (data.message || undefined),
       };
 
       if (isUpdateMode && existingOffer) {
@@ -243,32 +244,43 @@ export const MakeOfferModal = ({
           )}
         </div>
 
-        <div>
-          <Label htmlFor="message" className="text-sm font-medium">Сообщение продавцу</Label>
-          <Textarea
-            id="message"
-            placeholder="Дополнительная информация..."
-            rows={2}
-            className="mt-1 text-sm"
-            {...register("message")}
-          />
-        </div>
+        {!isUpdateMode && (
+          <div>
+            <Label htmlFor="message" className="text-sm font-medium">Сообщение продавцу</Label>
+            <Textarea
+              id="message"
+              placeholder="Дополнительная информация..."
+              rows={2}
+              className="mt-1 text-sm"
+              {...register("message")}
+            />
+          </div>
+        )}
+
+        {isUpdateMode && existingOffer?.message && (
+          <div className="p-2 bg-gray-50 border rounded">
+            <Label className="text-xs font-medium text-gray-600">Оригинальное сообщение (будет сохранено)</Label>
+            <p className="text-xs text-gray-700 mt-1">{existingOffer.message}</p>
+          </div>
+        )}
 
         {/* Compact Confirmation */}
-        <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-          <Checkbox
-            id="confirmation"
-            checked={isConfirmed}
-            onCheckedChange={(checked) => setIsConfirmed(checked as boolean)}
-            className="mt-0.5"
-          />
-          <Label 
-            htmlFor="confirmation" 
-            className="text-xs text-yellow-800 cursor-pointer leading-tight"
-          >
-            Согласен на автоматическое оформление заказа при подтверждении продавцом
-          </Label>
-        </div>
+        {!isUpdateMode && (
+          <div className="flex items-start space-x-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+            <Checkbox
+              id="confirmation"
+              checked={isConfirmed}
+              onCheckedChange={(checked) => setIsConfirmed(checked as boolean)}
+              className="mt-0.5"
+            />
+            <Label 
+              htmlFor="confirmation" 
+              className="text-xs text-yellow-800 cursor-pointer leading-tight"
+            >
+              Согласен на автоматическое оформление заказа при подтверждении продавцом
+            </Label>
+          </div>
+        )}
 
         <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded text-center">
           Предложение действует 6 часов
@@ -277,7 +289,7 @@ export const MakeOfferModal = ({
         <div className="space-y-2 pt-2">
           <Button
             type="submit"
-            disabled={isSubmitting || !isConfirmed || (productStatus && !productStatus.isAvailable)}
+            disabled={isSubmitting || (!isUpdateMode && !isConfirmed) || (productStatus && !productStatus.isAvailable)}
             className="w-full h-10 text-sm font-medium"
           >
             {isSubmitting 
@@ -426,38 +438,49 @@ export const MakeOfferModal = ({
           )}
         </div>
 
-        <div>
-          <Label htmlFor="message">Сообщение продавцу (необязательно)</Label>
-          <Textarea
-            id="message"
-            placeholder="Дополнительная информация или обоснование цены..."
-            rows={3}
-            {...register("message")}
-          />
-        </div>
+        {!isUpdateMode && (
+          <div>
+            <Label htmlFor="message">Сообщение продавцу (необязательно)</Label>
+            <Textarea
+              id="message"
+              placeholder="Дополнительная информация или обоснование цены..."
+              rows={3}
+              {...register("message")}
+            />
+          </div>
+        )}
+
+        {isUpdateMode && existingOffer?.message && (
+          <div className="p-3 bg-gray-50 border rounded-lg">
+            <Label className="text-sm font-medium text-gray-600">Оригинальное сообщение (будет сохранено)</Label>
+            <p className="text-sm text-gray-700 mt-1">{existingOffer.message}</p>
+          </div>
+        )}
 
         {/* Mandatory Confirmation Checkbox */}
-        <div className="space-y-3">
-          <div className="flex items-start space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <Checkbox
-              id="confirmation"
-              checked={isConfirmed}
-              onCheckedChange={(checked) => setIsConfirmed(checked as boolean)}
-              className="mt-0.5"
-            />
-            <div className="space-y-1">
-              <Label 
-                htmlFor="confirmation" 
-                className="text-sm font-medium text-yellow-800 cursor-pointer leading-5"
-              >
-                Я ознакомился с товаром, оценил его состояние и согласен, что при подтверждении продавцом моего предложения заказ будет автоматически оформлен за предложенную цену
-              </Label>
-              <p className="text-xs text-yellow-700">
-                Это подтверждение обязательно для отправки предложения
-              </p>
+        {!isUpdateMode && (
+          <div className="space-y-3">
+            <div className="flex items-start space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <Checkbox
+                id="confirmation"
+                checked={isConfirmed}
+                onCheckedChange={(checked) => setIsConfirmed(checked as boolean)}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label 
+                  htmlFor="confirmation" 
+                  className="text-sm font-medium text-yellow-800 cursor-pointer leading-5"
+                >
+                  Я ознакомился с товаром, оценил его состояние и согласен, что при подтверждении продавцом моего предложения заказ будет автоматически оформлен за предложенную цену
+                </Label>
+                <p className="text-xs text-yellow-700">
+                  Это подтверждение обязательно для отправки предложения
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="text-xs text-muted-foreground bg-gray-50 p-3 rounded border">
           <p>• Предложение действует 6 часов</p>
@@ -477,7 +500,7 @@ export const MakeOfferModal = ({
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting || !isConfirmed || (productStatus && !productStatus.isAvailable)}
+            disabled={isSubmitting || (!isUpdateMode && !isConfirmed) || (productStatus && !productStatus.isAvailable)}
             className="flex-1"
           >
             {isSubmitting 

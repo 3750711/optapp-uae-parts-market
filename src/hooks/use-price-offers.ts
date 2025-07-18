@@ -287,7 +287,7 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
 
       const { data, error } = await supabase
         .from("price_offers")
-        .select("id, status, offered_price, expires_at")
+        .select("id, status, offered_price, expires_at, message")
         .eq("product_id", productId)
         .eq("buyer_id", user.data.user.id)
         .eq("status", "pending")
