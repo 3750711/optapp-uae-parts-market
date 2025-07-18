@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   Dialog,
@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { AlertCircle } from "lucide-react";
 import { useCreatePriceOffer } from "@/hooks/use-price-offers";
 import { CreatePriceOfferData } from "@/types/price-offer";
+import { checkProductStatus } from "@/utils/productStatusChecker";
 
 interface MakeOfferModalProps {
   isOpen: boolean;
@@ -36,7 +38,15 @@ export const MakeOfferModal = ({
   productTitle,
 }: MakeOfferModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [productStatus, setProductStatus] = useState<{ isAvailable: boolean; status: string } | null>(null);
   const createOffer = useCreatePriceOffer();
+
+  // Check product status when modal opens
+  useEffect(() => {
+    if (isOpen && productId) {
+      checkProductStatus(productId).then(setProductStatus).catch(console.error);
+    }
+  }, [isOpen, productId]);
 
   const {
     register,
@@ -55,6 +65,17 @@ export const MakeOfferModal = ({
   const numericOfferedPrice = parseFloat(offeredPrice) || 0;
 
   const onSubmit = async (data: FormData) => {
+    // Recheck product status before submitting
+    try {
+      const status = await checkProductStatus(productId);
+      if (!status.isAvailable) {
+        return; // Error will be shown in UI
+      }
+    } catch (error) {
+      console.error("Error checking product status:", error);
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -96,6 +117,15 @@ export const MakeOfferModal = ({
             <Label className="text-sm font-medium">Текущая цена</Label>
             <p className="text-lg font-bold mt-1">₽{currentPrice.toLocaleString()}</p>
           </div>
+
+          {productStatus && !productStatus.isAvailable && (
+            <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <p className="text-sm text-destructive">
+                Товар недоступен для предложений. Статус: {productStatus.status}
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
@@ -160,7 +190,7 @@ export const MakeOfferModal = ({
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmitting || !offeredPrice}
+                disabled={isSubmitting || !offeredPrice || (productStatus && !productStatus.isAvailable)}
                 className="flex-1"
               >
                 {isSubmitting ? "Отправка..." : "Отправить предложение"}

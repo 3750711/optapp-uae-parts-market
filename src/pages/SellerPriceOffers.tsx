@@ -19,7 +19,6 @@ import { PriceOffer } from "@/types/price-offer";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -72,6 +71,10 @@ const SellerPriceOffers = () => {
     })}`;
   };
 
+  const isOfferExpired = (expiresAt: string) => {
+    return new Date(expiresAt) <= new Date();
+  };
+
   const handleOfferAction = (offer: PriceOffer, action: "accept" | "reject") => {
     setResponseModal({ isOpen: true, offer, action });
     setSellerResponse("");
@@ -84,67 +87,13 @@ const SellerPriceOffers = () => {
     try {
       const { offer, action } = responseModal;
 
-      if (action === "accept") {
-        // Create order when accepting offer
-        const { data: orderData, error: orderError } = await supabase.rpc(
-          "create_user_order",
-          {
-            p_title: offer.product?.title || "Заказ из предложения цены",
-            p_price: offer.offered_price,
-            p_place_number: 1,
-            p_seller_id: offer.seller_id,
-            p_order_seller_name: offer.seller_profile?.full_name || "",
-            p_seller_opt_id: offer.seller_profile?.opt_id || "",
-            p_buyer_id: offer.buyer_id,
-            p_brand: offer.product?.brand || "",
-            p_model: offer.product?.model || "",
-            p_status: "created",
-            p_order_created_type: "price_offer_order",
-            p_telegram_url_order: "",
-            p_images: [],
-            p_product_id: offer.product_id,
-            p_delivery_method: "self_pickup",
-            p_text_order: sellerResponse || "Заказ создан из принятого предложения цены",
-            p_delivery_price_confirm: 0,
-          }
-        );
-
-        if (orderError) throw orderError;
-
-        // Update offer with order ID
-        await updateOffer.mutateAsync({
-          id: offer.id,
-          data: {
-            status: "accepted",
-            seller_response: sellerResponse || undefined,
-          },
-        });
-
-        // Update the offer with order_id
-        await supabase
-          .from("price_offers")
-          .update({ order_id: orderData })
-          .eq("id", offer.id);
-
-        toast({
-          title: "Предложение принято",
-          description: "Заказ создан и отправлен покупателю.",
-        });
-      } else {
-        // Just reject the offer
-        await updateOffer.mutateAsync({
-          id: offer.id,
-          data: {
-            status: "rejected",
-            seller_response: sellerResponse || undefined,
-          },
-        });
-
-        toast({
-          title: "Предложение отклонено",
-          description: "Покупатель будет уведомлен об отклонении.",
-        });
-      }
+      await updateOffer.mutateAsync({
+        id: offer.id,
+        data: {
+          status: action === "accept" ? "accepted" : "rejected",
+          seller_response: sellerResponse || undefined,
+        },
+      });
 
       setResponseModal({ isOpen: false });
     } catch (error) {
@@ -185,8 +134,8 @@ const SellerPriceOffers = () => {
     );
   }
 
-  const pendingOffers = offers?.filter(offer => offer.status === "pending") || [];
-  const otherOffers = offers?.filter(offer => offer.status !== "pending") || [];
+  const pendingOffers = offers?.filter(offer => offer.status === "pending" && !isOfferExpired(offer.expires_at)) || [];
+  const otherOffers = offers?.filter(offer => offer.status !== "pending" || isOfferExpired(offer.expires_at)) || [];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -281,6 +230,7 @@ const SellerPriceOffers = () => {
                         <Button
                           onClick={() => handleOfferAction(offer, "accept")}
                           className="bg-green-600 hover:bg-green-700"
+                          disabled={isOfferExpired(offer.expires_at)}
                         >
                           <Check className="h-4 w-4 mr-2" />
                           Принять
@@ -289,6 +239,7 @@ const SellerPriceOffers = () => {
                           variant="outline"
                           onClick={() => handleOfferAction(offer, "reject")}
                           className="border-red-200 text-red-700 hover:bg-red-50"
+                          disabled={isOfferExpired(offer.expires_at)}
                         >
                           <X className="h-4 w-4 mr-2" />
                           Отклонить

@@ -170,7 +170,7 @@ export const useUpdatePriceOffer = () => {
     },
     onSuccess: async (data, { data: updateData }) => {
       const message = 
-        updateData.status === "accepted" ? "Предложение принято" :
+        updateData.status === "accepted" ? "Предложение принято и заказ создан" :
         updateData.status === "rejected" ? "Предложение отклонено" :
         updateData.status === "cancelled" ? "Предложение отменено" :
         "Предложение обновлено";
@@ -178,23 +178,48 @@ export const useUpdatePriceOffer = () => {
       // Если предложение принято, создаем заказ
       if (updateData.status === "accepted") {
         try {
+          // Получаем полные данные предложения
+          const { data: fullOffer, error: fetchError } = await supabase
+            .from("price_offers")
+            .select(`
+              *,
+              product:products!inner(
+                id,
+                title,
+                brand,
+                model,
+                seller_name,
+                product_images(url)
+              ),
+              seller_profile:profiles!price_offers_seller_id_fkey(
+                id,
+                full_name,
+                opt_id,
+                telegram
+              )
+            `)
+            .eq("id", data.id)
+            .single();
+
+          if (fetchError) throw fetchError;
+
           const { data: createOrderResult, error: orderError } = await supabase.rpc('create_user_order', {
-            p_title: data.product.title,
-            p_price: data.offered_price,
+            p_title: fullOffer.product.title,
+            p_price: fullOffer.offered_price,
             p_place_number: 1,
-            p_seller_id: data.seller_id,
-            p_order_seller_name: data.product.seller_name,
-            p_seller_opt_id: data.seller_profile?.opt_id || '',
-            p_buyer_id: data.buyer_id,
-            p_brand: data.product.brand,
-            p_model: data.product.model || '',
+            p_seller_id: fullOffer.seller_id,
+            p_order_seller_name: fullOffer.product.seller_name,
+            p_seller_opt_id: fullOffer.seller_profile?.opt_id || '',
+            p_buyer_id: fullOffer.buyer_id,
+            p_brand: fullOffer.product.brand,
+            p_model: fullOffer.product.model || '',
             p_status: 'created',
             p_order_created_type: 'price_offer_order',
-            p_telegram_url_order: data.seller_profile?.telegram || '',
-            p_images: data.product.product_images?.map(img => img.url) || [],
-            p_product_id: data.product_id,
+            p_telegram_url_order: fullOffer.seller_profile?.telegram || '',
+            p_images: fullOffer.product.product_images?.map((img: any) => img.url) || [],
+            p_product_id: fullOffer.product_id,
             p_delivery_method: 'self_pickup',
-            p_text_order: `Заказ создан из принятого предложения цены. Предложенная цена: ${data.offered_price}`,
+            p_text_order: updateData.seller_response || `Заказ создан из принятого предложения цены. Предложенная цена: ${fullOffer.offered_price}`,
             p_delivery_price_confirm: 0
           });
 
