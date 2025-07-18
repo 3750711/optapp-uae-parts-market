@@ -170,12 +170,20 @@ const Header = () => {
 
                   {/* Продавецкие ссылки */}
                   {profile?.user_type === 'seller' && (
-                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                      <Link to="/seller/price-offers" className="flex w-full items-center">
-                        <MessageSquare className="mr-2 h-4 w-4" />
-                        <span>Предложения по товарам</span>
-                      </Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                        <Link to="/seller/dashboard" className="flex w-full items-center">
+                          <Store className="mr-2 h-4 w-4" />
+                          <span>Панель продавца</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                        <Link to="/seller/price-offers" className="flex w-full items-center">
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          <span>Предложения по товарам</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
                   
                   {/* Показываем кнопку админ панели только если пользователь админ и не идет загрузка */}

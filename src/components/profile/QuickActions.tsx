@@ -28,9 +28,17 @@ const QuickActions: React.FC<QuickActionsProps> = ({ profile }) => {
       title: 'Мои заказы',
       description: 'Просмотр заказов',
       icon: <ShoppingBag className="h-5 w-5" />,
-      onClick: () => navigate('/buyer/orders'),
+      onClick: () => navigate(isSeller ? '/seller/orders' : '/buyer/orders'),
       color: 'bg-blue-500 hover:bg-blue-600',
       visible: true
+    },
+    {
+      title: 'Панель продавца',
+      description: 'Управление продажами',
+      icon: <Store className="h-5 w-5" />,
+      onClick: () => navigate('/seller/dashboard'),
+      color: 'bg-primary hover:bg-primary/90',
+      visible: isSeller
     },
     {
       title: 'Мои объявления',
@@ -46,14 +54,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({ profile }) => {
       icon: <Plus className="h-5 w-5" />,
       onClick: () => navigate('/seller/add-product'),
       color: 'bg-purple-500 hover:bg-purple-600',
-      visible: isSeller
-    },
-    {
-      title: 'Мой магазин',
-      description: 'Управление магазином',
-      icon: <Store className="h-5 w-5" />,
-      onClick: () => navigate('/create-store'),
-      color: 'bg-orange-500 hover:bg-orange-600',
       visible: isSeller
     },
     {

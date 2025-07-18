@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import StoreEditForm from "@/components/store/StoreEditForm";
 import { DeleteAccountButton } from "@/components/profile/DeleteAccountButton";
 import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
+import QuickActions from "@/components/profile/QuickActions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -259,6 +260,7 @@ const Profile = () => {
                 orderStats={orderStats}
                 isLoading={isLoading}
               />
+              <QuickActions profile={profile} />
               <ProfileProgress profile={profile} />
               <ProfileForm
                 profile={profile}
@@ -289,6 +291,7 @@ const Profile = () => {
 
               {/* Right Column - Main Content */}
               <div className="lg:col-span-8 space-y-6">
+                <QuickActions profile={profile} />
                 <ProfileProgress profile={profile} />
                 
                 <ProfileForm
