@@ -48,23 +48,23 @@ const getNotificationIcon = (type: NotificationType) => {
 const getNotificationColor = (type: NotificationType) => {
   switch (type) {
     case 'NEW_ORDER':
-      return 'text-green-600 bg-green-50';
+      return 'text-emerald-700 bg-emerald-100 border-emerald-200';
     case 'ORDER_STATUS_CHANGE':
-      return 'text-blue-600 bg-blue-50';
+      return 'text-blue-700 bg-blue-100 border-blue-200';
     case 'PRODUCT_STATUS_CHANGE':
-      return 'text-purple-600 bg-purple-50';
+      return 'text-violet-700 bg-violet-100 border-violet-200';
     case 'NEW_PRODUCT':
-      return 'text-indigo-600 bg-indigo-50';
+      return 'text-indigo-700 bg-indigo-100 border-indigo-200';
     case 'ADMIN_MESSAGE':
-      return 'text-orange-600 bg-orange-50';
+      return 'text-amber-700 bg-amber-100 border-amber-200';
     case 'PRICE_OFFER':
-      return 'text-emerald-600 bg-emerald-50';
+      return 'text-teal-700 bg-teal-100 border-teal-200';
     case 'PROFILE_UPDATE':
-      return 'text-gray-600 bg-gray-50';
+      return 'text-slate-700 bg-slate-100 border-slate-200';
     case 'SYSTEM_MESSAGE':
-      return 'text-red-600 bg-red-50';
+      return 'text-rose-700 bg-rose-100 border-rose-200';
     default:
-      return 'text-gray-600 bg-gray-50';
+      return 'text-slate-700 bg-slate-100 border-slate-200';
   }
 };
 
@@ -104,69 +104,74 @@ export const NotificationItem = ({ notification, onClose }: NotificationItemProp
   return (
     <div
       className={cn(
-        "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-accent/50",
-        !notification.read && "bg-blue-50/50 border-l-2 border-l-blue-500"
+        "group flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:bg-accent/60 hover:shadow-sm",
+        !notification.read && "bg-gradient-to-r from-primary/5 to-primary/10 border-l-4 border-l-primary shadow-sm"
       )}
       onClick={handleClick}
     >
       {/* Icon */}
-      <div className={cn("p-2 rounded-full flex-shrink-0", getNotificationColor(notification.type))}>
+      <div className={cn(
+        "p-3 rounded-xl flex-shrink-0 border shadow-sm transition-all duration-200 group-hover:shadow-md", 
+        getNotificationColor(notification.type)
+      )}>
         {getNotificationIcon(notification.type)}
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className={cn(
-              "text-sm font-medium leading-tight",
-              !notification.read && "font-semibold"
+            <h4 className={cn(
+              "text-sm font-medium leading-tight text-foreground mb-1",
+              !notification.read && "font-semibold text-primary"
             )}>
               {notification.title}
-            </p>
+            </h4>
             {notification.message && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              <p className="text-sm text-muted-foreground mt-2 line-clamp-2 leading-relaxed">
                 {notification.message}
               </p>
             )}
-            <p className="text-xs text-muted-foreground mt-2">
-              {formatDistanceToNow(new Date(notification.created_at), { 
-                addSuffix: true, 
-                locale: ru 
-              })}
-            </p>
+            <div className="flex items-center gap-2 mt-3">
+              <p className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(notification.created_at), { 
+                  addSuffix: true, 
+                  locale: ru 
+                })}
+              </p>
+              {!notification.read && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                  Новое
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
             {!notification.read && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 hover:bg-accent"
+                className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors duration-200"
                 onClick={handleMarkAsRead}
                 title="Отметить как прочитанное"
               >
-                <Eye className="h-3 w-3" />
+                <Eye className="h-4 w-4" />
               </Button>
             )}
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors duration-200"
               onClick={handleDelete}
               title="Удалить уведомление"
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
-
-      {/* Unread indicator */}
-      {!notification.read && (
-        <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2" />
-      )}
     </div>
   );
 };

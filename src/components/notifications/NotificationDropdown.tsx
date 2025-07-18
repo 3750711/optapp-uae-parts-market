@@ -35,32 +35,43 @@ export const NotificationDropdown = ({ onClose }: NotificationDropdownProps) => 
   return (
     <div className="w-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <h3 className="font-semibold text-base">Уведомления</h3>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-gradient-to-r from-background via-background to-background/95">
+        <div className="flex items-center gap-2">
+          <Bell className="h-5 w-5 text-primary" />
+          <h3 className="font-semibold text-lg text-foreground">Уведомления</h3>
+          {unreadCount > 0 && (
+            <span className="bg-primary text-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full">
+              {unreadCount}
+            </span>
+          )}
+        </div>
         {unreadCount > 0 && (
           <Button
             variant="ghost"
             size="sm"
             onClick={markAllAsRead}
-            className="text-xs h-8 px-2 hover:bg-accent"
+            className="text-sm h-9 px-3 hover:bg-accent/80 transition-colors duration-200 text-primary hover:text-primary"
           >
-            <CheckCheck className="h-3 w-3 mr-1" />
+            <CheckCheck className="h-4 w-4 mr-2" />
             Прочитать все
           </Button>
         )}
       </div>
 
       {/* Notifications List */}
-      <ScrollArea className="h-96">
+      <ScrollArea className="h-[500px]">
         <div className="p-2">
           {notifications.map((notification, index) => (
-            <div key={notification.id}>
+            <div 
+              key={notification.id}
+              className="group hover:bg-accent/30 transition-colors duration-200 rounded-lg"
+            >
               <NotificationItem 
                 notification={notification} 
                 onClose={onClose}
               />
               {index < notifications.length - 1 && (
-                <Separator className="my-1" />
+                <Separator className="my-2 opacity-50" />
               )}
             </div>
           ))}
@@ -68,17 +79,18 @@ export const NotificationDropdown = ({ onClose }: NotificationDropdownProps) => 
       </ScrollArea>
 
       {/* Footer */}
-      <Separator />
-      <div className="p-3 bg-muted/30">
+      <Separator className="opacity-30" />
+      <div className="p-4 bg-gradient-to-t from-muted/20 to-background">
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-center text-xs h-8"
+          className="w-full justify-center text-sm h-10 hover:bg-accent/60 transition-all duration-200 font-medium text-primary"
           onClick={() => {
             // TODO: Navigate to notifications page
             onClose();
           }}
         >
+          <Eye className="h-4 w-4 mr-2" />
           Показать все уведомления
         </Button>
       </div>

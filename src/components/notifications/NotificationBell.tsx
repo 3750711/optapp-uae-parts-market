@@ -35,8 +35,8 @@ export const NotificationBell = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="end" 
-        className="w-80 p-0 bg-background border shadow-lg"
-        sideOffset={5}
+        className="w-[400px] p-0 bg-background border shadow-2xl rounded-lg"
+        sideOffset={8}
       >
         <NotificationDropdown onClose={() => setIsOpen(false)} />
       </DropdownMenuContent>
