@@ -68,12 +68,10 @@ export const MakeOfferModal = ({
     },
   });
 
-  const offeredPrice = watch("offered_price");
   const confirmation = watch("confirmation");
-  const numericOfferedPrice = parseFloat(offeredPrice) || 0;
 
   const onSubmit = async (data: FormData) => {
-    if (!data.confirmation) {
+    if (!data.confirmation || !data.offered_price) {
       return;
     }
 
@@ -173,10 +171,10 @@ export const MakeOfferModal = ({
           <Input
             id="offered_price"
             type="number"
-            step="0.01"
+            step="1"
             min="1"
             max={product.price}
-            placeholder="Цена в долларах"
+            placeholder={`Макс. ${product.price}$`}
             className="text-base h-10 mt-1"
             {...register("offered_price", {
               required: "Введите предлагаемую цену",
@@ -186,8 +184,9 @@ export const MakeOfferModal = ({
               },
               max: {
                 value: product.price,
-                message: "Цена не может быть больше текущей",
+                message: `Цена не может быть больше ${product.price}$`,
               },
+              valueAsNumber: true,
             })}
           />
           {errors.offered_price && (
@@ -228,11 +227,10 @@ export const MakeOfferModal = ({
           Предложение действует 6 часов
         </div>
 
-        {/* Mobile Actions - compact */}
         <div className="space-y-2 pt-2">
           <Button
             type="submit"
-            disabled={isSubmitting || !offeredPrice || !confirmation || (productStatus && !productStatus.isAvailable)}
+            disabled={isSubmitting || (productStatus && !productStatus.isAvailable)}
             className="w-full h-10 text-sm font-medium"
           >
             {isSubmitting ? "Отправка..." : "Отправить предложение"}
@@ -417,7 +415,7 @@ export const MakeOfferModal = ({
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting || !offeredPrice || !confirmation || (productStatus && !productStatus.isAvailable)}
+            disabled={isSubmitting || (productStatus && !productStatus.isAvailable)}
             className="flex-1"
           >
             {isSubmitting ? "Отправка..." : "Отправить предложение"}
