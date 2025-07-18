@@ -67,6 +67,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
+  // Функция создания базового профиля
+  const createBasicProfile = useCallback(async (userId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      console.log('Creating basic profile for user:', userId);
+      
+      const basicProfile = {
+        id: userId,
+        email: user.email || '',
+        auth_method: 'email',
+        user_type: 'buyer' as const,
+        email_confirmed: false,
+        profile_completed: false
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .insert(basicProfile);
+
+      if (error) {
+        console.error('Error creating basic profile:', error);
+        return;
+      }
+
+      // Update state with the new profile
+      setProfile(basicProfile);
+      setIsAdmin(false);
+      console.log('Basic profile created successfully');
+    } catch (error) {
+      console.error('Error in createBasicProfile:', error);
+    }
+  }, []);
+
   // Оптимизированная функция загрузки профиля с кэшированием
   const fetchUserProfile = useCallback(async (userId: string, retryCount = 0) => {
     setIsProfileLoading(true);
@@ -109,7 +144,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }, 1000);
           return; // Don't set loading to false yet
         } else {
-          console.log('Profile still not found after retries. User may need to complete profile setup.');
+          console.log('Profile still not found after retries. Creating basic profile...');
+          // Try to create a basic profile for email users
+          await createBasicProfile(userId);
         }
       }
     } catch (error) {
@@ -117,7 +154,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setIsProfileLoading(false);
     }
-  }, []);
+  }, [createBasicProfile]);
 
   // Функция для обновления профиля
   const refreshProfile = useCallback(async () => {
@@ -206,17 +243,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, createBasicProfile]);
 
   const signUp = useCallback(async (email: string, password: string, userData?: any) => {
     const redirectUrl = `${window.location.origin}/`;
+    
+    // Ensure we pass auth_method for email registration
+    const enhancedUserData = {
+      auth_method: 'email',
+      ...userData
+    };
     
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: userData
+        data: enhancedUserData
       }
     });
     

@@ -43,7 +43,15 @@ const ProtectedRoute = ({ children, allowedRoles, requireEmailVerification = fal
   if (!profile) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-optapp-yellow"></div>
+        <div className="max-w-md mx-auto text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            Настройка профиля...
+          </h2>
+          <p className="text-gray-600">
+            Подождите, мы создаем ваш профиль
+          </p>
+        </div>
       </div>
     );
   }
