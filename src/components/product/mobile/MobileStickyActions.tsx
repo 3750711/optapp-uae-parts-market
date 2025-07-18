@@ -159,17 +159,17 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
 
       {/* Bottom Sticky Bar */}
       {product.status === 'active' && user && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t shadow-lg p-3">
-          <div className="flex gap-2">
+        <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t shadow-lg p-2">
+          <div className="flex gap-1">
             {/* Contact Button */}
             <Button
               onClick={handleContactClick}
               variant="outline"
-              className="flex-1 text-sm"
+              className="flex-1 text-xs px-2 h-9"
               size="sm"
             >
-              <MessageCircle className="h-4 w-4 mr-1" />
-              Связаться
+              <MessageCircle className="h-3 w-3 mr-1" />
+              Связь
             </Button>
             
             {/* Make Offer Button - Mobile Version */}
@@ -182,11 +182,11 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
             {/* Buy Button */}
             <Button
               onClick={() => setShowOrderDialog(true)}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-sm"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-xs px-2 h-9"
               size="sm"
             >
-              <ShoppingCart className="h-4 w-4 mr-1" />
-              Купить за {product.price} $
+              <ShoppingCart className="h-3 w-3 mr-1" />
+              ${product.price}
             </Button>
           </div>
         </div>

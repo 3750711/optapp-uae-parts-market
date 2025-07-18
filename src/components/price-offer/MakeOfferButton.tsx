@@ -44,8 +44,8 @@ export const MakeOfferButton = ({
           disabled={disabled}
           className="flex items-center gap-2 w-full"
         >
-          <Clock className="h-4 w-4 animate-pulse" />
-          ₽{pendingOffer.offered_price} - Ожидает ответа
+          <Clock className="h-4 w-4 animate-spin" />
+          ${pendingOffer.offered_price} - Ожидает ответа
         </Button>
 
         <MakeOfferModal
