@@ -17,6 +17,7 @@ import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, M
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import {
   Sheet,
   SheetContent,
@@ -128,6 +129,7 @@ const Header = () => {
         <div className="flex items-center space-x-3">
           {user ? (
             <div className="flex items-center space-x-2">
+              <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
