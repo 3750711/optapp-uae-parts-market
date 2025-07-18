@@ -103,7 +103,7 @@ export const MakeOfferButton = ({
         }}
         disabled={disabled}
         className={compact 
-          ? "flex items-center justify-center h-9 w-9 p-0 hover:bg-primary/10 rounded-full"
+          ? "flex items-center justify-center h-9 w-9 p-0 hover:bg-primary/10 rounded-full border border-gray-200 hover:border-primary/20 transition-colors"
           : "flex items-center gap-1 w-full h-9 text-xs px-2"
         }
         title={compact ? "Предложить цену" : undefined}
