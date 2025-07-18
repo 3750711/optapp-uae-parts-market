@@ -212,7 +212,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   return (
-    <div className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 w-full h-full flex flex-col">
+    <div className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 w-full h-full flex flex-col relative">{/* Добавил relative для позиционирования кнопки */}
       <Link
         to={`/product/${product.id}`}
         className="flex-1 flex flex-col"
@@ -254,31 +254,32 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   )}
                 </div>
               )}
-              
-              {product.status === 'active' && !hideMakeOfferButton && (
-                <div className="flex-shrink-0">
-                  <MakeOfferButton 
-                    product={{
-                      ...product,
-                      brand: product.brand || '',
-                      model: product.model || '',
-                      condition: product.condition || 'Новое',
-                      created_at: product.created_at || new Date().toISOString(),
-                      updated_at: product.updated_at || new Date().toISOString(),
-                      seller_name: product.seller_name || '',
-                      seller_id: product.seller_id || '',
-                      status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
-                      lot_number: product.lot_number || 0
-                    }}
-                    disabled={false}
-                    compact={true}
-                  />
-                </div>
-              )}
             </div>
           </div>
         </div>
       </Link>
+      
+      {/* Кнопка предложения цены вынесена за пределы Link */}
+      {product.status === 'active' && !hideMakeOfferButton && (
+        <div className="absolute bottom-2 right-2 z-10">
+          <MakeOfferButton 
+            product={{
+              ...product,
+              brand: product.brand || '',
+              model: product.model || '',
+              condition: product.condition || 'Новое',
+              created_at: product.created_at || new Date().toISOString(),
+              updated_at: product.updated_at || new Date().toISOString(),
+              seller_name: product.seller_name || '',
+              seller_id: product.seller_id || '',
+              status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
+              lot_number: product.lot_number || 0
+            }}
+            disabled={false}
+            compact={true}
+          />
+        </div>
+      )}
       
       {showSoldButton && product.status === 'active' && (
         <div className="p-4 pt-0">
