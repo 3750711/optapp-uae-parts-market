@@ -56,13 +56,22 @@ export const MakeOfferButton = ({
           onClick={() => setIsModalOpen(true)}
           disabled={disabled}
           className={compact 
-            ? "flex items-center justify-center h-8 w-8 p-0 bg-orange-500 hover:bg-orange-600 text-white rounded-full relative"
+            ? "flex items-center justify-center h-9 w-9 p-0 bg-orange-500 hover:bg-orange-600 text-white rounded-full relative"
             : "flex items-center gap-1 w-full h-9 text-xs px-2 bg-orange-500 hover:bg-orange-600 text-white"
           }
           title={compact ? `Ваше предложение: $${pendingOffer.offered_price}` : undefined}
         >
-          <Clock className={compact ? "h-3 w-3 animate-spin" : "h-3 w-3 animate-spin"} />
-          {!compact && `$${pendingOffer.offered_price}`}
+          {compact ? (
+            <div className="flex flex-col items-center justify-center">
+              <Clock className="h-2.5 w-2.5 animate-spin mb-0.5" />
+              <span className="text-[8px] font-bold leading-none">${pendingOffer.offered_price}</span>
+            </div>
+          ) : (
+            <>
+              <Clock className="h-3 w-3 animate-spin" />
+              ${pendingOffer.offered_price}
+            </>
+          )}
         </Button>
 
         <MakeOfferModal
@@ -86,12 +95,12 @@ export const MakeOfferButton = ({
         onClick={() => setIsModalOpen(true)}
         disabled={disabled}
         className={compact 
-          ? "flex items-center justify-center h-8 w-8 p-0 hover:bg-primary/10 rounded-full"
+          ? "flex items-center justify-center h-9 w-9 p-0 hover:bg-primary/10 rounded-full"
           : "flex items-center gap-1 w-full h-9 text-xs px-2"
         }
         title={compact ? "Предложить цену" : undefined}
       >
-        <BidIcon className={compact ? "h-4 w-4" : "h-3 w-3"} />
+        <BidIcon className={compact ? "h-5 w-5" : "h-3 w-3"} />
         {!compact && "Предложить"}
       </Button>
 
