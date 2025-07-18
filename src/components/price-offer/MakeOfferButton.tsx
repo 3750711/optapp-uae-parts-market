@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { HandCoins, Clock } from "lucide-react";
+import { Gavel, Clock } from "lucide-react";
 import { MakeOfferModal } from "./MakeOfferModal";
 import { useCheckPendingOffer } from "@/hooks/use-price-offers";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,7 +71,7 @@ export const MakeOfferButton = ({
         className="flex items-center justify-center h-8 w-8 p-0 hover:bg-primary/10 rounded-full"
         title="Предложить цену"
       >
-        <HandCoins className="h-4 w-4 text-primary" />
+        <Gavel className="h-4 w-4 text-primary" />
       </Button>
 
       <MakeOfferModal
