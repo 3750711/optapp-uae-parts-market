@@ -140,12 +140,14 @@ export const useCreatePriceOffer = () => {
       if (error) throw error;
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast({
         title: "Предложение отправлено",
         description: "Ваше предложение цены отправлено продавцу.",
       });
       queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
+      // Инвалидируем кеш для конкретного продукта, чтобы кнопка обновилась
+      queryClient.invalidateQueries({ queryKey: ["pending-offer", result.product_id] });
     },
     onError: (error: any) => {
       console.error("Error creating price offer:", error);
