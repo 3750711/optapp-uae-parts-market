@@ -60,15 +60,15 @@ export const MakeOfferButton = ({
           }}
           disabled={disabled}
           className={compact 
-            ? "flex flex-col items-center justify-center h-7 w-7 p-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-sm active:scale-95 transition-all duration-150 touch-manipulation"
+            ? "flex flex-col items-center justify-center h-10 w-10 p-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-sm active:scale-95 transition-all duration-150 touch-manipulation"
             : "flex items-center gap-1 w-full h-9 text-xs px-2 bg-orange-500 hover:bg-orange-600 text-white"
           }
           title={compact ? `Ваше предложение: $${pendingOffer.offered_price}` : undefined}
         >
           {compact ? (
             <>
-              <Clock className="h-2 w-2 animate-spin" />
-              <span className="text-[9px] font-bold leading-none">${pendingOffer.offered_price}</span>
+              <Clock className="h-3 w-3 animate-spin mb-0.5" />
+              <span className="text-[10px] font-bold leading-none">${pendingOffer.offered_price}</span>
             </>
           ) : (
             <>
@@ -103,12 +103,12 @@ export const MakeOfferButton = ({
         }}
         disabled={disabled}
         className={compact 
-          ? "flex items-center justify-center h-7 w-7 p-1 hover:bg-primary/10 rounded-lg shadow-sm active:scale-95 transition-all duration-150 touch-manipulation"
+          ? "flex items-center justify-center h-10 w-10 p-1 hover:bg-primary/10 rounded-lg shadow-sm active:scale-95 transition-all duration-150 touch-manipulation"
           : "flex items-center gap-1 w-full h-9 text-xs px-2"
         }
         title={compact ? "Предложить цену" : undefined}
       >
-        <BidIcon className={compact ? "h-4 w-4" : "h-3 w-3"} />
+        <BidIcon className={compact ? "h-5 w-5" : "h-3 w-3"} />
         {!compact && "Предложить"}
       </Button>
 
