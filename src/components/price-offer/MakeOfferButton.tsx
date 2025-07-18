@@ -15,26 +15,29 @@ interface MakeOfferButtonProps {
 // Add Product import
 import { Product } from "@/types/product";
 
-// Кастомная иконка аукциона
-const AuctionIcon = ({ className }: { className?: string }) => (
+// Кастомная иконка с надписью BID
+const BidIcon = ({ className }: { className?: string }) => (
   <svg 
     viewBox="0 0 24 24" 
     fill="none" 
     stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round"
+    strokeWidth="1.5" 
     className={className}
   >
-    {/* Рука с поднятым пальцем */}
-    <path d="M8 12V8a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v4" />
-    <path d="M12 12V6a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v6" />
-    <path d="M16 12v-2a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v4" />
-    <path d="M6 14v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2" />
-    <path d="M6 14H4a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h2" />
-    {/* Стрелка вверх для показа роста ставки */}
-    <path d="M18 8l2-2 2 2" />
-    <path d="M20 6v4" />
+    {/* Прямоугольник с закругленными углами */}
+    <rect x="3" y="6" width="18" height="12" rx="3" ry="3" fill="none" stroke="currentColor" />
+    {/* Текст BID */}
+    <text 
+      x="12" 
+      y="13.5" 
+      textAnchor="middle" 
+      fontSize="6" 
+      fontWeight="bold" 
+      fill="currentColor" 
+      stroke="none"
+    >
+      BID
+    </text>
   </svg>
 );
 
@@ -103,7 +106,7 @@ export const MakeOfferButton = ({
         }
         title={compact ? "Предложить цену" : undefined}
       >
-        <AuctionIcon className={compact ? "h-4 w-4 text-primary" : "h-3 w-3"} />
+        <BidIcon className={compact ? "h-4 w-4 text-primary" : "h-3 w-3"} />
         {!compact && "Предложить"}
       </Button>
 
