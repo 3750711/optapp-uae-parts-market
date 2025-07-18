@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +14,8 @@ import {
   RefreshCw,
   AlertCircle,
   MessageSquare,
-  DollarSign
+  DollarSign,
+  ChevronLeft
 } from "lucide-react";
 import { useSellerPriceOffers, useUpdatePriceOffer } from "@/hooks/use-price-offers";
 import { PriceOffer } from "@/types/price-offer";
@@ -28,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 
 const SellerPriceOffers = () => {
+  const navigate = useNavigate();
   const [responseModal, setResponseModal] = useState<{
     isOpen: boolean;
     offer?: PriceOffer;
@@ -39,6 +43,14 @@ const SellerPriceOffers = () => {
   const { profile } = useAuth();
   const { data: offers, isLoading } = useSellerPriceOffers();
   const updateOffer = useUpdatePriceOffer();
+
+  const handleGoBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -108,29 +120,15 @@ const SellerPriceOffers = () => {
     }
   };
 
-  if (!profile || profile.user_type !== "seller") {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <Card className="max-w-md mx-auto">
-          <CardContent className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Доступ ограничен</h3>
-            <p className="text-muted-foreground">
-              Эта страница доступна только продавцам.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
@@ -138,13 +136,25 @@ const SellerPriceOffers = () => {
   const otherOffers = offers?.filter(offer => offer.status !== "pending" || isOfferExpired(offer.expires_at)) || [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Предложения цены</h1>
-        <p className="text-muted-foreground">
-          Управляйте предложениями цены по вашим товарам
-        </p>
-      </div>
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center gap-4 mb-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleGoBack}
+            className="flex items-center gap-2"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Назад
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Предложения цены</h1>
+            <p className="text-muted-foreground">
+              Управляйте предложениями цены по вашим товарам
+            </p>
+          </div>
+        </div>
 
       {!offers || offers.length === 0 ? (
         <Card>
@@ -372,7 +382,8 @@ const SellerPriceOffers = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

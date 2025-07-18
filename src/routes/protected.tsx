@@ -10,6 +10,8 @@ const CreateRequest = lazy(() => import('@/pages/CreateRequest'));
 const BuyerOrders = lazy(() => import('@/pages/BuyerOrders'));
 const BuyerCreateOrder = lazy(() => import('@/pages/BuyerCreateOrder'));
 const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
+const BuyerPriceOffers = lazy(() => import('@/pages/BuyerPriceOffers'));
+const SellerPriceOffers = lazy(() => import('@/pages/SellerPriceOffers'));
 
 // Специальные компоненты для редиректов
 const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
@@ -49,6 +51,16 @@ export const ProtectedRoutes = () => (
     <Route path="/orders" element={
       <ProtectedRoute>
         <OrdersRedirect />
+      </ProtectedRoute>
+    } />
+    <Route path="/buyer/price-offers" element={
+      <ProtectedRoute allowedRoles={['buyer']}>
+        <BuyerPriceOffers />
+      </ProtectedRoute>
+    } />
+    <Route path="/seller/price-offers" element={
+      <ProtectedRoute allowedRoles={['seller']}>
+        <SellerPriceOffers />
       </ProtectedRoute>
     } />
   </>
