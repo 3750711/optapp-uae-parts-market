@@ -141,10 +141,7 @@ export const useCreatePriceOffer = () => {
       return result;
     },
     onSuccess: (result) => {
-      toast({
-        title: "Предложение отправлено",
-        description: "Ваше предложение цены отправлено продавцу.",
-      });
+      // Remove duplicate toast - database notification will handle user feedback
       queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
       // Инвалидируем кеш для конкретного продукта, чтобы кнопка обновилась
       queryClient.invalidateQueries({ queryKey: ["pending-offer", result.product_id] });
