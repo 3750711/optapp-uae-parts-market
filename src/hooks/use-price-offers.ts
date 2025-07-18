@@ -1,3 +1,4 @@
+import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PriceOffer, CreatePriceOfferData, UpdatePriceOfferData } from "@/types/price-offer";
@@ -279,7 +280,9 @@ export const useUpdatePriceOffer = () => {
 
 // Check if user has pending offer for product
 export const useCheckPendingOffer = (productId: string, enabled = true) => {
-  return useQuery({
+  const queryClient = useQueryClient();
+  
+  const query = useQuery({
     queryKey: ["pending-offer", productId],
     queryFn: async () => {
       const user = await supabase.auth.getUser();
@@ -298,6 +301,36 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
     },
     enabled: enabled && !!productId,
   });
+
+  // Set up real-time subscription
+  React.useEffect(() => {
+    if (!enabled || !productId) return;
+
+    const channel = supabase
+      .channel('price-offers-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'price_offers',
+          filter: `product_id=eq.${productId}`
+        },
+        (payload) => {
+          // Invalidate and refetch the query when changes occur
+          queryClient.invalidateQueries({ 
+            queryKey: ["pending-offer", productId] 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [enabled, productId, queryClient]);
+
+  return query;
 };
 
 // Update offer price using UPSERT logic

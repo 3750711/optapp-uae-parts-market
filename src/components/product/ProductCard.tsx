@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/carousel";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
+import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
 
 export interface ProductProps {
   id: string;
@@ -31,8 +32,12 @@ export interface ProductProps {
   cloudinary_public_id?: string | null;
   cloudinary_url?: string | null;
   rating_seller?: number | null;
+  condition?: string;
+  created_at?: string;
+  updated_at?: string;
   product_images?: Array<{
     id: string;
+    product_id: string;
     url: string;
     is_primary: boolean;
   }>;
@@ -235,17 +240,39 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {formatPrice(product.price)} $
             </span>
             
-            {product.seller_name && (
-              <div className="flex items-center gap-1 text-xs text-gray-500 truncate ml-2">
-                <span className="truncate">{product.seller_name}</span>
-                {product.rating_seller && (
-                  <div className="flex items-center gap-0.5 flex-shrink-0">
-                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                    <span>{product.rating_seller.toFixed(1)}</span>
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {product.seller_name && (
+                <div className="flex items-center gap-1 text-xs text-gray-500 truncate">
+                  <span className="truncate">{product.seller_name}</span>
+                  {product.rating_seller && (
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                      <span>{product.rating_seller.toFixed(1)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {product.status === 'active' && (
+                <div className="flex-shrink-0">
+                  <MakeOfferButton 
+                    product={{
+                      ...product,
+                      brand: product.brand || '',
+                      model: product.model || '',
+                      condition: product.condition || 'Новое',
+                      created_at: product.created_at || new Date().toISOString(),
+                      updated_at: product.updated_at || new Date().toISOString(),
+                      seller_name: product.seller_name || '',
+                      seller_id: product.seller_id || '',
+                      status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
+                      lot_number: product.lot_number || 0
+                    }}
+                    disabled={false}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </Link>
