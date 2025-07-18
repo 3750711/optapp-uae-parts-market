@@ -7,6 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import OrderConfirmationDialog from "@/components/product/OrderConfirmationDialog";
 import { CommunicationWarningDialog } from "@/components/product/seller/CommunicationWarningDialog";
+import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -170,6 +171,16 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
               <MessageCircle className="h-4 w-4 mr-1" />
               Связаться
             </Button>
+            
+            {/* Make Offer Button - Mobile Version */}
+            <div className="flex-1">
+              <MakeOfferButton
+                productId={product.id}
+                sellerId={product.seller_id}
+                currentPrice={product.price}
+                productTitle={product.title}
+              />
+            </div>
             
             {/* Buy Button */}
             <Button
