@@ -3,6 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { PriceOffer, CreatePriceOfferData, UpdatePriceOfferData } from "@/types/price-offer";
 import { toast } from "@/hooks/use-toast";
 
+interface UpdateOfferPriceData {
+  offered_price: number;
+  message?: string;
+}
+
 // Fetch buyer's price offers
 export const useBuyerPriceOffers = (enabled = true) => {
   return useQuery({
@@ -292,5 +297,60 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
       return data;
     },
     enabled: enabled && !!productId,
+  });
+};
+
+// Update offer price (cancel old and create new with higher price)
+export const useUpdateOfferPrice = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      oldOfferId, 
+      offerData 
+    }: { 
+      oldOfferId: string; 
+      offerData: CreatePriceOfferData; 
+    }) => {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) throw new Error("Not authenticated");
+
+      // Cancel the old offer
+      const { error: cancelError } = await supabase
+        .from("price_offers")
+        .update({ status: "cancelled" })
+        .eq("id", oldOfferId);
+
+      if (cancelError) throw cancelError;
+
+      // Create new offer with updated price
+      const { data: result, error } = await supabase
+        .from("price_offers")
+        .insert({
+          ...offerData,
+          buyer_id: user.data.user.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return result;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Предложение обновлено",
+        description: "Ваше новое предложение отправлено продавцу.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
+      queryClient.invalidateQueries({ queryKey: ["pending-offer"] });
+    },
+    onError: (error: any) => {
+      console.error("Error updating price offer:", error);
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось обновить предложение",
+        variant: "destructive",
+      });
+    },
   });
 };

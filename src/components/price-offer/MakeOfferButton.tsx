@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { HandCoins } from "lucide-react";
+import { HandCoins, Clock } from "lucide-react";
 import { MakeOfferModal } from "./MakeOfferModal";
 import { useCheckPendingOffer } from "@/hooks/use-price-offers";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { Badge } from "@/components/ui/badge";
 
 interface MakeOfferButtonProps {
   product: Product;
@@ -34,17 +33,28 @@ export const MakeOfferButton = ({
     return null;
   }
 
-  // If user has pending offer, show status instead
+  // If user has pending offer, show button with waiting animation
   if (pendingOffer) {
     return (
-      <div className="flex flex-col gap-2">
-        <Badge variant="outline" className="text-sm">
-          Ваше предложение: ₽{pendingOffer.offered_price}
-        </Badge>
-        <Badge variant="secondary" className="text-xs">
-          Ожидает ответа
-        </Badge>
-      </div>
+      <>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsModalOpen(true)}
+          disabled={disabled}
+          className="flex items-center gap-2 w-full"
+        >
+          <Clock className="h-4 w-4 animate-pulse" />
+          ₽{pendingOffer.offered_price} - Ожидает ответа
+        </Button>
+
+        <MakeOfferModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          product={product}
+          existingOffer={pendingOffer}
+        />
+      </>
     );
   }
 

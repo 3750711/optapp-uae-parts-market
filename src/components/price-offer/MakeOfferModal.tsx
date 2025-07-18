@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, Star, Shield, MapPin } from "lucide-react";
-import { useCreatePriceOffer } from "@/hooks/use-price-offers";
+import { useCreatePriceOffer, useUpdateOfferPrice } from "@/hooks/use-price-offers";
 import { CreatePriceOfferData } from "@/types/price-offer";
 import { checkProductStatus } from "@/utils/productStatusChecker";
 import { Product } from "@/types/product";
@@ -28,6 +28,12 @@ interface MakeOfferModalProps {
   isOpen: boolean;
   onClose: () => void;
   product: Product;
+  existingOffer?: {
+    id: string;
+    offered_price: number;
+    status: string;
+    expires_at: string;
+  };
 }
 
 interface FormData {
@@ -40,12 +46,16 @@ export const MakeOfferModal = ({
   isOpen,
   onClose,
   product,
+  existingOffer,
 }: MakeOfferModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productStatus, setProductStatus] = useState<{ isAvailable: boolean; status: string } | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const createOffer = useCreatePriceOffer();
+  const updateOffer = useUpdateOfferPrice();
   const isMobile = useIsMobile();
+  
+  const isUpdateMode = !!existingOffer;
 
   // Check product status when modal opens
   useEffect(() => {
@@ -67,36 +77,62 @@ export const MakeOfferModal = ({
     },
   });
 
+  const minPrice = isUpdateMode ? (existingOffer?.offered_price || 0) + 1 : 1;
+  const maxPrice = product.price;
+
   const onSubmit = async (data: FormData) => {
     if (!isConfirmed || !data.offered_price) {
       return;
     }
 
-    // Recheck product status before submitting
-    try {
-      const status = await checkProductStatus(product.id);
-      if (!status.isAvailable) {
-        return; // Error will be shown in UI
-      }
-    } catch (error) {
-      console.error("Error checking product status:", error);
+    const offeredPrice = parseFloat(data.offered_price);
+    if (isNaN(offeredPrice) || offeredPrice <= 0) {
+      return;
+    }
+
+    // Validation for update mode
+    if (isUpdateMode && offeredPrice <= (existingOffer?.offered_price || 0)) {
+      return;
+    }
+
+    // Validation for new offer mode
+    if (!isUpdateMode && offeredPrice > product.price) {
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
+      // Check product availability before submitting
+      const status = await checkProductStatus(product.id);
+      if (!status.isAvailable) {
+        setProductStatus(status);
+        setIsSubmitting(false);
+        return;
+      }
+
       const offerData: CreatePriceOfferData = {
         product_id: product.id,
         seller_id: product.seller_id,
         original_price: product.price,
-        offered_price: parseFloat(data.offered_price),
+        offered_price: offeredPrice,
         message: data.message || undefined,
       };
 
-      await createOffer.mutateAsync(offerData);
-      reset();
-      onClose();
+      if (isUpdateMode && existingOffer) {
+        // Update existing offer
+        await updateOffer.mutateAsync({
+          oldOfferId: existingOffer.id,
+          offerData,
+        });
+      } else {
+        // Create new offer
+        await createOffer.mutateAsync(offerData);
+      }
+
+      handleClose();
+    } catch (error) {
+      console.error("Error submitting offer:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -137,6 +173,15 @@ export const MakeOfferModal = ({
         </div>
       </div>
 
+      {/* Current Offer Info for Update Mode */}
+      {isUpdateMode && existingOffer && (
+        <div className="bg-orange-50 p-2 rounded border border-orange-200">
+          <div className="text-xs">
+            <span className="font-medium text-orange-800">Текущее предложение: ₽{existingOffer.offered_price}</span>
+          </div>
+        </div>
+      )}
+
       {/* Compact Seller Info */}
       {product.profiles && (
         <div className="bg-blue-50 p-2 rounded border border-blue-200">
@@ -170,20 +215,24 @@ export const MakeOfferModal = ({
             id="offered_price"
             type="number"
             step="1"
-            min="1"
-            max={product.price}
-            placeholder={`Макс. ${product.price}$`}
+            min={minPrice}
+            max={isUpdateMode ? undefined : maxPrice}
+            placeholder={isUpdateMode ? `Мин. ${minPrice}$` : `Макс. ${maxPrice}$`}
             className="text-base h-10 mt-1"
             {...register("offered_price", {
               required: "Введите предлагаемую цену",
               min: {
-                value: 1,
-                message: "Цена должна быть больше 0",
+                value: minPrice,
+                message: isUpdateMode 
+                  ? `Цена должна быть больше ${existingOffer?.offered_price}$`
+                  : "Цена должна быть больше 0",
               },
-              max: {
-                value: product.price,
-                message: `Цена не может быть больше ${product.price}$`,
-              },
+              ...(isUpdateMode ? {} : {
+                max: {
+                  value: maxPrice,
+                  message: `Цена не может быть больше ${maxPrice}$`,
+                }
+              }),
               valueAsNumber: true,
             })}
           />
@@ -231,7 +280,10 @@ export const MakeOfferModal = ({
             disabled={isSubmitting || !isConfirmed || (productStatus && !productStatus.isAvailable)}
             className="w-full h-10 text-sm font-medium"
           >
-            {isSubmitting ? "Отправка..." : "Отправить предложение"}
+            {isSubmitting 
+              ? (isUpdateMode ? "Обновление..." : "Отправка...") 
+              : (isUpdateMode ? "Обновить предложение" : "Отправить предложение")
+            }
           </Button>
           <Button
             type="button"
@@ -318,6 +370,14 @@ export const MakeOfferModal = ({
         </div>
       )}
 
+      {/* Current Offer Info for Update Mode */}
+      {isUpdateMode && existingOffer && (
+        <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+          <Label className="text-sm font-medium text-orange-800">Ваше текущее предложение</Label>
+          <p className="text-xl font-bold mt-1 text-orange-600">${existingOffer.offered_price.toLocaleString()}</p>
+        </div>
+      )}
+
       {/* Current Price */}
       <div>
         <Label className="text-sm font-medium">Текущая цена</Label>
@@ -339,20 +399,24 @@ export const MakeOfferModal = ({
           <Input
             id="offered_price"
             type="number"
-            step="0.01"
-            min="1"
-            max={product.price}
+            step="1"
+            min={minPrice}
+            max={isUpdateMode ? undefined : maxPrice}
             placeholder="Введите предлагаемую цену в долларах"
             {...register("offered_price", {
               required: "Введите предлагаемую цену",
               min: {
-                value: 1,
-                message: "Цена должна быть больше 0",
+                value: minPrice,
+                message: isUpdateMode 
+                  ? `Цена должна быть больше ${existingOffer?.offered_price}$`
+                  : "Цена должна быть больше 0",
               },
-              max: {
-                value: product.price,
-                message: "Цена не может быть больше текущей",
-              },
+              ...(isUpdateMode ? {} : {
+                max: {
+                  value: maxPrice,
+                  message: "Цена не может быть больше текущей",
+                }
+              }),
             })}
           />
           {errors.offered_price && (
@@ -416,7 +480,10 @@ export const MakeOfferModal = ({
             disabled={isSubmitting || !isConfirmed || (productStatus && !productStatus.isAvailable)}
             className="flex-1"
           >
-            {isSubmitting ? "Отправка..." : "Отправить предложение"}
+            {isSubmitting 
+              ? (isUpdateMode ? "Обновление..." : "Отправка...") 
+              : (isUpdateMode ? "Обновить предложение" : "Отправить предложение")
+            }
           </Button>
         </div>
       </form>
@@ -428,7 +495,7 @@ export const MakeOfferModal = ({
       <Drawer open={isOpen} onOpenChange={handleClose}>
         <DrawerContent className="max-h-[95vh]">
           <DrawerHeader className="text-left pb-4">
-            <DrawerTitle>Предложить цену</DrawerTitle>
+            <DrawerTitle>{isUpdateMode ? "Изменить предложение" : "Предложить цену"}</DrawerTitle>
           </DrawerHeader>
           <div className="px-4 overflow-y-auto">
             <MobileContent />
@@ -442,7 +509,7 @@ export const MakeOfferModal = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Предложить цену</DialogTitle>
+          <DialogTitle>{isUpdateMode ? "Изменить предложение" : "Предложить цену"}</DialogTitle>
         </DialogHeader>
         <DesktopContent />
       </DialogContent>
