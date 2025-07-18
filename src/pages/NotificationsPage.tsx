@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Bell, Filter, CheckCheck, Trash2, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Filter, CheckCheck, Trash2, Settings, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,8 +10,10 @@ import { NotificationItem } from '@/components/notifications/NotificationItem';
 import { NotificationType } from '@/types/notification';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import Header from '@/components/layout/Header';
 
 const NotificationsPage = () => {
+  const navigate = useNavigate();
   const { notifications, unreadCount, markAllAsRead, loading } = useNotifications();
   const [filterType, setFilterType] = useState<NotificationType | 'all'>('all');
   const [showOnlyUnread, setShowOnlyUnread] = useState(false);
@@ -63,11 +66,14 @@ const NotificationsPage = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Загрузка уведомлений...</p>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Загрузка уведомлений...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -75,7 +81,20 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <Header />
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        {/* Back Button */}
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+            className="gap-2 hover:bg-primary/10 text-muted-foreground hover:text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Назад
+          </Button>
+        </div>
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
@@ -198,6 +217,7 @@ const NotificationsPage = () => {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 };
