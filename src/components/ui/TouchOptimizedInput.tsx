@@ -51,10 +51,11 @@ const TouchOptimizedInput: React.FC<TouchOptimizedInputProps> = ({
         min={min}
         max={max}
         step={step}
-        inputMode={inputMode}
+        inputMode={inputMode || (type === "number" ? "numeric" : "text")}
         disabled={disabled}
         className={cn(
-          "w-full",
+          "w-full modal-input-field",
+          "text-base", // Prevent zoom on iOS
           touched && error && "border-red-500 focus:border-red-500",
           touched && success && "border-green-500 focus:border-green-500",
           className

@@ -14,9 +14,50 @@
     transition: transform 0.2s ease;
   }
 
+  /* Оптимизация модальных окон для клавиатуры */
+  .modal-keyboard-optimized {
+    transition: max-height 0.3s ease, transform 0.3s ease;
+  }
+
+  .modal-keyboard-active {
+    max-height: 50vh !important;
+    transform: translateY(0) !important;
+  }
+
+  /* Специальная прокрутка для модальных окон с клавиатурой */
+  .modal-content-keyboard {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* Отступы для безопасной области */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+
   /* Оптимизация для keyboard появления */
   .keyboard-active {
     padding-bottom: env(keyboard-inset-height, 0px);
+  }
+
+  /* Оптимизация для полей ввода в модальных окнах */
+  .modal-input-field {
+    scroll-margin-top: 20px;
+    scroll-margin-bottom: 20px;
+  }
+
+  /* Фикс для iOS Safari keyboard */
+  @supports (-webkit-touch-callout: none) {
+    .modal-keyboard-optimized {
+      height: 100vh;
+      height: 100dvh;
+    }
+    
+    .modal-keyboard-active {
+      height: 50vh;
+      height: 50dvh;
+    }
   }
 
   /* Sticky кнопки внизу экрана */

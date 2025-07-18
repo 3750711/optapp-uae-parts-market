@@ -1,18 +1,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { MobileKeyboardOptimizedDialog } from "@/components/ui/MobileKeyboardOptimizedDialog";
+import TouchOptimizedInput from "@/components/ui/TouchOptimizedInput";
 
 interface OrderPriceConfirmDialogProps {
   open: boolean;
@@ -66,74 +60,78 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
   const isPriceUnchanged = parseFloat(price) === currentPrice;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Подтверждение заказа</DialogTitle>
-          <DialogDescription>
-            Подтвердите или измените цену заказа
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 pt-3">
-          <div className="space-y-2">
-            <Label htmlFor="price">Подтвердите или измените цену ($)</Label>
-            <Input
-              id="price"
-              type="number"
-              value={price}
-              onChange={handlePriceChange}
-              min="0"
-              step="0.01"
-              className="text-lg"
-            />
-          </div>
-          
-          {isPriceUnchanged && (
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="noDiscount"
-                checked={noDiscountConfirmed}
-                onCheckedChange={(checked) => setNoDiscountConfirmed(checked as boolean)}
-              />
-              <Label
-                htmlFor="noDiscount"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Я не договаривался о скидке
-              </Label>
-            </div>
-          )}
+    <MobileKeyboardOptimizedDialog 
+      open={open} 
+      onOpenChange={onOpenChange}
+      title="Подтверждение заказа"
+    >
+      <DialogDescription className="mb-4">
+        Подтвердите или измените цену заказа
+      </DialogDescription>
+      
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="price">Подтвердите или измените цену ($)</Label>
+          <TouchOptimizedInput
+            id="price"
+            type="number"
+            value={price}
+            onChange={handlePriceChange}
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            className="text-lg"
+            placeholder="Введите цену"
+          />
         </div>
-        <DialogFooter className="pt-4">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-          >
-            Отмена
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-            disabled={
-              isSubmitting || 
-              parseFloat(price) <= 0 || 
-              isNaN(parseFloat(price)) ||
-              (isPriceUnchanged && !noDiscountConfirmed)
-            }
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="animate-spin w-4 h-4 mr-2" />
-                Подтверждение...
-              </>
-            ) : (
-              <>Подтвердить</>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        
+        {isPriceUnchanged && (
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="noDiscount"
+              checked={noDiscountConfirmed}
+              onCheckedChange={(checked) => setNoDiscountConfirmed(checked as boolean)}
+            />
+            <Label
+              htmlFor="noDiscount"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Я не договаривался о скидке
+            </Label>
+          </div>
+        )}
+      </div>
+      
+      <DialogFooter className="pt-4 gap-2">
+        <Button
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          disabled={isSubmitting}
+          className="flex-1"
+        >
+          Отмена
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
+          disabled={
+            isSubmitting || 
+            parseFloat(price) <= 0 || 
+            isNaN(parseFloat(price)) ||
+            (isPriceUnchanged && !noDiscountConfirmed)
+          }
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="animate-spin w-4 h-4 mr-2" />
+              Подтверждение...
+            </>
+          ) : (
+            <>Подтвердить</>
+          )}
+        </Button>
+      </DialogFooter>
+    </MobileKeyboardOptimizedDialog>
   );
 };
 

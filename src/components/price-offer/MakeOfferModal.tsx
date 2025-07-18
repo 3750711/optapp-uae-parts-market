@@ -6,12 +6,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +17,7 @@ import { CreatePriceOfferData } from "@/types/price-offer";
 import { checkProductStatus } from "@/utils/productStatusChecker";
 import { Product } from "@/types/product";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileKeyboardOptimizedDialog } from "@/components/ui/MobileKeyboardOptimizedDialog";
 
 interface MakeOfferModalProps {
   isOpen: boolean;
@@ -221,7 +216,8 @@ export const MakeOfferModal = ({
             min={minPrice}
             max={isUpdateMode ? undefined : maxPrice}
             placeholder={isUpdateMode ? `Мин. ${minPrice}$` : `Макс. ${maxPrice}$`}
-            className="text-base h-10 mt-1"
+            className="text-base h-10 mt-1 modal-input-field"
+            inputMode="numeric"
             {...register("offered_price", {
               required: "Введите предлагаемую цену",
               min: {
@@ -525,16 +521,14 @@ export const MakeOfferModal = ({
 
   if (isMobile) {
     return (
-      <Drawer open={isOpen} onOpenChange={handleClose}>
-        <DrawerContent className="max-h-[95vh]">
-          <DrawerHeader className="text-left pb-4">
-            <DrawerTitle>{isUpdateMode ? "Изменить предложение" : "Предложить цену"}</DrawerTitle>
-          </DrawerHeader>
-          <div className="px-4 overflow-y-auto">
-            <MobileContent />
-          </div>
-        </DrawerContent>
-      </Drawer>
+      <MobileKeyboardOptimizedDialog
+        open={isOpen}
+        onOpenChange={handleClose}
+        title={isUpdateMode ? "Изменить предложение" : "Предложить цену"}
+        className="max-w-md"
+      >
+        <MobileContent />
+      </MobileKeyboardOptimizedDialog>
     );
   }
 
