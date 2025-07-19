@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
+import { useImageCacheManager } from "@/hooks/useImageCacheManager";
 
 interface ProductInfoProps {
   product: Product;
@@ -35,6 +35,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const { isAdmin } = useAdminAccess();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { invalidateAllCaches } = useImageCacheManager();
   const isOwner = user?.id === product.seller_id;
 
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
@@ -42,43 +43,65 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const handleOrderConfirm = async (orderData: { text_order?: string }) => {
     setIsSubmittingOrder(true);
     try {
-      console.log('Creating order with data:', {
-        product_id: product.id,
-        title: product.title,
-        brand: product.brand || '',
-        model: product.model || '',
-        price: product.price,
-        buyer_id: user?.id,
-        seller_id: product.seller_id,
-        order_seller_name: product.seller_name,
-        place_number: product.place_number || 1,
-        delivery_method: deliveryMethod,
-        text_order: orderData.text_order,
-        order_created_type: 'product_order',
-        status: 'created'
+      console.log('Creating order with RPC function:', {
+        p_title: product.title,
+        p_price: product.price,
+        p_place_number: product.place_number || 1,
+        p_seller_id: product.seller_id,
+        p_order_seller_name: product.seller_name,
+        p_seller_opt_id: null,
+        p_buyer_id: user?.id,
+        p_brand: product.brand || '',
+        p_model: product.model || '',
+        p_status: 'created',
+        p_order_created_type: 'product_order',
+        p_telegram_url_order: null,
+        p_images: [],
+        p_product_id: product.id,
+        p_delivery_method: deliveryMethod,
+        p_text_order: orderData.text_order,
+        p_delivery_price_confirm: null,
+        p_quantity: 1,
+        p_description: product.description,
+        p_buyer_opt_id: profile?.opt_id,
+        p_lot_number_order: product.lot_number,
+        p_telegram_url_buyer: profile?.telegram,
+        p_video_url: []
       });
 
-      const { data, error } = await supabase
-        .from('orders')
-        .insert({
-          product_id: product.id,
-          title: product.title,
-          brand: product.brand || '',
-          model: product.model || '',
-          price: product.price,
-          buyer_id: user?.id,
-          seller_id: product.seller_id,
-          order_seller_name: product.seller_name,
-          place_number: product.place_number || 1,
-          delivery_method: deliveryMethod,
-          text_order: orderData.text_order,
-          order_created_type: 'product_order',
-          status: 'created'
-        })
-        .select()
-        .single();
+      const { data: orderId, error } = await supabase
+        .rpc('create_user_order', {
+          p_title: product.title,
+          p_price: product.price,
+          p_place_number: product.place_number || 1,
+          p_seller_id: product.seller_id,
+          p_order_seller_name: product.seller_name,
+          p_seller_opt_id: null,
+          p_buyer_id: user?.id,
+          p_brand: product.brand || '',
+          p_model: product.model || '',
+          p_status: 'created' as const,
+          p_order_created_type: 'product_order' as const,
+          p_telegram_url_order: null,
+          p_images: [],
+          p_product_id: product.id,
+          p_delivery_method: deliveryMethod,
+          p_text_order: orderData.text_order || null,
+          p_delivery_price_confirm: null,
+          p_quantity: 1,
+          p_description: product.description || null,
+          p_buyer_opt_id: profile?.opt_id || null,
+          p_lot_number_order: product.lot_number || null,
+          p_telegram_url_buyer: profile?.telegram || null,
+          p_video_url: []
+        });
 
       if (error) throw error;
+
+      console.log('Order created successfully with ID:', orderId);
+
+      // Инвалидируем кэш товара после создания заказа
+      invalidateAllCaches(product.id);
 
       toast({
         title: "Заказ создан!",
