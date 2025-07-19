@@ -80,6 +80,16 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
 
   const [originalData, setOriginalData] = useState<EditableData>(editableData);
 
+  // 📸 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ: Отслеживаем изображения товара
+  useEffect(() => {
+    console.log("📸 EditableOrderForm - Product images tracking:", {
+      product_id: product.id,
+      product_images_raw: product.product_images,
+      product_images_count: product.product_images?.length || 0,
+      product_images_urls: product.product_images?.map(img => img.url) || []
+    });
+  }, [product]);
+
   // Сохранение в localStorage при изменениях
   useEffect(() => {
     if (isEditing) {
@@ -145,12 +155,21 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
   const handleSave = async () => {
     if (!validateForm()) return;
 
+    // 📸 ИСПРАВЛЕНО: Правильно передаем изображения товара
+    const productImageUrls = product.product_images?.map(img => img.url) || [];
+    
+    console.log("📸 EditableOrderForm - handleSave - Image transfer:", {
+      product_images_raw: product.product_images,
+      product_image_urls: productImageUrls,
+      product_images_count: productImageUrls.length
+    });
+
     try {
-      await onConfirm({
+      const orderData = {
         price: editableData.price,
         deliveryPrice: editableData.deliveryPrice,
         deliveryMethod: editableData.deliveryMethod,
-        orderImages: product.product_images?.map(img => img.url) || [],
+        orderImages: productImageUrls, // ✅ ИСПРАВЛЕНО: Передаем изображения товара
         editedData: {
           title: editableData.title,
           brand: editableData.brand,
@@ -160,7 +179,11 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
           placeNumber: editableData.placeNumber,
           textOrder: editableData.textOrder
         }
-      });
+      };
+
+      console.log("📸 EditableOrderForm - Final orderData being passed:", orderData);
+      
+      await onConfirm(orderData);
       
       setIsEditing(false);
       localStorage.removeItem('adminSellProduct_editData');
@@ -467,12 +490,23 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
 
       <div className="flex justify-end pt-4">
         <Button
-          onClick={() => onConfirm({
-            price: editableData.price,
-            deliveryPrice: editableData.deliveryPrice,
-            deliveryMethod: editableData.deliveryMethod,
-            orderImages: product.product_images?.map(img => img.url) || []
-          })}
+          onClick={() => {
+            // 📸 ИСПРАВЛЕНО: В режиме просмотра тоже правильно передаем изображения
+            const productImageUrls = product.product_images?.map(img => img.url) || [];
+            
+            console.log("📸 EditableOrderForm - View mode confirm - Image transfer:", {
+              product_images_raw: product.product_images,
+              product_image_urls: productImageUrls,
+              product_images_count: productImageUrls.length
+            });
+
+            onConfirm({
+              price: editableData.price,
+              deliveryPrice: editableData.deliveryPrice,
+              deliveryMethod: editableData.deliveryMethod,
+              orderImages: productImageUrls // ✅ ИСПРАВЛЕНО: Передаем изображения товара
+            });
+          }}
           disabled={isSubmitting}
           className="bg-green-600 hover:bg-green-700"
         >
