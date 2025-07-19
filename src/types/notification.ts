@@ -1,6 +1,8 @@
 export type NotificationType = 
   | 'NEW_ORDER'
-  | 'ORDER_STATUS_CHANGE' 
+  | 'ORDER_CREATED'
+  | 'ORDER_STATUS_CHANGE'
+  | 'ORDER_CONFIRMATION'
   | 'PRODUCT_STATUS_CHANGE'
   | 'NEW_PRODUCT'
   | 'ADMIN_MESSAGE'
