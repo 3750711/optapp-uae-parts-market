@@ -435,7 +435,7 @@ export type Database = {
           lot_number_order?: number | null
           model: string
           order_created_type?: Database["public"]["Enums"]["order_created_type"]
-          order_number?: number
+          order_number: number
           order_seller_name?: string
           place_number?: number
           price: number
