@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
-import { useImageCacheManager } from "@/hooks/useImageCacheManager";
+import { useImageCacheManager } from "./images/ImageCacheManager";
 
 interface ProductInfoProps {
   product: Product;

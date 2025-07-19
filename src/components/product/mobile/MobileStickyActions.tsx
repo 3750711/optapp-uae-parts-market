@@ -10,7 +10,7 @@ import { CommunicationWarningDialog } from "@/components/product/seller/Communic
 import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useImageCacheManager } from "@/hooks/useImageCacheManager";
+import { useImageCacheManager } from "../images/ImageCacheManager";
 
 interface MobileStickyActionsProps {
   product: Product;
