@@ -57,6 +57,14 @@ export default defineConfig(({ mode }) => ({
           }
           return 'assets/[name]-[hash][extname]';
         }
+      },
+      // Improved error recovery
+      onError: (error: any, defaultHandler: any) => {
+        if (error.code === 'CHUNK_LOAD_ERROR') {
+          console.warn('Chunk load error detected, this will be handled by error boundaries');
+          return;
+        }
+        defaultHandler(error);
       }
     },
     // Reduced chunk size warning limit
@@ -72,18 +80,7 @@ export default defineConfig(({ mode }) => ({
       drop: ['console', 'debugger'],
     } : undefined,
     // Target modern browsers for better chunk loading
-    target: 'es2020',
-    // Improved error recovery
-    rollupOptions: {
-      ...this.rollupOptions,
-      onError: (error, defaultHandler) => {
-        if (error.code === 'CHUNK_LOAD_ERROR') {
-          console.warn('Chunk load error detected, this will be handled by error boundaries');
-          return;
-        }
-        defaultHandler(error);
-      }
-    }
+    target: 'es2020'
   },
   // Optimized dependency pre-bundling
   optimizeDeps: {
