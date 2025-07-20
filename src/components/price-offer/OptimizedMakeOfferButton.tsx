@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Clock, TrendingUp } from "lucide-react";
@@ -16,7 +17,7 @@ interface OptimizedMakeOfferButtonProps {
   batchOfferData?: BatchOfferData[];
   disabled?: boolean;
   compact?: boolean;
-  useFallback?: boolean; // For backward compatibility
+  useFallback?: boolean;
 }
 
 const BidIcon = React.memo(({ className }: { className?: string }) => (
@@ -48,26 +49,46 @@ export const OptimizedMakeOfferButton = React.memo(({
     useFallback && !batchOfferData && !!user
   );
 
-  // Determine which data source to use
+  // Process the offer data correctly
   const {
-    max_offer_price: maxOtherOffer,
-    current_user_is_max: isMaxOffer,
-    has_pending_offer: hasPendingOffer,
-    current_user_offer_price: userOfferPrice,
-    total_offers_count: totalOffers
+    maxOtherOffer,
+    isMaxOffer,
+    hasPendingOffer,
+    userOfferPrice,
+    totalOffers
   } = useMemo(() => {
-    if (batchOfferData) {
-      return offerData;
+    console.log('🔄 OptimizedMakeOfferButton processing data for product:', product.id, {
+      batchOfferData: !!batchOfferData,
+      offerData,
+      pendingOffer
+    });
+
+    if (batchOfferData && offerData) {
+      // Use batch data - the logic is already correct in get_offers_batch
+      const result = {
+        maxOtherOffer: offerData.max_offer_price,
+        isMaxOffer: offerData.current_user_is_max,
+        hasPendingOffer: offerData.has_pending_offer,
+        userOfferPrice: offerData.current_user_offer_price,
+        totalOffers: offerData.total_offers_count
+      };
+      
+      console.log('🔄 Batch data result:', result);
+      return result;
     }
+    
     // Fallback to individual query data
-    return {
-      max_offer_price: 0,
-      current_user_is_max: false,
-      has_pending_offer: !!pendingOffer,
-      current_user_offer_price: pendingOffer?.offered_price || 0,
-      total_offers_count: 0
+    const fallbackResult = {
+      maxOtherOffer: 0,
+      isMaxOffer: false,
+      hasPendingOffer: !!pendingOffer,
+      userOfferPrice: pendingOffer?.offered_price || 0,
+      totalOffers: 0
     };
-  }, [offerData, pendingOffer, batchOfferData]);
+    
+    console.log('🔄 Fallback data result:', fallbackResult);
+    return fallbackResult;
+  }, [offerData, pendingOffer, batchOfferData, product.id]);
 
   // Create pending offer object for modal compatibility
   const pendingOfferForModal = useMemo(() => {
@@ -108,7 +129,7 @@ export const OptimizedMakeOfferButton = React.memo(({
     return <MakeOfferButtonSkeleton compact={compact} />;
   }
 
-  // If user has pending offer, show combined or single button
+  // If user has pending offer, show appropriate button
   if (hasPendingOffer) {
     // If user is leading, show green success button
     if (isMaxOffer) {

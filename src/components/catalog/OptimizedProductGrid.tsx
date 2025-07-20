@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import ProductCard, { ProductProps } from "@/components/product/ProductCard";
 
@@ -39,7 +40,7 @@ export const OptimizedProductGrid = React.memo(({
   });
 
   // Batch fetch offer data for all products
-  const { data: batchOfferData, isLoading: isBatchLoading } = useBatchOffers(
+  const { data: batchOfferData, isLoading: isBatchLoading, error: batchError } = useBatchOffers(
     productIds,
     !hideMakeOfferButton && !!user
   );
@@ -48,7 +49,9 @@ export const OptimizedProductGrid = React.memo(({
     productCount: products.length,
     batchDataCount: batchOfferData?.length || 0,
     isLoading: isBatchLoading,
-    productIds: productIds.slice(0, 5) // Log first 5 for debugging
+    hasError: !!batchError,
+    productIds: productIds.slice(0, 5), // Log first 5 for debugging
+    sampleBatchData: batchOfferData?.slice(0, 3) // Log first 3 items for debugging
   });
 
   if (viewMode === "list") {
@@ -63,7 +66,7 @@ export const OptimizedProductGrid = React.memo(({
               disableCarousel={disableCarousel}
               hideMakeOfferButton={hideMakeOfferButton}
               batchOfferData={batchOfferData}
-              useFallbackQueries={!batchOfferData}
+              useFallbackQueries={!batchOfferData || batchError}
             />
           </div>
         ))}
@@ -82,7 +85,7 @@ export const OptimizedProductGrid = React.memo(({
           disableCarousel={disableCarousel}
           hideMakeOfferButton={hideMakeOfferButton}
           batchOfferData={batchOfferData}
-          useFallbackQueries={!batchOfferData}
+          useFallbackQueries={!batchOfferData || batchError}
         />
       ))}
     </div>

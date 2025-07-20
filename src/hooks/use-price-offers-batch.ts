@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,15 +27,23 @@ export const useBatchOffers = (productIds: string[], enabled = true) => {
     queryFn: async (): Promise<BatchOfferData[]> => {
       if (uniqueProductIds.length === 0) return [];
 
+      console.log('🔄 Fetching batch offers for products:', uniqueProductIds);
+
       const { data, error } = await supabase.rpc("get_offers_batch", {
         p_product_ids: uniqueProductIds,
         p_user_id: user?.id || null,
       });
 
       if (error) {
-        console.error("Error fetching batch offers:", error);
+        console.error("❌ Error fetching batch offers:", error);
         throw error;
       }
+
+      console.log('✅ Batch offers fetched successfully:', {
+        requestedProducts: uniqueProductIds.length,
+        returnedOffers: data?.length || 0,
+        sampleData: data?.slice(0, 3)
+      });
 
       return data || [];
     },
@@ -43,6 +52,10 @@ export const useBatchOffers = (productIds: string[], enabled = true) => {
     gcTime: 300000, // 5 minutes garbage collection
     refetchOnWindowFocus: false, // Rely on real-time for updates
     refetchInterval: false, // Disable polling, use real-time instead
+    retry: (failureCount) => {
+      console.log(`🔄 Retrying batch offers fetch, attempt ${failureCount + 1}`);
+      return failureCount < 2; // Retry up to 2 times
+    },
   });
 };
 
@@ -63,14 +76,22 @@ export const useProductOfferFromBatch = (
     }
 
     const productData = batchData.find(item => item.product_id === productId);
-    return productData || {
-      product_id: productId,
-      max_offer_price: 0,
-      current_user_is_max: false,
-      total_offers_count: 0,
-      current_user_offer_price: 0,
-      has_pending_offer: false,
-    };
+    
+    if (!productData) {
+      console.log('🔍 Product not found in batch data:', productId, 'Available products:', batchData.map(d => d.product_id));
+      
+      return {
+        product_id: productId,
+        max_offer_price: 0,
+        current_user_is_max: false,
+        total_offers_count: 0,
+        current_user_offer_price: 0,
+        has_pending_offer: false,
+      };
+    }
+
+    console.log('✅ Found product data in batch:', productId, productData);
+    return productData;
   }, [productId, batchData]);
 };
 
@@ -79,6 +100,8 @@ export const useBatchOffersInvalidation = () => {
   const queryClient = useQueryClient();
 
   const invalidateBatchOffers = (productIds?: string[]) => {
+    console.log('🔄 Invalidating batch offers for products:', productIds);
+    
     if (productIds) {
       // Invalidate specific batch queries
       queryClient.invalidateQueries({
