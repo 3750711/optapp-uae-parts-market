@@ -56,8 +56,8 @@ export const MakeOfferButton = ({
       <>
         {compact ? (
           <div className="flex items-center gap-1">
-            {/* Show max offer from others if exists */}
-            {maxOtherOffer > 0 && (
+            {/* Show max offer from others if exists and user is not leading */}
+            {!isMaxOffer && maxOtherOffer > 0 && (
               <span className="text-xs text-muted-foreground whitespace-nowrap">
                 макс. ${maxOtherOffer}
               </span>
@@ -87,8 +87,8 @@ export const MakeOfferButton = ({
           </div>
         ) : (
           <div className="flex flex-col gap-1 w-full">
-            {/* Show max offer from others if exists */}
-            {maxOtherOffer > 0 && (
+            {/* Show max offer from others if exists and user is not leading */}
+            {!isMaxOffer && maxOtherOffer > 0 && (
               <div className="text-xs text-muted-foreground">
                 Максимальное предложение: ${maxOtherOffer}
               </div>
