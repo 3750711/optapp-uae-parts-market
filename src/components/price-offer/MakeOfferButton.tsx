@@ -58,7 +58,7 @@ export const MakeOfferButton = ({
       if (isMaxOffer) {
         return compact ? "лидирует" : " (лидирует)";
       } else if (maxOtherOffer > 0) {
-        return compact ? `макс.$${maxOtherOffer}` : ` (макс.$${maxOtherOffer})`;
+        return compact ? `другой $${maxOtherOffer}` : ` (другой $${maxOtherOffer})`;
       } else {
         return compact ? "обновить" : " (обновить)";
       }
@@ -156,7 +156,7 @@ export const MakeOfferButton = ({
           title={maxOtherOffer > 0 ? `Максимальное предложение: $${maxOtherOffer}` : undefined}
         >
           <BidIcon className="h-3 w-3" />
-          {maxOtherOffer > 0 ? `Предложить (макс.$${maxOtherOffer})` : "Предложить"}
+          {maxOtherOffer > 0 ? `Предложить (другой $${maxOtherOffer})` : "Предложить"}
         </Button>
       )}
 
