@@ -250,12 +250,12 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
               {confirmImages.length > 0 ? (
                 <>
                   <CheckCircle className="h-3 w-3 mr-1" />
-                  Фото загружены ({confirmImages.length})
+                  Подтверждающие фото ({confirmImages.length})
                 </>
               ) : (
                 <>
                   <Camera className="h-3 w-3 mr-1" />
-                  Загрузить фото
+                  Загрузить подтверждающие фото
                 </>
               )}
             </Button>
