@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Оптимизированное разделение чанков для лучшего кэширования и производительности
+    // Optimized chunk splitting for better caching and loading reliability
     rollupOptions: {
       output: {
         manualChunks: {
@@ -41,16 +41,14 @@ export default defineConfig(({ mode }) => ({
           'vendor-lodash': ['lodash'],
           'vendor-utils': ['zod', 'react-hook-form', 'date-fns', 'clsx', 'class-variance-authority'],
         },
-        // Оптимизированные имена файлов для кэширования
+        // Optimized chunk file names for better caching
         chunkFileNames: (chunkInfo) => {
-          // Определяем тип чанка для лучшего кэширования
           if (chunkInfo.name.startsWith('vendor-')) {
             return `assets/vendor/[name]-[hash].js`;
           }
           return `assets/[name]-[hash].js`;
         },
         assetFileNames: (assetInfo) => {
-          // Группируем статические ресурсы
           if (assetInfo.name?.endsWith('.css')) {
             return 'assets/[name]-[hash][extname]';
           }
@@ -61,20 +59,33 @@ export default defineConfig(({ mode }) => ({
         }
       }
     },
-    // Увеличиваем лимит размера чанка с предупреждением
-    chunkSizeWarningLimit: 800,
-    // Source maps только для development
+    // Reduced chunk size warning limit
+    chunkSizeWarningLimit: 600,
+    // Source maps only for development
     sourcemap: mode === 'development',
-    // Минификация только для production
+    // Minification only for production
     minify: mode === 'production' ? 'esbuild' : false,
-    // Оптимизация CSS
+    // CSS code splitting
     cssCodeSplit: true,
-    // Удаляем console.log в production
+    // Remove console.log in production
     esbuild: mode === 'production' ? {
       drop: ['console', 'debugger'],
     } : undefined,
+    // Target modern browsers for better chunk loading
+    target: 'es2020',
+    // Improved error recovery
+    rollupOptions: {
+      ...this.rollupOptions,
+      onError: (error, defaultHandler) => {
+        if (error.code === 'CHUNK_LOAD_ERROR') {
+          console.warn('Chunk load error detected, this will be handled by error boundaries');
+          return;
+        }
+        defaultHandler(error);
+      }
+    }
   },
-  // Оптимизированная предварительная сборка зависимостей
+  // Optimized dependency pre-bundling
   optimizeDeps: {
     include: [
       'react',
@@ -86,12 +97,11 @@ export default defineConfig(({ mode }) => ({
       'clsx',
       'class-variance-authority'
     ],
-    // Исключаем большие библиотеки из предварительной сборки
     exclude: ['lodash'],
-    // Принудительная оптимизация в development для стабильности
+    // Force optimization in development for stability
     force: mode === 'development'
   },
-  // Настройки для лучшей производительности dev сервера
+  // Enhanced dev server settings
   esbuild: {
     target: 'es2020',
     logOverride: { 'this-is-undefined-in-esm': 'silent' }

@@ -1,4 +1,3 @@
-
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,10 +19,12 @@ interface State {
   isNetworkError: boolean;
   isRecovering: boolean;
   errorId: string;
+  retryCount: number;
 }
 
 export class GlobalErrorBoundary extends Component<Props, State> {
   private recoveryTimeout?: number;
+  private readonly maxRetries = 3;
 
   constructor(props: Props) {
     super(props);
@@ -35,7 +36,8 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       isPermissionError: false,
       isNetworkError: false,
       isRecovering: false,
-      errorId: ''
+      errorId: '',
+      retryCount: 0
     };
   }
 
@@ -43,6 +45,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     const isModuleLoadError = error.message.includes('loading dynamically imported module') ||
                              error.message.includes('Failed to fetch dynamically imported module') ||
                              error.message.includes('Loading chunk') ||
+                             error.message.includes('ChunkLoadError') ||
                              error.name === 'ChunkLoadError';
     
     const isPermissionError = error.message.includes('permission') || 
@@ -67,18 +70,19 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Простое логирование в консоль
-    console.error('Critical error caught:', error, {
+    console.error('🚨 Global critical error:', error, {
       componentStack: errorInfo.componentStack,
       isAdminRoute: this.props.isAdminRoute,
       pathname: window.location.pathname,
-      errorId: this.state.errorId
+      errorId: this.state.errorId,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString()
     });
 
     this.setState({ errorInfo });
     
-    // Auto-handle chunk load errors
-    if (this.state.isModuleLoadError) {
+    // Auto-handle module load errors with retry mechanism
+    if (this.state.isModuleLoadError && this.state.retryCount < this.maxRetries) {
       this.handleChunkErrorWithDelay();
     }
   }
@@ -86,47 +90,83 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   handleChunkErrorWithDelay = () => {
     this.setState({ isRecovering: true });
     
+    // Exponential backoff with jitter
+    const baseDelay = 2000;
+    const delay = baseDelay * Math.pow(2, this.state.retryCount) + Math.random() * 1000;
+    
     this.recoveryTimeout = window.setTimeout(() => {
       this.handleChunkError();
-    }, 2000);
+    }, Math.min(delay, 10000)); // Cap at 10 seconds
   };
 
   handleChunkError = async () => {
     try {
-      console.log('🔄 Attempting automatic recovery...');
+      console.log('🔄 Global error recovery attempt:', this.state.retryCount + 1);
       
-      // Clear caches
+      // Comprehensive cache clearing
       if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        try {
+          const cacheNames = await caches.keys();
+          await Promise.all(cacheNames.map(name => caches.delete(name)));
+        } catch (e) {
+          console.warn('Cache clearing failed:', e);
+        }
       }
       
-      // Preserve auth data
-      const authKeys = ['supabase.auth.token', 'sb-auth-token'];
-      const authData: Record<string, string | null> = {};
-      authKeys.forEach(key => {
-        authData[key] = localStorage.getItem(key);
+      // Clear service worker if present
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map(reg => reg.unregister()));
+        } catch (e) {
+          console.warn('Service worker cleanup failed:', e);
+        }
+      }
+      
+      // Preserve critical auth data
+      const criticalKeys = [
+        'supabase.auth.token', 
+        'sb-auth-token',
+        'sb-refresh-token'
+      ];
+      const preservedData: Record<string, string | null> = {};
+      criticalKeys.forEach(key => {
+        preservedData[key] = localStorage.getItem(key);
       });
       
+      // Clear all storage
       localStorage.clear();
       sessionStorage.clear();
       
-      // Restore auth data
-      Object.entries(authData).forEach(([key, value]) => {
+      // Restore critical data
+      Object.entries(preservedData).forEach(([key, value]) => {
         if (value) localStorage.setItem(key, value);
       });
       
-      window.location.reload();
+      console.log('✅ Storage cleared and auth preserved');
+      
+      // Force reload with cache busting
+      const url = new URL(window.location.href);
+      url.searchParams.set('_t', Date.now().toString());
+      window.location.href = url.toString();
     } catch (error) {
-      console.error('Recovery failed:', error);
+      console.error('❌ Recovery failed, forcing reload:', error);
       window.location.reload();
     }
   };
 
   handleReload = () => {
-    this.setState({ isRecovering: true });
+    this.setState(prevState => ({ 
+      isRecovering: true,
+      retryCount: prevState.retryCount + 1
+    }));
+    
     setTimeout(() => {
-      window.location.reload();
+      if (this.state.isModuleLoadError) {
+        this.handleChunkError();
+      } else {
+        window.location.reload();
+      }
     }, 500);
   };
 
@@ -156,17 +196,22 @@ export class GlobalErrorBoundary extends Component<Props, State> {
           <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
             <div className="max-w-md w-full space-y-4 text-center">
               <div className="flex items-center justify-center mb-4">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
               </div>
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Обновление приложения</AlertTitle>
                 <AlertDescription>
-                  Обнаружена новая версия. Приложение автоматически обновляется...
+                  <div className="space-y-2">
+                    <p>Обнаружена новая версия. Приложение автоматически обновляется...</p>
+                    <p className="text-sm text-gray-600">
+                      Попытка {this.state.retryCount + 1} из {this.maxRetries}
+                    </p>
+                  </div>
                 </AlertDescription>
               </Alert>
               <div className="text-xs text-gray-500">
-                ID ошибки: {this.state.errorId}
+                ID: {this.state.errorId}
               </div>
             </div>
           </div>
@@ -192,14 +237,14 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                 Вернуться в профиль
               </Button>
               <div className="text-xs text-gray-500 text-center">
-                ID ошибки: {this.state.errorId}
+                ID: {this.state.errorId}
               </div>
             </div>
           </div>
         );
       }
 
-      // Module loading error
+      // Module loading error with enhanced recovery
       if (this.state.isModuleLoadError) {
         return (
           <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
@@ -208,7 +253,14 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Обновление приложения</AlertTitle>
                 <AlertDescription>
-                  Обнаружена новая версия приложения. Требуется обновление.
+                  <div className="space-y-2">
+                    <p>Обнаружена новая версия приложения. Требуется обновление.</p>
+                    {this.state.retryCount >= this.maxRetries && (
+                      <p className="text-sm text-yellow-700">
+                        Автоматическое восстановление не удалось. Попробуйте обновить вручную.
+                      </p>
+                    )}
+                  </div>
                 </AlertDescription>
               </Alert>
               <Button 
@@ -228,6 +280,9 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                   </>
                 )}
               </Button>
+              <div className="text-xs text-gray-500 text-center">
+                ID: {this.state.errorId}
+              </div>
             </div>
           </div>
         );
@@ -269,7 +324,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
             </div>
 
             <div className="text-xs text-gray-500 text-center">
-              ID ошибки: {this.state.errorId}
+              ID: {this.state.errorId}
             </div>
 
             {this.props.showDetails && this.state.error && (

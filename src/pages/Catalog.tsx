@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { SafeHelmet } from "@/components/seo/SafeHelmet";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
@@ -7,23 +8,10 @@ import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
 import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import CatalogSearchAndFilters from "@/components/catalog/CatalogSearchAndFilters";
+import CatalogContent from "@/components/catalog/CatalogContent";
 import { useConditionalCarData } from "@/hooks/useConditionalCarData";
 import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
-
-// Динамический импорт CatalogContent с fallback
-const CatalogContent = React.lazy(() => 
-  import("@/components/catalog/CatalogContent").catch(() => ({
-    default: () => (
-      <div className="text-center py-8">
-        <p>Ошибка загрузки компонента каталога</p>
-        <Button onClick={() => window.location.reload()}>
-          Попробовать снова
-        </Button>
-      </div>
-    )
-  }))
-);
 
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -63,12 +51,12 @@ const Catalog: React.FC = () => {
     handleSearchSubmit,
     prefetchNextPage,
   } = useCatalogProducts({
-    productsPerPage: 24, // Optimized for performance: 24 products per page
+    productsPerPage: 24,
     externalSelectedBrand: selectedBrand,
     externalSelectedModel: selectedModel,
     findBrandNameById,
     findModelNameById,
-    debounceTime: 200 // Fast response for better UX
+    debounceTime: 200
   });
 
   // Auto-load more products when visible
@@ -89,7 +77,7 @@ const Catalog: React.FC = () => {
     try {
       await refetch();
     } catch (error) {
-      // Error will be handled by the query error state
+      console.error('Error retrying catalog fetch:', error);
     }
   };
 
@@ -244,7 +232,6 @@ const Catalog: React.FC = () => {
           selectedModelName={selectedModelName}
           onClearSearch={handleClearSearch}
           onOpenFilters={() => {
-            // Scroll to filters section on mobile
             const filtersSection = document.querySelector('[data-filters-section]');
             if (filtersSection) {
               filtersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -254,27 +241,20 @@ const Catalog: React.FC = () => {
           handleSearchSubmit={handleEnhancedSearchSubmit}
         />
 
-
-        <React.Suspense fallback={
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        }>
-          <CatalogContent
-            isLoading={isLoading}
-            isError={isError}
-            mappedProducts={mappedProducts}
-            productChunks={productChunks}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            allProductsLoaded={allProductsLoaded}
-            hasAnyFilters={hasAnyFilters}
-            loadMoreRef={loadMoreRef}
-            handleLoadMore={handleLoadMore}
-            handleRetry={handleRetry}
-            handleClearAll={handleClearAll}
-          />
-        </React.Suspense>
+        <CatalogContent
+          isLoading={isLoading}
+          isError={isError}
+          mappedProducts={mappedProducts}
+          productChunks={productChunks}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          allProductsLoaded={allProductsLoaded}
+          hasAnyFilters={hasAnyFilters}
+          loadMoreRef={loadMoreRef}
+          handleLoadMore={handleLoadMore}
+          handleRetry={handleRetry}
+          handleClearAll={handleClearAll}
+        />
       </div>
     </Layout>
   );
