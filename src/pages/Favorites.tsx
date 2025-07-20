@@ -8,12 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, ShoppingCart, ExternalLink, Star, MapPin, Phone, MessageCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Heart, ShoppingCart, ExternalLink, Star, MapPin, Phone, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Favorites = () => {
   const { user } = useAuth();
   const { favorites, toggleFavorite, isLoading: favoritesLoading } = useFavorites();
+  const navigate = useNavigate();
 
   const { data: favoriteProducts, isLoading } = useQuery({
     queryKey: ['favorite-products', favorites],
@@ -69,6 +70,15 @@ const Favorites = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <Button 
+        variant="ghost" 
+        onClick={() => navigate(-1)}
+        className="mb-4 flex items-center gap-2"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Назад
+      </Button>
+      
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
           <Heart className="h-8 w-8 text-red-500" />
