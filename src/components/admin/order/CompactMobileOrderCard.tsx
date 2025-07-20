@@ -165,25 +165,22 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
             </Button>
           )}
           
-          {confirmImages.length > 0 ? (
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-6 w-6 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
-              onClick={() => setIsConfirmImagesDialogOpen(true)}
-            >
+          <Button
+            variant="outline"
+            size="icon"
+            className={`h-6 w-6 ${
+              confirmImages.length > 0 
+                ? 'text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700' 
+                : ''
+            }`}
+            onClick={() => setIsConfirmImagesDialogOpen(true)}
+          >
+            {confirmImages.length > 0 ? (
               <CheckCircle className="h-3 w-3" />
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => setIsConfirmImagesDialogOpen(true)}
-            >
+            ) : (
               <Camera className="h-3 w-3" />
-            </Button>
-          )}
+            )}
+          </Button>
           
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
             <CollapsibleTrigger asChild>
