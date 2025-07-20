@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, ChevronDown, ChevronUp, Camera } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
@@ -19,6 +18,10 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CompactMobileOrderCardProps {
   order: Order;
@@ -40,6 +43,25 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
   onQuickAction
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
+  
+  const { data: confirmImages = [] } = useQuery({
+    queryKey: ['confirm-images', order.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('confirm_images')
+        .select('id')
+        .eq('order_id', order.id);
+
+      if (error) {
+        console.error('Error fetching confirm images:', error);
+        return [];
+      };
+      return data || [];
+    },
+  });
+  
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
 
   return (
@@ -143,6 +165,26 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
             </Button>
           )}
           
+          {confirmImages.length > 0 ? (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-6 w-6 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+              onClick={() => setIsConfirmImagesDialogOpen(true)}
+            >
+              <CheckCircle className="h-3 w-3" />
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setIsConfirmImagesDialogOpen(true)}
+            >
+              <Camera className="h-3 w-3" />
+            </Button>
+          )}
+          
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
             <CollapsibleTrigger asChild>
               <Button 
@@ -186,6 +228,22 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
           </Collapsible>
         </div>
       </CardContent>
+      <Dialog open={isConfirmImagesDialogOpen} onOpenChange={(isOpen) => {
+        setIsConfirmImagesDialogOpen(isOpen);
+        if (!isOpen) {
+          queryClient.invalidateQueries({ queryKey: ['confirm-images', order.id] });
+        }
+      }}>
+        <DialogContent className="max-w-4xl w-[95vw] rounded-lg">
+          <DialogHeader>
+            <DialogTitle>Подтверждающие фотографии - Заказ № {order.order_number}</DialogTitle>
+          </DialogHeader>
+          <OrderConfirmationImages 
+            orderId={order.id} 
+            canEdit={true}
+          />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
