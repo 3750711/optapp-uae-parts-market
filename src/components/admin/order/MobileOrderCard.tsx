@@ -16,8 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ConfirmationImagesUploadDialog } from '@/components/admin/ConfirmationImagesUploadDialog';
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 interface MobileOrderCardProps {
@@ -70,6 +69,25 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
 
   const totalValue = Number(order.price || 0) + Number(order.delivery_price_confirm || 0);
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
+
+  const handlePhotoUploadComplete = () => {
+    console.log(`Photo upload completed for order #${order.order_number}`);
+    setIsConfirmImagesDialogOpen(false);
+    // Refresh confirm images data
+    queryClient.invalidateQueries({ queryKey: ['confirm-images', order.id] });
+    // Optionally refresh the entire orders list to ensure consistency
+    queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+  };
+
+  const handlePhotoUploadSkip = () => {
+    console.log(`Photo upload skipped for order #${order.order_number}`);
+    setIsConfirmImagesDialogOpen(false);
+  };
+
+  const handlePhotoUploadCancel = () => {
+    console.log(`Photo upload cancelled for order #${order.order_number}`);
+    setIsConfirmImagesDialogOpen(false);
+  };
 
   return (
     <Card 
@@ -237,7 +255,7 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
             <Button
               variant="outline"
               size="sm"
-              className={`h-7 px-3 text-xs ${
+              className={`h-7 px-3 text-xs shrink-0 ${
                 confirmImages.length > 0 
                   ? 'text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700' 
                   : 'border-gray-200 hover:bg-gray-50'
@@ -262,23 +280,14 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
           </div>
         </div>
       </CardContent>
-      <Dialog open={isConfirmImagesDialogOpen} onOpenChange={(isOpen) => {
-        console.log(`Dialog ${isOpen ? 'opened' : 'closed'} for order #${order.order_number}`);
-        setIsConfirmImagesDialogOpen(isOpen);
-        if (!isOpen) {
-          queryClient.invalidateQueries({ queryKey: ['confirm-images', order.id] });
-        }
-      }}>
-        <DialogContent className="max-w-4xl w-[95vw] rounded-lg">
-          <DialogHeader>
-            <DialogTitle>Подтверждающие фотографии - Заказ № {order.order_number}</DialogTitle>
-          </DialogHeader>
-          <OrderConfirmationImages 
-            orderId={order.id} 
-            canEdit={true}
-          />
-        </DialogContent>
-      </Dialog>
+      
+      <ConfirmationImagesUploadDialog
+        open={isConfirmImagesDialogOpen}
+        orderId={order.id}
+        onComplete={handlePhotoUploadComplete}
+        onSkip={handlePhotoUploadSkip}
+        onCancel={handlePhotoUploadCancel}
+      />
     </Card>
   );
 };
