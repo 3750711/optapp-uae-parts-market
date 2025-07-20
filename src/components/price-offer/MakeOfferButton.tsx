@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock } from "lucide-react";
+import { Clock, TrendingUp } from "lucide-react";
 import { MakeOfferModal } from "./MakeOfferModal";
 import { useCheckPendingOffer, useCompetitiveOffers } from "@/hooks/use-price-offers";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,9 +53,6 @@ export const MakeOfferButton = ({
     return <MakeOfferButtonSkeleton compact={compact} />;
   }
 
-  // Add a subtle loading indicator for background updates
-  const isUpdating = isPendingLoading || isCompetitiveLoading;
-
   const isMaxOffer = competitiveData?.current_user_is_max || false;
   const maxOtherOffer = competitiveData?.max_offer_price || 0;
 
@@ -75,11 +72,12 @@ export const MakeOfferButton = ({
                 setIsModalOpen(true);
               }}
               disabled={disabled}
-              className="flex flex-col items-center justify-center h-9 w-9 p-0 rounded-full relative text-white bg-green-500 hover:bg-green-600"
+              className="relative flex items-center justify-center h-10 w-10 p-0 rounded-full bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
               title={`Ваше предложение: $${pendingOffer.offered_price} (максимальное)`}
             >
-              <Clock className="h-3 w-3 animate-spin mb-0.5" />
-              <span className="text-[10px] font-bold leading-none">${pendingOffer.offered_price}</span>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full"></div>
+              <TrendingUp className="h-4 w-4" />
             </Button>
           ) : (
             <Button
@@ -91,11 +89,11 @@ export const MakeOfferButton = ({
                 setIsModalOpen(true);
               }}
               disabled={disabled}
-              className="flex items-center gap-2 w-full h-9 text-xs px-3 text-white bg-green-500 hover:bg-green-600"
+              className="flex items-center gap-2 w-full h-9 text-xs px-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200"
             >
-              <Clock className="h-3 w-3 animate-spin" />
-              <span className="font-medium">${pendingOffer.offered_price}</span>
-              <span className="text-xs opacity-90">(лидирует)</span>
+              <TrendingUp className="h-4 w-4" />
+              <span className="font-semibold">${pendingOffer.offered_price}</span>
+              <span className="text-xs opacity-90 ml-auto">лидирует</span>
             </Button>
           )}
 
@@ -112,7 +110,7 @@ export const MakeOfferButton = ({
       );
     }
 
-    // If user is NOT leading and there are other offers, show combined rectangular button
+    // If user is NOT leading and there are other offers, show combined horizontal button
     if (maxOtherOffer > 0) {
       return (
         <>
@@ -126,14 +124,13 @@ export const MakeOfferButton = ({
                 setIsModalOpen(true);
               }}
               disabled={disabled}
-              className="flex items-center h-9 px-2 text-white bg-orange-500 hover:bg-orange-600 relative overflow-hidden"
+              className="relative flex items-center h-10 w-16 px-1 bg-gradient-to-r from-orange-500 via-orange-600 to-amber-500 hover:from-orange-600 hover:via-orange-700 hover:to-amber-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 rounded-lg"
               title={`Максимальное: $${maxOtherOffer}, ваше: $${pendingOffer.offered_price}`}
             >
-              <div className="flex items-center gap-1 text-[10px] font-bold">
-                <span>${maxOtherOffer}</span>
-                <div className="w-px h-4 bg-white/30 mx-1"></div>
-                <Clock className="h-2.5 w-2.5 animate-spin" />
-                <span>${pendingOffer.offered_price}</span>
+              <div className="flex flex-col items-center text-[10px] font-bold leading-none">
+                <span className="opacity-80">{maxOtherOffer}</span>
+                <div className="w-4 h-px bg-white/40 my-0.5"></div>
+                <Clock className="h-2 w-2 animate-spin" />
               </div>
             </Button>
           ) : (
@@ -146,14 +143,19 @@ export const MakeOfferButton = ({
                 setIsModalOpen(true);
               }}
               disabled={disabled}
-              className="flex items-center w-full h-9 text-xs px-3 text-white bg-orange-500 hover:bg-orange-600 relative overflow-hidden"
+              className="flex items-center w-full h-9 text-xs px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 relative overflow-hidden"
             >
-              <div className="flex items-center gap-2 w-full">
-                <span className="opacity-90">другой ${maxOtherOffer}</span>
+              <div className="flex items-center gap-3 w-full">
+                <div className="flex items-center gap-1 opacity-90">
+                  <span className="text-xs">другой</span>
+                  <span className="font-semibold">${maxOtherOffer}</span>
+                </div>
                 <div className="w-px h-4 bg-white/30"></div>
-                <Clock className="h-3 w-3 animate-spin" />
-                <span className="font-medium">ваше ${pendingOffer.offered_price}</span>
-                <span className="text-xs opacity-75 ml-auto">(обновить)</span>
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3 animate-spin" />
+                  <span className="font-semibold">${pendingOffer.offered_price}</span>
+                </div>
+                <span className="text-xs opacity-75 ml-auto">обновить</span>
               </div>
             </Button>
           )}
@@ -184,11 +186,10 @@ export const MakeOfferButton = ({
               setIsModalOpen(true);
             }}
             disabled={disabled}
-            className="flex flex-col items-center justify-center h-9 w-9 p-0 rounded-full relative text-white bg-orange-500 hover:bg-orange-600"
+            className="relative flex items-center justify-center h-10 w-10 p-0 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
             title={`Ваше предложение: $${pendingOffer.offered_price}`}
           >
-            <Clock className="h-3 w-3 animate-spin mb-0.5" />
-            <span className="text-[10px] font-bold leading-none">${pendingOffer.offered_price}</span>
+            <Clock className="h-4 w-4 animate-spin" />
           </Button>
         ) : (
           <Button
@@ -200,11 +201,11 @@ export const MakeOfferButton = ({
               setIsModalOpen(true);
             }}
             disabled={disabled}
-            className="flex items-center gap-2 w-full h-9 text-xs px-3 text-white bg-orange-500 hover:bg-orange-600"
+            className="flex items-center gap-2 w-full h-9 text-xs px-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200"
           >
-            <Clock className="h-3 w-3 animate-spin" />
-            <span className="font-medium">${pendingOffer.offered_price}</span>
-            <span className="text-xs opacity-90">(обновить)</span>
+            <Clock className="h-4 w-4 animate-spin" />
+            <span className="font-semibold">${pendingOffer.offered_price}</span>
+            <span className="text-xs opacity-90 ml-auto">обновить</span>
           </Button>
         )}
 
@@ -240,10 +241,10 @@ export const MakeOfferButton = ({
               setIsModalOpen(true);
             }}
             disabled={disabled}
-            className="flex items-center justify-center h-9 w-9 p-0 hover:bg-primary/10 rounded-full border border-gray-200 hover:border-primary/20 transition-colors"
+            className="flex items-center justify-center h-10 w-10 p-0 hover:bg-primary/10 rounded-full border-2 border-primary/20 hover:border-primary/40 transition-all duration-200 group hover:shadow-lg backdrop-blur-sm"
             title={maxOtherOffer > 0 ? `Максимальное предложение: $${maxOtherOffer}` : "Предложить цену"}
           >
-            <BidIcon className="h-5 w-5" />
+            <BidIcon className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
           </Button>
         ) : (
           <Button
@@ -255,10 +256,10 @@ export const MakeOfferButton = ({
               setIsModalOpen(true);
             }}
             disabled={disabled}
-            className="flex items-center gap-2 w-full h-9 text-xs px-3"
+            className="flex items-center gap-2 w-full h-9 text-xs px-3 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 hover:shadow-md backdrop-blur-sm"
           >
-            <BidIcon className="h-3 w-3" />
-            <span>Предложить</span>
+            <BidIcon className="h-4 w-4" />
+            <span className="font-medium">Предложить</span>
           </Button>
         )}
       </div>
