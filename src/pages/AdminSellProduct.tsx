@@ -5,6 +5,8 @@ import { useAdminOrderCreation } from "@/hooks/useAdminOrderCreation";
 import { useAdminSellProductState } from "@/hooks/useAdminSellProductState";
 import { useRetryMechanism } from "@/hooks/useRetryMechanism";
 import { useRateLimit } from "@/hooks/useRateLimit";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import SellProductProgress from "@/components/admin/sell-product/SellProductProgress";
 import AdminSellProductHeader from "@/components/admin/sell-product/AdminSellProductHeader";
 import ProductSelectionContainer from "@/components/admin/sell-product/ProductSelectionContainer";
@@ -37,6 +39,7 @@ const AdminSellProduct = () => {
   const { state, updateState, loadBuyers, resetState } = useAdminSellProductState();
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
   const { executeWithRetry, isRetrying } = useRetryMechanism();
+  const { toast } = useToast();
   const { checkRateLimit } = useRateLimit({
     windowMs: 60000, // 1 минута
     maxRequests: 5    // 5 заказов в минуту
@@ -79,15 +82,76 @@ const AdminSellProduct = () => {
       return;
     }
 
-    // Создаем объект продавца из данных товара
+    console.log("📦 Creating order with product data:", {
+      product: state.selectedProduct,
+      buyer: state.selectedBuyer,
+      orderData: orderData
+    });
+
+    // Получаем полные данные продавца из базы данных
+    const { data: sellerProfile, error: sellerError } = await supabase
+      .from('profiles')
+      .select('id, full_name, opt_id, telegram')
+      .eq('id', state.selectedProduct.seller_id)
+      .single();
+
+    if (sellerError || !sellerProfile) {
+      console.error("❌ Failed to fetch seller profile:", sellerError);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить данные продавца",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("👤 Fetched seller profile:", sellerProfile);
+
+    // Создаем объект продавца с корректными данными
     const seller = {
-      id: state.selectedProduct.seller_id,
-      full_name: state.selectedProduct.seller_name,
-      opt_id: '',
+      id: sellerProfile.id,
+      full_name: sellerProfile.full_name,
+      opt_id: sellerProfile.opt_id || '',
+      telegram: sellerProfile.telegram
+    };
+
+    // Комбинируем изображения товара с дополнительными изображениями
+    const productImages = state.selectedProduct.product_images?.map(img => img.url) || [];
+    const combinedImages = [...productImages, ...orderData.orderImages];
+    
+    console.log("📸 Image combination:", {
+      productImages: productImages,
+      additionalImages: orderData.orderImages,
+      combinedImages: combinedImages
+    });
+
+    // Используем стоимость доставки из формы или из товара
+    const finalDeliveryPrice = orderData.deliveryPrice !== undefined 
+      ? orderData.deliveryPrice 
+      : state.selectedProduct.delivery_price;
+
+    console.log("💰 Delivery price logic:", {
+      fromForm: orderData.deliveryPrice,
+      fromProduct: state.selectedProduct.delivery_price,
+      final: finalDeliveryPrice
+    });
+
+    // Обновляем orderData с правильными изображениями и стоимостью доставки
+    const updatedOrderData = {
+      ...orderData,
+      orderImages: combinedImages,
+      deliveryPrice: finalDeliveryPrice
     };
 
     const createOrderOperation = async () => {
-      const result = await createOrder(seller, state.selectedProduct!, state.selectedBuyer!, orderData);
+      console.log("🚀 Calling createOrder with:", {
+        seller: seller,
+        product: state.selectedProduct,
+        buyer: state.selectedBuyer,
+        orderData: updatedOrderData
+      });
+      
+      const result = await createOrder(seller, state.selectedProduct!, state.selectedBuyer!, updatedOrderData);
       
       if (result === 'product_unavailable') {
         updateState({
@@ -116,7 +180,7 @@ const AdminSellProduct = () => {
       if (result && typeof result === 'object') {
         updateState({
           createdOrder: result,
-          createdOrderImages: orderData.orderImages,
+          createdOrderImages: updatedOrderData.orderImages,
           showConfirmDialog: false
         });
       }
