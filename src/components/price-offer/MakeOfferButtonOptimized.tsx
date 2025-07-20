@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Clock, TrendingUp } from 'lucide-react';
@@ -40,23 +41,31 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
   // Use individual query as fallback if batch data is not available
   const { data: userOffer, isLoading } = useCheckPendingOffer(
     product.id, 
-    !!user && !batchOffersData // Only fetch if batch data is not available
+    !!user && !batchOffersData
   );
   
   // Get competitive offers data as fallback
   const { data: competitiveData } = useCompetitiveOffers(
     product.id, 
-    !!user && !batchOffersData // Only fetch if batch data is not available
+    !!user && !batchOffersData
   );
 
   // Determine if user's offer is the leading bid and get max other offer
   const { isLeadingBid, maxOtherOffer, hasUserOffer, userOfferPrice } = useMemo(() => {
     if (batchOffersData && batchOfferData) {
-      // Use optimized batch data
       const isLeading = batchOfferData.current_user_is_max === true;
       const maxOther = Number(batchOfferData.max_offer_price) || 0;
       const hasOffer = batchOfferData.has_pending_offer === true;
       const userPrice = Number(batchOfferData.current_user_offer_price) || 0;
+      
+      console.log('🎯 Batch offer data:', {
+        productId: product.id,
+        isLeading,
+        maxOther,
+        hasOffer,
+        userPrice,
+        batchOfferData
+      });
       
       return { 
         isLeadingBid: isLeading, 
@@ -65,11 +74,20 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
         userOfferPrice: userPrice
       };
     } else if (userOffer || competitiveData) {
-      // Fallback to individual data
       const isLeading = competitiveData?.current_user_is_max === true;
       const maxOther = Number(competitiveData?.max_offer_price) || 0;
       const hasOffer = !!userOffer;
       const userPrice = Number(userOffer?.offered_price) || 0;
+      
+      console.log('🎯 Individual offer data:', {
+        productId: product.id,
+        isLeading,
+        maxOther,
+        hasOffer,
+        userPrice,
+        userOffer,
+        competitiveData
+      });
       
       return {
         isLeadingBid: isLeading,
@@ -79,13 +97,14 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
       };
     }
     
+    console.log('🎯 No offer data found for product:', product.id);
     return { 
       isLeadingBid: false, 
       maxOtherOffer: 0, 
       hasUserOffer: false,
       userOfferPrice: 0 
     };
-  }, [batchOfferData, userOffer, competitiveData, batchOffersData]);
+  }, [batchOfferData, userOffer, competitiveData, batchOffersData, product.id]);
 
   console.log('🎯 MakeOfferButtonOptimized render:', {
     productId: product.id,
@@ -93,24 +112,35 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
     profileId: profile?.id,
     userType: profile?.user_type,
     sellerId: product.seller_id,
-    batchData: batchOfferData,
     hasUserOffer,
     userOfferPrice,
     isLeadingBid,
     maxOtherOffer,
     isLoading,
-    usingBatchData: !!batchOffersData
+    productStatus: product.status,
+    shouldShowButton: user && profile && profile.id !== product.seller_id
   });
 
-  // Don't show button if user is not logged in or is the seller
-  if (!user || !profile || profile.id === product.seller_id) {
-    console.log('🚫 Button hidden - no user or is seller');
+  // Simplified visibility logic - show button if user is logged in and not the seller
+  if (!user || !profile) {
+    console.log('🚫 Button hidden - no user or profile');
+    return null;
+  }
+
+  if (profile.id === product.seller_id) {
+    console.log('🚫 Button hidden - user is seller');
     return null;
   }
 
   // Only buyers and admins can make offers
   if (profile.user_type !== "buyer" && !hasAdminAccess) {
     console.log('🚫 Button hidden - not buyer or admin');
+    return null;
+  }
+
+  // Don't show for non-active products (except sold ones can still show existing offers)
+  if (product.status !== 'active' && product.status !== 'sold' && !hasUserOffer) {
+    console.log('🚫 Button hidden - product not active and no existing offer');
     return null;
   }
 
@@ -136,7 +166,6 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
   if (hasUserOffer && userOfferPrice > 0) {
     console.log('👤 User has pending offer:', userOfferPrice, 'isLeading:', isLeadingBid);
     
-    // Create a minimal offer object for the modal
     const userOfferForModal = userOffer || {
       id: '',
       product_id: product.id,
@@ -170,7 +199,6 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
             <span className="text-xs font-bold">${userOfferPrice}</span>
           </Button>
           
-          {/* Show competitor badge if there are other offers */}
           <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={true} />
           
           <MakeOfferModal
@@ -202,7 +230,6 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
           </span>
         </Button>
         
-        {/* Show competitor badge if there are other offers */}
         <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={false} />
         
         <MakeOfferModal
@@ -242,7 +269,6 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
         </Button>
       )}
 
-      {/* Show competitor badge if there are other offers and no user offer */}
       <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={compact} />
 
       <MakeOfferModal

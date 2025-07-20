@@ -5,7 +5,13 @@ interface CompetitorOfferBadgeProps {
 }
 
 export const CompetitorOfferBadge = ({ maxOtherOffer, compact = false }: CompetitorOfferBadgeProps) => {
-  if (maxOtherOffer <= 0) return null;
+  console.log('🏷️ CompetitorOfferBadge render:', { maxOtherOffer, compact });
+  
+  // Only show if there's a meaningful competing offer
+  if (!maxOtherOffer || maxOtherOffer <= 0) {
+    console.log('🏷️ Badge hidden - no competing offer');
+    return null;
+  }
 
   if (compact) {
     return (

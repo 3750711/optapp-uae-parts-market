@@ -3,9 +3,10 @@ import React, { memo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, MapPin, Phone, MessageCircle, ExternalLink } from "lucide-react";
+import { Eye, MapPin, Phone, MessageCircle, ExternalLink, ShoppingCart } from "lucide-react";
 import ProductCarousel from "./ProductCarousel";
 import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
+import { BlitzPriceSection } from "@/components/price-offer/BlitzPriceSection";
 import { formatPrice } from "@/utils/formatPrice";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -72,6 +73,12 @@ const ProductCard = memo(({
     if (onStatusChange) {
       onStatusChange(product.id, newStatus);
     }
+  };
+
+  const handleBuyNow = () => {
+    console.log('Buy now clicked for product:', product.id);
+    // TODO: Implement buy now functionality
+    navigate(`/product/${product.id}?action=buy`);
   };
 
   const statusColor = {
@@ -191,42 +198,64 @@ const ProductCard = memo(({
             )}
           </div>
 
-          {/* Seller and Location */}
-          <div className="space-y-1 mb-3">
-            <div className="flex items-center text-xs text-gray-600">
+          {/* Enhanced Product Details */}
+          <div className="space-y-1 mb-3 text-xs text-gray-600">
+            {/* Seller Info */}
+            <div className="flex items-center justify-between">
               <span className="font-medium">Продавец:</span>
-              <span className="ml-1 truncate">{product.seller_name}</span>
-              {product.rating_seller && (
-                <span className="ml-2 text-yellow-600">
-                  ⭐ {product.rating_seller}
-                </span>
-              )}
+              <div className="flex items-center gap-1">
+                <span className="truncate max-w-[120px]">{product.seller_name}</span>
+                {product.rating_seller && (
+                  <span className="text-yellow-600 flex items-center">
+                    ⭐ {product.rating_seller}
+                  </span>
+                )}
+              </div>
             </div>
             
+            {/* Location */}
             {product.product_location && (
-              <div className="flex items-center text-xs text-gray-500">
-                <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
-                <span className="truncate">{product.product_location}</span>
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Местоположение:</span>
+                <span className="truncate max-w-[120px]">{product.product_location}</span>
+              </div>
+            )}
+            
+            {/* Lot and Place Numbers */}
+            {(product.lot_number || product.place_number) && (
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Лот/Место:</span>
+                <span>
+                  {product.lot_number && `Лот ${product.lot_number}`}
+                  {product.lot_number && product.place_number && ' • '}
+                  {product.place_number && `Место ${product.place_number}`}
+                </span>
+              </div>
+            )}
+            
+            {/* Delivery Price */}
+            {product.delivery_price && product.delivery_price > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Доставка:</span>
+                <span>{formatPrice(product.delivery_price)}</span>
               </div>
             )}
           </div>
-
-          {/* Additional Info */}
-          {(product.lot_number || product.place_number) && (
-            <div className="flex gap-2 text-xs text-gray-500 mb-3">
-              {product.lot_number && (
-                <span>Лот: {product.lot_number}</span>
-              )}
-              {product.place_number && (
-                <span>Место: {product.place_number}</span>
-              )}
-            </div>
-          )}
         </CardContent>
       </div>
 
       {/* Action Buttons */}
       <div className="px-4 pb-4 space-y-2">
+        {/* Blitz Buy Section for active products */}
+        {product.status === 'active' && (
+          <BlitzPriceSection
+            price={product.price}
+            onBuyNow={handleBuyNow}
+            compact={true}
+          />
+        )}
+
+        {/* Make Offer Button */}
         {!hideMakeOfferButton && (
           <MakeOfferButtonOptimized 
             product={productForOfferButton} 
