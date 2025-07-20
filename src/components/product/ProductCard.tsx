@@ -1,10 +1,11 @@
+
 import React, { memo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, MapPin, Phone, MessageCircle, ExternalLink } from "lucide-react";
 import ProductCarousel from "./ProductCarousel";
-import { SimpleOfferButton } from "@/components/price-offer/SimpleOfferButton";
+import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
 import { formatPrice } from "@/utils/formatPrice";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -79,6 +80,43 @@ const ProductCard = memo(({
   }[product.status] || "bg-gray-100 text-gray-800";
 
   const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
+
+  // Convert ProductProps to Product type for MakeOfferButton
+  const productForOfferButton = {
+    id: product.id,
+    title: product.title,
+    price: product.price,
+    brand: product.brand,
+    model: product.model || '',
+    condition: product.condition || 'Новое',
+    seller_name: product.seller_name,
+    seller_id: product.seller_id,
+    status: product.status as 'pending' | 'active' | 'sold' | 'archived',
+    description: product.description,
+    lot_number: product.lot_number || 0,
+    place_number: product.place_number,
+    delivery_price: product.delivery_price,
+    product_location: product.product_location,
+    telegram_url: product.telegram_url,
+    phone_url: product.phone_url,
+    view_count: product.view_count,
+    rating_seller: product.rating_seller,
+    cloudinary_url: product.cloudinary_url,
+    cloudinary_public_id: product.cloudinary_public_id,
+    product_images: product.product_images?.map(img => ({
+      id: img.id || '',
+      product_id: img.product_id || product.id,
+      url: img.url,
+      is_primary: img.is_primary || false
+    })) || [],
+    product_videos: product.product_videos?.map(video => ({
+      id: '',
+      product_id: product.id,
+      url: video.url
+    })) || [],
+    created_at: product.created_at || new Date().toISOString(),
+    updated_at: product.updated_at || new Date().toISOString()
+  };
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group">
@@ -188,43 +226,7 @@ const ProductCard = memo(({
       {/* Action Buttons */}
       <div className="px-4 pb-4 space-y-2">
         {!hideMakeOfferButton && (
-          <SimpleOfferButton
-            product={{
-              id: product.id,
-              title: product.title,
-              price: product.price,
-              brand: product.brand,
-              model: product.model || '',
-              condition: product.condition || 'Новое',
-              seller_name: product.seller_name,
-              seller_id: product.seller_id,
-              status: product.status,
-              description: product.description,
-              lot_number: product.lot_number || 0,
-              place_number: product.place_number,
-              delivery_price: product.delivery_price,
-              product_location: product.product_location,
-              telegram_url: product.telegram_url,
-              phone_url: product.phone_url,
-              view_count: product.view_count,
-              rating_seller: product.rating_seller,
-              cloudinary_url: product.cloudinary_url,
-              cloudinary_public_id: product.cloudinary_public_id,
-              product_images: product.product_images?.map(img => ({
-                id: img.id || '',
-                product_id: img.product_id || product.id,
-                url: img.url,
-                is_primary: img.is_primary || false
-              })) || [],
-              product_videos: product.product_videos?.map(video => ({
-                id: '',
-                product_id: product.id,
-                url: video.url
-              })) || [],
-              created_at: product.created_at || new Date().toISOString(),
-              updated_at: product.updated_at || new Date().toISOString()
-            }}
-          />
+          <MakeOfferButton product={productForOfferButton} />
         )}
 
         <div className="flex gap-2">
