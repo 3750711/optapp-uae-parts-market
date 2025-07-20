@@ -58,6 +58,15 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
     },
   });
 
+  // Debug logging
+  console.log(`Order #${order.order_number}:`, {
+    orderId: order.id,
+    status: order.status,
+    orderCreatedType: order.order_created_type,
+    confirmImagesCount: confirmImages.length,
+    hasConfirmImages: confirmImages.length > 0
+  });
+
   const totalValue = Number(order.price || 0) + Number(order.delivery_price_confirm || 0);
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
 
@@ -219,28 +228,30 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
             </Button>
           )}
           
-          {confirmImages.length > 0 ? (
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
-              onClick={() => setIsConfirmImagesDialogOpen(true)}
-            >
+          {/* Photo Upload Button - Always visible */}
+          <Button
+            variant="outline"
+            size="icon"
+            className={`h-8 w-8 ${
+              confirmImages.length > 0 
+                ? 'text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700' 
+                : 'border-gray-200 hover:bg-gray-50'
+            }`}
+            onClick={() => {
+              console.log(`Photo button clicked for order #${order.order_number}`);
+              setIsConfirmImagesDialogOpen(true);
+            }}
+          >
+            {confirmImages.length > 0 ? (
               <CheckCircle className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setIsConfirmImagesDialogOpen(true)}
-            >
+            ) : (
               <Camera className="h-4 w-4" />
-            </Button>
-          )}
+            )}
+          </Button>
         </div>
       </CardContent>
       <Dialog open={isConfirmImagesDialogOpen} onOpenChange={(isOpen) => {
+        console.log(`Dialog ${isOpen ? 'opened' : 'closed'} for order #${order.order_number}`);
         setIsConfirmImagesDialogOpen(isOpen);
         if (!isOpen) {
           queryClient.invalidateQueries({ queryKey: ['confirm-images', order.id] });
