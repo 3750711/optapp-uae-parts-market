@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreatePriceOfferData, PriceOffer, UpdatePriceOfferData } from '@/types/price-offer';
 import { toast } from 'sonner';
+import { useBatchOffersInvalidation } from './use-price-offers-batch';
 
 // Hook для проверки существующего предложения пользователя
 export const useCheckPendingOffer = (productId: string, enabled: boolean = true) => {
@@ -60,6 +61,7 @@ export const useCompetitiveOffers = (productId: string, enabled: boolean = true)
 // Hook для создания предложения цены
 export const useCreatePriceOffer = () => {
   const queryClient = useQueryClient();
+  const { invalidateBatchOffers } = useBatchOffersInvalidation();
   
   return useMutation({
     mutationFn: async (data: CreatePriceOfferData) => {
@@ -82,6 +84,7 @@ export const useCreatePriceOffer = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['user-offer', data.product_id] });
       queryClient.invalidateQueries({ queryKey: ['competitive-offers', data.product_id] });
+      invalidateBatchOffers([data.product_id]);
       toast.success('Предложение отправлено!');
     },
     onError: (error) => {
@@ -94,6 +97,7 @@ export const useCreatePriceOffer = () => {
 // Hook для обновления предложения цены
 export const useUpdatePriceOffer = () => {
   const queryClient = useQueryClient();
+  const { invalidateBatchOffers } = useBatchOffersInvalidation();
   
   return useMutation({
     mutationFn: async ({ offerId, data }: { offerId: string; data: UpdatePriceOfferData }) => {
@@ -110,6 +114,7 @@ export const useUpdatePriceOffer = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['user-offer', data.product_id] });
       queryClient.invalidateQueries({ queryKey: ['competitive-offers', data.product_id] });
+      invalidateBatchOffers([data.product_id]);
       toast.success('Предложение обновлено!');
     },
     onError: (error) => {

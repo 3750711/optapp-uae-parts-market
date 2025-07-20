@@ -4,7 +4,7 @@ import { Clock, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Product } from '@/types/product';
-import { useCheckPendingOffer } from '@/hooks/use-price-offers';
+import { useCheckPendingOffer, useCompetitiveOffers } from '@/hooks/use-price-offers';
 import { MakeOfferModal } from './MakeOfferModal';
 import { CompetitorOfferBadge } from './CompetitorOfferBadge';
 import { BatchOfferData, useProductOfferFromBatch } from '@/hooks/use-price-offers-batch';
@@ -42,6 +42,12 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
     product.id, 
     !!user && !batchOffersData // Only fetch if batch data is not available
   );
+  
+  // Get competitive offers data as fallback
+  const { data: competitiveData } = useCompetitiveOffers(
+    product.id, 
+    !!user && !batchOffersData // Only fetch if batch data is not available
+  );
 
   // Determine if user's offer is the leading bid and get max other offer
   const { isLeadingBid, maxOtherOffer, hasUserOffer, userOfferPrice } = useMemo(() => {
@@ -58,13 +64,18 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
         hasUserOffer: hasOffer,
         userOfferPrice: userPrice
       };
-    } else if (userOffer) {
-      // Fallback to individual data - we'll need to make another query for competitive data
+    } else if (userOffer || competitiveData) {
+      // Fallback to individual data
+      const isLeading = competitiveData?.current_user_is_max === true;
+      const maxOther = Number(competitiveData?.max_offer_price) || 0;
+      const hasOffer = !!userOffer;
+      const userPrice = Number(userOffer?.offered_price) || 0;
+      
       return {
-        isLeadingBid: false, // We don't have competitive data in fallback mode
-        maxOtherOffer: 0,
-        hasUserOffer: true,
-        userOfferPrice: Number(userOffer.offered_price) || 0
+        isLeadingBid: isLeading,
+        maxOtherOffer: maxOther,
+        hasUserOffer: hasOffer,
+        userOfferPrice: userPrice
       };
     }
     
@@ -74,7 +85,7 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
       hasUserOffer: false,
       userOfferPrice: 0 
     };
-  }, [batchOfferData, userOffer, batchOffersData]);
+  }, [batchOfferData, userOffer, competitiveData, batchOffersData]);
 
   console.log('🎯 MakeOfferButtonOptimized render:', {
     productId: product.id,

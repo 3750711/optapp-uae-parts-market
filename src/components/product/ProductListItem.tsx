@@ -3,21 +3,24 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Star } from "lucide-react";
-import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
+import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ProductProps } from "./ProductCard";
+import { BatchOfferData } from "@/hooks/use-price-offers-batch";
 
 interface ProductListItemProps {
   product: ProductProps;
   showSoldButton?: boolean;
   onStatusChange?: () => void;
+  batchOffersData?: BatchOfferData[];
 }
 
 const ProductListItem: React.FC<ProductListItemProps> = ({ 
   product, 
   showSoldButton = false, 
-  onStatusChange 
+  onStatusChange,
+  batchOffersData 
 }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
@@ -114,7 +117,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
       {/* Кнопка предложения цены */}
       {product.status === 'active' && product.seller_name && (
         <div className="absolute bottom-4 right-4 z-10">
-          <MakeOfferButton 
+          <MakeOfferButtonOptimized 
             product={{
               ...product,
               brand: product.brand || '',
@@ -139,6 +142,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               })) || []
             }}
             compact={true}
+            batchOffersData={batchOffersData}
           />
         </div>
       )}

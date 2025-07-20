@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, MapPin, Phone, MessageCircle, ExternalLink } from "lucide-react";
 import ProductCarousel from "./ProductCarousel";
-import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
 import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
 import { formatPrice } from "@/utils/formatPrice";
 import { useAuth } from "@/contexts/AuthContext";
@@ -229,14 +228,10 @@ const ProductCard = memo(({
       {/* Action Buttons */}
       <div className="px-4 pb-4 space-y-2">
         {!hideMakeOfferButton && (
-          batchOffersData ? (
-            <MakeOfferButtonOptimized 
-              product={productForOfferButton} 
-              batchOffersData={batchOffersData}
-            />
-          ) : (
-            <MakeOfferButton product={productForOfferButton} />
-          )
+          <MakeOfferButtonOptimized 
+            product={productForOfferButton} 
+            batchOffersData={batchOffersData}
+          />
         )}
 
         <div className="flex gap-2">

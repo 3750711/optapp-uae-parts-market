@@ -134,6 +134,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
         containerHeight={containerHeight}
         showSoldButton={showSoldButton}
         onStatusChange={onStatusChange}
+        batchOffersData={batchOffersData}
       />
     );
   }
@@ -189,6 +190,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
             product={product} 
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
+            batchOffersData={batchOffersData}
           />
         ))}
       </div>

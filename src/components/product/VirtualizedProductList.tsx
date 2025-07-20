@@ -3,6 +3,7 @@ import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { ProductProps } from './ProductCard';
 import ProductListItem from './ProductListItem';
+import { BatchOfferData } from '@/hooks/use-price-offers-batch';
 
 interface VirtualizedProductListProps {
   products: ProductProps[];
@@ -10,6 +11,7 @@ interface VirtualizedProductListProps {
   itemHeight?: number;
   showSoldButton?: boolean;
   onStatusChange?: () => void;
+  batchOffersData?: BatchOfferData[];
 }
 
 const VirtualizedProductList: React.FC<VirtualizedProductListProps> = ({
@@ -17,7 +19,8 @@ const VirtualizedProductList: React.FC<VirtualizedProductListProps> = ({
   containerHeight = 600,
   itemHeight = 120,
   showSoldButton = false,
-  onStatusChange
+  onStatusChange,
+  batchOffersData
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(window.innerWidth);
@@ -51,6 +54,7 @@ const VirtualizedProductList: React.FC<VirtualizedProductListProps> = ({
           product={product}
           showSoldButton={showSoldButton}
           onStatusChange={onStatusChange}
+          batchOffersData={batchOffersData}
         />
       </div>
     );
@@ -76,6 +80,7 @@ const VirtualizedProductList: React.FC<VirtualizedProductListProps> = ({
             product={product}
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
+            batchOffersData={batchOffersData}
           />
         ))}
       </div>
