@@ -149,9 +149,12 @@ const Header = () => {
         <div className="flex items-center space-x-3">
           {user ? (
             <div className="flex items-center space-x-2">
-              <NotificationBell />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              {/* Show NotificationBell only on desktop */}
+              {!isMobile && <NotificationBell />}
+              
+              {/* Mobile: Link to profile menu page */}
+              {isMobile ? (
+                <Link to="/profile-menu">
                   <Button 
                     variant="ghost" 
                     className="relative rounded-full h-10 w-10 p-0 text-primary bg-accent/50 border border-primary/20 transition-transform hover:scale-110"
@@ -166,136 +169,159 @@ const Header = () => {
                       </AvatarFallback>
                     </Avatar>
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white text-foreground shadow-elevation border border-gray-200 rounded-lg animate-scale-in">
-                  <DropdownMenuLabel className="flex flex-col gap-1">
-                    <span>{user.user_metadata?.full_name || user.email}</span>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  
-                  {/* Profile Settings */}
-                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to="/profile" className="flex w-full items-center">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Мой профиль</span>
-                    </Link>
-                  </DropdownMenuItem>
+                </Link>
+              ) : (
+                /* Desktop: Dropdown menu */
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="relative rounded-full h-10 w-10 p-0 text-primary bg-accent/50 border border-primary/20 transition-transform hover:scale-110"
+                    >
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage 
+                          src={user.user_metadata?.avatar_url || ''} 
+                          alt={user.user_metadata?.full_name || 'User'} 
+                        />
+                        <AvatarFallback className="bg-primary text-white">
+                          {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-white text-foreground shadow-elevation border border-gray-200 rounded-lg animate-scale-in">
+                    <DropdownMenuLabel className="flex flex-col gap-1">
+                      <span>{user.user_metadata?.full_name || user.email}</span>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    
+                    {/* Profile Settings */}
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to="/profile" className="flex w-full items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Настройки профиля</span>
+                      </Link>
+                    </DropdownMenuItem>
 
-                  <DropdownMenuSeparator />
+                    <DropdownMenuSeparator />
 
-                  {/* Universal Items */}
-                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to="/notifications" className="flex w-full items-center">
-                      <Bell className="mr-2 h-4 w-4" />
-                      <span>Уведомления</span>
-                      {unreadCount > 0 && (
-                        <Badge variant="destructive" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                          {unreadCount > 99 ? '99+' : unreadCount}
-                        </Badge>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
+                    {/* Universal Items */}
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to="/notifications" className="flex w-full items-center">
+                        <Bell className="mr-2 h-4 w-4" />
+                        <span>Уведомления</span>
+                        {unreadCount > 0 && (
+                          <Badge variant="destructive" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </Badge>
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
 
-                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to="/favorites" className="flex w-full items-center">
-                      <Heart className="mr-2 h-4 w-4" />
-                      <span>Избранное</span>
-                      {favorites.length > 0 && (
-                        <Badge variant="secondary" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                          {favorites.length > 99 ? '99+' : favorites.length}
-                        </Badge>
-                      )}
-                    </Link>
-                  </DropdownMenuItem>
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to="/favorites" className="flex w-full items-center">
+                        <Heart className="mr-2 h-4 w-4" />
+                        <span>Избранное</span>
+                        {favorites.length > 0 && (
+                          <Badge variant="secondary" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                            {favorites.length > 99 ? '99+' : favorites.length}
+                          </Badge>
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
 
-                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to="/help" className="flex w-full items-center">
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      <span>Помощь</span>
-                    </Link>
-                  </DropdownMenuItem>
+                    <DropdownMenuSeparator />
 
-                  <DropdownMenuSeparator />
+                    {/* Buyer-specific Items */}
+                    {profile?.user_type === 'buyer' && (
+                      <>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/buyer-orders" className="flex w-full items-center">
+                            <ShoppingCart className="mr-2 h-4 w-4" />
+                            <span>Мои заказы</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/buyer-price-offers" className="flex w-full items-center">
+                            <Package className="mr-2 h-4 w-4" />
+                            <span>Мои предложения цены</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
 
-                  {/* Buyer-specific Items */}
-                  {profile?.user_type === 'buyer' && (
-                    <>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/buyer-orders" className="flex w-full items-center">
-                          <ShoppingCart className="mr-2 h-4 w-4" />
-                          <span>Мои заказы</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/buyer-price-offers" className="flex w-full items-center">
-                          <Package className="mr-2 h-4 w-4" />
-                          <span>Мои предложения цены</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
+                    {/* Seller-specific Items */}
+                    {profile?.user_type === 'seller' && (
+                      <>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/dashboard" className="flex w-full items-center">
+                            <Store className="mr-2 h-4 w-4" />
+                            <span>Панель продавца</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/listings" className="flex w-full items-center">
+                            <Package className="mr-2 h-4 w-4" />
+                            <span>Мои товары</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/add-product" className="flex w-full items-center">
+                            <Plus className="mr-2 h-4 w-4" />
+                            <span>Добавить товар</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/orders" className="flex w-full items-center">
+                            <ClipboardList className="mr-2 h-4 w-4" />
+                            <span>Мои заказы</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/price-offers" className="flex w-full items-center">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            <span>Предложения по товарам</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    
+                    {/* Admin Panel */}
+                    {!isLoading && !isCheckingAdmin && isAdmin && (
+                      <>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/admin" className="flex w-full items-center">
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            <span>Админ панель</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
 
-                  {/* Seller-specific Items */}
-                  {profile?.user_type === 'seller' && (
-                    <>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/dashboard" className="flex w-full items-center">
-                          <Store className="mr-2 h-4 w-4" />
-                          <span>Панель продавца</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/listings" className="flex w-full items-center">
-                          <Package className="mr-2 h-4 w-4" />
-                          <span>Мои товары</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/add-product" className="flex w-full items-center">
-                          <Plus className="mr-2 h-4 w-4" />
-                          <span>Добавить товар</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/orders" className="flex w-full items-center">
-                          <ClipboardList className="mr-2 h-4 w-4" />
-                          <span>Мои заказы</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/price-offers" className="flex w-full items-center">
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          <span>Предложения по товарам</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  
-                  {/* Admin Panel */}
-                  {!isLoading && !isCheckingAdmin && isAdmin && (
-                    <>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/admin" className="flex w-full items-center">
-                          <LayoutDashboard className="mr-2 h-4 w-4" />
-                          <span>Админ панель</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  
-                  {/* Logout */}
-                  <DropdownMenuItem 
-                    onClick={handleLogout} 
-                    className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Выйти</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    {/* Help */}
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to="/help" className="flex w-full items-center">
+                        <HelpCircle className="mr-2 h-4 w-4" />
+                        <span>Помощь</span>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+                    
+                    {/* Logout */}
+                    <DropdownMenuItem 
+                      onClick={handleLogout} 
+                      className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Выйти</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           ) : (
             <div className="flex items-center space-x-2">

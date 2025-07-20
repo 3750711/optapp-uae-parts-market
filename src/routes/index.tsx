@@ -1,4 +1,3 @@
-
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import RouteSEO from '@/components/routing/RouteSEO';
@@ -74,6 +73,9 @@ const AdminCarCatalog = lazy(() => import('@/pages/AdminCarCatalog'));
 const AdminMessages = lazy(() => import('@/pages/AdminMessages'));
 const AdminPriceOffers = lazy(() => import('@/pages/admin/AdminPriceOffers'));
 
+// Mobile specific pages
+const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
+
 const AppRoutes: React.FC = () => {
   return (
     <>
@@ -137,6 +139,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile-menu" element={
+              <ProtectedRoute>
+                <MobileProfileMenu />
               </ProtectedRoute>
             } />
             <Route path="/create-store" element={
