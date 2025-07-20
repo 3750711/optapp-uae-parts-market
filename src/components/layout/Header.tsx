@@ -13,11 +13,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, Menu, Store, MessageSquare } from "lucide-react";
+import { 
+  User, 
+  LogOut, 
+  Package, 
+  ShoppingCart, 
+  Plus, 
+  Settings, 
+  LayoutDashboard, 
+  Menu, 
+  Store, 
+  MessageSquare,
+  Bell,
+  Heart,
+  HelpCircle,
+  ClipboardList,
+  ShoppingBag
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useFavorites } from '@/hooks/useFavorites';
 import {
   Sheet,
   SheetContent,
@@ -27,6 +45,8 @@ import {
 const Header = () => {
   const { user, signOut, profile, isLoading } = useAuth();
   const { isAdmin, isCheckingAdmin } = useAdminAccess();
+  const { unreadCount } = useNotifications();
+  const { favorites } = useFavorites();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -153,6 +173,7 @@ const Header = () => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
+                  {/* Profile Settings */}
                   <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/profile" className="flex w-full items-center">
                       <Settings className="mr-2 h-4 w-4" />
@@ -160,7 +181,43 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
 
-                  {/* Покупательские ссылки */}
+                  <DropdownMenuSeparator />
+
+                  {/* Universal Items */}
+                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                    <Link to="/notifications" className="flex w-full items-center">
+                      <Bell className="mr-2 h-4 w-4" />
+                      <span>Уведомления</span>
+                      {unreadCount > 0 && (
+                        <Badge variant="destructive" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Badge>
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                    <Link to="/favorites" className="flex w-full items-center">
+                      <Heart className="mr-2 h-4 w-4" />
+                      <span>Избранное</span>
+                      {favorites.length > 0 && (
+                        <Badge variant="secondary" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                          {favorites.length > 99 ? '99+' : favorites.length}
+                        </Badge>
+                      )}
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                    <Link to="/help" className="flex w-full items-center">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      <span>Помощь</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  {/* Buyer-specific Items */}
                   {profile?.user_type === 'buyer' && (
                     <>
                       <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
@@ -175,10 +232,11 @@ const Header = () => {
                           <span>Мои предложения цены</span>
                         </Link>
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                     </>
                   )}
 
-                  {/* Продавецкие ссылки */}
+                  {/* Seller-specific Items */}
                   {profile?.user_type === 'seller' && (
                     <>
                       <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
@@ -188,31 +246,47 @@ const Header = () => {
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                        <Link to="/seller/listings" className="flex w-full items-center">
+                          <Package className="mr-2 h-4 w-4" />
+                          <span>Мои товары</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                        <Link to="/seller/add-product" className="flex w-full items-center">
+                          <Plus className="mr-2 h-4 w-4" />
+                          <span>Добавить товар</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                        <Link to="/seller/orders" className="flex w-full items-center">
+                          <ClipboardList className="mr-2 h-4 w-4" />
+                          <span>Мои заказы</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                         <Link to="/seller/price-offers" className="flex w-full items-center">
                           <MessageSquare className="mr-2 h-4 w-4" />
                           <span>Предложения по товарам</span>
                         </Link>
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
                     </>
                   )}
                   
-                  {/* Показываем кнопку админ панели только если пользователь админ и не идет загрузка */}
+                  {/* Admin Panel */}
                   {!isLoading && !isCheckingAdmin && isAdmin && (
-                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                      <Link to="/admin" className="flex w-full items-center">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        <span>Админ панель</span>
-                      </Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                        <Link to="/admin" className="flex w-full items-center">
+                          <LayoutDashboard className="mr-2 h-4 w-4" />
+                          <span>Админ панель</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
                   )}
                   
-                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to="/catalog" className="flex w-full items-center">
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      <span>Каталог</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  {/* Logout */}
                   <DropdownMenuItem 
                     onClick={handleLogout} 
                     className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
