@@ -1,8 +1,10 @@
+
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PriceOffer, CreatePriceOfferData, UpdatePriceOfferData } from "@/types/price-offer";
 import { toast } from "@/hooks/use-toast";
+import { useRealTimePriceOffers } from "./use-price-offers-realtime";
 
 interface UpdateOfferPriceData {
   offered_price: number;
@@ -283,7 +285,23 @@ export const useUpdatePriceOffer = () => {
 
 // Check if user has pending offer for product
 export const useCheckPendingOffer = (productId: string, enabled = true) => {
-  const queryClient = useQueryClient();
+  const [userId, setUserId] = React.useState<string>();
+
+  // Get current user ID
+  React.useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id);
+    };
+    getCurrentUser();
+  }, []);
+
+  // Set up real-time subscription
+  useRealTimePriceOffers({ 
+    productId, 
+    enabled: enabled && !!productId,
+    userId 
+  });
   
   const query = useQuery({
     queryKey: ["pending-offer", productId],
@@ -303,51 +321,34 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
       return data;
     },
     enabled: enabled && !!productId,
-    staleTime: 5000, // Reduced to 5 seconds for faster updates
-    refetchInterval: 15000, // More frequent refetch for real-time feel
+    staleTime: 3000, // Reduced for faster updates
+    refetchInterval: 30000, // Less frequent polling since we have real-time
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
-
-  // Set up real-time subscription
-  React.useEffect(() => {
-    if (!enabled || !productId) return;
-
-    const channel = supabase
-      .channel(`price-offers-${productId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'price_offers',
-          filter: `product_id=eq.${productId}`
-        },
-        (payload) => {
-          console.log('Price offers real-time update:', payload);
-          // Immediate invalidation for real-time updates
-          queryClient.invalidateQueries({ 
-            queryKey: ["pending-offer", productId] 
-          });
-          // Also update competitive offers for consistency
-          queryClient.invalidateQueries({ 
-            queryKey: ["competitive-offers", productId] 
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [enabled, productId, queryClient]);
 
   return query;
 };
 
 // Hook for competitive offers - show max offer from other buyers
 export const useCompetitiveOffers = (productId: string, enabled = true) => {
-  const queryClient = useQueryClient();
+  const [userId, setUserId] = React.useState<string>();
+
+  // Get current user ID
+  React.useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserId(user?.id);
+    };
+    getCurrentUser();
+  }, []);
+
+  // Set up real-time subscription (shared with pending offers)
+  useRealTimePriceOffers({ 
+    productId, 
+    enabled: enabled && !!productId,
+    userId 
+  });
   
   const query = useQuery({
     queryKey: ["competitive-offers", productId],
@@ -369,44 +370,11 @@ export const useCompetitiveOffers = (productId: string, enabled = true) => {
       };
     },
     enabled: enabled && !!productId,
-    staleTime: 3000, // Very fast updates for competitive scenarios
-    refetchInterval: 10000, // Even more frequent for competitive offers
+    staleTime: 2000, // Very fast updates for competitive scenarios
+    refetchInterval: 30000, // Less frequent polling since we have real-time
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
-
-  // Set up real-time subscription for competitive offers
-  React.useEffect(() => {
-    if (!enabled || !productId) return;
-
-    const channel = supabase
-      .channel(`competitive-offers-${productId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'price_offers',
-          filter: `product_id=eq.${productId}`
-        },
-        (payload) => {
-          console.log('Competitive offers real-time update:', payload);
-          // Immediate invalidation for real-time updates
-          queryClient.invalidateQueries({ 
-            queryKey: ["competitive-offers", productId] 
-          });
-          // Also invalidate pending offers to ensure consistency
-          queryClient.invalidateQueries({ 
-            queryKey: ["pending-offer", productId] 
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [enabled, productId, queryClient]);
 
   return query;
 };

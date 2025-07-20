@@ -35,8 +35,19 @@ export const MakeOfferButton = ({
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
   
-  const { data: pendingOffer, isLoading: isPendingLoading } = useCheckPendingOffer(product.id, !!user);
-  const { data: competitiveData, isLoading: isCompetitiveLoading } = useCompetitiveOffers(product.id, !!user);
+  console.log('🔄 MakeOfferButton render for product:', product.id, 'user:', user?.id);
+  
+  const { data: pendingOffer, isLoading: isPendingLoading, error: pendingError } = useCheckPendingOffer(product.id, !!user);
+  const { data: competitiveData, isLoading: isCompetitiveLoading, error: competitiveError } = useCompetitiveOffers(product.id, !!user);
+
+  console.log('🔄 MakeOfferButton data:', {
+    pendingOffer,
+    competitiveData,
+    isPendingLoading,
+    isCompetitiveLoading,
+    pendingError,
+    competitiveError
+  });
 
   // Show button only for buyers and admins, but not for the seller
   if (!user || !profile || profile.id === product.seller_id) {
