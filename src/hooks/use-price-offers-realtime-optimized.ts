@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +9,7 @@ interface UseGlobalRealTimePriceOffersProps {
   userId?: string;
 }
 
-// Global real-time hook for all price offers
+// Оптимизированный global real-time hook для всех price offers
 export const useGlobalRealTimePriceOffers = ({ 
   enabled, 
   userId 
@@ -19,39 +20,67 @@ export const useGlobalRealTimePriceOffers = ({
   const lastUpdateRef = useRef<number>(0);
   const pendingUpdatesRef = useRef<Set<string>>(new Set());
   const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectAttemptsRef = useRef<number>(0);
   
-  const DEBOUNCE_MS = 3000; // 3 second debounce for stability
+  // Оптимизированное время debounce для auction системы
+  const DEBOUNCE_MS = 500; // Уменьшено с 3000 до 500ms для быстрых обновлений
+  const MAX_RECONNECT_ATTEMPTS = 5;
+  const RECONNECT_DELAY = 2000; // 2 секунды между попытками
 
   const processPendingUpdates = useCallback(() => {
     const productIds = Array.from(pendingUpdatesRef.current);
     if (productIds.length === 0) return;
 
-    console.log('🔄 Processing batch real-time updates for products:', productIds);
+    console.log('🚀 Processing optimized real-time updates for products:', productIds);
     
-    // Invalidate batch offers for affected products
+    // Селективная инвалидация только для затронутых продуктов
     invalidateBatchOffers(productIds);
     
-    // Also invalidate user's offer lists if userId is available
+    // Также инвалидируем пользовательские списки предложений если userId доступен
     if (userId) {
       queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
       queryClient.invalidateQueries({ queryKey: ["seller-price-offers"] });
     }
     
-    // Clear pending updates
+    // Очищаем pending updates
     pendingUpdatesRef.current.clear();
+    lastUpdateRef.current = Date.now();
   }, [invalidateBatchOffers, queryClient, userId]);
+
+  const handleReconnect = useCallback(() => {
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.error('❌ Max reconnection attempts reached for global price offers');
+      return;
+    }
+
+    reconnectAttemptsRef.current += 1;
+    console.log(`🔄 Attempting to reconnect (${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`);
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+      // Повторная инициализация произойдет через useEffect
+    }, RECONNECT_DELAY * reconnectAttemptsRef.current); // Экспоненциальная задержка
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
 
-    // Cleanup existing channel
+    // Очистка существующих каналов
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
-    const channelName = 'global-price-offers-realtime';
-    console.log(`🔄 Setting up global real-time channel: ${channelName}`);
+    const channelName = `global-price-offers-realtime-${Date.now()}`;
+    console.log(`🔄 Setting up optimized global real-time channel: ${channelName}`);
 
     const channel = supabase
       .channel(channelName)
@@ -65,60 +94,65 @@ export const useGlobalRealTimePriceOffers = ({
         (payload) => {
           const now = Date.now();
           
-          // Extract product_id from payload
+          // Извлечение product_id из payload
           const productId = payload.new?.product_id || payload.old?.product_id;
           if (!productId) return;
 
-          console.log('🔄 Global real-time price offers update:', {
+          console.log('⚡ Fast real-time price offers update:', {
             event: payload.eventType,
             productId,
             userId,
-            payload
+            timestamp: now
           });
 
-          // Add to pending updates
+          // Добавляем в pending updates для batch обработки
           pendingUpdatesRef.current.add(productId);
-          lastUpdateRef.current = now;
 
-          // Clear existing debounce timer
+          // Throttle обновлений для предотвращения spam
+          const timeSinceLastUpdate = now - lastUpdateRef.current;
+          if (timeSinceLastUpdate < 100) { // Minimum 100ms между обновлениями
+            return;
+          }
+
+          // Очистка существующего debounce timer
           if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current);
           }
 
-          // Set new debounce timer
+          // Быстрое обновление для критичных случаев
           debounceTimerRef.current = setTimeout(() => {
             processPendingUpdates();
           }, DEBOUNCE_MS);
         }
       )
       .subscribe((status) => {
-        console.log(`🔄 Global real-time subscription status:`, status);
+        console.log(`🔄 Optimized real-time subscription status:`, status);
         
         if (status === 'SUBSCRIBED') {
-          console.log(`✅ Successfully subscribed to global price offers updates`);
+          console.log(`✅ Successfully subscribed to optimized price offers updates`);
+          reconnectAttemptsRef.current = 0; // Сброс счетчика попыток при успешном подключении
         } else if (status === 'CHANNEL_ERROR') {
           console.error(`❌ Global channel error, attempting to reconnect...`);
-          // Attempt to reconnect after a delay
-          setTimeout(() => {
-            if (channelRef.current) {
-              channelRef.current.unsubscribe();
-              channelRef.current = null;
-            }
-          }, 5000);
+          handleReconnect();
+        } else if (status === 'CLOSED') {
+          console.log(`🔄 Channel closed`);
         }
       });
 
     channelRef.current = channel;
 
     return () => {
-      console.log(`🔄 Cleaning up global real-time channel`);
+      console.log(`🔄 Cleaning up optimized global real-time channel`);
       
-      // Clear debounce timer
+      // Очистка всех таймеров
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       
-      // Process any pending updates before cleanup
+      // Обработка pending updates перед cleanup
       if (pendingUpdatesRef.current.size > 0) {
         processPendingUpdates();
       }
@@ -128,12 +162,15 @@ export const useGlobalRealTimePriceOffers = ({
         channelRef.current = null;
       }
     };
-  }, [enabled, userId, processPendingUpdates]);
+  }, [enabled, userId, processPendingUpdates, handleReconnect]);
 
-  return channelRef.current;
+  return {
+    isConnected: channelRef.current?.state === 'subscribed',
+    reconnectAttempts: reconnectAttemptsRef.current
+  };
 };
 
-// Legacy hook for backward compatibility - now uses global channel
+// Legacy hook для обратной совместимости - теперь использует global channel
 export const useOptimizedRealTimePriceOffers = ({ 
   productId, 
   enabled, 
@@ -143,6 +180,6 @@ export const useOptimizedRealTimePriceOffers = ({
   enabled: boolean;
   userId?: string;
 }) => {
-  // Use global real-time instead of per-product channels
+  // Используем global real-time вместо per-product channels для лучшей производительности
   return useGlobalRealTimePriceOffers({ enabled: enabled && !!productId, userId });
 };

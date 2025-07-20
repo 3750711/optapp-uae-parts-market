@@ -14,7 +14,7 @@ export interface BatchOfferData {
   has_pending_offer: boolean;
 }
 
-// Hook for batch fetching offer data for multiple products
+// Оптимизированный hook для batch fetching offer data для множественных продуктов
 export const useBatchOffers = (productIds: string[], enabled = true) => {
   const { user } = useAuth();
   
@@ -27,7 +27,7 @@ export const useBatchOffers = (productIds: string[], enabled = true) => {
     queryFn: async (): Promise<BatchOfferData[]> => {
       if (uniqueProductIds.length === 0) return [];
 
-      console.log('🔄 Fetching batch offers for products:', uniqueProductIds);
+      console.log('🚀 Fetching optimized batch offers for products:', uniqueProductIds.length);
 
       const { data, error } = await supabase.rpc("get_offers_batch", {
         p_product_ids: uniqueProductIds,
@@ -39,27 +39,28 @@ export const useBatchOffers = (productIds: string[], enabled = true) => {
         throw error;
       }
 
-      console.log('✅ Batch offers fetched successfully:', {
+      console.log('✅ Optimized batch offers fetched successfully:', {
         requestedProducts: uniqueProductIds.length,
         returnedOffers: data?.length || 0,
-        sampleData: data?.slice(0, 3)
+        performance: `${data?.length || 0} products in single query`
       });
 
       return data || [];
     },
     enabled: enabled && uniqueProductIds.length > 0,
-    staleTime: 30000, // 30 seconds - longer cache for batch data
-    gcTime: 300000, // 5 minutes garbage collection
-    refetchOnWindowFocus: false, // Rely on real-time for updates
-    refetchInterval: false, // Disable polling, use real-time instead
-    retry: (failureCount) => {
-      console.log(`🔄 Retrying batch offers fetch, attempt ${failureCount + 1}`);
-      return failureCount < 2; // Retry up to 2 times
+    staleTime: 15000, // Уменьшено с 30 до 15 секунд для более свежих данных
+    gcTime: 180000, // Уменьшено с 300 до 180 секунд (3 минуты)
+    refetchOnWindowFocus: true, // Включено для актуальности данных
+    refetchInterval: false, // Полагаемся на real-time для обновлений
+    retry: (failureCount, error) => {
+      console.log(`🔄 Retrying optimized batch offers fetch, attempt ${failureCount + 1}`, error);
+      return failureCount < 3; // Увеличено до 3 попыток
     },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000), // Экспоненциальная задержка
   });
 };
 
-// Hook to get specific product data from batch
+// Hook для получения данных конкретного продукта из batch
 export const useProductOfferFromBatch = (
   productId: string, 
   batchData?: BatchOfferData[]
@@ -90,39 +91,42 @@ export const useProductOfferFromBatch = (
       };
     }
 
-    console.log('✅ Found product data in batch:', productId, productData);
+    console.log('✅ Found product data in optimized batch:', productId, productData);
     return productData;
   }, [productId, batchData]);
 };
 
-// Hook for invalidating batch offers cache
+// Hook для селективной инвалидации batch offers cache
 export const useBatchOffersInvalidation = () => {
   const queryClient = useQueryClient();
 
   const invalidateBatchOffers = (productIds?: string[]) => {
-    console.log('🔄 Invalidating batch offers for products:', productIds);
+    console.log('🔄 Invalidating optimized batch offers for products:', productIds);
     
-    if (productIds) {
-      // Invalidate specific batch queries
+    if (productIds && productIds.length > 0) {
+      // Селективная инвалидация - только для query с пересекающимися продуктами
       queryClient.invalidateQueries({
         predicate: (query) => {
           if (!query.queryKey[0] || query.queryKey[0] !== "batch-offers") return false;
           const cachedProductIds = query.queryKey[1] as string[];
-          return productIds.some(id => cachedProductIds?.includes(id));
+          if (!cachedProductIds) return false;
+          
+          // Инвалидируем если есть пересечение с обновленными продуктами
+          return productIds.some(id => cachedProductIds.includes(id));
         }
       });
-    } else {
-      // Invalidate all batch offer queries
-      queryClient.invalidateQueries({ queryKey: ["batch-offers"] });
-    }
-    
-    // Also invalidate individual queries for backward compatibility
-    if (productIds) {
+      
+      // Также инвалидируем индивидуальные queries для обратной совместимости
       productIds.forEach(productId => {
         queryClient.invalidateQueries({ queryKey: ["pending-offer", productId] });
         queryClient.invalidateQueries({ queryKey: ["competitive-offers", productId] });
       });
+    } else {
+      // Полная инвалидация всех batch offer queries
+      queryClient.invalidateQueries({ queryKey: ["batch-offers"] });
     }
+    
+    console.log('✅ Optimized batch offers invalidated');
   };
 
   return { invalidateBatchOffers };
