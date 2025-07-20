@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Star } from "lucide-react";
-import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
+import { OptimizedMakeOfferButton } from "@/components/price-offer/OptimizedMakeOfferButton";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ProductProps } from "./ProductCard";
@@ -114,7 +114,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
       {/* Кнопка предложения цены вынесена за пределы Link */}
       {product.status === 'active' && product.seller_name && (
         <div className="absolute bottom-4 right-4 z-10">
-          <MakeOfferButton 
+          <OptimizedMakeOfferButton 
             product={{
               ...product,
               brand: product.brand || '',
@@ -125,7 +125,18 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               seller_name: product.seller_name || '',
               seller_id: product.seller_id || '',
               status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
-              lot_number: product.lot_number || 0
+              lot_number: product.lot_number || 0,
+              product_images: product.product_images?.map(img => ({
+                id: img.id || '',
+                product_id: img.product_id || product.id,
+                url: img.url,
+                is_primary: img.is_primary || false
+              })) || [],
+              product_videos: product.product_videos?.map(video => ({
+                id: '',
+                product_id: product.id,
+                url: video.url
+              })) || []
             }}
             disabled={false}
             compact={true}

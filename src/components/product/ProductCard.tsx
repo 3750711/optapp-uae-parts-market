@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, MapPin, Phone, MessageCircle, ExternalLink } from "lucide-react";
-import { ProductCarousel } from "./ProductCarousel";
+import ProductCarousel from "./ProductCarousel";
 import { OptimizedMakeOfferButton } from "@/components/price-offer/OptimizedMakeOfferButton";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
 import { formatPrice } from "@/utils/formatPrice";
@@ -18,10 +18,10 @@ export interface ProductProps {
   price: number;
   brand: string;
   model?: string;
-  condition: string;
+  condition?: string;
   seller_name: string;
   seller_id: string;
-  status: string;
+  status: 'pending' | 'active' | 'sold' | 'archived';
   description?: string;
   lot_number?: number;
   place_number?: number;
@@ -31,7 +31,10 @@ export interface ProductProps {
   phone_url?: string;
   view_count?: number;
   rating_seller?: number;
-  product_images?: Array<{ url: string; is_primary?: boolean }>;
+  cloudinary_url?: string;
+  cloudinary_public_id?: string;
+  image?: string;
+  product_images?: Array<{ id?: string; url: string; is_primary?: boolean; product_id?: string }>;
   product_videos?: Array<{ url: string }>;
   created_at?: string;
   updated_at?: string;
@@ -88,10 +91,14 @@ const ProductCard = memo(({
         <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
           {!disableCarousel && product.product_images && product.product_images.length > 1 ? (
             <ProductCarousel
-              images={product.product_images}
-              videos={product.product_videos}
+              images={product.product_images.map(img => ({ 
+                id: img.id || '', 
+                url: img.url, 
+                is_primary: img.is_primary || false 
+              }))}
               productTitle={product.title}
-              onImageError={setImageError}
+              cloudinaryPublicId={product.cloudinary_public_id}
+              cloudinaryUrl={product.cloudinary_url}
             />
           ) : primaryImage && !imageError ? (
             <img
@@ -186,7 +193,25 @@ const ProductCard = memo(({
       <div className="px-4 pb-4 space-y-2">
         {!hideMakeOfferButton && (
           <OptimizedMakeOfferButton
-            product={product}
+            product={{
+              ...product,
+              condition: product.condition || 'Новое',
+              model: product.model || '',
+              created_at: product.created_at || new Date().toISOString(),
+              updated_at: product.updated_at || new Date().toISOString(),
+              lot_number: product.lot_number || 0,
+              product_images: product.product_images?.map(img => ({
+                id: img.id || '',
+                product_id: img.product_id || product.id,
+                url: img.url,
+                is_primary: img.is_primary || false
+              })) || [],
+              product_videos: product.product_videos?.map(video => ({
+                id: '',
+                product_id: product.id,
+                url: video.url
+              })) || []
+            }}
             batchOfferData={batchOfferData}
             useFallback={useFallbackQueries}
           />

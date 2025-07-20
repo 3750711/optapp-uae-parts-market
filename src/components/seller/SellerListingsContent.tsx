@@ -198,6 +198,7 @@ const SellerListingsContent = () => {
           image: imageUrl,
           brand: product.brand || '',
           model: product.model || '',
+          condition: product.condition || 'Новое',
           seller_name: product.seller_name,
           status: product.status,
           seller_id: user?.id,

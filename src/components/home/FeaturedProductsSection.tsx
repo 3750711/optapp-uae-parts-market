@@ -92,6 +92,7 @@ const FeaturedProductsSection = () => {
       image: imageUrl,
       brand: typedProduct.brand || "",
       model: typedProduct.model || "",
+      condition: typedProduct.condition || "Новое",
       seller_name: typedProduct.seller_name,
       status: typedProduct.status,
       seller_id: typedProduct.seller_id,
