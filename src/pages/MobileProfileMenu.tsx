@@ -27,22 +27,14 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useFavorites } from '@/hooks/useFavorites';
-import { useIsMobile } from '@/hooks/use-mobile';
+
 
 const MobileProfileMenu = () => {
   const { user, signOut, profile } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { unreadCount } = useNotifications();
   const { favorites } = useFavorites();
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
-
-  // Redirect to desktop if not mobile
-  React.useEffect(() => {
-    if (!isMobile) {
-      navigate('/');
-    }
-  }, [isMobile, navigate]);
 
   const handleLogout = async () => {
     try {
