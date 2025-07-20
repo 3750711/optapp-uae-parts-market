@@ -131,6 +131,18 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
             Просмотр
           </Button>
           
+          {showConfirmButton && onQuickAction && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => onQuickAction(order.id, 'confirm')}
+              className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Подтвердить
+            </Button>
+          )}
+          
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
             <CollapsibleTrigger asChild>
               <Button 
@@ -141,38 +153,38 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </Button>
             </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+               <div className="pt-1.5 space-y-1.5">
+                 <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-2">
+                    <div>
+                      <div className="text-muted-foreground mb-1 font-medium">Продавец</div>
+                      <div className="font-medium truncate">
+                        {order.seller?.full_name || 'Не указан'}
+                      </div>
+                      {order.seller?.opt_id && (
+                        <div className="text-muted-foreground font-mono">
+                          {order.seller.opt_id}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <div className="text-muted-foreground mb-1 font-medium">Покупатель</div>
+                      <div className="font-medium truncate">
+                        {order.buyer?.full_name || 'Не указан'}
+                      </div>
+                      {order.buyer?.opt_id && (
+                        <div className="text-muted-foreground font-mono">
+                          {order.buyer.opt_id}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+               </div>
+            </CollapsibleContent>
           </Collapsible>
         </div>
-
-        <CollapsibleContent>
-           <div className="pt-1.5 space-y-1.5">
-             <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-2">
-                <div>
-                  <div className="text-muted-foreground mb-1 font-medium">Продавец</div>
-                  <div className="font-medium truncate">
-                    {order.seller?.full_name || 'Не указан'}
-                  </div>
-                  {order.seller?.opt_id && (
-                    <div className="text-muted-foreground font-mono">
-                      {order.seller.opt_id}
-                    </div>
-                  )}
-                </div>
-                
-                <div>
-                  <div className="text-muted-foreground mb-1 font-medium">Покупатель</div>
-                  <div className="font-medium truncate">
-                    {order.buyer?.full_name || 'Не указан'}
-                  </div>
-                  {order.buyer?.opt_id && (
-                    <div className="text-muted-foreground font-mono">
-                      {order.buyer.opt_id}
-                    </div>
-                  )}
-                </div>
-              </div>
-           </div>
-        </CollapsibleContent>
       </CardContent>
     </Card>
   );

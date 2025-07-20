@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -206,6 +207,18 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
             <Eye className="h-3 w-3 mr-1" />
             Просмотр
           </Button>
+          
+          {showConfirmButton && onQuickAction && (
+            <Button
+              variant="default"
+              onClick={() => onQuickAction(order.id, 'confirm')}
+              className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white"
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Подтвердить
+            </Button>
+          )}
+          
           {confirmImages.length > 0 ? (
             <Button
               variant="outline"
