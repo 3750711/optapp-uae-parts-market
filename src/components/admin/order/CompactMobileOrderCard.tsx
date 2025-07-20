@@ -120,12 +120,12 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
             </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-1">
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => onViewDetails(order.id)}
-            className="flex-1 h-6 text-xs font-medium"
+            className="flex-1 h-6 text-[11px] font-medium px-1.5"
           >
             <Eye className="h-3 w-3 mr-1" />
             Просмотр
@@ -136,7 +136,7 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
               variant="default"
               size="sm"
               onClick={() => onQuickAction(order.id, 'confirm')}
-              className="h-6 px-2 text-xs bg-green-600 hover:bg-green-700 text-white"
+              className="h-6 px-1.5 text-[11px] bg-green-600 hover:bg-green-700 text-white shrink-0"
             >
               <CheckCircle className="h-3 w-3 mr-1" />
               Подтвердить

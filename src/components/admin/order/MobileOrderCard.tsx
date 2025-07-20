@@ -198,11 +198,11 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
         </div>
 
         {/* Action Block */}
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           <Button 
             variant="outline" 
             onClick={() => onViewDetails(order.id)}
-            className="flex-1 h-8 text-xs"
+            className="flex-1 h-7 text-xs px-2"
           >
             <Eye className="h-3 w-3 mr-1" />
             Просмотр
@@ -212,7 +212,7 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
             <Button
               variant="default"
               onClick={() => onQuickAction(order.id, 'confirm')}
-              className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white"
+              className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700 text-white shrink-0"
             >
               <CheckCircle className="h-3 w-3 mr-1" />
               Подтвердить
