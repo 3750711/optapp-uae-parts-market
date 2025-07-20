@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Clock } from "lucide-react";
@@ -52,68 +53,60 @@ export const MakeOfferButton = ({
     const isMaxOffer = competitiveData?.current_user_is_max || false;
     const maxOtherOffer = competitiveData?.max_offer_price || 0;
     
+    // Determine button text based on offer status
+    const getButtonText = () => {
+      if (isMaxOffer) {
+        return compact ? "лидирует" : " (лидирует)";
+      } else if (maxOtherOffer > 0) {
+        return compact ? `макс.$${maxOtherOffer}` : ` (макс.$${maxOtherOffer})`;
+      } else {
+        return compact ? "обновить" : " (обновить)";
+      }
+    };
+    
     return (
       <>
         {compact ? (
-          <div className="flex items-center gap-1">
-            {/* Show max offer from others if exists and user is not leading */}
-            {!isMaxOffer && maxOtherOffer > 0 && (
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                макс. ${maxOtherOffer}
-              </span>
-            )}
-            
-            <Button
-              variant="default"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                setIsModalOpen(true);
-              }}
-              disabled={disabled}
-              className={`flex items-center justify-center h-9 w-9 p-0 rounded-full relative text-white ${
-                isMaxOffer 
-                  ? "bg-green-500 hover:bg-green-600" 
-                  : "bg-orange-500 hover:bg-orange-600"
-              }`}
-              title={compact ? `Ваше предложение: $${pendingOffer.offered_price}${isMaxOffer ? ' (максимальное)' : ''}` : undefined}
-            >
-              <div className="flex flex-col items-center justify-center">
-                <Clock className="h-1.5 w-1.5 animate-spin mb-0.5" />
-                <span className="text-[10px] font-bold leading-none">${pendingOffer.offered_price}</span>
-              </div>
-            </Button>
-          </div>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setIsModalOpen(true);
+            }}
+            disabled={disabled}
+            className={`flex flex-col items-center justify-center h-9 w-9 p-0 rounded-full relative text-white ${
+              isMaxOffer 
+                ? "bg-green-500 hover:bg-green-600" 
+                : "bg-orange-500 hover:bg-orange-600"
+            }`}
+            title={`Ваше предложение: $${pendingOffer.offered_price}${isMaxOffer ? ' (максимальное)' : ''}`}
+          >
+            <Clock className="h-1.5 w-1.5 animate-spin mb-0.5" />
+            <span className="text-[9px] font-bold leading-none">${pendingOffer.offered_price}</span>
+            <span className="text-[8px] leading-none">{getButtonText()}</span>
+          </Button>
         ) : (
-          <div className="flex flex-col gap-1 w-full">
-            {/* Show max offer from others if exists and user is not leading */}
-            {!isMaxOffer && maxOtherOffer > 0 && (
-              <div className="text-xs text-muted-foreground">
-                Максимальное предложение: ${maxOtherOffer}
-              </div>
-            )}
-            
-            <Button
-              variant="default"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                setIsModalOpen(true);
-              }}
-              disabled={disabled}
-              className={`flex items-center gap-1 w-full h-9 text-xs px-2 text-white ${
-                isMaxOffer 
-                  ? "bg-green-500 hover:bg-green-600" 
-                  : "bg-orange-500 hover:bg-orange-600"
-              }`}
-            >
-              <Clock className="h-3 w-3 animate-spin" />
-              ${pendingOffer.offered_price}
-              {isMaxOffer ? " (лидирует)" : " (обновить)"}
-            </Button>
-          </div>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              setIsModalOpen(true);
+            }}
+            disabled={disabled}
+            className={`flex items-center gap-1 w-full h-9 text-xs px-2 text-white ${
+              isMaxOffer 
+                ? "bg-green-500 hover:bg-green-600" 
+                : "bg-orange-500 hover:bg-orange-600"
+            }`}
+          >
+            <Clock className="h-3 w-3 animate-spin" />
+            ${pendingOffer.offered_price}
+            {getButtonText()}
+          </Button>
         )}
 
         <MakeOfferModal
@@ -135,53 +128,36 @@ export const MakeOfferButton = ({
   return (
     <>
       {compact ? (
-        <div className="flex items-center gap-1">
-          {/* Show max offer from others if exists */}
-          {maxOtherOffer > 0 && (
-            <span className="text-xs text-muted-foreground whitespace-nowrap">
-              макс. ${maxOtherOffer}
-            </span>
-          )}
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setIsModalOpen(true);
-            }}
-            disabled={disabled}
-            className="flex items-center justify-center h-9 w-9 p-0 hover:bg-primary/10 rounded-full border border-gray-200 hover:border-primary/20 transition-colors"
-            title="Предложить цену"
-          >
-            <BidIcon className="h-5 w-5" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setIsModalOpen(true);
+          }}
+          disabled={disabled}
+          className="flex items-center justify-center h-9 w-9 p-0 hover:bg-primary/10 rounded-full border border-gray-200 hover:border-primary/20 transition-colors"
+          title={maxOtherOffer > 0 ? `Максимальное предложение: $${maxOtherOffer}` : "Предложить цену"}
+        >
+          <BidIcon className="h-5 w-5" />
+        </Button>
       ) : (
-        <div className="flex flex-col gap-1 w-full">
-          {/* Show max offer from others if exists */}
-          {maxOtherOffer > 0 && (
-            <div className="text-xs text-muted-foreground">
-              Максимальное предложение: ${maxOtherOffer}
-            </div>
-          )}
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              setIsModalOpen(true);
-            }}
-            disabled={disabled}
-            className="flex items-center gap-1 w-full h-9 text-xs px-2"
-          >
-            <BidIcon className="h-3 w-3" />
-            Предложить
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            setIsModalOpen(true);
+          }}
+          disabled={disabled}
+          className="flex items-center gap-1 w-full h-9 text-xs px-2"
+          title={maxOtherOffer > 0 ? `Максимальное предложение: $${maxOtherOffer}` : undefined}
+        >
+          <BidIcon className="h-3 w-3" />
+          {maxOtherOffer > 0 ? `Предложить (макс.$${maxOtherOffer})` : "Предложить"}
+        </Button>
       )}
 
       <MakeOfferModal
