@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Product } from '@/types/product';
 import { useCheckPendingOffer } from '@/hooks/use-price-offers';
+import { useCompetitiveOffers } from '@/hooks/use-competitive-offers';
 import { MakeOfferModal } from './MakeOfferModal';
 import bidIcon from '@/assets/bid-icon.png';
 
@@ -33,6 +34,15 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
   
   // Get user's pending offer for this product
   const { data: userOffer, isLoading } = useCheckPendingOffer(product.id, !!user);
+  
+  // Get competitive offers data to determine if user is leading
+  const { data: competitiveData } = useCompetitiveOffers(product.id, !!user);
+
+  // Determine if user's offer is the leading bid
+  const isLeadingBid = useMemo(() => {
+    if (!userOffer || !competitiveData) return false;
+    return competitiveData.current_user_is_max === true;
+  }, [userOffer, competitiveData]);
 
   console.log('🎯 MakeOfferButton render:', {
     productId: product.id,
@@ -41,6 +51,8 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
     userType: profile?.user_type,
     sellerId: product.seller_id,
     userOffer,
+    competitiveData,
+    isLeadingBid,
     isLoading
   });
 
@@ -76,7 +88,7 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
 
   // If user has a pending offer
   if (userOffer) {
-    console.log('👤 User has pending offer:', userOffer.offered_price);
+    console.log('👤 User has pending offer:', userOffer.offered_price, 'isLeading:', isLeadingBid);
     
     if (compact) {
       return (
@@ -85,10 +97,14 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
             variant="default"
             size="sm"
             onClick={handleClick}
-            className="relative flex items-center justify-center h-10 w-10 p-0 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
-            title={`Ваше предложение: $${userOffer.offered_price}`}
+            className={`relative flex items-center justify-center h-10 w-12 p-0 rounded-full text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${
+              isLeadingBid 
+                ? 'bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
+                : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
+            }`}
+            title={`${isLeadingBid ? 'Лидирующее предложение' : 'Ваше предложение'}: $${userOffer.offered_price}`}
           >
-            <Clock className="h-4 w-4" />
+            <span className="text-xs font-bold">${userOffer.offered_price}</span>
           </Button>
           
           <MakeOfferModal
@@ -107,11 +123,17 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
           variant="default"
           size="sm"
           onClick={handleClick}
-          className="flex items-center gap-2 w-full h-9 text-xs px-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200"
+          className={`flex items-center gap-2 w-full h-9 text-xs px-3 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 ${
+            isLeadingBid 
+              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
+              : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
+          }`}
         >
-          <Clock className="h-4 w-4" />
+          {isLeadingBid ? <TrendingUp className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
           <span className="font-semibold">${userOffer.offered_price}</span>
-          <span className="text-xs opacity-90 ml-auto">обновить</span>
+          <span className="text-xs opacity-90 ml-auto">
+            {isLeadingBid ? 'лидер' : 'обновить'}
+          </span>
         </Button>
         
         <MakeOfferModal
