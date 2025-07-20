@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,14 +25,37 @@ export const SimpleOfferModal: React.FC<SimpleOfferModalProps> = ({
   currentOffer,
   maxOffer = 0
 }) => {
-  const [offerPrice, setOfferPrice] = useState(currentOffer || Math.max(maxOffer + 1, product.price * 0.7));
+  const [offerPrice, setOfferPrice] = useState(0);
   const [message, setMessage] = useState('');
   const createOfferMutation = useSimpleCreateOffer();
+
+  // Инициализируем значение при открытии модального окна
+  useEffect(() => {
+    if (isOpen) {
+      const initialPrice = currentOffer || Math.max(maxOffer + 1, Math.floor(product.price * 0.7));
+      setOfferPrice(initialPrice);
+      console.log('🏷️ Modal opened with initial price:', initialPrice, {
+        currentOffer,
+        maxOffer,
+        productPrice: product.price
+      });
+    }
+  }, [isOpen, currentOffer, maxOffer, product.price]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (offerPrice <= maxOffer && !currentOffer) {
+    console.log('📝 Submitting offer:', {
+      offerPrice,
+      currentOffer,
+      maxOffer,
+      message: message.trim()
+    });
+    
+    const minPrice = Math.max(currentOffer ? currentOffer + 1 : maxOffer + 1, 1);
+    
+    if (offerPrice < minPrice && !currentOffer) {
+      console.warn('⚠️ Offer price too low:', offerPrice, 'min required:', minPrice);
       return;
     }
 
@@ -45,13 +68,15 @@ export const SimpleOfferModal: React.FC<SimpleOfferModalProps> = ({
         message: message.trim() || undefined
       });
       
+      console.log('✅ Offer submitted successfully');
       onClose();
+      setMessage(''); // Очищаем сообщение после успешной отправки
     } catch (error) {
-      console.error('Error creating offer:', error);
+      console.error('❌ Error creating offer:', error);
     }
   };
 
-  const minPrice = currentOffer ? currentOffer + 1 : maxOffer + 1;
+  const minPrice = Math.max(currentOffer ? currentOffer : maxOffer + 1, 1);
   const isValidPrice = offerPrice >= minPrice;
 
   return (
@@ -74,6 +99,11 @@ export const SimpleOfferModal: React.FC<SimpleOfferModalProps> = ({
                 <span>Макс. предложение: ${maxOffer}</span>
               )}
             </div>
+            {currentOffer && (
+              <div className="text-xs text-blue-600 mt-1">
+                Ваше текущее предложение: ${currentOffer}
+              </div>
+            )}
           </div>
 
           {/* Поле цены */}
@@ -96,13 +126,16 @@ export const SimpleOfferModal: React.FC<SimpleOfferModalProps> = ({
                 className="pl-10"
                 placeholder="Введите сумму"
                 min={minPrice}
-                step="0.01"
+                step="1"
                 required
               />
             </div>
             {!isValidPrice && (
               <p className="text-xs text-red-600">
-                Минимальная сумма: ${minPrice}
+                {currentOffer 
+                  ? `Новое предложение должно быть больше текущего: $${currentOffer}`
+                  : `Минимальная сумма: $${minPrice}`
+                }
               </p>
             )}
           </div>

@@ -27,7 +27,18 @@ export const useSimpleProductOffers = (productId: string) => {
   return useQuery({
     queryKey: ['simple-offers', productId, user?.id],
     queryFn: async (): Promise<SimpleOfferData> => {
-      console.log('🔍 Fetching simple offers for product:', productId);
+      console.log('🔍 Fetching simple offers for product:', productId, 'user:', user?.id);
+
+      if (!user?.id) {
+        console.log('❌ No user ID available');
+        return {
+          product_id: productId,
+          max_offer_price: 0,
+          current_user_offer_price: 0,
+          has_pending_offer: false,
+          total_offers_count: 0
+        };
+      }
 
       // Получаем все предложения для продукта
       const { data: offers, error } = await supabase
@@ -41,31 +52,32 @@ export const useSimpleProductOffers = (productId: string) => {
         throw error;
       }
 
+      console.log('📊 Raw offers data:', offers);
+
       // Находим максимальное предложение
       const maxOffer = offers?.reduce((max, offer) => 
         offer.offered_price > max ? offer.offered_price : max, 0
       ) || 0;
 
       // Находим предложение текущего пользователя
-      const userOffer = offers?.find(offer => offer.buyer_id === user?.id);
+      const userOffer = offers?.find(offer => offer.buyer_id === user.id);
 
-      console.log('✅ Simple offers fetched:', {
-        maxOffer,
-        userOffer: userOffer?.offered_price || 0,
-        totalOffers: offers?.length || 0
-      });
-
-      return {
+      const result = {
         product_id: productId,
         max_offer_price: maxOffer,
         current_user_offer_price: userOffer?.offered_price || 0,
         has_pending_offer: !!userOffer,
         total_offers_count: offers?.length || 0
       };
+
+      console.log('✅ Simple offers result:', result);
+
+      return result;
     },
-    enabled: !!productId,
-    staleTime: 5000, // 5 секунд
+    enabled: !!productId && !!user?.id,
+    staleTime: 1000, // 1 second - более частое обновление
     refetchOnWindowFocus: true,
+    refetchInterval: 5000, // Обновляем каждые 5 секунд
   });
 };
 
@@ -104,6 +116,7 @@ export const useSimpleCreateOffer = () => {
           .single();
 
         if (error) throw error;
+        console.log('✅ Updated existing offer:', result);
         return result;
       } else {
         // Создаем новое предложение
@@ -122,13 +135,19 @@ export const useSimpleCreateOffer = () => {
           .single();
 
         if (error) throw error;
+        console.log('✅ Created new offer:', result);
         return result;
       }
     },
     onSuccess: (_, variables) => {
-      // Обновляем кеш
+      // Обновляем кеш для всех связанных запросов
       queryClient.invalidateQueries({ 
         queryKey: ['simple-offers', variables.product_id] 
+      });
+      
+      // Также принудительно обновляем данные
+      queryClient.refetchQueries({
+        queryKey: ['simple-offers', variables.product_id]
       });
       
       toast({

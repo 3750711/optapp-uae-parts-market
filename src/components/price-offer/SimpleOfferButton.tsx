@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, TrendingUp, Users } from 'lucide-react';
+import { Clock, TrendingUp, Users, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Product } from '@/types/product';
@@ -31,18 +31,32 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
-  const { data: offerData, isLoading } = useSimpleProductOffers(product.id);
+  const { data: offerData, isLoading, error } = useSimpleProductOffers(product.id);
 
   // Подключаем real-time обновления
   useSimpleRealTimeOffers(product.id, true);
 
+  // Добавляем детальное логирование состояния
+  console.log('🎯 SimpleOfferButton render:', {
+    productId: product.id,
+    userId: user?.id,
+    profileId: profile?.id,
+    userType: profile?.user_type,
+    sellerId: product.seller_id,
+    offerData,
+    isLoading,
+    error
+  });
+
   // Не показываем кнопку если пользователь не авторизован или это продавец
   if (!user || !profile || profile.id === product.seller_id) {
+    console.log('🚫 Button hidden - no user or is seller');
     return null;
   }
 
   // Только покупатели и админы могут делать предложения
   if (profile.user_type !== "buyer" && !hasAdminAccess) {
+    console.log('🚫 Button hidden - not buyer or admin');
     return null;
   }
 
@@ -54,18 +68,39 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
         disabled
         className="animate-pulse"
       >
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
         Загрузка...
       </Button>
     );
   }
 
+  if (error) {
+    console.error('❌ Error in SimpleOfferButton:', error);
+    return (
+      <Button 
+        variant="outline" 
+        size={compact ? "sm" : "default"}
+        disabled
+      >
+        Ошибка загрузки
+      </Button>
+    );
+  }
+
   const handleClick = () => {
+    console.log('🖱️ Button clicked, opening modal');
     setIsModalOpen(true);
   };
 
   // Если у пользователя есть предложение
   if (offerData?.has_pending_offer) {
     const isLeading = offerData.current_user_offer_price >= offerData.max_offer_price;
+    
+    console.log('👤 User has pending offer:', {
+      currentUserPrice: offerData.current_user_offer_price,
+      maxPrice: offerData.max_offer_price,
+      isLeading
+    });
     
     if (compact) {
       return (
@@ -132,6 +167,11 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   }
 
   // Если у пользователя нет предложения
+  console.log('💭 User has no pending offer, showing bid button:', {
+    maxOffer: offerData?.max_offer_price || 0,
+    totalOffers: offerData?.total_offers_count || 0
+  });
+
   return (
     <>
       <div className="flex items-center gap-2">
@@ -140,7 +180,10 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <span className="font-semibold text-primary">${offerData.max_offer_price}</span>
             {offerData.total_offers_count > 1 && (
-              <Users className="h-3 w-3" />
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                <span className="text-xs">{offerData.total_offers_count}</span>
+              </div>
             )}
           </div>
         )}

@@ -25,14 +25,21 @@ export const useSimpleRealTimeOffers = (productId: string, enabled: boolean = tr
         (payload) => {
           console.log('🔄 Real-time update received:', payload);
           
-          // Простое обновление кеша
-          queryClient.invalidateQueries({ 
-            queryKey: ['simple-offers', productId] 
-          });
+          // Принудительно обновляем кеш с задержкой для обеспечения получения новых данных
+          setTimeout(() => {
+            queryClient.invalidateQueries({ 
+              queryKey: ['simple-offers', productId] 
+            });
+            
+            // Также принудительно перезапрашиваем данные
+            queryClient.refetchQueries({
+              queryKey: ['simple-offers', productId]
+            });
+          }, 100);
         }
       )
       .subscribe((status) => {
-        console.log('🔄 Real-time status:', status);
+        console.log('🔄 Real-time status for product', productId, ':', status);
       });
 
     return () => {
