@@ -5,8 +5,7 @@ import { Clock, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Product } from '@/types/product';
-import { useCheckPendingOffer } from '@/hooks/use-price-offers';
-import { useCompetitiveOffers } from '@/hooks/use-competitive-offers';
+import { useCheckPendingOffer, useCompetitiveOffers } from '@/hooks/use-price-offers';
 import { MakeOfferModal } from './MakeOfferModal';
 import bidIcon from '@/assets/bid-icon.png';
 
