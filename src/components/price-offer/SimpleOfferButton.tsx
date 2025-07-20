@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Product } from '@/types/product';
 import { useSimpleProductOffers } from '@/hooks/use-simple-price-offers';
+import { useSimpleRealTimeOffers } from '@/hooks/use-simple-realtime-offers';
 import { SimpleOfferModal } from './SimpleOfferModal';
 import bidIcon from '@/assets/bid-icon.png';
 
@@ -31,6 +32,9 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
   const { data: offerData, isLoading } = useSimpleProductOffers(product.id);
+
+  // Подключаем real-time обновления
+  useSimpleRealTimeOffers(product.id, true);
 
   // Не показываем кнопку если пользователь не авторизован или это продавец
   if (!user || !profile || profile.id === product.seller_id) {
@@ -83,7 +87,7 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full"></div>
               </>
             )}
-            <span className="text-xs font-bold">${offerData.current_user_offer_price}</span>
+            <span className="text-xs font-bold text-white">${offerData.current_user_offer_price}</span>
           </Button>
           
           <SimpleOfferModal
@@ -103,7 +107,7 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
           variant="default"
           size="sm"
           onClick={handleClick}
-          className={`flex items-center gap-2 w-full h-9 text-xs px-3 shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 ${
+          className={`flex items-center gap-2 w-full h-9 text-xs px-3 shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 text-white ${
             isLeading 
               ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
               : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
