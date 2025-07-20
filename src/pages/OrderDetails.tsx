@@ -34,7 +34,10 @@ const OrderDetails = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!id
+    enabled: !!id,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    gcTime: 1000 * 60 * 5
   });
 
   const { data: images = [] } = useQuery({
@@ -50,7 +53,9 @@ const OrderDetails = () => {
       if (error) throw error;
       return data?.map(img => img.url) || [];
     },
-    enabled: !!id
+    enabled: !!id,
+    refetchOnWindowFocus: true,
+    staleTime: 0
   });
 
   const { data: videos = [] } = useQuery({
@@ -66,7 +71,9 @@ const OrderDetails = () => {
       if (error) throw error;
       return data?.map(video => video.url) || [];
     },
-    enabled: !!id
+    enabled: !!id,
+    refetchOnWindowFocus: true,
+    staleTime: 0
   });
 
   const { data: confirmImages = [] } = useQuery({
@@ -82,7 +89,9 @@ const OrderDetails = () => {
       if (error) throw error;
       return data?.map(img => img.url) || [];
     },
-    enabled: !!id && profile?.user_type === 'admin'
+    enabled: !!id && profile?.user_type === 'admin',
+    refetchOnWindowFocus: true,
+    staleTime: 0
   });
 
   if (isLoading) {
