@@ -130,7 +130,7 @@ export const MakeOfferButton = ({
               <div className="flex flex-col items-center text-[10px] font-bold leading-none">
                 <span className="opacity-80">{maxOtherOffer}</span>
                 <div className="w-4 h-px bg-white/40 my-0.5"></div>
-                <Clock className="h-2 w-2 animate-spin" />
+                <span className="text-[9px]">{pendingOffer.offered_price}</span>
               </div>
             </Button>
           ) : (
