@@ -2,7 +2,9 @@
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import ProductGrid from '@/components/product/ProductGrid';
-import { ViewMode } from '@/components/product/UnifiedProductGrid';
+import { OptimizedProductGrid } from './OptimizedProductGrid';
+// ViewMode type for consistency
+type ViewMode = "grid" | "list";
 import RequestPartsPromo from '@/components/catalog/RequestPartsPromo';
 import ProductSkeleton from '@/components/catalog/ProductSkeleton';
 import { useIntersection } from '@/hooks/useIntersection';
@@ -127,7 +129,7 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({
     return (
       <div className="animate-fade-in space-y-12">
         {productChunks.map((chunk, chunkIndex) => (
-          <ProductGrid 
+          <OptimizedProductGrid 
             key={`chunk-${chunkIndex}`} 
             products={chunk} 
             viewMode={viewMode}

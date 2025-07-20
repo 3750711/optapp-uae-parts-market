@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/carousel";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
-import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
+import { OptimizedMakeOfferButton } from "@/components/price-offer/OptimizedMakeOfferButton";
+import { BatchOfferData } from "@/hooks/use-price-offers-batch";
 
 export interface ProductProps {
   id: string;
@@ -46,9 +47,11 @@ export interface ProductProps {
 interface ProductCardProps {
   product: ProductProps;
   showSoldButton?: boolean;
-  onStatusChange?: () => void;
+  onStatusChange?: (productId: string, newStatus: string) => void;
   disableCarousel?: boolean;
   hideMakeOfferButton?: boolean;
+  batchOfferData?: BatchOfferData[];
+  useFallbackQueries?: boolean;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
@@ -56,7 +59,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
   showSoldButton = false, 
   onStatusChange,
   disableCarousel = false,
-  hideMakeOfferButton = false
+  hideMakeOfferButton = false,
+  batchOfferData,
+  useFallbackQueries = false
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -262,7 +267,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {/* Кнопка предложения цены вынесена за пределы Link */}
       {product.status === 'active' && !hideMakeOfferButton && (
         <div className="absolute bottom-2 right-2 z-10">
-          <MakeOfferButton 
+          <OptimizedMakeOfferButton 
             product={{
               ...product,
               brand: product.brand || '',
@@ -275,6 +280,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
               status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
               lot_number: product.lot_number || 0
             }}
+            batchOfferData={batchOfferData}
+            useFallback={useFallbackQueries}
             disabled={false}
             compact={true}
           />
@@ -286,7 +293,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <ProductStatusChangeDialog
             productId={product.id}
             productName={product.title}
-            onStatusChange={onStatusChange || (() => {})}
+            onStatusChange={onStatusChange ? () => onStatusChange(product.id, 'sold') : () => {}}
           />
         </div>
       )}

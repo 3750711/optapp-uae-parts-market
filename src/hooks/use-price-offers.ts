@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PriceOffer, CreatePriceOfferData, UpdatePriceOfferData } from "@/types/price-offer";
 import { toast } from "@/hooks/use-toast";
-import { useRealTimePriceOffers } from "./use-price-offers-realtime";
+import { useOptimizedRealTimePriceOffers } from "./use-price-offers-realtime-optimized";
 
 interface UpdateOfferPriceData {
   offered_price: number;
@@ -296,8 +296,8 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
     getCurrentUser();
   }, []);
 
-  // Set up real-time subscription
-  useRealTimePriceOffers({ 
+  // Set up optimized real-time subscription
+  useOptimizedRealTimePriceOffers({ 
     productId, 
     enabled: enabled && !!productId,
     userId 
@@ -321,9 +321,9 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
       return data;
     },
     enabled: enabled && !!productId,
-    staleTime: 3000, // Reduced for faster updates
-    refetchInterval: 30000, // Less frequent polling since we have real-time
-    refetchOnWindowFocus: true,
+    staleTime: 30000, // Longer cache time with optimized real-time
+    refetchInterval: false, // Disable polling, rely on real-time
+    refetchOnWindowFocus: false, // Rely on real-time updates
     refetchOnReconnect: true,
   });
 
@@ -343,8 +343,8 @@ export const useCompetitiveOffers = (productId: string, enabled = true) => {
     getCurrentUser();
   }, []);
 
-  // Set up real-time subscription (shared with pending offers)
-  useRealTimePriceOffers({ 
+  // Set up optimized real-time subscription (shared with pending offers)
+  useOptimizedRealTimePriceOffers({ 
     productId, 
     enabled: enabled && !!productId,
     userId 
@@ -370,9 +370,9 @@ export const useCompetitiveOffers = (productId: string, enabled = true) => {
       };
     },
     enabled: enabled && !!productId,
-    staleTime: 2000, // Very fast updates for competitive scenarios
-    refetchInterval: 30000, // Less frequent polling since we have real-time
-    refetchOnWindowFocus: true,
+    staleTime: 30000, // Longer cache time with optimized real-time
+    refetchInterval: false, // Disable polling, rely on real-time
+    refetchOnWindowFocus: false, // Rely on real-time updates
     refetchOnReconnect: true,
   });
 

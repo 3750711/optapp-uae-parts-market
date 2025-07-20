@@ -1386,6 +1386,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_offers_batch: {
+        Args: { p_product_ids: string[]; p_user_id?: string }
+        Returns: {
+          product_id: string
+          max_offer_price: number
+          current_user_is_max: boolean
+          total_offers_count: number
+          current_user_offer_price: number
+          has_pending_offer: boolean
+        }[]
+      }
       get_rls_policies_status: {
         Args: Record<PropertyKey, never>
         Returns: {
