@@ -56,9 +56,9 @@ export const MakeOfferButton = ({
     // Determine button text based on offer status
     const getButtonText = () => {
       if (isMaxOffer) {
-        return compact ? "лидирует" : " (лидирует)";
+        return compact ? "лидер" : " (лидирует)";
       } else if (maxOtherOffer > 0) {
-        return compact ? `другой $${maxOtherOffer}` : ` (другой $${maxOtherOffer})`;
+        return compact ? `$${maxOtherOffer}` : ` (другой $${maxOtherOffer})`;
       } else {
         return compact ? "обновить" : " (обновить)";
       }
@@ -83,9 +83,9 @@ export const MakeOfferButton = ({
             }`}
             title={`Ваше предложение: $${pendingOffer.offered_price}${isMaxOffer ? ' (максимальное)' : ''}`}
           >
-            <Clock className="h-1.5 w-1.5 animate-spin mb-0.5" />
-            <span className="text-[9px] font-bold leading-none">${pendingOffer.offered_price}</span>
-            <span className="text-[8px] leading-none">{getButtonText()}</span>
+            <Clock className="h-2.5 w-2.5 animate-spin" />
+            <span className="text-[10px] font-bold leading-tight">${pendingOffer.offered_price}</span>
+            <span className="text-[7px] leading-none">{getButtonText()}</span>
           </Button>
         ) : (
           <Button
