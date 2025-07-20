@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -170,10 +169,23 @@ export const MakeOfferModal = ({
           offerId: existingOffer.id,
           newPrice: offeredPrice,
           originalMessage: existingOffer.message,
-          productId: product.id, // Add productId for optimistic updates
+          productId: product.id,
         });
       } else {
-        await createOffer.mutateAsync(offerData);
+        // Используем безопасное создание с проверкой дублей
+        try {
+          await createOffer.mutateAsync(offerData);
+        } catch (error: any) {
+          // Обработка ошибки дублирования
+          if (error.message?.includes('duplicate key') || error.message?.includes('уже есть активное предложение')) {
+            // Показываем пользователю информацию о существующем предложении
+            console.error("Duplicate offer detected:", error);
+            setIsSubmitting(false);
+            // Модаль остается открытой, чтобы пользователь мог увидеть ошибку
+            return;
+          }
+          throw error;
+        }
       }
 
       handleClose();

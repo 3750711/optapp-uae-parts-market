@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,7 +121,7 @@ export const useAdminPriceOffers = (enabled = true) => {
   });
 };
 
-// Create price offer
+// Create price offer - обновляем с обработкой дублей
 export const useCreatePriceOffer = () => {
   const queryClient = useQueryClient();
   const { setOptimisticOffer, confirmOptimisticOffer, rejectOptimisticOffer } = useOptimisticPriceOffers();
@@ -131,6 +130,28 @@ export const useCreatePriceOffer = () => {
     mutationFn: async (data: CreatePriceOfferData) => {
       const user = await supabase.auth.getUser();
       if (!user.data.user) throw new Error("Not authenticated");
+
+      // Проверяем существующие предложения перед созданием
+      const { data: existingOffers, error: checkError } = await supabase
+        .from("price_offers")
+        .select("id, status, expires_at")
+        .eq("product_id", data.product_id)
+        .eq("buyer_id", user.data.user.id)
+        .eq("status", "pending");
+
+      if (checkError) {
+        console.error("Error checking existing offers:", checkError);
+      }
+
+      // Если есть активное предложение, выбрасываем специфичную ошибку
+      if (existingOffers && existingOffers.length > 0) {
+        const activeOffer = existingOffers[0];
+        const isExpired = new Date(activeOffer.expires_at) < new Date();
+        
+        if (!isExpired) {
+          throw new Error("У вас уже есть активное предложение для этого товара. Обновите существующее предложение или дождитесь его истечения.");
+        }
+      }
 
       // Set optimistic state immediately
       setOptimisticOffer(data.product_id, data.offered_price);
@@ -144,18 +165,22 @@ export const useCreatePriceOffer = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Обработка специфичных ошибок
+        if (error.message?.includes('duplicate key')) {
+          throw new Error("У вас уже есть активное предложение для этого товара");
+        }
+        throw error;
+      }
+      
       return result;
     },
     onSuccess: (result) => {
       // Confirm optimistic update
       confirmOptimisticOffer(result.product_id);
       
-      // Remove duplicate toast - database notification will handle user feedback
       queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
-      // Инвалидируем кеш для конкретного продукта, чтобы кнопка обновилась
       queryClient.invalidateQueries({ queryKey: ["pending-offer", result.product_id] });
-      // Инвалидируем конкурентные предложения для обновления информации о максимальной цене
       queryClient.invalidateQueries({ queryKey: ["competitive-offers", result.product_id] });
     },
     onError: (error: any, variables) => {
