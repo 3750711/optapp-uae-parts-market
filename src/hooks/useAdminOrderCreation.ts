@@ -52,8 +52,8 @@ export const useAdminOrderCreation = () => {
     setIsCreatingOrder(true);
 
     try {
-      // Валидация входных данных
-      console.log("🔍 Validating input data:", {
+      // Валидация входных данных с расширенным логированием
+      console.log("🔍 DETAILED validation of input data:", {
         selectedSeller: {
           id: selectedSeller.id,
           full_name: selectedSeller.full_name,
@@ -67,7 +67,7 @@ export const useAdminOrderCreation = () => {
           model: selectedProduct.model,
           delivery_price: selectedProduct.delivery_price,
           images_count: selectedProduct.product_images?.length || 0,
-          product_images: selectedProduct.product_images
+          product_images_detailed: selectedProduct.product_images
         },
         selectedBuyer: {
           id: selectedBuyer.id,
@@ -79,7 +79,7 @@ export const useAdminOrderCreation = () => {
           deliveryPrice: orderData.deliveryPrice,
           deliveryMethod: orderData.deliveryMethod,
           orderImages_count: orderData.orderImages.length,
-          orderImages: orderData.orderImages
+          orderImages_detailed: orderData.orderImages
         }
       });
 
@@ -100,84 +100,139 @@ export const useAdminOrderCreation = () => {
         throw new Error(`Invalid delivery method: ${orderData.deliveryMethod}`);
       }
 
-      // 📸 ИСПРАВЛЕНИЕ: Объединяем изображения товара с дополнительными изображениями из формы
+      // 📸 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Детальная обработка изображений
       const productImages = selectedProduct.product_images?.map(img => img.url) || [];
-      console.log("📸 Product images from selectedProduct:", {
+      console.log("📸 DETAILED Product images processing:", {
         product_images_raw: selectedProduct.product_images,
         product_images_urls: productImages,
-        count: productImages.length
+        product_images_count: productImages.length,
+        each_product_image: selectedProduct.product_images?.map((img, idx) => ({ 
+          index: idx, 
+          url: img.url, 
+          is_primary: img.is_primary 
+        }))
       });
 
       const additionalImages = orderData.orderImages || [];
-      console.log("📸 Additional images from orderData:", {
-        orderImages: additionalImages,
-        count: additionalImages.length
+      console.log("📸 DETAILED Additional images processing:", {
+        orderImages_raw: orderData.orderImages,
+        additional_images: additionalImages,
+        additional_images_count: additionalImages.length
       });
 
       // Объединяем: сначала изображения товара, потом дополнительные
       const combinedImages = [...productImages, ...additionalImages];
-      console.log("📸 Combined images:", {
+      console.log("📸 DETAILED Combined images final result:", {
         productImages_count: productImages.length,
         additionalImages_count: additionalImages.length,
         combinedImages_count: combinedImages.length,
-        combinedImages: combinedImages
+        combinedImages_full: combinedImages,
+        combinedImages_preview: combinedImages.slice(0, 3)
       });
 
-      // 💰 ИСПРАВЛЕНИЕ: Определяем стоимость доставки по приоритету
+      // 💰 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Детальная обработка стоимости доставки  
       let finalDeliveryPrice = null;
       
+      console.log("💰 DETAILED Delivery price processing:", {
+        step1_form_delivery_price: orderData.deliveryPrice,
+        step1_form_delivery_price_type: typeof orderData.deliveryPrice,
+        step2_product_delivery_price: selectedProduct.delivery_price,
+        step2_product_delivery_price_type: typeof selectedProduct.delivery_price,
+        step3_delivery_method: orderData.deliveryMethod
+      });
+
       // Приоритет 1: данные из формы (orderData.deliveryPrice)
-      if (orderData.deliveryPrice !== undefined && orderData.deliveryPrice !== null) {
+      if (orderData.deliveryPrice !== undefined && orderData.deliveryPrice !== null && orderData.deliveryPrice > 0) {
         finalDeliveryPrice = orderData.deliveryPrice;
-        console.log("💰 Using delivery price from form:", finalDeliveryPrice);
+        console.log("💰 DETAILED Using delivery price from form:", {
+          finalDeliveryPrice,
+          source: 'form',
+          original_value: orderData.deliveryPrice
+        });
       }
       // Приоритет 2: данные из товара (selectedProduct.delivery_price)
-      else if (selectedProduct.delivery_price !== undefined && selectedProduct.delivery_price !== null) {
+      else if (selectedProduct.delivery_price !== undefined && selectedProduct.delivery_price !== null && selectedProduct.delivery_price > 0) {
         finalDeliveryPrice = selectedProduct.delivery_price;
-        console.log("💰 Using delivery price from product:", finalDeliveryPrice);
+        console.log("💰 DETAILED Using delivery price from product:", {
+          finalDeliveryPrice,
+          source: 'product',
+          original_value: selectedProduct.delivery_price
+        });
       }
       
-      console.log("💰 Final delivery price logic:", {
+      console.log("💰 DETAILED Final delivery price decision:", {
         formDeliveryPrice: orderData.deliveryPrice,
         productDeliveryPrice: selectedProduct.delivery_price,
-        finalDeliveryPrice: finalDeliveryPrice
+        finalDeliveryPrice: finalDeliveryPrice,
+        finalDeliveryPrice_type: typeof finalDeliveryPrice,
+        will_be_saved: finalDeliveryPrice !== null
       });
 
       // 🚗 ИСПРАВЛЕНИЕ: Обрабатываем модель товара (может быть null)
       const productModel = selectedProduct.model || '';
-      console.log("🚗 Product model processing:", {
+      console.log("🚗 DETAILED Product model processing:", {
         original_model: selectedProduct.model,
-        processed_model: productModel
+        original_model_type: typeof selectedProduct.model,
+        processed_model: productModel,
+        processed_model_type: typeof productModel
       });
 
-      // Используем RPC функцию для создания заказа администратором
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Подготовка RPC payload с детальным логированием
       const orderPayload = {
         p_title: selectedProduct.title,
-        p_price: orderData.price, // Приоритет цене из формы
+        p_price: orderData.price,
         p_place_number: 1,
         p_seller_id: selectedSeller.id,
-        p_order_seller_name: selectedSeller.full_name, // ✅ ИСПРАВЛЕНО: Передаем имя продавца
-        p_seller_opt_id: selectedSeller.opt_id, // ✅ ИСПРАВЛЕНО: Передаем OPT_ID продавца
+        p_order_seller_name: selectedSeller.full_name,
+        p_seller_opt_id: selectedSeller.opt_id,
         p_buyer_id: selectedBuyer.id,
         p_brand: selectedProduct.brand || '',
-        p_model: productModel, // ✅ ИСПРАВЛЕНО: Обработанная модель
+        p_model: productModel,
         p_status: 'admin_confirmed' as const,
         p_order_created_type: 'product_order' as const,
         p_telegram_url_order: null,
-        p_images: combinedImages, // ✅ ИСПРАВЛЕНО: Объединенные изображения
+        p_images: combinedImages,                    // КРИТИЧНО: передаем объединенные изображения
         p_product_id: selectedProduct.id,
         p_delivery_method: orderData.deliveryMethod as 'cargo_rf' | 'cargo_kz' | 'self_pickup',
         p_text_order: '',
-        p_delivery_price_confirm: finalDeliveryPrice // ✅ ИСПРАВЛЕНО: Стоимость доставки
+        p_delivery_price_confirm: finalDeliveryPrice // КРИТИЧНО: передаем финальную стоимость доставки
       };
 
-      console.log("✅ Final RPC payload with FIXES:", orderPayload);
+      console.log("✅ 🔥 CRITICAL FINAL RPC PAYLOAD WITH ALL FIXES:", {
+        payload_summary: {
+          title: orderPayload.p_title,
+          price: orderPayload.p_price,
+          images_count: orderPayload.p_images.length,
+          delivery_price: orderPayload.p_delivery_price_confirm,
+          delivery_method: orderPayload.p_delivery_method,
+          product_id: orderPayload.p_product_id
+        },
+        payload_images_detail: {
+          images_array: orderPayload.p_images,
+          images_length: orderPayload.p_images.length,
+          first_3_images: orderPayload.p_images.slice(0, 3)
+        },
+        payload_delivery_detail: {
+          delivery_price_confirm: orderPayload.p_delivery_price_confirm,
+          delivery_price_type: typeof orderPayload.p_delivery_price_confirm,
+          delivery_method: orderPayload.p_delivery_method
+        },
+        full_payload: orderPayload
+      });
 
+      // ОТПРАВКА RPC ЗАПРОСА С ЛОГИРОВАНИЕМ
+      console.log("🚀 SENDING RPC REQUEST to admin_create_order...");
       const { data: orderId, error: orderError } = await supabase
         .rpc('admin_create_order', orderPayload);
 
       if (orderError) {
-        console.error("❌ Error creating order:", orderError);
+        console.error("❌ RPC ERROR from admin_create_order:", {
+          error_message: orderError.message,
+          error_details: orderError.details,
+          error_hint: orderError.hint,
+          error_code: orderError.code,
+          sent_payload: orderPayload
+        });
         
         // Обработка специфических ошибок от базы данных
         if (orderError.message?.includes('Product is not available for order')) {
@@ -201,9 +256,10 @@ export const useAdminOrderCreation = () => {
         throw orderError;
       }
 
-      console.log("✅ Order created with ID:", orderId);
+      console.log("✅ RPC SUCCESS - Order created with ID:", orderId);
 
-      // Получаем данные созданного заказа для валидации
+      // Получаем данные созданного заказа для расширенной валидации
+      console.log("🔍 FETCHING created order for validation...");
       const { data: createdOrder, error: fetchError } = await supabase
         .from('orders')
         .select('*')
@@ -215,57 +271,97 @@ export const useAdminOrderCreation = () => {
         throw fetchError;
       }
 
-      // 🔍 РАСШИРЕННАЯ ВАЛИДАЦИЯ созданного заказа
-      console.log("🔍 DETAILED validation of created order data:", {
+      // 🔍 КРИТИЧЕСКАЯ ВАЛИДАЦИЯ созданного заказа
+      console.log("🔍 🔥 CRITICAL VALIDATION of created order data:", {
         order_id: createdOrder.id,
         order_number: createdOrder.order_number,
         title: createdOrder.title,
         price: createdOrder.price,
         delivery_price_confirm: createdOrder.delivery_price_confirm,
+        delivery_price_type: typeof createdOrder.delivery_price_confirm,
         order_seller_name: createdOrder.order_seller_name,
         seller_opt_id: createdOrder.seller_opt_id,
         buyer_opt_id: createdOrder.buyer_opt_id,
         brand: createdOrder.brand,
         model: createdOrder.model,
         product_id: createdOrder.product_id,
+        delivery_method: createdOrder.delivery_method,
         images_count: createdOrder.images?.length || 0,
-        images: createdOrder.images,
-        delivery_method: createdOrder.delivery_method
+        images_actual: createdOrder.images,
+        images_comparison: {
+          sent_count: combinedImages.length,
+          received_count: createdOrder.images?.length || 0,
+          match: (combinedImages.length === (createdOrder.images?.length || 0))
+        },
+        delivery_price_comparison: {
+          sent: finalDeliveryPrice,
+          received: createdOrder.delivery_price_confirm,
+          match: finalDeliveryPrice === createdOrder.delivery_price_confirm
+        }
       });
 
-      // Проверяем критически важные поля
+      // Проверяем критически важные поля с детальными ошибками
       const validationErrors = [];
       
       if (!createdOrder.order_seller_name || createdOrder.order_seller_name === 'Unknown Seller') {
         validationErrors.push('Имя продавца не сохранилось');
+        console.error("❌ VALIDATION FAILED: seller name not saved");
       }
       
       if (!createdOrder.seller_opt_id) {
         validationErrors.push('OPT_ID продавца не сохранился');
+        console.error("❌ VALIDATION FAILED: seller opt_id not saved");
       }
       
       if (!createdOrder.buyer_opt_id) {
         validationErrors.push('OPT_ID покупателя не сохранился');
+        console.error("❌ VALIDATION FAILED: buyer opt_id not saved");
       }
       
-      // ✅ НОВАЯ ПРОВЕРКА: Изображения
+      // ✅ КРИТИЧЕСКАЯ ПРОВЕРКА: Изображения
       if (!createdOrder.images || createdOrder.images.length === 0) {
-        console.warn("⚠️ No images saved in order - this is the main issue!");
-        validationErrors.push('Изображения товара не сохранились');
-      } else {
-        console.log("✅ Images successfully saved:", createdOrder.images);
-      }
-
-      // ✅ НОВАЯ ПРОВЕРКА: Стоимость доставки
-      if (finalDeliveryPrice !== null && createdOrder.delivery_price_confirm !== finalDeliveryPrice) {
-        console.warn("⚠️ Delivery price mismatch:", {
-          expected: finalDeliveryPrice,
-          actual: createdOrder.delivery_price_confirm
+        console.error("❌ 🔥 CRITICAL VALIDATION FAILED: No images saved in order!");
+        console.error("❌ Images comparison:", {
+          expected_images: combinedImages,
+          expected_count: combinedImages.length,
+          actual_images: createdOrder.images,
+          actual_count: createdOrder.images?.length || 0
         });
-        validationErrors.push('Стоимость доставки не сохранилась корректно');
+        validationErrors.push(`Изображения товара не сохранились (отправлено: ${combinedImages.length}, сохранено: ${createdOrder.images?.length || 0})`);
+      } else if (createdOrder.images.length !== combinedImages.length) {
+        console.warn("⚠️ Images count mismatch:", {
+          expected: combinedImages.length,
+          actual: createdOrder.images.length,
+          expected_images: combinedImages,
+          actual_images: createdOrder.images
+        });
+        validationErrors.push(`Количество изображений не совпадает (отправлено: ${combinedImages.length}, сохранено: ${createdOrder.images.length})`);
+      } else {
+        console.log("✅ Images successfully saved:", {
+          count: createdOrder.images.length,
+          images: createdOrder.images
+        });
       }
 
-      // ✅ НОВАЯ ПРОВЕРКА: Модель
+      // ✅ КРИТИЧЕСКАЯ ПРОВЕРКА: Стоимость доставки
+      if (finalDeliveryPrice !== null && createdOrder.delivery_price_confirm !== finalDeliveryPrice) {
+        console.error("❌ 🔥 CRITICAL VALIDATION FAILED: Delivery price mismatch!", {
+          expected: finalDeliveryPrice,
+          expected_type: typeof finalDeliveryPrice,
+          actual: createdOrder.delivery_price_confirm,
+          actual_type: typeof createdOrder.delivery_price_confirm,
+          strict_equality: finalDeliveryPrice === createdOrder.delivery_price_confirm,
+          loose_equality: finalDeliveryPrice == createdOrder.delivery_price_confirm
+        });
+        validationErrors.push(`Стоимость доставки не сохранилась корректно (отправлено: ${finalDeliveryPrice}, сохранено: ${createdOrder.delivery_price_confirm})`);
+      } else if (finalDeliveryPrice !== null) {
+        console.log("✅ Delivery price successfully saved:", {
+          sent: finalDeliveryPrice,
+          saved: createdOrder.delivery_price_confirm
+        });
+      }
+
+      // ✅ ПРОВЕРКА: Модель
       if (selectedProduct.model && !createdOrder.model) {
         console.warn("⚠️ Model not saved:", {
           expected: selectedProduct.model,
@@ -275,12 +371,14 @@ export const useAdminOrderCreation = () => {
       }
 
       if (validationErrors.length > 0) {
-        console.error("❌ Order validation failed:", validationErrors);
+        console.error("❌ 🔥 ORDER VALIDATION FAILED:", validationErrors);
         toast({
           title: "Предупреждение",
           description: `Заказ создан, но есть проблемы: ${validationErrors.join(', ')}`,
           variant: "destructive",
         });
+      } else {
+        console.log("✅ 🎉 ALL VALIDATIONS PASSED - Order created successfully!");
       }
 
       // Отправляем Telegram уведомление о создании заказа
