@@ -6,10 +6,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Heart, ShoppingCart, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Heart, ShoppingCart, ExternalLink, Star, MapPin, Phone, MessageCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Favorites = () => {
   const { user } = useAuth();
@@ -26,18 +26,12 @@ const Favorites = () => {
           *,
           product_images (
             id,
-            image_url,
-            alt_text,
-            display_order
-          ),
-          stores (
-            id,
-            name,
-            verified
+            url,
+            is_primary
           )
         `)
         .in('id', favorites)
-        .eq('status', 'active');
+        .in('status', ['active', 'sold']);
       
       if (error) throw error;
       return data || [];
@@ -107,8 +101,8 @@ const Favorites = () => {
                 <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100 mb-3">
                   {product.product_images?.[0] ? (
                     <img
-                      src={product.product_images[0].image_url}
-                      alt={product.product_images[0].alt_text || product.name}
+                      src={product.product_images[0].url}
+                      alt={product.title}
                       className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-200"
                     />
                   ) : (
@@ -125,19 +119,34 @@ const Favorites = () => {
                   >
                     <Heart className="h-4 w-4 fill-red-500 text-red-500" />
                   </Button>
+
+                  <Badge 
+                    variant={product.status === 'active' ? 'default' : 'secondary'}
+                    className="absolute top-2 left-2"
+                  >
+                    {product.status === 'active' ? 'Активный' : 
+                     product.status === 'sold' ? 'Продан' : 'Неактивный'}
+                  </Badge>
                 </div>
 
                 <CardTitle className="text-lg line-clamp-2">
-                  {product.name}
+                  {product.title}
                 </CardTitle>
                 
-                {product.stores && (
+                {product.brand && product.model && (
+                  <p className="text-sm text-muted-foreground">
+                    {product.brand} {product.model}
+                  </p>
+                )}
+
+                {product.seller_name && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>{product.stores.name}</span>
-                    {product.stores.verified && (
-                      <Badge variant="secondary" className="text-xs">
-                        Проверен
-                      </Badge>
+                    <span>Продавец: {product.seller_name}</span>
+                    {product.rating_seller && (
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span>{product.rating_seller}</span>
+                      </div>
                     )}
                   </div>
                 )}
@@ -145,11 +154,23 @@ const Favorites = () => {
 
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-primary">
-                      {product.price ? `${product.price} AED` : 'Цена по запросу'}
+                      ${product.price}
                     </span>
+                    {product.condition && (
+                      <Badge variant="outline">
+                        {product.condition}
+                      </Badge>
+                    )}
                   </div>
+
+                  {product.product_location && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-3 w-3" />
+                      <span>{product.product_location}</span>
+                    </div>
+                  )}
 
                   {product.description && (
                     <p className="text-sm text-muted-foreground line-clamp-2">
@@ -166,14 +187,26 @@ const Favorites = () => {
                         Подробнее
                       </Link>
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleFavorite(product.id)}
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                    >
-                      <Heart className="h-4 w-4" />
-                    </Button>
+                    
+                    {product.phone_url && (
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`tel:${product.phone_url}`}>
+                          <Phone className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
+                    
+                    {product.telegram_url && (
+                      <Button variant="outline" size="sm" asChild>
+                        <a 
+                          href={`https://t.me/${product.telegram_url}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>

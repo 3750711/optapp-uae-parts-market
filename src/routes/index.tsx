@@ -41,6 +41,7 @@ const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
 const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
 const OrderDetailsRedirect = lazy(() => import('@/components/routing/OrderDetailsRedirect').then(module => ({ default: module.default })));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
+const Favorites = lazy(() => import('@/pages/Favorites'));
 
 // Lazy loaded продавецкие страницы
 const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
@@ -189,6 +190,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/notifications" element={
               <ProtectedRoute>
                 <NotificationsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/favorites" element={
+              <ProtectedRoute>
+                <Favorites />
               </ProtectedRoute>
             } />
 
