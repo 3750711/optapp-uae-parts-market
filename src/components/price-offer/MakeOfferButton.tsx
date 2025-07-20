@@ -53,6 +53,9 @@ export const MakeOfferButton = ({
     return <MakeOfferButtonSkeleton compact={compact} />;
   }
 
+  // Add a subtle loading indicator for background updates
+  const isUpdating = isPendingLoading || isCompetitiveLoading;
+
   const isMaxOffer = competitiveData?.current_user_is_max || false;
   const maxOtherOffer = competitiveData?.max_offer_price || 0;
 

@@ -303,6 +303,10 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
       return data;
     },
     enabled: enabled && !!productId,
+    staleTime: 5000, // Reduced to 5 seconds for faster updates
+    refetchInterval: 15000, // More frequent refetch for real-time feel
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   // Set up real-time subscription
@@ -310,7 +314,7 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
     if (!enabled || !productId) return;
 
     const channel = supabase
-      .channel('price-offers-changes')
+      .channel(`price-offers-${productId}`)
       .on(
         'postgres_changes',
         {
@@ -320,9 +324,14 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
           filter: `product_id=eq.${productId}`
         },
         (payload) => {
-          // Invalidate and refetch the query when changes occur
+          console.log('Price offers real-time update:', payload);
+          // Immediate invalidation for real-time updates
           queryClient.invalidateQueries({ 
             queryKey: ["pending-offer", productId] 
+          });
+          // Also update competitive offers for consistency
+          queryClient.invalidateQueries({ 
+            queryKey: ["competitive-offers", productId] 
           });
         }
       )
@@ -360,6 +369,10 @@ export const useCompetitiveOffers = (productId: string, enabled = true) => {
       };
     },
     enabled: enabled && !!productId,
+    staleTime: 3000, // Very fast updates for competitive scenarios
+    refetchInterval: 10000, // Even more frequent for competitive offers
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   // Set up real-time subscription for competitive offers
@@ -367,7 +380,7 @@ export const useCompetitiveOffers = (productId: string, enabled = true) => {
     if (!enabled || !productId) return;
 
     const channel = supabase
-      .channel('competitive-offers-changes')
+      .channel(`competitive-offers-${productId}`)
       .on(
         'postgres_changes',
         {
@@ -377,7 +390,8 @@ export const useCompetitiveOffers = (productId: string, enabled = true) => {
           filter: `product_id=eq.${productId}`
         },
         (payload) => {
-          // Invalidate and refetch competitive offers when any offer changes
+          console.log('Competitive offers real-time update:', payload);
+          // Immediate invalidation for real-time updates
           queryClient.invalidateQueries({ 
             queryKey: ["competitive-offers", productId] 
           });
