@@ -148,19 +148,19 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
             </div>
         </div>
 
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => onViewDetails(order.id)}
-            className="flex-1 h-6 text-xs font-medium"
-            disabled={isActionLoading}
-          >
-            <Eye className="h-3 w-3 mr-1" />
-            Просмотр
-          </Button>
-          
-          <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => onViewDetails(order.id)}
+              className="flex-1 h-6 text-xs font-medium"
+              disabled={isActionLoading}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              Просмотр
+            </Button>
+            
             <CollapsibleTrigger asChild>
               <Button 
                 variant="ghost" 
@@ -171,12 +171,11 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </Button>
             </CollapsibleTrigger>
-          </Collapsible>
-        </div>
+          </div>
 
-        <CollapsibleContent>
-           <div className="pt-1.5 space-y-1.5">
-             <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-2">
+          <CollapsibleContent>
+            <div className="pt-1.5 space-y-1.5">
+              <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-2">
                 <div>
                   <div className="text-muted-foreground mb-1 font-medium">Продавец</div>
                   <div className="font-medium truncate">
@@ -201,8 +200,9 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                   )}
                 </div>
               </div>
-           </div>
-        </CollapsibleContent>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );
