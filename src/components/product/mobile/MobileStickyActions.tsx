@@ -38,7 +38,23 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
   const handleOrderConfirm = async (orderData: { text_order?: string }) => {
     setIsSubmittingOrder(true);
     try {
-      console.log('Creating order with RPC function:', {
+      // Prepare product images - get URLs from product_images
+      const productImages = product.product_images?.map(img => img.url) || [];
+      console.log('Product images for order:', productImages);
+      
+      // Prepare delivery price - only for cargo methods and if delivery price exists
+      const shouldIncludeDeliveryPrice = 
+        (deliveryMethod === 'cargo_rf' || deliveryMethod === 'cargo_kz') && 
+        product.delivery_price && 
+        product.delivery_price > 0;
+      
+      const deliveryPriceConfirm = shouldIncludeDeliveryPrice ? product.delivery_price : null;
+      console.log('Delivery method:', deliveryMethod);
+      console.log('Product delivery price:', product.delivery_price);
+      console.log('Should include delivery price:', shouldIncludeDeliveryPrice);
+      console.log('Final delivery price for order:', deliveryPriceConfirm);
+
+      const orderParams = {
         p_title: product.title,
         p_price: product.price,
         p_place_number: product.place_number || 1,
@@ -51,45 +67,23 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
         p_status: 'created',
         p_order_created_type: 'product_order',
         p_telegram_url_order: null,
-        p_images: [],
+        p_images: productImages, // Now passing actual product images
         p_product_id: product.id,
         p_delivery_method: deliveryMethod,
         p_text_order: orderData.text_order,
-        p_delivery_price_confirm: null,
+        p_delivery_price_confirm: deliveryPriceConfirm, // Now passing actual delivery price
         p_quantity: 1,
         p_description: product.description,
         p_buyer_opt_id: profile?.opt_id,
         p_lot_number_order: product.lot_number,
         p_telegram_url_buyer: profile?.telegram,
         p_video_url: []
-      });
+      };
+
+      console.log('Creating order with RPC function:', orderParams);
 
       const { data: orderId, error } = await supabase
-        .rpc('create_user_order', {
-          p_title: product.title,
-          p_price: product.price,
-          p_place_number: product.place_number || 1,
-          p_seller_id: product.seller_id,
-          p_order_seller_name: product.seller_name,
-          p_seller_opt_id: null,
-          p_buyer_id: user?.id,
-          p_brand: product.brand || '',
-          p_model: product.model || '',
-          p_status: 'created' as const,
-          p_order_created_type: 'product_order' as const,
-          p_telegram_url_order: null,
-          p_images: [],
-          p_product_id: product.id,
-          p_delivery_method: deliveryMethod,
-          p_text_order: orderData.text_order || null,
-          p_delivery_price_confirm: null,
-          p_quantity: 1,
-          p_description: product.description || null,
-          p_buyer_opt_id: profile?.opt_id || null,
-          p_lot_number_order: product.lot_number || null,
-          p_telegram_url_buyer: profile?.telegram || null,
-          p_video_url: []
-        });
+        .rpc('create_user_order', orderParams);
 
       if (error) throw error;
 
