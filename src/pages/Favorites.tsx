@@ -168,11 +168,6 @@ const Favorites = () => {
                     <span className="text-2xl font-bold text-primary">
                       ${product.price}
                     </span>
-                    {product.condition && (
-                      <Badge variant="outline">
-                        {product.condition}
-                      </Badge>
-                    )}
                   </div>
 
                   {product.product_location && (
