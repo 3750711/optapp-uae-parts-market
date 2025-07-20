@@ -170,6 +170,7 @@ export const MakeOfferModal = ({
           offerId: existingOffer.id,
           newPrice: offeredPrice,
           originalMessage: existingOffer.message,
+          productId: product.id, // Add productId for optimistic updates
         });
       } else {
         await createOffer.mutateAsync(offerData);

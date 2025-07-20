@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, MapPin, Phone, MessageCircle, ExternalLink } from "lucide-react";
 import ProductCarousel from "./ProductCarousel";
-import { OptimizedMakeOfferButton } from "@/components/price-offer/OptimizedMakeOfferButton";
+import { EnhancedOfferButton } from "@/components/price-offer/EnhancedOfferButton";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
 import { formatPrice } from "@/utils/formatPrice";
 import { useAuth } from "@/contexts/AuthContext";
@@ -192,7 +192,7 @@ const ProductCard = memo(({
       {/* Action Buttons */}
       <div className="px-4 pb-4 space-y-2">
         {!hideMakeOfferButton && (
-          <OptimizedMakeOfferButton
+          <EnhancedOfferButton
             product={{
               ...product,
               condition: product.condition || 'Новое',

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PriceOffer, CreatePriceOfferData, UpdatePriceOfferData } from "@/types/price-offer";
 import { toast } from "@/hooks/use-toast";
 import { useOptimizedRealTimePriceOffers } from "./use-price-offers-realtime-optimized";
+import { useOptimisticPriceOffers } from "./use-optimistic-price-offers";
 
 interface UpdateOfferPriceData {
   offered_price: number;
@@ -124,11 +125,15 @@ export const useAdminPriceOffers = (enabled = true) => {
 // Create price offer
 export const useCreatePriceOffer = () => {
   const queryClient = useQueryClient();
+  const { setOptimisticOffer, confirmOptimisticOffer, rejectOptimisticOffer } = useOptimisticPriceOffers();
 
   return useMutation({
     mutationFn: async (data: CreatePriceOfferData) => {
       const user = await supabase.auth.getUser();
       if (!user.data.user) throw new Error("Not authenticated");
+
+      // Set optimistic state immediately
+      setOptimisticOffer(data.product_id, data.offered_price);
 
       const { data: result, error } = await supabase
         .from("price_offers")
@@ -143,6 +148,9 @@ export const useCreatePriceOffer = () => {
       return result;
     },
     onSuccess: (result) => {
+      // Confirm optimistic update
+      confirmOptimisticOffer(result.product_id);
+      
       // Remove duplicate toast - database notification will handle user feedback
       queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
       // Инвалидируем кеш для конкретного продукта, чтобы кнопка обновилась
@@ -150,13 +158,11 @@ export const useCreatePriceOffer = () => {
       // Инвалидируем конкурентные предложения для обновления информации о максимальной цене
       queryClient.invalidateQueries({ queryKey: ["competitive-offers", result.product_id] });
     },
-    onError: (error: any) => {
+    onError: (error: any, variables) => {
       console.error("Error creating price offer:", error);
-      toast({
-        title: "Ошибка",
-        description: error.message || "Не удалось отправить предложение",
-        variant: "destructive",
-      });
+      
+      // Reject optimistic update
+      rejectOptimisticOffer(variables.product_id, error.message || "Не удалось отправить предложение");
     },
   });
 };
@@ -382,19 +388,27 @@ export const useCompetitiveOffers = (productId: string, enabled = true) => {
 // Update offer price using UPSERT logic
 export const useUpdateOfferPrice = () => {
   const queryClient = useQueryClient();
+  const { updateOptimisticOffer, confirmOptimisticOffer, rejectOptimisticOffer } = useOptimisticPriceOffers();
 
   return useMutation({
     mutationFn: async ({ 
       offerId, 
       newPrice,
-      originalMessage 
+      originalMessage,
+      productId
     }: { 
       offerId: string; 
       newPrice: number;
       originalMessage?: string;
+      productId?: string;
     }) => {
       const user = await supabase.auth.getUser();
       if (!user.data.user) throw new Error("Not authenticated");
+
+      // Set optimistic state if productId is provided
+      if (productId) {
+        updateOptimisticOffer(productId, newPrice);
+      }
 
       // Update existing offer with new price and reset expiry time
       // RLS policy now handles buyer_id validation, so we can remove the redundant check
@@ -415,7 +429,10 @@ export const useUpdateOfferPrice = () => {
       if (!result) throw new Error("Offer not found or cannot be updated");
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Confirm optimistic update
+      confirmOptimisticOffer(result.product_id);
+      
       toast({
         title: "Предложение обновлено",
         description: "Ваше новое предложение отправлено продавцу.",
@@ -424,8 +441,13 @@ export const useUpdateOfferPrice = () => {
       queryClient.invalidateQueries({ queryKey: ["pending-offer"] });
       queryClient.invalidateQueries({ queryKey: ["competitive-offers"] });
     },
-    onError: (error: any) => {
+    onError: (error: any, variables) => {
       console.error("Error updating price offer:", error);
+      
+      // Reject optimistic update if productId was provided
+      if (variables.productId) {
+        rejectOptimisticOffer(variables.productId, "Не удалось обновить предложение. Попробуйте еще раз.");
+      }
       
       let errorMessage = "Не удалось обновить предложение";
       if (error.message?.includes("duplicate key")) {
