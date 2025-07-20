@@ -3,6 +3,8 @@ import { useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useBatchOffersInvalidation } from "./use-price-offers-batch";
+import { usePerformanceMonitor } from './use-performance-monitor';
+import { useABTest } from './use-ab-test';
 
 interface UseGlobalRealTimePriceOffersProps {
   enabled: boolean;
@@ -16,6 +18,8 @@ export const useGlobalRealTimePriceOffers = ({
 }: UseGlobalRealTimePriceOffersProps) => {
   const queryClient = useQueryClient();
   const { invalidateBatchOffers } = useBatchOffersInvalidation();
+  const { recordRealTimeUpdate, startDebounce, endDebounce } = usePerformanceMonitor();
+  const { getCurrentDebounceTime, recordInteraction } = useABTest();
   const channelRef = useRef<any>(null);
   const lastUpdateRef = useRef<number>(0);
   const pendingUpdatesRef = useRef<Set<string>>(new Set());
@@ -23,16 +27,19 @@ export const useGlobalRealTimePriceOffers = ({
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttemptsRef = useRef<number>(0);
   
-  // Оптимизированное время debounce для auction системы
-  const DEBOUNCE_MS = 500; // Уменьшено с 3000 до 500ms для быстрых обновлений
+  // Динамическое время debounce из A/B теста
+  const DEBOUNCE_MS = getCurrentDebounceTime();
   const MAX_RECONNECT_ATTEMPTS = 5;
   const RECONNECT_DELAY = 2000; // 2 секунды между попытками
 
   const processPendingUpdates = useCallback(() => {
+    const startTime = performance.now();
     const productIds = Array.from(pendingUpdatesRef.current);
     if (productIds.length === 0) return;
 
     console.log('🚀 Processing optimized real-time updates for products:', productIds);
+    
+    endDebounce(); // End debounce measurement
     
     // Селективная инвалидация только для затронутых продуктов
     invalidateBatchOffers(productIds);
@@ -46,7 +53,15 @@ export const useGlobalRealTimePriceOffers = ({
     // Очищаем pending updates
     pendingUpdatesRef.current.clear();
     lastUpdateRef.current = Date.now();
-  }, [invalidateBatchOffers, queryClient, userId]);
+    
+    // Record performance metrics
+    const endTime = performance.now();
+    recordRealTimeUpdate(endTime - startTime);
+    recordInteraction('ui_interaction', { 
+      type: 'realtime_batch_update', 
+      productCount: productIds.length 
+    });
+  }, [invalidateBatchOffers, queryClient, userId, recordRealTimeUpdate, recordInteraction, endDebounce]);
 
   const handleReconnect = useCallback(() => {
     if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {

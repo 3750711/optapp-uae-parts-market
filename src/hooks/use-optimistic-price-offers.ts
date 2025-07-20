@@ -2,6 +2,8 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { usePerformanceMonitor } from './use-performance-monitor';
+import { useABTest } from './use-ab-test';
 
 export interface OptimisticOfferState {
   isOptimistic: boolean;
@@ -13,8 +15,12 @@ export const useOptimisticPriceOffers = () => {
   const [optimisticStates, setOptimisticStates] = useState<Record<string, OptimisticOfferState>>({});
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { recordOptimisticSuccess, recordOptimisticFailure, recordUIResponse } = usePerformanceMonitor();
+  const { recordInteraction } = useABTest();
 
   const setOptimisticOffer = useCallback((productId: string, offeredPrice: number) => {
+    const startTime = performance.now();
+    
     setOptimisticStates(prev => ({
       ...prev,
       [productId]: {
@@ -43,7 +49,12 @@ export const useOptimisticPriceOffers = () => {
       
       return updatedData;
     });
-  }, [queryClient]);
+    
+    // Record performance metrics
+    const endTime = performance.now();
+    recordUIResponse(endTime - startTime);
+    recordInteraction('offer_created', { productId, offeredPrice });
+  }, [queryClient, recordUIResponse, recordInteraction]);
 
   const updateOptimisticOffer = useCallback((productId: string, newPrice: number) => {
     setOptimisticStates(prev => ({
@@ -70,7 +81,9 @@ export const useOptimisticPriceOffers = () => {
         return item;
       });
     });
-  }, [queryClient]);
+    
+    recordInteraction('offer_updated', { productId, newPrice });
+  }, [queryClient, recordInteraction]);
 
   const confirmOptimisticOffer = useCallback((productId: string) => {
     setOptimisticStates(prev => {
@@ -82,7 +95,10 @@ export const useOptimisticPriceOffers = () => {
     // Invalidate to get real data
     queryClient.invalidateQueries({ queryKey: ['batch-offers'] });
     queryClient.invalidateQueries({ queryKey: ['price-offers', productId] });
-  }, [queryClient]);
+    
+    // Record success
+    recordOptimisticSuccess();
+  }, [queryClient, recordOptimisticSuccess]);
 
   const rejectOptimisticOffer = useCallback((productId: string, error?: string) => {
     setOptimisticStates(prev => ({
@@ -105,6 +121,9 @@ export const useOptimisticPriceOffers = () => {
       });
     }
 
+    // Record failure
+    recordOptimisticFailure(error);
+
     // Clear error state after 3 seconds
     setTimeout(() => {
       setOptimisticStates(prev => {
@@ -113,7 +132,7 @@ export const useOptimisticPriceOffers = () => {
         return newState;
       });
     }, 3000);
-  }, [queryClient, toast]);
+  }, [queryClient, toast, recordOptimisticFailure]);
 
   const getOptimisticState = useCallback((productId: string): OptimisticOfferState | null => {
     return optimisticStates[productId] || null;
