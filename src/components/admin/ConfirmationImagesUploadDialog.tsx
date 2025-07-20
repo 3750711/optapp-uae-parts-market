@@ -17,7 +17,6 @@ import {
   SheetTitle,
   SheetDescription,
   SheetFooter,
-  SheetClose,
 } from '@/components/ui/sheet';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -61,8 +60,19 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   const totalFiles = confirmImages.length + confirmVideos.length;
   const isDisabled = !isComponentReady || sessionLost || isUploading;
 
+  // Prevent accidental closing during upload
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && isUploading) {
+      // Don't close if uploading
+      return;
+    }
+    if (!newOpen) {
+      onCancel();
+    }
+  };
+
   const PreviewContent = () => (
-    <div className={`space-y-3 sm:space-y-4 ${isMobile ? 'pb-24' : ''}`}>
+    <div className="space-y-4">
       <SessionStatusComponent
         isComponentReady={isComponentReady}
         sessionLost={sessionLost}
@@ -73,6 +83,24 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
       {isComponentReady && !sessionLost && (
         <>
+          {/* Mobile compression info */}
+          {isMobile && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Upload className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
+                <div className="text-sm">
+                  <div className="font-medium text-blue-900 mb-1">
+                    Умная обработка изображений
+                  </div>
+                  <div className="text-blue-700 text-xs leading-relaxed">
+                    Изображения автоматически оптимизируются для быстрой загрузки: 
+                    малые файлы (&lt;400KB) не сжимаются, большие - оптимизируются до WebP формата.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <MediaUploadTabs
             confirmImages={confirmImages}
             confirmVideos={confirmVideos}
@@ -97,30 +125,36 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
   const ActionButtons = () => (
     <>
-      <Button variant="outline" onClick={onCancel} className="flex-1 sm:flex-none h-10 text-sm">
+      <Button 
+        variant="outline" 
+        onClick={onCancel} 
+        disabled={isUploading}
+        className="flex-1 sm:flex-none min-h-[44px] text-sm"
+      >
         Отмена
       </Button>
       <Button 
         variant="secondary" 
         onClick={onSkip}
-        className="flex-1 sm:flex-none h-10 text-sm flex items-center gap-1"
+        disabled={isUploading}
+        className="flex-1 sm:flex-none min-h-[44px] text-sm flex items-center gap-2"
       >
-        <SkipForward className="h-3 w-3 sm:h-4 sm:w-4" />
+        <SkipForward className="h-4 w-4" />
         Пропустить
       </Button>
       <Button
         onClick={handleSaveMedia}
         disabled={isDisabled || totalFiles === 0}
-        className="bg-green-600 hover:bg-green-700 h-10 text-sm flex items-center gap-1 order-1 sm:order-2"
+        className="bg-green-600 hover:bg-green-700 min-h-[44px] text-sm flex items-center gap-2 flex-1 sm:flex-none"
       >
         {isUploading ? (
           <>
-            <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+            <Loader2 className="h-4 w-4 animate-spin" />
             Сохранение...
           </>
         ) : (
           <>
-            <Check className="h-3 w-3 sm:h-4 sm:w-4" />
+            <Check className="h-4 w-4" />
             Сохранить и продолжить
           </>
         )}
@@ -130,39 +164,85 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
   if (isMobile) {
     return (
-      <Sheet open={open} onOpenChange={() => {}}>
-        <SheetContent side="bottom" className="h-[85vh] w-full flex flex-col p-4">
-          <SheetHeader className="text-left pb-2">
+      <Sheet open={open} onOpenChange={handleOpenChange}>
+        <SheetContent 
+          side="bottom" 
+          className="h-[90vh] w-full flex flex-col p-0"
+          onInteractOutside={(e) => {
+            // Prevent closing during upload
+            if (isUploading) {
+              e.preventDefault();
+            }
+          }}
+        >
+          <SheetHeader className="text-left p-4 pb-2 border-b">
             <SheetTitle className="text-lg flex items-center gap-2">
-              <Upload className="h-4 w-4" />
+              <Upload className="h-5 w-5" />
               Загрузка файлов подтверждения заказа
             </SheetTitle>
             <SheetDescription className="text-sm">
               Загрузите фотографии и видео, подтверждающие выполнение заказа, или пропустите этот шаг.
             </SheetDescription>
           </SheetHeader>
-          <div className="absolute top-4 right-4">
-            <SheetClose asChild>
-              <Button size="icon" variant="ghost" className="h-8 w-8">
-                <X className="h-4 w-4" />
-              </Button>
-            </SheetClose>
-          </div>
-          <ScrollArea className="flex-1 my-2">
-            <PreviewContent />
-          </ScrollArea>
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
-            <div className="flex gap-2">
-              <ActionButtons />
+          
+          {/* Scrollable content area - calculated height */}
+          <ScrollArea className="flex-1 px-4">
+            <div className="py-2">
+              <PreviewContent />
             </div>
-          </div>
+          </ScrollArea>
+          
+          {/* Footer with buttons */}
+          <SheetFooter className="p-4 pt-3 border-t bg-white">
+            <div className="flex flex-col gap-3 w-full">
+              {/* Main action button */}
+              <Button
+                onClick={handleSaveMedia}
+                disabled={isDisabled || totalFiles === 0}
+                className="bg-green-600 hover:bg-green-700 min-h-[48px] text-base flex items-center gap-2 w-full order-1"
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                    Сохранение...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-5 w-5" />
+                    Сохранить и продолжить ({totalFiles})
+                  </>
+                )}
+              </Button>
+              
+              {/* Secondary buttons */}
+              <div className="flex gap-2 order-2">
+                <Button 
+                  variant="outline" 
+                  onClick={onCancel} 
+                  disabled={isUploading}
+                  className="flex-1 min-h-[44px] text-sm"
+                >
+                  Отмена
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  onClick={onSkip}
+                  disabled={isUploading}
+                  className="flex-1 min-h-[44px] text-sm flex items-center gap-2"
+                >
+                  <SkipForward className="h-4 w-4" />
+                  Пропустить
+                </Button>
+              </div>
+            </div>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     );
   }
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-3xl max-w-[95vw] sm:max-h-[90vh] max-h-[85vh] p-3 sm:p-6 flex flex-col">
         <DialogHeader className="space-y-2 pb-2 sm:pb-4">
           <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
@@ -180,12 +260,18 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t mt-auto">
           <div className="flex gap-2 order-2 sm:order-1">
-            <Button variant="outline" onClick={onCancel} className="flex-1 sm:flex-none h-10 text-sm">
+            <Button 
+              variant="outline" 
+              onClick={onCancel} 
+              disabled={isUploading}
+              className="flex-1 sm:flex-none h-10 text-sm"
+            >
               Отмена
             </Button>
             <Button 
               variant="secondary" 
               onClick={onSkip}
+              disabled={isUploading}
               className="flex-1 sm:flex-none h-10 text-sm flex items-center gap-1"
             >
               <SkipForward className="h-3 w-3 sm:h-4 sm:w-4" />
