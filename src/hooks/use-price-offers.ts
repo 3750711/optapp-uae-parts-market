@@ -415,6 +415,7 @@ export const useUpdateOfferPrice = () => {
       if (!user.data.user) throw new Error("Not authenticated");
 
       // Update existing offer with new price and reset expiry time
+      // RLS policy now handles buyer_id validation, so we can remove the redundant check
       const { data: result, error } = await supabase
         .from("price_offers")
         .update({ 
@@ -425,11 +426,11 @@ export const useUpdateOfferPrice = () => {
           message: originalMessage // Keep original message
         })
         .eq("id", offerId)
-        .eq("buyer_id", user.data.user.id) // Additional safety check
         .select()
         .single();
 
       if (error) throw error;
+      if (!result) throw new Error("Offer not found or cannot be updated");
       return result;
     },
     onSuccess: () => {
