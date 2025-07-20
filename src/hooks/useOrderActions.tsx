@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -22,11 +23,6 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
     action: string;
   }>({ isLoading: false, action: '' });
   const [singleDeleteLoading, setSingleDeleteLoading] = useState(false);
-  const [quickActionLoading, setQuickActionLoading] = useState<{
-    isLoading: boolean;
-    orderId: string;
-    action: string;
-  }>({ isLoading: false, orderId: '', action: '' });
 
   // Confirmation dialogs
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
@@ -245,88 +241,42 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
   }, [selectedOrder, queryClient, invalidateAllOrderCaches]);
 
   const handleQuickAction = useCallback(async (orderId: string, action: string) => {
-    setQuickActionLoading({ isLoading: true, orderId, action });
-    
-    try {
-      let newStatus: string;
-      
-      if (action === 'confirm') {
-        newStatus = 'admin_confirmed';
-      } else if (action === 'register') {
-        newStatus = 'processed';
-      } else {
-        throw new Error(`Unknown action: ${action}`);
-      }
-
-      // Оптимистично обновляем кэш
-      queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
-        if (!oldData?.data) return oldData;
-        
-        return {
-          ...oldData,
-          data: oldData.data.map((order: any) => 
-            order.id === orderId 
-              ? { ...order, status: newStatus }
-              : order
-          )
-        };
-      });
-
-      const { data: updatedOrder, error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId)
-        .select('*, seller:profiles!orders_seller_id_fkey(*)')
-        .single();
-        
-      if (error) throw error;
-      
-      // Отправляем Telegram уведомление
+    if (action === 'confirm') {
       try {
-        const { data: orderImages } = await supabase
-          .from('order_images')
-          .select('url')
-          .eq('order_id', orderId);
+        // Оптимистично обновляем кэш
+        queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+          if (!oldData?.data) return oldData;
           
-        const images = orderImages?.map(img => img.url) || [];
-        
-        await supabase.functions.invoke('send-telegram-notification', {
-          body: { 
-            order: { ...updatedOrder, images },
-            action: 'status_change'
-          }
+          return {
+            ...oldData,
+            data: oldData.data.map((order: any) => 
+              order.id === orderId 
+                ? { ...order, status: 'admin_confirmed' }
+                : order
+            )
+          };
         });
-      } catch (notifyError) {
-        prodError(notifyError as Error, {
-          context: 'useOrderActions/handleQuickAction/notification',
-          orderId: orderId,
+
+        await supabase
+          .from('orders')
+          .update({ status: 'admin_confirmed' })
+          .eq('id', orderId);
+        
+        invalidateAllOrderCaches();
+        toast({
+          title: "Заказ подтвержден",
+          description: "Статус заказа обновлен",
+        });
+      } catch (error) {
+        // Откатываем оптимистичные изменения
+        invalidateAllOrderCaches();
+        
+        toast({
+          title: "Ошибка",
+          description: "Не удалось подтвердить заказ",
+          variant: "destructive",
         });
       }
-      
-      invalidateAllOrderCaches();
-      
-      const actionLabel = action === 'confirm' ? 'подтвержден' : 'зарегистрирован';
-      toast({
-        title: `Заказ ${actionLabel}`,
-        description: `Статус заказа обновлен`,
-      });
-    } catch (error) {
-      prodError(error as Error, {
-        context: 'useOrderActions/handleQuickAction',
-        orderId,
-        action,
-      });
-      
-      // Откатываем оптимистичные изменения
-      invalidateAllOrderCaches();
-      
-      toast({
-        title: "Ошибка",
-        description: `Не удалось ${action === 'confirm' ? 'подтвердить' : 'зарегистрировать'} заказ`,
-        variant: "destructive",
-      });
-    } finally {
-      setQuickActionLoading({ isLoading: false, orderId: '', action: '' });
     }
   }, [queryClient, invalidateAllOrderCaches]);
 
@@ -451,7 +401,6 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
     setShowDeleteDialog,
     bulkActionLoading,
     singleDeleteLoading,
-    quickActionLoading,
     confirmBulkDelete,
     setConfirmBulkDelete,
     confirmBulkStatus,

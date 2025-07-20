@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, ChevronDown, ChevronUp, FileCheck } from "lucide-react";
+import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
@@ -28,11 +28,6 @@ interface CompactMobileOrderCardProps {
   onDelete: (order: Order) => void;
   onViewDetails: (orderId: string) => void;
   onQuickAction?: (orderId: string, action: string) => void;
-  quickActionLoading?: {
-    isLoading: boolean;
-    orderId: string;
-    action: string;
-  };
 }
 
 export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
@@ -42,15 +37,10 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
   onEdit,
   onDelete,
   onViewDetails,
-  onQuickAction,
-  quickActionLoading
+  onQuickAction
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  
-  // Динамическая логика показа кнопок
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
-  const showRegisterButton = order.status === 'admin_confirmed';
-  const isActionLoading = quickActionLoading?.isLoading && quickActionLoading?.orderId === order.id;
 
   return (
     <Card className={`
@@ -73,12 +63,7 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-6 w-6 p-0 shrink-0"
-                disabled={isActionLoading}
-              >
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0">
                 <MoreVertical className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
@@ -88,27 +73,14 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 Редактировать
               </DropdownMenuItem>
               {showConfirmButton && onQuickAction && (
-                <DropdownMenuItem 
-                  onClick={() => onQuickAction(order.id, 'confirm')}
-                  disabled={isActionLoading}
-                >
+                <DropdownMenuItem onClick={() => onQuickAction(order.id, 'confirm')}>
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  {isActionLoading && quickActionLoading?.action === 'confirm' ? 'Подтверждение...' : 'Подтвердить'}
-                </DropdownMenuItem>
-              )}
-              {showRegisterButton && onQuickAction && (
-                <DropdownMenuItem 
-                  onClick={() => onQuickAction(order.id, 'register')}
-                  disabled={isActionLoading}
-                >
-                  <FileCheck className="h-4 w-4 mr-2" />
-                  {isActionLoading && quickActionLoading?.action === 'register' ? 'Регистрация...' : 'Зарегистрировать'}
+                  Подтвердить
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem 
                 onClick={() => onDelete(order)}
                 className="text-red-600"
-                disabled={isActionLoading}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Удалить
@@ -148,34 +120,33 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
             </div>
         </div>
 
-        <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onViewDetails(order.id)}
-              className="flex-1 h-6 text-xs font-medium"
-              disabled={isActionLoading}
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              Просмотр
-            </Button>
-            
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onViewDetails(order.id)}
+            className="flex-1 h-6 text-xs font-medium"
+          >
+            <Eye className="h-3 w-3 mr-1" />
+            Просмотр
+          </Button>
+          
+          <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
             <CollapsibleTrigger asChild>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="h-6 px-2 text-xs"
-                disabled={isActionLoading}
               >
                 {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </Button>
             </CollapsibleTrigger>
-          </div>
+          </Collapsible>
+        </div>
 
-          <CollapsibleContent>
-            <div className="pt-1.5 space-y-1.5">
-              <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-2">
+        <CollapsibleContent>
+           <div className="pt-1.5 space-y-1.5">
+             <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-2">
                 <div>
                   <div className="text-muted-foreground mb-1 font-medium">Продавец</div>
                   <div className="font-medium truncate">
@@ -200,9 +171,8 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                   )}
                 </div>
               </div>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
+           </div>
+        </CollapsibleContent>
       </CardContent>
     </Card>
   );

@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, Camera, FileCheck } from "lucide-react";
+import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, Camera } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
@@ -28,11 +27,6 @@ interface MobileOrderCardProps {
   onDelete: (order: Order) => void;
   onViewDetails: (orderId: string) => void;
   onQuickAction?: (orderId: string, action: string) => void;
-  quickActionLoading?: {
-    isLoading: boolean;
-    orderId: string;
-    action: string;
-  };
 }
 
 export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
@@ -42,8 +36,7 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
   onEdit,
   onDelete,
   onViewDetails,
-  onQuickAction,
-  quickActionLoading
+  onQuickAction
 }) => {
   const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -64,10 +57,8 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
     },
   });
 
-  // Динамическая логика показа кнопок
+  const totalValue = Number(order.price || 0) + Number(order.delivery_price_confirm || 0);
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
-  const showRegisterButton = order.status === 'admin_confirmed';
-  const isActionLoading = quickActionLoading?.isLoading && quickActionLoading?.orderId === order.id;
 
   return (
     <Card 
@@ -106,12 +97,7 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
             />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 w-7 p-0"
-                  disabled={isActionLoading}
-                >
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -121,27 +107,14 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
                   Редактировать
                 </DropdownMenuItem>
                 {showConfirmButton && onQuickAction && (
-                  <DropdownMenuItem 
-                    onClick={() => onQuickAction(order.id, 'confirm')}
-                    disabled={isActionLoading}
-                  >
+                  <DropdownMenuItem onClick={() => onQuickAction(order.id, 'confirm')}>
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    {isActionLoading && quickActionLoading?.action === 'confirm' ? 'Подтверждение...' : 'Подтвердить'}
-                  </DropdownMenuItem>
-                )}
-                {showRegisterButton && onQuickAction && (
-                  <DropdownMenuItem 
-                    onClick={() => onQuickAction(order.id, 'register')}
-                    disabled={isActionLoading}
-                  >
-                    <FileCheck className="h-4 w-4 mr-2" />
-                    {isActionLoading && quickActionLoading?.action === 'register' ? 'Регистрация...' : 'Зарегистрировать'}
+                    Подтвердить
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem 
                   onClick={() => onDelete(order)}
                   className="text-red-600"
-                  disabled={isActionLoading}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Удалить
@@ -229,7 +202,6 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
             variant="outline" 
             onClick={() => onViewDetails(order.id)}
             className="flex-1 h-8 text-xs"
-            disabled={isActionLoading}
           >
             <Eye className="h-3 w-3 mr-1" />
             Просмотр
@@ -240,7 +212,6 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
               size="icon"
               className="h-8 w-8 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
               onClick={() => setIsConfirmImagesDialogOpen(true)}
-              disabled={isActionLoading}
             >
               <CheckCircle className="h-4 w-4" />
             </Button>
@@ -250,7 +221,6 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
               size="icon"
               className="h-8 w-8"
               onClick={() => setIsConfirmImagesDialogOpen(true)}
-              disabled={isActionLoading}
             >
               <Camera className="h-4 w-4" />
             </Button>
