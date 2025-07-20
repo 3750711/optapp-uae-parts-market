@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,6 @@ import { ComponentFallback, EmptyState } from './FallbackComponents';
 // Direct imports instead of lazy loading to avoid TypeScript issues
 import { VirtualizedOrdersList } from './VirtualizedOrdersList';
 import { MobileOrderCard } from './MobileOrderCard';
-import { CompactMobileOrderCard } from './CompactMobileOrderCard';
 
 interface ResponsiveOrdersViewProps {
   orders: Order[];
@@ -33,7 +32,7 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
   containerHeight = 600
 }) => {
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>(isMobile ? 'list' : 'grid');
+  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>(isMobile ? 'list' : 'grid');
 
   // Memoize orders to prevent unnecessary re-renders
   const memoizedOrders = useMemo(() => orders, [orders]);
@@ -49,33 +48,18 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
 
   const renderMobileCard = (order: Order) => {
     try {
-      if (viewMode === 'compact') {
-        return (
-          <CompactMobileOrderCard
-            key={order.id}
-            order={order}
-            isSelected={selectedOrders.includes(order.id)}
-            onSelect={onSelectOrder || (() => {})}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onViewDetails={onViewDetails}
-            onQuickAction={onQuickAction}
-          />
-        );
-      } else {
-        return (
-          <MobileOrderCard
-            key={order.id}
-            order={order}
-            isSelected={selectedOrders.includes(order.id)}
-            onSelect={onSelectOrder || (() => {})}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onViewDetails={onViewDetails}
-            onQuickAction={onQuickAction}
-          />
-        );
-      }
+      return (
+        <MobileOrderCard
+          key={order.id}
+          order={order}
+          isSelected={selectedOrders.includes(order.id)}
+          onSelect={onSelectOrder || (() => {})}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onViewDetails={onViewDetails}
+          onQuickAction={onQuickAction}
+        />
+      );
     } catch (error) {
       console.error('Error rendering mobile card:', error);
       return <ComponentFallback componentName="MobileOrderCard" />;
@@ -108,35 +92,12 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
         </div>
       )}
 
-      {/* Mobile Actions Bar */}
+      {/* Mobile Info Bar */}
       {isMobile && (
-        <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground">
-              Найдено: {memoizedOrders.length}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setViewMode(viewMode === 'list' ? 'compact' : 'list')}
-              className="h-8 text-xs px-3"
-            >
-              {viewMode === 'list' ? (
-                <>
-                  <Grid className="h-3 w-3 mr-1" />
-                  Компактно
-                </>
-              ) : (
-                <>
-                  <List className="h-3 w-3 mr-1" />
-                  Подробно
-                </>
-              )}
-            </Button>
-          </div>
+        <div className="flex items-center justify-center bg-muted/50 rounded-lg p-3">
+          <span className="text-sm font-medium text-muted-foreground">
+            Найдено: {memoizedOrders.length}
+          </span>
         </div>
       )}
 
