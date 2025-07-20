@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Heart, ShoppingCart, ExternalLink, Star, MapPin, Phone, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Heart, ShoppingCart, ExternalLink, Star, MapPin, MessageCircle, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { MakeOfferButton } from '@/components/price-offer/MakeOfferButton';
 
 const Favorites = () => {
   const { user } = useAuth();
@@ -193,13 +194,10 @@ const Favorites = () => {
                       </Link>
                     </Button>
                     
-                    {product.phone_url && (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={`tel:${product.phone_url}`}>
-                          <Phone className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
+                    <MakeOfferButton 
+                      product={product}
+                      compact={true}
+                    />
                     
                     {product.telegram_url && (
                       <Button variant="outline" size="sm" asChild>
