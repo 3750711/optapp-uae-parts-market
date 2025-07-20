@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Heart, ShoppingCart, ExternalLink, Star, MapPin, MessageCircle, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { OptimizedMakeOfferButton } from '@/components/price-offer/OptimizedMakeOfferButton';
+import { MakeOfferButton } from '@/components/price-offer/MakeOfferButton';
 
 const Favorites = () => {
   const { user } = useAuth();
@@ -194,7 +194,7 @@ const Favorites = () => {
                       </Link>
                     </Button>
                     
-                    <OptimizedMakeOfferButton 
+                    <MakeOfferButton 
                       product={product}
                       compact={true}
                     />

@@ -50,4 +50,6 @@ export interface CreatePriceOfferData {
 export interface UpdatePriceOfferData {
   status?: PriceOfferStatus;
   seller_response?: string;
+  offered_price?: number;
+  message?: string;
 }

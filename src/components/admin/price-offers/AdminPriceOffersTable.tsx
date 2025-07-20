@@ -86,7 +86,7 @@ export const AdminPriceOffersTable: React.FC<AdminPriceOffersTableProps> = ({
 
   const handleAdminAction = (offerId: string, action: 'accept' | 'reject', response?: string) => {
     updateOffer.mutate({
-      id: offerId,
+      offerId: offerId,
       data: {
         status: action === 'accept' ? 'accepted' : 'rejected',
         seller_response: response
@@ -244,7 +244,7 @@ export const AdminPriceOffersTable: React.FC<AdminPriceOffersTableProps> = ({
                           size="sm"
                           variant="outline"
                           onClick={() => updateOffer.mutate({ 
-                            id: offer.id, 
+                            offerId: offer.id, 
                             data: { status: 'cancelled' } 
                           })}
                           disabled={updateOffer.isPending}

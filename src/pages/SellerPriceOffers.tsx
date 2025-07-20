@@ -100,7 +100,7 @@ const SellerPriceOffers = () => {
       const { offer, action } = responseModal;
 
       await updateOffer.mutateAsync({
-        id: offer.id,
+        offerId: offer.id,
         data: {
           status: action === "accept" ? "accepted" : "rejected",
           seller_response: sellerResponse || undefined,

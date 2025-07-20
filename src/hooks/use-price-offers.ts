@@ -144,3 +144,120 @@ export const useProductOffers = (productId: string, enabled: boolean = true) => 
     enabled,
   });
 };
+
+// Hook для получения предложений покупателя
+export const useBuyerPriceOffers = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['buyer-price-offers', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('price_offers')
+        .select(`
+          *,
+          product:products(
+            id,
+            title,
+            brand,
+            model,
+            status,
+            seller_name,
+            product_images:product_images(url, is_primary)
+          ),
+          seller_profile:profiles!seller_id(
+            id,
+            full_name,
+            opt_id,
+            telegram
+          )
+        `)
+        .eq('buyer_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as PriceOffer[];
+    },
+    enabled: !!user?.id,
+  });
+};
+
+// Hook для получения предложений продавца
+export const useSellerPriceOffers = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['seller-price-offers', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('price_offers')
+        .select(`
+          *,
+          product:products(
+            id,
+            title,
+            brand,
+            model,
+            status,
+            seller_name,
+            product_images:product_images(url, is_primary)
+          ),
+          buyer_profile:profiles!buyer_id(
+            id,
+            full_name,
+            opt_id,
+            telegram
+          )
+        `)
+        .eq('seller_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as PriceOffer[];
+    },
+    enabled: !!user?.id,
+  });
+};
+
+// Hook для админа для получения всех предложений
+export const useAdminPriceOffers = () => {
+  return useQuery({
+    queryKey: ['admin-price-offers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('price_offers')
+        .select(`
+          *,
+          product:products(
+            id,
+            title,
+            brand,
+            model,
+            status,
+            seller_name,
+            product_images:product_images(url, is_primary)
+          ),
+          buyer_profile:profiles!buyer_id(
+            id,
+            full_name,
+            opt_id,
+            telegram
+          ),
+          seller_profile:profiles!seller_id(
+            id,
+            full_name,
+            opt_id,
+            telegram
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as PriceOffer[];
+    },
+  });
+};

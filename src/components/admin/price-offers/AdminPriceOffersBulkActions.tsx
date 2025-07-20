@@ -22,7 +22,7 @@ export const AdminPriceOffersBulkActions: React.FC<AdminPriceOffersBulkActionsPr
     try {
       const promises = selectedOfferIds.map(id =>
         updateOffer.mutateAsync({
-          id,
+          offerId: id,
           data: { 
             status: action === 'cancel' ? 'cancelled' : 'expired' 
           }
