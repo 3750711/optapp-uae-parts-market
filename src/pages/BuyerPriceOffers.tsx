@@ -2,13 +2,12 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Package, X, RefreshCw, AlertCircle } from "lucide-react";
-import { useBuyerPriceOffers, useUpdatePriceOffer } from "@/hooks/use-price-offers";
+import { Clock, Package, RefreshCw, AlertCircle } from "lucide-react";
+import { useBuyerPriceOffers } from "@/hooks/use-price-offers";
 import { PriceOffer } from "@/types/price-offer";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
 import { MakeOfferModal } from "@/components/price-offer/MakeOfferModal";
 
 const BuyerPriceOffers = () => {
@@ -19,7 +18,6 @@ const BuyerPriceOffers = () => {
 
   const { profile } = useAuth();
   const { data: offers, isLoading } = useBuyerPriceOffers();
-  const updateOffer = useUpdatePriceOffer();
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -50,17 +48,6 @@ const BuyerPriceOffers = () => {
       addSuffix: true,
       locale: ru,
     })}`;
-  };
-
-  const handleCancelOffer = async (offerId: string) => {
-    try {
-      await updateOffer.mutateAsync({
-        id: offerId,
-        data: { status: "cancelled" },
-      });
-    } catch (error) {
-      console.error("Error cancelling offer:", error);
-    }
   };
 
   const handleMakeNewOffer = (offer: PriceOffer) => {
@@ -186,18 +173,6 @@ const BuyerPriceOffers = () => {
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  {offer.status === "pending" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCancelOffer(offer.id)}
-                      disabled={updateOffer.isPending}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Отменить
-                    </Button>
-                  )}
-
                   {offer.status === "rejected" && offer.product?.status === "active" && (
                     <Button
                       variant="outline"
