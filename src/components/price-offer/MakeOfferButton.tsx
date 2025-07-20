@@ -77,7 +77,7 @@ export const MakeOfferButton = ({
             >
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full"></div>
-              <TrendingUp className="h-4 w-4" />
+              <span className="text-xs font-bold">${pendingOffer.offered_price}</span>
             </Button>
           ) : (
             <Button
