@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, TrendingUp, Users } from 'lucide-react';
+import { Clock, TrendingUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Product } from '@/types/product';
@@ -31,7 +31,7 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
   
-  // Get user's pending offer and other offers for this product
+  // Get user's pending offer for this product
   const { data: userOffer, isLoading } = useCheckPendingOffer(product.id, !!user);
 
   console.log('🎯 MakeOfferButton render:', {

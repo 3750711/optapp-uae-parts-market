@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Star } from "lucide-react";
-import { OptimizedMakeOfferButton } from "@/components/price-offer/OptimizedMakeOfferButton";
+import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ProductProps } from "./ProductCard";
@@ -55,7 +55,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   };
 
   return (
-    <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4 relative">{/* Добавил relative */}
+    <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4 relative">
       <Link to={`/product/${product.id}`} className="flex gap-4">
         {/* Product image */}
         <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
@@ -111,10 +111,10 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
         </div>
       </Link>
       
-      {/* Кнопка предложения цены вынесена за пределы Link */}
+      {/* Кнопка предложения цены */}
       {product.status === 'active' && product.seller_name && (
         <div className="absolute bottom-4 right-4 z-10">
-          <OptimizedMakeOfferButton 
+          <MakeOfferButton 
             product={{
               ...product,
               brand: product.brand || '',
@@ -138,12 +138,10 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 url: video.url
               })) || []
             }}
-            disabled={false}
             compact={true}
           />
         </div>
       )}
-      
       
       {showSoldButton && product.status === 'active' && (
         <div className="mt-3 pt-3 border-t border-gray-100">
