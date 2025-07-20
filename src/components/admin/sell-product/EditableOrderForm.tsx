@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -196,6 +197,16 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
     setEditableData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Функция для проверки, нужно ли показывать стоимость доставки
+  const shouldShowDeliveryPrice = () => {
+    return editableData.deliveryMethod === 'cargo_rf' && editableData.deliveryPrice > 0;
+  };
+
+  // Функция для расчета итоговой суммы
+  const getTotalPrice = () => {
+    return editableData.price + (shouldShowDeliveryPrice() ? editableData.deliveryPrice : 0);
+  };
+
   if (isEditing) {
     return (
       <div className="space-y-6">
@@ -274,21 +285,6 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
             />
           </div>
 
-          {/* Цена доставки */}
-          <div>
-            <Label htmlFor="deliveryPrice">Цена доставки ($)</Label>
-            <Input
-              id="deliveryPrice"
-              type="number"
-              min="0"
-              step="0.01"
-              value={editableData.deliveryPrice}
-              onChange={(e) => updateField('deliveryPrice', parseFloat(e.target.value) || 0)}
-              placeholder="0.00"
-              disabled={isSubmitting}
-            />
-          </div>
-
           {/* Способ доставки */}
           <div>
             <Label>Способ доставки</Label>
@@ -307,6 +303,23 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Цена доставки - показываем только для Cargo РФ */}
+          {editableData.deliveryMethod === 'cargo_rf' && (
+            <div>
+              <Label htmlFor="deliveryPrice">Цена доставки ($)</Label>
+              <Input
+                id="deliveryPrice"
+                type="number"
+                min="0"
+                step="0.01"
+                value={editableData.deliveryPrice}
+                onChange={(e) => updateField('deliveryPrice', parseFloat(e.target.value) || 0)}
+                placeholder="0.00"
+                disabled={isSubmitting}
+              />
+            </div>
+          )}
 
           {/* Количество мест */}
           <div>
@@ -411,7 +424,8 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
               <span className="text-gray-600">Цена:</span>
               <span className="font-medium text-green-600">${editableData.price}</span>
             </div>
-            {editableData.deliveryPrice > 0 && (
+            {/* Показываем стоимость доставки только для Cargo РФ и если она больше 0 */}
+            {shouldShowDeliveryPrice() && (
               <div className="flex justify-between">
                 <span className="text-gray-600">Доставка:</span>
                 <span className="font-medium text-orange-600">${editableData.deliveryPrice}</span>
@@ -438,7 +452,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
             <div className="flex justify-between">
               <span className="text-gray-600">Итого:</span>
               <span className="font-bold text-lg text-green-600">
-                ${editableData.price + editableData.deliveryPrice}
+                ${getTotalPrice()}
               </span>
             </div>
           </div>
