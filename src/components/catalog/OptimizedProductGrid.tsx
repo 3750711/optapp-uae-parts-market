@@ -66,7 +66,7 @@ export const OptimizedProductGrid = React.memo(({
               disableCarousel={disableCarousel}
               hideMakeOfferButton={hideMakeOfferButton}
               batchOfferData={batchOfferData}
-              useFallbackQueries={!batchOfferData || batchError}
+              useFallbackQueries={!batchOfferData || !!batchError}
             />
           </div>
         ))}
@@ -85,7 +85,7 @@ export const OptimizedProductGrid = React.memo(({
           disableCarousel={disableCarousel}
           hideMakeOfferButton={hideMakeOfferButton}
           batchOfferData={batchOfferData}
-          useFallbackQueries={!batchOfferData || batchError}
+          useFallbackQueries={!batchOfferData || !!batchError}
         />
       ))}
     </div>
