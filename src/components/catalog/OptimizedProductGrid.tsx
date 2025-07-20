@@ -4,8 +4,6 @@ import ProductCard, { ProductProps } from "@/components/product/ProductCard";
 
 // View mode type definition
 type ViewMode = "grid" | "list";
-import { useBatchOffers } from "@/hooks/use-price-offers-batch";
-import { useGlobalRealTimePriceOffers } from "@/hooks/use-price-offers-realtime-optimized";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface OptimizedProductGridProps {
@@ -25,34 +23,6 @@ export const OptimizedProductGrid = React.memo(({
   disableCarousel = false,
   hideMakeOfferButton = false,
 }: OptimizedProductGridProps) => {
-  const { user } = useAuth();
-  
-  // Extract product IDs for batch fetching
-  const productIds = useMemo(() => 
-    products.map(product => product.id).filter(Boolean),
-    [products]
-  );
-
-  // Set up global real-time subscription for all offers
-  useGlobalRealTimePriceOffers({ 
-    enabled: productIds.length > 0 && !!user,
-    userId: user?.id 
-  });
-
-  // Batch fetch offer data for all products
-  const { data: batchOfferData, isLoading: isBatchLoading, error: batchError } = useBatchOffers(
-    productIds,
-    !hideMakeOfferButton && !!user
-  );
-
-  console.log('🔄 OptimizedProductGrid batch data:', {
-    productCount: products.length,
-    batchDataCount: batchOfferData?.length || 0,
-    isLoading: isBatchLoading,
-    hasError: !!batchError,
-    productIds: productIds.slice(0, 5), // Log first 5 for debugging
-    sampleBatchData: batchOfferData?.slice(0, 3) // Log first 3 items for debugging
-  });
 
   if (viewMode === "list") {
     return (
@@ -65,8 +35,6 @@ export const OptimizedProductGrid = React.memo(({
               showSoldButton={showSoldButton}
               disableCarousel={disableCarousel}
               hideMakeOfferButton={hideMakeOfferButton}
-              batchOfferData={batchOfferData}
-              useFallbackQueries={!batchOfferData || !!batchError}
             />
           </div>
         ))}
@@ -84,8 +52,6 @@ export const OptimizedProductGrid = React.memo(({
           showSoldButton={showSoldButton}
           disableCarousel={disableCarousel}
           hideMakeOfferButton={hideMakeOfferButton}
-          batchOfferData={batchOfferData}
-          useFallbackQueries={!batchOfferData || !!batchError}
         />
       ))}
     </div>

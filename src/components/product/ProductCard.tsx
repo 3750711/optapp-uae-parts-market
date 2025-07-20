@@ -44,7 +44,6 @@ interface ProductCardProps {
   showSoldButton?: boolean;
   disableCarousel?: boolean;
   hideMakeOfferButton?: boolean;
-  batchOfferData?: BatchOfferData[];
   useFallbackQueries?: boolean;
 }
 
@@ -54,7 +53,6 @@ const ProductCard = memo(({
   showSoldButton = false,
   disableCarousel = false,
   hideMakeOfferButton = false,
-  batchOfferData,
   useFallbackQueries = false,
 }: ProductCardProps) => {
   const { user } = useAuth();
@@ -212,7 +210,6 @@ const ProductCard = memo(({
               rating_seller: product.rating_seller,
               cloudinary_url: product.cloudinary_url,
               cloudinary_public_id: product.cloudinary_public_id,
-              image: product.image,
               product_images: product.product_images?.map(img => ({
                 id: img.id || '',
                 product_id: img.product_id || product.id,
