@@ -1,6 +1,7 @@
 
 import React, { useMemo } from "react";
 import ProductCard, { ProductProps } from "@/components/product/ProductCard";
+import { BatchOfferData } from "@/hooks/use-price-offers-batch";
 
 // View mode type definition
 type ViewMode = "grid" | "list";
@@ -13,6 +14,7 @@ interface OptimizedProductGridProps {
   showSoldButton?: boolean;
   disableCarousel?: boolean;
   hideMakeOfferButton?: boolean;
+  batchOffersData?: BatchOfferData[];
 }
 
 export const OptimizedProductGrid = React.memo(({
@@ -22,6 +24,7 @@ export const OptimizedProductGrid = React.memo(({
   showSoldButton = false,
   disableCarousel = false,
   hideMakeOfferButton = false,
+  batchOffersData,
 }: OptimizedProductGridProps) => {
 
   if (viewMode === "list") {
@@ -35,6 +38,7 @@ export const OptimizedProductGrid = React.memo(({
               showSoldButton={showSoldButton}
               disableCarousel={disableCarousel}
               hideMakeOfferButton={hideMakeOfferButton}
+              batchOffersData={batchOffersData}
             />
           </div>
         ))}
@@ -52,6 +56,7 @@ export const OptimizedProductGrid = React.memo(({
           showSoldButton={showSoldButton}
           disableCarousel={disableCarousel}
           hideMakeOfferButton={hideMakeOfferButton}
+          batchOffersData={batchOffersData}
         />
       ))}
     </div>

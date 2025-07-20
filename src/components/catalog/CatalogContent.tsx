@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import UnifiedProductGrid from "@/components/product/UnifiedProductGrid";
 import CatalogSkeleton from "@/components/catalog/CatalogSkeleton";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProductProps } from '@/components/product/ProductCard';
+import { useBatchOffers } from "@/hooks/use-price-offers-batch";
 
 interface CatalogContentProps {
   isLoading: boolean;
@@ -36,6 +37,14 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   handleRetry,
   handleClearAll,
 }) => {
+  // Get all product IDs for batch offer requests
+  const productIds = useMemo(() => 
+    mappedProducts.map(product => product.id), 
+    [mappedProducts]
+  );
+
+  // Fetch batch offers for all products at once
+  const { data: batchOffersData } = useBatchOffers(productIds, productIds.length > 0);
   if (isLoading) {
     return (
       <div>
@@ -79,6 +88,7 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
             key={index} 
             products={chunk} 
             viewMode="list"
+            batchOffersData={batchOffersData}
           />
         ))}
 

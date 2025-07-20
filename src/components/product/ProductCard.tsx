@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, MapPin, Phone, MessageCircle, ExternalLink } from "lucide-react";
 import ProductCarousel from "./ProductCarousel";
 import { MakeOfferButton } from "@/components/price-offer/MakeOfferButton";
+import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
 import { formatPrice } from "@/utils/formatPrice";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -46,6 +47,7 @@ interface ProductCardProps {
   disableCarousel?: boolean;
   hideMakeOfferButton?: boolean;
   useFallbackQueries?: boolean;
+  batchOffersData?: import('@/hooks/use-price-offers-batch').BatchOfferData[];
 }
 
 const ProductCard = memo(({
@@ -55,6 +57,7 @@ const ProductCard = memo(({
   disableCarousel = false,
   hideMakeOfferButton = false,
   useFallbackQueries = false,
+  batchOffersData,
 }: ProductCardProps) => {
   const { user } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
@@ -226,7 +229,14 @@ const ProductCard = memo(({
       {/* Action Buttons */}
       <div className="px-4 pb-4 space-y-2">
         {!hideMakeOfferButton && (
-          <MakeOfferButton product={productForOfferButton} />
+          batchOffersData ? (
+            <MakeOfferButtonOptimized 
+              product={productForOfferButton} 
+              batchOffersData={batchOffersData}
+            />
+          ) : (
+            <MakeOfferButton product={productForOfferButton} />
+          )
         )}
 
         <div className="flex gap-2">

@@ -7,6 +7,7 @@ import ProductListItem from "./ProductListItem";
 import VirtualizedProductList from "./VirtualizedProductList";
 import ProductSkeleton from "@/components/catalog/ProductSkeleton";
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { BatchOfferData } from '@/hooks/use-price-offers-batch';
 
 export type ViewMode = 'grid' | 'list' | 'virtualized';
 
@@ -18,6 +19,7 @@ interface UnifiedProductGridProps {
   onStatusChange?: () => void;
   viewMode?: ViewMode;
   containerHeight?: number;
+  batchOffersData?: BatchOfferData[];
 }
 
 const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({ 
@@ -27,7 +29,8 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
   showSoldButton = false,
   onStatusChange,
   viewMode = 'list',
-  containerHeight = 600
+  containerHeight = 600,
+  batchOffersData
 }) => {
   const isMobile = useIsMobile();
   const { isAdmin } = useAdminAccess();
@@ -147,10 +150,11 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
 
       return (
         <div style={style} className="p-2">
-          <ProductCard 
+           <ProductCard 
             product={product}
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
+            batchOffersData={batchOffersData}
           />
         </div>
       );
@@ -196,10 +200,11 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[200px] auto-rows-fr">
       {visibleProducts.map((product) => (
         <div key={product.id} className="flex min-h-0">
-          <ProductCard 
+           <ProductCard 
             product={product} 
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
+            batchOffersData={batchOffersData}
           />
         </div>
       ))}

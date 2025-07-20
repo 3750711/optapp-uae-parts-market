@@ -2,6 +2,7 @@
 import React, { memo, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Package, RefreshCw } from 'lucide-react';
+import { useBatchOffers, BatchOfferData } from '@/hooks/use-price-offers-batch';
 
 interface OptimizedCatalogContentProps {
   isLoading: boolean;
@@ -47,7 +48,7 @@ const MemoizedProductCard = memo(({ product }: { product: any }) => {
 });
 
 // Мемоизированная сетка товаров
-const MemoizedProductGrid = memo(({ products }: { products: any[] }) => {
+const MemoizedProductGrid = memo(({ products, batchOffersData }: { products: any[], batchOffersData?: BatchOfferData[] }) => {
   const productElements = useMemo(() => {
     return products.map((product) => (
       <MemoizedProductCard key={product.id} product={product} />
@@ -125,6 +126,9 @@ const OptimizedCatalogContent: React.FC<OptimizedCatalogContentProps> = ({
   handleRetry,
   handleClearAll,
 }) => {
+  // Get batch offers for all products
+  const productIds = useMemo(() => mappedProducts.map(p => p.id), [mappedProducts]);
+  const { data: batchOffersData } = useBatchOffers(productIds, productIds.length > 0);
   
   // Мемоизируем состояние загрузки
   const loadingState = useMemo(() => {
@@ -189,7 +193,7 @@ const OptimizedCatalogContent: React.FC<OptimizedCatalogContentProps> = ({
       
       {mappedProducts.length > 0 && (
         <>
-          <MemoizedProductGrid products={mappedProducts} />
+          <MemoizedProductGrid products={mappedProducts} batchOffersData={batchOffersData} />
           
           {/* Индикатор бесконечной прокрутки */}
           <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
