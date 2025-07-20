@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -11,8 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertCircle, Star, Shield, MapPin } from "lucide-react";
-import { useCreatePriceOffer, useUpdateOfferPrice } from "@/hooks/use-price-offers";
+import { AlertCircle, Star, Shield, MapPin, TrendingUp, Users, Award } from "lucide-react";
+import { useCreatePriceOffer, useUpdateOfferPrice, useCompetitiveOffers } from "@/hooks/use-price-offers";
 import { CreatePriceOfferData } from "@/types/price-offer";
 import { checkProductStatus } from "@/utils/productStatusChecker";
 import { Product } from "@/types/product";
@@ -52,6 +53,9 @@ export const MakeOfferModal = ({
   const isLoading = createOffer.isPending || updateOffer.isPending;
   const isMobile = useIsMobile();
   
+  // Load competitive offers data
+  const { data: competitiveData, isLoading: competitiveLoading } = useCompetitiveOffers(product.id, isOpen);
+  
   const isUpdateMode = !!existingOffer;
 
   // Check product status when modal opens
@@ -65,6 +69,7 @@ export const MakeOfferModal = ({
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
@@ -76,6 +81,33 @@ export const MakeOfferModal = ({
 
   const minPrice = isUpdateMode ? (existingOffer?.offered_price || 0) + 1 : 1;
   const maxPrice = product.price;
+
+  // Calculate smart recommendations
+  const getRecommendedPrice = () => {
+    if (!competitiveData) return null;
+    
+    if (isUpdateMode) {
+      // For updates, recommend beating the max offer if user is not leading
+      if (!competitiveData.current_user_is_max && competitiveData.max_offer_price > 0) {
+        return competitiveData.max_offer_price + 1;
+      }
+      return (existingOffer?.offered_price || 0) + 1;
+    } else {
+      // For new offers, recommend beating the max offer if it exists
+      if (competitiveData.max_offer_price > 0) {
+        return competitiveData.max_offer_price + 1;
+      }
+      return Math.min(Math.ceil(product.price * 0.8), product.price);
+    }
+  };
+
+  const recommendedPrice = getRecommendedPrice();
+
+  const handleQuickFillRecommended = () => {
+    if (recommendedPrice) {
+      setValue("offered_price", recommendedPrice.toString());
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     if ((!isUpdateMode && !isConfirmed) || !data.offered_price) {
@@ -145,6 +177,101 @@ export const MakeOfferModal = ({
   const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
                       product.product_images?.[0]?.url;
 
+  // Competitive offers info component
+  const CompetitiveOffersInfo = () => {
+    if (competitiveLoading) {
+      return (
+        <div className="bg-gray-50 p-3 rounded-lg border animate-pulse">
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+        </div>
+      );
+    }
+
+    if (!competitiveData) return null;
+
+    const hasCompetitors = competitiveData.total_offers_count > (isUpdateMode ? 1 : 0);
+    const userIsLeading = isUpdateMode ? competitiveData.current_user_is_max : false;
+    const maxCompetitorPrice = competitiveData.max_offer_price;
+
+    return (
+      <div className={`p-3 rounded-lg border ${
+        isMobile ? 'space-y-2' : 'space-y-3'
+      } ${userIsLeading ? 'bg-green-50 border-green-200' : hasCompetitors ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
+        <div className="flex items-center gap-2">
+          <TrendingUp className={`h-4 w-4 ${
+            userIsLeading ? 'text-green-600' : hasCompetitors ? 'text-orange-600' : 'text-blue-600'
+          }`} />
+          <h3 className={`font-medium text-sm ${
+            userIsLeading ? 'text-green-800' : hasCompetitors ? 'text-orange-800' : 'text-blue-800'
+          }`}>
+            Информация о ставках
+          </h3>
+        </div>
+
+        <div className={`space-y-2 text-xs ${isMobile ? '' : 'text-sm'}`}>
+          {isUpdateMode && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Ваша текущая ставка:</span>
+              <span className="font-semibold">${existingOffer?.offered_price}</span>
+            </div>
+          )}
+
+          {hasCompetitors && maxCompetitorPrice > 0 && (
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Максимальная ставка конкурента:</span>
+              <span className="font-semibold text-orange-600">${maxCompetitorPrice}</span>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between">
+            <span className="text-gray-600">Всего предложений:</span>
+            <div className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              <span className="font-semibold">{competitiveData.total_offers_count}</span>
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className={`flex items-center gap-2 p-2 rounded ${
+            userIsLeading ? 'bg-green-100' : hasCompetitors ? 'bg-orange-100' : 'bg-blue-100'
+          }`}>
+            <Award className={`h-3 w-3 ${
+              userIsLeading ? 'text-green-600' : hasCompetitors ? 'text-orange-600' : 'text-blue-600'
+            }`} />
+            <span className={`font-medium ${
+              userIsLeading ? 'text-green-700' : hasCompetitors ? 'text-orange-700' : 'text-blue-700'
+            }`}>
+              {userIsLeading ? 'Вы лидируете!' : 
+               hasCompetitors ? 'Конкурент лидирует' : 
+               'Вы единственный участник торгов'}
+            </span>
+          </div>
+
+          {/* Smart recommendation */}
+          {recommendedPrice && !userIsLeading && hasCompetitors && (
+            <div className="bg-yellow-50 border border-yellow-200 p-2 rounded">
+              <p className="text-yellow-800 font-medium text-xs">
+                💡 Предложите больше ${recommendedPrice}, чтобы обойти конкурента
+              </p>
+              {!isMobile && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleQuickFillRecommended}
+                  className="mt-2 h-6 text-xs bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200"
+                >
+                  Использовать рекомендуемую сумму
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // Mobile-specific component
   const MobileContent = () => (
     <div className="space-y-3 pb-4">
@@ -170,6 +297,9 @@ export const MakeOfferModal = ({
           </div>
         </div>
       </div>
+
+      {/* Competitive Offers Info */}
+      <CompetitiveOffersInfo />
 
       {/* Current Offer Info for Update Mode */}
       {isUpdateMode && existingOffer && (
@@ -209,32 +339,45 @@ export const MakeOfferModal = ({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
         <div>
           <Label htmlFor="offered_price" className="text-sm font-medium">Ваше предложение *</Label>
-          <Input
-            id="offered_price"
-            type="number"
-            step="1"
-            min={minPrice}
-            max={isUpdateMode ? undefined : maxPrice}
-            placeholder={isUpdateMode ? `Мин. ${minPrice}$` : `Макс. ${maxPrice}$`}
-            className="text-base h-10 mt-1 modal-input-field"
-            inputMode="numeric"
-            {...register("offered_price", {
-              required: "Введите предлагаемую цену",
-              min: {
-                value: minPrice,
-                message: isUpdateMode 
-                  ? `Цена должна быть больше ${existingOffer?.offered_price}$`
-                  : "Цена должна быть больше 0",
-              },
-              ...(isUpdateMode ? {} : {
-                max: {
-                  value: maxPrice,
-                  message: `Цена не может быть больше ${maxPrice}$`,
-                }
-              }),
-              valueAsNumber: true,
-            })}
-          />
+          <div className="flex gap-2 mt-1">
+            <Input
+              id="offered_price"
+              type="number"
+              step="1"
+              min={minPrice}
+              max={isUpdateMode ? undefined : maxPrice}
+              placeholder={isUpdateMode ? `Мин. ${minPrice}$` : `Макс. ${maxPrice}$`}
+              className="text-base h-10 modal-input-field"
+              inputMode="numeric"
+              {...register("offered_price", {
+                required: "Введите предлагаемую цену",
+                min: {
+                  value: minPrice,
+                  message: isUpdateMode 
+                    ? `Цена должна быть больше ${existingOffer?.offered_price}$`
+                    : "Цена должна быть больше 0",
+                },
+                ...(isUpdateMode ? {} : {
+                  max: {
+                    value: maxPrice,
+                    message: `Цена не может быть больше ${maxPrice}$`,
+                  }
+                }),
+                valueAsNumber: true,
+              })}
+            />
+            {recommendedPrice && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleQuickFillRecommended}
+                className="text-xs px-2 whitespace-nowrap"
+              >
+                ${recommendedPrice}
+              </Button>
+            )}
+          </div>
           {errors.offered_price && (
             <p className="text-xs text-destructive mt-1">
               {errors.offered_price.message}
@@ -352,6 +495,9 @@ export const MakeOfferModal = ({
         </div>
       </div>
 
+      {/* Competitive Offers Info */}
+      <CompetitiveOffersInfo />
+
       {/* Seller Information Section */}
       {product.profiles && (
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -410,29 +556,42 @@ export const MakeOfferModal = ({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <Label htmlFor="offered_price">Ваше предложение *</Label>
-          <Input
-            id="offered_price"
-            type="number"
-            step="1"
-            min={minPrice}
-            max={isUpdateMode ? undefined : maxPrice}
-            placeholder="Введите предлагаемую цену в долларах"
-            {...register("offered_price", {
-              required: "Введите предлагаемую цену",
-              min: {
-                value: minPrice,
-                message: isUpdateMode 
-                  ? `Цена должна быть больше ${existingOffer?.offered_price}$`
-                  : "Цена должна быть больше 0",
-              },
-              ...(isUpdateMode ? {} : {
-                max: {
-                  value: maxPrice,
-                  message: "Цена не может быть больше текущей",
-                }
-              }),
-            })}
-          />
+          <div className="flex gap-3 mt-1">
+            <Input
+              id="offered_price"
+              type="number"
+              step="1"
+              min={minPrice}
+              max={isUpdateMode ? undefined : maxPrice}
+              placeholder="Введите предлагаемую цену в долларах"
+              className="flex-1"
+              {...register("offered_price", {
+                required: "Введите предлагаемую цену",
+                min: {
+                  value: minPrice,
+                  message: isUpdateMode 
+                    ? `Цена должна быть больше ${existingOffer?.offered_price}$`
+                    : "Цена должна быть больше 0",
+                },
+                ...(isUpdateMode ? {} : {
+                  max: {
+                    value: maxPrice,
+                    message: "Цена не может быть больше текущей",
+                  }
+                }),
+              })}
+            />
+            {recommendedPrice && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleQuickFillRecommended}
+                className="px-4"
+              >
+                Обойти конкурента (${recommendedPrice})
+              </Button>
+            )}
+          </div>
           {errors.offered_price && (
             <p className="text-sm text-destructive mt-1">
               {errors.offered_price.message}
