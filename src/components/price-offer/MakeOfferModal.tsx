@@ -12,13 +12,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertCircle, Star, Shield, MapPin, TrendingUp, Users, Award } from "lucide-react";
+import { AlertCircle, Star, Shield, Users, Award } from "lucide-react";
 import { useCreatePriceOffer, useUpdateOfferPrice, useCompetitiveOffers } from "@/hooks/use-price-offers";
 import { CreatePriceOfferData } from "@/types/price-offer";
 import { checkProductStatus } from "@/utils/productStatusChecker";
 import { Product } from "@/types/product";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileKeyboardOptimizedDialog } from "@/components/ui/MobileKeyboardOptimizedDialog";
+import OrderConfirmationDialog from "@/components/order/OrderConfirmationDialog";
+import { Database } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
+import { OfferCountdown } from "./OfferCountdown";
+import { LeadingOfferBanner } from "./LeadingOfferBanner";
+import { BlitzPriceSection } from "./BlitzPriceSection";
+import { ProductInfoCard } from "./ProductInfoCard";
 
 interface MakeOfferModalProps {
   isOpen: boolean;
@@ -48,10 +55,14 @@ export const MakeOfferModal = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productStatus, setProductStatus] = useState<{ isAvailable: boolean; status: string } | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<Database["public"]["Enums"]["delivery_method"]>('cargo_rf');
+  
   const createOffer = useCreatePriceOffer();
   const updateOffer = useUpdateOfferPrice();
   const isLoading = createOffer.isPending || updateOffer.isPending;
   const isMobile = useIsMobile();
+  const { profile } = useAuth();
   
   // Load competitive offers data
   const { data: competitiveData, isLoading: competitiveLoading } = useCompetitiveOffers(product.id, isOpen);
@@ -87,13 +98,11 @@ export const MakeOfferModal = ({
     if (!competitiveData) return null;
     
     if (isUpdateMode) {
-      // For updates, recommend beating the max offer if user is not leading
       if (!competitiveData.current_user_is_max && competitiveData.max_offer_price > 0) {
         return competitiveData.max_offer_price + 1;
       }
       return (existingOffer?.offered_price || 0) + 1;
     } else {
-      // For new offers, recommend beating the max offer if it exists
       if (competitiveData.max_offer_price > 0) {
         return competitiveData.max_offer_price + 1;
       }
@@ -109,6 +118,17 @@ export const MakeOfferModal = ({
     }
   };
 
+  const handleBuyNow = () => {
+    setShowOrderDialog(true);
+  };
+
+  const handleOrderConfirm = async (orderData: { text_order?: string }) => {
+    // Здесь будет логика создания заказа
+    console.log("Creating order:", orderData);
+    setShowOrderDialog(false);
+    onClose();
+  };
+
   const onSubmit = async (data: FormData) => {
     if ((!isUpdateMode && !isConfirmed) || !data.offered_price) {
       return;
@@ -119,12 +139,10 @@ export const MakeOfferModal = ({
       return;
     }
 
-    // Validation for update mode
     if (isUpdateMode && offeredPrice <= (existingOffer?.offered_price || 0)) {
       return;
     }
 
-    // Validation for new offer mode
     if (!isUpdateMode && offeredPrice > product.price) {
       return;
     }
@@ -132,7 +150,6 @@ export const MakeOfferModal = ({
     setIsSubmitting(true);
 
     try {
-      // Check product availability before submitting
       const status = await checkProductStatus(product.id);
       if (!status.isAvailable) {
         setProductStatus(status);
@@ -149,14 +166,12 @@ export const MakeOfferModal = ({
       };
 
       if (isUpdateMode && existingOffer) {
-        // Update existing offer
         await updateOffer.mutateAsync({
           offerId: existingOffer.id,
           newPrice: offeredPrice,
           originalMessage: existingOffer.message,
         });
       } else {
-        // Create new offer
         await createOffer.mutateAsync(offerData);
       }
 
@@ -173,9 +188,6 @@ export const MakeOfferModal = ({
     reset();
     onClose();
   };
-
-  const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
-                      product.product_images?.[0]?.url;
 
   // Competitive offers info component
   const CompetitiveOffersInfo = () => {
@@ -195,78 +207,75 @@ export const MakeOfferModal = ({
     const maxCompetitorPrice = competitiveData.max_offer_price;
 
     return (
-      <div className={`p-3 rounded-lg border ${
-        isMobile ? 'space-y-2' : 'space-y-3'
-      } ${userIsLeading ? 'bg-green-50 border-green-200' : hasCompetitors ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
-        <div className="flex items-center gap-2">
-          <TrendingUp className={`h-4 w-4 ${
-            userIsLeading ? 'text-green-600' : hasCompetitors ? 'text-orange-600' : 'text-blue-600'
-          }`} />
-          <h3 className={`font-medium text-sm ${
-            userIsLeading ? 'text-green-800' : hasCompetitors ? 'text-orange-800' : 'text-blue-800'
-          }`}>
-            Информация о ставках
-          </h3>
-        </div>
+      <div className="space-y-3">
+        {/* Leading offer banner */}
+        {userIsLeading && (
+          <LeadingOfferBanner compact={isMobile} />
+        )}
 
-        <div className={`space-y-2 text-xs ${isMobile ? '' : 'text-sm'}`}>
-          {isUpdateMode && (
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Ваша текущая ставка:</span>
-              <span className="font-semibold">${existingOffer?.offered_price}</span>
-            </div>
-          )}
+        {/* Countdown timer */}
+        {existingOffer && (
+          <OfferCountdown expiresAt={existingOffer.expires_at} compact={isMobile} />
+        )}
 
-          {hasCompetitors && maxCompetitorPrice > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Максимальная ставка конкурента:</span>
-              <span className="font-semibold text-orange-600">${maxCompetitorPrice}</span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Всего предложений:</span>
-            <div className="flex items-center gap-1">
-              <Users className="h-3 w-3" />
-              <span className="font-semibold">{competitiveData.total_offers_count}</span>
-            </div>
-          </div>
-
-          {/* Status */}
-          <div className={`flex items-center gap-2 p-2 rounded ${
-            userIsLeading ? 'bg-green-100' : hasCompetitors ? 'bg-orange-100' : 'bg-blue-100'
-          }`}>
-            <Award className={`h-3 w-3 ${
+        {/* Competitive info */}
+        <div className={`p-3 rounded-lg border ${
+          isMobile ? 'space-y-2' : 'space-y-3'
+        } ${userIsLeading ? 'bg-green-50 border-green-200' : hasCompetitors ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
+          <div className="flex items-center gap-2">
+            <Award className={`h-4 w-4 ${
               userIsLeading ? 'text-green-600' : hasCompetitors ? 'text-orange-600' : 'text-blue-600'
             }`} />
-            <span className={`font-medium ${
-              userIsLeading ? 'text-green-700' : hasCompetitors ? 'text-orange-700' : 'text-blue-700'
+            <h3 className={`font-medium text-sm ${
+              userIsLeading ? 'text-green-800' : hasCompetitors ? 'text-orange-800' : 'text-blue-800'
             }`}>
-              {userIsLeading ? 'Вы лидируете!' : 
-               hasCompetitors ? 'Конкурент лидирует' : 
-               'Вы единственный участник торгов'}
-            </span>
+              Информация о ставках
+            </h3>
           </div>
 
-          {/* Smart recommendation */}
-          {recommendedPrice && !userIsLeading && hasCompetitors && (
-            <div className="bg-yellow-50 border border-yellow-200 p-2 rounded">
-              <p className="text-yellow-800 font-medium text-xs">
-                💡 Предложите больше ${recommendedPrice}, чтобы обойти конкурента
-              </p>
-              {!isMobile && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleQuickFillRecommended}
-                  className="mt-2 h-6 text-xs bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200"
-                >
-                  Использовать рекомендуемую сумму
-                </Button>
-              )}
+          <div className={`space-y-2 text-xs ${isMobile ? '' : 'text-sm'}`}>
+            {isUpdateMode && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Ваша текущая ставка:</span>
+                <span className="font-semibold">${existingOffer?.offered_price}</span>
+              </div>
+            )}
+
+            {hasCompetitors && maxCompetitorPrice > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Максимальная ставка конкурента:</span>
+                <span className="font-semibold text-orange-600">${maxCompetitorPrice}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600">Всего предложений:</span>
+              <div className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                <span className="font-semibold">{competitiveData.total_offers_count}</span>
+              </div>
             </div>
-          )}
+
+            {/* Smart recommendation */}
+            {recommendedPrice && !userIsLeading && hasCompetitors && (
+              <div className="bg-yellow-50 border border-yellow-200 p-2 rounded">
+                <p className="text-yellow-800 font-medium text-xs">
+                  💡 Предложите больше ${recommendedPrice}, чтобы обойти конкурента
+                </p>
+                {!isMobile && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleQuickFillRecommended}
+                    className="mt-2 h-6 text-xs bg-yellow-100 border-yellow-300 text-yellow-800 hover:bg-yellow-200"
+                  >
+                    Использовать рекомендуемую сумму
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -276,45 +285,24 @@ export const MakeOfferModal = ({
   const MobileContent = () => (
     <div className="space-y-3 pb-4">
       {/* Compact Product Info for Mobile */}
-      <div className="bg-gray-50 p-3 rounded-lg border">
-        <div className="flex gap-3">
-          {primaryImage ? (
-            <img 
-              src={primaryImage} 
-              alt={product.title}
-              className="w-12 h-12 object-cover rounded-md border flex-shrink-0"
-            />
-          ) : (
-            <div className="w-12 h-12 bg-gray-200 rounded-md border flex items-center justify-center flex-shrink-0">
-              <span className="text-xs text-gray-500">Нет фото</span>
-            </div>
-          )}
-          
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm truncate">{product.title}</h3>
-            <p className="text-xs text-muted-foreground">{product.brand} {product.model}</p>
-            <p className="text-base font-bold text-green-600">${product.price.toLocaleString()}</p>
-          </div>
-        </div>
-      </div>
+      <ProductInfoCard product={product} compact={true} />
 
       {/* Competitive Offers Info */}
       <CompetitiveOffersInfo />
 
-      {/* Current Offer Info for Update Mode */}
-      {isUpdateMode && existingOffer && (
-        <div className="bg-orange-50 p-2 rounded border border-orange-200">
-          <div className="text-xs">
-            <span className="font-medium text-orange-800">Текущее предложение: ₽{existingOffer.offered_price}</span>
-          </div>
-        </div>
-      )}
+      {/* Blitz Price Section */}
+      <BlitzPriceSection 
+        price={product.price}
+        onBuyNow={handleBuyNow}
+        disabled={isSubmitting || isLoading}
+        compact={true}
+      />
 
-      {/* Compact Seller Info */}
+      {/* Seller Information */}
       {product.profiles && (
-        <div className="bg-blue-50 p-2 rounded border border-blue-200">
+        <div className="bg-purple-50 p-2 rounded border border-purple-200">
           <div className="flex items-center gap-2 text-xs">
-            <Shield className="h-3 w-3 text-blue-600" />
+            <Shield className="h-3 w-3 text-purple-600" />
             <span className="font-medium">{product.profiles.full_name || product.seller_name}</span>
             {product.profiles.rating && (
               <div className="flex items-center gap-1 ml-auto">
@@ -360,7 +348,7 @@ export const MakeOfferModal = ({
                 ...(isUpdateMode ? {} : {
                   max: {
                     value: maxPrice,
-                    message: `Цена не может быть больше ${maxPrice}$`,
+                    message: `Цена не може быть больше ${maxPrice}$`,
                   }
                 }),
                 valueAsNumber: true,
@@ -423,10 +411,6 @@ export const MakeOfferModal = ({
           </div>
         )}
 
-        <div className="text-xs text-muted-foreground bg-gray-50 p-2 rounded text-center">
-          Предложение действует 6 часов
-        </div>
-
         <div className="space-y-2 pt-2">
           <Button
             type="submit"
@@ -460,49 +444,16 @@ export const MakeOfferModal = ({
   const DesktopContent = () => (
     <div className="space-y-6">
       {/* Product Information Section */}
-      <div className="bg-gray-50 p-4 rounded-lg border">
-        <div className="flex gap-4">
-          {/* Product Images */}
-          <div className="flex-shrink-0">
-            {primaryImage ? (
-              <img 
-                src={primaryImage} 
-                alt={product.title}
-                className="w-20 h-20 object-cover rounded-lg border"
-              />
-            ) : (
-              <div className="w-20 h-20 bg-gray-200 rounded-lg border flex items-center justify-center">
-                <span className="text-xs text-gray-500">Нет фото</span>
-              </div>
-            )}
-          </div>
-          
-          {/* Product Details */}
-          <div className="flex-1 space-y-2">
-            <h3 className="font-semibold text-lg">{product.title}</h3>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p><span className="font-medium">Бренд:</span> {product.brand}</p>
-              {product.model && <p><span className="font-medium">Модель:</span> {product.model}</p>}
-              <p><span className="font-medium">Состояние:</span> {product.condition}</p>
-              {product.product_location && (
-                <p className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  <span>{product.product_location}</span>
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      <ProductInfoCard product={product} />
 
       {/* Competitive Offers Info */}
       <CompetitiveOffersInfo />
 
       {/* Seller Information Section */}
       {product.profiles && (
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
           <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
-            <Shield className="h-4 w-4 text-blue-600" />
+            <Shield className="h-4 w-4 text-purple-600" />
             Информация о продавце
           </h3>
           <div className="space-y-2 text-sm">
@@ -530,19 +481,12 @@ export const MakeOfferModal = ({
         </div>
       )}
 
-      {/* Current Offer Info for Update Mode */}
-      {isUpdateMode && existingOffer && (
-        <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-          <Label className="text-sm font-medium text-orange-800">Ваше текущее предложение</Label>
-          <p className="text-xl font-bold mt-1 text-orange-600">${existingOffer.offered_price.toLocaleString()}</p>
-        </div>
-      )}
-
-      {/* Current Price */}
-      <div>
-        <Label className="text-sm font-medium">Текущая цена</Label>
-        <p className="text-2xl font-bold mt-1 text-green-600">${product.price.toLocaleString()}</p>
-      </div>
+      {/* Blitz Price Section */}
+      <BlitzPriceSection 
+        price={product.price}
+        onBuyNow={handleBuyNow}
+        disabled={isSubmitting || isLoading}
+      />
 
       {productStatus && !productStatus.isAvailable && (
         <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -680,25 +624,51 @@ export const MakeOfferModal = ({
 
   if (isMobile) {
     return (
-      <MobileKeyboardOptimizedDialog
-        open={isOpen}
-        onOpenChange={handleClose}
-        title={isUpdateMode ? "Изменить предложение" : "Предложить цену"}
-        className="max-w-md"
-      >
-        <MobileContent />
-      </MobileKeyboardOptimizedDialog>
+      <>
+        <MobileKeyboardOptimizedDialog
+          open={isOpen}
+          onOpenChange={handleClose}
+          title={isUpdateMode ? "Изменить предложение" : "Предложить цену"}
+          className="max-w-md"
+        >
+          <MobileContent />
+        </MobileKeyboardOptimizedDialog>
+
+        <OrderConfirmationDialog
+          open={showOrderDialog}
+          onOpenChange={setShowOrderDialog}
+          onConfirm={handleOrderConfirm}
+          isSubmitting={false}
+          product={product}
+          profile={profile}
+          deliveryMethod={deliveryMethod}
+          onDeliveryMethodChange={setDeliveryMethod}
+        />
+      </>
     );
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isUpdateMode ? "Изменить предложение" : "Предложить цену"}</DialogTitle>
-        </DialogHeader>
-        <DesktopContent />
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isUpdateMode ? "Изменить предложение" : "Предложить цену"}</DialogTitle>
+          </DialogHeader>
+          <DesktopContent />
+        </DialogContent>
+      </Dialog>
+
+      <OrderConfirmationDialog
+        open={showOrderDialog}
+        onOpenChange={setShowOrderDialog}
+        onConfirm={handleOrderConfirm}
+        isSubmitting={false}
+        product={product}
+        profile={profile}
+        deliveryMethod={deliveryMethod}
+        onDeliveryMethodChange={setDeliveryMethod}
+      />
+    </>
   );
 };
