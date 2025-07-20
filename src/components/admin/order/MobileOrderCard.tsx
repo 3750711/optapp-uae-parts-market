@@ -64,7 +64,8 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
     status: order.status,
     orderCreatedType: order.order_created_type,
     confirmImagesCount: confirmImages.length,
-    hasConfirmImages: confirmImages.length > 0
+    hasConfirmImages: confirmImages.length > 0,
+    showConfirmButton: order.status === 'created' || order.status === 'seller_confirmed'
   });
 
   const totalValue = Number(order.price || 0) + Number(order.delivery_price_confirm || 0);
@@ -206,48 +207,59 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
           </div>
         </div>
 
-        {/* Action Block */}
-        <div className="flex gap-1.5">
-          <Button 
-            variant="outline" 
-            onClick={() => onViewDetails(order.id)}
-            className="flex-1 h-7 text-xs px-2"
-          >
-            <Eye className="h-3 w-3 mr-1" />
-            Просмотр
-          </Button>
-          
-          {showConfirmButton && onQuickAction && (
-            <Button
-              variant="default"
-              onClick={() => onQuickAction(order.id, 'confirm')}
-              className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700 text-white shrink-0"
+        {/* Action Block - Improved mobile layout */}
+        <div className="space-y-2">
+          {/* Primary Action Row */}
+          <div className="flex gap-1.5">
+            <Button 
+              variant="outline" 
+              onClick={() => onViewDetails(order.id)}
+              className="flex-1 h-7 text-xs px-2"
             >
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Подтвердить
+              <Eye className="h-3 w-3 mr-1" />
+              Просмотр
             </Button>
-          )}
-          
-          {/* Photo Upload Button - Always visible */}
-          <Button
-            variant="outline"
-            size="icon"
-            className={`h-8 w-8 ${
-              confirmImages.length > 0 
-                ? 'text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700' 
-                : 'border-gray-200 hover:bg-gray-50'
-            }`}
-            onClick={() => {
-              console.log(`Photo button clicked for order #${order.order_number}`);
-              setIsConfirmImagesDialogOpen(true);
-            }}
-          >
-            {confirmImages.length > 0 ? (
-              <CheckCircle className="h-4 w-4" />
-            ) : (
-              <Camera className="h-4 w-4" />
+            
+            {showConfirmButton && onQuickAction && (
+              <Button
+                variant="default"
+                onClick={() => onQuickAction(order.id, 'confirm')}
+                className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700 text-white shrink-0"
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Подтвердить
+              </Button>
             )}
-          </Button>
+          </div>
+          
+          {/* Photo Button Row - Always visible and prominent */}
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              className={`h-7 px-3 text-xs ${
+                confirmImages.length > 0 
+                  ? 'text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700' 
+                  : 'border-gray-200 hover:bg-gray-50'
+              }`}
+              onClick={() => {
+                console.log(`Photo button clicked for order #${order.order_number}`);
+                setIsConfirmImagesDialogOpen(true);
+              }}
+            >
+              {confirmImages.length > 0 ? (
+                <>
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Фото загружены ({confirmImages.length})
+                </>
+              ) : (
+                <>
+                  <Camera className="h-3 w-3 mr-1" />
+                  Загрузить фото
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </CardContent>
       <Dialog open={isConfirmImagesDialogOpen} onOpenChange={(isOpen) => {
