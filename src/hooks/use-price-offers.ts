@@ -145,6 +145,8 @@ export const useCreatePriceOffer = () => {
       queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
       // Инвалидируем кеш для конкретного продукта, чтобы кнопка обновилась
       queryClient.invalidateQueries({ queryKey: ["pending-offer", result.product_id] });
+      // Инвалидируем конкурентные предложения для обновления информации о максимальной цене
+      queryClient.invalidateQueries({ queryKey: ["competitive-offers", result.product_id] });
     },
     onError: (error: any) => {
       console.error("Error creating price offer:", error);
@@ -265,6 +267,8 @@ export const useUpdatePriceOffer = () => {
       queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
       queryClient.invalidateQueries({ queryKey: ["seller-price-offers"] });
       queryClient.invalidateQueries({ queryKey: ["admin-price-offers"] });
+      // Инвалидируем конкурентные предложения для всех затронутых продуктов
+      queryClient.invalidateQueries({ queryKey: ["competitive-offers"] });
     },
     onError: (error: any) => {
       console.error("Error updating price offer:", error);
@@ -332,6 +336,67 @@ export const useCheckPendingOffer = (productId: string, enabled = true) => {
   return query;
 };
 
+// Hook for competitive offers - show max offer from other buyers
+export const useCompetitiveOffers = (productId: string, enabled = true) => {
+  const queryClient = useQueryClient();
+  
+  const query = useQuery({
+    queryKey: ["competitive-offers", productId],
+    queryFn: async () => {
+      const user = await supabase.auth.getUser();
+      const userId = user.data.user?.id;
+
+      const { data, error } = await supabase.rpc("get_max_offer_for_product", {
+        p_product_id: productId,
+        p_exclude_user_id: userId || null,
+      });
+
+      if (error) throw error;
+      return data?.[0] || {
+        max_offer_price: 0,
+        current_user_is_max: false,
+        total_offers_count: 0,
+        current_user_offer_price: 0,
+      };
+    },
+    enabled: enabled && !!productId,
+  });
+
+  // Set up real-time subscription for competitive offers
+  React.useEffect(() => {
+    if (!enabled || !productId) return;
+
+    const channel = supabase
+      .channel('competitive-offers-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'price_offers',
+          filter: `product_id=eq.${productId}`
+        },
+        (payload) => {
+          // Invalidate and refetch competitive offers when any offer changes
+          queryClient.invalidateQueries({ 
+            queryKey: ["competitive-offers", productId] 
+          });
+          // Also invalidate pending offers to ensure consistency
+          queryClient.invalidateQueries({ 
+            queryKey: ["pending-offer", productId] 
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [enabled, productId, queryClient]);
+
+  return query;
+};
+
 // Update offer price using UPSERT logic
 export const useUpdateOfferPrice = () => {
   const queryClient = useQueryClient();
@@ -374,6 +439,7 @@ export const useUpdateOfferPrice = () => {
       });
       queryClient.invalidateQueries({ queryKey: ["buyer-price-offers"] });
       queryClient.invalidateQueries({ queryKey: ["pending-offer"] });
+      queryClient.invalidateQueries({ queryKey: ["competitive-offers"] });
     },
     onError: (error: any) => {
       console.error("Error updating price offer:", error);

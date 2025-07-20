@@ -1373,6 +1373,15 @@ export type Database = {
           | { p_opt_id: string; p_ip_address?: unknown }
         Returns: string
       }
+      get_max_offer_for_product: {
+        Args: { p_product_id: string; p_exclude_user_id?: string }
+        Returns: {
+          max_offer_price: number
+          current_user_is_max: boolean
+          total_offers_count: number
+          current_user_offer_price: number
+        }[]
+      }
       get_next_order_number: {
         Args: Record<PropertyKey, never>
         Returns: number
