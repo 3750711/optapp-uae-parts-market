@@ -81,6 +81,7 @@ const AdminOrders = () => {
     setShowDeleteDialog,
     bulkActionLoading,
     singleDeleteLoading,
+    quickActionLoading,
     confirmBulkDelete,
     setConfirmBulkDelete,
     confirmBulkStatus,
@@ -201,6 +202,7 @@ const AdminOrders = () => {
                 onDelete={handleDelete}
                 onViewDetails={handleViewDetails}
                 onQuickAction={handleQuickAction}
+                quickActionLoading={quickActionLoading}
               />
               
               {/* Empty state when no results */}

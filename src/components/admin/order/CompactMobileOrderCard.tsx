@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, ChevronDown, ChevronUp } from "lucide-react";
+import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, ChevronDown, ChevronUp, FileCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
@@ -28,6 +28,11 @@ interface CompactMobileOrderCardProps {
   onDelete: (order: Order) => void;
   onViewDetails: (orderId: string) => void;
   onQuickAction?: (orderId: string, action: string) => void;
+  quickActionLoading?: {
+    isLoading: boolean;
+    orderId: string;
+    action: string;
+  };
 }
 
 export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
@@ -37,10 +42,15 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
   onEdit,
   onDelete,
   onViewDetails,
-  onQuickAction
+  onQuickAction,
+  quickActionLoading
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  
+  // Динамическая логика показа кнопок
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
+  const showRegisterButton = order.status === 'admin_confirmed';
+  const isActionLoading = quickActionLoading?.isLoading && quickActionLoading?.orderId === order.id;
 
   return (
     <Card className={`
@@ -63,7 +73,12 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 w-6 p-0 shrink-0"
+                disabled={isActionLoading}
+              >
                 <MoreVertical className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
@@ -73,14 +88,27 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 Редактировать
               </DropdownMenuItem>
               {showConfirmButton && onQuickAction && (
-                <DropdownMenuItem onClick={() => onQuickAction(order.id, 'confirm')}>
+                <DropdownMenuItem 
+                  onClick={() => onQuickAction(order.id, 'confirm')}
+                  disabled={isActionLoading}
+                >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  Подтвердить
+                  {isActionLoading && quickActionLoading?.action === 'confirm' ? 'Подтверждение...' : 'Подтвердить'}
+                </DropdownMenuItem>
+              )}
+              {showRegisterButton && onQuickAction && (
+                <DropdownMenuItem 
+                  onClick={() => onQuickAction(order.id, 'register')}
+                  disabled={isActionLoading}
+                >
+                  <FileCheck className="h-4 w-4 mr-2" />
+                  {isActionLoading && quickActionLoading?.action === 'register' ? 'Регистрация...' : 'Зарегистрировать'}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem 
                 onClick={() => onDelete(order)}
                 className="text-red-600"
+                disabled={isActionLoading}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Удалить
@@ -126,6 +154,7 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
             size="sm" 
             onClick={() => onViewDetails(order.id)}
             className="flex-1 h-6 text-xs font-medium"
+            disabled={isActionLoading}
           >
             <Eye className="h-3 w-3 mr-1" />
             Просмотр
@@ -137,6 +166,7 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 variant="ghost" 
                 size="sm" 
                 className="h-6 px-2 text-xs"
+                disabled={isActionLoading}
               >
                 {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
               </Button>
