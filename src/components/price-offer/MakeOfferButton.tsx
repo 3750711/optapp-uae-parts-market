@@ -7,6 +7,7 @@ import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Product } from '@/types/product';
 import { useCheckPendingOffer, useCompetitiveOffers } from '@/hooks/use-price-offers';
 import { MakeOfferModal } from './MakeOfferModal';
+import { CompetitorOfferBadge } from './CompetitorOfferBadge';
 import bidIcon from '@/assets/bid-icon.png';
 
 interface MakeOfferButtonProps {
@@ -37,11 +38,18 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
   // Get competitive offers data to determine if user is leading
   const { data: competitiveData } = useCompetitiveOffers(product.id, !!user);
 
-  // Determine if user's offer is the leading bid
-  const isLeadingBid = useMemo(() => {
-    if (!userOffer || !competitiveData) return false;
-    return competitiveData.current_user_is_max === true;
-  }, [userOffer, competitiveData]);
+  // Determine if user's offer is the leading bid and get max other offer
+  const { isLeadingBid, maxOtherOffer } = useMemo(() => {
+    if (!competitiveData) return { isLeadingBid: false, maxOtherOffer: 0 };
+    
+    const isLeading = competitiveData.current_user_is_max === true;
+    const maxOther = Number(competitiveData.max_offer_price) || 0;
+    
+    return { 
+      isLeadingBid: isLeading, 
+      maxOtherOffer: maxOther 
+    };
+  }, [competitiveData]);
 
   console.log('🎯 MakeOfferButton render:', {
     productId: product.id,
@@ -91,7 +99,7 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
     
     if (compact) {
       return (
-        <>
+        <div className="flex items-center gap-1">
           <Button
             variant="default"
             size="sm"
@@ -106,18 +114,21 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
             <span className="text-xs font-bold">${userOffer.offered_price}</span>
           </Button>
           
+          {/* Show competitor badge if there are other offers */}
+          <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={true} />
+          
           <MakeOfferModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             product={product}
             existingOffer={userOffer}
           />
-        </>
+        </div>
       );
     }
 
     return (
-      <>
+      <div className="space-y-2">
         <Button
           variant="default"
           size="sm"
@@ -135,13 +146,16 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
           </span>
         </Button>
         
+        {/* Show competitor badge if there are other offers */}
+        <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={false} />
+        
         <MakeOfferModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           product={product}
           existingOffer={userOffer}
         />
-      </>
+      </div>
     );
   }
 
@@ -149,7 +163,7 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
   console.log('💭 User has no pending offer, showing bid button');
 
   return (
-    <>
+    <div className={compact ? "flex items-center gap-1" : "space-y-2"}>
       {compact ? (
         <Button
           variant="ghost"
@@ -172,11 +186,14 @@ export const MakeOfferButton: React.FC<MakeOfferButtonProps> = ({
         </Button>
       )}
 
+      {/* Show competitor badge if there are other offers and no user offer */}
+      <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={compact} />
+
       <MakeOfferModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         product={product}
       />
-    </>
+    </div>
   );
 };

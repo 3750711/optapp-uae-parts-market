@@ -1367,6 +1367,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_competitive_offer_data: {
+        Args: { p_product_id: string; p_user_id?: string }
+        Returns: {
+          max_offer_price: number
+          current_user_is_max: boolean
+          total_offers_count: number
+          current_user_offer_price: number
+        }[]
+      }
       get_email_by_opt_id: {
         Args:
           | { p_opt_id: string }
