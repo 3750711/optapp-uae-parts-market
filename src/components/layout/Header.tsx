@@ -162,12 +162,20 @@ const Header = () => {
 
                   {/* Покупательские ссылки */}
                   {profile?.user_type === 'buyer' && (
-                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                      <Link to="/buyer-price-offers" className="flex w-full items-center">
-                        <Package className="mr-2 h-4 w-4" />
-                        <span>Мои предложения цены</span>
-                      </Link>
-                    </DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                        <Link to="/buyer-orders" className="flex w-full items-center">
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                          <span>Мои заказы</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                        <Link to="/buyer-price-offers" className="flex w-full items-center">
+                          <Package className="mr-2 h-4 w-4" />
+                          <span>Мои предложения цены</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
                   )}
 
                   {/* Продавецкие ссылки */}
