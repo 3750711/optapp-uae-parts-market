@@ -1,81 +1,58 @@
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './contexts/AuthContext';
+import Home from './pages/Home';
+import ProductPage from './pages/ProductPage';
+import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/AdminPage';
+import CatalogPage from './pages/CatalogPage';
+import OrderPage from './pages/OrderPage';
+import ChatPage from './pages/ChatPage';
+import NotFoundPage from './pages/NotFoundPage';
+import { Toaster } from 'sonner';
+import { SiteHeader } from './components/layout/SiteHeader';
+import { SiteFooter } from './components/layout/SiteFooter';
+import { useAdminAccess } from './hooks/useAdminAccess';
+import { OfferStateProvider } from '@/contexts/OfferStateContext';
 
-import React, { Suspense, useEffect } from "react";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter } from "react-router-dom";
-import { HelmetProvider } from "react-helmet-async";
-import { AuthProvider } from "@/contexts/AuthContext";
-import AppRoutes from "@/routes";
-import { Loader2 } from "lucide-react";
-import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
-import { performanceMonitor } from "@/utils/performanceMonitor";
-
-// Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: (failureCount, error) => {
-        // Не повторяем при авторизационных ошибках
-        if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
-          return false;
-        }
-        return failureCount < 2; // Уменьшено количество повторов
-      },
-      staleTime: 15 * 60 * 1000, // Увеличено до 15 минут для лучшего кэширования
-      gcTime: 30 * 60 * 1000, // 30 минут в памяти
-      refetchOnWindowFocus: false, // Отключено для производительности
-      refetchOnMount: false, // Используем кэш при монтировании
+      refetchOnWindowFocus: false,
+      retry: false,
     },
-    mutations: {
-      retry: false, // Не повторяем мутации автоматически
-    }
   },
 });
 
-// Компонент загрузки для lazy-loaded маршрутов
-const RouteLoader = React.memo(() => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center space-y-4">
-      <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow mx-auto" />
-      <p className="text-sm text-gray-600">Загрузка...</p>
-    </div>
-  </div>
-));
-
-const App = () => {
-  useEffect(() => {
-    // Initialize performance monitoring in development
-    if (import.meta.env.DEV) {
-      // Performance monitoring initialized
-    }
-
-    // Cleanup on unmount
-    return () => {
-      performanceMonitor.destroy();
-    };
-  }, []);
-
+function App() {
   return (
-    <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
-                <Suspense fallback={<RouteLoader />}>
-                  <AppRoutes />
-                </Suspense>
-              </AuthProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
-    </GlobalErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <OfferStateProvider>
+          <BrowserRouter>
+            <div className="min-h-screen bg-background">
+              <SiteHeader />
+              <main className="flex-1">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/catalog" element={<CatalogPage />} />
+                  <Route path="/product/:productId" element={<ProductPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/admin" element={<AdminPage />} />
+                  <Route path="/order/:orderId" element={<OrderPage />} />
+                  <Route path="/chat" element={<ChatPage />} />
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </main>
+              <SiteFooter />
+              <Toaster />
+            </div>
+          </BrowserRouter>
+        </OfferStateProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
-};
+}
 
 export default App;
