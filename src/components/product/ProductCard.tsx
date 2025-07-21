@@ -38,6 +38,7 @@ export interface ProductProps {
   product_videos?: Array<{ url: string }>;
   created_at?: string;
   updated_at?: string;
+  has_active_offers?: boolean;
 }
 
 interface ProductCardProps {
@@ -126,7 +127,8 @@ const ProductCard = memo(({
       url: video.url
     })) || [],
     created_at: product.created_at || new Date().toISOString(),
-    updated_at: product.updated_at || new Date().toISOString()
+    updated_at: product.updated_at || new Date().toISOString(),
+    has_active_offers: product.has_active_offers
   };
 
   return (

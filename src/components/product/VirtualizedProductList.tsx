@@ -45,6 +45,7 @@ const VirtualizedProductList: React.FC<VirtualizedProductListProps> = memo(({
   return (
     <List
       height={containerHeight}
+      width="100%"
       itemCount={products.length}
       itemSize={140}
       className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"

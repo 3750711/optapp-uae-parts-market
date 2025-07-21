@@ -53,6 +53,7 @@ export interface Product {
   location?: string | null;
   last_notification_sent_at?: string | null;
   view_count?: number | null;
+  has_active_offers?: boolean;
   
   // Cloudinary fields
   cloudinary_public_id?: string | null;
