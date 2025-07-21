@@ -137,7 +137,7 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
           offerId: existingOffer.id,
           data: {
             offered_price: data.offered_price,
-            message: data.message || undefined,
+            // При обновлении не передаем message и delivery_method - они остаются неизменными
           }
         });
       } else {
@@ -345,28 +345,47 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
                 )}
               </div>
 
-              {/* Delivery Method */}
-              <DeliveryMethodPicker
-                value={watch('delivery_method')}
-                onChange={(value) => setValue('delivery_method', value)}
-                productPrice={product.price}
-              />
-
-              {/* Message */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Сообщение продавцу
-                </label>
-                <Textarea
-                  {...register('message')}
-                  placeholder="Добавьте комментарий к вашему предложению..."
-                  className="min-h-[80px] resize-none"
-                  maxLength={500}
+              {/* Delivery Method - only show when creating new offer */}
+              {!existingOffer && (
+                <DeliveryMethodPicker
+                  value={watch('delivery_method')}
+                  onChange={(value) => setValue('delivery_method', value)}
+                  productPrice={product.price}
                 />
-                <div className="text-xs text-gray-500 text-right">
-                  {watch('message')?.length || 0}/500
+              )}
+
+              {/* Message - only show when creating new offer */}
+              {!existingOffer && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Сообщение продавцу
+                  </label>
+                  <Textarea
+                    {...register('message')}
+                    placeholder="Добавьте комментарий к вашему предложению..."
+                    className="min-h-[80px] resize-none"
+                    maxLength={500}
+                  />
+                  <div className="text-xs text-gray-500 text-right">
+                    {watch('message')?.length || 0}/500
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Show existing delivery method and message when updating */}
+              {existingOffer && (
+                <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                  {existingOffer.message && (
+                    <div className="text-sm">
+                      <span className="font-medium text-gray-700">Сообщение: </span>
+                      <span className="text-gray-600">"{existingOffer.message}"</span>
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-500">
+                    Способ доставки и сообщение остаются неизменными при обновлении предложения
+                  </div>
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
