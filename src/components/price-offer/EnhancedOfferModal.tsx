@@ -136,7 +136,7 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
         await updateOfferMutation.mutateAsync({
           offerId: existingOffer.id,
           data: {
-            offered_price: data.offered_price,
+            offered_price: Number(data.offered_price),
             // При обновлении не передаем message и delivery_method - они остаются неизменными
           }
         });
@@ -146,7 +146,7 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
           product_id: product.id,
           seller_id: product.seller_id,
           original_price: product.price,
-          offered_price: data.offered_price,
+          offered_price: Number(data.offered_price),
           message: data.message || undefined,
         });
       }

@@ -52,7 +52,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
   } = useForm<OfferFormData>({
     resolver: zodResolver(offerSchema),
     defaultValues: {
-      offered_price: existingOffer?.offered_price || 0,
+      offered_price: Number(existingOffer?.offered_price) || 0,
       message: existingOffer?.message || '',
     }
   });
@@ -63,7 +63,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       reset({
-        offered_price: existingOffer?.offered_price || 0,
+        offered_price: Number(existingOffer?.offered_price) || 0,
         message: existingOffer?.message || '',
       });
     }
