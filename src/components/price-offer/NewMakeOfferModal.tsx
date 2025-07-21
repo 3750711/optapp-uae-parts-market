@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -69,17 +70,30 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
   }, [isOpen, existingOffer, reset]);
 
   const handleClose = () => {
+    console.log('🎯 NewMakeOfferModal: Closing modal');
     reset();
     onClose();
   };
 
-  const onSubmit = async (data: OfferFormData) => {
-    if (!user || isSubmitting) return;
+  const onSubmit = async (data: OfferFormData, event?: React.FormEvent) => {
+    console.log('🎯 NewMakeOfferModal: Form submitted', { data, user: user?.id, existingOffer: existingOffer?.id });
+    
+    // Prevent any default form behavior
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
+    if (!user || isSubmitting) {
+      console.log('🎯 NewMakeOfferModal: Submission blocked', { user: !!user, isSubmitting });
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
       if (existingOffer) {
+        console.log('🎯 NewMakeOfferModal: Updating existing offer', existingOffer.id);
         await updateOfferMutation.mutateAsync({
           offerId: existingOffer.id,
           data: {
@@ -88,6 +102,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
           }
         });
       } else {
+        console.log('🎯 NewMakeOfferModal: Creating new offer');
         await createOfferMutation.mutateAsync({
           product_id: product.id,
           seller_id: product.seller_id,
@@ -97,9 +112,10 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
         });
       }
       
+      console.log('🎯 NewMakeOfferModal: Offer processed successfully, closing modal');
       handleClose();
     } catch (error) {
-      console.error('Error submitting offer:', error);
+      console.error('🎯 NewMakeOfferModal: Error submitting offer:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -108,6 +124,18 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
   const handlePriceQuickSet = (percentage: number) => {
     const newPrice = Math.round(product.price * percentage);
     setValue('offered_price', newPrice);
+  };
+
+  const handleProductImageClick = (e: React.MouseEvent) => {
+    console.log('🎯 NewMakeOfferModal: Product image clicked - preventing default');
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleProductTitleClick = (e: React.MouseEvent) => {
+    console.log('🎯 NewMakeOfferModal: Product title clicked - preventing default');
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const getPriceComparisonColor = () => {
@@ -144,10 +172,14 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
           <img
             src={primaryImage}
             alt={product.title}
-            className="w-16 h-16 object-cover rounded-lg"
+            className="w-16 h-16 object-cover rounded-lg cursor-default"
+            onClick={handleProductImageClick}
           />
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm text-gray-900 truncate">
+            <h3 
+              className="font-medium text-sm text-gray-900 truncate cursor-default"
+              onClick={handleProductTitleClick}
+            >
               {product.title}
             </h3>
             <p className="text-xs text-gray-500 truncate">

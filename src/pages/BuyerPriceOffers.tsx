@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +9,7 @@ import { PriceOffer } from "@/types/price-offer";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
-import { MakeOfferModal } from "@/components/price-offer/MakeOfferModal";
+import { NewMakeOfferModal } from "@/components/price-offer/NewMakeOfferModal";
 
 const BuyerPriceOffers = () => {
   const [showReofferModal, setShowReofferModal] = useState<{
@@ -51,7 +52,13 @@ const BuyerPriceOffers = () => {
   };
 
   const handleMakeNewOffer = (offer: PriceOffer) => {
+    console.log('🎯 BuyerPriceOffers: Opening reoffer modal for offer:', offer.id);
     setShowReofferModal({ isOpen: true, offer });
+  };
+
+  const handleModalClose = () => {
+    console.log('🎯 BuyerPriceOffers: Closing reoffer modal');
+    setShowReofferModal({ isOpen: false });
   };
 
   if (!profile || profile.user_type !== "buyer") {
@@ -201,16 +208,16 @@ const BuyerPriceOffers = () => {
       )}
 
       {showReofferModal.offer && showReofferModal.offer.product && (
-        <MakeOfferModal
+        <NewMakeOfferModal
           isOpen={showReofferModal.isOpen}
-          onClose={() => setShowReofferModal({ isOpen: false })}
+          onClose={handleModalClose}
           product={{
             id: showReofferModal.offer.product_id,
             title: showReofferModal.offer.product.title,
             price: showReofferModal.offer.original_price,
             brand: showReofferModal.offer.product.brand,
             model: showReofferModal.offer.product.model || "",
-            condition: "Б/у", // Default fallback since this info isn't in PriceOffer
+            condition: "Б/у",
             seller_id: showReofferModal.offer.seller_id,
             seller_name: showReofferModal.offer.product.seller_name,
             status: showReofferModal.offer.product.status as any,
@@ -232,6 +239,21 @@ const BuyerPriceOffers = () => {
               communication_ability: null,
             } : undefined,
           } as any}
+          existingOffer={{
+            id: showReofferModal.offer.id,
+            product_id: showReofferModal.offer.product_id,
+            buyer_id: showReofferModal.offer.buyer_id,
+            seller_id: showReofferModal.offer.seller_id,
+            original_price: showReofferModal.offer.original_price,
+            offered_price: showReofferModal.offer.offered_price,
+            status: showReofferModal.offer.status as any,
+            created_at: showReofferModal.offer.created_at,
+            updated_at: showReofferModal.offer.updated_at,
+            expires_at: showReofferModal.offer.expires_at,
+            message: showReofferModal.offer.message,
+            seller_response: showReofferModal.offer.seller_response,
+            order_id: showReofferModal.offer.order_id
+          }}
         />
       )}
     </div>
