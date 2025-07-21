@@ -187,6 +187,7 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             product={product}
+            existingOffer={userOfferForModal}
             isLeadingBid={isLeadingBid}
             maxOtherOffer={maxOtherOffer}
           />
@@ -223,6 +224,7 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           product={product}
+          existingOffer={userOfferForModal}
           isLeadingBid={isLeadingBid}
           maxOtherOffer={maxOtherOffer}
         />

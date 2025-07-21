@@ -5,8 +5,6 @@ import { Gavel } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { useProductOfferRealtime } from '@/hooks/useProductOfferRealtime';
-import { useOfferState } from '@/contexts/OfferStateContext';
-import { useProductRefresh } from '@/hooks/useProductRefresh';
 import { Product } from '@/types/product';
 import { EnhancedOfferModal } from './EnhancedOfferModal';
 import bidIcon from '@/assets/bid-icon.png';
@@ -30,49 +28,24 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   compact = false 
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasActiveOffers, setHasActiveOffers] = useState(product.has_active_offers || false);
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
-  const { getOfferState, updateOfferState } = useOfferState();
-  const { refreshProduct } = useProductRefresh();
   
   // Add real-time updates for offer status
   useProductOfferRealtime(product.id);
   
-  // Получаем актуальное состояние предложений
-  const offerState = getOfferState(product.id);
-  const hasActiveOffers = offerState?.hasActiveOffers ?? product.has_active_offers ?? false;
-  
-  // Обновляем контекст при изменении пропсов продукта
+  // Sync local state with product prop changes
   useEffect(() => {
-    const currentState = getOfferState(product.id);
-    
-    // Обновляем только если данные из пропсов отличаются и не являются оптимистичными
-    if (!currentState?.isOptimistic) {
-      updateOfferState(product.id, {
-        hasActiveOffers: product.has_active_offers || false,
-        maxOfferPrice: product.max_offer_price || null,
-        offersCount: product.offers_count || 0,
-        isOptimistic: false
-      });
-    }
-    
-    console.log(`🔄 SimpleOfferButton state updated for product ${product.id}:`, {
-      fromProps: {
-        has_active_offers: product.has_active_offers,
-        max_offer_price: product.max_offer_price,
-        offers_count: product.offers_count
-      },
-      currentOfferState: currentState,
-      finalHasActiveOffers: hasActiveOffers
+    console.log(`🔄 SimpleOfferButton: Product ${product.id} has_active_offers changed:`, {
+      oldValue: hasActiveOffers,
+      newValue: product.has_active_offers,
+      productTitle: product.title,
+      timestamp: new Date().toISOString()
     });
-  }, [
-    product.id, 
-    product.has_active_offers, 
-    product.max_offer_price, 
-    product.offers_count,
-    getOfferState,
-    updateOfferState
-  ]);
+    
+    setHasActiveOffers(product.has_active_offers || false);
+  }, [product.has_active_offers, product.id, product.title]);
   
   // Simplified visibility logic
   if (!user || !profile) return null;
@@ -92,16 +65,6 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
 
   const handleModalClose = () => {
     console.log(`❌ Modal closed for product ${product.id}`);
-    setIsModalOpen(false);
-  };
-
-  const handleOfferSuccess = async () => {
-    console.log(`✅ Offer created successfully for product ${product.id}`);
-    
-    // Принудительно обновляем данные продукта
-    await refreshProduct(product.id);
-    
-    // Закрываем модал
     setIsModalOpen(false);
   };
 
@@ -132,7 +95,6 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
           product={product}
           isLeadingBid={false}
           maxOtherOffer={0}
-          onOfferSuccess={handleOfferSuccess}
         />
       </div>
     );
@@ -169,7 +131,6 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
         product={product}
         isLeadingBid={false}
         maxOtherOffer={0}
-        onOfferSuccess={handleOfferSuccess}
       />
     </div>
   );

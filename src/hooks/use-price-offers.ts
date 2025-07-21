@@ -4,8 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CreatePriceOfferData, PriceOffer, UpdatePriceOfferData } from '@/types/price-offer';
 import { toast } from 'sonner';
 import { useBatchOffersInvalidation } from './use-price-offers-batch';
-import { useOfferState } from '@/contexts/OfferStateContext';
-import { useProductRefresh } from '@/hooks/useProductRefresh';
 
 // Hook для проверки существующего предложения пользователя
 export const useCheckPendingOffer = (productId: string, enabled: boolean = true) => {
@@ -63,8 +61,6 @@ export const useCompetitiveOffers = (productId: string, enabled: boolean = true)
 export const useCreatePriceOffer = () => {
   const queryClient = useQueryClient();
   const { invalidateBatchOffers } = useBatchOffersInvalidation();
-  const { setOptimisticOffer, clearOptimisticState } = useOfferState();
-  const { refreshProduct } = useProductRefresh();
   const { user } = useAuth();
   
   return useMutation({
@@ -72,14 +68,6 @@ export const useCreatePriceOffer = () => {
       if (!user?.id) {
         throw new Error('User must be authenticated to create offers');
       }
-
-      // Оптимистично обновляем UI
-      setOptimisticOffer(data.product_id, true, data.offered_price);
-      
-      console.log('🚀 Creating offer with optimistic update:', {
-        productId: data.product_id,
-        offeredPrice: data.offered_price
-      });
 
       // Сначала проверяем, есть ли у пользователя pending предложение для этого товара
       const { data: existingOffer, error: checkError } = await supabase
@@ -131,28 +119,15 @@ export const useCreatePriceOffer = () => {
       if (error) throw error;
       return result;
     },
-    onSuccess: async (data) => {
-      console.log('✅ Offer created successfully:', data);
-      
-      // Очищаем оптимистичное состояние
-      clearOptimisticState(data.product_id);
-      
-      // Принудительно обновляем данные продукта
-      await refreshProduct(data.product_id);
-      
-      // Инвалидируем связанные запросы
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['user-offer', data.product_id] });
       queryClient.invalidateQueries({ queryKey: ['competitive-offers', data.product_id] });
       queryClient.invalidateQueries({ queryKey: ['pending-offer', data.product_id] });
       invalidateBatchOffers([data.product_id]);
-      
       toast.success('Предложение отправлено!');
     },
-    onError: (error, variables) => {
+    onError: (error) => {
       console.error('Error creating offer:', error);
-      
-      // Очищаем оптимистичное состояние при ошибке
-      clearOptimisticState(variables.product_id);
       
       // Специальная обработка constraint violation
       if (error.message?.includes('duplicate key value violates unique constraint')) {
@@ -168,7 +143,6 @@ export const useCreatePriceOffer = () => {
 export const useUpdatePriceOffer = () => {
   const queryClient = useQueryClient();
   const { invalidateBatchOffers } = useBatchOffersInvalidation();
-  const { refreshProduct } = useProductRefresh();
   
   return useMutation({
     mutationFn: async ({ offerId, data }: { offerId: string; data: UpdatePriceOfferData }) => {
@@ -182,10 +156,7 @@ export const useUpdatePriceOffer = () => {
       if (error) throw error;
       return result;
     },
-    onSuccess: async (data) => {
-      // Принудительно обновляем данные продукта
-      await refreshProduct(data.product_id);
-      
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['user-offer', data.product_id] });
       queryClient.invalidateQueries({ queryKey: ['competitive-offers', data.product_id] });
       invalidateBatchOffers([data.product_id]);

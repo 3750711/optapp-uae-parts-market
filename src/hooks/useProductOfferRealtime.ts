@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useBatchOffersInvalidation } from '@/hooks/use-price-offers-batch';
-import { useOfferState } from '@/contexts/OfferStateContext';
 
 /**
  * Hook for real-time updates of product offer data
@@ -13,7 +12,6 @@ import { useOfferState } from '@/contexts/OfferStateContext';
 export const useProductOfferRealtime = (productId?: string) => {
   const queryClient = useQueryClient();
   const { invalidateBatchOffers } = useBatchOffersInvalidation();
-  const { updateOfferState } = useOfferState();
 
   useEffect(() => {
     if (!productId) return;
@@ -30,7 +28,7 @@ export const useProductOfferRealtime = (productId?: string) => {
           table: 'price_offers',
           filter: `product_id=eq.${productId}`
         },
-        async (payload) => {
+        (payload) => {
           console.log('🔄 Real-time price offer update:', {
             productId,
             event: payload.eventType,
@@ -38,32 +36,6 @@ export const useProductOfferRealtime = (productId?: string) => {
             old: payload.old,
             timestamp: new Date().toISOString()
           });
-          
-          // Получаем свежие данные о предложениях для этого продукта
-          try {
-            const { data: productData, error } = await supabase
-              .from('products')
-              .select('has_active_offers, max_offer_price, offers_count')
-              .eq('id', productId)
-              .single();
-
-            if (!error && productData) {
-              console.log('🆕 Updating offer state from real-time:', {
-                productId,
-                newData: productData
-              });
-              
-              // Обновляем контекст состояния предложений
-              updateOfferState(productId, {
-                hasActiveOffers: productData.has_active_offers || false,
-                maxOfferPrice: productData.max_offer_price,
-                offersCount: productData.offers_count || 0,
-                isOptimistic: false
-              });
-            }
-          } catch (error) {
-            console.error('Error fetching fresh product data in real-time:', error);
-          }
           
           // Invalidate individual offer queries
           queryClient.invalidateQueries({ 
@@ -106,17 +78,6 @@ export const useProductOfferRealtime = (productId?: string) => {
             timestamp: new Date().toISOString()
           });
           
-          // Обновляем контекст состояния предложений если изменились флаги
-          if (payload.new) {
-            const newData = payload.new as any;
-            updateOfferState(productId, {
-              hasActiveOffers: newData.has_active_offers || false,
-              maxOfferPrice: newData.max_offer_price,
-              offersCount: newData.offers_count || 0,
-              isOptimistic: false
-            });
-          }
-          
           // Invalidate product data when optimization fields change
           queryClient.invalidateQueries({ 
             queryKey: ['admin-products'] 
@@ -142,5 +103,5 @@ export const useProductOfferRealtime = (productId?: string) => {
       console.log(`🔌 Cleaning up real-time updates for product ${productId}`);
       supabase.removeChannel(channel);
     };
-  }, [productId, queryClient, invalidateBatchOffers, updateOfferState]);
+  }, [productId, queryClient, invalidateBatchOffers]);
 };
