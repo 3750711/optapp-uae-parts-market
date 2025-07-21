@@ -94,57 +94,87 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 
         {/* Content */}
         <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-primary transition-colors text-sm sm:text-base">
-              {formatTitle()}
-            </h3>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {getStatusBadge(product.status)}
-              {product.condition && (
-                <Badge variant="outline" className="text-xs">
-                  {product.condition}
-                </Badge>
-              )}
-            </div>
-          </div>
-          
-          {/* Информация о продавце */}
-          {product.seller_name && (
-            <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
-              <span className="truncate">{product.seller_name}</span>
-              {product.rating_seller && (
-                <div className="flex items-center gap-0.5 flex-shrink-0">
-                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                  <span>{product.rating_seller.toFixed(1)}</span>
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-primary transition-colors text-sm sm:text-base mb-1">
+                {formatTitle()}
+              </h3>
+              
+              {/* Информация о продавце */}
+              {product.seller_name && (
+                <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
+                  <span className="truncate">{product.seller_name}</span>
+                  {product.rating_seller && (
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                      <span>{product.rating_seller.toFixed(1)}</span>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Дополнительная информация о товаре */}
-          <div className="space-y-1 mb-2 text-xs text-gray-600">
-            {/* Местоположение */}
-            {product.product_location && (
-              <div className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                <span>{product.product_location}</span>
+              {/* Дополнительная информация о товаре */}
+              <div className="space-y-1 text-xs text-gray-600">
+                {/* Местоположение */}
+                {product.product_location && (
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-3 h-3" />
+                    <span>{product.product_location}</span>
+                  </div>
+                )}
+                
+                {/* Лот и место */}
+                {(product.lot_number || product.place_number) && (
+                  <div className="flex items-center gap-2">
+                    {product.lot_number && <span>Лот: {product.lot_number}</span>}
+                    {product.place_number && <span>Место: {product.place_number}</span>}
+                  </div>
+                )}
+                
+                {/* Доставка */}
+                {product.delivery_price && product.delivery_price > 0 && (
+                  <div className="text-gray-500">
+                    Доставка: {formatPrice(product.delivery_price)} $
+                  </div>
+                )}
               </div>
-            )}
+            </div>
             
-            {/* Лот и место */}
-            {(product.lot_number || product.place_number) && (
-              <div className="flex items-center gap-2">
-                {product.lot_number && <span>Лот: {product.lot_number}</span>}
-                {product.place_number && <span>Место: {product.place_number}</span>}
-              </div>
-            )}
-            
-            {/* Доставка */}
-            {product.delivery_price && product.delivery_price > 0 && (
-              <div className="text-gray-500">
-                Доставка: {formatPrice(product.delivery_price)} $
-              </div>
-            )}
+            {/* Правая часть с кнопкой и статусом */}
+            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+              {getStatusBadge(product.status)}
+              
+              {/* Кнопка предложения цены */}
+              {product.status === 'active' && (
+                <MakeOfferButtonOptimized 
+                  product={{
+                    ...product,
+                    brand: product.brand || '',
+                    model: product.model || '',
+                    condition: product.condition || 'Новое',
+                    created_at: product.created_at || new Date().toISOString(),
+                    updated_at: product.updated_at || new Date().toISOString(),
+                    seller_name: product.seller_name || '',
+                    seller_id: product.seller_id || '',
+                    status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
+                    lot_number: product.lot_number || 0,
+                    product_images: product.product_images?.map(img => ({
+                      id: img.id || '',
+                      product_id: img.product_id || product.id,
+                      url: img.url,
+                      is_primary: img.is_primary || false
+                    })) || [],
+                    product_videos: product.product_videos?.map(video => ({
+                      id: '',
+                      product_id: product.id,
+                      url: video.url
+                    })) || []
+                  }}
+                  compact={true}
+                  batchOffersData={batchOffersData}
+                />
+              )}
+            </div>
           </div>
           
           <div className="flex items-center justify-between mt-auto">
@@ -155,79 +185,39 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
         </div>
       </Link>
       
-      {/* Кнопки действий */}
+      {/* Кнопки контактов - только для активных товаров */}
       {product.status === 'active' && (
-        <div className="mt-3 space-y-2">
-          {/* Blitz Buy Button */}
-          <BlitzPriceSection
-            price={product.price}
-            onBuyNow={handleBuyNow}
-            compact={true}
-          />
-          
-          {/* Кнопки предложения цены и контактов */}
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <MakeOfferButtonOptimized 
-                product={{
-                  ...product,
-                  brand: product.brand || '',
-                  model: product.model || '',
-                  condition: product.condition || 'Новое',
-                  created_at: product.created_at || new Date().toISOString(),
-                  updated_at: product.updated_at || new Date().toISOString(),
-                  seller_name: product.seller_name || '',
-                  seller_id: product.seller_id || '',
-                  status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
-                  lot_number: product.lot_number || 0,
-                  product_images: product.product_images?.map(img => ({
-                    id: img.id || '',
-                    product_id: img.product_id || product.id,
-                    url: img.url,
-                    is_primary: img.is_primary || false
-                  })) || [],
-                  product_videos: product.product_videos?.map(video => ({
-                    id: '',
-                    product_id: product.id,
-                    url: video.url
-                  })) || []
+        <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="flex justify-center gap-2">
+            {product.phone_url && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs px-3"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`tel:${product.phone_url}`, '_blank');
                 }}
-                compact={true}
-                batchOffersData={batchOffersData}
-              />
-            </div>
+              >
+                <Phone className="h-3 w-3 mr-1" />
+                Телефон
+              </Button>
+            )}
             
-            {/* Кнопки контактов */}
-            <div className="flex gap-1">
-              {product.phone_url && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs px-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(`tel:${product.phone_url}`, '_blank');
-                  }}
-                >
-                  <Phone className="h-3 w-3" />
-                </Button>
-              )}
-              
-              {product.telegram_url && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs px-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(`https://t.me/${product.telegram_url}`, '_blank');
-                  }}
-                >
-                  <MessageCircle className="h-3 w-3" />
-                </Button>
-              )}
-
-            </div>
+            {product.telegram_url && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs px-3"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`https://t.me/${product.telegram_url}`, '_blank');
+                }}
+              >
+                <MessageCircle className="h-3 w-3 mr-1" />
+                Telegram
+              </Button>
+            )}
           </div>
         </div>
       )}
