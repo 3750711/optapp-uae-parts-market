@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Slider } from '@/components/ui/slider';
+
 import { useCreatePriceOffer, useUpdatePriceOffer } from '@/hooks/use-price-offers';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
@@ -157,9 +157,6 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
     }
   };
 
-  const handleSliderChange = (value: number[]) => {
-    setValue('offered_price', value[0]);
-  };
 
   const getPriceColor = () => {
     if (watchedPrice >= product.price) return 'text-green-600';
@@ -206,10 +203,10 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent 
-        className="max-w-md mx-auto max-h-[90vh] overflow-hidden"
-        onClick={handleModalClick}
-      >
+        <DialogContent 
+          className="max-w-md mx-auto max-h-[95vh] overflow-hidden flex flex-col"
+          onClick={handleModalClick}
+        >
         <div onClick={handleBackdropClick} className="absolute inset-0 -z-10" />
         
         <DialogHeader className="flex-shrink-0 pb-4">
@@ -228,13 +225,19 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-6">
+        <div className="flex-1 overflow-y-auto space-y-4 px-1">
           {/* Product Info */}
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+          <div 
+            className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.location.href = `/catalog/${product.id}`;
+            }}
+          >
             <img
               src={primaryImage}
               alt={product.title}
-              className="w-16 h-16 object-cover rounded-lg"
+              className="w-14 h-14 object-cover rounded-lg"
             />
             <div className="flex-1 min-w-0">
               <h3 className="font-medium text-sm text-gray-900 truncate">
@@ -302,44 +305,32 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
           ) : (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
               {/* Price Input */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-gray-700">
-                    Ваше предложение
-                  </label>
-                  <span className={cn("text-sm font-medium", getPriceColor())}>
-                    ${watchedPrice}
-                  </span>
-                </div>
-                
-                <Slider
-                  value={[watchedPrice]}
-                  onValueChange={handleSliderChange}
-                  max={product.price}
-                  min={Math.floor(product.price * 0.3)}
-                  step={1}
-                  className="w-full"
-                />
-                
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Мин: ${Math.floor(product.price * 0.3)}</span>
-                  <span>Макс: ${product.price}</span>
-                </div>
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-700">
+                  Ваше предложение
+                </label>
 
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
                     {...register('offered_price', { valueAsNumber: true })}
                     type="number"
-                    placeholder="0"
+                    placeholder={`От ${Math.floor(product.price * 0.3)} до ${product.price}`}
                     className={cn(
                       "pl-8 text-lg font-medium",
                       errors.offered_price && "border-red-500"
                     )}
-                    min="1"
+                    min={Math.floor(product.price * 0.3)}
                     max={product.price}
                     step="1"
                   />
+                </div>
+                
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Минимум: ${Math.floor(product.price * 0.3)}</span>
+                  <span className={cn("font-medium", getPriceColor())}>
+                    Текущее: ${watchedPrice || 0}
+                  </span>
                 </div>
                 
                 {errors.offered_price && (
