@@ -1,18 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer";
-import { useVirtualKeyboard } from "@/hooks/useVirtualKeyboard";
-import { useIsMobile } from "@/hooks/use-mobile";
+import React, { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 interface MobileKeyboardOptimizedDialogProps {
@@ -23,75 +10,80 @@ interface MobileKeyboardOptimizedDialogProps {
   className?: string;
 }
 
-export const MobileKeyboardOptimizedDialog: React.FC<MobileKeyboardOptimizedDialogProps> = ({
+export const MobileKeyboardOptimizedDialog = ({
   open,
   onOpenChange,
   title,
   children,
   className,
-}) => {
-  const { isVisible: isKeyboardVisible, viewportHeight, scrollToActiveInput } = useVirtualKeyboard();
-  const isMobile = useIsMobile();
-  const contentRef = useRef<HTMLDivElement>(null);
+}: MobileKeyboardOptimizedDialogProps) => {
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
-  // Handle input focus on mobile when keyboard is visible
   useEffect(() => {
-    if (!isMobile || !open) return;
+    if (!open) return;
 
-    const handleFocusIn = (e: FocusEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-        setTimeout(() => scrollToActiveInput(target), 300);
-      }
+    let initialViewportHeight = window.innerHeight;
+    
+    const handleResize = () => {
+      const currentHeight = window.innerHeight;
+      const heightDifference = initialViewportHeight - currentHeight;
+      
+      // Считаем что клавиатура видна если высота уменьшилась больше чем на 150px
+      setIsKeyboardVisible(heightDifference > 150);
     };
 
-    document.addEventListener('focusin', handleFocusIn);
-    return () => document.removeEventListener('focusin', handleFocusIn);
-  }, [isMobile, open, scrollToActiveInput]);
+    const handleFocus = () => {
+      // Небольшая задержка для корректного определения размера
+      setTimeout(handleResize, 300);
+    };
 
-  if (isMobile) {
-    return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent 
-          ref={contentRef}
-          className={cn(
-            "transition-all duration-300",
-            isKeyboardVisible ? "h-auto" : "max-h-[95vh]",
-            className
-          )}
-          style={isKeyboardVisible ? { 
-            height: `${Math.min(viewportHeight * 0.7, 450)}px`,
-            transform: 'translateY(0)',
-            position: 'fixed',
-            bottom: '0'
-          } : undefined}
-        >
-          <DrawerHeader className="text-left pb-2">
-            <DrawerTitle className="text-lg">{title}</DrawerTitle>
-          </DrawerHeader>
-          <div 
-            className={cn(
-              "px-4 pb-4 overflow-y-auto flex-1",
-              isKeyboardVisible && "pb-2"
-            )}
-            style={isKeyboardVisible ? {
-              height: `${Math.min(viewportHeight * 0.6, 380)}px`
-            } : undefined}
-          >
-            {children}
-          </div>
-        </DrawerContent>
-      </Drawer>
-    );
-  }
+    window.addEventListener('resize', handleResize);
+    document.addEventListener('focusin', handleFocus);
+
+    // Инициальная проверка
+    handleResize();
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('focusin', handleFocus);
+      setIsKeyboardVisible(false);
+    };
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("sm:max-w-md", className)}>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+      <DialogContent 
+        className={cn(
+          "w-full max-w-sm mx-auto",
+          "max-h-[85vh] overflow-hidden",
+          isKeyboardVisible && "max-h-[50vh]",
+          className
+        )}
+        style={{
+          position: 'fixed',
+          top: isKeyboardVisible ? '5vh' : '50%',
+          left: '50%',
+          transform: isKeyboardVisible ? 'translateX(-50%)' : 'translate(-50%, -50%)',
+          transition: 'all 0.2s ease-in-out'
+        }}
+      >
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="text-center">{title}</DialogTitle>
         </DialogHeader>
-        {children}
+        
+        <div 
+          className={cn(
+            "overflow-y-auto overflow-x-hidden",
+            "scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100",
+            isKeyboardVisible ? "max-h-[35vh]" : "max-h-[70vh]"
+          )}
+          style={{
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#d1d5db #f3f4f6'
+          }}
+        >
+          {children}
+        </div>
       </DialogContent>
     </Dialog>
   );

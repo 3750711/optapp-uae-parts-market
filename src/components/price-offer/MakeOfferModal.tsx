@@ -75,19 +75,7 @@ export const MakeOfferModal = ({
     enabled: !!product.seller_id,
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors },
-  } = useForm<FormData>({
-    defaultValues: {
-      offered_price: existingOffer?.offered_price.toString() || suggestedPrice.toString(),
-      message: existingOffer?.message || "",
-      confirmation: false,
-    },
-  });
+  // Form будет создана внутри FormContent для корректной работы
 
   const handleBuyNow = async () => {
     try {
@@ -105,66 +93,86 @@ export const MakeOfferModal = ({
     }
   };
 
-  const handleSetSuggestedPrice = () => {
-    setValue("offered_price", suggestedPrice.toString());
-  };
+  // handleSetSuggestedPrice будет определена в FormContent
 
   const handleViewProduct = () => {
     window.open(`/product/${product.id}`, '_blank');
   };
 
-  const onSubmit = async (data: FormData) => {
-    if (!data.confirmation && !existingOffer) {
-      return;
-    }
-
-    const offeredPrice = parseFloat(data.offered_price);
-    if (isNaN(offeredPrice) || offeredPrice <= 0) {
-      return;
-    }
-
-    try {
-      if (existingOffer) {
-        await updateOffer.mutateAsync({
-          offerId: existingOffer.id,
-          data: {
-            offered_price: offeredPrice,
-            message: data.message || undefined,
-          },
-        });
-      } else {
-        const offerData: CreatePriceOfferData = {
-          product_id: product.id,
-          seller_id: product.seller_id,
-          original_price: product.price,
-          offered_price: offeredPrice,
-          message: data.message || undefined,
-        };
-        await createOffer.mutateAsync(offerData);
-      }
-      
-      handleClose();
-    } catch (error) {
-      console.error("Submit error:", error);
-    }
-  };
-
+  // onSubmit и handleClose будут определены в FormContent
+  
   const handleClose = () => {
-    reset();
     onClose();
   };
 
   const isLoading = createOffer.isPending || updateOffer.isPending;
 
   const FormContent = () => {
-    const offeredPrice = parseFloat(document.querySelector<HTMLInputElement>('[name="offered_price"]')?.value || "0");
+    const {
+      register,
+      handleSubmit,
+      reset,
+      setValue,
+      watch,
+      formState: { errors },
+    } = useForm<FormData>({
+      defaultValues: {
+        offered_price: existingOffer?.offered_price.toString() || suggestedPrice.toString(),
+        message: existingOffer?.message || "",
+        confirmation: false,
+      },
+    });
+
+    const watchedPrice = watch("offered_price");
+    const offeredPrice = parseFloat(watchedPrice || "0");
     const isUserBestOffer = offeredPrice > maxOtherOffer && offeredPrice <= product.price;
     const isOtherBestOffer = maxOtherOffer > 0 && (offeredPrice <= maxOtherOffer || offeredPrice > product.price);
 
+    const handleSetSuggestedPrice = () => {
+      setValue("offered_price", suggestedPrice.toString());
+    };
+
+    const onSubmit = async (data: FormData) => {
+      if (!data.confirmation && !existingOffer) {
+        return;
+      }
+
+      const offeredPrice = parseFloat(data.offered_price);
+      if (isNaN(offeredPrice) || offeredPrice <= 0) {
+        return;
+      }
+
+      try {
+        if (existingOffer) {
+          await updateOffer.mutateAsync({
+            offerId: existingOffer.id,
+            data: {
+              offered_price: offeredPrice,
+              message: data.message || undefined,
+            },
+          });
+        } else {
+          const offerData: CreatePriceOfferData = {
+            product_id: product.id,
+            seller_id: product.seller_id,
+            original_price: product.price,
+            offered_price: offeredPrice,
+            message: data.message || undefined,
+          };
+          await createOffer.mutateAsync(offerData);
+        }
+        
+        handleClose();
+        reset();
+      } catch (error) {
+        console.error("Submit error:", error);
+      }
+    };
+
     return (
-      <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+      <div className="space-y-3 max-h-[75vh] overflow-y-auto px-1">
         {/* Product Info Section */}
-        <div className="bg-gray-50 rounded-lg p-4">
+        <div className="bg-muted/50 rounded-lg p-3 border">
           <div className="flex gap-3">
             <div 
               className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
@@ -187,7 +195,7 @@ export const MakeOfferModal = ({
               
               {sellerProfile && (
                 <p className="text-sm text-gray-700 mb-2">
-                  Продавец: <span className="font-medium">{sellerProfile.display_name || sellerProfile.email}</span>
+                  Продавец: <span className="font-medium">{sellerProfile.full_name || sellerProfile.email}</span>
                 </p>
               )}
               
@@ -212,25 +220,25 @@ export const MakeOfferModal = ({
         />
 
         {/* Price Comparison Section */}
-        <div className="bg-white border rounded-lg p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <p className="text-blue-700 font-medium">Цена продавца</p>
-              <p className="text-xl font-bold text-blue-800">${product.price}</p>
+        <div className="bg-background border rounded-lg p-3 space-y-3">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="text-center p-2 bg-primary/10 rounded-lg border">
+              <p className="text-primary font-medium">Цена продавца</p>
+              <p className="text-lg font-bold text-primary">${product.price}</p>
             </div>
             {maxOtherOffer > 0 ? (
-              <div className={`text-center p-3 rounded-lg ${isOtherBestOffer ? 'bg-red-50' : 'bg-gray-50'}`}>
-                <p className={`font-medium ${isOtherBestOffer ? 'text-red-700' : 'text-gray-700'}`}>
+              <div className={`text-center p-2 rounded-lg border ${isOtherBestOffer ? 'bg-destructive/10 border-destructive/20' : 'bg-muted'}`}>
+                <p className={`font-medium ${isOtherBestOffer ? 'text-destructive' : 'text-muted-foreground'}`}>
                   Лучшее предложение
                 </p>
-                <p className={`text-xl font-bold ${isOtherBestOffer ? 'text-red-800' : 'text-gray-800'}`}>
+                <p className={`text-lg font-bold ${isOtherBestOffer ? 'text-destructive' : 'text-foreground'}`}>
                   ${maxOtherOffer}
                 </p>
               </div>
             ) : (
-              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <p className="text-gray-700 font-medium">Других предложений</p>
-                <p className="text-xl font-bold text-gray-800">нет</p>
+              <div className="text-center p-2 bg-muted rounded-lg border">
+                <p className="text-muted-foreground font-medium">Других предложений</p>
+                <p className="text-lg font-bold text-foreground">нет</p>
               </div>
             )}
           </div>

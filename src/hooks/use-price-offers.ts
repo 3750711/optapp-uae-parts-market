@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -62,18 +61,23 @@ export const useCompetitiveOffers = (productId: string, enabled: boolean = true)
 export const useCreatePriceOffer = () => {
   const queryClient = useQueryClient();
   const { invalidateBatchOffers } = useBatchOffersInvalidation();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: async (data: CreatePriceOfferData) => {
+      if (!user?.id) {
+        throw new Error('User must be authenticated to create offers');
+      }
+
       const { data: result, error } = await supabase
         .from('price_offers')
         .insert({
           product_id: data.product_id,
+          buyer_id: user.id,
           seller_id: data.seller_id,
           original_price: data.original_price,
           offered_price: data.offered_price,
           message: data.message,
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
         })
         .select()
         .single();

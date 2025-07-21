@@ -35,19 +35,25 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
   
+  // Используем новые данные из базы если они есть
+  const hasActiveOffers = (product as any).has_active_offers || false;
+  const maxProductOfferPrice = (product as any).max_offer_price || 0;
+  
   // Get offer data from batch if available, otherwise use individual query
   const batchOfferData = useProductOfferFromBatch(product.id, batchOffersData);
   
-  // Use individual query as fallback if batch data is not available
+  // Оптимизация: используем индивидуальные запросы только если нет флагов оптимизации
+  const shouldLoadDetailedData = hasActiveOffers || !batchOffersData;
+  
   const { data: userOffer, isLoading } = useCheckPendingOffer(
     product.id, 
-    !!user && !batchOffersData
+    !!user && shouldLoadDetailedData && !batchOffersData
   );
   
   // Get competitive offers data as fallback
   const { data: competitiveData } = useCompetitiveOffers(
     product.id, 
-    !!user && !batchOffersData
+    !!user && shouldLoadDetailedData && !batchOffersData
   );
 
   // Determine if user's offer is the leading bid and get max other offer

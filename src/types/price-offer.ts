@@ -45,6 +45,7 @@ export interface CreatePriceOfferData {
   original_price: number;
   offered_price: number;
   message?: string;
+  buyer_id?: string; // Опциональное поле, автоматически добавляется в хуке
 }
 
 export interface UpdatePriceOfferData {
