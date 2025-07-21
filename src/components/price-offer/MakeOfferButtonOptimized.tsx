@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Product } from '@/types/product';
 import { useCheckPendingOffer, useCompetitiveOffers } from '@/hooks/use-price-offers';
-import { NewMakeOfferModal } from './NewMakeOfferModal';
+import { EnhancedOfferModal } from './EnhancedOfferModal';
 import { CompetitorOfferBadge } from './CompetitorOfferBadge';
 import { BatchOfferData, useProductOfferFromBatch } from '@/hooks/use-price-offers-batch';
 import { useProductOfferRealtime } from '@/hooks/useProductOfferRealtime';
@@ -152,11 +152,13 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
           
           <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={true} />
           
-          <NewMakeOfferModal
+          <EnhancedOfferModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             product={product}
             existingOffer={userOfferForModal}
+            isLeadingBid={isLeadingBid}
+            maxOtherOffer={maxOtherOffer}
           />
         </div>
       );
@@ -183,11 +185,13 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
         
         <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={false} />
         
-        <NewMakeOfferModal
+        <EnhancedOfferModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           product={product}
           existingOffer={userOfferForModal}
+          isLeadingBid={isLeadingBid}
+          maxOtherOffer={maxOtherOffer}
         />
       </div>
     );
@@ -220,10 +224,12 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
 
       <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={compact} />
 
-      <NewMakeOfferModal
+      <EnhancedOfferModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         product={product}
+        isLeadingBid={isLeadingBid}
+        maxOtherOffer={maxOtherOffer}
       />
     </div>
   );
