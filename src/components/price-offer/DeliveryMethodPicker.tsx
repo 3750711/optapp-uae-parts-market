@@ -3,7 +3,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Truck, MapPin, Package } from 'lucide-react';
 
-type DeliveryMethod = 'self_pickup' | 'courier' | 'post';
+type DeliveryMethod = 'self_pickup' | 'cargo_rf' | 'cargo_kz';
 
 interface DeliveryMethodPickerProps {
   value: DeliveryMethod;
@@ -21,24 +21,18 @@ export const DeliveryMethodPicker: React.FC<DeliveryMethodPickerProps> = ({
       value: 'self_pickup' as const,
       label: 'Самовывоз',
       icon: MapPin,
-      description: 'Забрать самостоятельно',
-      price: 0,
       color: 'text-green-600'
     },
     {
-      value: 'courier' as const,
-      label: 'Доставка курьером',
+      value: 'cargo_rf' as const,
+      label: 'Карго РФ',
       icon: Truck,
-      description: 'Доставка по городу',
-      price: Math.floor(productPrice * 0.05), // 5% от цены товара
       color: 'text-blue-600'
     },
     {
-      value: 'post' as const,
-      label: 'Почтовая доставка',
+      value: 'cargo_kz' as const,
+      label: 'Карго КЗ',
       icon: Package,
-      description: 'Доставка почтой',
-      price: Math.floor(productPrice * 0.03), // 3% от цены товара
       color: 'text-purple-600'
     }
   ];
@@ -46,48 +40,29 @@ export const DeliveryMethodPicker: React.FC<DeliveryMethodPickerProps> = ({
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium text-gray-700">
-        Способ получения
+        Способ доставки
       </label>
       
-      <div className="space-y-2">
+      <div className="flex gap-2">
         {deliveryOptions.map((option) => {
           const Icon = option.icon;
           const isSelected = value === option.value;
           
           return (
-            <div
+            <button
               key={option.value}
+              type="button"
               onClick={() => onChange(option.value)}
               className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                "flex-1 flex items-center justify-center gap-2 p-2 rounded-lg border text-xs font-medium transition-colors",
                 isSelected 
-                  ? "border-primary bg-primary/5" 
-                  : "border-gray-200 hover:border-gray-300"
+                  ? "border-primary bg-primary text-primary-foreground" 
+                  : "border-gray-200 hover:border-gray-300 text-gray-700"
               )}
             >
-              <Icon className={cn("w-5 h-5", option.color)} />
-              
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-sm">{option.label}</span>
-                  <span className="text-sm font-semibold">
-                    {option.price > 0 ? `+$${option.price}` : 'Бесплатно'}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  {option.description}
-                </p>
-              </div>
-              
-              <div className={cn(
-                "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                isSelected ? "border-primary" : "border-gray-300"
-              )}>
-                {isSelected && (
-                  <div className="w-2 h-2 bg-primary rounded-full" />
-                )}
-              </div>
-            </div>
+              <Icon className="w-3 h-3" />
+              <span>{option.label}</span>
+            </button>
           );
         })}
       </div>

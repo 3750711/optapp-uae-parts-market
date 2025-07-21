@@ -22,7 +22,7 @@ import { OfferConfirmation } from './OfferConfirmation';
 const offerSchema = z.object({
   offered_price: z.number().min(1, 'Цена должна быть больше 0'),
   message: z.string().optional(),
-  delivery_method: z.enum(['self_pickup', 'courier', 'post']).default('self_pickup'),
+  delivery_method: z.enum(['self_pickup', 'cargo_rf', 'cargo_kz']).default('cargo_rf'),
   create_order_confirmed: z.boolean().default(false),
 });
 
@@ -67,7 +67,7 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
     defaultValues: {
       offered_price: existingOffer?.offered_price || Math.floor(product.price * 0.8),
       message: existingOffer?.message || '',
-      delivery_method: 'self_pickup',
+      delivery_method: 'cargo_rf',
       create_order_confirmed: false,
     }
   });
@@ -79,7 +79,7 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
       reset({
         offered_price: existingOffer?.offered_price || Math.floor(product.price * 0.8),
         message: existingOffer?.message || '',
-        delivery_method: 'self_pickup',
+        delivery_method: 'cargo_rf',
         create_order_confirmed: false,
       });
     }
