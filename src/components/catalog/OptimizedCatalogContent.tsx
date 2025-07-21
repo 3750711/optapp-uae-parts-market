@@ -48,9 +48,11 @@ const MemoizedProductCard = memo(({ product, offer }: { product: Product; offer?
         )}
         
         {/* Lot number - prominently displayed */}
-        <div className="absolute top-2 right-2 bg-primary/90 backdrop-blur-sm text-primary-foreground px-2 py-1 rounded-md text-sm font-semibold">
-          Лот #{product.lot_number}
-        </div>
+        {product.lot_number && (
+          <div className="absolute top-2 right-2 bg-primary/90 backdrop-blur-sm text-primary-foreground px-2 py-1 rounded-md text-sm font-semibold">
+            Лот #{product.lot_number}
+          </div>
+        )}
       </div>
       
       <div className="space-y-2">
@@ -85,10 +87,10 @@ const MemoizedProductCard = memo(({ product, offer }: { product: Product; offer?
             </div>
           )}
           
-          {product.location && (
+          {(product.location || product.product_location) && (
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />
-              <span>{product.location}</span>
+              <span>{product.location || product.product_location}</span>
             </div>
           )}
         </div>
