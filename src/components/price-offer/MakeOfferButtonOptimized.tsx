@@ -9,6 +9,7 @@ import { useCheckPendingOffer, useCompetitiveOffers } from '@/hooks/use-price-of
 import { MakeOfferModal } from './MakeOfferModal';
 import { CompetitorOfferBadge } from './CompetitorOfferBadge';
 import { BatchOfferData, useProductOfferFromBatch } from '@/hooks/use-price-offers-batch';
+import { useProductOfferRealtime } from '@/hooks/useProductOfferRealtime';
 import bidIcon from '@/assets/bid-icon.png';
 
 interface MakeOfferButtonOptimizedProps {
@@ -34,6 +35,9 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
+  
+  // Enable real-time updates for this product's offers
+  useProductOfferRealtime(product.id);
   
   // Используем новые данные из базы если они есть
   const hasActiveOffers = (product as any).has_active_offers || false;

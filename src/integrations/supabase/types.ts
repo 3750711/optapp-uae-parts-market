@@ -686,11 +686,14 @@ export type Database = {
           created_at: string
           delivery_price: number | null
           description: string | null
+          has_active_offers: boolean | null
           id: string
           last_notification_sent_at: string | null
           location: string | null
           lot_number: number
+          max_offer_price: number | null
           model: string | null
+          offers_count: number | null
           optid_created: string | null
           phone_url: string | null
           place_number: number | null
@@ -715,11 +718,14 @@ export type Database = {
           created_at?: string
           delivery_price?: number | null
           description?: string | null
+          has_active_offers?: boolean | null
           id?: string
           last_notification_sent_at?: string | null
           location?: string | null
           lot_number?: number
+          max_offer_price?: number | null
           model?: string | null
+          offers_count?: number | null
           optid_created?: string | null
           phone_url?: string | null
           place_number?: number | null
@@ -744,11 +750,14 @@ export type Database = {
           created_at?: string
           delivery_price?: number | null
           description?: string | null
+          has_active_offers?: boolean | null
           id?: string
           last_notification_sent_at?: string | null
           location?: string | null
           lot_number?: number
+          max_offer_price?: number | null
           model?: string | null
+          offers_count?: number | null
           optid_created?: string | null
           phone_url?: string | null
           place_number?: number | null

@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useMemo, useEffect } from 'react';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Product {
@@ -26,6 +26,7 @@ export const useProductsQuery = ({
   sellerFilter,
   pageSize = 12
 }: UseProductsQueryProps) => {
+  const queryClient = useQueryClient();
 
   const fetchProducts = async ({ pageParam = 0 }) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -96,6 +97,30 @@ export const useProductsQuery = ({
   const allProducts = useMemo(() => {
     return queryResult.data?.pages.flatMap(page => page.data) || [];
   }, [queryResult.data]);
+
+  // Real-time subscription for products changes
+  useEffect(() => {
+    const channel = supabase
+      .channel('products-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'products',
+          filter: `status=in.(active,sold)`
+        },
+        (payload) => {
+          // Invalidate products query to refetch updated data
+          queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   return {
     ...queryResult,
