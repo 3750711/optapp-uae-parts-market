@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Gavel } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useProductOfferRealtime } from '@/hooks/useProductOfferRealtime';
 import { Product } from '@/types/product';
 import { EnhancedOfferModal } from './EnhancedOfferModal';
 import bidIcon from '@/assets/bid-icon.png';
@@ -27,8 +28,17 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   compact = false 
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasActiveOffers, setHasActiveOffers] = useState(product.has_active_offers || false);
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
+  
+  // Add real-time updates for offer status
+  useProductOfferRealtime(product.id);
+  
+  // Sync local state with product prop changes
+  useEffect(() => {
+    setHasActiveOffers(product.has_active_offers || false);
+  }, [product.has_active_offers]);
   
   // Simplified visibility logic
   if (!user || !profile) return null;
@@ -41,8 +51,6 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
     e.preventDefault();
     setIsModalOpen(true);
   };
-
-  const hasActiveOffers = product.has_active_offers || false;
 
   if (compact) {
     return (

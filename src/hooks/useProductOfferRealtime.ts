@@ -40,6 +40,11 @@ export const useProductOfferRealtime = (productId?: string) => {
             queryKey: ['admin-products'] 
           });
           
+          // Invalidate catalog queries to update has_active_offers
+          queryClient.invalidateQueries({ 
+            queryKey: ['catalog-products'] 
+          });
+          
           // Invalidate batch offers for this product
           invalidateBatchOffers([productId]);
         }
@@ -58,6 +63,11 @@ export const useProductOfferRealtime = (productId?: string) => {
           // Invalidate product data when optimization fields change
           queryClient.invalidateQueries({ 
             queryKey: ['admin-products'] 
+          });
+          
+          // Invalidate catalog queries to update product data
+          queryClient.invalidateQueries({ 
+            queryKey: ['catalog-products'] 
           });
           
           // Also invalidate batch offers since product data affects offer calculations
