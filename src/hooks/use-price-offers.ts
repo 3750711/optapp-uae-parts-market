@@ -69,6 +69,40 @@ export const useCreatePriceOffer = () => {
         throw new Error('User must be authenticated to create offers');
       }
 
+      // Сначала проверяем, есть ли у пользователя pending предложение для этого товара
+      const { data: existingOffer, error: checkError } = await supabase
+        .from('price_offers')
+        .select('id, status')
+        .eq('product_id', data.product_id)
+        .eq('buyer_id', user.id)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking existing offer:', checkError);
+        throw checkError;
+      }
+
+      // Если есть существующее pending предложение, обновляем его
+      if (existingOffer) {
+        const { data: result, error: updateError } = await supabase
+          .from('price_offers')
+          .update({
+            offered_price: data.offered_price,
+            message: data.message,
+            original_price: data.original_price,
+            expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // +6 часов
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingOffer.id)
+          .select()
+          .single();
+        
+        if (updateError) throw updateError;
+        return result;
+      }
+
+      // Если нет существующего предложения, создаем новое
       const { data: result, error } = await supabase
         .from('price_offers')
         .insert({
@@ -88,12 +122,19 @@ export const useCreatePriceOffer = () => {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['user-offer', data.product_id] });
       queryClient.invalidateQueries({ queryKey: ['competitive-offers', data.product_id] });
+      queryClient.invalidateQueries({ queryKey: ['pending-offer', data.product_id] });
       invalidateBatchOffers([data.product_id]);
       toast.success('Предложение отправлено!');
     },
     onError: (error) => {
       console.error('Error creating offer:', error);
-      toast.error('Ошибка при отправке предложения');
+      
+      // Специальная обработка constraint violation
+      if (error.message?.includes('duplicate key value violates unique constraint')) {
+        toast.error('У вас уже есть активное предложение для этого товара. Обновите страницу и попробуйте снова.');
+      } else {
+        toast.error('Ошибка при отправке предложения');
+      }
     },
   });
 };
