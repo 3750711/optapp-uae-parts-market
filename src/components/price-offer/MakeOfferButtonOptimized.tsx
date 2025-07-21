@@ -252,6 +252,7 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
           variant="ghost"
           size="sm"
           onClick={handleClick}
+          disabled={false}
           className="flex items-center justify-center h-10 w-10 p-0 hover:bg-primary/10 rounded-full border-2 border-primary/20 hover:border-primary/40 transition-all duration-200 group hover:shadow-lg"
           title="Предложить цену"
         >
@@ -262,6 +263,7 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
           variant="outline"
           size="sm"
           onClick={handleClick}
+          disabled={false}
           className="flex items-center gap-2 w-full h-9 text-xs px-3 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 hover:shadow-md"
         >
           <BidIcon className="h-4 w-4" />
