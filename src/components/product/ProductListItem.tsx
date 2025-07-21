@@ -227,17 +227,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 </Button>
               )}
 
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs px-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/product/${product.id}`);
-                }}
-              >
-                <ExternalLink className="h-3 w-3" />
-              </Button>
             </div>
           </div>
         </div>
