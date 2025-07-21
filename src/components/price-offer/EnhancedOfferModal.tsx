@@ -19,14 +19,17 @@ import { BlitzBuySection } from './BlitzBuySection';
 import { DeliveryMethodPicker } from './DeliveryMethodPicker';
 import { OfferConfirmation } from './OfferConfirmation';
 
-const offerSchema = z.object({
-  offered_price: z.number().min(1, 'Цена должна быть больше 0'),
+// Динамическая схема валидации в зависимости от контекста
+const createOfferSchema = (existingOffer?: any) => z.object({
+  offered_price: existingOffer 
+    ? z.number().min(existingOffer.offered_price + 1, `Цена должна быть больше текущей ставки $${existingOffer.offered_price}`)
+    : z.number().min(1, 'Цена должна быть больше 0'),
   message: z.string().optional(),
   delivery_method: z.enum(['self_pickup', 'cargo_rf', 'cargo_kz']).default('cargo_rf'),
   create_order_confirmed: z.boolean().default(false),
 });
 
-type OfferFormData = z.infer<typeof offerSchema>;
+type OfferFormData = z.infer<ReturnType<typeof createOfferSchema>>;
 
 interface EnhancedOfferModalProps {
   isOpen: boolean;
@@ -63,7 +66,7 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
     setValue,
     getValues
   } = useForm<OfferFormData>({
-    resolver: zodResolver(offerSchema),
+    resolver: zodResolver(createOfferSchema(existingOffer)),
     defaultValues: {
       offered_price: existingOffer?.offered_price || Math.floor(product.price * 0.8),
       message: existingOffer?.message || '',
@@ -315,19 +318,23 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
                   <Input
                     {...register('offered_price', { valueAsNumber: true })}
                     type="number"
-                    placeholder={`От ${Math.floor(product.price * 0.3)} до ${product.price}`}
+                    placeholder={existingOffer ? `Больше $${existingOffer.offered_price}` : "Любая цена"}
                     className={cn(
                       "pl-8 text-lg font-medium",
                       errors.offered_price && "border-red-500"
                     )}
-                    min={Math.floor(product.price * 0.3)}
-                    max={product.price}
+                    min={1}
                     step="1"
                   />
                 </div>
                 
                 <div className="flex justify-between text-xs text-gray-500">
-                  <span>Минимум: ${Math.floor(product.price * 0.3)}</span>
+                  <span>
+                    {existingOffer 
+                      ? `Минимум: $${existingOffer.offered_price + 1}` 
+                      : 'Минимум: $1'
+                    }
+                  </span>
                   <span className={cn("font-medium", getPriceColor())}>
                     Текущее: ${watchedPrice || 0}
                   </span>
