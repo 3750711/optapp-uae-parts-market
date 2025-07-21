@@ -12,7 +12,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Product } from '@/types/product';
 import { useCreatePriceOffer } from '@/hooks/use-price-offers';
 import { formatPrice } from '@/utils/formatPrice';
@@ -39,7 +39,7 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
   const [offeredPrice, setOfferedPrice] = useState<number | undefined>(undefined);
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
+  
   const createOfferMutation = useCreatePriceOffer();
 
   useEffect(() => {
