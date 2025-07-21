@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,7 +27,8 @@ import {
   Heart,
   HelpCircle,
   ClipboardList,
-  ShoppingBag
+  ShoppingBag,
+  Gavel
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -243,8 +243,8 @@ const Header = () => {
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/buyer-price-offers" className="flex w-full items-center">
-                            <Package className="mr-2 h-4 w-4" />
-                            <span>Мои предложения цены</span>
+                            <Gavel className="mr-2 h-4 w-4" />
+                            <span>Торги</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />

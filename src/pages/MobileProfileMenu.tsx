@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +21,8 @@ import {
   Heart,
   HelpCircle,
   ClipboardList,
-  ShoppingBag
+  ShoppingBag,
+  Gavel
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -152,8 +152,8 @@ const MobileProfileMenu = () => {
             </Link>
             <Link to="/buyer-price-offers">
               <Button variant="ghost" className="w-full justify-start h-12 text-base">
-                <Package className="mr-3 h-5 w-5" />
-                Мои предложения цены
+                <Gavel className="mr-3 h-5 w-5" />
+                Торги
               </Button>
             </Link>
             <Separator className="my-4" />
