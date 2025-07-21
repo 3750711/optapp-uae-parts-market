@@ -144,7 +144,9 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
     return null;
   }
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     console.log('🖱️ Button clicked, opening modal');
     setIsModalOpen(true);
   };
