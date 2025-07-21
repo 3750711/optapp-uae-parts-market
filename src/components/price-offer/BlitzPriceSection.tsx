@@ -17,28 +17,7 @@ export const BlitzPriceSection: React.FC<BlitzPriceSectionProps> = ({
   compact = false
 }) => {
   if (compact) {
-    return (
-      <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border-2 border-amber-200 rounded-lg p-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-1 mb-1">
-              <Zap className="h-4 w-4 text-amber-600" />
-              <span className="text-sm font-bold text-amber-800">Blitz цена</span>
-            </div>
-            <div className="text-xl font-bold text-amber-900">${price.toLocaleString()}</div>
-          </div>
-          <Button
-            onClick={onBuyNow}
-            disabled={disabled}
-            size="sm"
-            className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 h-8 px-3 text-xs"
-          >
-            <ShoppingCart className="h-3 w-3 mr-1" />
-            Купить
-          </Button>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
