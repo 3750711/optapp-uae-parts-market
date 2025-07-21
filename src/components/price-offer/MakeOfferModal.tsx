@@ -156,83 +156,96 @@ export const MakeOfferModal = ({
 
   const isLoading = createOffer.isPending || updateOffer.isPending;
 
-  const FormContent = () => (
-    <div className="space-y-6 max-h-[70vh] overflow-y-auto">
-      {/* Product Info Section */}
-      <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-        <div className="flex gap-4">
-          <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-            <img
-              src={primaryImage}
-              alt={product.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg text-gray-900 truncate">{product.title}</h3>
-            <p className="text-sm text-gray-600 mb-2">{product.brand} {product.model}</p>
-            
-            <div className="flex flex-wrap gap-2 mb-2">
-              <Badge variant="outline">{product.condition}</Badge>
-              {product.product_location && (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {product.product_location}
-                </Badge>
-              )}
-              {product.lot_number && (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Package className="h-3 w-3" />
-                  Лот #{product.lot_number}
-                </Badge>
-              )}
+  const FormContent = () => {
+    const offeredPrice = parseFloat(document.querySelector<HTMLInputElement>('[name="offered_price"]')?.value || "0");
+    const isUserBestOffer = offeredPrice > maxOtherOffer && offeredPrice <= product.price;
+    const isOtherBestOffer = maxOtherOffer > 0 && (offeredPrice <= maxOtherOffer || offeredPrice > product.price);
+
+    return (
+      <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+        {/* Product Info Section */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex gap-3">
+            <div 
+              className="w-20 h-20 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={handleViewProduct}
+            >
+              <img
+                src={primaryImage}
+                alt={product.title}
+                className="w-full h-full object-cover"
+              />
             </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Цена продавца:</span>
-              <span className="font-semibold text-lg text-primary">${product.price}</span>
+            <div className="flex-1 min-w-0">
+              <h3 
+                className="font-semibold text-base text-gray-900 truncate cursor-pointer hover:text-primary transition-colors"
+                onClick={handleViewProduct}
+              >
+                {product.title}
+              </h3>
+              <p className="text-sm text-gray-600 mb-2">{product.brand} {product.model}</p>
+              
+              {sellerProfile && (
+                <p className="text-sm text-gray-700 mb-2">
+                  Продавец: <span className="font-medium">{sellerProfile.display_name || sellerProfile.email}</span>
+                </p>
+              )}
+              
+              <div className="flex flex-wrap gap-1 mb-2">
+                <Badge variant="outline" className="text-xs">{product.condition}</Badge>
+                {product.product_location && (
+                  <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                    <MapPin className="h-3 w-3" />
+                    {product.product_location}
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </div>
-        
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleViewProduct}
-          className="w-full flex items-center gap-2"
-        >
-          <ExternalLink className="h-4 w-4" />
-          Подробнее о товаре
-        </Button>
-      </div>
 
-      {/* Blitz Price Section */}
-      <BlitzPriceSection
-        price={product.price}
-        onBuyNow={handleBuyNow}
-        compact={true}
-      />
+        {/* Blitz Price Section */}
+        <BlitzPriceSection
+          price={product.price}
+          onBuyNow={handleBuyNow}
+          compact={true}
+        />
 
-      {/* Competitive Offers */}
-      {maxOtherOffer > 0 && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="font-medium text-orange-800">Конкурентные предложения</h4>
-            <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} />
+        {/* Price Comparison Section */}
+        <div className="bg-white border rounded-lg p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <p className="text-blue-700 font-medium">Цена продавца</p>
+              <p className="text-xl font-bold text-blue-800">${product.price}</p>
+            </div>
+            {maxOtherOffer > 0 ? (
+              <div className={`text-center p-3 rounded-lg ${isOtherBestOffer ? 'bg-red-50' : 'bg-gray-50'}`}>
+                <p className={`font-medium ${isOtherBestOffer ? 'text-red-700' : 'text-gray-700'}`}>
+                  Лучшее предложение
+                </p>
+                <p className={`text-xl font-bold ${isOtherBestOffer ? 'text-red-800' : 'text-gray-800'}`}>
+                  ${maxOtherOffer}
+                </p>
+              </div>
+            ) : (
+              <div className="text-center p-3 bg-gray-50 rounded-lg">
+                <p className="text-gray-700 font-medium">Других предложений</p>
+                <p className="text-xl font-bold text-gray-800">нет</p>
+              </div>
+            )}
           </div>
-          <p className="text-sm text-orange-700 mb-3">
-            Наивысшее предложение: <strong>${maxOtherOffer}</strong>
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSetSuggestedPrice}
-            className="w-full"
-          >
-            Предложить ${suggestedPrice} (рекомендуется)
-          </Button>
+          
+          {maxOtherOffer > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSetSuggestedPrice}
+              className="w-full"
+            >
+              Предложить ${suggestedPrice} (рекомендуется)
+            </Button>
+          )}
         </div>
-      )}
 
       {/* Existing Offer Alert */}
       {existingOffer && (
@@ -248,22 +261,35 @@ export const MakeOfferModal = ({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <Label htmlFor="offered_price">Ваше предложение *</Label>
-          <Input
-            id="offered_price"
-            type="number"
-            step="1"
-            min="1"
-            max={product.price}
-            placeholder={`Максимум ${product.price}$`}
-            {...register("offered_price", {
-              required: "Введите предлагаемую цену",
-              min: { value: 1, message: "Цена должна быть больше 0" },
-              max: { value: product.price, message: `Цена не может быть больше ${product.price}$` },
-            })}
-          />
+          <div className="relative">
+            <Input
+              id="offered_price"
+              type="number"
+              step="1"
+              min="1"
+              max={product.price}
+              placeholder={`Максимум ${product.price}$`}
+              className={`${isUserBestOffer ? 'border-green-500 bg-green-50' : ''} ${isOtherBestOffer ? 'border-red-500 bg-red-50' : ''}`}
+              {...register("offered_price", {
+                required: "Введите предлагаемую цену",
+                min: { value: 1, message: "Цена должна быть больше 0" },
+                max: { value: product.price, message: `Цена не может быть больше ${product.price}$` },
+              })}
+            />
+            {isUserBestOffer && (
+              <div className="absolute right-3 top-1/2 transform -y-1/2">
+                <Badge variant="success" className="text-xs">Лучшее предложение!</Badge>
+              </div>
+            )}
+          </div>
           {errors.offered_price && (
             <p className="text-sm text-destructive mt-1">
               {errors.offered_price.message}
+            </p>
+          )}
+          {isOtherBestOffer && (
+            <p className="text-sm text-red-600 mt-1">
+              Ваше предложение меньше текущего лучшего (${maxOtherOffer})
             </p>
           )}
         </div>
@@ -310,21 +336,9 @@ export const MakeOfferModal = ({
         </div>
       </form>
 
-      {/* Seller Contact Section */}
-      {sellerProfile && (
-        <div className="border-t pt-4">
-          <h4 className="font-medium text-gray-900 mb-3">Контакты продавца</h4>
-          <ContactButtons
-            sellerPhone={sellerProfile.phone}
-            sellerTelegram={sellerProfile.telegram}
-            productTitle={product.title}
-            isVerified={sellerProfile.verification_status === 'verified'}
-            verificationStatus={sellerProfile.verification_status}
-          />
-        </div>
-      )}
-    </div>
-  );
+      </div>
+    );
+  };
 
   if (isMobile) {
     return (
@@ -332,7 +346,7 @@ export const MakeOfferModal = ({
         open={isOpen}
         onOpenChange={handleClose}
         title="Предложить цену"
-        className="max-w-md"
+        className="max-w-sm mx-2"
       >
         <FormContent />
       </MobileKeyboardOptimizedDialog>
@@ -341,7 +355,7 @@ export const MakeOfferModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Предложить цену</DialogTitle>
         </DialogHeader>
