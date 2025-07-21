@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBuyerAuctionProducts } from '@/hooks/useBuyerAuctionProducts';
-import { useBatchProductOffers } from '@/hooks/use-price-offers-batch';
+import { useBatchOffers } from '@/hooks/use-price-offers-batch';
 import ProductListItem from '@/components/product/ProductListItem';
 import Layout from '@/components/layout/Layout';
 
@@ -16,7 +16,7 @@ const BuyerPriceOffers: React.FC = () => {
 
   // Получаем batch данные для оптимизации
   const productIds = auctionProducts?.map(p => p.id) || [];
-  const { data: batchOffersData } = useBatchProductOffers(productIds);
+  const { data: batchOffersData } = useBatchOffers(productIds);
 
   if (!user) {
     return <div>Пожалуйста, войдите в систему</div>;
