@@ -2,14 +2,23 @@
 interface CompetitorOfferBadgeProps {
   maxOtherOffer: number;
   compact?: boolean;
+  isUserLeading?: boolean;
 }
 
-export const CompetitorOfferBadge = ({ maxOtherOffer, compact = false }: CompetitorOfferBadgeProps) => {
-  console.log('🏷️ CompetitorOfferBadge render:', { maxOtherOffer, compact });
+export const CompetitorOfferBadge = ({ 
+  maxOtherOffer, 
+  compact = false, 
+  isUserLeading = false 
+}: CompetitorOfferBadgeProps) => {
+  console.log('🏷️ CompetitorOfferBadge render:', { 
+    maxOtherOffer, 
+    compact, 
+    isUserLeading 
+  });
   
-  // Only show if there's a meaningful competing offer
-  if (!maxOtherOffer || maxOtherOffer <= 0) {
-    console.log('🏷️ Badge hidden - no competing offer');
+  // Hide badge if user is leading or no meaningful competing offer
+  if (isUserLeading || !maxOtherOffer || maxOtherOffer <= 0) {
+    console.log('🏷️ Badge hidden - user is leading or no competing offer');
     return null;
   }
 

@@ -57,9 +57,23 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
   const { isLeadingBid, maxOtherOffer, hasUserOffer, userOfferPrice } = useMemo(() => {
     if (batchOffersData && batchOfferData) {
       const isLeading = batchOfferData.current_user_is_max === true;
-      const maxOther = Number(batchOfferData.max_offer_price) || 0;
-      const hasOffer = batchOfferData.has_pending_offer === true;
       const userPrice = Number(batchOfferData.current_user_offer_price) || 0;
+      const maxPrice = Number(batchOfferData.max_offer_price) || 0;
+      const hasOffer = batchOfferData.has_pending_offer === true;
+      
+      // Calculate max other offer: if user is leading, show the second highest
+      // If user is not leading, show the highest
+      let maxOther = 0;
+      if (hasOffer && isLeading) {
+        // User is leading, so maxOtherOffer should be less than user's price
+        maxOther = maxPrice > userPrice ? 0 : maxPrice; // This logic might need refinement based on backend
+      } else if (hasOffer && !isLeading) {
+        // User is not leading, so show the current max
+        maxOther = maxPrice;
+      } else if (!hasOffer) {
+        // User has no offer, show max price
+        maxOther = maxPrice;
+      }
       
       return { 
         isLeadingBid: isLeading, 
@@ -69,9 +83,22 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
       };
     } else if (userOffer || competitiveData) {
       const isLeading = competitiveData?.current_user_is_max === true;
-      const maxOther = Number(competitiveData?.max_offer_price) || 0;
-      const hasOffer = !!userOffer;
       const userPrice = Number(userOffer?.offered_price) || 0;
+      const maxPrice = Number(competitiveData?.max_offer_price) || 0;
+      const hasOffer = !!userOffer;
+      
+      // Calculate max other offer similar to batch logic
+      let maxOther = 0;
+      if (hasOffer && isLeading) {
+        // User is leading, don't show competitor price
+        maxOther = 0;
+      } else if (hasOffer && !isLeading) {
+        // User is not leading, show the current max
+        maxOther = maxPrice;
+      } else if (!hasOffer) {
+        // User has no offer, show max price
+        maxOther = maxPrice;
+      }
       
       return {
         isLeadingBid: isLeading,
@@ -150,7 +177,11 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
             <span className="text-xs font-bold">${userOfferPrice}</span>
           </Button>
           
-          <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={true} />
+          <CompetitorOfferBadge 
+            maxOtherOffer={maxOtherOffer} 
+            compact={true} 
+            isUserLeading={isLeadingBid}
+          />
           
           <EnhancedOfferModal
             isOpen={isModalOpen}
@@ -183,7 +214,11 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
           </span>
         </Button>
         
-        <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={false} />
+        <CompetitorOfferBadge 
+          maxOtherOffer={maxOtherOffer} 
+          compact={false} 
+          isUserLeading={isLeadingBid}
+        />
         
         <EnhancedOfferModal
           isOpen={isModalOpen}
@@ -222,7 +257,11 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
         </Button>
       )}
 
-      <CompetitorOfferBadge maxOtherOffer={maxOtherOffer} compact={compact} />
+      <CompetitorOfferBadge 
+        maxOtherOffer={maxOtherOffer} 
+        compact={compact} 
+        isUserLeading={isLeadingBid}
+      />
 
       <EnhancedOfferModal
         isOpen={isModalOpen}

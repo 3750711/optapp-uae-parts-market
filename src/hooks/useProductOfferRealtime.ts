@@ -1,6 +1,8 @@
+
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useBatchOffersInvalidation } from '@/hooks/use-price-offers-batch';
 
 /**
  * Hook for real-time updates of product offer data
@@ -9,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
  */
 export const useProductOfferRealtime = (productId?: string) => {
   const queryClient = useQueryClient();
+  const { invalidateBatchOffers } = useBatchOffersInvalidation();
 
   useEffect(() => {
     if (!productId) return;
@@ -23,8 +26,10 @@ export const useProductOfferRealtime = (productId?: string) => {
           table: 'price_offers',
           filter: `product_id=eq.${productId}`
         },
-        () => {
-          // Invalidate offer-related queries for this product
+        (payload) => {
+          console.log('🔄 Real-time price offer update:', payload);
+          
+          // Invalidate individual offer queries
           queryClient.invalidateQueries({ 
             queryKey: ['pending-offer', productId] 
           });
@@ -34,6 +39,9 @@ export const useProductOfferRealtime = (productId?: string) => {
           queryClient.invalidateQueries({ 
             queryKey: ['admin-products'] 
           });
+          
+          // Invalidate batch offers for this product
+          invalidateBatchOffers([productId]);
         }
       )
       .on(
@@ -44,11 +52,16 @@ export const useProductOfferRealtime = (productId?: string) => {
           table: 'products',
           filter: `id=eq.${productId}`
         },
-        () => {
+        (payload) => {
+          console.log('🔄 Real-time product update:', payload);
+          
           // Invalidate product data when optimization fields change
           queryClient.invalidateQueries({ 
             queryKey: ['admin-products'] 
           });
+          
+          // Also invalidate batch offers since product data affects offer calculations
+          invalidateBatchOffers([productId]);
         }
       )
       .subscribe();
@@ -56,5 +69,5 @@ export const useProductOfferRealtime = (productId?: string) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [productId, queryClient]);
+  }, [productId, queryClient, invalidateBatchOffers]);
 };
