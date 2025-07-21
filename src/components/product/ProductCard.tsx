@@ -16,7 +16,7 @@ export interface ProductProps {
   id: string;
   title: string;
   price: number;
-  brand: string;
+  brand?: string;
   model?: string;
   condition?: string;
   seller_name: string;
