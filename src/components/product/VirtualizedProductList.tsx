@@ -17,7 +17,7 @@ interface VirtualizedProductListProps {
 const VirtualizedProductList: React.FC<VirtualizedProductListProps> = ({
   products,
   containerHeight = 600,
-  itemHeight = 120,
+  itemHeight = 200, // Increased height to accommodate new content
   showSoldButton = false,
   onStatusChange,
   batchOffersData
@@ -49,7 +49,7 @@ const VirtualizedProductList: React.FC<VirtualizedProductListProps> = ({
     if (!product) return null;
 
     return (
-      <div style={style} className="px-2">
+      <div style={style} className="px-2 py-1">
         <ProductListItem
           product={product}
           showSoldButton={showSoldButton}
@@ -71,7 +71,7 @@ const VirtualizedProductList: React.FC<VirtualizedProductListProps> = ({
   }
 
   // For small lists, use regular rendering
-  if (products.length <= 50) {
+  if (products.length <= 30) { // Reduced threshold due to increased item height
     return (
       <div className="space-y-3">
         {products.map((product) => (
@@ -95,7 +95,7 @@ const VirtualizedProductList: React.FC<VirtualizedProductListProps> = ({
         itemCount={products.length}
         itemSize={itemHeight}
         className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-        overscanCount={5} // Render 5 extra items for smooth scrolling
+        overscanCount={3} // Reduced due to larger items
       >
         {Row}
       </List>

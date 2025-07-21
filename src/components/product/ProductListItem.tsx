@@ -2,12 +2,15 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Star, Phone, MessageCircle, ExternalLink, MapPin } from "lucide-react";
 import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
+import { BlitzPriceSection } from "@/components/price-offer/BlitzPriceSection";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ProductProps } from "./ProductCard";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
+import { useNavigate } from "react-router-dom";
 
 interface ProductListItemProps {
   product: ProductProps;
@@ -22,6 +25,8 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   onStatusChange,
   batchOffersData 
 }) => {
+  const navigate = useNavigate();
+  
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
   };
@@ -37,6 +42,11 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
       default:
         return null;
     }
+  };
+
+  const handleBuyNow = () => {
+    console.log('Buy now clicked for product:', product.id);
+    navigate(`/product/${product.id}?action=buy`);
   };
 
   // Use primary image or first available
@@ -90,6 +100,11 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0">
               {getStatusBadge(product.status)}
+              {product.condition && (
+                <Badge variant="outline" className="text-xs">
+                  {product.condition}
+                </Badge>
+              )}
             </div>
           </div>
           
@@ -105,6 +120,32 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               )}
             </div>
           )}
+
+          {/* Дополнительная информация о товаре */}
+          <div className="space-y-1 mb-2 text-xs text-gray-600">
+            {/* Местоположение */}
+            {product.product_location && (
+              <div className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                <span>{product.product_location}</span>
+              </div>
+            )}
+            
+            {/* Лот и место */}
+            {(product.lot_number || product.place_number) && (
+              <div className="flex items-center gap-2">
+                {product.lot_number && <span>Лот: {product.lot_number}</span>}
+                {product.place_number && <span>Место: {product.place_number}</span>}
+              </div>
+            )}
+            
+            {/* Доставка */}
+            {product.delivery_price && product.delivery_price > 0 && (
+              <div className="text-gray-500">
+                Доставка: {formatPrice(product.delivery_price)} $
+              </div>
+            )}
+          </div>
           
           <div className="flex items-center justify-between mt-auto">
             <span className="text-lg sm:text-xl font-bold text-primary">
@@ -114,36 +155,91 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
         </div>
       </Link>
       
-      {/* Кнопка предложения цены */}
-      {product.status === 'active' && product.seller_name && (
-        <div className="absolute bottom-4 right-4 z-10">
-          <MakeOfferButtonOptimized 
-            product={{
-              ...product,
-              brand: product.brand || '',
-              model: product.model || '',
-              condition: product.condition || 'Новое',
-              created_at: product.created_at || new Date().toISOString(),
-              updated_at: product.updated_at || new Date().toISOString(),
-              seller_name: product.seller_name || '',
-              seller_id: product.seller_id || '',
-              status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
-              lot_number: product.lot_number || 0,
-              product_images: product.product_images?.map(img => ({
-                id: img.id || '',
-                product_id: img.product_id || product.id,
-                url: img.url,
-                is_primary: img.is_primary || false
-              })) || [],
-              product_videos: product.product_videos?.map(video => ({
-                id: '',
-                product_id: product.id,
-                url: video.url
-              })) || []
-            }}
+      {/* Кнопки действий */}
+      {product.status === 'active' && (
+        <div className="mt-3 space-y-2">
+          {/* Blitz Buy Button */}
+          <BlitzPriceSection
+            price={product.price}
+            onBuyNow={handleBuyNow}
             compact={true}
-            batchOffersData={batchOffersData}
           />
+          
+          {/* Кнопки предложения цены и контактов */}
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <MakeOfferButtonOptimized 
+                product={{
+                  ...product,
+                  brand: product.brand || '',
+                  model: product.model || '',
+                  condition: product.condition || 'Новое',
+                  created_at: product.created_at || new Date().toISOString(),
+                  updated_at: product.updated_at || new Date().toISOString(),
+                  seller_name: product.seller_name || '',
+                  seller_id: product.seller_id || '',
+                  status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
+                  lot_number: product.lot_number || 0,
+                  product_images: product.product_images?.map(img => ({
+                    id: img.id || '',
+                    product_id: img.product_id || product.id,
+                    url: img.url,
+                    is_primary: img.is_primary || false
+                  })) || [],
+                  product_videos: product.product_videos?.map(video => ({
+                    id: '',
+                    product_id: product.id,
+                    url: video.url
+                  })) || []
+                }}
+                compact={true}
+                batchOffersData={batchOffersData}
+              />
+            </div>
+            
+            {/* Кнопки контактов */}
+            <div className="flex gap-1">
+              {product.phone_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs px-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`tel:${product.phone_url}`, '_blank');
+                  }}
+                >
+                  <Phone className="h-3 w-3" />
+                </Button>
+              )}
+              
+              {product.telegram_url && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs px-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`https://t.me/${product.telegram_url}`, '_blank');
+                  }}
+                >
+                  <MessageCircle className="h-3 w-3" />
+                </Button>
+              )}
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs px-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/product/${product.id}`);
+                }}
+              >
+                <ExternalLink className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
       
