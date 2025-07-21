@@ -1,8 +1,11 @@
 
 import React, { memo, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Package, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Package, RefreshCw, Car, User, MapPin, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useBatchOffers, BatchOfferData } from '@/hooks/use-price-offers-batch';
+import { SimpleOfferButton } from '@/components/price-offer/SimpleOfferButton';
+import { Product } from '@/types/product';
 
 interface OptimizedCatalogContentProps {
   isLoading: boolean;
@@ -20,43 +23,103 @@ interface OptimizedCatalogContentProps {
 }
 
 // Мемоизированный компонент товара
-const MemoizedProductCard = memo(({ product }: { product: any }) => {
+const MemoizedProductCard = memo(({ product, offer }: { product: Product; offer?: any }) => {
   return (
-    <div className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
-      <div className="aspect-square bg-gray-100 rounded-md mb-3 flex items-center justify-center">
-        {product.preview_image_url ? (
-          <img 
-            src={product.preview_image_url} 
+    <div className="group bg-card border border-border rounded-xl p-4 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] space-y-4">
+      <div className="relative aspect-square overflow-hidden rounded-lg bg-muted">
+        {product.product_images?.[0] ? (
+          <img
+            src={product.product_images[0].url}
             alt={product.title}
-            className="w-full h-full object-cover rounded-md"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
           />
         ) : (
-          <Package className="h-12 w-12 text-gray-400" />
+          <div className="w-full h-full bg-muted flex items-center justify-center">
+            <Package className="h-16 w-16 text-muted-foreground" />
+          </div>
         )}
+        
+        {/* Status badge - only show for sold items */}
+        {product.status === 'sold' && (
+          <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground px-2 py-1 rounded-md text-xs font-medium">
+            Продан
+          </div>
+        )}
+        
+        {/* Lot number - prominently displayed */}
+        <div className="absolute top-2 right-2 bg-primary/90 backdrop-blur-sm text-primary-foreground px-2 py-1 rounded-md text-sm font-semibold">
+          Лот #{product.lot_number}
+        </div>
       </div>
-      <h3 className="font-semibold text-sm mb-2 line-clamp-2">{product.title}</h3>
-      <div className="text-lg font-bold text-primary mb-2">
-        ${product.price}
-      </div>
-      <div className="text-xs text-gray-500 space-y-1">
-        <div>{product.brand} {product.model}</div>
-        <div>{product.seller_name}</div>
+      
+      <div className="space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-semibold text-lg line-clamp-2 flex-1">{product.title}</h3>
+          <div className="text-right shrink-0">
+            <div className="text-2xl font-bold text-primary">${product.price}</div>
+            {product.delivery_price && product.delivery_price > 0 && (
+              <div className="text-xs text-muted-foreground">
+                + ${product.delivery_price} доставка
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="text-sm text-muted-foreground space-y-1">
+          <div className="flex items-center gap-2">
+            <Car className="h-4 w-4" />
+            <span>{product.brand} {product.model}</span>
+          </div>
+          
+          {product.profiles && (
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span>{product.profiles.full_name || product.seller_name}</span>
+              {product.profiles.rating && (
+                <div className="flex items-center gap-1">
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                  <span className="text-xs">{Number(product.profiles.rating).toFixed(1)}</span>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {product.location && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              <span>{product.location}</span>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center justify-between pt-2">
+          <SimpleOfferButton product={product} compact />
+          
+          {offer && (
+            <div className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md">
+              Ваша ставка: ${offer.offered_price}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 });
 
 // Мемоизированная сетка товаров
-const MemoizedProductGrid = memo(({ products, batchOffersData }: { products: any[], batchOffersData?: BatchOfferData[] }) => {
+const MemoizedProductGrid = memo(({ products, batchOffersData }: { products: Product[], batchOffersData?: BatchOfferData[] }) => {
   const productElements = useMemo(() => {
-    return products.map((product) => (
-      <MemoizedProductCard key={product.id} product={product} />
-    ));
-  }, [products]);
+    return products.map((product) => {
+      const offer = batchOffersData?.find(o => o.product_id === product.id);
+      return (
+        <MemoizedProductCard key={product.id} product={product} offer={offer} />
+      );
+    });
+  }, [products, batchOffersData]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {productElements}
     </div>
   );
