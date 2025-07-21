@@ -1,46 +1,47 @@
 
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { memo, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Phone, MessageCircle, ExternalLink, MapPin } from "lucide-react";
+import { Eye, MapPin, Phone, MessageCircle, ExternalLink } from "lucide-react";
 import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
+import { SimpleOfferButton } from "@/components/price-offer/SimpleOfferButton";
 import { BlitzPriceSection } from "@/components/price-offer/BlitzPriceSection";
-import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
-import OptimizedImage from "@/components/ui/OptimizedImage";
-import { ProductProps } from "./ProductCard";
-import { BatchOfferData } from "@/hooks/use-price-offers-batch";
+import { formatPrice } from "@/utils/formatPrice";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useNavigate } from "react-router-dom";
+import { ProductProps } from "./ProductCard";
+import { BatchOfferData } from '@/hooks/use-price-offers-batch';
 
 interface ProductListItemProps {
   product: ProductProps;
   showSoldButton?: boolean;
-  onStatusChange?: () => void;
+  onStatusChange?: (productId: string, newStatus: string) => void;
   batchOffersData?: BatchOfferData[];
+  useSimpleOfferButton?: boolean;
 }
 
-const ProductListItem: React.FC<ProductListItemProps> = ({ 
-  product, 
-  showSoldButton = false, 
+const ProductListItem = memo(({
+  product,
+  showSoldButton = false,
   onStatusChange,
-  batchOffersData 
-}) => {
+  batchOffersData,
+  useSimpleOfferButton = false,
+}: ProductListItemProps) => {
+  const { user } = useAuth();
+  const { hasAdminAccess } = useAdminAccess();
   const navigate = useNavigate();
-  
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU').format(price);
+  const [imageError, setImageError] = useState(false);
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate(`/product/${product.id}`);
   };
 
-  const getStatusBadge = (status?: string) => {
-    switch (status) {
-      case 'sold':
-        return <Badge variant="destructive" className="text-xs">Продано</Badge>;
-      case 'pending':
-        return <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">На проверке</Badge>;
-      case 'archived':
-        return <Badge variant="secondary" className="text-xs bg-gray-100 text-gray-800">В архиве</Badge>;
-      default:
-        return null;
+  const handleStatusChange = async (newStatus: string) => {
+    if (onStatusChange) {
+      onStatusChange(product.id, newStatus);
     }
   };
 
@@ -49,190 +50,257 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     navigate(`/product/${product.id}?action=buy`);
   };
 
-  // Use primary image or first available
-  const catalogImage = React.useMemo(() => {
-    const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
-    return primaryImageData?.url || 
-           product.cloudinary_url ||
-           product.image || 
-           "/placeholder.svg";
-  }, [product.product_images, product.cloudinary_url, product.image]);
+  const statusColor = {
+    active: "bg-green-100 text-green-800",
+    pending: "bg-yellow-100 text-yellow-800", 
+    sold: "bg-red-100 text-red-800",
+    rejected: "bg-gray-100 text-gray-800"
+  }[product.status] || "bg-gray-100 text-gray-800";
 
-  // Format title with brand and model
-  const formatTitle = () => {
-    const brandModel = [product.brand, product.model].filter(Boolean).join(' ');
-    if (brandModel) {
-      return `${product.title} ${brandModel}`;
-    }
-    return product.title;
+  const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
+
+  // Convert ProductProps to Product type for offer buttons
+  const productForOfferButton = {
+    id: product.id,
+    title: product.title,
+    price: product.price,
+    brand: product.brand,
+    model: product.model || '',
+    condition: product.condition || 'Новое',
+    seller_name: product.seller_name,
+    seller_id: product.seller_id,
+    status: product.status as 'pending' | 'active' | 'sold' | 'archived',
+    description: product.description,
+    lot_number: product.lot_number || 0,
+    place_number: product.place_number,
+    delivery_price: product.delivery_price,
+    product_location: product.product_location,
+    telegram_url: product.telegram_url,
+    phone_url: product.phone_url,
+    view_count: product.view_count,
+    rating_seller: product.rating_seller,
+    cloudinary_url: product.cloudinary_url,
+    cloudinary_public_id: product.cloudinary_public_id,
+    has_active_offers: product.has_active_offers,
+    product_images: product.product_images?.map(img => ({
+      id: img.id || '',
+      product_id: img.product_id || product.id,
+      url: img.url,
+      is_primary: img.is_primary || false
+    })) || [],
+    product_videos: product.product_videos?.map(video => ({
+      id: '',
+      product_id: product.id,
+      url: video.url
+    })) || [],
+    created_at: product.created_at || new Date().toISOString(),
+    updated_at: product.updated_at || new Date().toISOString()
   };
 
   return (
-    <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4 relative">
-      <Link to={`/product/${product.id}`} className="flex gap-4">
-        {/* Product image */}
-        <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
-          <OptimizedImage
-            src={catalogImage}
-            alt={product.title}
-            className="w-full h-full object-contain bg-gray-50"
-            cloudinaryPublicId={product.cloudinary_public_id || undefined}
-            cloudinaryUrl={product.cloudinary_url || undefined}
-            size="card"
-            priority={false}
-            sizes="(max-width: 640px) 80px, 96px"
-          />
-          {product.lot_number && (
-            <Badge 
-              variant="outline" 
-              className="absolute top-1 left-1 text-xs bg-white/95 text-gray-800 border-gray-300 backdrop-blur-sm font-medium shadow-sm px-1 py-0"
-            >
-              {product.lot_number}
-            </Badge>
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-primary transition-colors text-sm sm:text-base mb-1">
-                {formatTitle()}
-              </h3>
-              
-              {/* Информация о продавце */}
-              {product.seller_name && (
-                <div className="flex items-center gap-1 text-xs text-gray-500 mb-2">
-                  <span className="truncate">{product.seller_name}</span>
-                  {product.rating_seller && (
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
-                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                      <span>{product.rating_seller.toFixed(1)}</span>
-                    </div>
-                  )}
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group">
+      <div onClick={handleCardClick}>
+        <CardContent className="p-3">
+          <div className="flex gap-3">
+            {/* Image Section */}
+            <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0">
+              {primaryImage && !imageError ? (
+                <img
+                  src={primaryImage.url}
+                  alt={product.title}
+                  className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
+                  onError={() => setImageError(true)}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center">
+                  <span className="text-xs text-gray-400">Нет фото</span>
                 </div>
               )}
+              
+              {/* Status Badge */}
+              <Badge className={`absolute top-1 left-1 ${statusColor} text-xs px-1 py-0.5`}>
+                {product.status === 'active' ? 'Активный' : 
+                 product.status === 'pending' ? 'На модерации' : 
+                 product.status === 'sold' ? 'Продан' : 'Отклонен'}
+              </Badge>
+            </div>
 
-              {/* Дополнительная информация о товаре */}
-              <div className="space-y-1 text-xs text-gray-600">
-                {/* Местоположение */}
+            {/* Content Section */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-sm line-clamp-1 mb-1 group-hover:text-primary transition-colors">
+                    {product.title}
+                  </h3>
+                  {(product.brand || product.model) && (
+                    <p className="text-xs text-gray-500 line-clamp-1">
+                      {[product.brand, product.model].filter(Boolean).join(' ')}
+                    </p>
+                  )}
+                </div>
+                
+                {/* Price */}
+                <div className="text-lg font-bold text-primary ml-2">
+                  {formatPrice(product.price)}
+                </div>
+              </div>
+
+              {/* Product Details */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-gray-600 mb-2">
+                <div className="flex items-center justify-between">
+                  <span>Продавец:</span>
+                  <span className="truncate max-w-[100px]">{product.seller_name}</span>
+                </div>
+                
                 {product.product_location && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3 h-3" />
-                    <span>{product.product_location}</span>
+                  <div className="flex items-center justify-between">
+                    <span>Место:</span>
+                    <span className="truncate max-w-[100px]">{product.product_location}</span>
                   </div>
                 )}
                 
-                {/* Лот и место */}
-                {(product.lot_number || product.place_number) && (
-                  <div className="flex items-center gap-2">
-                    {product.lot_number && <span>Лот: {product.lot_number}</span>}
-                    {product.place_number && <span>Место: {product.place_number}</span>}
+                {product.condition && (
+                  <div className="flex items-center justify-between">
+                    <span>Состояние:</span>
+                    <span className="truncate max-w-[100px]">{product.condition}</span>
                   </div>
                 )}
                 
-                {/* Доставка */}
-                {product.delivery_price && product.delivery_price > 0 && (
-                  <div className="text-gray-500">
-                    Доставка: {formatPrice(product.delivery_price)} $
+                {product.view_count && product.view_count > 0 && (
+                  <div className="flex items-center justify-between">
+                    <span>Просмотры:</span>
+                    <span className="flex items-center gap-1">
+                      <Eye className="h-3 w-3" />
+                      {product.view_count}
+                    </span>
                   </div>
                 )}
               </div>
             </div>
-            
-            {/* Правая часть с кнопкой и статусом */}
-            <div className="flex flex-col items-end gap-2 flex-shrink-0">
-              {getStatusBadge(product.status)}
-              
-              {/* Кнопка предложения цены */}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col items-end gap-2 ml-2">
+              {/* Blitz Buy Section */}
               {product.status === 'active' && (
+                <BlitzPriceSection
+                  price={product.price}
+                  onBuyNow={handleBuyNow}
+                  compact={true}
+                />
+              )}
+
+              {/* Make Offer Button */}
+              {useSimpleOfferButton ? (
+                <SimpleOfferButton 
+                  product={productForOfferButton}
+                  compact={true}
+                />
+              ) : (
                 <MakeOfferButtonOptimized 
-                  product={{
-                    ...product,
-                    brand: product.brand || '',
-                    model: product.model || '',
-                    condition: product.condition || 'Новое',
-                    created_at: product.created_at || new Date().toISOString(),
-                    updated_at: product.updated_at || new Date().toISOString(),
-                    seller_name: product.seller_name || '',
-                    seller_id: product.seller_id || '',
-                    status: (product.status as 'pending' | 'active' | 'sold' | 'archived') || 'active',
-                    lot_number: product.lot_number || 0,
-                    product_images: product.product_images?.map(img => ({
-                      id: img.id || '',
-                      product_id: img.product_id || product.id,
-                      url: img.url,
-                      is_primary: img.is_primary || false
-                    })) || [],
-                    product_videos: product.product_videos?.map(video => ({
-                      id: '',
-                      product_id: product.id,
-                      url: video.url
-                    })) || []
-                  }}
+                  product={productForOfferButton} 
                   compact={true}
                   batchOffersData={batchOffersData}
                 />
               )}
+
+              {/* Contact Buttons */}
+              <div className="flex gap-1">
+                {product.phone_url && (
+                  <Button
+                    variant="outline" 
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(`tel:${product.phone_url}`, '_blank');
+                    }}
+                  >
+                    <Phone className="h-3 w-3" />
+                  </Button>
+                )}
+                
+                {product.telegram_url && (
+                  <Button
+                    variant="outline"
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(`https://t.me/${product.telegram_url}`, '_blank');
+                    }}
+                  >
+                    <MessageCircle className="h-3 w-3" />
+                  </Button>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/product/${product.id}`);
+                  }}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           </div>
-          
-          <div className="flex items-center justify-between mt-auto">
-            <span className="text-lg sm:text-xl font-bold text-primary">
-              {formatPrice(product.price)} $
-            </span>
-          </div>
-        </div>
-      </Link>
-      
-      {/* Кнопки контактов - только для активных товаров */}
-      {product.status === 'active' && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <div className="flex justify-center gap-2">
-            {product.phone_url && (
+        </CardContent>
+      </div>
+
+      {/* Admin Controls */}
+      {showSoldButton && hasAdminAccess && (
+        <div className="px-3 pb-3">
+          <div className="flex gap-2 pt-2 border-t">
+            {product.status === 'active' && (
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
-                className="text-xs px-3"
+                className="text-xs"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(`tel:${product.phone_url}`, '_blank');
+                  handleStatusChange('sold');
                 }}
               >
-                <Phone className="h-3 w-3 mr-1" />
-                Телефон
+                Отметить как проданный
               </Button>
             )}
-            
-            {product.telegram_url && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs px-3"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(`https://t.me/${product.telegram_url}`, '_blank');
-                }}
-              >
-                <MessageCircle className="h-3 w-3 mr-1" />
-                Telegram
-              </Button>
+            {product.status === 'pending' && (
+              <>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStatusChange('active');
+                  }}
+                >
+                  Одобрить
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStatusChange('rejected');
+                  }}
+                >
+                  Отклонить
+                </Button>
+              </>
             )}
           </div>
         </div>
       )}
-      
-      {showSoldButton && product.status === 'active' && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <ProductStatusChangeDialog
-            productId={product.id}
-            productName={product.title}
-            onStatusChange={onStatusChange || (() => {})}
-          />
-        </div>
-      )}
-    </div>
+    </Card>
   );
-};
+});
+
+ProductListItem.displayName = "ProductListItem";
 
 export default ProductListItem;

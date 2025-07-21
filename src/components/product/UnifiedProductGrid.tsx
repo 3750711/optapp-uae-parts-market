@@ -20,6 +20,7 @@ interface UnifiedProductGridProps {
   viewMode?: ViewMode;
   containerHeight?: number;
   batchOffersData?: BatchOfferData[];
+  useSimpleOfferButton?: boolean;
 }
 
 const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({ 
@@ -30,7 +31,8 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
   onStatusChange,
   viewMode = 'list',
   containerHeight = 600,
-  batchOffersData
+  batchOffersData,
+  useSimpleOfferButton = false
 }) => {
   const isMobile = useIsMobile();
   const { isAdmin } = useAdminAccess();
@@ -135,6 +137,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
         showSoldButton={showSoldButton}
         onStatusChange={onStatusChange}
         batchOffersData={batchOffersData}
+        useSimpleOfferButton={useSimpleOfferButton}
       />
     );
   }
@@ -156,6 +159,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
             batchOffersData={batchOffersData}
+            useSimpleOfferButton={useSimpleOfferButton}
           />
         </div>
       );
@@ -191,6 +195,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
             batchOffersData={batchOffersData}
+            useSimpleOfferButton={useSimpleOfferButton}
           />
         ))}
       </div>
@@ -207,6 +212,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
             batchOffersData={batchOffersData}
+            useSimpleOfferButton={useSimpleOfferButton}
           />
         </div>
       ))}

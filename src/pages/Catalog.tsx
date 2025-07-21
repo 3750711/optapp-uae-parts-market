@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { SafeHelmet } from "@/components/seo/SafeHelmet";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
@@ -32,6 +31,7 @@ const Catalog: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const { addToHistory } = useSearchHistory();
 
+  // Убираем batch offers из каталога для оптимизации производительности
   const {
     searchTerm,
     setSearchTerm,

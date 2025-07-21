@@ -1,4 +1,3 @@
-
 import React, { memo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, MapPin, Phone, MessageCircle, ExternalLink, ShoppingCart } from "lucide-react";
 import ProductCarousel from "./ProductCarousel";
 import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
+import { SimpleOfferButton } from "@/components/price-offer/SimpleOfferButton";
 import { BlitzPriceSection } from "@/components/price-offer/BlitzPriceSection";
 import { formatPrice } from "@/utils/formatPrice";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +48,7 @@ interface ProductCardProps {
   hideMakeOfferButton?: boolean;
   useFallbackQueries?: boolean;
   batchOffersData?: import('@/hooks/use-price-offers-batch').BatchOfferData[];
+  useSimpleOfferButton?: boolean;
 }
 
 const ProductCard = memo(({
@@ -58,6 +59,7 @@ const ProductCard = memo(({
   hideMakeOfferButton = false,
   useFallbackQueries = false,
   batchOffersData,
+  useSimpleOfferButton = false,
 }: ProductCardProps) => {
   const { user } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
@@ -255,12 +257,18 @@ const ProductCard = memo(({
           />
         )}
 
-        {/* Make Offer Button */}
+        {/* Make Offer Button - Simple or Optimized based on context */}
         {!hideMakeOfferButton && (
-          <MakeOfferButtonOptimized 
-            product={productForOfferButton} 
-            batchOffersData={batchOffersData}
-          />
+          useSimpleOfferButton ? (
+            <SimpleOfferButton 
+              product={productForOfferButton}
+            />
+          ) : (
+            <MakeOfferButtonOptimized 
+              product={productForOfferButton} 
+              batchOffersData={batchOffersData}
+            />
+          )
         )}
 
         <div className="flex gap-2">

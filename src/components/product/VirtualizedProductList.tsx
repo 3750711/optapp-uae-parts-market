@@ -1,106 +1,60 @@
 
-import React, { useMemo, useRef, useEffect, useState } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import { ProductProps } from './ProductCard';
+import React, { memo } from 'react';
+import { FixedSizeList as List, ListChildComponentProps } from 'react-window';
 import ProductListItem from './ProductListItem';
+import { ProductProps } from './ProductCard';
 import { BatchOfferData } from '@/hooks/use-price-offers-batch';
 
 interface VirtualizedProductListProps {
   products: ProductProps[];
-  containerHeight?: number;
-  itemHeight?: number;
+  containerHeight: number;
   showSoldButton?: boolean;
-  onStatusChange?: () => void;
+  onStatusChange?: (productId: string, newStatus: string) => void;
   batchOffersData?: BatchOfferData[];
+  useSimpleOfferButton?: boolean;
 }
 
-const VirtualizedProductList: React.FC<VirtualizedProductListProps> = ({
+const VirtualizedProductList: React.FC<VirtualizedProductListProps> = memo(({
   products,
-  containerHeight = 600,
-  itemHeight = 200, // Increased height to accommodate new content
+  containerHeight,
   showSoldButton = false,
   onStatusChange,
-  batchOffersData
+  batchOffersData,
+  useSimpleOfferButton = false,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(window.innerWidth);
-
-  useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.offsetWidth);
-      }
-    };
-
-    updateWidth();
-    const resizeObserver = new ResizeObserver(updateWidth);
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
-    }
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  const Row = React.memo(({ index, style }: { index: number; style: React.CSSProperties }) => {
+  const ItemRenderer = memo(({ index, style }: ListChildComponentProps) => {
     const product = products[index];
     
-    if (!product) return null;
-
     return (
-      <div style={style} className="px-2 py-1">
-        <ProductListItem
-          product={product}
-          showSoldButton={showSoldButton}
-          onStatusChange={onStatusChange}
-          batchOffersData={batchOffersData}
-        />
-      </div>
-    );
-  });
-
-  Row.displayName = 'VirtualizedRow';
-
-  if (products.length === 0) {
-    return (
-      <div className="text-center py-12 text-gray-500">
-        Товары не найдены
-      </div>
-    );
-  }
-
-  // For small lists, use regular rendering
-  if (products.length <= 30) { // Reduced threshold due to increased item height
-    return (
-      <div className="space-y-3">
-        {products.map((product) => (
+      <div style={style}>
+        <div className="px-2 py-1">
           <ProductListItem
-            key={product.id}
             product={product}
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
             batchOffersData={batchOffersData}
+            useSimpleOfferButton={useSimpleOfferButton}
           />
-        ))}
+        </div>
       </div>
     );
-  }
+  });
+
+  ItemRenderer.displayName = "VirtualizedProductListItem";
 
   return (
-    <div ref={containerRef} className="w-full">
-      <List
-        height={containerHeight}
-        width={containerWidth}
-        itemCount={products.length}
-        itemSize={itemHeight}
-        className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-        overscanCount={3} // Reduced due to larger items
-      >
-        {Row}
-      </List>
-    </div>
+    <List
+      height={containerHeight}
+      itemCount={products.length}
+      itemSize={140}
+      className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+      overscanCount={5}
+    >
+      {ItemRenderer}
+    </List>
   );
-};
+});
+
+VirtualizedProductList.displayName = "VirtualizedProductList";
 
 export default VirtualizedProductList;
