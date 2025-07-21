@@ -35,7 +35,7 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   // Add real-time updates for offer status
   useProductOfferRealtime(product.id);
   
-  // Sync local state with product prop changes AND add detailed logging
+  // Sync local state with product prop changes
   useEffect(() => {
     console.log(`🔄 SimpleOfferButton: Product ${product.id} has_active_offers changed:`, {
       oldValue: hasActiveOffers,
@@ -46,18 +46,6 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
     
     setHasActiveOffers(product.has_active_offers || false);
   }, [product.has_active_offers, product.id, product.title]);
-  
-  // Log component state for debugging
-  useEffect(() => {
-    console.log(`📊 SimpleOfferButton state for product ${product.id}:`, {
-      productTitle: product.title,
-      hasActiveOffers,
-      productHasActiveOffers: product.has_active_offers,
-      maxOfferPrice: product.max_offer_price,
-      offersCount: product.offers_count,
-      productStatus: product.status
-    });
-  }, [hasActiveOffers, product]);
   
   // Simplified visibility logic
   if (!user || !profile) return null;
@@ -84,20 +72,20 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
     return (
       <div className="flex items-center gap-1">
         <Button
-          variant={hasActiveOffers ? "default" : "ghost"}
+          variant={hasActiveOffers ? "default" : "outline"}
           size="sm"
           onClick={handleClick}
-          className={`flex items-center justify-center h-10 w-10 p-0 rounded-full transition-all duration-200 ${
+          className={`flex items-center justify-center h-10 w-10 p-0 rounded-full ${
             hasActiveOffers 
-              ? 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105 animate-pulse' 
-              : 'hover:bg-primary/10 border-2 border-primary/20 hover:border-primary/40 group hover:shadow-lg'
+              ? 'bg-green-500 hover:bg-green-600 text-white' 
+              : 'hover:bg-gray-100'
           }`}
           title={hasActiveOffers ? "Торги идут" : "Предложить цену"}
         >
           {hasActiveOffers ? (
             <Gavel className="h-4 w-4" />
           ) : (
-            <BidIcon className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+            <BidIcon className="h-5 w-5" />
           )}
         </Button>
         
@@ -118,10 +106,10 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
         variant={hasActiveOffers ? "default" : "outline"}
         size="sm"
         onClick={handleClick}
-        className={`flex items-center gap-2 w-full h-9 text-xs px-3 transition-all duration-200 ${
+        className={`flex items-center gap-2 w-full h-9 text-xs px-3 ${
           hasActiveOffers 
-            ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] animate-pulse' 
-            : 'border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md'
+            ? 'bg-green-500 hover:bg-green-600 text-white' 
+            : 'hover:bg-gray-100'
         }`}
       >
         {hasActiveOffers ? (
