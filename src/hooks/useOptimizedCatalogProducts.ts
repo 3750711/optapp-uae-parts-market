@@ -138,7 +138,8 @@ export const useOptimizedCatalogProducts = ({
           'id', 'title', 'price', 'condition', 'brand', 'model',
           'seller_name', 'seller_id', 'status', 'created_at',
           'rating_seller', 'delivery_price', 'optid_created',
-          'cloudinary_public_id', 'cloudinary_url'
+          'cloudinary_public_id', 'cloudinary_url',
+          'has_active_offers', 'max_offer_price', 'offers_count'
         ].join(', ');
         
         let query = supabase
