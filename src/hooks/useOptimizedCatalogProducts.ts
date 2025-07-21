@@ -13,6 +13,7 @@ export type ProductType = {
   title: string;
   price: number | string;
   product_images?: { url: string; is_primary?: boolean }[];
+  product_videos?: { url: string }[];
   profiles?: { location?: string; opt_id?: string; rating?: number; opt_status?: string; verification_status?: string };
   condition?: string;
   location?: string;
@@ -24,9 +25,20 @@ export type ProductType = {
   status: 'pending' | 'active' | 'sold' | 'archived';
   seller_id: string;
   created_at: string;
+  updated_at?: string;
   delivery_price?: number | null;
   cloudinary_public_id?: string | null;
   cloudinary_url?: string | null;
+  lot_number?: number;
+  place_number?: number;
+  view_count?: number;
+  product_location?: string;
+  telegram_url?: string;
+  phone_url?: string;
+  description?: string;
+  has_active_offers?: boolean;
+  max_offer_price?: number | null;
+  offers_count?: number;
 };
 
 export interface CatalogFilters {
@@ -136,9 +148,11 @@ export const useOptimizedCatalogProducts = ({
         // Оптимизированный запрос - выбираем только необходимые поля
         const selectFields = [
           'id', 'title', 'price', 'condition', 'brand', 'model',
-          'seller_name', 'seller_id', 'status', 'created_at',
+          'seller_name', 'seller_id', 'status', 'created_at', 'updated_at',
           'rating_seller', 'delivery_price', 'optid_created',
-          'cloudinary_public_id', 'cloudinary_url',
+          'cloudinary_public_id', 'cloudinary_url', 'lot_number',
+          'place_number', 'view_count', 'product_location', 'telegram_url',
+          'phone_url', 'description',
           'has_active_offers', 'max_offer_price', 'offers_count'
         ].join(', ');
         
@@ -237,7 +251,17 @@ export const useOptimizedCatalogProducts = ({
       const mapped = allProducts.map((product) => {
         const typedProduct = product as unknown as ProductType;
         
-        return {
+        // Debug log for lot 8443
+        if (typedProduct.lot_number === 8443) {
+          console.log('🔍 Mapping lot 8443:', {
+            id: typedProduct.id,
+            has_active_offers: typedProduct.has_active_offers,
+            max_offer_price: typedProduct.max_offer_price,
+            offers_count: typedProduct.offers_count
+          });
+        }
+        
+        const mappedProduct = {
           id: typedProduct.id,
           title: typedProduct.title,
           price: Number(typedProduct.price),
@@ -252,12 +276,38 @@ export const useOptimizedCatalogProducts = ({
           cloudinary_public_id: typedProduct.cloudinary_public_id,
           cloudinary_url: typedProduct.cloudinary_url,
           rating_seller: typedProduct.rating_seller,
+          lot_number: typedProduct.lot_number,
+          place_number: typedProduct.place_number,
+          view_count: typedProduct.view_count,
+          product_location: typedProduct.product_location,
+          telegram_url: typedProduct.telegram_url,
+          phone_url: typedProduct.phone_url,
+          description: typedProduct.description,
+          created_at: typedProduct.created_at,
+          updated_at: typedProduct.updated_at,
+          // Offer-related fields - the key fix!
+          has_active_offers: Boolean(typedProduct.has_active_offers),
+          max_offer_price: typedProduct.max_offer_price,
+          offers_count: typedProduct.offers_count || 0,
           product_images: typedProduct.product_images?.map(img => ({
             id: '',
             url: img.url,
             is_primary: img.is_primary || false
-          }))
+          })),
+          product_videos: typedProduct.product_videos
         } as ProductProps;
+        
+        // Debug log the final mapped product for lot 8443
+        if (typedProduct.lot_number === 8443) {
+          console.log('✅ Final mapped lot 8443:', {
+            id: mappedProduct.id,
+            has_active_offers: mappedProduct.has_active_offers,
+            max_offer_price: mappedProduct.max_offer_price,
+            offers_count: mappedProduct.offers_count
+          });
+        }
+        
+        return mappedProduct;
       });
       
       return mapped;

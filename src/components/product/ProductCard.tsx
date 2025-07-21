@@ -39,6 +39,8 @@ export interface ProductProps {
   created_at?: string;
   updated_at?: string;
   has_active_offers?: boolean;
+  max_offer_price?: number | null;
+  offers_count?: number;
 }
 
 interface ProductCardProps {
