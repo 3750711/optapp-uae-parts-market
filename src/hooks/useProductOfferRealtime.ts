@@ -16,6 +16,8 @@ export const useProductOfferRealtime = (productId?: string) => {
   useEffect(() => {
     if (!productId) return;
 
+    console.log(`🔄 Setting up real-time updates for product ${productId}`);
+
     const channel = supabase
       .channel(`product-offers-${productId}`)
       .on(
@@ -27,7 +29,13 @@ export const useProductOfferRealtime = (productId?: string) => {
           filter: `product_id=eq.${productId}`
         },
         (payload) => {
-          console.log('🔄 Real-time price offer update:', payload);
+          console.log('🔄 Real-time price offer update:', {
+            productId,
+            event: payload.eventType,
+            new: payload.new,
+            old: payload.old,
+            timestamp: new Date().toISOString()
+          });
           
           // Invalidate individual offer queries
           queryClient.invalidateQueries({ 
@@ -40,10 +48,15 @@ export const useProductOfferRealtime = (productId?: string) => {
             queryKey: ['admin-products'] 
           });
           
-          // Invalidate catalog queries to update has_active_offers
+          // КРИТИЧНО: Инвалидируем именно catalog queries для обновления кнопок
+          queryClient.invalidateQueries({ 
+            queryKey: ['products-infinite-optimized'] 
+          });
           queryClient.invalidateQueries({ 
             queryKey: ['catalog-products'] 
           });
+          
+          console.log('✅ Invalidated catalog queries for product', productId);
           
           // Invalidate batch offers for this product
           invalidateBatchOffers([productId]);
@@ -58,17 +71,27 @@ export const useProductOfferRealtime = (productId?: string) => {
           filter: `id=eq.${productId}`
         },
         (payload) => {
-          console.log('🔄 Real-time product update:', payload);
+          console.log('🔄 Real-time product update:', {
+            productId,
+            new: payload.new,
+            old: payload.old,
+            timestamp: new Date().toISOString()
+          });
           
           // Invalidate product data when optimization fields change
           queryClient.invalidateQueries({ 
             queryKey: ['admin-products'] 
           });
           
-          // Invalidate catalog queries to update product data
+          // КРИТИЧНО: Инвалидируем catalog queries для обновления данных продукта
+          queryClient.invalidateQueries({ 
+            queryKey: ['products-infinite-optimized'] 
+          });
           queryClient.invalidateQueries({ 
             queryKey: ['catalog-products'] 
           });
+          
+          console.log('✅ Invalidated catalog queries for product update', productId);
           
           // Also invalidate batch offers since product data affects offer calculations
           invalidateBatchOffers([productId]);
@@ -77,6 +100,7 @@ export const useProductOfferRealtime = (productId?: string) => {
       .subscribe();
 
     return () => {
+      console.log(`🔌 Cleaning up real-time updates for product ${productId}`);
       supabase.removeChannel(channel);
     };
   }, [productId, queryClient, invalidateBatchOffers]);

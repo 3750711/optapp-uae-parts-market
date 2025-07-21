@@ -35,10 +35,29 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   // Add real-time updates for offer status
   useProductOfferRealtime(product.id);
   
-  // Sync local state with product prop changes
+  // Sync local state with product prop changes AND add detailed logging
   useEffect(() => {
+    console.log(`🔄 SimpleOfferButton: Product ${product.id} has_active_offers changed:`, {
+      oldValue: hasActiveOffers,
+      newValue: product.has_active_offers,
+      productTitle: product.title,
+      timestamp: new Date().toISOString()
+    });
+    
     setHasActiveOffers(product.has_active_offers || false);
-  }, [product.has_active_offers]);
+  }, [product.has_active_offers, product.id, product.title]);
+  
+  // Log component state for debugging
+  useEffect(() => {
+    console.log(`📊 SimpleOfferButton state for product ${product.id}:`, {
+      productTitle: product.title,
+      hasActiveOffers,
+      productHasActiveOffers: product.has_active_offers,
+      maxOfferPrice: product.max_offer_price,
+      offersCount: product.offers_count,
+      productStatus: product.status
+    });
+  }, [hasActiveOffers, product]);
   
   // Simplified visibility logic
   if (!user || !profile) return null;
@@ -49,7 +68,16 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+    console.log(`🖱️ SimpleOfferButton clicked for product ${product.id}`, {
+      hasActiveOffers,
+      productTitle: product.title
+    });
     setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    console.log(`❌ Modal closed for product ${product.id}`);
+    setIsModalOpen(false);
   };
 
   if (compact) {
@@ -75,7 +103,7 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
         
         <EnhancedOfferModal
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
+          onClose={handleModalClose}
           product={product}
           isLeadingBid={false}
           maxOtherOffer={0}
@@ -111,7 +139,7 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
 
       <EnhancedOfferModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleModalClose}
         product={product}
         isLeadingBid={false}
         maxOtherOffer={0}
