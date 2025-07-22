@@ -30,10 +30,7 @@ const VirtualizedProductList: React.FC<VirtualizedProductListProps> = memo(({
         <div className="px-2 py-1">
           <ProductListItem
             product={product}
-            showSoldButton={showSoldButton}
-            onStatusChange={onStatusChange}
             batchOffersData={batchOffersData}
-            useSimpleOfferButton={useSimpleOfferButton}
           />
         </div>
       </div>

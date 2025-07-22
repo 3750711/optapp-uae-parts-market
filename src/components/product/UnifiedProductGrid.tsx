@@ -192,10 +192,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
           <ProductListItem
             key={product.id}
             product={product} 
-            showSoldButton={showSoldButton}
-            onStatusChange={onStatusChange}
             batchOffersData={batchOffersData}
-            useSimpleOfferButton={useSimpleOfferButton}
           />
         ))}
       </div>

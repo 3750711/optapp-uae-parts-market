@@ -10,7 +10,7 @@ export interface Product {
   seller_name: string;
   status: 'pending' | 'active' | 'sold' | 'archived';
   seller_id: string;
-  created_at: string;
+  created_at?: string;
   delivery_price?: number | null;
   optid_created?: string | null;
   cloudinary_public_id?: string | null;
@@ -27,6 +27,7 @@ export interface Product {
   telegram_url?: string;
   product_videos?: Array<{ url: string }>;
   location?: string;
+  image?: string;
   
   // Связанные данные (для JOIN запросов)
   profiles?: {
