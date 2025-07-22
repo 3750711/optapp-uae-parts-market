@@ -1,6 +1,6 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
@@ -203,14 +203,32 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     refetchInterval: isConnected ? false : 5000 // Fallback polling if not connected
   });
 
-  // Setup Realtime subscription
-  useEffect(() => {
-    if (!user) return;
+  // Debounced invalidation для предотвращения частых обновлений
+  const debouncedInvalidation = useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+    return (reason: string) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        console.log(`🔄 Debounced: ${reason}`);
+        queryClient.invalidateQueries({
+          queryKey: ['buyer-auction-products'],
+          exact: false
+        });
+      }, 300);
+    };
+  }, [queryClient]);
 
-    console.log('🔄 Setting up Realtime subscription for price_offers');
+  // Улучшенная Realtime подписка с обработкой ошибок
+  useEffect(() => {
+    if (!user) {
+      setIsConnected(false);
+      return;
+    }
+
+    console.log('🔄 Setting up enhanced Realtime subscription for user:', user.id);
 
     const channel = supabase
-      .channel('price_offers_changes')
+      .channel(`auction_updates_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -220,54 +238,56 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
           filter: `buyer_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('📡 Realtime update received:', payload);
-          
-          // Invalidate and refetch data when price offers change
-          queryClient.invalidateQueries({
-            queryKey: ['buyer-auction-products'],
-            exact: false
-          });
-          
+          console.log('📥 Realtime: MY offer update:', payload);
           setLastUpdateTime(new Date());
+          debouncedInvalidation('Обновление моего предложения');
         }
       )
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'UPDATE',
           schema: 'public',
-          table: 'price_offers'
+          table: 'products',
+          filter: `has_active_offers=eq.true`
         },
         (payload) => {
-          // Also listen to all price offers to detect competition changes
+          const updatedProduct = payload.new as any;
           const currentProducts = queryResult.data || [];
-          const affectedProductIds = currentProducts.map(p => p.id);
+          const productIds = currentProducts.map(p => p.id);
           
-          if (payload.new && affectedProductIds.includes((payload.new as any).product_id)) {
-            console.log('📡 Competition update received for user products');
-            queryClient.invalidateQueries({
-              queryKey: ['buyer-auction-products'],
-              exact: false
-            });
+          if (productIds.includes(updatedProduct.id)) {
+            console.log('📥 Realtime: Product offers update:', updatedProduct.id);
             setLastUpdateTime(new Date());
+            debouncedInvalidation('Обновление предложений на продукт');
           }
         }
       )
       .subscribe((status) => {
         console.log('📡 Realtime status:', status);
         setIsConnected(status === 'SUBSCRIBED');
+        
+        if (status === 'CLOSED') {
+          console.warn('⚠️ Realtime соединение закрыто');
+          setTimeout(() => {
+            queryClient.invalidateQueries({
+              queryKey: ['buyer-auction-products'],
+              exact: false
+            });
+          }, 1000);
+        }
       });
 
     channelRef.current = channel;
 
     return () => {
-      console.log('🔄 Cleaning up Realtime subscription');
+      console.log('🔌 Cleaning up Realtime subscription');
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [user?.id, queryClient]);
+  }, [user?.id, queryClient, debouncedInvalidation, queryResult.data]);
 
   // Force refresh function
   const forceRefresh = async () => {
