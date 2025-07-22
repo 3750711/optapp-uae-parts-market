@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
+import { useEffect } from 'react';
 
 export interface AuctionProduct extends Product {
   user_offer_price?: number;
@@ -15,6 +16,46 @@ export interface AuctionProduct extends Product {
 
 export const useBuyerAuctionProducts = (statusFilter?: string) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Real-time subscription for price offers
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('🔴 Setting up real-time subscription for price offers');
+
+    const channel = supabase
+      .channel('price-offers-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'price_offers'
+        },
+        (payload) => {
+          console.log('📡 Real-time price offer change:', payload);
+          
+          // Invalidate and refetch auction products when offers change
+          queryClient.invalidateQueries({
+            queryKey: ['buyer-auction-products', user.id, statusFilter]
+          });
+          
+          // Also invalidate offer counts
+          queryClient.invalidateQueries({
+            queryKey: ['buyer-offer-counts', user.id]
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Subscription status:', status);
+      });
+
+    return () => {
+      console.log('🔴 Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user, statusFilter, queryClient]);
 
   return useQuery({
     queryKey: ['buyer-auction-products', user?.id, statusFilter],
@@ -23,7 +64,6 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
 
       console.log('🔍 Fetching buyer auction products with filter:', statusFilter);
 
-      // Get all products where user has made offers, regardless of product status
       const { data: offerData, error } = await supabase
         .from('price_offers')
         .select(`
@@ -76,7 +116,6 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
 
       console.log('📊 Raw offer data:', offerData?.length || 0, 'offers');
 
-      // Group by product and keep only the latest offer for each product
       const productMap = new Map<string, AuctionProduct>();
       
       for (const offer of offerData || []) {
@@ -86,7 +125,6 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
         const productId = product.id;
         const existingEntry = productMap.get(productId);
         
-        // Keep the latest offer (data is already sorted by created_at desc)
         if (!existingEntry || new Date(offer.created_at) > new Date(existingEntry.user_offer_created_at || '')) {
           productMap.set(productId, {
             ...product,
@@ -101,7 +139,6 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
 
       let products = Array.from(productMap.values());
 
-      // Apply status filter if provided
       if (statusFilter && statusFilter !== 'all') {
         products = products.filter(product => {
           switch (statusFilter) {
@@ -117,7 +154,6 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
         });
       }
 
-      // Get competitive offer information for all products using the batch function
       const productIds = products.map(p => p.id);
       if (productIds.length > 0) {
         const { data: competitiveData, error: competitiveError } = await supabase.rpc('get_offers_batch', {
@@ -126,13 +162,11 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
         });
 
         if (!competitiveError && competitiveData) {
-          // Create a map of competitive data by product_id
           const competitiveMap = new Map();
           for (const item of competitiveData) {
             competitiveMap.set(item.product_id, item);
           }
 
-          // Update products with competitive information
           products = products.map(product => {
             const competitiveInfo = competitiveMap.get(product.id);
             if (competitiveInfo) {
@@ -151,15 +185,14 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
         }
       }
 
-      // Sort products: active first, then cancelled, then completed by time
       products.sort((a, b) => {
         const statusPriority = (status: string | undefined) => {
           switch (status) {
-            case 'pending': return 1; // Active - highest priority
-            case 'cancelled': return 2; // Cancelled - medium priority
+            case 'pending': return 1;
+            case 'cancelled': return 2;
             case 'expired':
             case 'rejected':
-            case 'accepted': return 3; // Completed - lowest priority
+            case 'accepted': return 3;
             default: return 4;
           }
         };
@@ -171,7 +204,6 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
           return aPriority - bPriority;
         }
 
-        // For same priority, sort by offer creation time (newest first)
         const aTime = new Date(a.user_offer_created_at || '').getTime();
         const bTime = new Date(b.user_offer_created_at || '').getTime();
         return bTime - aTime;
@@ -181,8 +213,9 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
       return products;
     },
     enabled: !!user,
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // 1 minute
+    staleTime: 2000, // Reduced from 30 seconds to 2 seconds for fresher data
+    refetchInterval: 5000, // Auto-refresh every 5 seconds
+    refetchIntervalInBackground: true, // Continue refreshing in background
   });
 };
 
@@ -203,7 +236,6 @@ export const useBuyerOfferCounts = () => {
 
       if (error) throw error;
 
-      // Group by product to get latest offer status for each product
       const latestOffers = new Map<string, string>();
       for (const offer of data || []) {
         if (!latestOffers.has(offer.product_id)) {
@@ -221,6 +253,8 @@ export const useBuyerOfferCounts = () => {
       };
     },
     enabled: !!user,
-    staleTime: 30000,
+    staleTime: 2000, // Reduced for more frequent updates
+    refetchInterval: 5000, // Auto-refresh every 5 seconds
+    refetchIntervalInBackground: true,
   });
 };

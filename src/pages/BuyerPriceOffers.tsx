@@ -1,11 +1,12 @@
-
 import React, { useState } from 'react';
-import { Gavel, Search } from 'lucide-react';
+import { Gavel, Search, Wifi, WifiOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBuyerAuctionProducts, useBuyerOfferCounts } from '@/hooks/useBuyerAuctionProducts';
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
+import { useRealtimeStatus } from '@/hooks/useRealtimeStatus';
 import ProductListItem from '@/components/product/ProductListItem';
 import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
 import Layout from '@/components/layout/Layout';
@@ -17,6 +18,7 @@ const BuyerPriceOffers: React.FC = () => {
   
   const { data: auctionProducts, isLoading } = useBuyerAuctionProducts(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
+  const { isConnected } = useRealtimeStatus();
 
   // Get batch data for optimization
   const productIds = auctionProducts?.map(p => p.id) || [];
@@ -62,14 +64,37 @@ const BuyerPriceOffers: React.FC = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <Gavel className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold text-gray-900">
-              Мои предложения
-            </h1>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <Gavel className="h-6 w-6 text-primary" />
+              <h1 className="text-2xl font-bold text-gray-900">
+                Мои предложения
+              </h1>
+            </div>
+            
+            {/* Real-time connection status */}
+            <Badge 
+              variant={isConnected ? "success" : "destructive"} 
+              className="flex items-center gap-1"
+            >
+              {isConnected ? (
+                <>
+                  <Wifi className="h-3 w-3" />
+                  <span>Live</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-3 w-3" />
+                  <span>Offline</span>
+                </>
+              )}
+            </Badge>
           </div>
           <p className="text-gray-600">
             Управляйте своими предложениями цены и отслеживайте статус торгов
+            {isConnected && (
+              <span className="text-green-600 ml-2">• Обновления в реальном времени</span>
+            )}
           </p>
         </div>
 
@@ -123,7 +148,6 @@ const BuyerPriceOffers: React.FC = () => {
                 key={product.id}
                 product={{
                   ...product,
-                  // Pass offer information to the component
                   user_offer_price: product.user_offer_price,
                   user_offer_status: product.user_offer_status,
                   user_offer_created_at: product.user_offer_created_at,
