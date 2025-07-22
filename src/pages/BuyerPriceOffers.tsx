@@ -4,22 +4,36 @@ import { Gavel, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBuyerAuctionProducts } from '@/hooks/useBuyerAuctionProducts';
+import { useBuyerAuctionProducts, useBuyerOfferCounts } from '@/hooks/useBuyerAuctionProducts';
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
 import ProductListItem from '@/components/product/ProductListItem';
+import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
   const { user } = useAuth();
-  const { data: auctionProducts, isLoading } = useBuyerAuctionProducts();
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  
+  const { data: auctionProducts, isLoading } = useBuyerAuctionProducts(statusFilter);
+  const { data: offerCounts } = useBuyerOfferCounts();
 
-  // Получаем batch данные для оптимизации
+  // Get batch data for optimization
   const productIds = auctionProducts?.map(p => p.id) || [];
   const { data: batchOffersData } = useBatchOffers(productIds);
 
   if (!user) {
-    return <div>Пожалуйста, войдите в систему</div>;
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <Card>
+            <CardContent className="text-center py-12">
+              <p className="text-gray-500">Пожалуйста, войдите в систему</p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
   }
 
   const filteredProducts = auctionProducts?.filter(product => 
@@ -51,14 +65,24 @@ const BuyerPriceOffers: React.FC = () => {
           <div className="flex items-center gap-3 mb-2">
             <Gavel className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold text-gray-900">
-              Торги
+              Мои предложения
             </h1>
           </div>
           <p className="text-gray-600">
-            Участвуйте в торгах и управляйте своими предложениями
+            Управляйте своими предложениями цены и отслеживайте статус торгов
           </p>
         </div>
 
+        {/* Status Filter */}
+        {offerCounts && (
+          <OfferStatusFilter
+            activeFilter={statusFilter}
+            onFilterChange={setStatusFilter}
+            counts={offerCounts}
+          />
+        )}
+
+        {/* Search */}
         <div className="mb-6">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -77,12 +101,17 @@ const BuyerPriceOffers: React.FC = () => {
             <CardContent className="text-center py-12">
               <Gavel className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2 text-gray-900">
-                {searchTerm ? 'Товары не найдены' : 'Нет активных торгов'}
+                {searchTerm ? 'Товары не найдены' : 
+                 statusFilter === 'all' ? 'Нет предложений' : 
+                 statusFilter === 'active' ? 'Нет активных предложений' :
+                 statusFilter === 'cancelled' ? 'Нет отмененных предложений' :
+                 'Нет завершенных предложений'}
               </h3>
               <p className="text-gray-500">
                 {searchTerm 
                   ? 'Попробуйте изменить поисковый запрос' 
-                  : 'Вы пока не участвуете в торгах. Найдите интересные товары в каталоге и сделайте предложение цены!'
+                  : statusFilter === 'all' ? 'Вы пока не делали предложений цены. Найдите интересные товары в каталоге и сделайте предложение!'
+                  : 'Попробуйте выбрать другой фильтр статуса'
                 }
               </p>
             </CardContent>
@@ -94,9 +123,15 @@ const BuyerPriceOffers: React.FC = () => {
                 key={product.id}
                 product={{
                   ...product,
-                  image: product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg"
+                  image: product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg",
+                  // Pass offer information to the component
+                  user_offer_price: product.user_offer_price,
+                  user_offer_status: product.user_offer_status,
+                  user_offer_created_at: product.user_offer_created_at,
+                  user_offer_expires_at: product.user_offer_expires_at
                 }}
                 batchOffersData={batchOffersData}
+                showOfferStatus={true}
               />
             ))}
           </div>
