@@ -5,6 +5,7 @@ import { Gavel } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { useProductOfferRealtime } from '@/hooks/useProductOfferRealtime';
+import { useOfferContext } from '@/contexts/OfferContext';
 import { Product } from '@/types/product';
 import { EnhancedOfferModal } from './EnhancedOfferModal';
 import bidIcon from '@/assets/bid-icon.png';
@@ -28,24 +29,30 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   compact = false 
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [hasActiveOffers, setHasActiveOffers] = useState(product.has_active_offers || false);
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
+  const { getOfferState, setOfferState } = useOfferContext();
   
   // Add real-time updates for offer status
   useProductOfferRealtime(product.id);
   
-  // Sync local state with product prop changes
+  // Get offer state from context with fallback to product props
+  const { hasActiveOffers, isProcessing } = getOfferState(product.id);
+  const actualHasActiveOffers = hasActiveOffers || product.has_active_offers || false;
+  
+  // Sync context state with product prop changes
   useEffect(() => {
-    console.log(`🔄 SimpleOfferButton: Product ${product.id} has_active_offers changed:`, {
-      oldValue: hasActiveOffers,
-      newValue: product.has_active_offers,
-      productTitle: product.title,
-      timestamp: new Date().toISOString()
-    });
-    
-    setHasActiveOffers(product.has_active_offers || false);
-  }, [product.has_active_offers, product.id, product.title]);
+    const productHasOffers = product.has_active_offers || false;
+    if (productHasOffers !== hasActiveOffers) {
+      console.log(`🔄 SimpleOfferButton: Syncing offer state for product ${product.id}:`, {
+        oldValue: hasActiveOffers,
+        newValue: productHasOffers,
+        productTitle: product.title,
+        timestamp: new Date().toISOString()
+      });
+      setOfferState(product.id, productHasOffers);
+    }
+  }, [product.has_active_offers, product.id, hasActiveOffers, setOfferState]);
   
   // Simplified visibility logic
   if (!user || !profile) return null;
@@ -57,7 +64,8 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
     e.stopPropagation();
     e.preventDefault();
     console.log(`🖱️ SimpleOfferButton clicked for product ${product.id}`, {
-      hasActiveOffers,
+      hasActiveOffers: actualHasActiveOffers,
+      isProcessing,
       productTitle: product.title
     });
     setIsModalOpen(true);
@@ -72,17 +80,26 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
     return (
       <div className="flex items-center gap-1">
         <Button
-          variant={hasActiveOffers ? "default" : "outline"}
+          variant={actualHasActiveOffers ? "default" : "outline"}
           size="sm"
           onClick={handleClick}
+          disabled={isProcessing}
           className={`flex items-center justify-center h-10 w-10 p-0 rounded-full ${
-            hasActiveOffers 
+            actualHasActiveOffers 
               ? 'bg-green-500 hover:bg-green-600 text-white' 
               : 'hover:bg-gray-100'
-          }`}
-          title={hasActiveOffers ? "Торги идут" : "Предложить цену"}
+          } ${isProcessing ? 'opacity-75 cursor-not-allowed' : ''}`}
+          title={
+            isProcessing 
+              ? "Обрабатывается..." 
+              : actualHasActiveOffers 
+                ? "Торги идут" 
+                : "Предложить цену"
+          }
         >
-          {hasActiveOffers ? (
+          {isProcessing ? (
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+          ) : actualHasActiveOffers ? (
             <Gavel className="h-4 w-4" />
           ) : (
             <BidIcon className="h-5 w-5" />
@@ -103,16 +120,22 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   return (
     <div className="space-y-2">
       <Button
-        variant={hasActiveOffers ? "default" : "outline"}
+        variant={actualHasActiveOffers ? "default" : "outline"}
         size="sm"
         onClick={handleClick}
+        disabled={isProcessing}
         className={`flex items-center gap-2 w-full h-9 text-xs px-3 ${
-          hasActiveOffers 
+          actualHasActiveOffers 
             ? 'bg-green-500 hover:bg-green-600 text-white' 
             : 'hover:bg-gray-100'
-        }`}
+        } ${isProcessing ? 'opacity-75 cursor-not-allowed' : ''}`}
       >
-        {hasActiveOffers ? (
+        {isProcessing ? (
+          <>
+            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            <span className="font-medium">Обрабатывается...</span>
+          </>
+        ) : actualHasActiveOffers ? (
           <>
             <Gavel className="h-4 w-4" />
             <span className="font-medium">Торги идут</span>

@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { OfferProvider } from "@/contexts/OfferContext";
 import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
@@ -23,10 +24,10 @@ const queryClient = new QueryClient({
         }
         return failureCount < 2; // Уменьшено количество повторов
       },
-      staleTime: 15 * 60 * 1000, // Увеличено до 15 минут для лучшего кэширования
+      staleTime: 5 * 60 * 1000, // Уменьшено до 5 минут для более актуальных данных о предложениях
       gcTime: 30 * 60 * 1000, // 30 минут в памяти
       refetchOnWindowFocus: false, // Отключено для производительности
-      refetchOnMount: false, // Используем кэш при монтировании
+      refetchOnMount: true, // Включено для получения актуальных данных о предложениях
     },
     mutations: {
       retry: false, // Не повторяем мутации автоматически
@@ -66,9 +67,11 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <AuthProvider>
-                <Suspense fallback={<RouteLoader />}>
-                  <AppRoutes />
-                </Suspense>
+                <OfferProvider>
+                  <Suspense fallback={<RouteLoader />}>
+                    <AppRoutes />
+                  </Suspense>
+                </OfferProvider>
               </AuthProvider>
             </BrowserRouter>
           </TooltipProvider>
