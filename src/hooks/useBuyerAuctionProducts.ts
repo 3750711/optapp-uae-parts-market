@@ -117,39 +117,37 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
         });
       }
 
-      // Get competitive offer information for all products
+      // Get competitive offer information for all products using the batch function
       const productIds = products.map(p => p.id);
       if (productIds.length > 0) {
-        const { data: competitiveData, error: competitiveError } = await supabase
-          .from('price_offers')
-          .select('product_id, offered_price, buyer_id')
-          .in('product_id', productIds)
-          .eq('status', 'pending');
+        const { data: competitiveData, error: competitiveError } = await supabase.rpc('get_offers_batch', {
+          p_product_ids: productIds,
+          p_user_id: user.id,
+        });
 
         if (!competitiveError && competitiveData) {
-          const competitiveMap = new Map<string, { maxOffer: number; userIsLeading: boolean }>();
-          
-          for (const offer of competitiveData) {
-            const productId = offer.product_id;
-            const isUserOffer = offer.buyer_id === user.id;
-            
-            if (!competitiveMap.has(productId)) {
-              competitiveMap.set(productId, { maxOffer: 0, userIsLeading: false });
-            }
-            
-            const current = competitiveMap.get(productId)!;
-            if (offer.offered_price > current.maxOffer) {
-              current.maxOffer = offer.offered_price;
-              current.userIsLeading = isUserOffer;
-            }
+          // Create a map of competitive data by product_id
+          const competitiveMap = new Map();
+          for (const item of competitiveData) {
+            competitiveMap.set(item.product_id, item);
           }
 
           // Update products with competitive information
-          products = products.map(product => ({
-            ...product,
-            is_user_leading: competitiveMap.get(product.id)?.userIsLeading || false,
-            max_other_offer: competitiveMap.get(product.id)?.maxOffer || 0
-          }));
+          products = products.map(product => {
+            const competitiveInfo = competitiveMap.get(product.id);
+            if (competitiveInfo) {
+              return {
+                ...product,
+                is_user_leading: competitiveInfo.current_user_is_max || false,
+                max_other_offer: competitiveInfo.max_offer_price || 0
+              };
+            }
+            return {
+              ...product,
+              is_user_leading: false,
+              max_other_offer: 0
+            };
+          });
         }
       }
 

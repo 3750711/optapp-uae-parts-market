@@ -6,6 +6,7 @@ import { MapPin, Eye, Clock, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Product } from '@/types/product';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
+import { AuctionInfoCompact } from '@/components/offers/AuctionInfoCompact';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -15,15 +16,20 @@ interface ProductListItemProps {
     user_offer_status?: string;
     user_offer_created_at?: string;
     user_offer_expires_at?: string;
+    max_other_offer?: number;
+    is_user_leading?: boolean;
+    has_pending_offer?: boolean;
   };
   batchOffersData?: any;
   showOfferStatus?: boolean;
+  showAuctionInfo?: boolean;
 }
 
 const ProductListItem: React.FC<ProductListItemProps> = ({ 
   product, 
   batchOffersData,
-  showOfferStatus = false 
+  showOfferStatus = false,
+  showAuctionInfo = false
 }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
@@ -45,6 +51,12 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     return `${minutes}м`;
   };
 
+  // Get batch data for this product
+  const batchData = batchOffersData?.find((data: any) => data.product_id === product.id);
+  const totalOffers = batchData?.total_offers_count || 0;
+  const maxCompetitorPrice = batchData?.max_offer_price || 0;
+  const isUserLeading = batchData?.current_user_is_max || false;
+
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
@@ -53,7 +65,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           <div className="flex-shrink-0">
             <Link to={`/product/${product.id}`}>
               <img
-                src={product.image || "/placeholder.svg"}
+                src={product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg"}
                 alt={product.title}
                 className="w-24 h-24 object-cover rounded-lg"
                 onError={(e) => {
@@ -162,6 +174,23 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 <span>Продавец: {product.seller_name}</span>
                 <span>Место: {product.place_number}</span>
               </div>
+
+              {/* Auction Info - show only for active offers with auction info enabled */}
+              {showAuctionInfo && 
+               product.user_offer_status === 'pending' && 
+               product.user_offer_price && 
+               product.user_offer_expires_at && (
+                <AuctionInfoCompact
+                  productId={product.id}
+                  sellerId={product.seller_id}
+                  originalPrice={product.price}
+                  userOfferPrice={product.user_offer_price}
+                  maxCompetitorPrice={maxCompetitorPrice}
+                  isUserLeading={isUserLeading}
+                  totalOffers={totalOffers}
+                  expiresAt={product.user_offer_expires_at}
+                />
+              )}
             </div>
           </div>
         </div>

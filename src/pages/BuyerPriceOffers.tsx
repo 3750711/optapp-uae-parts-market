@@ -123,7 +123,6 @@ const BuyerPriceOffers: React.FC = () => {
                 key={product.id}
                 product={{
                   ...product,
-                  image: product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg",
                   // Pass offer information to the component
                   user_offer_price: product.user_offer_price,
                   user_offer_status: product.user_offer_status,
@@ -132,6 +131,7 @@ const BuyerPriceOffers: React.FC = () => {
                 }}
                 batchOffersData={batchOffersData}
                 showOfferStatus={true}
+                showAuctionInfo={true}
               />
             ))}
           </div>
