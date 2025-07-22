@@ -1,8 +1,9 @@
-
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
+import { useSmartPolling, usePageVisibility } from './useSmartPolling';
 
 export interface AuctionProduct extends Product {
   user_offer_price?: number;
@@ -16,8 +17,9 @@ export interface AuctionProduct extends Product {
 
 export const useBuyerAuctionProducts = (statusFilter?: string) => {
   const { user } = useAuth();
+  const isPageVisible = usePageVisibility();
 
-  return useQuery({
+  const queryResult = useQuery({
     queryKey: ['buyer-auction-products', user?.id, statusFilter],
     queryFn: async (): Promise<AuctionProduct[]> => {
       if (!user) return [];
@@ -173,10 +175,60 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
       return products;
     },
     enabled: !!user,
-    staleTime: 2000, // Data считается свежим 2 секунды
-    refetchInterval: 5000, // Обновление каждые 5 секунд
-    refetchIntervalInBackground: true, // Продолжать обновления в фоне
+    staleTime: 0, // Always consider data stale for real-time updates
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
+
+  // Get smart polling config based on current data
+  const pollingConfig = useSmartPolling(queryResult.data);
+  
+  // Dynamic refetch interval based on polling config and page visibility
+  const refetchInterval = useMemo(() => {
+    if (!pollingConfig.shouldPoll) return false;
+    
+    let interval = pollingConfig.interval;
+    
+    // Adjust for page visibility
+    if (!isPageVisible) {
+      interval = Math.min(interval * 3, 60000); // Max 1 minute for background
+    }
+    
+    return interval;
+  }, [pollingConfig.interval, pollingConfig.shouldPoll, isPageVisible]);
+
+  // Update the query with dynamic interval
+  useEffect(() => {
+    if (typeof refetchInterval === 'number') {
+      const intervalId = setInterval(() => {
+        if (queryResult.refetch) {
+          queryResult.refetch();
+        }
+      }, refetchInterval);
+
+      return () => clearInterval(intervalId);
+    }
+  }, [refetchInterval, queryResult.refetch]);
+
+  // Log polling activity for debugging
+  useEffect(() => {
+    if (queryResult.data?.length) {
+      console.log('🔄 Smart Polling Config:', {
+        interval: pollingConfig.interval,
+        priority: pollingConfig.priority,
+        shouldPoll: pollingConfig.shouldPoll,
+        isVisible: isPageVisible,
+        effectiveInterval: refetchInterval,
+        productsCount: queryResult.data.length,
+        activeOffers: queryResult.data.filter(p => p.user_offer_status === 'pending').length
+      });
+    }
+  }, [pollingConfig, isPageVisible, refetchInterval, queryResult.data?.length]);
+
+  return {
+    ...queryResult,
+    pollingConfig // Expose polling config for UI indicators
+  };
 };
 
 // Hook to get offer counts for each status

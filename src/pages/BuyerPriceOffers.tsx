@@ -8,14 +8,17 @@ import { useBuyerAuctionProducts, useBuyerOfferCounts } from '@/hooks/useBuyerAu
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
 import ProductListItem from '@/components/product/ProductListItem';
 import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
+import { PollingIndicator } from '@/components/offers/PollingIndicator';
+import { usePageVisibility } from '@/hooks/useSmartPolling';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const isPageVisible = usePageVisibility();
   
-  const { data: auctionProducts, isLoading } = useBuyerAuctionProducts(statusFilter);
+  const { data: auctionProducts, isLoading, pollingConfig } = useBuyerAuctionProducts(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
 
   // Get batch data for optimization
@@ -69,10 +72,20 @@ const BuyerPriceOffers: React.FC = () => {
                 Мои предложения
               </h1>
             </div>
+            
+            {/* Smart Polling Indicator */}
+            {pollingConfig && (
+              <PollingIndicator
+                priority={pollingConfig.priority}
+                interval={pollingConfig.interval}
+                isActive={pollingConfig.shouldPoll}
+                isVisible={isPageVisible}
+              />
+            )}
           </div>
           <p className="text-gray-600">
             Управляйте своими предложениями цены и отслеживайте статус торгов
-            <span className="text-blue-600 ml-2">• Автообновление каждые 5 секунд</span>
+            <span className="text-blue-600 ml-2">• Умное автообновление</span>
           </p>
         </div>
 
