@@ -1,29 +1,28 @@
+
 import React, { useState } from 'react';
 import { Gavel, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBuyerAuctionProducts, useBuyerOfferCounts } from '@/hooks/useBuyerAuctionProducts';
+import { useRealtimeBuyerAuctions, useBuyerOfferCounts } from '@/hooks/useRealtimeBuyerAuctions';
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
 import ProductListItem from '@/components/product/ProductListItem';
 import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
-import { PollingIndicator } from '@/components/offers/PollingIndicator';
-import { usePageVisibility } from '@/hooks/useSmartPolling';
+import { RealtimeIndicator } from '@/components/offers/RealtimeIndicator';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const isPageVisible = usePageVisibility();
   
   const { 
     data: auctionProducts, 
     isLoading, 
-    pollingConfig, 
-    forceRefresh, 
-    lastUpdateTime 
-  } = useBuyerAuctionProducts(statusFilter);
+    isConnected,
+    lastUpdateTime,
+    forceRefresh
+  } = useRealtimeBuyerAuctions(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
 
   // Get batch data for optimization
@@ -78,22 +77,18 @@ const BuyerPriceOffers: React.FC = () => {
               </h1>
             </div>
             
-            {/* Enhanced Polling Indicator */}
-            {pollingConfig && (
-              <PollingIndicator
-                priority={pollingConfig.priority}
-                interval={pollingConfig.interval}
-                isActive={pollingConfig.shouldPoll}
-                isVisible={isPageVisible}
-                lastUpdateTime={lastUpdateTime}
-                onForceRefresh={forceRefresh}
-                reason={pollingConfig.reason}
-              />
-            )}
+            {/* Realtime Status Indicator */}
+            <RealtimeIndicator
+              isConnected={isConnected}
+              lastUpdateTime={lastUpdateTime}
+              onForceRefresh={forceRefresh}
+            />
           </div>
           <p className="text-gray-600">
             Управляйте своими предложениями цены и отслеживайте статус торгов
-            <span className="text-blue-600 ml-2">• Оптимизированное автообновление</span>
+            <span className="text-blue-600 ml-2">
+              • {isConnected ? 'Real-time обновления' : 'Автообновление каждые 5 сек'}
+            </span>
           </p>
         </div>
 

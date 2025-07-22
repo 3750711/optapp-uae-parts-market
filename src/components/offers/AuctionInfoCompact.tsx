@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Clock, Users, RefreshCw } from 'lucide-react';
+import { TrendingUp, Clock, Users } from 'lucide-react';
 import { useCreatePriceOffer } from '@/hooks/use-price-offers';
 import { toast } from 'sonner';
 
@@ -30,14 +30,6 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   lastUpdateTime
 }) => {
   const createOfferMutation = useCreatePriceOffer();
-  const [displayUpdateTime, setDisplayUpdateTime] = useState<Date>(new Date());
-
-  // Update display timestamp when props change (indicating new data)
-  useEffect(() => {
-    if (lastUpdateTime) {
-      setDisplayUpdateTime(lastUpdateTime);
-    }
-  }, [maxCompetitorPrice, totalOffers, isUserLeading, lastUpdateTime]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
@@ -79,7 +71,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   };
 
   const competitorDifference = maxCompetitorPrice - userOfferPrice;
-  const quickBidAmount = Math.max(maxCompetitorPrice, userOfferPrice) + 5;
+  const isFreshData = lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 5000;
 
   return (
     <div className="bg-gray-50 rounded-lg p-3 space-y-2 border">
@@ -87,7 +79,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Badge 
-            variant={isUserLeading ? "success" : "destructive"} 
+            variant={isUserLeading ? "default" : "destructive"} 
             className="text-xs"
           >
             {isUserLeading ? 'Лидирую' : 'Отстаю'}
@@ -96,6 +88,9 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
             <Users className="h-3 w-3" />
             <span>{totalOffers} ставок</span>
           </div>
+          {isFreshData && (
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" title="Свежие данные" />
+          )}
         </div>
         <div className="flex items-center gap-1 text-xs text-gray-500">
           <Clock className="h-3 w-3" />
@@ -136,24 +131,18 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
         </Button>
       </div>
 
-      {/* Last update indicator with visual freshness indicator */}
-      <div className="flex items-center justify-between text-xs text-gray-400">
-        <span>
-          Обновлено: {displayUpdateTime.toLocaleTimeString('ru-RU', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            second: '2-digit'
-          })}
-        </span>
-        
-        {/* Fresh data indicator */}
-        {lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 5000 && (
-          <div className="flex items-center gap-1 text-green-600">
-            <RefreshCw className="h-3 w-3 animate-spin" />
-            <span>Свежее</span>
-          </div>
-        )}
-      </div>
+      {/* Real-time status */}
+      {lastUpdateTime && (
+        <div className="text-xs text-gray-400">
+          <span>
+            Обновлено: {lastUpdateTime.toLocaleTimeString('ru-RU', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              second: '2-digit'
+            })}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
