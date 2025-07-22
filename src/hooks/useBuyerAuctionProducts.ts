@@ -1,8 +1,8 @@
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
-import { useEffect } from 'react';
 
 export interface AuctionProduct extends Product {
   user_offer_price?: number;
@@ -16,46 +16,6 @@ export interface AuctionProduct extends Product {
 
 export const useBuyerAuctionProducts = (statusFilter?: string) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  // Real-time subscription for price offers
-  useEffect(() => {
-    if (!user) return;
-
-    console.log('🔴 Setting up real-time subscription for price offers');
-
-    const channel = supabase
-      .channel('price-offers-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'price_offers'
-        },
-        (payload) => {
-          console.log('📡 Real-time price offer change:', payload);
-          
-          // Invalidate and refetch auction products when offers change
-          queryClient.invalidateQueries({
-            queryKey: ['buyer-auction-products', user.id, statusFilter]
-          });
-          
-          // Also invalidate offer counts
-          queryClient.invalidateQueries({
-            queryKey: ['buyer-offer-counts', user.id]
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Subscription status:', status);
-      });
-
-    return () => {
-      console.log('🔴 Cleaning up real-time subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [user, statusFilter, queryClient]);
 
   return useQuery({
     queryKey: ['buyer-auction-products', user?.id, statusFilter],
@@ -213,9 +173,9 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
       return products;
     },
     enabled: !!user,
-    staleTime: 2000, // Reduced from 30 seconds to 2 seconds for fresher data
-    refetchInterval: 5000, // Auto-refresh every 5 seconds
-    refetchIntervalInBackground: true, // Continue refreshing in background
+    staleTime: 2000, // Data считается свежим 2 секунды
+    refetchInterval: 5000, // Обновление каждые 5 секунд
+    refetchIntervalInBackground: true, // Продолжать обновления в фоне
   });
 };
 
@@ -253,8 +213,8 @@ export const useBuyerOfferCounts = () => {
       };
     },
     enabled: !!user,
-    staleTime: 2000, // Reduced for more frequent updates
-    refetchInterval: 5000, // Auto-refresh every 5 seconds
+    staleTime: 2000,
+    refetchInterval: 5000,
     refetchIntervalInBackground: true,
   });
 };

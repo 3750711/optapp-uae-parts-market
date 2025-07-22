@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Clock, Users, Wifi } from 'lucide-react';
+import { TrendingUp, Clock, Users } from 'lucide-react';
 import { useCreatePriceOffer } from '@/hooks/use-price-offers';
 import { toast } from 'sonner';
 
@@ -29,16 +29,10 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
 }) => {
   const createOfferMutation = useCreatePriceOffer();
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [isLive, setIsLive] = useState(true);
 
   // Update timestamp when props change (indicating new data)
   useEffect(() => {
     setLastUpdate(new Date());
-    setIsLive(true);
-    
-    // Hide live indicator after 2 seconds
-    const timer = setTimeout(() => setIsLive(false), 2000);
-    return () => clearTimeout(timer);
   }, [maxCompetitorPrice, totalOffers, isUserLeading]);
 
   const formatPrice = (price: number) => {
@@ -84,32 +78,20 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   const quickBidAmount = Math.max(maxCompetitorPrice, userOfferPrice) + 5;
 
   return (
-    <div className={`bg-gray-50 rounded-lg p-3 space-y-2 border transition-all duration-300 ${
-      isLive ? 'ring-2 ring-blue-200 bg-blue-50' : ''
-    }`}>
+    <div className="bg-gray-50 rounded-lg p-3 space-y-2 border">
       {/* Status and prices */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Badge 
             variant={isUserLeading ? "success" : "destructive"} 
-            className={`text-xs transition-all duration-300 ${
-              isLive && !isUserLeading ? 'animate-pulse' : ''
-            }`}
+            className="text-xs"
           >
             {isUserLeading ? 'Лидирую' : 'Отстаю'}
           </Badge>
           <div className="flex items-center gap-1 text-xs text-gray-600">
             <Users className="h-3 w-3" />
-            <span className={isLive ? 'font-medium text-blue-600' : ''}>
-              {totalOffers} ставок
-            </span>
+            <span>{totalOffers} ставок</span>
           </div>
-          {isLive && (
-            <div className="flex items-center gap-1 text-xs text-green-600">
-              <Wifi className="h-3 w-3 animate-pulse" />
-              <span>live</span>
-            </div>
-          )}
         </div>
         <div className="flex items-center gap-1 text-xs text-gray-500">
           <Clock className="h-3 w-3" />
@@ -127,9 +109,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
           {!isUserLeading && maxCompetitorPrice > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-gray-600">Лидер:</span>
-              <span className={`font-medium text-red-600 transition-all duration-300 ${
-                isLive ? 'animate-pulse font-bold' : ''
-              }`}>
+              <span className="font-medium text-red-600">
                 ${formatPrice(maxCompetitorPrice)}
               </span>
               <span className="text-xs text-gray-500">
@@ -145,9 +125,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
           variant="outline"
           onClick={handleQuickBid}
           disabled={createOfferMutation.isPending}
-          className={`flex items-center gap-1 text-xs px-2 py-1 h-7 transition-all duration-300 ${
-            !isUserLeading && isLive ? 'ring-2 ring-orange-200 bg-orange-50' : ''
-          }`}
+          className="flex items-center gap-1 text-xs px-2 py-1 h-7"
         >
           <TrendingUp className="h-3 w-3" />
           {createOfferMutation.isPending ? 'Ставка...' : `+$5 (${formatPrice(quickBidAmount)})`}

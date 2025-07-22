@@ -1,12 +1,11 @@
+
 import React, { useState } from 'react';
-import { Gavel, Search, Wifi, WifiOff } from 'lucide-react';
+import { Gavel, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBuyerAuctionProducts, useBuyerOfferCounts } from '@/hooks/useBuyerAuctionProducts';
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
-import { useRealtimeStatus } from '@/hooks/useRealtimeStatus';
 import ProductListItem from '@/components/product/ProductListItem';
 import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
 import Layout from '@/components/layout/Layout';
@@ -18,7 +17,6 @@ const BuyerPriceOffers: React.FC = () => {
   
   const { data: auctionProducts, isLoading } = useBuyerAuctionProducts(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
-  const { isConnected } = useRealtimeStatus();
 
   // Get batch data for optimization
   const productIds = auctionProducts?.map(p => p.id) || [];
@@ -71,30 +69,10 @@ const BuyerPriceOffers: React.FC = () => {
                 Мои предложения
               </h1>
             </div>
-            
-            {/* Real-time connection status */}
-            <Badge 
-              variant={isConnected ? "success" : "destructive"} 
-              className="flex items-center gap-1"
-            >
-              {isConnected ? (
-                <>
-                  <Wifi className="h-3 w-3" />
-                  <span>Live</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="h-3 w-3" />
-                  <span>Offline</span>
-                </>
-              )}
-            </Badge>
           </div>
           <p className="text-gray-600">
             Управляйте своими предложениями цены и отслеживайте статус торгов
-            {isConnected && (
-              <span className="text-green-600 ml-2">• Обновления в реальном времени</span>
-            )}
+            <span className="text-blue-600 ml-2">• Автообновление каждые 5 секунд</span>
           </p>
         </div>
 
