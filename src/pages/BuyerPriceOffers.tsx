@@ -18,7 +18,13 @@ const BuyerPriceOffers: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const isPageVisible = usePageVisibility();
   
-  const { data: auctionProducts, isLoading, pollingConfig } = useBuyerAuctionProducts(statusFilter);
+  const { 
+    data: auctionProducts, 
+    isLoading, 
+    pollingConfig, 
+    forceRefresh, 
+    lastUpdateTime 
+  } = useBuyerAuctionProducts(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
 
   // Get batch data for optimization
@@ -73,13 +79,15 @@ const BuyerPriceOffers: React.FC = () => {
               </h1>
             </div>
             
-            {/* Smart Polling Indicator */}
+            {/* Smart Polling Indicator with Force Refresh */}
             {pollingConfig && (
               <PollingIndicator
                 priority={pollingConfig.priority}
                 interval={pollingConfig.interval}
                 isActive={pollingConfig.shouldPoll}
                 isVisible={isPageVisible}
+                lastUpdateTime={lastUpdateTime}
+                onForceRefresh={forceRefresh}
               />
             )}
           </div>

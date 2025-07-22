@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Clock, Users } from 'lucide-react';
+import { TrendingUp, Clock, Users, RefreshCw } from 'lucide-react';
 import { useCreatePriceOffer } from '@/hooks/use-price-offers';
 import { toast } from 'sonner';
 
@@ -15,6 +15,7 @@ interface AuctionInfoCompactProps {
   isUserLeading: boolean;
   totalOffers: number;
   expiresAt: string;
+  lastUpdateTime?: Date;
 }
 
 export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
@@ -25,15 +26,18 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   maxCompetitorPrice,
   isUserLeading,
   totalOffers,
-  expiresAt
+  expiresAt,
+  lastUpdateTime
 }) => {
   const createOfferMutation = useCreatePriceOffer();
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [displayUpdateTime, setDisplayUpdateTime] = useState<Date>(new Date());
 
-  // Update timestamp when props change (indicating new data)
+  // Update display timestamp when props change (indicating new data)
   useEffect(() => {
-    setLastUpdate(new Date());
-  }, [maxCompetitorPrice, totalOffers, isUserLeading]);
+    if (lastUpdateTime) {
+      setDisplayUpdateTime(lastUpdateTime);
+    }
+  }, [maxCompetitorPrice, totalOffers, isUserLeading, lastUpdateTime]);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
@@ -128,17 +132,27 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
           className="flex items-center gap-1 text-xs px-2 py-1 h-7"
         >
           <TrendingUp className="h-3 w-3" />
-          {createOfferMutation.isPending ? 'Ставка...' : `+$5 (${formatPrice(quickBidAmount)})`}
+          {createOfferMutation.isPending ? '...' : `+$5`}
         </Button>
       </div>
 
-      {/* Last update indicator */}
-      <div className="text-xs text-gray-400 text-right">
-        Обновлено: {lastUpdate.toLocaleTimeString('ru-RU', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          second: '2-digit'
-        })}
+      {/* Last update indicator with visual freshness indicator */}
+      <div className="flex items-center justify-between text-xs text-gray-400">
+        <span>
+          Обновлено: {displayUpdateTime.toLocaleTimeString('ru-RU', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+          })}
+        </span>
+        
+        {/* Fresh data indicator */}
+        {lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 5000 && (
+          <div className="flex items-center gap-1 text-green-600">
+            <RefreshCw className="h-3 w-3 animate-spin" />
+            <span>Свежее</span>
+          </div>
+        )}
       </div>
     </div>
   );
