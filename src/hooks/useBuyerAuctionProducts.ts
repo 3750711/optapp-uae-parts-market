@@ -1,10 +1,11 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
-import { useSmartPolling, usePageVisibility } from './useSmartPolling';
+import { useOptimizedSmartPolling } from './useOptimizedSmartPolling';
+import { usePageVisibility } from './useSmartPolling';
 
 export interface AuctionProduct extends Product {
   user_offer_price?: number;
@@ -21,6 +22,7 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
   const queryClient = useQueryClient();
   const isPageVisible = usePageVisibility();
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const queryResult = useQuery({
     queryKey: ['buyer-auction-products', user?.id, statusFilter],
@@ -119,7 +121,7 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
         });
       }
 
-      // Get competitive data for active offers only
+      // Get competitive data for active offers only with fresh data
       const activeProductIds = products
         .filter(p => p.user_offer_status === 'pending')
         .map(p => p.id);
@@ -127,47 +129,89 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
       if (activeProductIds.length > 0) {
         console.log('🏆 Fetching competitive data for', activeProductIds.length, 'active products');
         
-        const { data: competitiveData, error: competitiveError } = await supabase.rpc('get_offers_batch', {
-          p_product_ids: activeProductIds,
-          p_user_id: user.id,
-        });
+        try {
+          const response = await fetch('/functions/v1/get-offers-batch', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabase.supabaseKey}`,
+            },
+            body: JSON.stringify({
+              product_ids: activeProductIds,
+              user_id: user.id,
+            }),
+          });
 
-        if (!competitiveError && competitiveData) {
-          const competitiveMap = new Map();
-          for (const item of competitiveData) {
-            competitiveMap.set(item.product_id, item);
-          }
-
-          products = products.map(product => {
-            const competitiveInfo = competitiveMap.get(product.id);
-            if (competitiveInfo) {
-              const oldIsLeading = product.is_user_leading;
-              const newIsLeading = competitiveInfo.current_user_is_max || false;
-              
-              // Log leadership changes for debugging
-              if (oldIsLeading !== newIsLeading) {
-                console.log(`🔄 Leadership changed for product ${product.id}:`, {
-                  title: product.title,
-                  oldIsLeading,
-                  newIsLeading,
-                  userOffer: product.user_offer_price,
-                  maxOtherOffer: competitiveInfo.max_offer_price,
-                  timestamp: new Date().toISOString()
-                });
+          if (response.ok) {
+            const { data: competitiveData } = await response.json();
+            
+            if (competitiveData) {
+              const competitiveMap = new Map();
+              for (const item of competitiveData) {
+                competitiveMap.set(item.product_id, item);
               }
-              
+
+              products = products.map(product => {
+                const competitiveInfo = competitiveMap.get(product.id);
+                if (competitiveInfo) {
+                  const oldIsLeading = product.is_user_leading;
+                  const newIsLeading = competitiveInfo.current_user_is_max || false;
+                  
+                  if (oldIsLeading !== newIsLeading) {
+                    console.log(`🔄 Leadership changed for product ${product.id}:`, {
+                      title: product.title,
+                      oldIsLeading,
+                      newIsLeading,
+                      userOffer: product.user_offer_price,
+                      maxOtherOffer: competitiveInfo.max_offer_price,
+                      timestamp: new Date().toISOString()
+                    });
+                  }
+                  
+                  return {
+                    ...product,
+                    is_user_leading: newIsLeading,
+                    max_other_offer: competitiveInfo.max_offer_price || 0
+                  };
+                }
+                return {
+                  ...product,
+                  is_user_leading: false,
+                  max_other_offer: 0
+                };
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching competitive data via edge function:', error);
+          // Fallback to RPC function
+          const { data: competitiveData, error: competitiveError } = await supabase.rpc('get_offers_batch', {
+            p_product_ids: activeProductIds,
+            p_user_id: user.id,
+          });
+
+          if (!competitiveError && competitiveData) {
+            const competitiveMap = new Map();
+            for (const item of competitiveData) {
+              competitiveMap.set(item.product_id, item);
+            }
+
+            products = products.map(product => {
+              const competitiveInfo = competitiveMap.get(product.id);
+              if (competitiveInfo) {
+                return {
+                  ...product,
+                  is_user_leading: competitiveInfo.current_user_is_max || false,
+                  max_other_offer: competitiveInfo.max_offer_price || 0
+                };
+              }
               return {
                 ...product,
-                is_user_leading: newIsLeading,
-                max_other_offer: competitiveInfo.max_offer_price || 0
+                is_user_leading: false,
+                max_other_offer: 0
               };
-            }
-            return {
-              ...product,
-              is_user_leading: false,
-              max_other_offer: 0
-            };
-          });
+            });
+          }
         }
       }
 
@@ -197,64 +241,94 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
 
       console.log('✅ Processed auction products:', products.length, 'at', new Date().toISOString());
       
-      // Update last update time
       setLastUpdateTime(new Date());
-      
       return products;
     },
     enabled: !!user,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache data
+    // Optimized React Query settings
+    staleTime: 1000, // Data is stale after 1 second
+    gcTime: 5000, // Keep data in cache for 5 seconds
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchOnMount: true,
+    refetchOnMount: 'always', // Always refetch on mount
+    // Remove refetchInterval - we'll handle polling manually
+    refetchInterval: false,
   });
 
-  // Get smart polling config based on current data
-  const pollingConfig = useSmartPolling(queryResult.data);
+  // Get optimized polling configuration
+  const pollingConfig = useOptimizedSmartPolling(queryResult.data);
   
-  // Dynamic refetch interval based on polling config and page visibility
-  const refetchInterval = useMemo(() => {
-    if (!pollingConfig.shouldPoll) return false;
-    
-    let interval = pollingConfig.interval;
-    
-    // Adjust for page visibility
-    if (!isPageVisible) {
-      interval = Math.min(interval * 2, 30000); // Max 30 seconds for background
-    }
-    
-    return interval;
-  }, [pollingConfig.interval, pollingConfig.shouldPoll, isPageVisible]);
-
-  // Update query with dynamic refetch interval
+  // Manual polling with proper cleanup
   useEffect(() => {
-    queryClient.setQueryDefaults(['buyer-auction-products', user?.id, statusFilter], {
-      refetchInterval: refetchInterval,
-    });
-  }, [refetchInterval, queryClient, user?.id, statusFilter]);
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+    }
 
-  // Force refresh function for manual updates
+    if (!pollingConfig.shouldPoll || !isPageVisible) {
+      return;
+    }
+
+    const scheduleNextRefetch = () => {
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+      }
+
+      pollingTimeoutRef.current = setTimeout(async () => {
+        console.log('🔄 Manual polling refetch triggered:', {
+          priority: pollingConfig.priority,
+          interval: pollingConfig.interval,
+          reason: pollingConfig.reason
+        });
+
+        await queryResult.refetch();
+        scheduleNextRefetch();
+      }, pollingConfig.interval);
+    };
+
+    scheduleNextRefetch();
+
+    return () => {
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+      }
+    };
+  }, [pollingConfig.shouldPoll, pollingConfig.interval, isPageVisible, queryResult.refetch]);
+
+  // Force refresh function with cache invalidation
   const forceRefresh = async () => {
     console.log('🔄 Force refreshing auction data...');
+    
+    // Invalidate and refetch with force
     await queryClient.invalidateQueries({
-      queryKey: ['buyer-auction-products', user?.id, statusFilter],
+      queryKey: ['buyer-auction-products'],
+      exact: false,
+      refetchType: 'all'
     });
+    
     await queryResult.refetch();
   };
 
-  // Log polling activity and data changes for debugging
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Enhanced logging
   useEffect(() => {
     if (queryResult.data?.length) {
       const activeOffers = queryResult.data.filter(p => p.user_offer_status === 'pending');
       const leadingOffers = activeOffers.filter(p => p.is_user_leading);
       
-      console.log('🔄 Smart Polling Status:', {
+      console.log('🔄 Optimized Polling Status:', {
         interval: pollingConfig.interval,
         priority: pollingConfig.priority,
+        reason: pollingConfig.reason,
         shouldPoll: pollingConfig.shouldPoll,
         isVisible: isPageVisible,
-        effectiveInterval: refetchInterval,
         productsCount: queryResult.data.length,
         activeOffers: activeOffers.length,
         leadingOffers: leadingOffers.length,
@@ -262,7 +336,7 @@ export const useBuyerAuctionProducts = (statusFilter?: string) => {
         timestamp: new Date().toISOString()
       });
     }
-  }, [pollingConfig, isPageVisible, refetchInterval, queryResult.data, lastUpdateTime]);
+  }, [pollingConfig, isPageVisible, queryResult.data, lastUpdateTime]);
 
   return {
     ...queryResult,
@@ -307,7 +381,6 @@ export const useBuyerOfferCounts = () => {
     },
     enabled: !!user,
     staleTime: 2000,
-    refetchInterval: 5000,
-    refetchIntervalInBackground: true,
+    gcTime: 10000,
   });
 };

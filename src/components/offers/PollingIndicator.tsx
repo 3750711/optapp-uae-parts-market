@@ -2,7 +2,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wifi, WifiOff, Clock, Zap, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Wifi, WifiOff, Clock, Zap, AlertTriangle, RefreshCw, Activity } from 'lucide-react';
 
 interface PollingIndicatorProps {
   priority: 'critical' | 'high' | 'medium' | 'low' | 'stopped';
@@ -11,6 +11,7 @@ interface PollingIndicatorProps {
   isVisible?: boolean;
   lastUpdateTime?: Date;
   onForceRefresh?: () => void;
+  reason?: string;
 }
 
 export const PollingIndicator: React.FC<PollingIndicatorProps> = ({
@@ -19,7 +20,8 @@ export const PollingIndicator: React.FC<PollingIndicatorProps> = ({
   isActive,
   isVisible = true,
   lastUpdateTime,
-  onForceRefresh
+  onForceRefresh,
+  reason
 }) => {
   const getIndicatorConfig = () => {
     switch (priority) {
@@ -28,35 +30,40 @@ export const PollingIndicator: React.FC<PollingIndicatorProps> = ({
           icon: AlertTriangle,
           color: 'bg-red-500',
           text: 'Критично',
-          pulse: true
+          pulse: true,
+          description: 'Последние минуты торгов'
         };
       case 'high':
         return {
           icon: Zap,
           color: 'bg-orange-500',
           text: 'Высокая',
-          pulse: true
+          pulse: true,
+          description: 'Отстаёте в торгах'
         };
       case 'medium':
         return {
-          icon: Wifi,
+          icon: Activity,
           color: 'bg-green-500',
           text: 'Средняя',
-          pulse: false
+          pulse: false,
+          description: 'Активные торги'
         };
       case 'low':
         return {
           icon: Clock,
           color: 'bg-gray-500',
           text: 'Низкая',
-          pulse: false
+          pulse: false,
+          description: 'Завершённые торги'
         };
       case 'stopped':
         return {
           icon: WifiOff,
           color: 'bg-gray-400',
           text: 'Остановлено',
-          pulse: false
+          pulse: false,
+          description: 'Нет активных торгов'
         };
     }
   };
@@ -70,7 +77,7 @@ export const PollingIndicator: React.FC<PollingIndicatorProps> = ({
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     
-    if (diff < 10000) return 'Только что';
+    if (diff < 5000) return 'Только что';
     if (diff < 60000) return `${Math.floor(diff / 1000)}с назад`;
     if (diff < 3600000) return `${Math.floor(diff / 60000)}м назад`;
     
@@ -80,6 +87,8 @@ export const PollingIndicator: React.FC<PollingIndicatorProps> = ({
     });
   };
 
+  const isFreshData = lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 3000;
+
   return (
     <div className="flex items-center gap-2 text-xs">
       <Badge 
@@ -87,6 +96,7 @@ export const PollingIndicator: React.FC<PollingIndicatorProps> = ({
         className={`flex items-center gap-1 ${config.color} text-white border-none ${
           config.pulse && isActive ? 'animate-pulse' : ''
         }`}
+        title={config.description}
       >
         <Icon className="h-3 w-3" />
         <span>{config.text}</span>
@@ -104,6 +114,12 @@ export const PollingIndicator: React.FC<PollingIndicatorProps> = ({
           </span>
         )}
       </div>
+
+      {reason && (
+        <span className="text-xs text-gray-400 italic" title={reason}>
+          ({reason.split(':')[0]})
+        </span>
+      )}
       
       {onForceRefresh && (
         <Button
@@ -119,6 +135,13 @@ export const PollingIndicator: React.FC<PollingIndicatorProps> = ({
       
       {isActive && config.pulse && (
         <div className="w-2 h-2 bg-green-400 rounded-full animate-ping" />
+      )}
+
+      {isFreshData && (
+        <div className="flex items-center gap-1 text-green-600 text-xs">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+          <span>Свежие данные</span>
+        </div>
       )}
     </div>
   );

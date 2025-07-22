@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Gavel, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -79,7 +78,7 @@ const BuyerPriceOffers: React.FC = () => {
               </h1>
             </div>
             
-            {/* Smart Polling Indicator with Force Refresh */}
+            {/* Enhanced Polling Indicator */}
             {pollingConfig && (
               <PollingIndicator
                 priority={pollingConfig.priority}
@@ -88,12 +87,13 @@ const BuyerPriceOffers: React.FC = () => {
                 isVisible={isPageVisible}
                 lastUpdateTime={lastUpdateTime}
                 onForceRefresh={forceRefresh}
+                reason={pollingConfig.reason}
               />
             )}
           </div>
           <p className="text-gray-600">
             Управляйте своими предложениями цены и отслеживайте статус торгов
-            <span className="text-blue-600 ml-2">• Умное автообновление</span>
+            <span className="text-blue-600 ml-2">• Оптимизированное автообновление</span>
           </p>
         </div>
 
