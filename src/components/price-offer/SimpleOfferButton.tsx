@@ -38,7 +38,15 @@ export const SimpleOfferButton: React.FC<SimpleOfferButtonProps> = ({
   
   // Get offer state from context with fallback to product props
   const { hasActiveOffers, isProcessing } = getOfferState(product.id);
-  const actualHasActiveOffers = hasActiveOffers || product.has_active_offers || false;
+  const actualHasActiveOffers = product.has_active_offers || hasActiveOffers || false;
+  
+  console.log(`🔍 SimpleOfferButton render for product ${product.id}:`, {
+    productHasActiveOffers: product.has_active_offers,
+    contextHasActiveOffers: hasActiveOffers,
+    actualHasActiveOffers,
+    isProcessing,
+    productTitle: product.title
+  });
   
   // Sync context state with product prop changes
   useEffect(() => {
