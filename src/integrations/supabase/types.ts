@@ -543,6 +543,7 @@ export type Database = {
         Row: {
           buyer_id: string
           created_at: string
+          delivery_method: Database["public"]["Enums"]["delivery_method"]
           expires_at: string
           id: string
           message: string | null
@@ -558,6 +559,7 @@ export type Database = {
         Insert: {
           buyer_id: string
           created_at?: string
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
           expires_at?: string
           id?: string
           message?: string | null
@@ -573,6 +575,7 @@ export type Database = {
         Update: {
           buyer_id?: string
           created_at?: string
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
           expires_at?: string
           id?: string
           message?: string | null

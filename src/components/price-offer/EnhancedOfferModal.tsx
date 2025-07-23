@@ -149,6 +149,7 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
           original_price: product.price,
           offered_price: Number(data.offered_price),
           message: data.message || undefined,
+          delivery_method: 'self_pickup', // Устанавливаем значение по умолчанию для старого модала
         });
       }
       

@@ -91,6 +91,7 @@ export const useCreatePriceOffer = () => {
             offered_price: data.offered_price,
             message: data.message,
             original_price: data.original_price,
+            delivery_method: data.delivery_method,
             expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // +6 часов
             updated_at: new Date().toISOString()
           })
@@ -112,6 +113,7 @@ export const useCreatePriceOffer = () => {
           original_price: data.original_price,
           offered_price: data.offered_price,
           message: data.message,
+          delivery_method: data.delivery_method,
         })
         .select()
         .single();

@@ -14,6 +14,7 @@ export interface PriceOffer {
   created_at: string;
   updated_at: string;
   order_id?: string;
+  delivery_method: 'self_pickup' | 'cargo_rf' | 'cargo_kz';
   
   // Joined data
   product?: {
@@ -46,6 +47,7 @@ export interface CreatePriceOfferData {
   original_price: number;
   offered_price: number;
   message?: string;
+  delivery_method: 'self_pickup' | 'cargo_rf' | 'cargo_kz';
   buyer_id?: string; // Опциональное поле, автоматически добавляется в хуке
 }
 
@@ -54,4 +56,5 @@ export interface UpdatePriceOfferData {
   seller_response?: string;
   offered_price?: number;
   message?: string;
+  delivery_method?: 'self_pickup' | 'cargo_rf' | 'cargo_kz';
 }

@@ -14,10 +14,12 @@ import { PriceOffer } from '@/types/price-offer';
 import { useProductImage } from '@/hooks/useProductImage';
 import { cn } from '@/lib/utils';
 import { DollarSign, TrendingUp, Clock, Send } from 'lucide-react';
+import { DeliveryMethodPicker } from './DeliveryMethodPicker';
 
 const offerSchema = z.object({
   offered_price: z.number().min(1, 'Цена должна быть больше 0'),
   message: z.string().optional(),
+  delivery_method: z.enum(['self_pickup', 'cargo_rf', 'cargo_kz']),
 });
 
 type OfferFormData = z.infer<typeof offerSchema>;
@@ -38,6 +40,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
   const { user } = useAuth();
   const { primaryImage } = useProductImage(product);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'self_pickup' | 'cargo_rf' | 'cargo_kz'>('self_pickup');
   
   const createOfferMutation = useCreatePriceOffer();
   const updateOfferMutation = useUpdatePriceOffer();
@@ -54,6 +57,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
     defaultValues: {
       offered_price: Number(existingOffer?.offered_price) || 0,
       message: existingOffer?.message || '',
+      delivery_method: existingOffer?.delivery_method || 'self_pickup',
     }
   });
 
@@ -62,10 +66,13 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
   // Reset form when modal opens/closes or offer changes
   useEffect(() => {
     if (isOpen) {
+      const deliveryMethod = existingOffer?.delivery_method || 'self_pickup';
       reset({
         offered_price: Number(existingOffer?.offered_price) || 0,
         message: existingOffer?.message || '',
+        delivery_method: deliveryMethod,
       });
+      setSelectedDeliveryMethod(deliveryMethod);
     }
   }, [isOpen, existingOffer, reset]);
 
@@ -99,6 +106,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
           data: {
             offered_price: data.offered_price,
             message: data.message || undefined,
+            delivery_method: data.delivery_method,
           }
         });
       } else {
@@ -109,6 +117,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
           original_price: product.price,
           offered_price: data.offered_price,
           message: data.message || undefined,
+          delivery_method: data.delivery_method,
         });
       }
       
@@ -259,6 +268,16 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Delivery Method */}
+          <DeliveryMethodPicker
+            value={selectedDeliveryMethod}
+            onChange={(value) => {
+              setSelectedDeliveryMethod(value);
+              setValue('delivery_method', value);
+            }}
+            productPrice={product.price}
+          />
 
           {/* Message Input */}
           <div className="space-y-2">
