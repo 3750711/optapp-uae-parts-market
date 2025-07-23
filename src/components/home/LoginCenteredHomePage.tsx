@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { TelegramLoginWidget } from '@/components/auth/TelegramLoginWidget';
 import { useAuth } from '@/contexts/AuthContext';
 import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
@@ -24,7 +26,10 @@ import {
   Star,
   Check,
   ArrowRight,
-  Globe
+  Globe,
+  ChevronDown,
+  Zap,
+  Smartphone
 } from 'lucide-react';
 
 interface PlatformStats {
@@ -40,6 +45,7 @@ const LoginCenteredHomePage = () => {
   const [isResolvingOptId, setIsResolvingOptId] = useState(false);
   const [stats, setStats] = useState<PlatformStats>({ activeProducts: 0, maxOrderNumber: 0 });
   const [animationStep, setAnimationStep] = useState(0);
+  const [showEmailLogin, setShowEmailLogin] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -71,7 +77,6 @@ const LoginCenteredHomePage = () => {
           maxOrderNumber: ordersResult.data?.order_number || 7549
         });
       } catch (error) {
-        // Используем дефолтные значения при ошибке
         setStats({ activeProducts: 773, maxOrderNumber: 7549 });
       }
     };
@@ -143,11 +148,16 @@ const LoginCenteredHomePage = () => {
     { icon: Star, title: "Качественный сервис", description: "Персональный менеджер для каждого клиента" }
   ];
 
+  const telegramBenefits = [
+    { icon: Zap, text: "Вход за 10 секунд" },
+    { icon: Shield, text: "Максимальная безопасность" },
+    { icon: Smartphone, text: "Без паролей" }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        {/* Background Pattern */}
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         
         <div className="container mx-auto px-4 pt-12 pb-8">
@@ -229,119 +239,144 @@ const LoginCenteredHomePage = () => {
 
       {/* Login Section */}
       <div className="container mx-auto px-4 pb-16">
-        <div className="max-w-5xl mx-auto">
-          <div className={`grid lg:grid-cols-2 gap-8 items-stretch ${animationStep >= 4 ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '0.3s' }}>
+        <div className="max-w-2xl mx-auto">
+          
+          {/* Recommended Method Badge */}
+          <div className={`text-center mb-6 ${animationStep >= 4 ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '0.3s' }}>
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[#0088cc]/10 to-[#0088cc]/5 border border-[#0088cc]/20 rounded-full px-4 py-2 text-sm font-medium text-[#0088cc] mb-4">
+              <Star className="w-4 h-4" />
+              Рекомендуемый способ входа
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <span className="font-semibold text-[#0088cc]">90%</span> пользователей выбирают Telegram
+            </div>
+          </div>
+
+          {/* Main Telegram Login */}
+          <Card className={`shadow-elevation border-0 bg-white/80 backdrop-blur-sm hover:shadow-elevation-hover transition-all duration-300 mb-6 ${animationStep >= 5 ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '0.4s' }}>
+            <CardHeader className="text-center pb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-[#0088cc] to-[#0088cc]/80 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg relative">
+                <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                </svg>
+                {/* Animated pulse ring */}
+                <div className="absolute inset-0 rounded-3xl border-4 border-[#0088cc]/30 animate-ping"></div>
+              </div>
+              <CardTitle className="text-2xl font-bold mb-2">Вход через Telegram</CardTitle>
+              <CardDescription className="text-lg mb-6">
+                Войдите в систему за <span className="font-semibold text-[#0088cc]">10 секунд</span> без паролей
+              </CardDescription>
+              
+              {/* Benefits */}
+              <div className="flex justify-center gap-6 mb-6">
+                {telegramBenefits.map((benefit, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="w-6 h-6 bg-gradient-to-br from-[#0088cc]/10 to-[#0088cc]/20 rounded-full flex items-center justify-center">
+                      <benefit.icon className="w-3 h-3 text-[#0088cc]" />
+                    </div>
+                    {benefit.text}
+                  </div>
+                ))}
+              </div>
+            </CardHeader>
             
-            {/* Email Login Form */}
-            <Card className="h-full shadow-elevation border-0 bg-white/80 backdrop-blur-sm hover:shadow-elevation-hover transition-all duration-300">
-              <CardHeader className="text-center pb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary/80 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Mail className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle className="text-xl font-bold">Вход по Email</CardTitle>
-                <CardDescription className="text-base">
-                  Введите ваши учетные данные для доступа к платформе
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="identifier" className="flex items-center gap-2 text-sm font-medium">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      Email или OPT ID
-                    </Label>
-                    <Input
-                      id="identifier"
-                      type="text"
-                      placeholder="Введите email или OPT ID"
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      required
-                      disabled={loading}
-                      className="h-12 bg-white/50 border-border focus:border-primary focus:ring-primary/20 transition-colors"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium">
-                      <Lock className="w-4 h-4 text-muted-foreground" />
-                      Пароль
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Введите пароль"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                      className="h-12 bg-white/50 border-border focus:border-primary focus:ring-primary/20 transition-colors"
-                    />
-                  </div>
+            <CardContent className="flex flex-col items-center justify-center py-6">
+              <TelegramLoginWidget 
+                onSuccess={handleTelegramSuccess}
+                onError={handleTelegramError}
+              />
+              
+              {error && (
+                <Alert variant="destructive" className="mt-6 border-destructive/20 bg-destructive/5">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
 
-                  {error && (
-                    <Alert variant="destructive" className="border-destructive/20 bg-destructive/5">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
+          {/* Email Login Collapsible */}
+          <div className={`${animationStep >= 6 ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '0.5s' }}>
+            <Collapsible open={showEmailLogin} onOpenChange={setShowEmailLogin}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full text-muted-foreground hover:text-foreground transition-colors group">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Войти через email или пароль
+                  <ChevronDown className={`w-4 h-4 ml-2 transition-transform duration-200 ${showEmailLogin ? 'rotate-180' : ''}`} />
+                </Button>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className="mt-4">
+                <Card className="shadow-elevation border-0 bg-white/60 backdrop-blur-sm">
+                  <CardHeader className="text-center pb-4">
+                    <CardTitle className="text-lg font-semibold">Альтернативный вход</CardTitle>
+                    <CardDescription>
+                      Введите ваши учетные данные
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="identifier" className="flex items-center gap-2 text-sm font-medium">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          Email или OPT ID
+                        </Label>
+                        <Input
+                          id="identifier"
+                          type="text"
+                          placeholder="Введите email или OPT ID"
+                          value={identifier}
+                          onChange={(e) => setIdentifier(e.target.value)}
+                          required
+                          disabled={loading}
+                          className="h-10 bg-white/50 border-border focus:border-primary focus:ring-primary/20 transition-colors"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium">
+                          <Lock className="w-4 h-4 text-muted-foreground" />
+                          Пароль
+                        </Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          placeholder="Введите пароль"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          disabled={loading}
+                          className="h-10 bg-white/50 border-border focus:border-primary focus:ring-primary/20 transition-colors"
+                        />
+                      </div>
 
-                  <Button 
-                    type="submit" 
-                    className="w-full h-12 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white font-semibold shadow-button hover:shadow-lg transition-all duration-200" 
-                    disabled={loading}
-                  >
-                    {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                    {isResolvingOptId ? 'Поиск аккаунта...' : loading ? 'Вход...' : 'Войти в систему'}
-                    {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
-                  </Button>
-                </form>
+                      <Button 
+                        type="submit" 
+                        className="w-full h-10 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white font-medium shadow-button transition-all duration-200" 
+                        disabled={loading}
+                      >
+                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {isResolvingOptId ? 'Поиск аккаунта...' : loading ? 'Вход...' : 'Войти'}
+                        {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
+                      </Button>
+                    </form>
 
-                <div className="mt-6 text-center">
-                  <Link 
-                    to="/forgot-password" 
-                    className="text-sm text-primary hover:text-primary/80 transition-colors font-medium"
-                  >
-                    Забыли пароль?
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Telegram Login */}
-            <Card className="h-full shadow-elevation border-0 bg-white/80 backdrop-blur-sm hover:shadow-elevation-hover transition-all duration-300">
-              <CardHeader className="text-center pb-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#0088cc] to-[#0088cc]/80 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <svg className="w-8 h-8 text-white" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                  </svg>
-                </div>
-                <CardTitle className="text-xl font-bold">Быстрый вход</CardTitle>
-                <CardDescription className="text-base">
-                  Войдите через Telegram одним кликом
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center py-8">
-                <TelegramLoginWidget 
-                  onSuccess={handleTelegramSuccess}
-                  onError={handleTelegramError}
-                />
-                <div className="mt-6 space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Безопасная авторизация
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Check className="w-4 h-4 text-green-500" />
-                    Мгновенный доступ
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="mt-4 text-center">
+                      <Link 
+                        to="/forgot-password" 
+                        className="text-sm text-primary hover:text-primary/80 transition-colors font-medium"
+                      >
+                        Забыли пароль?
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
 
           {/* Registration CTA */}
-          <div className={`text-center mt-12 ${animationStep >= 5 ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '0.4s' }}>
+          <div className={`text-center mt-12 ${animationStep >= 7 ? 'animate-fade-in' : 'opacity-0'}`} style={{ animationDelay: '0.6s' }}>
             <div className="bg-gradient-to-r from-white/60 to-white/40 backdrop-blur-sm rounded-2xl p-8 border border-white/20 shadow-lg">
               <h3 className="text-2xl font-bold mb-3">Нет аккаунта?</h3>
               <p className="text-muted-foreground mb-6 text-lg">
