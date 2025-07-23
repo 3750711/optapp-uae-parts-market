@@ -208,7 +208,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   totalOffers={totalOffers}
                   expiresAt={product.user_offer_expires_at}
                   lastUpdateTime={lastUpdateTime}
-                  freshDataIndicator={freshDataIndicator}
                 />
               )}
             </div>

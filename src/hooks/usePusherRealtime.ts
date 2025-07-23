@@ -66,8 +66,8 @@ export const usePusherRealtime = (config: PusherRealtimeConfig = {}) => {
   }, [queryClient, user?.id]);
 
   // Handle incoming Pusher events
-  const handlePusherEvent = useCallback((data: PusherOfferEvent, action: string) => {
-    const event = { ...data, action };
+  const handlePusherEvent = useCallback((data: any, action: 'created' | 'updated' | 'deleted') => {
+    const event: PusherOfferEvent = { ...data, action };
     console.log('📥 Pusher event:', action, event.product_id);
     
     // Add to events list (keep last 10)
