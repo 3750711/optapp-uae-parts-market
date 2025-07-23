@@ -1,7 +1,7 @@
 
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useUnifiedRealtimeManager } from "./useUnifiedRealtimeManager";
 
 interface UseRealTimePriceOffersProps {
   productId: string;
@@ -15,95 +15,71 @@ export const useRealTimePriceOffers = ({
   userId 
 }: UseRealTimePriceOffersProps) => {
   const queryClient = useQueryClient();
-  const channelRef = useRef<any>(null);
+  const { subscribe } = useUnifiedRealtimeManager();
+  const unsubscribeRef = useRef<(() => void) | null>(null);
   const lastUpdateRef = useRef<number>(0);
-  const DEBOUNCE_MS = 1000; // 1 second debounce
+  const DEBOUNCE_MS = 1000;
 
   useEffect(() => {
     if (!enabled || !productId) return;
 
-    // Cleanup existing channel
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    console.log(`🔄 Setting up unified real-time for product: ${productId}`);
 
-    const channelName = `price-offers-realtime-${productId}`;
-    console.log(`🔄 Setting up real-time channel: ${channelName}`);
-
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'price_offers',
-          filter: `product_id=eq.${productId}`
-        },
-        (payload) => {
-          const now = Date.now();
-          
-          // Debounce updates to prevent too frequent invalidations
-          if (now - lastUpdateRef.current < DEBOUNCE_MS) {
-            console.log('🔄 Debouncing real-time update');
-            return;
-          }
-          
-          lastUpdateRef.current = now;
-          
-          console.log('🔄 Real-time price offers update:', {
-            event: payload.eventType,
-            productId,
-            userId,
-            payload
-          });
-
-          // Invalidate all related queries with slight delay to ensure consistency
-          setTimeout(() => {
-            queryClient.invalidateQueries({ 
-              queryKey: ["pending-offer", productId] 
-            });
-            queryClient.invalidateQueries({ 
-              queryKey: ["competitive-offers", productId] 
-            });
-            
-            // Also invalidate user's offer lists if userId is available
-            if (userId) {
-              queryClient.invalidateQueries({ 
-                queryKey: ["buyer-price-offers"] 
-              });
-            }
-          }, 100);
-        }
-      )
-      .subscribe((status) => {
-        console.log(`🔄 Real-time subscription status for ${productId}:`, status);
+    const unsubscribe = subscribe({
+      id: `price-offers-${productId}`,
+      table: 'price_offers',
+      filter: `product_id=eq.${productId}`,
+      enabled: true,
+      callback: (payload) => {
+        const now = Date.now();
         
-        if (status === 'SUBSCRIBED') {
-          console.log(`✅ Successfully subscribed to price offers updates for product ${productId}`);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error(`❌ Channel error for product ${productId}, attempting to reconnect...`);
-          // Attempt to reconnect after a delay
-          setTimeout(() => {
-            if (channelRef.current) {
-              channelRef.current.unsubscribe();
-              channelRef.current = null;
-            }
-          }, 2000);
+        // Debounce updates to prevent too frequent invalidations
+        if (now - lastUpdateRef.current < DEBOUNCE_MS) {
+          console.log('🔄 Debouncing unified real-time update');
+          return;
         }
-      });
+        
+        lastUpdateRef.current = now;
+        
+        console.log('🔄 Unified real-time price offers update:', {
+          event: payload.eventType,
+          productId,
+          userId,
+          payload
+        });
 
-    channelRef.current = channel;
+        // Invalidate all related queries with slight delay to ensure consistency
+        setTimeout(() => {
+          queryClient.invalidateQueries({ 
+            queryKey: ["pending-offer", productId] 
+          });
+          queryClient.invalidateQueries({ 
+            queryKey: ["competitive-offers", productId] 
+          });
+          
+          // Also invalidate user's offer lists if userId is available
+          if (userId) {
+            queryClient.invalidateQueries({ 
+              queryKey: ["buyer-price-offers"] 
+            });
+            queryClient.invalidateQueries({ 
+              queryKey: ["buyer-auction-products"] 
+            });
+          }
+        }, 100);
+      }
+    });
+
+    unsubscribeRef.current = unsubscribe;
 
     return () => {
-      console.log(`🔄 Cleaning up real-time channel for product ${productId}`);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+      console.log(`🔄 Cleaning up unified real-time for product ${productId}`);
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
       }
     };
-  }, [enabled, productId, userId, queryClient]);
+  }, [enabled, productId, userId, queryClient, subscribe]);
 
-  return channelRef.current;
+  return unsubscribeRef.current;
 };

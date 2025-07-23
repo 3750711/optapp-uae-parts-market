@@ -21,6 +21,64 @@ export interface AuctionProduct extends Product {
 // Optimized cache for user's active products
 const userActiveProductsCache = new Map<string, Set<string>>();
 
+// Connection state manager
+class ConnectionStateManager {
+  private static instance: ConnectionStateManager;
+  private connections = new Map<string, RealtimeChannel>();
+  private connectionStates = new Map<string, boolean>();
+  
+  static getInstance(): ConnectionStateManager {
+    if (!ConnectionStateManager.instance) {
+      ConnectionStateManager.instance = new ConnectionStateManager();
+    }
+    return ConnectionStateManager.instance;
+  }
+  
+  addConnection(key: string, channel: RealtimeChannel): void {
+    // Clean up existing connection if any
+    const existing = this.connections.get(key);
+    if (existing) {
+      console.log(`🔄 Replacing existing connection for ${key}`);
+      supabase.removeChannel(existing);
+    }
+    
+    this.connections.set(key, channel);
+    this.connectionStates.set(key, false);
+  }
+  
+  removeConnection(key: string): void {
+    const channel = this.connections.get(key);
+    if (channel) {
+      console.log(`🔌 Removing connection for ${key}`);
+      supabase.removeChannel(channel);
+      this.connections.delete(key);
+      this.connectionStates.delete(key);
+    }
+  }
+  
+  setConnectionState(key: string, isConnected: boolean): void {
+    this.connectionStates.set(key, isConnected);
+  }
+  
+  getConnectionState(key: string): boolean {
+    return this.connectionStates.get(key) || false;
+  }
+  
+  getAllConnections(): Map<string, boolean> {
+    return new Map(this.connectionStates);
+  }
+  
+  cleanup(): void {
+    console.log('🧹 Cleaning up all connections');
+    this.connections.forEach((channel, key) => {
+      console.log(`🔌 Removing connection: ${key}`);
+      supabase.removeChannel(channel);
+    });
+    this.connections.clear();
+    this.connectionStates.clear();
+  }
+}
+
 // Enhanced relevance check with performance monitoring
 const isRelevantUpdate = async (payload: any, userId: string, recordRealTimeUpdate: (duration: number) => void) => {
   const startTime = performance.now();
@@ -114,20 +172,22 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
   const queryClient = useQueryClient();
   const { invalidateBatchOffers } = useBatchOffersInvalidation();
   const { recordRealTimeUpdate } = usePerformanceMonitor();
+  const connectionManager = ConnectionStateManager.getInstance();
   
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const [realtimeEvents, setRealtimeEvents] = useState<string[]>([]);
   const [freshDataIndicator, setFreshDataIndicator] = useState(false);
   
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttemptsRef = useRef<number>(0);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const debounceTimerRef = useRef<NodeJS.Timeout>();
   const pendingUpdatesRef = useRef<Set<string>>(new Set());
   
-  const MAX_RECONNECT_ATTEMPTS = 3;
-  const DEBOUNCE_MS = 150; // Optimized debounce time
+  const MAX_RECONNECT_ATTEMPTS = 5;
+  const DEBOUNCE_MS = 150;
+  const BASE_RECONNECT_DELAY = 1000;
+  const MAX_RECONNECT_DELAY = 30000;
 
   // Enhanced batch invalidation with performance monitoring
   const processPendingUpdates = useCallback(() => {
@@ -161,15 +221,21 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     console.log('✅ Batch update completed in', performance.now() - startTime, 'ms');
   }, [invalidateBatchOffers, queryClient, recordRealTimeUpdate]);
 
-  // Enhanced reconnection logic with exponential backoff
+  // Fixed reconnection logic with exponential backoff
   const handleReconnect = useCallback(() => {
+    if (!user) return;
+    
     if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-      console.error('❌ Max reconnection attempts reached');
+      console.error('❌ Max reconnection attempts reached, switching to polling mode');
+      setIsConnected(false);
       return;
     }
 
     reconnectAttemptsRef.current += 1;
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 8000);
+    const delay = Math.min(
+      BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttemptsRef.current - 1),
+      MAX_RECONNECT_DELAY
+    );
     
     console.log(`🔄 Reconnecting (${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms`);
 
@@ -178,12 +244,96 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     }
 
     reconnectTimeoutRef.current = setTimeout(() => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      console.log('🔄 Executing reconnection attempt');
+      
+      // Remove old connection
+      const connectionKey = `buyer_auctions_${user.id}`;
+      connectionManager.removeConnection(connectionKey);
+      
+      // Create new connection
+      setupRealtimeConnection();
     }, delay);
-  }, []);
+  }, [user]);
+
+  // Setup realtime connection function
+  const setupRealtimeConnection = useCallback(() => {
+    if (!user) return;
+
+    const connectionKey = `buyer_auctions_${user.id}`;
+    
+    console.log('🔄 Setting up enhanced Real-time subscription for user:', user.id);
+
+    const channel = supabase
+      .channel(`enhanced_buyer_auctions_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'price_offers'
+        },
+        async (payload) => {
+          const productId = payload.new?.product_id || payload.old?.product_id;
+          const buyerId = payload.new?.buyer_id || payload.old?.buyer_id;
+          
+          console.log('📡 Enhanced Real-time event:', {
+            event: payload.eventType,
+            productId,
+            buyerId,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Add to events log
+          const eventDetails = `${payload.eventType}: ${productId?.slice(0,8)}... (${buyerId?.slice(0,8)}...) at ${new Date().toLocaleTimeString()}`;
+          setRealtimeEvents(prev => [eventDetails, ...prev.slice(0, 9)]);
+          
+          // Check relevance with performance monitoring
+          const isRelevant = await isRelevantUpdate(payload, user.id, recordRealTimeUpdate);
+          
+          if (isRelevant) {
+            // Add to pending updates for batch processing
+            pendingUpdatesRef.current.add(productId);
+            
+            // Clear existing debounce timer
+            if (debounceTimerRef.current) {
+              clearTimeout(debounceTimerRef.current);
+            }
+            
+            // Set new debounce timer
+            debounceTimerRef.current = setTimeout(() => {
+              processPendingUpdates();
+            }, DEBOUNCE_MS);
+            
+            console.log(`⚡ Queued for batch processing: ${productId}`);
+          } else {
+            console.log(`⏭️ Skipped irrelevant update: ${productId}`);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('📡 Enhanced Real-time status:', status);
+        const isNowConnected = status === 'SUBSCRIBED';
+        setIsConnected(isNowConnected);
+        connectionManager.setConnectionState(connectionKey, isNowConnected);
+        
+        if (status === 'SUBSCRIBED') {
+          reconnectAttemptsRef.current = 0;
+          console.log('✅ Successfully connected to Real-time');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error, attempting reconnect...');
+          setIsConnected(false);
+          connectionManager.setConnectionState(connectionKey, false);
+          handleReconnect();
+        } else if (status === 'CLOSED') {
+          console.warn('⚠️ Connection closed, switching to polling mode');
+          setIsConnected(false);
+          connectionManager.setConnectionState(connectionKey, false);
+          // Don't immediately reconnect on CLOSED status - might be intentional
+        }
+      });
+
+    connectionManager.addConnection(connectionKey, channel);
+  }, [user, handleReconnect, processPendingUpdates, recordRealTimeUpdate]);
 
   // Main auction data query
   const queryResult = useQuery({
@@ -365,81 +515,14 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     refetchInterval: isConnected ? false : 10000
   });
 
-  // Enhanced Real-time subscription with batch processing
+  // Enhanced Real-time subscription with proper connection management
   useEffect(() => {
     if (!user) {
       setIsConnected(false);
       return;
     }
 
-    console.log('🔄 Setting up enhanced Real-time subscription for user:', user.id);
-
-    const channel = supabase
-      .channel(`enhanced_buyer_auctions_${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'price_offers'
-        },
-        async (payload) => {
-          const productId = payload.new?.product_id || payload.old?.product_id;
-          const buyerId = payload.new?.buyer_id || payload.old?.buyer_id;
-          
-          console.log('📡 Enhanced Real-time event:', {
-            event: payload.eventType,
-            productId,
-            buyerId,
-            timestamp: new Date().toISOString()
-          });
-          
-          // Add to events log
-          const eventDetails = `${payload.eventType}: ${productId?.slice(0,8)}... (${buyerId?.slice(0,8)}...) at ${new Date().toLocaleTimeString()}`;
-          setRealtimeEvents(prev => [eventDetails, ...prev.slice(0, 9)]);
-          
-          // Check relevance with performance monitoring
-          const isRelevant = await isRelevantUpdate(payload, user.id, recordRealTimeUpdate);
-          
-          if (isRelevant) {
-            // Add to pending updates for batch processing
-            pendingUpdatesRef.current.add(productId);
-            
-            // Clear existing debounce timer
-            if (debounceTimerRef.current) {
-              clearTimeout(debounceTimerRef.current);
-            }
-            
-            // Set new debounce timer
-            debounceTimerRef.current = setTimeout(() => {
-              processPendingUpdates();
-            }, DEBOUNCE_MS);
-            
-            console.log(`⚡ Queued for batch processing: ${productId}`);
-          } else {
-            console.log(`⏭️ Skipped irrelevant update: ${productId}`);
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Enhanced Real-time status:', status);
-        setIsConnected(status === 'SUBSCRIBED');
-        
-        if (status === 'SUBSCRIBED') {
-          reconnectAttemptsRef.current = 0;
-          console.log('✅ Successfully connected to Real-time');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Channel error, attempting reconnect...');
-          setIsConnected(false);
-          handleReconnect();
-        } else if (status === 'CLOSED') {
-          console.warn('⚠️ Connection closed, switching to polling mode');
-          setIsConnected(false);
-          // Don't immediately reconnect on CLOSED status - might be intentional
-        }
-      });
-
-    channelRef.current = channel;
+    setupRealtimeConnection();
 
     return () => {
       console.log('🔌 Cleaning up enhanced Real-time subscription');
@@ -457,13 +540,11 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
         clearTimeout(reconnectTimeoutRef.current);
       }
       
-      // Remove channel
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
+      // Remove connection through manager
+      const connectionKey = `buyer_auctions_${user.id}`;
+      connectionManager.removeConnection(connectionKey);
     };
-  }, [user?.id, handleReconnect, processPendingUpdates, recordRealTimeUpdate]);
+  }, [user?.id, setupRealtimeConnection, processPendingUpdates]);
 
   // Force refresh function
   const forceRefresh = useCallback(async () => {
@@ -478,13 +559,28 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     });
   }, [queryClient, user]);
 
+  // Connection diagnostics
+  const getConnectionDiagnostics = useCallback(() => {
+    const connectionKey = `buyer_auctions_${user?.id}`;
+    const allConnections = connectionManager.getAllConnections();
+    
+    return {
+      currentConnection: connectionManager.getConnectionState(connectionKey),
+      allConnections: Object.fromEntries(allConnections),
+      reconnectAttempts: reconnectAttemptsRef.current,
+      lastUpdateTime,
+      eventsCount: realtimeEvents.length
+    };
+  }, [user?.id, lastUpdateTime, realtimeEvents.length]);
+
   return {
     ...queryResult,
     isConnected,
     lastUpdateTime,
     realtimeEvents,
     freshDataIndicator,
-    forceRefresh
+    forceRefresh,
+    getConnectionDiagnostics
   };
 };
 
