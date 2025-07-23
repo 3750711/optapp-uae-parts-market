@@ -2,7 +2,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wifi, WifiOff, RotateCcw, AlertCircle } from 'lucide-react';
+import { Wifi, WifiOff, RotateCcw, AlertCircle, Activity } from 'lucide-react';
 import { PusherConnectionState } from '@/types/pusher';
 
 interface PusherConnectionIndicatorProps {
@@ -25,7 +25,7 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
   const getStatusColor = () => {
     switch (state) {
       case 'connected': return 'bg-green-500';
-      case 'connecting': return 'bg-yellow-500';
+      case 'connecting': return 'bg-yellow-500 animate-pulse';
       case 'disconnected': return 'bg-gray-500';
       case 'failed': return 'bg-red-500';
       default: return 'bg-gray-500';
@@ -44,12 +44,14 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
 
   const getStatusIcon = () => {
     switch (state) {
-      case 'connected': return <Wifi className="w-4 h-4" />;
-      case 'connecting': return <RotateCcw className="w-4 h-4 animate-spin" />;
-      case 'failed': return <AlertCircle className="w-4 h-4" />;
-      default: return <WifiOff className="w-4 h-4" />;
+      case 'connected': return <Wifi className="w-4 h-4 text-green-600" />;
+      case 'connecting': return <RotateCcw className="w-4 h-4 animate-spin text-yellow-600" />;
+      case 'failed': return <AlertCircle className="w-4 h-4 text-red-600" />;
+      default: return <WifiOff className="w-4 h-4 text-gray-600" />;
     }
   };
+
+  const hasRecentEvents = realtimeEvents.length > 0;
 
   if (compact) {
     return (
@@ -59,6 +61,9 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
           <span className="text-xs text-gray-600">
             {isConnected ? 'Live' : 'Offline'}
           </span>
+          {hasRecentEvents && (
+            <Activity className="w-3 h-3 text-green-600 animate-pulse" />
+          )}
         </div>
         {!isConnected && (
           <Button
@@ -76,14 +81,23 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
 
   return (
     <div className="bg-white rounded-lg border p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {getStatusIcon()}
           <span className="font-medium text-sm">{getStatusText()}</span>
+          {hasRecentEvents && (
+            <div className="flex items-center gap-1 text-xs text-green-600">
+              <Activity className="w-3 h-3 animate-pulse" />
+              <span>Активность</span>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
-          <Badge variant={isConnected ? "default" : "secondary"}>
+          <Badge 
+            variant={isConnected ? "default" : "secondary"}
+            className={isConnected ? "bg-green-100 text-green-800" : ""}
+          >
             {isConnected ? 'Подключено' : 'Отключено'}
           </Badge>
           
@@ -103,13 +117,20 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
 
       <div className="space-y-1 text-xs text-gray-600">
         {lastUpdateTime && (
-          <div>
-            Последнее обновление: {lastUpdateTime.toLocaleTimeString()}
+          <div className="flex items-center gap-2">
+            <span>Последнее обновление:</span>
+            <span className="font-mono">
+              {lastUpdateTime.toLocaleTimeString('ru-RU', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+              })}
+            </span>
           </div>
         )}
         
         {reconnectAttempts > 0 && (
-          <div>
+          <div className="text-orange-600">
             Попыток переподключения: {reconnectAttempts}
           </div>
         )}
@@ -121,10 +142,14 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
         )}
         
         {realtimeEvents.length > 0 && (
-          <div>
+          <div className="text-green-600">
             Real-time событий: {realtimeEvents.length}
           </div>
         )}
+
+        <div className="pt-1 text-xs text-gray-500">
+          Режим: {isConnected ? 'Real-time обновления' : 'Автообновление каждые 15 сек'}
+        </div>
       </div>
     </div>
   );

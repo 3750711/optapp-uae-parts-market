@@ -32,7 +32,7 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
 
   const [freshDataIndicator, setFreshDataIndicator] = useState(false);
 
-  // Main auction data query with reduced polling frequency (Pusher handles real-time)
+  // Main auction data query with enhanced real-time support
   const queryResult = useQuery({
     queryKey: ['buyer-auction-products', user?.id, statusFilter],
     queryFn: async (): Promise<AuctionProduct[]> => {
@@ -201,27 +201,49 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
       
       // Flash indicator when new data arrives
       setFreshDataIndicator(true);
-      setTimeout(() => setFreshDataIndicator(false), 1000);
+      setTimeout(() => setFreshDataIndicator(false), 2000);
       
       return products;
     },
     enabled: !!user,
-    staleTime: 30000, // Increased stale time since Pusher handles real-time
-    gcTime: 60000,
+    staleTime: isConnected ? 60000 : 30000, // Longer stale time with Pusher
+    gcTime: 300000, // 5 minutes
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchInterval: isConnected ? 60000 : 15000, // Reduced polling when connected to Pusher
+    refetchInterval: isConnected ? false : 15000, // No polling when Pusher is connected
   });
 
-  // Force refresh function
+  // Enhanced force refresh with detailed logging
   const forceRefresh = useCallback(async () => {
     console.log('🔄 Force refreshing auction data...');
-    await queryClient.invalidateQueries({
-      queryKey: ['buyer-auction-products'],
-      exact: false,
-      refetchType: 'all'
-    });
+    
+    try {
+      // Invalidate all related queries
+      await queryClient.invalidateQueries({
+        queryKey: ['buyer-auction-products'],
+        exact: false,
+        refetchType: 'all'
+      });
+      
+      await queryClient.invalidateQueries({
+        queryKey: ['buyer-offer-counts'],
+        exact: false,
+        refetchType: 'all'
+      });
+      
+      console.log('✅ Force refresh completed');
+    } catch (error) {
+      console.error('❌ Force refresh failed:', error);
+    }
   }, [queryClient]);
+
+  // Listen for real-time events and trigger refresh
+  useEffect(() => {
+    if (realtimeEvents.length > 0) {
+      console.log('📡 Real-time events received, triggering refresh:', realtimeEvents.length);
+      forceRefresh();
+    }
+  }, [realtimeEvents, forceRefresh]);
 
   return {
     ...queryResult,
@@ -234,20 +256,24 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     getConnectionDiagnostics: () => ({ 
       pusher: isConnected, 
       polling: !isConnected,
-      interval: isConnected ? 60000 : 15000,
-      events: realtimeEvents.length
+      interval: isConnected ? false : 15000,
+      events: realtimeEvents.length,
+      lastUpdate: lastUpdateTime
     })
   };
 };
 
-// Simplified buyer offer counts hook
+// Enhanced buyer offer counts hook with real-time support
 export const useBuyerOfferCounts = () => {
   const { user } = useAuth();
+  const { isConnected, realtimeEvents } = usePusherOffers();
 
   return useQuery({
     queryKey: ['buyer-offer-counts', user?.id],
     queryFn: async () => {
       if (!user) return { active: 0, cancelled: 0, completed: 0, total: 0 };
+
+      console.log('🔢 Fetching buyer offer counts');
 
       const { data, error } = await supabase
         .from('price_offers')
@@ -266,16 +292,20 @@ export const useBuyerOfferCounts = () => {
 
       const statuses = Array.from(latestOffers.values());
       
-      return {
+      const counts = {
         active: statuses.filter(s => s === 'pending').length,
         cancelled: statuses.filter(s => s === 'cancelled').length,
         completed: statuses.filter(s => ['expired', 'rejected', 'accepted'].includes(s)).length,
         total: statuses.length
       };
+
+      console.log('✅ Buyer offer counts:', counts);
+      return counts;
     },
     enabled: !!user,
-    staleTime: 30000,
-    gcTime: 60000,
-    refetchInterval: 60000, // Reduced polling for counts
+    staleTime: isConnected ? 60000 : 30000,
+    gcTime: 300000,
+    refetchInterval: isConnected ? false : 60000, // No polling when Pusher is connected
+    refetchOnWindowFocus: true,
   });
 };

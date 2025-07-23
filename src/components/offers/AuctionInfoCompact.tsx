@@ -2,7 +2,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Clock, Users, Activity } from 'lucide-react';
+import { TrendingUp, Clock, Users, Activity, Wifi } from 'lucide-react';
 import { useCreatePriceOffer } from '@/hooks/use-price-offers';
 import { toast } from 'sonner';
 
@@ -17,6 +17,7 @@ interface AuctionInfoCompactProps {
   expiresAt: string;
   lastUpdateTime?: Date;
   freshDataIndicator?: boolean;
+  isConnected?: boolean;
 }
 
 export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
@@ -29,7 +30,8 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   totalOffers,
   expiresAt,
   lastUpdateTime,
-  freshDataIndicator = false
+  freshDataIndicator = false,
+  isConnected = false
 }) => {
   const createOfferMutation = useCreatePriceOffer();
 
@@ -76,8 +78,8 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   const isFreshData = lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 5000;
 
   return (
-    <div className={`rounded-lg p-3 space-y-2 border transition-all duration-300 ${
-      freshDataIndicator ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+    <div className={`rounded-lg p-3 space-y-2 border transition-all duration-500 ${
+      freshDataIndicator ? 'bg-green-50 border-green-200 shadow-md' : 'bg-gray-50 border-gray-200'
     }`}>
       {/* Status and prices */}
       <div className="flex items-center justify-between">
@@ -85,7 +87,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
           <Badge 
             variant={isUserLeading ? "default" : "destructive"} 
             className={`text-xs transition-all duration-300 ${
-              freshDataIndicator ? 'animate-pulse' : ''
+              freshDataIndicator ? 'animate-pulse shadow-sm' : ''
             }`}
           >
             {isUserLeading ? 'Лидирую' : 'Отстаю'}
@@ -101,9 +103,16 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1 text-xs text-gray-500">
-          <Clock className="h-3 w-3" />
-          <span>{getTimeRemaining(expiresAt)}</span>
+        
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <Clock className="h-3 w-3" />
+            <span>{getTimeRemaining(expiresAt)}</span>
+          </div>
+          {/* Connection indicator */}
+          <div className={`w-2 h-2 rounded-full ${
+            isConnected ? 'bg-green-500' : 'bg-gray-400'
+          }`} title={isConnected ? 'Real-time активен' : 'Автообновление'} />
         </div>
       </div>
 
@@ -144,7 +153,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
 
       {/* Real-time status */}
       {lastUpdateTime && (
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-gray-400 flex items-center justify-between">
           <span>
             Данные: {lastUpdateTime.toLocaleTimeString('ru-RU', { 
               hour: '2-digit', 
@@ -152,6 +161,10 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
               second: '2-digit'
             })}
           </span>
+          <div className="flex items-center gap-1">
+            <Wifi className="h-3 w-3" />
+            <span>{isConnected ? 'Live' : 'Auto'}</span>
+          </div>
         </div>
       )}
     </div>

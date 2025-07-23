@@ -20,11 +20,12 @@ export const usePusherConnection = () => {
   
   const pusherRef = useRef<Pusher | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const subscribedChannels = useRef<Set<string>>(new Set());
 
   const connect = useCallback(() => {
     if (!user || pusherRef.current) return;
 
-    console.log('🔗 Pusher: Connecting...');
+    console.log('🔗 Pusher: Connecting with config:', PUSHER_CONFIG);
     
     // Enable logging in development
     if (process.env.NODE_ENV === 'development') {
@@ -36,6 +37,12 @@ export const usePusherConnection = () => {
       forceTLS: PUSHER_CONFIG.forceTLS,
       enabledTransports: ['ws', 'wss'],
       disabledTransports: ['xhr_polling', 'xhr_streaming', 'sockjs'],
+      authEndpoint: '/api/pusher/auth',
+      auth: {
+        headers: {
+          'X-User-ID': user.id,
+        },
+      },
     });
 
     pusher.connection.bind('connecting', () => {
@@ -47,7 +54,7 @@ export const usePusherConnection = () => {
     });
 
     pusher.connection.bind('connected', () => {
-      console.log('✅ Pusher: Connected');
+      console.log('✅ Pusher: Connected with socket ID:', pusher.connection.socket_id);
       setConnectionState(prev => ({ 
         ...prev, 
         isConnected: true,
@@ -84,12 +91,27 @@ export const usePusherConnection = () => {
       }));
     });
 
+    pusher.connection.bind('unavailable', () => {
+      console.warn('⚠️ Pusher: Connection unavailable');
+      setConnectionState(prev => ({ 
+        ...prev, 
+        connectionState: 'failed',
+        lastError: 'Connection unavailable'
+      }));
+    });
+
     pusherRef.current = pusher;
   }, [user]);
 
   const disconnect = useCallback(() => {
     if (pusherRef.current) {
       console.log('🔌 Pusher: Disconnecting...');
+      // Unsubscribe from all channels
+      subscribedChannels.current.forEach(channel => {
+        pusherRef.current?.unsubscribe(channel);
+      });
+      subscribedChannels.current.clear();
+      
       pusherRef.current.disconnect();
       pusherRef.current = null;
     }
@@ -138,8 +160,25 @@ export const usePusherConnection = () => {
       return null;
     }
 
+    if (subscribedChannels.current.has(channel)) {
+      console.log(`📺 Pusher: Already subscribed to channel: ${channel}`);
+      return pusherRef.current.channel(channel);
+    }
+
     console.log(`📺 Pusher: Subscribing to channel: ${channel}`);
-    return pusherRef.current.subscribe(channel);
+    const channelInstance = pusherRef.current.subscribe(channel);
+    
+    channelInstance.bind('pusher:subscription_succeeded', () => {
+      console.log(`✅ Pusher: Successfully subscribed to ${channel}`);
+      subscribedChannels.current.add(channel);
+    });
+
+    channelInstance.bind('pusher:subscription_error', (error: any) => {
+      console.error(`❌ Pusher: Subscription error for ${channel}:`, error);
+      subscribedChannels.current.delete(channel);
+    });
+
+    return channelInstance;
   }, []);
 
   const unsubscribeFrom = useCallback((channel: string) => {
@@ -147,6 +186,7 @@ export const usePusherConnection = () => {
 
     console.log(`📺 Pusher: Unsubscribing from channel: ${channel}`);
     pusherRef.current.unsubscribe(channel);
+    subscribedChannels.current.delete(channel);
   }, []);
 
   return {
@@ -155,5 +195,6 @@ export const usePusherConnection = () => {
     unsubscribeFrom,
     forceReconnect,
     pusher: pusherRef.current,
+    subscribedChannels: Array.from(subscribedChannels.current),
   };
 };

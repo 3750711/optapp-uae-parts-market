@@ -1,20 +1,23 @@
 
 import React, { useState } from 'react';
-import { Gavel, Search } from 'lucide-react';
+import { Gavel, Search, Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeBuyerAuctions, useBuyerOfferCounts } from '@/hooks/useRealtimeBuyerAuctions';
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
 import ProductListItem from '@/components/product/ProductListItem';
 import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
 import { PusherConnectionIndicator } from '@/components/offers/PusherConnectionIndicator';
+import { PusherDiagnostics } from '@/components/offers/PusherDiagnostics';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
   
   const { 
     data: auctionProducts, 
@@ -80,14 +83,27 @@ const BuyerPriceOffers: React.FC = () => {
               </h1>
             </div>
             
-            {/* Pusher Connection Indicator */}
-            <PusherConnectionIndicator
-              connectionState={connectionState}
-              onReconnect={forceRefresh}
-              lastUpdateTime={lastUpdateTime}
-              realtimeEvents={realtimeEvents}
-              compact={true}
-            />
+            <div className="flex items-center gap-2">
+              {/* Pusher Connection Indicator */}
+              <PusherConnectionIndicator
+                connectionState={connectionState}
+                onReconnect={forceRefresh}
+                lastUpdateTime={lastUpdateTime}
+                realtimeEvents={realtimeEvents}
+                compact={true}
+              />
+              
+              {/* Diagnostics Toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDiagnostics(!showDiagnostics)}
+                className="flex items-center gap-1"
+              >
+                <Settings className="h-3 w-3" />
+                {showDiagnostics ? 'Скрыть' : 'Диагностика'}
+              </Button>
+            </div>
           </div>
           
           <div className="flex items-center gap-4 mb-4">
@@ -99,14 +115,29 @@ const BuyerPriceOffers: React.FC = () => {
             </div>
           </div>
 
+          {/* Diagnostics Panel */}
+          {showDiagnostics && (
+            <div className="mb-6">
+              <PusherDiagnostics
+                connectionState={connectionState}
+                realtimeEvents={realtimeEvents}
+                lastUpdateTime={lastUpdateTime}
+                onReconnect={forceRefresh}
+                onForceRefresh={forceRefresh}
+              />
+            </div>
+          )}
+
           {/* Full Connection Indicator */}
-          <PusherConnectionIndicator
-            connectionState={connectionState}
-            onReconnect={forceRefresh}
-            lastUpdateTime={lastUpdateTime}
-            realtimeEvents={realtimeEvents}
-            compact={false}
-          />
+          {!showDiagnostics && (
+            <PusherConnectionIndicator
+              connectionState={connectionState}
+              onReconnect={forceRefresh}
+              lastUpdateTime={lastUpdateTime}
+              realtimeEvents={realtimeEvents}
+              compact={false}
+            />
+          )}
         </div>
 
         {/* Status Filter */}
@@ -169,6 +200,7 @@ const BuyerPriceOffers: React.FC = () => {
                 showAuctionInfo={true}
                 lastUpdateTime={lastUpdateTime}
                 freshDataIndicator={freshDataIndicator}
+                isConnected={isConnected}
               />
             ))}
           </div>
