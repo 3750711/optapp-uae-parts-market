@@ -23,6 +23,7 @@ export interface PriceOffer {
     model: string;
     status: string;
     seller_name: string;
+    description?: string;
     product_images?: Array<{ url: string; is_primary?: boolean }>;
   };
   buyer_profile?: {
