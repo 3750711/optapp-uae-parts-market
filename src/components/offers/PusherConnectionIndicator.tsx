@@ -2,11 +2,17 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Wifi, WifiOff, RotateCcw, AlertCircle, Activity } from 'lucide-react';
-import { PusherConnectionState } from '@/types/pusher';
+import { Wifi, WifiOff, RotateCcw, Activity } from 'lucide-react';
+
+interface ConnectionState {
+  isConnected: boolean;
+  connectionState: 'connecting' | 'connected' | 'disconnected' | 'failed';
+  lastError?: string;
+  reconnectAttempts: number;
+}
 
 interface PusherConnectionIndicatorProps {
-  connectionState: PusherConnectionState;
+  connectionState: ConnectionState;
   onReconnect: () => void;
   lastUpdateTime?: Date;
   realtimeEvents?: any[];
@@ -20,7 +26,7 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
   realtimeEvents = [],
   compact = false
 }) => {
-  const { isConnected, connectionState: state, lastError, reconnectAttempts } = connectionState;
+  const { isConnected, connectionState: state, lastError } = connectionState;
 
   const getStatusColor = () => {
     switch (state) {
@@ -39,15 +45,6 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
       case 'disconnected': return 'Отключено';
       case 'failed': return 'Ошибка соединения';
       default: return 'Неизвестно';
-    }
-  };
-
-  const getStatusIcon = () => {
-    switch (state) {
-      case 'connected': return <Wifi className="w-4 h-4 text-green-600" />;
-      case 'connecting': return <RotateCcw className="w-4 h-4 animate-spin text-yellow-600" />;
-      case 'failed': return <AlertCircle className="w-4 h-4 text-red-600" />;
-      default: return <WifiOff className="w-4 h-4 text-gray-600" />;
     }
   };
 
@@ -80,11 +77,11 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
   }
 
   return (
-    <div className="bg-white rounded-lg border p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
+    <div className="bg-white rounded-lg border p-3 shadow-sm">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {getStatusIcon()}
-          <span className="font-medium text-sm">{getStatusText()}</span>
+          <div className={`w-3 h-3 rounded-full ${getStatusColor()}`} />
+          <span className="text-sm font-medium">{getStatusText()}</span>
           {hasRecentEvents && (
             <div className="flex items-center gap-1 text-xs text-green-600">
               <Activity className="w-3 h-3 animate-pulse" />
@@ -94,10 +91,7 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
         </div>
         
         <div className="flex items-center gap-2">
-          <Badge 
-            variant={isConnected ? "default" : "secondary"}
-            className={isConnected ? "bg-green-100 text-green-800" : ""}
-          >
+          <Badge variant={isConnected ? "default" : "secondary"}>
             {isConnected ? 'Подключено' : 'Отключено'}
           </Badge>
           
@@ -115,42 +109,21 @@ export const PusherConnectionIndicator: React.FC<PusherConnectionIndicatorProps>
         </div>
       </div>
 
-      <div className="space-y-1 text-xs text-gray-600">
-        {lastUpdateTime && (
-          <div className="flex items-center gap-2">
-            <span>Последнее обновление:</span>
-            <span className="font-mono">
-              {lastUpdateTime.toLocaleTimeString('ru-RU', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                second: '2-digit'
-              })}
-            </span>
-          </div>
-        )}
-        
-        {reconnectAttempts > 0 && (
-          <div className="text-orange-600">
-            Попыток переподключения: {reconnectAttempts}
-          </div>
-        )}
-        
-        {lastError && (
-          <div className="text-red-600">
-            Ошибка: {lastError}
-          </div>
-        )}
-        
-        {realtimeEvents.length > 0 && (
-          <div className="text-green-600">
-            Real-time событий: {realtimeEvents.length}
-          </div>
-        )}
-
-        <div className="pt-1 text-xs text-gray-500">
-          Режим: {isConnected ? 'Real-time обновления' : 'Автообновление каждые 15 сек'}
+      {lastUpdateTime && (
+        <div className="text-xs text-gray-500 mt-1">
+          Последнее обновление: {lastUpdateTime.toLocaleTimeString('ru-RU', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            second: '2-digit'
+          })}
         </div>
-      </div>
+      )}
+      
+      {lastError && (
+        <div className="text-xs text-red-600 mt-1">
+          Ошибка: {lastError}
+        </div>
+      )}
     </div>
   );
 };

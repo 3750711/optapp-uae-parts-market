@@ -1,10 +1,10 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
-import { usePusherOffers } from '@/hooks/usePusherOffers';
+import { usePusherRealtime } from './usePusherRealtime';
 
 export interface AuctionProduct extends Product {
   user_offer_price?: number;
@@ -20,15 +20,14 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Use Pusher for real-time updates
+  // Use simplified Pusher real-time system
   const { 
     connectionState, 
     realtimeEvents, 
     lastUpdateTime, 
-    isConnected 
-  } = usePusherOffers();
-
-  const [freshDataIndicator, setFreshDataIndicator] = useState(false);
+    isConnected,
+    forceReconnect
+  } = usePusherRealtime();
 
   // Main auction data query with optimized caching
   const queryResult = useQuery({
@@ -36,7 +35,7 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     queryFn: async (): Promise<AuctionProduct[]> => {
       if (!user) return [];
 
-      console.log('🔍 Fetching buyer auction products with filter:', statusFilter);
+      console.log('🔍 Fetching buyer auction products...');
 
       // Get user's price offers with product data
       const { data: offerData, error } = await supabase
@@ -196,19 +195,13 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
       });
 
       console.log('✅ Processed auction products:', products.length);
-      
-      // Flash indicator when new data arrives
-      setFreshDataIndicator(true);
-      setTimeout(() => setFreshDataIndicator(false), 2000);
-      
       return products;
     },
     enabled: !!user,
-    staleTime: 0, // No caching for real-time updates
-    gcTime: 0, // No garbage collection cache
-    refetchOnWindowFocus: false, // Disable automatic refetch on focus
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    refetchInterval: false, // No polling, rely on Pusher
   });
 
   // Simple force refresh
@@ -220,7 +213,6 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     await queryClient.invalidateQueries({
       queryKey: ['buyer-offer-counts']
     });
-    console.log('✅ Force refresh completed');
   }, [queryClient]);
 
   return {
@@ -228,26 +220,18 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     isConnected,
     lastUpdateTime,
     realtimeEvents,
-    freshDataIndicator,
-    forceRefresh,
+    forceRefresh: forceReconnect, // Use Pusher reconnect instead
     connectionState,
-    getConnectionDiagnostics: () => ({ 
-      pusher: isConnected, 
-      polling: !isConnected,
-      interval: false,
-      events: realtimeEvents.length,
-      lastUpdate: lastUpdateTime
-    })
   };
 };
 
 // Simplified buyer offer counts hook
 export const useBuyerOfferCounts = () => {
   const { user } = useAuth();
-  const { isConnected, lastUpdateTime } = usePusherOffers();
+  const { lastUpdateTime } = usePusherRealtime();
 
   return useQuery({
-    queryKey: ['buyer-offer-counts', user?.id, lastUpdateTime?.getTime()],
+    queryKey: ['buyer-offer-counts', user?.id],
     queryFn: async () => {
       if (!user) return { active: 0, cancelled: 0, completed: 0, total: 0 };
 
@@ -281,8 +265,8 @@ export const useBuyerOfferCounts = () => {
       return counts;
     },
     enabled: !!user,
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 30 * 1000, // 30 seconds
+    gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
   });
 };

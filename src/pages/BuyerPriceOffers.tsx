@@ -1,22 +1,20 @@
+
 import React, { useState } from 'react';
-import { Gavel, Search, Settings } from 'lucide-react';
+import { Gavel, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeBuyerAuctions, useBuyerOfferCounts } from '@/hooks/useRealtimeBuyerAuctions';
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
 import ProductListItem from '@/components/product/ProductListItem';
 import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
 import { PusherConnectionIndicator } from '@/components/offers/PusherConnectionIndicator';
-import { PusherDiagnostics } from '@/components/offers/PusherDiagnostics';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
   
   const { 
     data: auctionProducts, 
@@ -24,25 +22,15 @@ const BuyerPriceOffers: React.FC = () => {
     isConnected,
     lastUpdateTime,
     realtimeEvents,
-    freshDataIndicator,
     forceRefresh,
     connectionState
   } = useRealtimeBuyerAuctions(statusFilter);
+  
   const { data: offerCounts } = useBuyerOfferCounts();
 
   // Get batch data for optimization
   const productIds = auctionProducts?.map(p => p.id) || [];
   const { data: batchOffersData } = useBatchOffers(productIds);
-
-  // Enhanced console logging for debugging
-  console.log('📊 BuyerPriceOffers render:', {
-    auctionProductsCount: auctionProducts?.length || 0,
-    isConnected,
-    lastUpdateTime: lastUpdateTime?.toISOString(),
-    realtimeEventsCount: realtimeEvents.length,
-    freshDataIndicator,
-    statusFilter
-  });
 
   if (!user) {
     return (
@@ -90,7 +78,7 @@ const BuyerPriceOffers: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 Мои предложения
               </h1>
-              {/* Real-time indicator */}
+              {/* Simple real-time indicator */}
               {isConnected && (
                 <div className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -99,61 +87,30 @@ const BuyerPriceOffers: React.FC = () => {
               )}
             </div>
             
-            <div className="flex items-center gap-2">
-              {/* Pusher Connection Indicator */}
-              <PusherConnectionIndicator
-                connectionState={connectionState}
-                onReconnect={forceRefresh}
-                lastUpdateTime={lastUpdateTime}
-                realtimeEvents={realtimeEvents}
-                compact={true}
-              />
-              
-              {/* Diagnostics Toggle */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDiagnostics(!showDiagnostics)}
-                className="flex items-center gap-1"
-              >
-                <Settings className="h-3 w-3" />
-                {showDiagnostics ? 'Скрыть' : 'Диагностика'}
-              </Button>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-4 mb-4">
-            <p className="text-gray-600">
-              Управляйте своими предложениями цены и отслеживайте статус торгов
-            </p>
-            <div className="text-sm text-green-600">
-              • Real-time обновления {isConnected ? 'активны' : 'отключены'} (события: {realtimeEvents.length})
-            </div>
-          </div>
-
-          {/* Diagnostics Panel */}
-          {showDiagnostics && (
-            <div className="mb-6">
-              <PusherDiagnostics
-                connectionState={connectionState}
-                realtimeEvents={realtimeEvents}
-                lastUpdateTime={lastUpdateTime}
-                onReconnect={forceRefresh}
-                onForceRefresh={forceRefresh}
-              />
-            </div>
-          )}
-
-          {/* Full Connection Indicator */}
-          {!showDiagnostics && (
+            {/* Simple connection indicator */}
             <PusherConnectionIndicator
               connectionState={connectionState}
               onReconnect={forceRefresh}
               lastUpdateTime={lastUpdateTime}
               realtimeEvents={realtimeEvents}
-              compact={false}
+              compact={true}
             />
-          )}
+          </div>
+          
+          <div className="mb-4">
+            <p className="text-gray-600">
+              Управляйте своими предложениями цены и отслеживайте статус торгов
+            </p>
+          </div>
+
+          {/* Connection status */}
+          <PusherConnectionIndicator
+            connectionState={connectionState}
+            onReconnect={forceRefresh}
+            lastUpdateTime={lastUpdateTime}
+            realtimeEvents={realtimeEvents}
+            compact={false}
+          />
         </div>
 
         {/* Status Filter */}
@@ -193,7 +150,7 @@ const BuyerPriceOffers: React.FC = () => {
               <p className="text-gray-500">
                 {searchTerm 
                   ? 'Попробуйте изменить поисковый запрос' 
-                  : statusFilter === 'all' ? 'Вы пока не делали предложений цены. Найдите интересные товары в каталоге и сделайте предложение!'
+                  : statusFilter === 'all' ? 'Вы пока не делали предложений цены'
                   : 'Попробуйте выбрать другой фильтр статуса'
                 }
               </p>
@@ -204,18 +161,11 @@ const BuyerPriceOffers: React.FC = () => {
             {filteredProducts.map((product) => (
               <ProductListItem
                 key={product.id}
-                product={{
-                  ...product,
-                  user_offer_price: product.user_offer_price,
-                  user_offer_status: product.user_offer_status,
-                  user_offer_created_at: product.user_offer_created_at,
-                  user_offer_expires_at: product.user_offer_expires_at
-                }}
+                product={product}
                 batchOffersData={batchOffersData}
                 showOfferStatus={true}
                 showAuctionInfo={true}
                 lastUpdateTime={lastUpdateTime}
-                freshDataIndicator={freshDataIndicator}
               />
             ))}
           </div>
