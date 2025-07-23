@@ -17,6 +17,15 @@ export interface AuctionProduct extends Product {
   offers_count?: number;
 }
 
+export interface CompetitiveOfferData {
+  product_id: string;
+  max_offer_price: number;
+  current_user_is_max: boolean;
+  total_offers_count: number;
+  current_user_offer_price: number;
+  user_has_pending_offer: boolean;
+}
+
 export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -148,9 +157,12 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
         } else {
           console.log('✅ Competitive data received:', competitiveData?.length || 0);
           
+          // Type the competitive data properly
+          const typedCompetitiveData = competitiveData as CompetitiveOfferData[] || [];
+          
           // Create a map for quick lookup
           const competitiveMap = new Map(
-            competitiveData?.map(item => [item.product_id, item]) || []
+            typedCompetitiveData.map(item => [item.product_id, item])
           );
 
           // Update products with competitive data
