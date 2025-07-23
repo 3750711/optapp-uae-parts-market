@@ -14,7 +14,8 @@ import {
   Bell,
   Heart,
   UserPlus,
-  LogIn
+  LogIn,
+  LucideIcon
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +59,12 @@ const Header = () => {
   };
 
   // Navigation items for authenticated users
-  const authenticatedNavItems = [
+  const authenticatedNavItems: Array<{
+    path: string;
+    label: string;
+    icon: LucideIcon;
+    description: string;
+  }> = [
     { 
       path: '/catalog', 
       label: 'Каталог', 
@@ -86,7 +92,10 @@ const Header = () => {
   ];
 
   // Navigation items for unauthenticated users
-  const publicNavItems = [
+  const publicNavItems: Array<{
+    path: string;
+    label: string;
+  }> = [
     { path: '/about', label: 'О нас' },
     { path: '/contact', label: 'Контакты' }
   ];
@@ -107,20 +116,23 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
-                  isActivePath(item.path)
-                    ? 'bg-optapp-yellow/10 text-optapp-yellow'
-                    : 'text-gray-600 hover:text-optapp-yellow hover:bg-optapp-yellow/5'
-                }`}
-              >
-                {'icon' in item && <item.icon className="h-4 w-4" />}
-                <span>{item.label}</span>
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const IconComponent = 'icon' in item ? item.icon as LucideIcon : null;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
+                    isActivePath(item.path)
+                      ? 'bg-optapp-yellow/10 text-optapp-yellow'
+                      : 'text-gray-600 hover:text-optapp-yellow hover:bg-optapp-yellow/5'
+                  }`}
+                >
+                  {IconComponent && <IconComponent className="h-4 w-4" />}
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right Side */}
@@ -226,26 +238,29 @@ const Header = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-72">
                 <div className="flex flex-col space-y-4 mt-8">
-                  {navItems.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
-                        isActivePath(item.path)
-                          ? 'bg-optapp-yellow/10 text-optapp-yellow'
-                          : 'text-gray-600 hover:text-optapp-yellow hover:bg-optapp-yellow/5'
-                      }`}
-                      onClick={() => setIsOpen(false)}
-                    >
-                      {'icon' in item && <item.icon className="h-5 w-5" />}
-                      <div className="flex flex-col">
-                        <span className="font-medium">{item.label}</span>
-                        {'description' in item && (
-                          <span className="text-xs text-gray-500">{item.description}</span>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
+                  {navItems.map((item) => {
+                    const IconComponent = 'icon' in item ? item.icon as LucideIcon : null;
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                          isActivePath(item.path)
+                            ? 'bg-optapp-yellow/10 text-optapp-yellow'
+                            : 'text-gray-600 hover:text-optapp-yellow hover:bg-optapp-yellow/5'
+                        }`}
+                        onClick={() => setIsOpen(false)}
+                      >
+                        {IconComponent && <IconComponent className="h-5 w-5" />}
+                        <div className="flex flex-col">
+                          <span className="font-medium">{item.label}</span>
+                          {'description' in item && (
+                            <span className="text-xs text-gray-500">{(item as any).description}</span>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
                   
                   {!user && (
                     <div className="space-y-2 pt-4 border-t">
