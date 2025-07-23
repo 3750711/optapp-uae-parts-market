@@ -1,4 +1,5 @@
-// This file has been replaced by useRealtimeBuyerAuctions.ts
-// Keeping this file for backward compatibility during transition
+
+// This file has been updated to use simplified polling approach
+// without real-time complexity
 
 export { useRealtimeBuyerAuctions as useBuyerAuctionProducts, useBuyerOfferCounts } from './useRealtimeBuyerAuctions';

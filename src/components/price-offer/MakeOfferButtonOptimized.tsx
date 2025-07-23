@@ -9,7 +9,6 @@ import { useCheckPendingOffer, useCompetitiveOffers } from '@/hooks/use-price-of
 import { EnhancedOfferModal } from './EnhancedOfferModal';
 import { CompetitorOfferBadge } from './CompetitorOfferBadge';
 import { BatchOfferData, useProductOfferFromBatch } from '@/hooks/use-price-offers-batch';
-import { useProductOfferRealtime } from '@/hooks/useProductOfferRealtime';
 import bidIcon from '@/assets/bid-icon.png';
 
 interface MakeOfferButtonOptimizedProps {
@@ -36,9 +35,6 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
   
-  // Enable real-time updates for this product's offers
-  useProductOfferRealtime(product.id);
-  
   // Get offer data from batch if available, otherwise use individual query
   const batchOfferData = useProductOfferFromBatch(product.id, batchOffersData);
   
@@ -61,17 +57,12 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
       const maxPrice = Number(batchOfferData.max_offer_price) || 0;
       const hasOffer = batchOfferData.has_pending_offer === true;
       
-      // Calculate max other offer: if user is leading, show the second highest
-      // If user is not leading, show the highest
       let maxOther = 0;
       if (hasOffer && isLeading) {
-        // User is leading, so maxOtherOffer should be less than user's price
-        maxOther = maxPrice > userPrice ? 0 : maxPrice; // This logic might need refinement based on backend
+        maxOther = maxPrice > userPrice ? 0 : maxPrice;
       } else if (hasOffer && !isLeading) {
-        // User is not leading, so show the current max
         maxOther = maxPrice;
       } else if (!hasOffer) {
-        // User has no offer, show max price
         maxOther = maxPrice;
       }
       
@@ -87,16 +78,12 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
       const maxPrice = Number(competitiveData?.max_offer_price) || 0;
       const hasOffer = !!userOffer;
       
-      // Calculate max other offer similar to batch logic
       let maxOther = 0;
       if (hasOffer && isLeading) {
-        // User is leading, don't show competitor price
         maxOther = 0;
       } else if (hasOffer && !isLeading) {
-        // User is not leading, show the current max
         maxOther = maxPrice;
       } else if (!hasOffer) {
-        // User has no offer, show max price
         maxOther = maxPrice;
       }
       
