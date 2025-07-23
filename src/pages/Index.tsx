@@ -5,7 +5,8 @@ import Layout from "@/components/layout/Layout";
 import EnhancedHeroSection from "@/components/home/EnhancedHeroSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import EnhancedFeaturesSection from "@/components/home/EnhancedFeaturesSection";
-import LoginCenteredHomePage from "@/components/home/LoginCenteredHomePage";
+import FeaturedProductsSection from "@/components/home/FeaturedProductsSection";
+import PublicLandingPage from "@/components/home/PublicLandingPage";
 import SEOHead from "@/components/seo/SEOHead";
 
 const Index = () => {
@@ -66,17 +67,20 @@ const Index = () => {
       />
       
       {user ? (
-        // Контент для авторизованных пользователей (БЕЗ "Последние опубликованные товары")
+        // Контент для авторизованных пользователей
         <Layout>
           <div className="bg-white">
             <EnhancedHeroSection />
             <HowItWorksSection />
             <EnhancedFeaturesSection />
+            <FeaturedProductsSection />
           </div>
         </Layout>
       ) : (
-        // Контент для неавторизованных пользователей - новая страница с авторизацией
-        <LoginCenteredHomePage />
+        // Контент для неавторизованных пользователей
+        <Layout>
+          <PublicLandingPage />
+        </Layout>
       )}
     </>
   );

@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, Shield, Users, Globe, Star, CheckCircle, TrendingUp, Clock } from 'lucide-react';
+import { ArrowRight, Shield, Users, Globe, Clock, Award, Star, CheckCircle, Lock, Eye } from 'lucide-react';
 
 const PublicLandingPage = () => {
   return (
@@ -38,8 +38,8 @@ const PublicLandingPage = () => {
               <div className="text-sm text-foreground/70">Проверенных поставщиков</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-primary mb-2">500+</div>
-              <div className="text-sm text-foreground/70">Активных компаний</div>
+              <div className="text-3xl md:text-4xl font-bold text-primary mb-2">10K+</div>
+              <div className="text-sm text-foreground/70">Товаров в каталоге</div>
             </div>
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold text-primary mb-2">3</div>
@@ -51,29 +51,8 @@ const PublicLandingPage = () => {
             </div>
           </div>
 
-          {/* Value Propositions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 animate-fade-in [animation-delay:800ms]">
-            <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-              <CardContent className="p-6 text-center">
-                <TrendingUp className="w-12 h-12 text-primary mx-auto mb-4" />
-                <h3 className="text-xl font-bold mb-2">Для покупателей</h3>
-                <p className="text-primary text-lg font-semibold">Найдите поставщика за 5 минут</p>
-                <p className="text-sm text-foreground/70 mt-2">Прямой доступ к 150+ проверенным поставщикам из ОАЭ</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="bg-gradient-to-r from-secondary/10 to-secondary/5 border-secondary/20">
-              <CardContent className="p-6 text-center">
-                <Clock className="w-12 h-12 text-secondary mx-auto mb-4" />
-                <h3 className="text-xl font-bold mb-2">Для продавцов</h3>
-                <p className="text-secondary text-lg font-semibold">Получите первых клиентов за 24 часа</p>
-                <p className="text-sm text-foreground/70 mt-2">Доступ к активной базе покупателей автозапчастей</p>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in [animation-delay:1000ms]">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in [animation-delay:800ms]">
             <Button size="lg" className="group shadow-2xl hover:shadow-elevation-hover transition-all duration-300 hover:scale-105 bg-primary hover:bg-primary/90 text-lg px-8 py-4" asChild>
               <Link to="/register">
                 <Users className="mr-2 h-5 w-5" />
@@ -83,28 +62,45 @@ const PublicLandingPage = () => {
             </Button>
             <Button variant="outline" size="lg" className="group shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border-2 text-lg px-8 py-4" asChild>
               <Link to="/login">
+                <Lock className="mr-2 h-5 w-5" />
                 Уже есть аккаунт?
               </Link>
             </Button>
           </div>
 
-          {/* Urgency Notice */}
-          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-6 mb-12 animate-fade-in [animation-delay:1200ms]">
-            <div className="flex items-center justify-center mb-4">
-              <Star className="w-6 h-6 text-primary mr-2" />
-              <span className="text-xl font-bold">Ограниченное количество приглашений</span>
-            </div>
-            <p className="text-foreground/70 mb-4">
-              Мы принимаем только проверенных профессионалов для поддержания высокого качества сервиса
-            </p>
-            <div className="text-sm text-primary font-medium">
-              🔥 Присоединяйтесь к 500+ компаниям уже работающим на платформе
-            </div>
-          </div>
+          {/* Preview Card */}
+          <Card className="bg-white/80 backdrop-blur-sm shadow-2xl border-0 animate-fade-in [animation-delay:1000ms] max-w-2xl mx-auto">
+            <CardContent className="p-8">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-lg blur-xl"></div>
+                <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-8 border border-gray-200">
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="bg-primary/10 rounded-full p-4">
+                      <Eye className="w-12 h-12 text-primary" />
+                    </div>
+                  </div>
+                  <h3 className="text-2xl font-bold mb-4">Превью платформы</h3>
+                  <p className="text-gray-600 mb-6">
+                    Полный функционал доступен только зарегистрированным пользователям
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/60 rounded-lg p-4 text-center">
+                      <div className="text-primary font-bold text-lg">Каталог</div>
+                      <div className="text-sm text-gray-600">10,000+ товаров</div>
+                    </div>
+                    <div className="bg-white/60 rounded-lg p-4 text-center">
+                      <div className="text-secondary font-bold text-lg">Поставщики</div>
+                      <div className="text-sm text-gray-600">150+ магазинов</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
-      {/* Key Benefits Section */}
+      {/* Features Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -114,7 +110,7 @@ const PublicLandingPage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
               {
                 icon: Globe,
@@ -129,10 +125,28 @@ const PublicLandingPage = () => {
                 color: "secondary"
               },
               {
+                icon: Award,
+                title: "Прозрачное ценообразование",
+                description: "Никаких скрытых комиссий - только честные оптовые цены",
+                color: "primary"
+              },
+              {
                 icon: Users,
                 title: "Персональный менеджер",
                 description: "Для крупных заказов - индивидуальное сопровождение сделки",
+                color: "secondary"
+              },
+              {
+                icon: Clock,
+                title: "Поддержка 24/7",
+                description: "Техническая поддержка на русском языке круглосуточно",
                 color: "primary"
+              },
+              {
+                icon: Star,
+                title: "Система рейтингов",
+                description: "Отзывы и рейтинги помогут выбрать лучших поставщиков",
+                color: "secondary"
               }
             ].map((feature, index) => (
               <Card key={index} className={`group hover:shadow-2xl transition-all duration-300 hover:scale-105 border-0 shadow-lg animate-fade-in`} style={{ animationDelay: `${index * 100}ms` }}>
@@ -149,6 +163,73 @@ const PublicLandingPage = () => {
         </div>
       </section>
 
+      {/* Benefits Section */}
+      <section className="py-20 bg-gradient-to-br from-primary/5 to-secondary/5">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Почему профессионалы выбирают нас</h2>
+            <p className="text-xl text-foreground/70 max-w-2xl mx-auto">
+              Уникальные преимущества для успешного бизнеса
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              {[
+                "Эксклюзивный доступ к рынку автозапчастей ОАЭ",
+                "Прямые контакты с производителями и дистрибьюторами",
+                "Система контроля качества и гарантий",
+                "Логистическая поддержка и доставка",
+                "Юридическое сопровождение сделок",
+                "Персональные скидки для постоянных клиентов"
+              ].map((benefit, index) => (
+                <div key={index} className="flex items-start space-x-4 animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+                  <div className="bg-primary/10 rounded-full p-2 flex-shrink-0">
+                    <CheckCircle className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="text-lg text-foreground/80">{benefit}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-2xl blur-xl"></div>
+              <Card className="relative bg-white/90 backdrop-blur-sm shadow-2xl border-0">
+                <CardContent className="p-8">
+                  <div className="text-center mb-8">
+                    <div className="text-4xl font-bold text-primary mb-2">Присоединяйтесь</div>
+                    <div className="text-lg text-foreground/70">к профессиональному сообществу</div>
+                  </div>
+                  
+                  <div className="space-y-4 mb-8">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span>Регистрация</span>
+                      <span className="font-bold text-primary">Бесплатно</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span>Доступ к каталогу</span>
+                      <span className="font-bold text-primary">∞</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                      <span>Поддержка</span>
+                      <span className="font-bold text-primary">24/7</span>
+                    </div>
+                  </div>
+
+                  <Button className="w-full group shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" size="lg" asChild>
+                    <Link to="/register">
+                      <Users className="mr-2 h-5 w-5" />
+                      Начать прямо сейчас
+                      <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-20 bg-gradient-to-r from-primary to-primary/80 text-white">
         <div className="container mx-auto px-4 text-center">
@@ -156,7 +237,7 @@ const PublicLandingPage = () => {
             Готовы начать работу с лучшими поставщиками?
           </h2>
           <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Присоединяйтесь к профессионалам, которые уже используют нашу платформу
+            Присоединяйтесь к тысячам профессионалов, которые уже используют нашу платформу
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="secondary" className="group shadow-2xl hover:shadow-elevation-hover transition-all duration-300 hover:scale-105 text-lg px-8 py-4" asChild>

@@ -4,7 +4,6 @@ import RouteSEO from '@/components/routing/RouteSEO';
 import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary';
 import { RouteSuspenseFallback } from '@/components/routing/RouteSuspenseFallback';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import AuthRequiredRoute from '@/components/auth/AuthRequiredRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 
@@ -85,9 +84,26 @@ const AppRoutes: React.FC = () => {
       <RouteErrorBoundary>
         <Suspense fallback={<RouteSuspenseFallback />}>
           <Routes>
-            {/* Открытые маршруты - только главная и авторизация */}
+            {/* Публичные маршруты */}
             <Route path="/" element={<Index />} />
-            
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/catalog" element={
+              <CatalogErrorBoundary>
+                <Catalog />
+              </CatalogErrorBoundary>
+            } />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/stores" element={<Stores />} />
+            <Route path="/store/:id" element={<StoreDetail />} />
+            <Route path="/requests" element={<Requests />} />
+            <Route path="/request/:id" element={<RequestDetail />} />
+            <Route path="/buyer-guide" element={<BuyerGuide />} />
+            <Route path="/seller/:id" element={<PublicSellerProfile />} />
+            <Route path="/public-seller-profile/:id" element={<PublicSellerProfile />} />
+            <Route path="/generate-og-image" element={<GenerateOGImage />} />
+            <Route path="/404" element={<NotFound />} />
+
             {/* Маршруты аутентификации */}
             <Route path="/login" element={
               <Suspense fallback={<RouteSuspenseFallback />}>
@@ -120,75 +136,6 @@ const AppRoutes: React.FC = () => {
               </Suspense>
             } />
 
-            {/* Защищенные публичные маршруты - требуют авторизации */}
-            <Route path="/about" element={
-              <AuthRequiredRoute>
-                <About />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/contact" element={
-              <AuthRequiredRoute>
-                <Contact />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/catalog" element={
-              <AuthRequiredRoute>
-                <CatalogErrorBoundary>
-                  <Catalog />
-                </CatalogErrorBoundary>
-              </AuthRequiredRoute>
-            } />
-            <Route path="/product/:id" element={
-              <AuthRequiredRoute>
-                <ProductDetail />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/stores" element={
-              <AuthRequiredRoute>
-                <Stores />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/store/:id" element={
-              <AuthRequiredRoute>
-                <StoreDetail />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/requests" element={
-              <AuthRequiredRoute>
-                <Requests />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/request/:id" element={
-              <AuthRequiredRoute>
-                <RequestDetail />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/buyer-guide" element={
-              <AuthRequiredRoute>
-                <BuyerGuide />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/seller/:id" element={
-              <AuthRequiredRoute>
-                <PublicSellerProfile />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/public-seller-profile/:id" element={
-              <AuthRequiredRoute>
-                <PublicSellerProfile />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/generate-og-image" element={
-              <AuthRequiredRoute>
-                <GenerateOGImage />
-              </AuthRequiredRoute>
-            } />
-            <Route path="/404" element={
-              <AuthRequiredRoute>
-                <NotFound />
-              </AuthRequiredRoute>
-            } />
-
             {/* Защищенные маршруты */}
             <Route path="/profile" element={
               <ProtectedRoute>
@@ -200,7 +147,6 @@ const AppRoutes: React.FC = () => {
                 <MobileProfileMenu />
               </ProtectedRoute>
             } />
-
             <Route path="/create-store" element={
               <ProtectedRoute>
                 <CreateStore />
@@ -402,11 +348,7 @@ const AppRoutes: React.FC = () => {
             } />
 
             {/* Catch-all маршрут */}
-            <Route path="*" element={
-              <AuthRequiredRoute>
-                <NotFound />
-              </AuthRequiredRoute>
-            } />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </RouteErrorBoundary>
