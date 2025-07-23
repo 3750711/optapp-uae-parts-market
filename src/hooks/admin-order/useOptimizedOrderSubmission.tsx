@@ -116,23 +116,11 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
 
       console.log('✅ Order fetched successfully:', order);
 
-      // Stage 3: Background Telegram notification (fire and forget)
+      // Stage 3: Финализация (триггер автоматически отправит уведомление)
       setStage('Финализация...');
       setProgress(90);
 
-      // Fire and forget - start Telegram notification without waiting
-      supabase.functions.invoke('send-telegram-notification', {
-        body: {
-          order: {
-            ...order,
-            images: images,
-            video_url: videos
-          },
-          action: 'create'
-        }
-      }).catch(error => {
-        console.warn('📱 Telegram notification failed (non-critical):', error);
-      });
+      console.log('📱 Telegram notification will be sent automatically by database trigger');
 
       setProgress(100);
       setStage('Заказ создан успешно!');
