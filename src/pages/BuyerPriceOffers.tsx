@@ -39,18 +39,22 @@ const BuyerPriceOffers: React.FC = () => {
   const stats = useMemo(() => {
     if (offerCounts) {
       const totalValue = offerProducts?.reduce((sum, p) => sum + (p.user_offer_price || 0), 0) || 0;
+      const activeTotalValue = offerProducts?.filter(p => p.user_offer_status === 'pending').reduce((sum, p) => sum + (p.user_offer_price || 0), 0) || 0;
       return {
         pending: offerCounts.pending,
         expired: offerCounts.expired,
         rejected: offerCounts.rejected,
         accepted: offerCounts.accepted,
         total: offerCounts.total,
-        totalValue
+        totalValue,
+        activeTotalValue
       };
     }
     
     // Fallback calculation
-    if (!offerProducts) return { pending: 0, expired: 0, rejected: 0, accepted: 0, total: 0, totalValue: 0 };
+    if (!offerProducts) return { pending: 0, expired: 0, rejected: 0, accepted: 0, total: 0, totalValue: 0, activeTotalValue: 0 };
+    
+    const activeTotalValue = offerProducts.filter(p => p.user_offer_status === 'pending').reduce((sum, p) => sum + (p.user_offer_price || 0), 0);
     
     return {
       pending: offerProducts.filter(p => p.user_offer_status === 'pending').length,
@@ -58,7 +62,8 @@ const BuyerPriceOffers: React.FC = () => {
       rejected: offerProducts.filter(p => p.user_offer_status === 'rejected').length,
       accepted: offerProducts.filter(p => p.user_offer_status === 'accepted').length,
       total: offerProducts.length,
-      totalValue: offerProducts.reduce((sum, p) => sum + (p.user_offer_price || 0), 0)
+      totalValue: offerProducts.reduce((sum, p) => sum + (p.user_offer_price || 0), 0),
+      activeTotalValue
     };
   }, [offerProducts, offerCounts]);
 
@@ -211,8 +216,8 @@ const BuyerPriceOffers: React.FC = () => {
           
           <Card>
             <CardContent className="p-4 text-center">
-              <div className="text-xl font-bold text-purple-600 mb-2">{formatPrice(stats.totalValue)}</div>
-              <div className="text-sm text-muted-foreground">Общая сумма</div>
+              <div className="text-xl font-bold text-purple-600 mb-2">{formatPrice(stats.activeTotalValue)}</div>
+              <div className="text-sm text-muted-foreground">Сумма активных предложений</div>
             </CardContent>
           </Card>
         </div>
