@@ -1,6 +1,6 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
@@ -16,12 +16,32 @@ export interface AuctionProduct extends Product {
   has_pending_offer?: boolean;
 }
 
+// Utility function to check if a realtime event is relevant
+const isRelevantUpdate = (payload: any, userId: string, currentProducts: AuctionProduct[]) => {
+  // Check if this update affects user's offers
+  if (payload.new?.buyer_id === userId || payload.old?.buyer_id === userId) {
+    console.log('📥 Relevant: User offer update');
+    return true;
+  }
+  
+  // Check if this update affects products we're tracking
+  const productIds = currentProducts.map(p => p.id);
+  if (payload.new?.product_id && productIds.includes(payload.new.product_id)) {
+    console.log('📥 Relevant: Competitor offer on tracked product');
+    return true;
+  }
+  
+  return false;
+};
+
 export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+  const [realtimeEvents, setRealtimeEvents] = useState<string[]>([]);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const currentProductsRef = useRef<AuctionProduct[]>([]);
 
   // Basic query for getting auction products
   const queryResult = useQuery({
@@ -125,7 +145,6 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
         .map(p => p.id);
         
       if (activeProductIds.length > 0) {
-        // Get max offers for each product using direct query
         const { data: competitiveData } = await supabase
           .from('price_offers')
           .select('product_id, offered_price, buyer_id')
@@ -192,40 +211,44 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
       });
 
       console.log('✅ Processed auction products:', products.length);
+      
+      // Update current products reference for realtime filtering
+      currentProductsRef.current = products;
       setLastUpdateTime(new Date());
+      
       return products;
     },
     enabled: !!user,
-    staleTime: 1000,
-    gcTime: 5000,
+    staleTime: 2000,
+    gcTime: 10000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchInterval: isConnected ? false : 5000 // Fallback polling if not connected
+    refetchInterval: isConnected ? false : 10000 // Fallback polling if not connected
   });
 
-  // Debounced invalidation для предотвращения частых обновлений
-  const debouncedInvalidation = useMemo(() => {
+  // Debounced invalidation function
+  const debouncedInvalidation = useCallback((() => {
     let timeoutId: NodeJS.Timeout;
     return (reason: string) => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        console.log(`🔄 Debounced: ${reason}`);
+        console.log(`🔄 Invalidating queries: ${reason}`);
         queryClient.invalidateQueries({
           queryKey: ['buyer-auction-products'],
           exact: false
         });
       }, 300);
     };
-  }, [queryClient]);
+  })(), [queryClient]);
 
-  // Улучшенная Realtime подписка с обработкой ошибок
+  // Enhanced Realtime subscription
   useEffect(() => {
     if (!user) {
       setIsConnected(false);
       return;
     }
 
-    console.log('🔄 Setting up enhanced Realtime subscription for user:', user.id);
+    console.log('🔄 Setting up optimized Realtime subscription for user:', user.id);
 
     const channel = supabase
       .channel(`auction_updates_${user.id}`)
@@ -234,41 +257,28 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
         {
           event: '*',
           schema: 'public',
-          table: 'price_offers',
-          filter: `buyer_id=eq.${user.id}`
+          table: 'price_offers'
         },
         (payload) => {
-          console.log('📥 Realtime: MY offer update:', payload);
-          setLastUpdateTime(new Date());
-          debouncedInvalidation('Обновление моего предложения');
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'products',
-          filter: `has_active_offers=eq.true`
-        },
-        (payload) => {
-          const updatedProduct = payload.new as any;
-          const currentProducts = queryResult.data || [];
-          const productIds = currentProducts.map(p => p.id);
+          console.log('📥 Realtime: Price offer update:', payload.eventType, payload.new?.product_id);
           
-          if (productIds.includes(updatedProduct.id)) {
-            console.log('📥 Realtime: Product offers update:', updatedProduct.id);
+          // Add event to debug list
+          const eventDetails = `${payload.eventType}: ${payload.new?.product_id || payload.old?.product_id} at ${new Date().toLocaleTimeString()}`;
+          setRealtimeEvents(prev => [eventDetails, ...prev.slice(0, 4)]);
+          
+          // Check if this update is relevant
+          if (isRelevantUpdate(payload, user.id, currentProductsRef.current)) {
             setLastUpdateTime(new Date());
-            debouncedInvalidation('Обновление предложений на продукт');
+            debouncedInvalidation(`Price offer ${payload.eventType}`);
           }
         }
       )
       .subscribe((status) => {
-        console.log('📡 Realtime status:', status);
+        console.log('📡 Realtime connection status:', status);
         setIsConnected(status === 'SUBSCRIBED');
         
         if (status === 'CLOSED') {
-          console.warn('⚠️ Realtime соединение закрыто');
+          console.warn('⚠️ Realtime connection closed, triggering refresh');
           setTimeout(() => {
             queryClient.invalidateQueries({
               queryKey: ['buyer-auction-products'],
@@ -287,22 +297,23 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
         channelRef.current = null;
       }
     };
-  }, [user?.id, queryClient, debouncedInvalidation, queryResult.data]);
+  }, [user?.id, queryClient, debouncedInvalidation]);
 
   // Force refresh function
-  const forceRefresh = async () => {
+  const forceRefresh = useCallback(async () => {
     console.log('🔄 Force refreshing auction data...');
     await queryClient.invalidateQueries({
       queryKey: ['buyer-auction-products'],
       exact: false,
       refetchType: 'all'
     });
-  };
+  }, [queryClient]);
 
   return {
     ...queryResult,
     isConnected,
     lastUpdateTime,
+    realtimeEvents,
     forceRefresh
   };
 };

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, Clock, Users } from 'lucide-react';
@@ -89,7 +89,10 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
             <span>{totalOffers} ставок</span>
           </div>
           {isFreshData && (
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" title="Свежие данные" />
+            <div className="flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <span className="text-xs text-green-600">Обновлено</span>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -135,7 +138,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
       {lastUpdateTime && (
         <div className="text-xs text-gray-400">
           <span>
-            Обновлено: {lastUpdateTime.toLocaleTimeString('ru-RU', { 
+            Данные: {lastUpdateTime.toLocaleTimeString('ru-RU', { 
               hour: '2-digit', 
               minute: '2-digit',
               second: '2-digit'

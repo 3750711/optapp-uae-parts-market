@@ -21,6 +21,7 @@ const BuyerPriceOffers: React.FC = () => {
     isLoading, 
     isConnected,
     lastUpdateTime,
+    realtimeEvents,
     forceRefresh
   } = useRealtimeBuyerAuctions(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
@@ -77,17 +78,18 @@ const BuyerPriceOffers: React.FC = () => {
               </h1>
             </div>
             
-            {/* Realtime Status Indicator */}
+            {/* Enhanced Realtime Status Indicator */}
             <RealtimeIndicator
               isConnected={isConnected}
               lastUpdateTime={lastUpdateTime}
+              realtimeEvents={realtimeEvents}
               onForceRefresh={forceRefresh}
             />
           </div>
           <p className="text-gray-600">
             Управляйте своими предложениями цены и отслеживайте статус торгов
             <span className="text-blue-600 ml-2">
-              • {isConnected ? 'Real-time обновления' : 'Автообновление каждые 5 сек'}
+              • {isConnected ? 'Real-time обновления активны' : 'Автообновление каждые 10 сек'}
             </span>
           </p>
         </div>
