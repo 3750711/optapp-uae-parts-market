@@ -15,7 +15,11 @@ import {
   AlertCircle,
   MessageSquare,
   DollarSign,
-  ChevronLeft
+  ChevronLeft,
+  User,
+  Phone,
+  Star,
+  ShoppingCart
 } from "lucide-react";
 import { useSellerPriceOffers, useUpdatePriceOffer } from "@/hooks/use-price-offers";
 import { PriceOffer } from "@/types/price-offer";
@@ -23,12 +27,14 @@ import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatPrice } from "@/utils/formatPrice";
 
 const SellerPriceOffers = () => {
   const navigate = useNavigate();
@@ -92,12 +98,63 @@ const SellerPriceOffers = () => {
     setSellerResponse("");
   };
 
+  const createOrderFromOffer = async (offer: PriceOffer) => {
+    try {
+      // Create order using the seller_create_order function
+      const { data: orderId, error } = await supabase.rpc('seller_create_order', {
+        p_title: offer.product?.title || 'Товар по предложению цены',
+        p_price: offer.offered_price,
+        p_place_number: 1,
+        p_order_seller_name: profile?.full_name || 'Неизвестный продавец',
+        p_buyer_id: offer.buyer_id,
+        p_brand: offer.product?.brand || '',
+        p_model: offer.product?.model || '',
+        p_status: 'created',
+        p_order_created_type: 'price_offer_order',
+        p_telegram_url_order: profile?.telegram || '',
+        p_images: offer.product?.product_images?.map(img => img.url) || [],
+        p_product_id: offer.product_id,
+        p_delivery_method: 'self_pickup',
+        p_text_order: `Заказ создан на основе предложения цены. Оригинальная цена: ${formatPrice(offer.original_price)}, Предложенная цена: ${formatPrice(offer.offered_price)}`,
+        p_delivery_price_confirm: null
+      });
+
+      if (error) throw error;
+
+      // Update the offer with the order_id
+      await supabase
+        .from('price_offers')
+        .update({ order_id: orderId })
+        .eq('id', offer.id);
+
+      toast({
+        title: "Заказ создан!",
+        description: `Заказ успешно создан на основе предложения цены ${formatPrice(offer.offered_price)}`,
+      });
+
+      return orderId;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast({
+        title: "Ошибка при создании заказа",
+        description: "Не удалось создать заказ. Попробуйте еще раз.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const handleSubmitResponse = async () => {
     if (!responseModal.offer || !responseModal.action) return;
 
     setIsSubmitting(true);
     try {
       const { offer, action } = responseModal;
+
+      // If accepting, create order first
+      if (action === "accept") {
+        await createOrderFromOffer(offer);
+      }
 
       await updateOffer.mutateAsync({
         offerId: offer.id,
@@ -149,239 +206,350 @@ const SellerPriceOffers = () => {
             Назад
           </Button>
           <div>
-            <h1 className="text-3xl font-bold mb-2">Предложения цены</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Предложения цены</h1>
             <p className="text-muted-foreground">
               Управляйте предложениями цены по вашим товарам
             </p>
           </div>
         </div>
 
-      {!offers || offers.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-xl font-semibold mb-2">Нет предложений</h3>
-            <p className="text-muted-foreground">
-              Пока никто не делал предложений цены по вашим товарам.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-8">
-          {/* Pending offers */}
-          {pendingOffers.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-yellow-600" />
-                Требуют ответа ({pendingOffers.length})
-              </h2>
-              <div className="grid gap-4">
-                {pendingOffers.map((offer) => (
-                  <Card key={offer.id} className="border-yellow-200 bg-yellow-50/30">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">
-                            {offer.product?.title || "Товар удален"}
-                          </CardTitle>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            {getTimeRemaining(offer.expires_at)}
+        {!offers || offers.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-12">
+              <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Нет предложений</h3>
+              <p className="text-muted-foreground">
+                Пока никто не делал предложений цены по вашим товарам.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-8">
+            {/* Pending offers */}
+            {pendingOffers.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600" />
+                  Требуют ответа ({pendingOffers.length})
+                </h2>
+                <div className="grid gap-4">
+                  {pendingOffers.map((offer) => (
+                    <Card key={offer.id} className="border-yellow-200 bg-yellow-50/30">
+                      <CardHeader className="pb-4">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="space-y-2">
+                            <CardTitle className="text-lg">
+                              {offer.product?.title || "Товар удален"}
+                            </CardTitle>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Clock className="h-4 w-4" />
+                              {getTimeRemaining(offer.expires_at)}
+                            </div>
+                          </div>
+                          {getStatusBadge(offer.status)}
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="space-y-4">
+                        {/* Product Information */}
+                        <div className="flex flex-col md:flex-row gap-4">
+                          {offer.product?.product_images?.[0] && (
+                            <img
+                              src={offer.product.product_images[0].url}
+                              alt={offer.product.title}
+                              className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 space-y-2">
+                            <div>
+                              <h4 className="font-medium">{offer.product?.title}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {offer.product?.brand} {offer.product?.model}
+                              </p>
+                            </div>
+                            {offer.product?.description && (
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {offer.product.description}
+                              </p>
+                            )}
                           </div>
                         </div>
-                        {getStatusBadge(offer.status)}
-                      </div>
-                    </CardHeader>
 
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center gap-4">
-                        {offer.product?.product_images?.[0] && (
-                          <img
-                            src={offer.product.product_images[0].url}
-                            alt={offer.product.title}
-                            className="w-16 h-16 object-cover rounded-lg"
-                          />
+                        {/* Price Comparison */}
+                        <div className="bg-white rounded-lg p-4 border">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              <div className="text-center">
+                                <div className="text-sm text-muted-foreground mb-1">Ваша цена</div>
+                                <div className="text-lg font-semibold line-through text-gray-500">
+                                  {formatPrice(offer.original_price)}
+                                </div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-sm text-muted-foreground mb-1">Предложение</div>
+                                <div className="text-2xl font-bold text-green-600">
+                                  {formatPrice(offer.offered_price)}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-sm text-muted-foreground mb-1">Разница</div>
+                              <div className="text-lg font-semibold text-red-600">
+                                -{formatPrice(offer.original_price - offer.offered_price)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Buyer Information */}
+                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                          <h5 className="font-medium mb-2 flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            Информация о покупателе
+                          </h5>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span>Имя:</span>
+                              <span className="font-medium">{offer.buyer_profile?.full_name || 'Не указано'}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span>OPT ID:</span>
+                              <span className="font-medium">{offer.buyer_profile?.opt_id || 'Не указано'}</span>
+                            </div>
+                            {offer.buyer_profile?.telegram && (
+                              <div className="flex items-center justify-between">
+                                <span>Telegram:</span>
+                                <span className="font-medium">@{offer.buyer_profile.telegram}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {offer.message && (
+                          <div className="bg-gray-50 rounded-lg p-4 border">
+                            <p className="text-sm font-medium mb-2">Сообщение покупателя:</p>
+                            <p className="text-sm text-muted-foreground">
+                              {offer.message}
+                            </p>
+                          </div>
                         )}
-                        <div className="flex-1">
-                          <p className="font-medium">{offer.product?.brand} {offer.product?.model}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Покупатель: {offer.buyer_profile?.full_name} ({offer.buyer_profile?.opt_id})
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="grid grid-cols-3 gap-4 py-4 border-t border-b">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Ваша цена</p>
-                          <p className="font-semibold">${offer.original_price.toLocaleString()}</p>
+                        <div className="flex flex-col md:flex-row gap-3 pt-2">
+                          <Button
+                            onClick={() => handleOfferAction(offer, "accept")}
+                            className="bg-green-600 hover:bg-green-700 flex-1"
+                            disabled={isOfferExpired(offer.expires_at)}
+                          >
+                            <Check className="h-4 w-4 mr-2" />
+                            Принять и создать заказ
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => handleOfferAction(offer, "reject")}
+                            className="border-red-200 text-red-700 hover:bg-red-50 flex-1"
+                            disabled={isOfferExpired(offer.expires_at)}
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Отклонить
+                          </Button>
                         </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Предложение</p>
-                          <p className="font-semibold text-primary">${offer.offered_price.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Разница</p>
-                          <p className="font-semibold text-red-600">
-                            -${(offer.original_price - offer.offered_price).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-
-                      {offer.message && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">Сообщение покупателя:</p>
-                          <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                            {offer.message}
-                          </p>
-                        </div>
-                      )}
-
-                      <div className="flex gap-3 pt-2">
-                        <Button
-                          onClick={() => handleOfferAction(offer, "accept")}
-                          className="bg-green-600 hover:bg-green-700"
-                          disabled={isOfferExpired(offer.expires_at)}
-                        >
-                          <Check className="h-4 w-4 mr-2" />
-                          Принять
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => handleOfferAction(offer, "reject")}
-                          className="border-red-200 text-red-700 hover:bg-red-50"
-                          disabled={isOfferExpired(offer.expires_at)}
-                        >
-                          <X className="h-4 w-4 mr-2" />
-                          Отклонить
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Other offers */}
-          {otherOffers.length > 0 && (
-            <div>
-              <h2 className="text-xl font-semibold mb-4">
-                История предложений ({otherOffers.length})
-              </h2>
-              <div className="grid gap-4">
-                {otherOffers.map((offer) => (
-                  <Card key={offer.id} className="opacity-80">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">
-                            {offer.product?.title || "Товар удален"}
-                          </CardTitle>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            {formatDistanceToNow(new Date(offer.updated_at), { addSuffix: true, locale: ru })}
-                          </div>
-                        </div>
-                        {getStatusBadge(offer.status)}
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Ваша цена</p>
-                          <p className="font-semibold">${offer.original_price.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Предложение</p>
-                          <p className="font-semibold">${offer.offered_price.toLocaleString()}</p>
-                        </div>
-                      </div>
-
-                      {offer.seller_response && (
-                        <div>
-                          <p className="text-sm font-medium mb-1">Ваш ответ:</p>
-                          <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-                            {offer.seller_response}
-                          </p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Response Modal */}
-      <Dialog 
-        open={responseModal.isOpen} 
-        onOpenChange={(open) => !open && setResponseModal({ isOpen: false })}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {responseModal.action === "accept" ? "Принять предложение" : "Отклонить предложение"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {responseModal.offer && (
-              <div className="bg-muted p-4 rounded-lg">
-                <p className="font-medium">{responseModal.offer.product?.title}</p>
-                <div className="flex justify-between text-sm mt-2">
-                  <span>Ваша цена: ${responseModal.offer.original_price.toLocaleString()}</span>
-                  <span>Предложение: ${responseModal.offer.offered_price.toLocaleString()}</span>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </div>
             )}
 
-            <div>
-              <Label htmlFor="response">
-                {responseModal.action === "accept" 
-                  ? "Сообщение покупателю (необязательно)"
-                  : "Причина отклонения (необязательно)"
-                }
-              </Label>
-              <Textarea
-                id="response"
-                value={sellerResponse}
-                onChange={(e) => setSellerResponse(e.target.value)}
-                placeholder={
-                  responseModal.action === "accept"
-                    ? "Спасибо за предложение! Создаю заказ..."
-                    : "К сожалению, не могу принять такую цену..."
-                }
-                rows={3}
-              />
-            </div>
+            {/* Other offers */}
+            {otherOffers.length > 0 && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4">
+                  История предложений ({otherOffers.length})
+                </h2>
+                <div className="grid gap-4">
+                  {otherOffers.map((offer) => (
+                    <Card key={offer.id} className="opacity-80">
+                      <CardHeader className="pb-4">
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div className="space-y-2">
+                            <CardTitle className="text-lg">
+                              {offer.product?.title || "Товар удален"}
+                            </CardTitle>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Clock className="h-4 w-4" />
+                              {formatDistanceToNow(new Date(offer.updated_at), { addSuffix: true, locale: ru })}
+                            </div>
+                          </div>
+                          {getStatusBadge(offer.status)}
+                        </div>
+                      </CardHeader>
 
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setResponseModal({ isOpen: false })}
-                disabled={isSubmitting}
-                className="flex-1"
-              >
-                Отменить
-              </Button>
-              <Button
-                onClick={handleSubmitResponse}
-                disabled={isSubmitting}
-                className="flex-1"
-                variant={responseModal.action === "accept" ? "default" : "destructive"}
-              >
-                {isSubmitting ? "Обработка..." : 
-                 responseModal.action === "accept" ? "Принять и создать заказ" : "Отклонить"
-                }
-              </Button>
-            </div>
+                      <CardContent className="space-y-4">
+                        <div className="flex flex-col md:flex-row gap-4">
+                          {offer.product?.product_images?.[0] && (
+                            <img
+                              src={offer.product.product_images[0].url}
+                              alt={offer.product.title}
+                              className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h4 className="font-medium">{offer.product?.title}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {offer.product?.brand} {offer.product?.model}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Ваша цена</p>
+                            <p className="font-semibold">{formatPrice(offer.original_price)}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm text-muted-foreground">Предложение</p>
+                            <p className="font-semibold">{formatPrice(offer.offered_price)}</p>
+                          </div>
+                        </div>
+
+                        {offer.seller_response && (
+                          <div className="bg-gray-50 rounded-lg p-3 border">
+                            <p className="text-sm font-medium mb-1">Ваш ответ:</p>
+                            <p className="text-sm text-muted-foreground">
+                              {offer.seller_response}
+                            </p>
+                          </div>
+                        )}
+
+                        {offer.status === 'accepted' && offer.order_id && (
+                          <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                            <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
+                              <ShoppingCart className="h-4 w-4" />
+                              Заказ создан
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(`/seller/order-details/${offer.order_id}`)}
+                              className="mt-2"
+                            >
+                              Перейти к заказу
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+
+        {/* Response Modal */}
+        <Dialog 
+          open={responseModal.isOpen} 
+          onOpenChange={(open) => !open && setResponseModal({ isOpen: false })}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {responseModal.action === "accept" ? "Принять предложение" : "Отклонить предложение"}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {responseModal.offer && (
+                <div className="bg-muted p-4 rounded-lg space-y-3">
+                  <div className="flex gap-3">
+                    {responseModal.offer.product?.product_images?.[0] && (
+                      <img
+                        src={responseModal.offer.product.product_images[0].url}
+                        alt={responseModal.offer.product.title}
+                        className="w-16 h-16 object-cover rounded-lg"
+                      />
+                    )}
+                    <div>
+                      <p className="font-medium">{responseModal.offer.product?.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {responseModal.offer.product?.brand} {responseModal.offer.product?.model}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <div>
+                      <div className="text-sm text-muted-foreground">Ваша цена</div>
+                      <div className="font-semibold line-through text-gray-500">
+                        {formatPrice(responseModal.offer.original_price)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-muted-foreground">Предложение</div>
+                      <div className="text-lg font-bold text-green-600">
+                        {formatPrice(responseModal.offer.offered_price)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {responseModal.action === "accept" && (
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                      <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
+                        <ShoppingCart className="h-4 w-4" />
+                        При принятии будет создан заказ
+                      </p>
+                      <p className="text-xs text-green-700">
+                        Заказ будет создан автоматически с предложенной ценой
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="response">
+                  {responseModal.action === "accept" 
+                    ? "Сообщение покупателю (необязательно)"
+                    : "Причина отклонения (необязательно)"
+                  }
+                </Label>
+                <Textarea
+                  id="response"
+                  value={sellerResponse}
+                  onChange={(e) => setSellerResponse(e.target.value)}
+                  placeholder={
+                    responseModal.action === "accept"
+                      ? "Спасибо за предложение! Создаю заказ..."
+                      : "К сожалению, не могу принять такую цену..."
+                  }
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex flex-col md:flex-row gap-3 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setResponseModal({ isOpen: false })}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  Отменить
+                </Button>
+                <Button
+                  onClick={handleSubmitResponse}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                  variant={responseModal.action === "accept" ? "default" : "destructive"}
+                >
+                  {isSubmitting ? "Обработка..." : 
+                   responseModal.action === "accept" ? "Принять и создать заказ" : "Отклонить"
+                  }
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

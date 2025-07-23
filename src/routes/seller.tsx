@@ -12,6 +12,7 @@ const SellerOrderDetails = lazy(() => import('@/pages/SellerOrderDetails'));
 const SellerCreateOrder = lazy(() => import('@/pages/SellerCreateOrder'));
 const SellerSellProduct = lazy(() => import('@/pages/SellerSellProduct'));
 const SellerProfile = lazy(() => import('@/pages/SellerProfile'));
+const SellerPriceOffers = lazy(() => import('@/pages/SellerPriceOffers'));
 
 export const SellerRoutes = () => (
   <>
@@ -58,6 +59,11 @@ export const SellerRoutes = () => (
     <Route path="/seller/profile" element={
       <ProtectedRoute allowedRoles={['seller']}>
         <SellerProfile />
+      </ProtectedRoute>
+    } />
+    <Route path="/seller/price-offers" element={
+      <ProtectedRoute allowedRoles={['seller']}>
+        <SellerPriceOffers />
       </ProtectedRoute>
     } />
   </>
