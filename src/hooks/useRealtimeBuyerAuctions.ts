@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
 import { useBatchOffersInvalidation } from '@/hooks/use-price-offers-batch';
+import { usePusherOffers } from '@/hooks/usePusherOffers';
 
 export interface AuctionProduct extends Product {
   user_offer_price?: number;
@@ -21,9 +22,17 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
   const queryClient = useQueryClient();
   const { invalidateBatchOffers } = useBatchOffersInvalidation();
   
-  const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+  // Use Pusher for real-time updates
+  const { 
+    connectionState, 
+    realtimeEvents, 
+    lastUpdateTime, 
+    isConnected 
+  } = usePusherOffers();
 
-  // Main auction data query with polling
+  const [freshDataIndicator, setFreshDataIndicator] = useState(false);
+
+  // Main auction data query with reduced polling frequency (Pusher handles real-time)
   const queryResult = useQuery({
     queryKey: ['buyer-auction-products', user?.id, statusFilter],
     queryFn: async (): Promise<AuctionProduct[]> => {
@@ -189,16 +198,19 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
       });
 
       console.log('✅ Processed auction products:', products.length);
-      setLastUpdateTime(new Date());
+      
+      // Flash indicator when new data arrives
+      setFreshDataIndicator(true);
+      setTimeout(() => setFreshDataIndicator(false), 1000);
       
       return products;
     },
     enabled: !!user,
-    staleTime: 5000,
-    gcTime: 10000,
+    staleTime: 30000, // Increased stale time since Pusher handles real-time
+    gcTime: 60000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchInterval: 10000, // Poll every 10 seconds
+    refetchInterval: isConnected ? 60000 : 15000, // Reduced polling when connected to Pusher
   });
 
   // Force refresh function
@@ -213,12 +225,18 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
 
   return {
     ...queryResult,
-    isConnected: false, // No real-time connection
+    isConnected,
     lastUpdateTime,
-    realtimeEvents: [],
-    freshDataIndicator: false,
+    realtimeEvents,
+    freshDataIndicator,
     forceRefresh,
-    getConnectionDiagnostics: () => ({ polling: true, interval: 10000 })
+    connectionState,
+    getConnectionDiagnostics: () => ({ 
+      pusher: isConnected, 
+      polling: !isConnected,
+      interval: isConnected ? 60000 : 15000,
+      events: realtimeEvents.length
+    })
   };
 };
 
@@ -256,8 +274,8 @@ export const useBuyerOfferCounts = () => {
       };
     },
     enabled: !!user,
-    staleTime: 5000,
-    gcTime: 10000,
-    refetchInterval: 30000, // Poll every 30 seconds for counts
+    staleTime: 30000,
+    gcTime: 60000,
+    refetchInterval: 60000, // Reduced polling for counts
   });
 };

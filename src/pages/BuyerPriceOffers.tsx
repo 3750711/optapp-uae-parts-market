@@ -8,6 +8,7 @@ import { useRealtimeBuyerAuctions, useBuyerOfferCounts } from '@/hooks/useRealti
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
 import ProductListItem from '@/components/product/ProductListItem';
 import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
+import { PusherConnectionIndicator } from '@/components/offers/PusherConnectionIndicator';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
@@ -22,7 +23,8 @@ const BuyerPriceOffers: React.FC = () => {
     lastUpdateTime,
     realtimeEvents,
     freshDataIndicator,
-    forceRefresh
+    forceRefresh,
+    connectionState
   } = useRealtimeBuyerAuctions(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
 
@@ -70,20 +72,41 @@ const BuyerPriceOffers: React.FC = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <Gavel className="h-6 w-6 text-primary" />
               <h1 className="text-2xl font-bold text-gray-900">
                 Мои предложения
               </h1>
             </div>
+            
+            {/* Pusher Connection Indicator */}
+            <PusherConnectionIndicator
+              connectionState={connectionState}
+              onReconnect={forceRefresh}
+              lastUpdateTime={lastUpdateTime}
+              realtimeEvents={realtimeEvents}
+              compact={true}
+            />
           </div>
-          <p className="text-gray-600">
-            Управляйте своими предложениями цены и отслеживайте статус торгов
-            <span className="text-blue-600 ml-2">
-              • {isConnected ? 'Real-time обновления активны' : 'Автообновление каждые 10 сек'}
-            </span>
-          </p>
+          
+          <div className="flex items-center gap-4 mb-4">
+            <p className="text-gray-600">
+              Управляйте своими предложениями цены и отслеживайте статус торгов
+            </p>
+            <div className="text-sm text-blue-600">
+              • {isConnected ? 'Real-time обновления активны' : 'Автообновление каждые 15 сек'}
+            </div>
+          </div>
+
+          {/* Full Connection Indicator */}
+          <PusherConnectionIndicator
+            connectionState={connectionState}
+            onReconnect={forceRefresh}
+            lastUpdateTime={lastUpdateTime}
+            realtimeEvents={realtimeEvents}
+            compact={false}
+          />
         </div>
 
         {/* Status Filter */}
