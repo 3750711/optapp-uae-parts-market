@@ -430,10 +430,12 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
           console.log('✅ Successfully connected to Real-time');
         } else if (status === 'CHANNEL_ERROR') {
           console.error('❌ Channel error, attempting reconnect...');
+          setIsConnected(false);
           handleReconnect();
         } else if (status === 'CLOSED') {
-          console.warn('⚠️ Connection closed, fallback to polling');
+          console.warn('⚠️ Connection closed, switching to polling mode');
           setIsConnected(false);
+          // Don't immediately reconnect on CLOSED status - might be intentional
         }
       });
 

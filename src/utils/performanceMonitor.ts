@@ -23,14 +23,26 @@ class PerformanceMonitor {
         }
       });
 
-      // Monitor paint timing
-      this.observer.observe({ entryTypes: ['paint'] });
+      // Check and observe supported entry types
+      const supportedTypes = [];
       
-      // Monitor navigation timing
-      this.observer.observe({ entryTypes: ['navigation'] });
+      // Check each entry type individually
+      if (PerformanceObserver.supportedEntryTypes?.includes('paint')) {
+        supportedTypes.push('paint');
+      }
       
-      // Monitor resource timing
-      this.observer.observe({ entryTypes: ['resource'] });
+      if (PerformanceObserver.supportedEntryTypes?.includes('navigation')) {
+        supportedTypes.push('navigation');
+      }
+      
+      if (PerformanceObserver.supportedEntryTypes?.includes('resource')) {
+        supportedTypes.push('resource');
+      }
+
+      // Observe only supported types
+      if (supportedTypes.length > 0) {
+        this.observer.observe({ entryTypes: supportedTypes });
+      }
     } catch (error) {
       console.warn('Performance monitoring setup failed:', error);
     }
@@ -48,6 +60,10 @@ class PerformanceMonitor {
   }
 
   private measureLCP() {
+    if (!PerformanceObserver.supportedEntryTypes?.includes('largest-contentful-paint')) {
+      return;
+    }
+    
     try {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
@@ -61,6 +77,10 @@ class PerformanceMonitor {
   }
 
   private measureFID() {
+    if (!PerformanceObserver.supportedEntryTypes?.includes('first-input')) {
+      return;
+    }
+    
     try {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
@@ -76,6 +96,10 @@ class PerformanceMonitor {
   }
 
   private measureCLS() {
+    if (!PerformanceObserver.supportedEntryTypes?.includes('layout-shift')) {
+      return;
+    }
+    
     try {
       let clsValue = 0;
       const observer = new PerformanceObserver((list) => {
