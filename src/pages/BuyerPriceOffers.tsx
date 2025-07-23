@@ -200,7 +200,6 @@ const BuyerPriceOffers: React.FC = () => {
                 showAuctionInfo={true}
                 lastUpdateTime={lastUpdateTime}
                 freshDataIndicator={freshDataIndicator}
-                isConnected={isConnected}
               />
             ))}
           </div>
