@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -109,10 +110,14 @@ export const useSimpleBuyerOffers = (statusFilter?: string) => {
       if (normalizedStatusFilter !== 'all') {
         products = products.filter(product => {
           switch (normalizedStatusFilter) {
-            case 'active':
+            case 'pending':
               return product.user_offer_status === 'pending';
-            case 'completed':
-              return ['expired', 'rejected', 'accepted'].includes(product.user_offer_status || '');
+            case 'expired':
+              return product.user_offer_status === 'expired';
+            case 'rejected':
+              return product.user_offer_status === 'rejected';
+            case 'accepted':
+              return product.user_offer_status === 'accepted';
             default:
               return true;
           }
@@ -177,7 +182,7 @@ export const useSimpleBuyerOfferCounts = () => {
   return useQuery({
     queryKey,
     queryFn: async () => {
-      if (!user) return { active: 0, completed: 0, total: 0 };
+      if (!user) return { pending: 0, expired: 0, rejected: 0, accepted: 0, total: 0 };
 
       console.log('🔢 Fetching buyer offer counts');
 
@@ -189,6 +194,7 @@ export const useSimpleBuyerOfferCounts = () => {
 
       if (error) throw error;
 
+      // Get latest offer status per product
       const latestOffers = new Map<string, string>();
       for (const offer of data || []) {
         if (!latestOffers.has(offer.product_id)) {
@@ -199,8 +205,10 @@ export const useSimpleBuyerOfferCounts = () => {
       const statuses = Array.from(latestOffers.values());
       
       const counts = {
-        active: statuses.filter(s => s === 'pending').length,
-        completed: statuses.filter(s => ['expired', 'rejected', 'accepted'].includes(s)).length,
+        pending: statuses.filter(s => s === 'pending').length,
+        expired: statuses.filter(s => s === 'expired').length,
+        rejected: statuses.filter(s => s === 'rejected').length,
+        accepted: statuses.filter(s => s === 'accepted').length,
         total: statuses.length
       };
 

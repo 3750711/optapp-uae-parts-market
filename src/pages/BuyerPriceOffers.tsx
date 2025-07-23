@@ -1,15 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
-import { Search, Heart, TrendingUp, Clock, Trophy } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Search, Clock, XCircle, CheckCircle, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSimpleBuyerOffers, useSimpleBuyerOfferCounts } from '@/hooks/useSimpleBuyerOffers';
 import { SimpleOfferCard } from '@/components/offers/SimpleOfferCard';
 import Layout from '@/components/layout/Layout';
+import { formatPrice } from '@/utils/formatPrice';
 
 const BuyerPriceOffers: React.FC = () => {
   const { user } = useAuth();
@@ -41,17 +40,23 @@ const BuyerPriceOffers: React.FC = () => {
     if (offerCounts) {
       const totalValue = offerProducts?.reduce((sum, p) => sum + (p.user_offer_price || 0), 0) || 0;
       return {
-        active: offerCounts.active,
+        pending: offerCounts.pending,
+        expired: offerCounts.expired,
+        rejected: offerCounts.rejected,
+        accepted: offerCounts.accepted,
         total: offerCounts.total,
         totalValue
       };
     }
     
     // Fallback calculation
-    if (!offerProducts) return { active: 0, total: 0, totalValue: 0 };
+    if (!offerProducts) return { pending: 0, expired: 0, rejected: 0, accepted: 0, total: 0, totalValue: 0 };
     
     return {
-      active: offerProducts.filter(p => p.user_offer_status === 'pending').length,
+      pending: offerProducts.filter(p => p.user_offer_status === 'pending').length,
+      expired: offerProducts.filter(p => p.user_offer_status === 'expired').length,
+      rejected: offerProducts.filter(p => p.user_offer_status === 'rejected').length,
+      accepted: offerProducts.filter(p => p.user_offer_status === 'accepted').length,
       total: offerProducts.length,
       totalValue: offerProducts.reduce((sum, p) => sum + (p.user_offer_price || 0), 0)
     };
@@ -61,21 +66,17 @@ const BuyerPriceOffers: React.FC = () => {
     if (!filteredProducts) return [];
     
     switch (status) {
-      case 'active':
+      case 'pending':
         return filteredProducts.filter(p => p.user_offer_status === 'pending');
-      case 'completed':
-        return filteredProducts.filter(p => ['expired', 'rejected', 'accepted'].includes(p.user_offer_status || ''));
+      case 'expired':
+        return filteredProducts.filter(p => p.user_offer_status === 'expired');
+      case 'rejected':
+        return filteredProducts.filter(p => p.user_offer_status === 'rejected');
+      case 'accepted':
+        return filteredProducts.filter(p => p.user_offer_status === 'accepted');
       default:
         return filteredProducts;
     }
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(price);
   };
 
   const handleFavoriteToggle = (productId: string) => {
@@ -88,6 +89,38 @@ const BuyerPriceOffers: React.FC = () => {
       }
       return newSet;
     });
+  };
+
+  const getEmptyStateMessage = (filter: string) => {
+    switch (filter) {
+      case 'pending':
+        return {
+          title: 'Нет активных предложений',
+          description: 'У вас нет активных предложений цены. Найдите интересные товары и сделайте предложение!'
+        };
+      case 'expired':
+        return {
+          title: 'Нет истекших предложений',
+          description: 'У вас нет предложений с истекшим сроком действия.'
+        };
+      case 'rejected':
+        return {
+          title: 'Нет отклоненных предложений',
+          description: 'У вас нет отклоненных предложений.'
+        };
+      case 'accepted':
+        return {
+          title: 'Нет принятых предложений',
+          description: 'У вас нет принятых предложений.'
+        };
+      default:
+        return {
+          title: searchTerm ? 'Товары не найдены' : 'Нет предложений',
+          description: searchTerm 
+            ? 'Попробуйте изменить поисковый запрос' 
+            : 'Начните участвовать в торгах, чтобы увидеть ваши предложения здесь'
+        };
+    }
   };
 
   if (!user) {
@@ -127,7 +160,7 @@ const BuyerPriceOffers: React.FC = () => {
         {/* Header */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Мои предложения
+            Мои предложения цены
           </h1>
           <p className="text-muted-foreground text-lg">
             Управляйте своими предложениями цены
@@ -135,22 +168,50 @@ const BuyerPriceOffers: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className={stats.active > 0 ? "border-blue-200 bg-blue-50/30" : ""}>
-            <CardContent className="p-6 text-center">
-              <div className="text-2xl font-bold text-blue-600">{stats.active}</div>
-              <div className="text-sm text-muted-foreground">Активные предложения</div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Card className={stats.pending > 0 ? "border-blue-200 bg-blue-50/30" : ""}>
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <Clock className="h-4 w-4 text-blue-600" />
+                <div className="text-xl font-bold text-blue-600">{stats.pending}</div>
+              </div>
+              <div className="text-sm text-muted-foreground">Активные</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-2xl font-bold text-purple-600">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Всего предложений</div>
+          
+          <Card className={stats.accepted > 0 ? "border-green-200 bg-green-50/30" : ""}>
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <div className="text-xl font-bold text-green-600">{stats.accepted}</div>
+              </div>
+              <div className="text-sm text-muted-foreground">Принятые</div>
             </CardContent>
           </Card>
+          
+          <Card className={stats.rejected > 0 ? "border-red-200 bg-red-50/30" : ""}>
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <XCircle className="h-4 w-4 text-red-600" />
+                <div className="text-xl font-bold text-red-600">{stats.rejected}</div>
+              </div>
+              <div className="text-sm text-muted-foreground">Отклоненные</div>
+            </CardContent>
+          </Card>
+          
+          <Card className={stats.expired > 0 ? "border-orange-200 bg-orange-50/30" : ""}>
+            <CardContent className="p-4 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <AlertCircle className="h-4 w-4 text-orange-600" />
+                <div className="text-xl font-bold text-orange-600">{stats.expired}</div>
+              </div>
+              <div className="text-sm text-muted-foreground">Истекшие</div>
+            </CardContent>
+          </Card>
+          
           <Card>
-            <CardContent className="p-6 text-center">
-              <div className="text-2xl font-bold text-orange-600">{formatPrice(stats.totalValue)}</div>
+            <CardContent className="p-4 text-center">
+              <div className="text-xl font-bold text-purple-600 mb-2">{formatPrice(stats.totalValue)}</div>
               <div className="text-sm text-muted-foreground">Общая сумма</div>
             </CardContent>
           </Card>
@@ -171,10 +232,12 @@ const BuyerPriceOffers: React.FC = () => {
 
         {/* Tabs */}
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="all">Все ({filteredProducts.length})</TabsTrigger>
-            <TabsTrigger value="active">Активные ({getStatusProducts('active').length})</TabsTrigger>
-            <TabsTrigger value="completed">Завершенные ({getStatusProducts('completed').length})</TabsTrigger>
+            <TabsTrigger value="pending">Активные ({getStatusProducts('pending').length})</TabsTrigger>
+            <TabsTrigger value="accepted">Принятые ({getStatusProducts('accepted').length})</TabsTrigger>
+            <TabsTrigger value="rejected">Отклоненные ({getStatusProducts('rejected').length})</TabsTrigger>
+            <TabsTrigger value="expired">Истекшие ({getStatusProducts('expired').length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value={statusFilter} className="mt-8">
@@ -185,13 +248,10 @@ const BuyerPriceOffers: React.FC = () => {
                     <Search className="h-16 w-16 mx-auto" />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">
-                    {searchTerm ? 'Товары не найдены' : 'Нет торгов'}
+                    {getEmptyStateMessage(statusFilter).title}
                   </h3>
                   <p className="text-muted-foreground">
-                    {searchTerm 
-                      ? 'Попробуйте изменить поисковый запрос' 
-                      : 'Начните участвовать в торгах, чтобы увидеть их здесь'
-                    }
+                    {getEmptyStateMessage(statusFilter).description}
                   </p>
                 </CardContent>
               </Card>

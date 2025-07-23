@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, Heart, MoreHorizontal } from 'lucide-react';
+import { Clock, Heart, MoreHorizontal, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
 import { SimpleMakeOfferButton } from '@/components/price-offer/SimpleMakeOfferButton';
 import { Product } from '@/types/product';
+import { formatPrice } from '@/utils/formatPrice';
 
 interface SimpleOfferCardProps {
   product: Product & {
@@ -41,7 +43,7 @@ export const SimpleOfferCard: React.FC<SimpleOfferCardProps> = ({
   }, [lastUpdateTime]);
 
   useEffect(() => {
-    if (!product.user_offer_expires_at) return;
+    if (!product.user_offer_expires_at || product.user_offer_status !== 'pending') return;
 
     const updateTime = () => {
       const now = new Date().getTime();
@@ -66,39 +68,79 @@ export const SimpleOfferCard: React.FC<SimpleOfferCardProps> = ({
     updateTime();
     const interval = setInterval(updateTime, 60000);
     return () => clearInterval(interval);
-  }, [product.user_offer_expires_at]);
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
+  }, [product.user_offer_expires_at, product.user_offer_status]);
 
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary">Ожидает</Badge>;
+        return (
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            <Clock className="h-3 w-3 mr-1" />
+            Активное
+          </Badge>
+        );
       case 'accepted':
-        return <Badge className="bg-green-100 text-green-800">Принято</Badge>;
+        return (
+          <Badge className="bg-green-100 text-green-800">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Принято
+          </Badge>
+        );
       case 'rejected':
-        return <Badge variant="destructive">Отклонено</Badge>;
+        return (
+          <Badge variant="destructive" className="bg-red-100 text-red-800">
+            <XCircle className="h-3 w-3 mr-1" />
+            Отклонено
+          </Badge>
+        );
       case 'expired':
-        return <Badge variant="outline">Истекло</Badge>;
+        return (
+          <Badge variant="outline" className="bg-orange-100 text-orange-800">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Истекло
+          </Badge>
+        );
       default:
         return null;
+    }
+  };
+
+  const getStatusDescription = (status?: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Ожидает ответа продавца';
+      case 'accepted':
+        return 'Продавец принял ваше предложение';
+      case 'rejected':
+        return 'Продавец отклонил предложение';
+      case 'expired':
+        return 'Срок действия предложения истек';
+      default:
+        return '';
     }
   };
 
   const primaryImage = product.product_images?.find(img => img.is_primary) 
     || product.product_images?.[0];
 
+  const canMakeNewOffer = product.user_offer_status === 'rejected' || product.user_offer_status === 'expired';
+
   return (
     <Card className={`transition-all duration-300 hover:shadow-lg ${
       isRecentUpdate ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
     }`}>
       <CardContent className="p-4">
+        {/* Product Image */}
+        {primaryImage && (
+          <div className="mb-4">
+            <img 
+              src={primaryImage.url} 
+              alt={product.title}
+              className="w-full h-48 object-cover rounded-lg"
+            />
+          </div>
+        )}
+
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
             <h3 className="font-semibold text-lg line-clamp-2 mb-1">
@@ -150,36 +192,37 @@ export const SimpleOfferCard: React.FC<SimpleOfferCardProps> = ({
           )}
         </div>
 
-        {/* Status and Time */}
-        <div className="flex justify-between items-center mb-4">
-          <div>
+        {/* Status */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
             {getStatusBadge(product.user_offer_status)}
+            
+            {product.user_offer_expires_at && product.user_offer_status === 'pending' && (
+              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                <span>{timeLeft}</span>
+              </div>
+            )}
           </div>
           
-          {product.user_offer_expires_at && product.user_offer_status === 'pending' && (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>{timeLeft}</span>
-            </div>
-          )}
+          <p className="text-sm text-muted-foreground">
+            {getStatusDescription(product.user_offer_status)}
+          </p>
         </div>
 
-        {/* Offer Button */}
-        <SimpleMakeOfferButton 
-          product={product}
-          compact={false}
-        />
-
-        {/* Product Image */}
-        {primaryImage && (
-          <div className="mt-4">
-            <img 
-              src={primaryImage.url} 
-              alt={product.title}
-              className="w-full h-48 object-cover rounded-lg"
-            />
-          </div>
-        )}
+        {/* Action Button */}
+        <div className="space-y-2">
+          <SimpleMakeOfferButton 
+            product={product}
+            compact={false}
+          />
+          
+          {canMakeNewOffer && (
+            <p className="text-xs text-muted-foreground text-center">
+              Вы можете сделать новое предложение
+            </p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
