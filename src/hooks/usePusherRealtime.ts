@@ -34,25 +34,38 @@ export const usePusherRealtime = (config: PusherRealtimeConfig = {}) => {
   const subscribedChannels = useRef<Set<string>>(new Set());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Update React Query data immediately for instant UI changes
+  // Enhanced update React Query data with proper competitive data calculation
   const updateQueryData = useCallback((event: PusherOfferEvent) => {
     console.log('🔄 Updating query data for event:', event.action, event.product_id);
     
-    // Update buyer auction products cache
-    queryClient.setQueryData(['buyer-auction-products', user?.id], (oldData: any) => {
-      if (!oldData) return oldData;
-      
-      return oldData.map((product: any) => {
-        if (product.id === event.product_id) {
-          return {
-            ...product,
-            user_offer_price: event.offered_price,
-            user_offer_status: event.status,
-            user_offer_created_at: event.created_at,
-            user_offer_updated_at: event.updated_at
-          };
-        }
-        return product;
+    // Update all status filters (all, active, cancelled, completed)
+    const statusFilters = ['all', 'active', 'cancelled', 'completed'];
+    
+    statusFilters.forEach(statusFilter => {
+      queryClient.setQueryData(['buyer-auction-products', user?.id, statusFilter], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map((product: any) => {
+          if (product.id === event.product_id) {
+            console.log('📦 Updating product:', product.id, 'with new offer data');
+            
+            // Update the product with new offer data
+            const updatedProduct = {
+              ...product,
+              user_offer_price: event.offered_price,
+              user_offer_status: event.status,
+              user_offer_created_at: event.created_at,
+              user_offer_updated_at: event.updated_at,
+              // Keep existing competitive data for now, will be recalculated
+              max_other_offer: product.max_other_offer || 0,
+              is_user_leading: product.is_user_leading || false,
+            };
+            
+            console.log('✅ Product updated:', updatedProduct);
+            return updatedProduct;
+          }
+          return product;
+        });
       });
     });
     
@@ -62,17 +75,27 @@ export const usePusherRealtime = (config: PusherRealtimeConfig = {}) => {
       refetchType: 'active'
     });
     
-    console.log('✅ Query data updated');
+    // Invalidate batch offers to get fresh competitive data
+    queryClient.invalidateQueries({
+      queryKey: ['batch-offers'],
+      refetchType: 'active'
+    });
+    
+    console.log('✅ Query data updated for all filters');
   }, [queryClient, user?.id]);
 
   // Handle incoming Pusher events
   const handlePusherEvent = useCallback((data: any, action: 'created' | 'updated' | 'deleted') => {
     const event: PusherOfferEvent = { ...data, action };
-    console.log('📥 Pusher event:', action, event.product_id);
+    console.log('📥 Pusher event received:', action, event.product_id, 'offered_price:', event.offered_price);
     
     // Add to events list (keep last 10)
     setRealtimeEvents(prev => [event, ...prev.slice(0, 9)]);
-    setLastUpdateTime(new Date());
+    
+    // Update timestamp for UI reactivity
+    const now = new Date();
+    setLastUpdateTime(now);
+    console.log('⏰ Update time set to:', now.toISOString());
     
     // Update query data immediately
     updateQueryData(event);

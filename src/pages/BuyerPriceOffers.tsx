@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Gavel, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +31,25 @@ const BuyerPriceOffers: React.FC = () => {
   // Get batch data for optimization
   const productIds = auctionProducts?.map(p => p.id) || [];
   const { data: batchOffersData } = useBatchOffers(productIds);
+
+  // Debug logging to track data flow
+  useEffect(() => {
+    console.log('🏠 BuyerPriceOffers data update:', {
+      statusFilter,
+      productsCount: auctionProducts?.length || 0,
+      lastUpdateTime: lastUpdateTime?.toISOString(),
+      isConnected,
+      realtimeEventsCount: realtimeEvents?.length || 0,
+      batchOffersDataCount: batchOffersData?.length || 0
+    });
+  }, [statusFilter, auctionProducts, lastUpdateTime, isConnected, realtimeEvents, batchOffersData]);
+
+  // Log when realtime events arrive
+  useEffect(() => {
+    if (realtimeEvents && realtimeEvents.length > 0) {
+      console.log('🔔 New realtime events in BuyerPriceOffers:', realtimeEvents.slice(0, 3));
+    }
+  }, [realtimeEvents]);
 
   if (!user) {
     return (
@@ -78,11 +97,16 @@ const BuyerPriceOffers: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 Мои предложения
               </h1>
-              {/* Simple real-time indicator */}
+              {/* Enhanced real-time indicator */}
               {isConnected && (
                 <div className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded flex items-center gap-1">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   Live
+                  {realtimeEvents && realtimeEvents.length > 0 && (
+                    <span className="text-xs bg-green-600 text-white px-1 rounded">
+                      {realtimeEvents.length}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -135,6 +159,16 @@ const BuyerPriceOffers: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Debug info for testing */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+            <div>Products: {filteredProducts.length}</div>
+            <div>Last Update: {lastUpdateTime?.toISOString()}</div>
+            <div>Events: {realtimeEvents?.length || 0}</div>
+            <div>Batch Data: {batchOffersData?.length || 0}</div>
+          </div>
+        )}
 
         {filteredProducts.length === 0 ? (
           <Card>

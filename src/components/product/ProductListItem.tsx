@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useMemo, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Eye, Clock, Star } from 'lucide-react';
@@ -23,7 +24,6 @@ interface ProductListItemProps {
   showOfferStatus?: boolean;
   showAuctionInfo?: boolean;
   lastUpdateTime?: Date;
-  freshDataIndicator?: boolean;
 }
 
 const ProductListItem: React.FC<ProductListItemProps> = ({ 
@@ -32,50 +32,82 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   showOfferStatus = false,
   showAuctionInfo = false,
   lastUpdateTime,
-  freshDataIndicator = false
 }) => {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU').format(price);
-  };
+  // Debug logging to track data changes
+  useEffect(() => {
+    console.log('📦 ProductListItem render:', {
+      productId: product.id,
+      title: product.title,
+      userOfferPrice: product.user_offer_price,
+      maxOtherOffer: product.max_other_offer,
+      isUserLeading: product.is_user_leading,
+      lastUpdateTime: lastUpdateTime?.toISOString(),
+      showAuctionInfo
+    });
+  }, [product.id, product.user_offer_price, product.max_other_offer, product.is_user_leading, lastUpdateTime, showAuctionInfo]);
 
-  const getTimeRemaining = (expiresAt: string) => {
-    const now = new Date();
-    const expiry = new Date(expiresAt);
-    const diff = expiry.getTime() - now.getTime();
+  // Memoized calculations that react to data changes
+  const { 
+    formatPrice, 
+    getTimeRemaining,
+    batchData,
+    totalOffers,
+    maxCompetitorPrice,
+    isUserLeading,
+    isFreshData
+  } = useMemo(() => {
+    const formatPriceFunc = (price: number) => new Intl.NumberFormat('ru-RU').format(price);
     
-    if (diff <= 0) return 'Истекло';
+    const getTimeRemainingFunc = (expiresAt: string) => {
+      const now = new Date();
+      const expiry = new Date(expiresAt);
+      const diff = expiry.getTime() - now.getTime();
+      
+      if (diff <= 0) return 'Истекло';
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (hours > 0) {
+        return `${hours}ч ${minutes}м`;
+      }
+      return `${minutes}м`;
+    };
+
+    // Get batch data for this product
+    const batchDataForProduct = batchOffersData?.find((data: any) => data.product_id === product.id);
     
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    // Calculate competitive data - use batch data if available, otherwise use product data
+    const totalOffersCount = batchDataForProduct?.total_offers_count || 0;
+    const maxCompetitorPriceValue = batchDataForProduct?.max_offer_price || product.max_other_offer || 0;
+    const isUserLeadingValue = batchDataForProduct?.current_user_is_max ?? product.is_user_leading ?? false;
     
-    if (hours > 0) {
-      return `${hours}ч ${minutes}м`;
-    }
-    return `${minutes}м`;
-  };
-
-  // Get batch data for this product
-  const batchData = batchOffersData?.find((data: any) => data.product_id === product.id);
-  const totalOffers = batchData?.total_offers_count || 0;
-  const maxCompetitorPrice = batchData?.max_offer_price || 0;
-  const isUserLeading = batchData?.current_user_is_max || false;
-
-  // Enhanced fresh data detection
-  const isFreshData = lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 5000;
-  const isVeryFreshData = freshDataIndicator || isFreshData;
-
-  console.log('📦 ProductListItem render:', {
-    productId: product.id,
-    title: product.title,
-    freshDataIndicator,
-    isFreshData,
-    isVeryFreshData,
-    lastUpdateTime: lastUpdateTime?.toISOString()
-  });
+    // Enhanced fresh data detection
+    const isFreshDataValue = lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 5000;
+    
+    console.log('🔍 ProductListItem calculations:', {
+      productId: product.id,
+      totalOffersCount,
+      maxCompetitorPriceValue,
+      isUserLeadingValue,
+      isFreshDataValue,
+      batchDataExists: !!batchDataForProduct
+    });
+    
+    return {
+      formatPrice: formatPriceFunc,
+      getTimeRemaining: getTimeRemainingFunc,
+      batchData: batchDataForProduct,
+      totalOffers: totalOffersCount,
+      maxCompetitorPrice: maxCompetitorPriceValue,
+      isUserLeading: isUserLeadingValue,
+      isFreshData: isFreshDataValue
+    };
+  }, [batchOffersData, product.id, product.max_other_offer, product.is_user_leading, lastUpdateTime]);
 
   return (
     <Card className={`hover:shadow-md transition-all duration-300 ${
-      isVeryFreshData ? 'border-green-300 shadow-green-100 ring-1 ring-green-200' : ''
+      isFreshData ? 'border-green-300 shadow-green-100 ring-1 ring-green-200' : ''
     }`}>
       <CardContent className="p-4">
         <div className="flex gap-4">

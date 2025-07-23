@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, Clock, Users, Activity } from 'lucide-react';
@@ -30,26 +30,81 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   lastUpdateTime
 }) => {
   const createOfferMutation = useCreatePriceOffer();
+  const [componentUpdateTime, setComponentUpdateTime] = useState<Date>(new Date());
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU').format(price);
-  };
+  // Debug logging to track data changes
+  useEffect(() => {
+    console.log('🎯 AuctionInfoCompact data update:', {
+      productId,
+      userOfferPrice,
+      maxCompetitorPrice,
+      isUserLeading,
+      totalOffers,
+      lastUpdateTime: lastUpdateTime?.toISOString(),
+      componentUpdateTime: componentUpdateTime.toISOString()
+    });
+  }, [productId, userOfferPrice, maxCompetitorPrice, isUserLeading, totalOffers, lastUpdateTime, componentUpdateTime]);
 
-  const getTimeRemaining = (expiresAt: string) => {
-    const now = new Date();
-    const expiry = new Date(expiresAt);
-    const diff = expiry.getTime() - now.getTime();
-    
-    if (diff <= 0) return 'Истекло';
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (hours > 0) {
-      return `${hours}ч ${minutes}м`;
+  // Update component timestamp when lastUpdateTime changes
+  useEffect(() => {
+    if (lastUpdateTime) {
+      setComponentUpdateTime(new Date());
+      console.log('⏰ AuctionInfoCompact: lastUpdateTime changed to:', lastUpdateTime.toISOString());
     }
-    return `${minutes}м`;
-  };
+  }, [lastUpdateTime]);
+
+  // Memoized calculations that react to data changes
+  const { 
+    isRecentUpdate, 
+    competitorDifference, 
+    timeRemaining,
+    formattedUserPrice,
+    formattedMaxPrice
+  } = useMemo(() => {
+    const now = Date.now();
+    const recentThreshold = 10000; // 10 seconds
+    
+    // Check if update is recent based on lastUpdateTime
+    const isRecent = lastUpdateTime && (now - lastUpdateTime.getTime()) < recentThreshold;
+    
+    // Calculate competitor difference
+    const difference = Math.max(0, maxCompetitorPrice - userOfferPrice);
+    
+    // Calculate time remaining
+    const expiry = new Date(expiresAt);
+    const diff = expiry.getTime() - now;
+    let timeStr = 'Истекло';
+    
+    if (diff > 0) {
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (hours > 0) {
+        timeStr = `${hours}ч ${minutes}м`;
+      } else {
+        timeStr = `${minutes}м`;
+      }
+    }
+    
+    // Format prices
+    const formatPrice = (price: number) => new Intl.NumberFormat('ru-RU').format(price);
+    
+    console.log('💡 AuctionInfoCompact calculations:', {
+      isRecent,
+      difference,
+      timeStr,
+      lastUpdateTime: lastUpdateTime?.toISOString(),
+      timeSinceUpdate: lastUpdateTime ? now - lastUpdateTime.getTime() : 'N/A'
+    });
+    
+    return {
+      isRecentUpdate: isRecent,
+      competitorDifference: difference,
+      timeRemaining: timeStr,
+      formattedUserPrice: formatPrice(userOfferPrice),
+      formattedMaxPrice: formatPrice(maxCompetitorPrice)
+    };
+  }, [userOfferPrice, maxCompetitorPrice, expiresAt, lastUpdateTime]);
 
   const handleQuickBid = async () => {
     const newBidAmount = Math.max(maxCompetitorPrice, userOfferPrice) + 5;
@@ -63,19 +118,18 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
         message: 'Быстрая ставка +$5'
       });
       
-      toast.success(`Ставка поднята до $${formatPrice(newBidAmount)}`);
+      toast.success(`Ставка поднята до $${new Intl.NumberFormat('ru-RU').format(newBidAmount)}`);
     } catch (error) {
       console.error('Error placing quick bid:', error);
       toast.error('Ошибка при размещении ставки');
     }
   };
 
-  const competitorDifference = maxCompetitorPrice - userOfferPrice;
-  const isRecentUpdate = lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 10000;
-
   return (
-    <div className={`rounded-lg p-3 space-y-2 border transition-all duration-300 ${
-      isRecentUpdate ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+    <div className={`rounded-lg p-3 space-y-2 border transition-all duration-500 ${
+      isRecentUpdate 
+        ? 'bg-green-50 border-green-200 shadow-sm ring-1 ring-green-300' 
+        : 'bg-gray-50 border-gray-200'
     }`}>
       {/* Status and prices */}
       <div className="flex items-center justify-between">
@@ -88,9 +142,9 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
             <span>{totalOffers} ставок</span>
           </div>
           {isRecentUpdate && (
-            <div className="flex items-center gap-1">
-              <Activity className="h-3 w-3 text-green-600 animate-pulse" />
-              <span className="text-xs text-green-600">Обновлено</span>
+            <div className="flex items-center gap-1 animate-pulse">
+              <Activity className="h-3 w-3 text-green-600" />
+              <span className="text-xs text-green-600 font-medium">Обновлено</span>
             </div>
           )}
         </div>
@@ -98,7 +152,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 text-xs text-gray-500">
             <Clock className="h-3 w-3" />
-            <span>{getTimeRemaining(expiresAt)}</span>
+            <span>{timeRemaining}</span>
           </div>
         </div>
       </div>
@@ -108,17 +162,19 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-gray-600">Моя ставка:</span>
-            <span className="font-medium">${formatPrice(userOfferPrice)}</span>
+            <span className="font-medium">${formattedUserPrice}</span>
           </div>
           {!isUserLeading && maxCompetitorPrice > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-gray-600">Лидер:</span>
               <span className="font-medium text-red-600">
-                ${formatPrice(maxCompetitorPrice)}
+                ${formattedMaxPrice}
               </span>
-              <span className="text-xs text-gray-500">
-                (+${formatPrice(competitorDifference)})
-              </span>
+              {competitorDifference > 0 && (
+                <span className="text-xs text-gray-500">
+                  (+${new Intl.NumberFormat('ru-RU').format(competitorDifference)})
+                </span>
+              )}
             </div>
           )}
         </div>
