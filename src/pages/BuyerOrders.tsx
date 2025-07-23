@@ -11,7 +11,7 @@ import { useOrdersSearch } from '@/hooks/useOrdersSearch';
 import { useBuyerOrders } from '@/hooks/useBuyerOrders';
 
 const BuyerOrders = () => {
-  const { profile, user } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const isSeller = profile?.user_type === 'seller';
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,46 +23,24 @@ const BuyerOrders = () => {
     setSearchTerm('');
   };
 
-  console.log('🔍 BuyerOrders component state:', {
+  console.log('🔍 Query result:', {
     isLoading,
     error: error?.message,
     ordersCount: orders?.length,
     filteredCount: filteredOrders?.length,
     searchTerm,
-    hasActiveSearch,
-    userAuthenticated: !!user,
-    profileLoaded: !!profile
+    hasActiveSearch
   });
-
-  // Show loading if user or profile is not loaded yet
-  if (!user || !profile) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="text-center">
-            <svg className="h-8 w-8 animate-spin text-optapp-yellow mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" />
-            </svg>
-            <p className="text-gray-600">Загрузка профиля...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   if (isLoading) {
     console.log('⏳ Loading orders...');
     return (
       <Layout>
         <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="text-center">
-            <svg className="h-8 w-8 animate-spin text-optapp-yellow mx-auto mb-4" fill="none" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" />
-            </svg>
-            <p className="text-gray-600">Загрузка заказов...</p>
-          </div>
+          <svg className="h-8 w-8 animate-spin text-optapp-yellow" fill="none" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" />
+          </svg>
         </div>
       </Layout>
     );

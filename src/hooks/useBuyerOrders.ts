@@ -10,8 +10,7 @@ export const useBuyerOrders = () => {
   console.log('🔍 useBuyerOrders hook:', {
     userId: user?.id,
     userType: profile?.user_type,
-    isSeller,
-    profileExists: !!profile
+    isSeller
   });
 
   return useQuery({
@@ -39,7 +38,6 @@ export const useBuyerOrders = () => {
             )
           `);
 
-        // Add proper filtering based on user type
         if (isSeller) {
           console.log('🔍 Fetching orders for seller:', user.id);
           query = query.eq('seller_id', user.id);
@@ -60,7 +58,6 @@ export const useBuyerOrders = () => {
           orders: ordersData
         });
 
-        // Fetch confirmation images for each order
         const ordersWithConfirmations = await Promise.all((ordersData || []).map(async (order) => {
           try {
             const { data: confirmImages, error: confirmError } = await supabase
@@ -93,7 +90,7 @@ export const useBuyerOrders = () => {
         throw err;
       }
     },
-    enabled: !!user && !!profile, // Ensure both user and profile are loaded
+    enabled: !!user,
     staleTime: 15000,
     retry: 2,
     retryDelay: 1000
