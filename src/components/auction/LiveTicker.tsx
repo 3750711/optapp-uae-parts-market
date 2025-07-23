@@ -8,7 +8,8 @@ import {
   Clock, 
   Users,
   Gavel,
-  DollarSign
+  DollarSign,
+  Trophy
 } from 'lucide-react';
 
 interface LiveTickerProps {
