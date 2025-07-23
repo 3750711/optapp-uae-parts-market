@@ -5,7 +5,7 @@ import Layout from "@/components/layout/Layout";
 import EnhancedHeroSection from "@/components/home/EnhancedHeroSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import EnhancedFeaturesSection from "@/components/home/EnhancedFeaturesSection";
-import PublicLandingPage from "@/components/home/PublicLandingPage";
+import LoginCenteredHomePage from "@/components/home/LoginCenteredHomePage";
 import SEOHead from "@/components/seo/SEOHead";
 
 const Index = () => {
@@ -75,10 +75,8 @@ const Index = () => {
           </div>
         </Layout>
       ) : (
-        // Контент для неавторизованных пользователей (сокращенный)
-        <Layout>
-          <PublicLandingPage />
-        </Layout>
+        // Контент для неавторизованных пользователей - новая страница с авторизацией
+        <LoginCenteredHomePage />
       )}
     </>
   );
