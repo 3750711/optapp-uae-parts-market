@@ -307,6 +307,7 @@ const SellerSellProduct = () => {
         p_order_created_type: 'product_order' as const,
         p_telegram_url_order: selectedBuyer.telegram || '',
         p_images: orderData.orderImages,
+        p_videos: [], // ДОБАВЛЕНО: пустой массив видео для заказов из товаров
         p_product_id: selectedProduct.id,
         p_delivery_method: orderData.deliveryMethod as 'cargo_rf' | 'cargo_kz' | 'self_pickup',
         p_text_order: '',

@@ -85,6 +85,7 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
           p_order_created_type: 'free_order',
           p_telegram_url_order: null,
           p_images: images,
+          p_videos: videos,
           p_product_id: null,
           p_delivery_method: formData.deliveryMethod,
           p_text_order: formData.text_order || null,
