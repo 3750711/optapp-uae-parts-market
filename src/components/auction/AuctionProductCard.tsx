@@ -9,7 +9,8 @@ import {
   TrendingUp, 
   Heart,
   DollarSign,
-  Activity
+  Activity,
+  Zap
 } from 'lucide-react';
 import { Product } from '@/types/product';
 import { useCreatePriceOffer } from '@/hooks/use-price-offers';
@@ -38,6 +39,7 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
 }) => {
   const [isRecentUpdate, setIsRecentUpdate] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>('');
+  const [priceAnimation, setPriceAnimation] = useState(false);
   
   const createOfferMutation = useCreatePriceOffer();
 
@@ -50,9 +52,18 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
   // Handle recent updates animation
   useEffect(() => {
     if (lastUpdateTime) {
-      setIsRecentUpdate(true);
-      const timer = setTimeout(() => setIsRecentUpdate(false), 3000);
-      return () => clearTimeout(timer);
+      const timeSinceUpdate = Date.now() - lastUpdateTime.getTime();
+      if (timeSinceUpdate < 5000) { // 5 seconds
+        setIsRecentUpdate(true);
+        setPriceAnimation(true);
+        
+        const timer = setTimeout(() => {
+          setIsRecentUpdate(false);
+          setPriceAnimation(false);
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, [lastUpdateTime]);
 
@@ -108,7 +119,7 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
       {/* Recent update indicator */}
       {isRecentUpdate && (
         <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 bg-blue-500 text-white px-2 py-1 rounded-full text-xs animate-pulse">
+          <div className="flex items-center gap-1 bg-blue-500 text-white px-2 py-1 rounded-full text-xs animate-bounce">
             <Activity className="h-3 w-3" />
             <span>Обновлено</span>
           </div>
@@ -121,8 +132,9 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
           <Badge 
             variant={isLeading ? "default" : "destructive"}
             className={cn(
-              "font-medium",
-              isLeading ? "bg-green-500 hover:bg-green-600" : "bg-orange-500 hover:bg-orange-600"
+              "font-medium transition-all duration-300",
+              isLeading ? "bg-green-500 hover:bg-green-600" : "bg-orange-500 hover:bg-orange-600",
+              isRecentUpdate && "animate-pulse"
             )}
           >
             {isLeading ? (
@@ -186,13 +198,19 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Текущая цена:</span>
-              <span className="text-xl font-bold">{formatPrice(currentMaxPrice)}</span>
+              <span className={cn(
+                "text-xl font-bold transition-all duration-300",
+                priceAnimation && "text-blue-600 animate-pulse scale-110"
+              )}>
+                {formatPrice(currentMaxPrice)}
+              </span>
             </div>
             
             {userPrice > 0 && (
               <div className={cn(
-                "flex items-center justify-between p-2 rounded-lg",
-                isLeading ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800"
+                "flex items-center justify-between p-2 rounded-lg transition-all duration-300",
+                isLeading ? "bg-green-100 text-green-800" : "bg-orange-100 text-orange-800",
+                priceAnimation && "animate-pulse"
               )}>
                 <span className="text-sm font-medium">Ваша ставка:</span>
                 <span className="font-semibold">{formatPrice(userPrice)}</span>
@@ -200,7 +218,10 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
             )}
             
             {maxOtherPrice > 0 && maxOtherPrice !== userPrice && (
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
+              <div className={cn(
+                "flex items-center justify-between text-sm text-muted-foreground transition-all duration-300",
+                priceAnimation && "text-orange-600 font-medium"
+              )}>
                 <span>Конкурентная ставка:</span>
                 <span className="font-medium">{formatPrice(maxOtherPrice)}</span>
               </div>
@@ -214,7 +235,11 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
               <span>{totalOffers} ставок</span>
             </div>
             {timeLeft && (
-              <div className="flex items-center gap-1">
+              <div className={cn(
+                "flex items-center gap-1",
+                timeLeft === 'Истекло' ? "text-red-600" : "",
+                timeLeft.includes('м') && !timeLeft.includes('ч') && parseInt(timeLeft) < 10 ? "text-orange-600 animate-pulse" : ""
+              )}>
                 <Clock className="h-3 w-3" />
                 <span>{timeLeft}</span>
               </div>
@@ -222,7 +247,7 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
           </div>
 
           {/* Quick Actions */}
-          {userPrice > 0 && product.user_offer_status === 'pending' && (
+          {userPrice > 0 && product.user_offer_status === 'pending' && timeLeft !== 'Истекло' && (
             <div className="space-y-2">
               <div className="flex gap-2">
                 {[10, 25, 50].map((amount) => (
@@ -232,7 +257,10 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
                     size="sm"
                     onClick={() => handleQuickBid(amount)}
                     disabled={createOfferMutation.isPending}
-                    className="flex-1 text-xs"
+                    className={cn(
+                      "flex-1 text-xs transition-all duration-200",
+                      "hover:scale-105 hover:shadow-md"
+                    )}
                   >
                     <DollarSign className="h-3 w-3 mr-1" />
                     +{amount}
@@ -242,14 +270,25 @@ export const AuctionProductCard: React.FC<AuctionProductCardProps> = ({
               
               <Button
                 className={cn(
-                  "w-full",
+                  "w-full transition-all duration-200",
                   isLeading 
                     ? "bg-green-600 hover:bg-green-700" 
-                    : "bg-orange-600 hover:bg-orange-700"
+                    : "bg-orange-600 hover:bg-orange-700",
+                  "hover:scale-105 hover:shadow-md"
                 )}
                 disabled={createOfferMutation.isPending}
               >
-                {createOfferMutation.isPending ? 'Размещение...' : 'Поднять ставку'}
+                {createOfferMutation.isPending ? (
+                  <div className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Размещение...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4" />
+                    <span>Поднять ставку</span>
+                  </div>
+                )}
               </Button>
             </div>
           )}

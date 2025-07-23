@@ -1,14 +1,15 @@
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Eye, Clock, Star } from 'lucide-react';
+import { MapPin, Eye, Clock, Star, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Product } from '@/types/product';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
 import { AuctionInfoCompact } from '@/components/offers/AuctionInfoCompact';
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface ProductListItemProps {
   product: Product & {
@@ -33,6 +34,27 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   showAuctionInfo = false,
   lastUpdateTime,
 }) => {
+  const [isRecentUpdate, setIsRecentUpdate] = useState(false);
+  const [priceChanged, setPriceChanged] = useState(false);
+
+  // Handle recent updates animation
+  useEffect(() => {
+    if (lastUpdateTime) {
+      const timeSinceUpdate = Date.now() - lastUpdateTime.getTime();
+      if (timeSinceUpdate < 5000) { // 5 seconds
+        setIsRecentUpdate(true);
+        setPriceChanged(true);
+        
+        const timer = setTimeout(() => {
+          setIsRecentUpdate(false);
+          setPriceChanged(false);
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [lastUpdateTime]);
+
   // Debug logging to track data changes
   useEffect(() => {
     console.log('📦 ProductListItem render:', {
@@ -106,11 +128,23 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   }, [batchOffersData, product.id, product.max_other_offer, product.is_user_leading, lastUpdateTime]);
 
   return (
-    <Card className={`hover:shadow-md transition-all duration-300 ${
-      isFreshData ? 'border-green-300 shadow-green-100 ring-1 ring-green-200' : ''
-    }`}>
+    <Card className={cn(
+      "hover:shadow-md transition-all duration-300",
+      isRecentUpdate && "border-blue-300 shadow-blue-100 ring-2 ring-blue-200 animate-pulse",
+      isFreshData && "border-green-300 shadow-green-100 ring-1 ring-green-200"
+    )}>
       <CardContent className="p-4">
         <div className="flex gap-4">
+          {/* Recent Update Indicator */}
+          {isRecentUpdate && (
+            <div className="absolute top-2 right-2 z-10">
+              <div className="flex items-center gap-1 bg-blue-500 text-white px-2 py-1 rounded-full text-xs animate-bounce">
+                <Activity className="h-3 w-3" />
+                <span>Обновлено</span>
+              </div>
+            </div>
+          )}
+
           {/* Product Image */}
           <div className="flex-shrink-0">
             <Link to={`/product/${product.id}`}>
@@ -199,12 +233,18 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 </div>
 
                 <div className="text-right">
-                  <div className="text-xl font-bold text-gray-900">
+                  <div className={cn(
+                    "text-xl font-bold text-gray-900 transition-all duration-300",
+                    priceChanged && "text-blue-600 animate-pulse"
+                  )}>
                     ${formatPrice(product.price)}
                   </div>
                   
                   {showOfferStatus && product.user_offer_price && (
-                    <div className="text-sm text-gray-600">
+                    <div className={cn(
+                      "text-sm text-gray-600 transition-all duration-300",
+                      priceChanged && "text-blue-600 font-medium"
+                    )}>
                       Ваше предложение: <span className="font-medium">${formatPrice(product.user_offer_price)}</span>
                     </div>
                   )}
