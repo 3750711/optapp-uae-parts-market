@@ -27,6 +27,7 @@ const BuyerPriceOffers: React.FC = () => {
     realtimeEvents,
     freshDataIndicator,
     forceRefresh,
+    forceUpdateCounter,
     connectionState
   } = useRealtimeBuyerAuctions(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
@@ -81,6 +82,11 @@ const BuyerPriceOffers: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 Мои предложения
               </h1>
+              {forceUpdateCounter > 0 && (
+                <div className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                  Live #{forceUpdateCounter}
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-2">
@@ -110,8 +116,8 @@ const BuyerPriceOffers: React.FC = () => {
             <p className="text-gray-600">
               Управляйте своими предложениями цены и отслеживайте статус торгов
             </p>
-            <div className="text-sm text-blue-600">
-              • {isConnected ? 'Real-time обновления активны' : 'Автообновление каждые 15 сек'}
+            <div className="text-sm text-green-600">
+              • Real-time обновления активны (события: {realtimeEvents.length})
             </div>
           </div>
 
@@ -200,6 +206,7 @@ const BuyerPriceOffers: React.FC = () => {
                 showAuctionInfo={true}
                 lastUpdateTime={lastUpdateTime}
                 freshDataIndicator={freshDataIndicator}
+                forceUpdateCounter={forceUpdateCounter}
               />
             ))}
           </div>

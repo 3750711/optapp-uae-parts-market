@@ -25,6 +25,7 @@ interface ProductListItemProps {
   showAuctionInfo?: boolean;
   lastUpdateTime?: Date;
   freshDataIndicator?: boolean;
+  forceUpdateCounter?: number;
 }
 
 const ProductListItem: React.FC<ProductListItemProps> = ({ 
@@ -33,7 +34,8 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   showOfferStatus = false,
   showAuctionInfo = false,
   lastUpdateTime,
-  freshDataIndicator = false
+  freshDataIndicator = false,
+  forceUpdateCounter = 0
 }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
@@ -197,6 +199,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   expiresAt={product.user_offer_expires_at}
                   lastUpdateTime={lastUpdateTime}
                   freshDataIndicator={freshDataIndicator}
+                  forceUpdateCounter={forceUpdateCounter}
                 />
               )}
             </div>

@@ -11,29 +11,68 @@ export const usePusherOffers = (productId?: string) => {
   const queryClient = useQueryClient();
   const [realtimeEvents, setRealtimeEvents] = useState<PusherOfferEvent[]>([]);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+  const [forceUpdateCounter, setForceUpdateCounter] = useState(0);
 
   const invalidateOfferQueries = useCallback((productId: string) => {
     console.log('🔄 Invalidating offer queries for product:', productId);
     
-    // Force invalidate all related queries
-    queryClient.invalidateQueries({ queryKey: ['user-offer', productId] });
-    queryClient.invalidateQueries({ queryKey: ['competitive-offers', productId] });
-    queryClient.invalidateQueries({ queryKey: ['buyer-auction-products'] });
-    queryClient.invalidateQueries({ queryKey: ['product-offers', productId] });
-    queryClient.invalidateQueries({ queryKey: ['buyer-offer-counts'] });
+    // Force invalidate all related queries with aggressive refetch
+    queryClient.invalidateQueries({ 
+      queryKey: ['user-offer', productId],
+      refetchType: 'all'
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['competitive-offers', productId],
+      refetchType: 'all'
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['buyer-auction-products'],
+      refetchType: 'all'
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['product-offers', productId],
+      refetchType: 'all'
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['buyer-offer-counts'],
+      refetchType: 'all'
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['batch-offers'],
+      refetchType: 'all'
+    });
     
-    // Force refetch immediately
-    queryClient.refetchQueries({ queryKey: ['buyer-auction-products'] });
-    queryClient.refetchQueries({ queryKey: ['buyer-offer-counts'] });
+    // Force immediate refetch with no cache
+    queryClient.refetchQueries({ 
+      queryKey: ['buyer-auction-products'],
+      type: 'all'
+    });
+    queryClient.refetchQueries({ 
+      queryKey: ['buyer-offer-counts'],
+      type: 'all'
+    });
+    queryClient.refetchQueries({ 
+      queryKey: ['batch-offers'],
+      type: 'all'
+    });
     
-    console.log('✅ Queries invalidated and refetched');
-  }, [queryClient]);
+    // Trigger force update counter
+    setForceUpdateCounter(prev => prev + 1);
+    
+    console.log('✅ Queries invalidated and refetched with force update counter:', forceUpdateCounter + 1);
+  }, [queryClient, forceUpdateCounter]);
 
   const addRealtimeEvent = useCallback((event: PusherOfferEvent) => {
     console.log('📥 Adding realtime event:', event);
+    const timestamp = new Date();
     setRealtimeEvents(prev => [event, ...prev.slice(0, 9)]); // Keep last 10 events
-    setLastUpdateTime(new Date());
-  }, []);
+    setLastUpdateTime(timestamp);
+    
+    // Immediate invalidation after adding event
+    setTimeout(() => {
+      invalidateOfferQueries(event.product_id);
+    }, 100);
+  }, [invalidateOfferQueries]);
 
   useEffect(() => {
     if (!user || !connectionState.isConnected) {
@@ -58,26 +97,22 @@ export const usePusherOffers = (productId?: string) => {
       
       buyerChannel.bind('offer-created', (data: PusherOfferEvent) => {
         console.log('📢 Pusher: Offer created for buyer:', data);
-        addRealtimeEvent(data);
-        invalidateOfferQueries(data.product_id);
+        addRealtimeEvent({ ...data, action: 'created' });
       });
 
       buyerChannel.bind('offer-updated', (data: PusherOfferEvent) => {
         console.log('📢 Pusher: Offer updated for buyer:', data);
-        addRealtimeEvent(data);
-        invalidateOfferQueries(data.product_id);
+        addRealtimeEvent({ ...data, action: 'updated' });
       });
 
       buyerChannel.bind('offer-status-changed', (data: PusherOfferEvent) => {
         console.log('📢 Pusher: Offer status changed for buyer:', data);
-        addRealtimeEvent(data);
-        invalidateOfferQueries(data.product_id);
+        addRealtimeEvent({ ...data, action: 'updated' });
       });
 
       buyerChannel.bind('offer-deleted', (data: PusherOfferEvent) => {
         console.log('📢 Pusher: Offer deleted for buyer:', data);
-        addRealtimeEvent(data);
-        invalidateOfferQueries(data.product_id);
+        addRealtimeEvent({ ...data, action: 'deleted' });
       });
     }
 
@@ -92,20 +127,17 @@ export const usePusherOffers = (productId?: string) => {
         
         productChannel.bind('offer-created', (data: PusherOfferEvent) => {
           console.log('📢 Pusher: New offer on product:', data);
-          addRealtimeEvent(data);
-          invalidateOfferQueries(productId);
+          addRealtimeEvent({ ...data, action: 'created' });
         });
 
         productChannel.bind('offer-updated', (data: PusherOfferEvent) => {
           console.log('📢 Pusher: Offer updated on product:', data);
-          addRealtimeEvent(data);
-          invalidateOfferQueries(productId);
+          addRealtimeEvent({ ...data, action: 'updated' });
         });
 
         productChannel.bind('offer-deleted', (data: PusherOfferEvent) => {
           console.log('📢 Pusher: Offer deleted on product:', data);
-          addRealtimeEvent(data);
-          invalidateOfferQueries(productId);
+          addRealtimeEvent({ ...data, action: 'deleted' });
         });
 
         productChannel.bind('product-updated', (data: PusherProductEvent) => {
@@ -123,7 +155,7 @@ export const usePusherOffers = (productId?: string) => {
         unsubscribeFrom(channel);
       });
     };
-  }, [user, connectionState.isConnected, productId, subscribeTo, unsubscribeFrom, invalidateOfferQueries, addRealtimeEvent]);
+  }, [user, connectionState.isConnected, productId, subscribeTo, unsubscribeFrom, addRealtimeEvent, invalidateOfferQueries]);
 
   // Debug connection state changes
   useEffect(() => {
@@ -139,6 +171,7 @@ export const usePusherOffers = (productId?: string) => {
     connectionState,
     realtimeEvents,
     lastUpdateTime,
+    forceUpdateCounter,
     isConnected: connectionState.isConnected,
   };
 };

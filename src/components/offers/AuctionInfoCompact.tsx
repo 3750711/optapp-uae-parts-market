@@ -17,7 +17,7 @@ interface AuctionInfoCompactProps {
   expiresAt: string;
   lastUpdateTime?: Date;
   freshDataIndicator?: boolean;
-  isConnected?: boolean;
+  forceUpdateCounter?: number;
 }
 
 export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
@@ -31,7 +31,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   expiresAt,
   lastUpdateTime,
   freshDataIndicator = false,
-  isConnected = false
+  forceUpdateCounter = 0
 }) => {
   const createOfferMutation = useCreatePriceOffer();
 
@@ -76,10 +76,11 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
 
   const competitorDifference = maxCompetitorPrice - userOfferPrice;
   const isFreshData = lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 5000;
+  const isVeryFreshData = forceUpdateCounter > 0 && (freshDataIndicator || isFreshData);
 
   return (
     <div className={`rounded-lg p-3 space-y-2 border transition-all duration-500 ${
-      freshDataIndicator ? 'bg-green-50 border-green-200 shadow-md' : 'bg-gray-50 border-gray-200'
+      isVeryFreshData ? 'bg-green-50 border-green-200 shadow-md ring-2 ring-green-100' : 'bg-gray-50 border-gray-200'
     }`}>
       {/* Status and prices */}
       <div className="flex items-center justify-between">
@@ -87,7 +88,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
           <Badge 
             variant={isUserLeading ? "default" : "destructive"} 
             className={`text-xs transition-all duration-300 ${
-              freshDataIndicator ? 'animate-pulse shadow-sm' : ''
+              isVeryFreshData ? 'animate-pulse shadow-sm' : ''
             }`}
           >
             {isUserLeading ? 'Лидирую' : 'Отстаю'}
@@ -96,10 +97,15 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
             <Users className="h-3 w-3" />
             <span>{totalOffers} ставок</span>
           </div>
-          {(isFreshData || freshDataIndicator) && (
+          {isVeryFreshData && (
             <div className="flex items-center gap-1 animate-pulse">
               <Activity className="h-3 w-3 text-green-600" />
-              <span className="text-xs text-green-600">Обновлено</span>
+              <span className="text-xs text-green-600">Обновлено!</span>
+            </div>
+          )}
+          {forceUpdateCounter > 0 && (
+            <div className="text-xs text-blue-600">
+              #{forceUpdateCounter}
             </div>
           )}
         </div>
@@ -111,8 +117,8 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
           </div>
           {/* Connection indicator */}
           <div className={`w-2 h-2 rounded-full ${
-            isConnected ? 'bg-green-500' : 'bg-gray-400'
-          }`} title={isConnected ? 'Real-time активен' : 'Автообновление'} />
+            isVeryFreshData ? 'bg-green-500 animate-pulse' : 'bg-green-500'
+          }`} title="Real-time обновления" />
         </div>
       </div>
 
@@ -127,7 +133,7 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
             <div className="flex items-center gap-2">
               <span className="text-gray-600">Лидер:</span>
               <span className={`font-medium transition-all duration-300 ${
-                freshDataIndicator ? 'text-red-600 animate-pulse' : 'text-red-600'
+                isVeryFreshData ? 'text-red-600 animate-pulse' : 'text-red-600'
               }`}>
                 ${formatPrice(maxCompetitorPrice)}
               </span>
@@ -163,7 +169,10 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
           </span>
           <div className="flex items-center gap-1">
             <Wifi className="h-3 w-3" />
-            <span>{isConnected ? 'Live' : 'Auto'}</span>
+            <span>Live</span>
+            {forceUpdateCounter > 0 && (
+              <span className="text-green-600">#{forceUpdateCounter}</span>
+            )}
           </div>
         </div>
       )}
