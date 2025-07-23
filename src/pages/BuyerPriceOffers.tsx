@@ -8,7 +8,6 @@ import { useRealtimeBuyerAuctions, useBuyerOfferCounts } from '@/hooks/useRealti
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
 import ProductListItem from '@/components/product/ProductListItem';
 import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
-import { RealtimeIndicator } from '@/components/offers/RealtimeIndicator';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
@@ -78,15 +77,6 @@ const BuyerPriceOffers: React.FC = () => {
                 Мои предложения
               </h1>
             </div>
-            
-            {/* Enhanced Realtime Status Indicator */}
-            <RealtimeIndicator
-              isConnected={isConnected}
-              lastUpdateTime={lastUpdateTime}
-              realtimeEvents={realtimeEvents}
-              freshDataIndicator={freshDataIndicator}
-              onForceRefresh={forceRefresh}
-            />
           </div>
           <p className="text-gray-600">
             Управляйте своими предложениями цены и отслеживайте статус торгов

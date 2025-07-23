@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea';
 
 import { useCreatePriceOffer, useUpdatePriceOffer } from '@/hooks/use-price-offers';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOfferContext } from '@/contexts/OfferContext';
 import { Product } from '@/types/product';
 import { PriceOffer } from '@/types/price-offer';
 import { useProductImage } from '@/hooks/useProductImage';
@@ -54,7 +53,6 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mode, setMode] = useState<'offer' | 'blitz'>('offer');
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const { setOfferState, setProcessing, forceRefresh } = useOfferContext();
   
   const createOfferMutation = useCreatePriceOffer();
   const updateOfferMutation = useUpdatePriceOffer();
@@ -123,9 +121,6 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
     }
 
     setIsSubmitting(true);
-    
-    // Optimistic update - immediately show processing state
-    setProcessing(product.id, true);
 
     try {
       if (mode === 'blitz') {
@@ -148,9 +143,6 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
       } else {
         console.log('🎯 EnhancedOfferModal: Creating new offer');
         
-        // Optimistic update - immediately show that offers are active
-        setOfferState(product.id, true);
-        
         await createOfferMutation.mutateAsync({
           product_id: product.id,
           seller_id: product.seller_id,
@@ -162,18 +154,11 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
       
       console.log('🎯 EnhancedOfferModal: Offer processed successfully');
       
-      // Force refresh the product data to ensure everything is in sync
-      forceRefresh(product.id);
-      
       handleClose();
     } catch (error) {
       console.error('🎯 EnhancedOfferModal: Error submitting offer:', error);
-      
-      // Revert optimistic updates on error
-      setOfferState(product.id, product.has_active_offers || false);
     } finally {
       setIsSubmitting(false);
-      setProcessing(product.id, false);
     }
   };
 

@@ -7,7 +7,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { OfferProvider } from "@/contexts/OfferContext";
 import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
@@ -67,11 +66,9 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <AuthProvider>
-                <OfferProvider>
-                  <Suspense fallback={<RouteLoader />}>
-                    <AppRoutes />
-                  </Suspense>
-                </OfferProvider>
+                <Suspense fallback={<RouteLoader />}>
+                  <AppRoutes />
+                </Suspense>
               </AuthProvider>
             </BrowserRouter>
           </TooltipProvider>
