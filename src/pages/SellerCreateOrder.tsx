@@ -11,7 +11,7 @@ import { Progress } from "@/components/ui/progress";
 // Import seller-specific components and hooks
 import { useSellerOrderFormLogic } from "@/hooks/useSellerOrderFormLogic";
 import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
-import SimpleMediaSection from "@/components/admin/order/SimpleMediaSection";
+import AdvancedImageUpload from "@/components/admin/order/AdvancedImageUpload";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { OrderPreviewDialog } from "@/components/admin/order/OrderPreviewDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +25,7 @@ const SellerCreateOrder = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const [showPreview, setShowPreview] = useState(false);
+  const [primaryImage, setPrimaryImage] = useState<string>('');
 
   const {
     formData,
@@ -58,7 +59,29 @@ const SellerCreateOrder = () => {
   });
 
   const onImagesUpload = (urls: string[]) => {
-    handleImageUpload(urls);
+    console.log('📸 Images uploaded in seller order:', urls);
+    setImages(urls);
+    
+    // Set first image as primary if no primary image is set
+    if (!primaryImage && urls.length > 0) {
+      setPrimaryImage(urls[0]);
+    }
+  };
+
+  const onImageDelete = (url: string) => {
+    console.log('🗑️ Image deleted in seller order:', url);
+    const newImages = images.filter(img => img !== url);
+    setImages(newImages);
+    
+    // Update primary image if deleted image was primary
+    if (primaryImage === url) {
+      setPrimaryImage(newImages.length > 0 ? newImages[0] : '');
+    }
+  };
+
+  const onSetPrimaryImage = (url: string) => {
+    console.log('⭐ Primary image set in seller order:', url);
+    setPrimaryImage(url);
   };
 
   const onVideoUpload = (urls: string[]) => {
@@ -164,6 +187,11 @@ const SellerCreateOrder = () => {
     }
   };
 
+  // Generate temporary order ID for image uploads
+  const temporaryOrderId = useMemo(() => {
+    return `temp-seller-${user?.id || 'unknown'}-${Date.now()}`;
+  }, [user?.id]);
+
   const isFormDisabled = isLoading || !canSubmit || isInitializing;
 
   // Show loading state while initializing
@@ -234,10 +262,15 @@ const SellerCreateOrder = () => {
                 disabled={isFormDisabled}
               />
               
-              <SimpleMediaSection 
+              <AdvancedImageUpload
                 images={images}
                 onImagesUpload={onImagesUpload}
+                onImageDelete={onImageDelete}
+                onSetPrimaryImage={onSetPrimaryImage}
+                primaryImage={primaryImage}
+                orderId={temporaryOrderId}
                 disabled={isFormDisabled}
+                maxImages={25}
               />
             </CardContent>
             
