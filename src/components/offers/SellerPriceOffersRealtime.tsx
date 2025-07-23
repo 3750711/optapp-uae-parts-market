@@ -9,7 +9,7 @@ interface SellerPriceOffersRealtimeProps {
 }
 
 export const SellerPriceOffersRealtime: React.FC<SellerPriceOffersRealtimeProps> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const queryClient = useQueryClient();
 
   // Enable real-time updates
@@ -17,7 +17,7 @@ export const SellerPriceOffersRealtime: React.FC<SellerPriceOffersRealtimeProps>
 
   // Additional seller-specific optimizations
   useEffect(() => {
-    if (!user || user.user_type !== 'seller') return;
+    if (!user || !profile || profile.user_type !== 'seller') return;
 
     // Prefetch seller offers on component mount for better UX
     queryClient.prefetchQuery({
