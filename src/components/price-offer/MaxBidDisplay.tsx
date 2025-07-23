@@ -19,13 +19,21 @@ export const MaxBidDisplay: React.FC<MaxBidDisplayProps> = ({
   hasUserOffer,
   userOfferPrice
 }) => {
-  // Determine the maximum bid to show
-  const maxBid = Math.max(maxOtherOffer, userOfferPrice);
+  // Determine what to show as the "max bid"
+  const displayPrice = isUserLeading && hasUserOffer ? userOfferPrice : maxOtherOffer;
+  const displayLabel = isUserLeading && hasUserOffer ? 'Ваша ставка' : 'макс';
   
-  // Don't show if no bids exist
-  if (maxBid <= 0) return null;
-
-  const isUserMax = hasUserOffer && userOfferPrice >= maxOtherOffer;
+  console.log('🏷️ MaxBidDisplay:', {
+    maxOtherOffer,
+    isUserLeading,
+    hasUserOffer,
+    userOfferPrice,
+    displayPrice,
+    displayLabel
+  });
+  
+  // Don't show if no meaningful bid exists
+  if (displayPrice <= 0) return null;
 
   if (compact) {
     return (
@@ -33,17 +41,17 @@ export const MaxBidDisplay: React.FC<MaxBidDisplayProps> = ({
         variant="secondary"
         className={cn(
           "flex items-center gap-1 px-2 py-1 text-xs font-medium transition-all duration-200",
-          isUserMax 
+          isUserLeading && hasUserOffer
             ? "bg-green-100 text-green-800 border-green-200" 
             : "bg-orange-100 text-orange-800 border-orange-200"
         )}
       >
-        {isUserMax ? (
+        {isUserLeading && hasUserOffer ? (
           <Crown className="h-3 w-3" />
         ) : (
           <TrendingUp className="h-3 w-3" />
         )}
-        <span>макс ${maxBid}</span>
+        <span>{displayLabel} ${displayPrice}</span>
       </Badge>
     );
   }
@@ -51,12 +59,12 @@ export const MaxBidDisplay: React.FC<MaxBidDisplayProps> = ({
   return (
     <div className={cn(
       "flex items-center justify-between p-2 rounded-lg text-sm transition-all duration-200",
-      isUserMax 
+      isUserLeading && hasUserOffer
         ? "bg-green-50 text-green-800 border border-green-200" 
         : "bg-orange-50 text-orange-800 border border-orange-200"
     )}>
       <div className="flex items-center gap-2">
-        {isUserMax ? (
+        {isUserLeading && hasUserOffer ? (
           <>
             <Crown className="h-4 w-4" />
             <span className="font-medium">Ваша ставка лидирует</span>
@@ -68,7 +76,7 @@ export const MaxBidDisplay: React.FC<MaxBidDisplayProps> = ({
           </>
         )}
       </div>
-      <span className="font-bold">${maxBid}</span>
+      <span className="font-bold">${displayPrice}</span>
     </div>
   );
 };

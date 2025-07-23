@@ -86,14 +86,24 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
       const maxPrice = Number(batchOfferData.max_offer_price) || 0;
       const hasOffer = batchOfferData.has_pending_offer === true;
       
+      // Calculate maxOtherOffer correctly
       let maxOther = 0;
       if (hasOffer && isLeading) {
-        maxOther = maxPrice > userPrice ? 0 : maxPrice;
-      } else if (hasOffer && !isLeading) {
-        maxOther = maxPrice;
-      } else if (!hasOffer) {
+        // User is leading - show second highest offer (max price from others)
+        maxOther = maxPrice > userPrice ? maxPrice : 0; // This shouldn't happen if user is leading
+      } else {
+        // User is not leading or has no offer - show highest offer from all users
         maxOther = maxPrice;
       }
+      
+      console.log('🏷️ Batch offer logic:', {
+        isLeading,
+        userPrice,
+        maxPrice,
+        hasOffer,
+        maxOther,
+        productId: product.id
+      });
       
       return { 
         isLeadingBid: isLeading, 
@@ -107,14 +117,24 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
       const maxPrice = Number(competitiveData?.max_offer_price) || 0;
       const hasOffer = !!userOffer;
       
+      // Calculate maxOtherOffer correctly
       let maxOther = 0;
       if (hasOffer && isLeading) {
-        maxOther = 0;
-      } else if (hasOffer && !isLeading) {
+        // User is leading - show max offer from competitive data (should be second highest)
         maxOther = maxPrice;
-      } else if (!hasOffer) {
+      } else {
+        // User is not leading or has no offer - show highest offer
         maxOther = maxPrice;
       }
+      
+      console.log('🏷️ Individual offer logic:', {
+        isLeading,
+        userPrice,
+        maxPrice,
+        hasOffer,
+        maxOther,
+        productId: product.id
+      });
       
       return {
         isLeadingBid: isLeading,
@@ -130,7 +150,7 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
       hasUserOffer: false,
       userOfferPrice: 0 
     };
-  }, [batchOfferData, userOffer, competitiveData, batchOffersData]);
+  }, [batchOfferData, userOffer, competitiveData, batchOffersData, product.id]);
 
   // Simplified visibility logic
   if (!user || !profile) return null;

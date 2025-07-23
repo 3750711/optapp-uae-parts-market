@@ -35,6 +35,13 @@ export const RealtimeBidButton: React.FC<RealtimeBidButtonProps> = ({
   priceAnimation,
   recentUpdate
 }) => {
+  console.log('🎯 RealtimeBidButton render:', {
+    isLeadingBid,
+    hasUserOffer,
+    userOfferPrice,
+    maxOtherOffer
+  });
+
   // Determine button style based on user's bidding status
   const getButtonStyle = () => {
     if (hasUserOffer && userOfferPrice > 0) {
