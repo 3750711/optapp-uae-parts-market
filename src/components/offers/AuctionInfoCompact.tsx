@@ -2,7 +2,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, Clock, Users } from 'lucide-react';
+import { TrendingUp, Clock, Users, Activity } from 'lucide-react';
 import { useCreatePriceOffer } from '@/hooks/use-price-offers';
 import { toast } from 'sonner';
 
@@ -16,6 +16,7 @@ interface AuctionInfoCompactProps {
   totalOffers: number;
   expiresAt: string;
   lastUpdateTime?: Date;
+  freshDataIndicator?: boolean;
 }
 
 export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
@@ -27,7 +28,8 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   isUserLeading,
   totalOffers,
   expiresAt,
-  lastUpdateTime
+  lastUpdateTime,
+  freshDataIndicator = false
 }) => {
   const createOfferMutation = useCreatePriceOffer();
 
@@ -74,13 +76,17 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
   const isFreshData = lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 5000;
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3 space-y-2 border">
+    <div className={`rounded-lg p-3 space-y-2 border transition-all duration-300 ${
+      freshDataIndicator ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+    }`}>
       {/* Status and prices */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Badge 
             variant={isUserLeading ? "default" : "destructive"} 
-            className="text-xs"
+            className={`text-xs transition-all duration-300 ${
+              freshDataIndicator ? 'animate-pulse' : ''
+            }`}
           >
             {isUserLeading ? 'Лидирую' : 'Отстаю'}
           </Badge>
@@ -88,9 +94,9 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
             <Users className="h-3 w-3" />
             <span>{totalOffers} ставок</span>
           </div>
-          {isFreshData && (
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+          {(isFreshData || freshDataIndicator) && (
+            <div className="flex items-center gap-1 animate-pulse">
+              <Activity className="h-3 w-3 text-green-600" />
               <span className="text-xs text-green-600">Обновлено</span>
             </div>
           )}
@@ -111,7 +117,9 @@ export const AuctionInfoCompact: React.FC<AuctionInfoCompactProps> = ({
           {!isUserLeading && maxCompetitorPrice > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-gray-600">Лидер:</span>
-              <span className="font-medium text-red-600">
+              <span className={`font-medium transition-all duration-300 ${
+                freshDataIndicator ? 'text-red-600 animate-pulse' : 'text-red-600'
+              }`}>
                 ${formatPrice(maxCompetitorPrice)}
               </span>
               <span className="text-xs text-gray-500">

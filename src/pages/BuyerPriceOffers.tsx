@@ -22,6 +22,7 @@ const BuyerPriceOffers: React.FC = () => {
     isConnected,
     lastUpdateTime,
     realtimeEvents,
+    freshDataIndicator,
     forceRefresh
   } = useRealtimeBuyerAuctions(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
@@ -83,6 +84,7 @@ const BuyerPriceOffers: React.FC = () => {
               isConnected={isConnected}
               lastUpdateTime={lastUpdateTime}
               realtimeEvents={realtimeEvents}
+              freshDataIndicator={freshDataIndicator}
               onForceRefresh={forceRefresh}
             />
           </div>
@@ -152,6 +154,8 @@ const BuyerPriceOffers: React.FC = () => {
                 batchOffersData={batchOffersData}
                 showOfferStatus={true}
                 showAuctionInfo={true}
+                lastUpdateTime={lastUpdateTime}
+                freshDataIndicator={freshDataIndicator}
               />
             ))}
           </div>

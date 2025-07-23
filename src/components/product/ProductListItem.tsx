@@ -23,13 +23,17 @@ interface ProductListItemProps {
   batchOffersData?: any;
   showOfferStatus?: boolean;
   showAuctionInfo?: boolean;
+  lastUpdateTime?: Date;
+  freshDataIndicator?: boolean;
 }
 
 const ProductListItem: React.FC<ProductListItemProps> = ({ 
   product, 
   batchOffersData,
   showOfferStatus = false,
-  showAuctionInfo = false
+  showAuctionInfo = false,
+  lastUpdateTime,
+  freshDataIndicator = false
 }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
@@ -58,7 +62,9 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   const isUserLeading = batchData?.current_user_is_max || false;
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className={`hover:shadow-md transition-all duration-300 ${
+      freshDataIndicator ? 'border-green-300 shadow-green-100' : ''
+    }`}>
       <CardContent className="p-4">
         <div className="flex gap-4">
           {/* Product Image */}
@@ -189,6 +195,8 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   isUserLeading={isUserLeading}
                   totalOffers={totalOffers}
                   expiresAt={product.user_offer_expires_at}
+                  lastUpdateTime={lastUpdateTime}
+                  freshDataIndicator={freshDataIndicator}
                 />
               )}
             </div>

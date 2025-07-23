@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Wifi, WifiOff, RefreshCw, Info } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw, Info, Activity } from 'lucide-react';
 
 interface RealtimeIndicatorProps {
   isConnected: boolean;
   lastUpdateTime?: Date;
   realtimeEvents?: string[];
+  freshDataIndicator?: boolean;
   onForceRefresh?: () => void;
 }
 
@@ -16,6 +17,7 @@ export const RealtimeIndicator: React.FC<RealtimeIndicatorProps> = ({
   isConnected,
   lastUpdateTime,
   realtimeEvents = [],
+  freshDataIndicator = false,
   onForceRefresh
 }) => {
   const [showDebug, setShowDebug] = useState(false);
@@ -41,7 +43,7 @@ export const RealtimeIndicator: React.FC<RealtimeIndicatorProps> = ({
     <div className="flex items-center gap-2 text-xs">
       <Badge 
         variant="outline" 
-        className={`flex items-center gap-1 ${
+        className={`flex items-center gap-1 transition-all duration-300 ${
           isConnected ? 'bg-green-500 text-white border-green-500' : 'bg-gray-400 text-white border-gray-400'
         }`}
       >
@@ -67,10 +69,11 @@ export const RealtimeIndicator: React.FC<RealtimeIndicatorProps> = ({
         </Button>
       )}
       
-      {isFreshData && (
-        <div className="flex items-center gap-1 text-green-600 text-xs">
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-          <span>Новые данные</span>
+      {/* Улучшенный индикатор свежих данных */}
+      {(isFreshData || freshDataIndicator) && (
+        <div className="flex items-center gap-1 text-green-600 text-xs animate-pulse">
+          <Activity className="h-3 w-3" />
+          <span>Обновлено</span>
         </div>
       )}
 
@@ -93,6 +96,7 @@ export const RealtimeIndicator: React.FC<RealtimeIndicatorProps> = ({
               <div>Подключение: {isConnected ? '✅ Активно' : '❌ Неактивно'}</div>
               <div>Последнее обновление: {formatLastUpdate(lastUpdateTime)}</div>
               <div>Режим: {isConnected ? 'Real-time' : 'Polling (каждые 10 сек)'}</div>
+              <div>Свежие данные: {freshDataIndicator ? '✅ Да' : '❌ Нет'}</div>
             </div>
             
             {realtimeEvents.length > 0 && (
