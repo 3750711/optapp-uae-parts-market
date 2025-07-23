@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Gavel, Search, Settings } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -27,7 +26,6 @@ const BuyerPriceOffers: React.FC = () => {
     realtimeEvents,
     freshDataIndicator,
     forceRefresh,
-    forceUpdateCounter,
     connectionState
   } = useRealtimeBuyerAuctions(statusFilter);
   const { data: offerCounts } = useBuyerOfferCounts();
@@ -35,6 +33,16 @@ const BuyerPriceOffers: React.FC = () => {
   // Get batch data for optimization
   const productIds = auctionProducts?.map(p => p.id) || [];
   const { data: batchOffersData } = useBatchOffers(productIds);
+
+  // Enhanced console logging for debugging
+  console.log('📊 BuyerPriceOffers render:', {
+    auctionProductsCount: auctionProducts?.length || 0,
+    isConnected,
+    lastUpdateTime: lastUpdateTime?.toISOString(),
+    realtimeEventsCount: realtimeEvents.length,
+    freshDataIndicator,
+    statusFilter
+  });
 
   if (!user) {
     return (
@@ -82,9 +90,11 @@ const BuyerPriceOffers: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 Мои предложения
               </h1>
-              {forceUpdateCounter > 0 && (
-                <div className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                  Live #{forceUpdateCounter}
+              {/* Real-time indicator */}
+              {isConnected && (
+                <div className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  Live
                 </div>
               )}
             </div>
@@ -117,7 +127,7 @@ const BuyerPriceOffers: React.FC = () => {
               Управляйте своими предложениями цены и отслеживайте статус торгов
             </p>
             <div className="text-sm text-green-600">
-              • Real-time обновления активны (события: {realtimeEvents.length})
+              • Real-time обновления {isConnected ? 'активны' : 'отключены'} (события: {realtimeEvents.length})
             </div>
           </div>
 
@@ -206,7 +216,6 @@ const BuyerPriceOffers: React.FC = () => {
                 showAuctionInfo={true}
                 lastUpdateTime={lastUpdateTime}
                 freshDataIndicator={freshDataIndicator}
-                forceUpdateCounter={forceUpdateCounter}
               />
             ))}
           </div>

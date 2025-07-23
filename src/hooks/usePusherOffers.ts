@@ -11,26 +11,22 @@ export const usePusherOffers = (productId?: string) => {
   const queryClient = useQueryClient();
   const [realtimeEvents, setRealtimeEvents] = useState<PusherOfferEvent[]>([]);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
-  const [forceUpdateCounter, setForceUpdateCounter] = useState(0);
 
+  // Simplified invalidation function without cyclic dependencies
   const invalidateOfferQueries = useCallback((productId: string) => {
-    console.log('🔄 Invalidating offer queries for product:', productId);
+    console.log('🔄 Invalidating queries for product:', productId);
     
-    // Force invalidate all related queries with aggressive refetch
-    queryClient.invalidateQueries({ 
-      queryKey: ['user-offer', productId],
-      refetchType: 'all'
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['competitive-offers', productId],
-      refetchType: 'all'
-    });
+    // Remove all cached data first
+    queryClient.removeQueries({ queryKey: ['buyer-auction-products'] });
+    queryClient.removeQueries({ queryKey: ['buyer-offer-counts'] });
+    queryClient.removeQueries({ queryKey: ['batch-offers'] });
+    queryClient.removeQueries({ queryKey: ['user-offer', productId] });
+    queryClient.removeQueries({ queryKey: ['competitive-offers', productId] });
+    queryClient.removeQueries({ queryKey: ['product-offers', productId] });
+    
+    // Force immediate refetch
     queryClient.invalidateQueries({ 
       queryKey: ['buyer-auction-products'],
-      refetchType: 'all'
-    });
-    queryClient.invalidateQueries({ 
-      queryKey: ['product-offers', productId],
       refetchType: 'all'
     });
     queryClient.invalidateQueries({ 
@@ -42,37 +38,50 @@ export const usePusherOffers = (productId?: string) => {
       refetchType: 'all'
     });
     
-    // Force immediate refetch with no cache
-    queryClient.refetchQueries({ 
-      queryKey: ['buyer-auction-products'],
-      type: 'all'
-    });
-    queryClient.refetchQueries({ 
-      queryKey: ['buyer-offer-counts'],
-      type: 'all'
-    });
-    queryClient.refetchQueries({ 
-      queryKey: ['batch-offers'],
-      type: 'all'
+    console.log('✅ Queries invalidated for product:', productId);
+  }, [queryClient]);
+
+  // Direct data update for instant UI changes
+  const updateQueryData = useCallback((event: PusherOfferEvent) => {
+    console.log('📊 Updating query data directly for event:', event);
+    
+    // Update buyer auction products cache
+    queryClient.setQueryData(['buyer-auction-products', user?.id], (oldData: any) => {
+      if (!oldData) return oldData;
+      
+      return oldData.map((product: any) => {
+        if (product.id === event.product_id) {
+          return {
+            ...product,
+            user_offer_price: event.offered_price,
+            user_offer_status: event.status,
+            user_offer_created_at: event.created_at,
+            user_offer_updated_at: event.updated_at
+          };
+        }
+        return product;
+      });
     });
     
-    // Trigger force update counter
-    setForceUpdateCounter(prev => prev + 1);
-    
-    console.log('✅ Queries invalidated and refetched with force update counter:', forceUpdateCounter + 1);
-  }, [queryClient, forceUpdateCounter]);
+    console.log('✅ Query data updated for product:', event.product_id);
+  }, [queryClient, user?.id]);
 
   const addRealtimeEvent = useCallback((event: PusherOfferEvent) => {
-    console.log('📥 Adding realtime event:', event);
+    console.log('📥 Processing realtime event:', event);
     const timestamp = new Date();
-    setRealtimeEvents(prev => [event, ...prev.slice(0, 9)]); // Keep last 10 events
+    
+    // Add to events list
+    setRealtimeEvents(prev => [event, ...prev.slice(0, 9)]);
     setLastUpdateTime(timestamp);
     
-    // Immediate invalidation after adding event
-    setTimeout(() => {
-      invalidateOfferQueries(event.product_id);
-    }, 100);
-  }, [invalidateOfferQueries]);
+    // Update query data immediately for instant UI update
+    updateQueryData(event);
+    
+    // Invalidate queries for fresh data
+    invalidateOfferQueries(event.product_id);
+    
+    console.log('✅ Realtime event processed:', event.action, event.product_id);
+  }, [updateQueryData, invalidateOfferQueries]);
 
   useEffect(() => {
     if (!user || !connectionState.isConnected) {
@@ -155,7 +164,7 @@ export const usePusherOffers = (productId?: string) => {
         unsubscribeFrom(channel);
       });
     };
-  }, [user, connectionState.isConnected, productId, subscribeTo, unsubscribeFrom, addRealtimeEvent, invalidateOfferQueries]);
+  }, [user, connectionState.isConnected, productId, subscribeTo, unsubscribeFrom, addRealtimeEvent]);
 
   // Debug connection state changes
   useEffect(() => {
@@ -171,7 +180,6 @@ export const usePusherOffers = (productId?: string) => {
     connectionState,
     realtimeEvents,
     lastUpdateTime,
-    forceUpdateCounter,
     isConnected: connectionState.isConnected,
   };
 };

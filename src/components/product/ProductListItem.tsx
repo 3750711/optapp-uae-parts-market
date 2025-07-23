@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +24,6 @@ interface ProductListItemProps {
   showAuctionInfo?: boolean;
   lastUpdateTime?: Date;
   freshDataIndicator?: boolean;
-  forceUpdateCounter?: number;
 }
 
 const ProductListItem: React.FC<ProductListItemProps> = ({ 
@@ -34,8 +32,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   showOfferStatus = false,
   showAuctionInfo = false,
   lastUpdateTime,
-  freshDataIndicator = false,
-  forceUpdateCounter = 0
+  freshDataIndicator = false
 }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
@@ -63,9 +60,22 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   const maxCompetitorPrice = batchData?.max_offer_price || 0;
   const isUserLeading = batchData?.current_user_is_max || false;
 
+  // Enhanced fresh data detection
+  const isFreshData = lastUpdateTime && Date.now() - lastUpdateTime.getTime() < 5000;
+  const isVeryFreshData = freshDataIndicator || isFreshData;
+
+  console.log('📦 ProductListItem render:', {
+    productId: product.id,
+    title: product.title,
+    freshDataIndicator,
+    isFreshData,
+    isVeryFreshData,
+    lastUpdateTime: lastUpdateTime?.toISOString()
+  });
+
   return (
     <Card className={`hover:shadow-md transition-all duration-300 ${
-      freshDataIndicator ? 'border-green-300 shadow-green-100' : ''
+      isVeryFreshData ? 'border-green-300 shadow-green-100 ring-1 ring-green-200' : ''
     }`}>
       <CardContent className="p-4">
         <div className="flex gap-4">
@@ -199,7 +209,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   expiresAt={product.user_offer_expires_at}
                   lastUpdateTime={lastUpdateTime}
                   freshDataIndicator={freshDataIndicator}
-                  forceUpdateCounter={forceUpdateCounter}
                 />
               )}
             </div>

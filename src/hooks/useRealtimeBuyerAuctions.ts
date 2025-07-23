@@ -1,10 +1,9 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
-import { useBatchOffersInvalidation } from '@/hooks/use-price-offers-batch';
 import { usePusherOffers } from '@/hooks/usePusherOffers';
 
 export interface AuctionProduct extends Product {
@@ -20,26 +19,24 @@ export interface AuctionProduct extends Product {
 export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { invalidateBatchOffers } = useBatchOffersInvalidation();
   
   // Use Pusher for real-time updates
   const { 
     connectionState, 
     realtimeEvents, 
     lastUpdateTime, 
-    forceUpdateCounter,
     isConnected 
   } = usePusherOffers();
 
   const [freshDataIndicator, setFreshDataIndicator] = useState(false);
 
-  // Main auction data query with NO caching for real-time updates
+  // Main auction data query with optimized caching
   const queryResult = useQuery({
-    queryKey: ['buyer-auction-products', user?.id, statusFilter, forceUpdateCounter],
+    queryKey: ['buyer-auction-products', user?.id, statusFilter],
     queryFn: async (): Promise<AuctionProduct[]> => {
       if (!user) return [];
 
-      console.log('🔍 Fetching buyer auction products with filter:', statusFilter, 'counter:', forceUpdateCounter);
+      console.log('🔍 Fetching buyer auction products with filter:', statusFilter);
 
       // Get user's price offers with product data
       const { data: offerData, error } = await supabase
@@ -198,7 +195,7 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
         return bTime - aTime;
       });
 
-      console.log('✅ Processed auction products:', products.length, 'force counter:', forceUpdateCounter);
+      console.log('✅ Processed auction products:', products.length);
       
       // Flash indicator when new data arrives
       setFreshDataIndicator(true);
@@ -209,61 +206,22 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     enabled: !!user,
     staleTime: 0, // No caching for real-time updates
     gcTime: 0, // No garbage collection cache
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false, // Disable automatic refetch on focus
     refetchOnReconnect: true,
     refetchInterval: false, // No polling, rely on Pusher
   });
 
-  // Enhanced force refresh with detailed logging
+  // Simple force refresh
   const forceRefresh = useCallback(async () => {
     console.log('🔄 Force refreshing auction data...');
-    
-    try {
-      // Remove all cache entries
-      await queryClient.removeQueries({
-        queryKey: ['buyer-auction-products']
-      });
-      
-      await queryClient.removeQueries({
-        queryKey: ['buyer-offer-counts']
-      });
-      
-      await queryClient.removeQueries({
-        queryKey: ['batch-offers']
-      });
-      
-      // Force refetch
-      await queryClient.refetchQueries({
-        queryKey: ['buyer-auction-products'],
-        type: 'all'
-      });
-      
-      await queryClient.refetchQueries({
-        queryKey: ['buyer-offer-counts'],
-        type: 'all'
-      });
-      
-      await queryClient.refetchQueries({
-        queryKey: ['batch-offers'],
-        type: 'all'
-      });
-      
-      console.log('✅ Force refresh completed');
-    } catch (error) {
-      console.error('❌ Force refresh failed:', error);
-    }
+    await queryClient.invalidateQueries({
+      queryKey: ['buyer-auction-products']
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ['buyer-offer-counts']
+    });
+    console.log('✅ Force refresh completed');
   }, [queryClient]);
-
-  // Listen for real-time events and trigger refresh - Fixed dependency
-  useEffect(() => {
-    if (forceUpdateCounter > 0) {
-      console.log('📡 Force update counter changed, triggering refresh:', forceUpdateCounter);
-      // Small delay to ensure event processing
-      setTimeout(() => {
-        forceRefresh();
-      }, 200);
-    }
-  }, [forceUpdateCounter, forceRefresh]);
 
   return {
     ...queryResult,
@@ -273,29 +231,27 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     freshDataIndicator,
     forceRefresh,
     connectionState,
-    forceUpdateCounter,
     getConnectionDiagnostics: () => ({ 
       pusher: isConnected, 
       polling: !isConnected,
       interval: false,
       events: realtimeEvents.length,
-      lastUpdate: lastUpdateTime,
-      forceUpdateCounter
+      lastUpdate: lastUpdateTime
     })
   };
 };
 
-// Enhanced buyer offer counts hook with real-time support
+// Simplified buyer offer counts hook
 export const useBuyerOfferCounts = () => {
   const { user } = useAuth();
-  const { isConnected, forceUpdateCounter } = usePusherOffers();
+  const { isConnected, lastUpdateTime } = usePusherOffers();
 
   return useQuery({
-    queryKey: ['buyer-offer-counts', user?.id, forceUpdateCounter],
+    queryKey: ['buyer-offer-counts', user?.id, lastUpdateTime?.getTime()],
     queryFn: async () => {
       if (!user) return { active: 0, cancelled: 0, completed: 0, total: 0 };
 
-      console.log('🔢 Fetching buyer offer counts, counter:', forceUpdateCounter);
+      console.log('🔢 Fetching buyer offer counts');
 
       const { data, error } = await supabase
         .from('price_offers')
@@ -325,8 +281,8 @@ export const useBuyerOfferCounts = () => {
       return counts;
     },
     enabled: !!user,
-    staleTime: 0, // No caching for real-time updates
-    gcTime: 0, // No garbage collection cache
-    refetchOnWindowFocus: true,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
   });
 };
