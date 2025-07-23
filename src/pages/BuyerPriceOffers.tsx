@@ -10,6 +10,7 @@ import { AuctionCard } from '@/components/auction/AuctionCard';
 import { AuctionHero } from '@/components/auction/AuctionHero';
 import { AuctionSidebar } from '@/components/auction/AuctionSidebar';
 import { LiveTicker } from '@/components/auction/LiveTicker';
+import { DebugPanel } from '@/components/auction/DebugPanel';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
@@ -19,6 +20,7 @@ const BuyerPriceOffers: React.FC = () => {
   const [sortBy, setSortBy] = useState('time');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [favoriteProducts, setFavoriteProducts] = useState<Set<string>>(new Set());
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   
   const { 
     data: auctionProducts, 
@@ -34,6 +36,24 @@ const BuyerPriceOffers: React.FC = () => {
   const productIds = auctionProducts?.map(p => p.id) || [];
   const { data: batchOffersData } = useBatchOffers(productIds);
 
+  // Debug logging for the main page
+  useEffect(() => {
+    console.log('📊 BuyerPriceOffers page state:', {
+      statusFilter,
+      productsCount: auctionProducts?.length || 0,
+      isConnected,
+      lastUpdateTime: lastUpdateTime?.toISOString(),
+      realtimeEventsCount: realtimeEvents?.length || 0
+    });
+  }, [statusFilter, auctionProducts, isConnected, lastUpdateTime, realtimeEvents]);
+
+  // Show debug panel in development or when explicitly enabled
+  useEffect(() => {
+    const shouldShowDebug = process.env.NODE_ENV === 'development' || 
+                           localStorage.getItem('debug-auction') === 'true';
+    setShowDebugPanel(shouldShowDebug);
+  }, []);
+
   // Calculate hero stats
   const heroStats = useMemo(() => {
     const stats = {
@@ -44,6 +64,8 @@ const BuyerPriceOffers: React.FC = () => {
       userActive: offerCounts?.active || 0,
       userLeading: auctionProducts?.filter(p => p.is_user_leading).length || 0,
     };
+    
+    console.log('📈 Hero stats calculated:', stats);
     return stats;
   }, [auctionProducts, offerCounts]);
 
@@ -76,6 +98,13 @@ const BuyerPriceOffers: React.FC = () => {
         default:
           return new Date(b.user_offer_created_at || '').getTime() - new Date(a.user_offer_created_at || '').getTime();
       }
+    });
+
+    console.log('🔄 Processed products:', {
+      total: auctionProducts.length,
+      filtered: filtered.length,
+      statusFilter,
+      searchTerm
     });
 
     return filtered;
@@ -114,6 +143,16 @@ const BuyerPriceOffers: React.FC = () => {
       }
       return newSet;
     });
+  };
+
+  const handleForceReconnect = () => {
+    console.log('🔄 Manual reconnect triggered');
+    forceRefresh();
+  };
+
+  const handleForceRefresh = () => {
+    console.log('🔄 Manual refresh triggered');
+    forceRefresh();
   };
 
   if (!user) {
@@ -171,6 +210,19 @@ const BuyerPriceOffers: React.FC = () => {
           />
         </div>
 
+        {/* Debug Panel */}
+        {showDebugPanel && (
+          <div className="mb-6">
+            <DebugPanel
+              connectionState={connectionState}
+              realtimeEvents={realtimeEvents}
+              lastUpdateTime={lastUpdateTime}
+              onForceReconnect={handleForceReconnect}
+              onForceRefresh={handleForceRefresh}
+            />
+          </div>
+        )}
+
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
@@ -205,6 +257,14 @@ const BuyerPriceOffers: React.FC = () => {
               </div>
               
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDebugPanel(!showDebugPanel)}
+                  className="text-xs"
+                >
+                  Debug
+                </Button>
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'outline'}
                   size="sm"

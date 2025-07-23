@@ -14,13 +14,14 @@ export interface AuctionProduct extends Product {
   max_other_offer?: number;
   is_user_leading?: boolean;
   has_pending_offer?: boolean;
+  offers_count?: number;
 }
 
 export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   
-  // Use simplified Pusher real-time system
+  // Use Pusher real-time system
   const { 
     connectionState, 
     realtimeEvents, 
@@ -29,13 +30,13 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     forceReconnect
   } = usePusherRealtime();
 
-  // Main auction data query with optimized caching
+  // Main auction data query with proper competitive data
   const queryResult = useQuery({
     queryKey: ['buyer-auction-products', user?.id, statusFilter],
     queryFn: async (): Promise<AuctionProduct[]> => {
       if (!user) return [];
 
-      console.log('🔍 Fetching buyer auction products...');
+      console.log('🔍 Fetching buyer auction products for user:', user.id);
 
       // Get user's price offers with product data
       const { data: offerData, error } = await supabase
@@ -83,7 +84,10 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
         .eq('buyer_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching offers:', error);
+        throw error;
+      }
 
       // Process offers into products map
       const productMap = new Map<string, AuctionProduct>();
@@ -108,6 +112,7 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
       }
 
       let products = Array.from(productMap.values());
+      console.log('📦 Found products with offers:', products.length);
 
       // Apply status filter
       if (statusFilter && statusFilter !== 'all') {
@@ -125,51 +130,59 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
         });
       }
 
-      // Get competitive data for active offers
-      const activeProductIds = products
-        .filter(p => p.user_offer_status === 'pending')
-        .map(p => p.id);
+      // Get competitive data for all products using the database function
+      if (products.length > 0) {
+        const productIds = products.map(p => p.id);
         
-      if (activeProductIds.length > 0) {
-        const { data: competitiveData } = await supabase
-          .from('price_offers')
-          .select('product_id, offered_price, buyer_id')
-          .in('product_id', activeProductIds)
-          .eq('status', 'pending')
-          .order('offered_price', { ascending: false });
+        console.log('🏆 Getting competitive data for products:', productIds.length);
 
-        if (competitiveData) {
-          const maxOffers = new Map<string, { max_price: number; user_is_max: boolean }>();
+        // Use the corrected database function for competitive data
+        const { data: competitiveData, error: compError } = await supabase
+          .rpc('get_offers_batch', {
+            p_product_ids: productIds,
+            p_user_id: user.id
+          });
+
+        if (compError) {
+          console.error('❌ Error fetching competitive data:', compError);
+        } else {
+          console.log('✅ Competitive data received:', competitiveData?.length || 0);
           
-          for (const offer of competitiveData) {
-            const current = maxOffers.get(offer.product_id);
-            if (!current || offer.offered_price > current.max_price) {
-              maxOffers.set(offer.product_id, {
-                max_price: offer.offered_price,
-                user_is_max: offer.buyer_id === user.id
-              });
-            }
-          }
+          // Create a map for quick lookup
+          const competitiveMap = new Map(
+            competitiveData?.map(item => [item.product_id, item]) || []
+          );
 
+          // Update products with competitive data
           products = products.map(product => {
-            const competitiveInfo = maxOffers.get(product.id);
-            if (competitiveInfo) {
+            const compData = competitiveMap.get(product.id);
+            if (compData) {
+              console.log(`📊 Product ${product.id} competitive data:`, {
+                title: product.title,
+                userPrice: product.user_offer_price,
+                maxOtherPrice: compData.max_offer_price,
+                isUserLeading: compData.current_user_is_max,
+                totalOffers: compData.total_offers_count
+              });
+              
               return {
                 ...product,
-                is_user_leading: competitiveInfo.user_is_max,
-                max_other_offer: competitiveInfo.user_is_max ? 0 : competitiveInfo.max_price
+                max_other_offer: compData.max_offer_price,
+                is_user_leading: compData.current_user_is_max,
+                offers_count: compData.total_offers_count
               };
             }
             return {
               ...product,
+              max_other_offer: 0,
               is_user_leading: false,
-              max_other_offer: 0
+              offers_count: 0
             };
           });
         }
       }
 
-      // Sort products by status priority
+      // Sort products by status priority and creation time
       products.sort((a, b) => {
         const statusPriority = (status: string | undefined) => {
           switch (status) {
@@ -194,7 +207,7 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
         return bTime - aTime;
       });
 
-      console.log('✅ Processed auction products:', products.length);
+      console.log('✅ Final processed auction products:', products.length);
       return products;
     },
     enabled: !!user,
@@ -204,7 +217,7 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     refetchOnReconnect: true,
   });
 
-  // Simple force refresh
+  // Force refresh function
   const forceRefresh = useCallback(async () => {
     console.log('🔄 Force refreshing auction data...');
     await queryClient.invalidateQueries({
@@ -213,6 +226,9 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     await queryClient.invalidateQueries({
       queryKey: ['buyer-offer-counts']
     });
+    await queryClient.invalidateQueries({
+      queryKey: ['batch-offers']
+    });
   }, [queryClient]);
 
   return {
@@ -220,7 +236,7 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
     isConnected,
     lastUpdateTime,
     realtimeEvents,
-    forceRefresh: forceReconnect, // Use Pusher reconnect instead
+    forceRefresh,
     connectionState,
   };
 };
@@ -265,8 +281,8 @@ export const useBuyerOfferCounts = () => {
       return counts;
     },
     enabled: !!user,
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 };

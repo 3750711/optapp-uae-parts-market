@@ -12,7 +12,8 @@ import {
   DollarSign,
   Activity,
   Heart,
-  MoreHorizontal
+  MoreHorizontal,
+  AlertCircle
 } from 'lucide-react';
 import { Product } from '@/types/product';
 import { useCreatePriceOffer } from '@/hooks/use-price-offers';
@@ -45,9 +46,23 @@ export const AuctionCard: React.FC<AuctionCardProps> = ({
   const [timeLeft, setTimeLeft] = useState<string>('');
   const [progressPercent, setProgressPercent] = useState<number>(0);
   const [isRecentUpdate, setIsRecentUpdate] = useState(false);
-  const [quickBidAmount, setQuickBidAmount] = useState(5);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
   
   const createOfferMutation = useCreatePriceOffer();
+
+  // Debug logging with detailed information
+  useEffect(() => {
+    console.log(`🎯 AuctionCard render for product ${product.id}:`, {
+      title: product.title,
+      userOfferPrice,
+      maxCompetitorPrice,
+      isUserLeading,
+      totalOffers,
+      lastUpdateTime: lastUpdateTime?.toISOString(),
+      productStatus: product.status,
+      hasActiveOffers: product.has_active_offers
+    });
+  }, [product.id, userOfferPrice, maxCompetitorPrice, isUserLeading, totalOffers, lastUpdateTime]);
 
   // Calculate time remaining
   useEffect(() => {
@@ -79,14 +94,22 @@ export const AuctionCard: React.FC<AuctionCardProps> = ({
   // Handle recent updates animation
   useEffect(() => {
     if (lastUpdateTime) {
+      console.log(`⚡ Recent update detected for product ${product.id}:`, lastUpdateTime.toISOString());
       setIsRecentUpdate(true);
       const timer = setTimeout(() => setIsRecentUpdate(false), 3000);
       return () => clearTimeout(timer);
     }
-  }, [lastUpdateTime]);
+  }, [lastUpdateTime, product.id]);
 
   const handleQuickBid = async (amount: number) => {
     const newBidAmount = Math.max(maxCompetitorPrice, userOfferPrice) + amount;
+    
+    console.log(`💰 Quick bid for product ${product.id}:`, {
+      currentUserPrice: userOfferPrice,
+      currentMaxPrice: maxCompetitorPrice,
+      newBidAmount,
+      increment: amount
+    });
     
     try {
       await createOfferMutation.mutateAsync({
@@ -99,6 +122,7 @@ export const AuctionCard: React.FC<AuctionCardProps> = ({
       
       toast.success(`Ставка поднята до $${newBidAmount.toLocaleString()}`);
     } catch (error) {
+      console.error('❌ Error placing quick bid:', error);
       toast.error('Ошибка при размещении ставки');
     }
   };
@@ -106,6 +130,19 @@ export const AuctionCard: React.FC<AuctionCardProps> = ({
   const currentPrice = Math.max(userOfferPrice, maxCompetitorPrice, product.price);
   const priceChange = currentPrice - product.price;
   const priceChangePercent = ((priceChange / product.price) * 100).toFixed(1);
+
+  // Debug information
+  const debugInfo = {
+    productId: product.id,
+    title: product.title,
+    userOfferPrice,
+    maxCompetitorPrice,
+    isUserLeading,
+    totalOffers,
+    lastUpdate: lastUpdateTime?.toISOString(),
+    isRecentUpdate,
+    hasActiveOffers: product.has_active_offers
+  };
 
   return (
     <Card className={cn(
@@ -139,6 +176,15 @@ export const AuctionCard: React.FC<AuctionCardProps> = ({
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => setShowDebugInfo(!showDebugInfo)}
+              className="p-1 h-8 w-8"
+              title="Показать отладочную информацию"
+            >
+              <AlertCircle className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => onFavorite?.(product.id)}
               className="p-1 h-8 w-8"
             >
@@ -149,6 +195,23 @@ export const AuctionCard: React.FC<AuctionCardProps> = ({
             </Button>
           </div>
         </div>
+
+        {/* Debug Information */}
+        {showDebugInfo && (
+          <div className="mb-4 p-3 bg-gray-100 rounded-lg text-xs">
+            <div className="font-medium mb-2">Отладочная информация:</div>
+            <div className="space-y-1">
+              <div>ID: {debugInfo.productId}</div>
+              <div>Ваша ставка: ${debugInfo.userOfferPrice}</div>
+              <div>Макс. конкурент: ${debugInfo.maxCompetitorPrice}</div>
+              <div>Лидер: {debugInfo.isUserLeading ? 'Да' : 'Нет'}</div>
+              <div>Всего ставок: {debugInfo.totalOffers}</div>
+              <div>Последнее обновление: {debugInfo.lastUpdate || 'Нет'}</div>
+              <div>Недавнее обновление: {debugInfo.isRecentUpdate ? 'Да' : 'Нет'}</div>
+              <div>Активные предложения: {debugInfo.hasActiveOffers ? 'Да' : 'Нет'}</div>
+            </div>
+          </div>
+        )}
 
         {/* Price section */}
         <div className="mb-4">
@@ -191,6 +254,15 @@ export const AuctionCard: React.FC<AuctionCardProps> = ({
               <Badge variant={isUserLeading ? "default" : "destructive"} className="text-xs">
                 {isUserLeading ? 'Лидер' : 'Отстаёте'}
               </Badge>
+            </div>
+          )}
+          
+          {/* Competitor price info */}
+          {maxCompetitorPrice > 0 && maxCompetitorPrice !== userOfferPrice && (
+            <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+              <div className="text-sm text-gray-600">
+                Конкурентная ставка: ${maxCompetitorPrice.toLocaleString()}
+              </div>
             </div>
           )}
         </div>
