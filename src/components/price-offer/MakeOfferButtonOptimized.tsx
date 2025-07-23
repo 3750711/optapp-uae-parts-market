@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, TrendingUp } from 'lucide-react';
+import { Clock, TrendingUp, Zap, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { Product } from '@/types/product';
@@ -9,6 +9,11 @@ import { useCheckPendingOffer, useCompetitiveOffers } from '@/hooks/use-price-of
 import { EnhancedOfferModal } from './EnhancedOfferModal';
 import { CompetitorOfferBadge } from './CompetitorOfferBadge';
 import { BatchOfferData, useProductOfferFromBatch } from '@/hooks/use-price-offers-batch';
+import { useOptimizedPusherRealtime } from '@/hooks/useOptimizedPusherRealtime';
+import { RealtimeBidButton } from './RealtimeBidButton';
+import { MaxBidDisplay } from './MaxBidDisplay';
+import { PusherConnectionStatus } from './PusherConnectionStatus';
+import { cn } from '@/lib/utils';
 import bidIcon from '@/assets/bid-icon.png';
 
 interface MakeOfferButtonOptimizedProps {
@@ -32,8 +37,32 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
   batchOffersData 
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [recentUpdate, setRecentUpdate] = useState(false);
+  const [priceAnimation, setPriceAnimation] = useState(false);
   const { user, profile } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
+  
+  // Connect to Pusher for real-time updates
+  const { 
+    connectionState, 
+    realtimeEvents, 
+    lastUpdateTime, 
+    isConnected 
+  } = useOptimizedPusherRealtime({
+    productId: product.id,
+    onEvent: (event) => {
+      console.log('🔔 Real-time event received:', event);
+      // Trigger visual feedback for updates
+      if (event.product_id === product.id) {
+        setRecentUpdate(true);
+        setPriceAnimation(true);
+        setTimeout(() => {
+          setRecentUpdate(false);
+          setPriceAnimation(false);
+        }, 3000);
+      }
+    }
+  });
   
   // Get offer data from batch if available, otherwise use individual query
   const batchOfferData = useProductOfferFromBatch(product.id, batchOffersData);
@@ -145,118 +174,54 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
     order_id: null
   } : undefined);
 
-  // If user has a pending offer
-  if (hasUserOffer && userOfferPrice > 0) {
-    if (compact) {
-      return (
-        <div className="flex items-center gap-1">
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleClick}
-            className={`relative flex items-center justify-center h-10 w-12 p-0 rounded-full text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 ${
-              isLeadingBid 
-                ? 'bg-gradient-to-br from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
-                : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
-            }`}
-            title={`${isLeadingBid ? 'Лидирующее предложение' : 'Ваше предложение'}: $${userOfferPrice}`}
-          >
-            <span className="text-xs font-bold">${userOfferPrice}</span>
-          </Button>
-          
-          <CompetitorOfferBadge 
-            maxOtherOffer={maxOtherOffer} 
-            compact={true} 
-            isUserLeading={isLeadingBid}
-          />
-          
-          <EnhancedOfferModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            product={product}
-            existingOffer={userOfferForModal}
-            isLeadingBid={isLeadingBid}
-            maxOtherOffer={maxOtherOffer}
-          />
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-2">
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleClick}
-          className={`flex items-center gap-2 w-full h-9 text-xs px-3 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02] transition-all duration-200 ${
-            isLeadingBid 
-              ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
-              : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
-          }`}
-        >
-          {isLeadingBid ? <TrendingUp className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-          <span className="font-semibold">${userOfferPrice}</span>
-          <span className="text-xs opacity-90 ml-auto">
-            {isLeadingBid ? 'лидер' : 'обновить'}
-          </span>
-        </Button>
-        
-        <CompetitorOfferBadge 
-          maxOtherOffer={maxOtherOffer} 
-          compact={false} 
-          isUserLeading={isLeadingBid}
-        />
-        
-        <EnhancedOfferModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          product={product}
-          existingOffer={userOfferForModal}
-          isLeadingBid={isLeadingBid}
-          maxOtherOffer={maxOtherOffer}
-        />
-      </div>
-    );
-  }
-
-  // If user has no pending offer - show make offer button
   return (
-    <div className={compact ? "flex items-center gap-1" : "space-y-2"}>
-      {compact ? (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClick}
-          className="flex items-center justify-center h-10 w-10 p-0 hover:bg-primary/10 rounded-full border-2 border-primary/20 hover:border-primary/40 transition-all duration-200 group hover:shadow-lg"
-          title="Предложить цену"
-        >
-          <BidIcon className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
-        </Button>
-      ) : (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleClick}
-          className="flex items-center gap-2 w-full h-9 text-xs px-3 border-2 border-primary/20 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 hover:shadow-md"
-        >
-          <BidIcon className="h-4 w-4" />
-          <span className="font-medium">Предложить</span>
-        </Button>
-      )}
-
-      <CompetitorOfferBadge 
-        maxOtherOffer={maxOtherOffer} 
-        compact={compact} 
-        isUserLeading={isLeadingBid}
+    <div className={cn(
+      "relative transition-all duration-300",
+      compact ? "flex items-center gap-2" : "space-y-2",
+      recentUpdate && "animate-pulse"
+    )}>
+      {/* Pusher Connection Status */}
+      <PusherConnectionStatus 
+        isConnected={isConnected}
+        connectionState={connectionState}
+        compact={compact}
       />
 
+      {/* Main Bid Button */}
+      <RealtimeBidButton
+        isLeadingBid={isLeadingBid}
+        hasUserOffer={hasUserOffer}
+        userOfferPrice={userOfferPrice}
+        maxOtherOffer={maxOtherOffer}
+        compact={compact}
+        onClick={handleClick}
+        priceAnimation={priceAnimation}
+        recentUpdate={recentUpdate}
+      />
+
+      {/* Always show max bid */}
+      <MaxBidDisplay 
+        maxOtherOffer={maxOtherOffer}
+        isUserLeading={isLeadingBid}
+        compact={compact}
+        hasUserOffer={hasUserOffer}
+        userOfferPrice={userOfferPrice}
+      />
+
+      {/* Enhanced Offer Modal */}
       <EnhancedOfferModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         product={product}
+        existingOffer={userOfferForModal}
         isLeadingBid={isLeadingBid}
         maxOtherOffer={maxOtherOffer}
       />
+
+      {/* Recent update indicator */}
+      {recentUpdate && (
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full animate-ping" />
+      )}
     </div>
   );
 };

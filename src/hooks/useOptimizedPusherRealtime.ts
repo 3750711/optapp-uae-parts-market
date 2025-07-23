@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PusherOfferEvent } from '@/types/pusher';
 import { supabase } from '@/integrations/supabase/client';
 import { CACHE_KEYS, CACHE_FILTERS, createCacheKey } from '@/utils/cacheKeys';
-import { debounce } from '@/utils/debounce';
+import { getPusherCacheOptimizer } from '@/utils/pusherCacheOptimizer';
 
 interface PusherRealtimeConfig {
   productId?: string;
@@ -36,130 +36,42 @@ export const useOptimizedPusherRealtime = (config: PusherRealtimeConfig = {}) =>
   const pusherRef = useRef<Pusher | null>(null);
   const subscribedChannels = useRef<Set<string>>(new Set());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingUpdates = useRef<Map<string, PusherOfferEvent[]>>(new Map());
+  
+  // Get cache optimizer instance
+  const cacheOptimizer = getPusherCacheOptimizer(queryClient);
 
-  // Debounced batch update function
-  const debouncedBatchUpdate = useCallback(
-    debounce(async (productId: string) => {
-      const events = pendingUpdates.current.get(productId) || [];
-      if (events.length === 0) return;
-
-      console.log(`🔄 Processing ${events.length} batched events for product ${productId}`);
-      
-      // Clear pending updates for this product
-      pendingUpdates.current.delete(productId);
-      
-      // Process the latest event (most recent update)
-      const latestEvent = events[events.length - 1];
-      await processSingleEvent(latestEvent);
-    }, 300),
-    [user?.id]
-  );
-
-  // Process a single event with optimized cache updates
-  const processSingleEvent = useCallback(async (event: PusherOfferEvent) => {
-    if (!user?.id) return;
-
-    console.log('🔄 Processing single event:', {
-      action: event.action,
-      productId: event.product_id,
-      buyerId: event.buyer_id,
-      price: event.offered_price,
-      status: event.status
-    });
-
-    // Get fresh competitive data once
-    try {
-      const { data: competitiveData, error } = await supabase
-        .rpc('get_competitive_offer_data', {
-          p_product_id: event.product_id,
-          p_user_id: user.id
-        });
-
-      if (error) {
-        console.error('❌ Error getting competitive data:', error);
-        return;
-      }
-
-      const compData = competitiveData?.[0];
-      
-      // Update all relevant caches with the fresh data
-      const statusFilters = [CACHE_FILTERS.ALL, CACHE_FILTERS.ACTIVE, CACHE_FILTERS.CANCELLED, CACHE_FILTERS.COMPLETED];
-      
-      statusFilters.forEach(statusFilter => {
-        const cacheKey = createCacheKey(CACHE_KEYS.BUYER_AUCTION_PRODUCTS, user.id, statusFilter);
-        
-        queryClient.setQueryData(cacheKey, (oldData: any) => {
-          if (!oldData) return oldData;
-          
-          return oldData.map((product: any) => {
-            if (product.id === event.product_id) {
-              const updatedProduct = { ...product };
-              
-              // Update user's own offer data
-              if (event.buyer_id === user.id) {
-                updatedProduct.user_offer_price = event.offered_price;
-                updatedProduct.user_offer_status = event.status;
-                updatedProduct.user_offer_created_at = event.created_at;
-                updatedProduct.user_offer_updated_at = event.updated_at;
-              }
-              
-              // Update competitive data
-              if (compData) {
-                updatedProduct.max_other_offer = compData.max_offer_price;
-                updatedProduct.is_user_leading = compData.current_user_is_max;
-                updatedProduct.offers_count = compData.total_offers_count;
-                updatedProduct.user_offer_price = compData.current_user_offer_price || updatedProduct.user_offer_price;
-              }
-              
-              return updatedProduct;
-            }
-            return product;
-          });
-        });
-      });
-
-      // Invalidate related caches efficiently
-      queryClient.invalidateQueries({ 
-        queryKey: createCacheKey(CACHE_KEYS.BUYER_OFFER_COUNTS),
-        refetchType: 'none' // Don't refetch immediately
-      });
-
-      console.log('✅ Single event processed successfully');
-      
-    } catch (error) {
-      console.error('❌ Error processing event:', error);
-    }
-  }, [queryClient, user?.id]);
-
-  // Enhanced update React Query data with batching
+  // Enhanced update React Query data with cache optimization
   const updateQueryData = useCallback(async (event: PusherOfferEvent) => {
     if (!user?.id) return;
 
-    console.log('📥 Queuing event for batch processing:', {
+    console.log('📥 Processing real-time event:', {
       action: event.action,
       productId: event.product_id,
       buyerId: event.buyer_id,
       price: event.offered_price
     });
     
-    // Add event to pending updates
-    const productId = event.product_id;
-    const currentEvents = pendingUpdates.current.get(productId) || [];
-    currentEvents.push(event);
-    pendingUpdates.current.set(productId, currentEvents);
+    // Optimistic update for immediate UI feedback
+    if (event.buyer_id === user.id) {
+      cacheOptimizer.optimisticUpdate(event.product_id, {
+        userOfferPrice: event.offered_price,
+        isUserLeading: false, // Will be updated with real data
+      });
+    }
     
-    // Trigger debounced batch update
-    debouncedBatchUpdate(productId);
+    // Queue for batch processing
+    cacheOptimizer.queueUpdate(event.product_id, event);
     
     // Update timestamp for UI reactivity
     setLastUpdateTime(new Date());
     
-  }, [user?.id, debouncedBatchUpdate]);
+  }, [user?.id, cacheOptimizer]);
 
   // Handle incoming Pusher events
   const handlePusherEvent = useCallback((data: any, action: 'created' | 'updated' | 'deleted') => {
     const event: PusherOfferEvent = { ...data, action };
+    
+    console.log('🔔 Pusher event received:', event);
     
     // Add to events list (keep last 10)
     setRealtimeEvents(prev => [event, ...prev.slice(0, 9)]);
@@ -311,12 +223,9 @@ export const useOptimizedPusherRealtime = (config: PusherRealtimeConfig = {}) =>
       reconnectTimeoutRef.current = null;
     }
 
-    // Clear pending updates
-    pendingUpdates.current.clear();
-    
-    // Cancel debounced updates
-    debouncedBatchUpdate.cancel();
-  }, [debouncedBatchUpdate]);
+    // Clear cache optimizer
+    cacheOptimizer.clearPendingUpdates();
+  }, [cacheOptimizer]);
 
   // Force reconnect
   const forceReconnect = useCallback(() => {
@@ -356,5 +265,6 @@ export const useOptimizedPusherRealtime = (config: PusherRealtimeConfig = {}) =>
     lastUpdateTime,
     isConnected: connectionState.isConnected,
     forceReconnect,
+    cacheOptimizer,
   };
 };
