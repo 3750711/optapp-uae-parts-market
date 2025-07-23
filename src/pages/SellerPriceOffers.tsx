@@ -27,7 +27,6 @@ import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -98,52 +97,6 @@ const SellerPriceOffers = () => {
     setSellerResponse("");
   };
 
-  const createOrderFromOffer = async (offer: PriceOffer) => {
-    try {
-      // Create order using the seller_create_order function
-      const { data: orderId, error } = await supabase.rpc('seller_create_order', {
-        p_title: offer.product?.title || 'Товар по предложению цены',
-        p_price: offer.offered_price,
-        p_place_number: 1,
-        p_order_seller_name: profile?.full_name || 'Неизвестный продавец',
-        p_buyer_id: offer.buyer_id,
-        p_brand: offer.product?.brand || '',
-        p_model: offer.product?.model || '',
-        p_status: 'created',
-        p_order_created_type: 'price_offer_order',
-        p_telegram_url_order: profile?.telegram || '',
-        p_images: offer.product?.product_images?.map(img => img.url) || [],
-        p_product_id: offer.product_id,
-        p_delivery_method: 'self_pickup',
-        p_text_order: `Заказ создан на основе предложения цены. Оригинальная цена: ${formatPrice(offer.original_price)}, Предложенная цена: ${formatPrice(offer.offered_price)}`,
-        p_delivery_price_confirm: null
-      });
-
-      if (error) throw error;
-
-      // Update the offer with the order_id
-      await supabase
-        .from('price_offers')
-        .update({ order_id: orderId })
-        .eq('id', offer.id);
-
-      toast({
-        title: "Заказ создан!",
-        description: `Заказ успешно создан на основе предложения цены ${formatPrice(offer.offered_price)}`,
-      });
-
-      return orderId;
-    } catch (error) {
-      console.error('Error creating order:', error);
-      toast({
-        title: "Ошибка при создании заказа",
-        description: "Не удалось создать заказ. Попробуйте еще раз.",
-        variant: "destructive",
-      });
-      throw error;
-    }
-  };
-
   const handleSubmitResponse = async () => {
     if (!responseModal.offer || !responseModal.action) return;
 
@@ -151,11 +104,9 @@ const SellerPriceOffers = () => {
     try {
       const { offer, action } = responseModal;
 
-      // If accepting, create order first
-      if (action === "accept") {
-        await createOrderFromOffer(offer);
-      }
+      console.log(`Processing offer ${action} for offer ID: ${offer.id}`);
 
+      // Simply update the offer status - the trigger will handle order creation
       await updateOffer.mutateAsync({
         offerId: offer.id,
         data: {
@@ -163,6 +114,18 @@ const SellerPriceOffers = () => {
           seller_response: sellerResponse || undefined,
         },
       });
+
+      if (action === "accept") {
+        toast({
+          title: "Предложение принято!",
+          description: "Заказ будет создан автоматически. Обновите страницу через несколько секунд, чтобы увидеть ссылку на заказ.",
+        });
+      } else {
+        toast({
+          title: "Предложение отклонено",
+          description: "Покупатель будет уведомлен об отклонении.",
+        });
+      }
 
       setResponseModal({ isOpen: false });
     } catch (error) {
@@ -341,7 +304,7 @@ const SellerPriceOffers = () => {
                             disabled={isOfferExpired(offer.expires_at)}
                           >
                             <Check className="h-4 w-4 mr-2" />
-                            Принять и создать заказ
+                            Принять предложение
                           </Button>
                           <Button
                             variant="outline"
@@ -437,6 +400,18 @@ const SellerPriceOffers = () => {
                             </Button>
                           </div>
                         )}
+
+                        {offer.status === 'accepted' && !offer.order_id && (
+                          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                            <p className="text-sm font-medium text-blue-800 mb-1 flex items-center gap-2">
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                              Создание заказа...
+                            </p>
+                            <p className="text-xs text-blue-700">
+                              Заказ создается автоматически. Обновите страницу через несколько секунд.
+                            </p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
@@ -496,10 +471,10 @@ const SellerPriceOffers = () => {
                     <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                       <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
                         <ShoppingCart className="h-4 w-4" />
-                        При принятии будет создан заказ
+                        Заказ будет создан автоматически
                       </p>
                       <p className="text-xs text-green-700">
-                        Заказ будет создан автоматически с предложенной ценой
+                        После принятия предложения заказ создастся автоматически
                       </p>
                     </div>
                   )}
@@ -519,7 +494,7 @@ const SellerPriceOffers = () => {
                   onChange={(e) => setSellerResponse(e.target.value)}
                   placeholder={
                     responseModal.action === "accept"
-                      ? "Спасибо за предложение! Создаю заказ..."
+                      ? "Спасибо за предложение! Принимаю вашу цену."
                       : "К сожалению, не могу принять такую цену..."
                   }
                   rows={3}
@@ -543,7 +518,7 @@ const SellerPriceOffers = () => {
                   variant={responseModal.action === "accept" ? "default" : "destructive"}
                 >
                   {isSubmitting ? "Обработка..." : 
-                   responseModal.action === "accept" ? "Принять и создать заказ" : "Отклонить"
+                   responseModal.action === "accept" ? "Принять предложение" : "Отклонить"
                   }
                 </Button>
               </div>
