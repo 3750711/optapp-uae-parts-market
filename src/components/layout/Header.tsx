@@ -1,215 +1,342 @@
-
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Menu, X, User, ShoppingCart, Bell, Search, Home, Package, Store, MessageSquare, HelpCircle, Mail } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from '@/components/ui/navigation-menu';
-import { cn } from '@/lib/utils';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  User, 
+  LogOut, 
+  Package, 
+  ShoppingCart, 
+  Plus, 
+  Settings, 
+  LayoutDashboard, 
+  Menu, 
+  Store, 
+  MessageSquare,
+  Bell,
+  Heart,
+  HelpCircle,
+  ClipboardList,
+  ShoppingBag,
+  Gavel
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "@/hooks/use-toast";
+import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useFavorites } from '@/hooks/useFavorites';
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const Header = () => {
-  const { user, profile, logout } = useAuth();
+  const { user, signOut, profile, isLoading } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
+  const { unreadCount } = useNotifications();
+  const { favorites } = useFavorites();
+  const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const location = useLocation();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  // Отладочная информация для Header
+  console.log('🏠 Header Debug:', {
+    user_email: user?.email,
+    profile_user_type: profile?.user_type,
+    isAdmin,
+    isCheckingAdmin,
+    isLoading
+  });
 
   const handleLogout = async () => {
-    await logout();
-    setIsMenuOpen(false);
+    try {
+      await signOut();
+      toast({
+        title: "Выход выполнен",
+        description: "Вы успешно вышли из системы"
+      });
+      navigate('/login');
+    } catch (error) {
+      console.error('Ошибка при выходе из системы:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось выйти из системы",
+        variant: "destructive"
+      });
+    }
   };
 
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
-
-  const isActive = (path: string) => location.pathname === path;
-
-  // Navigation items for authenticated users
-  const navigationItems = [
-    { href: '/catalog', label: 'Каталог', icon: Package },
-    { href: '/stores', label: 'Магазины', icon: Store },
-    { href: '/requests', label: 'Запросы', icon: MessageSquare },
-    { href: '/buyer-guide', label: 'Покупателю', icon: HelpCircle },
-    { href: '/about', label: 'О нас', icon: Home },
-    { href: '/contact', label: 'Контакты', icon: Mail },
-  ];
+  const NavLinks = ({ onClick }: { onClick?: () => void }) => (
+    <nav className="flex flex-col md:flex-row items-center gap-2 md:gap-5">
+      <Link 
+        to="/" 
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+        onClick={onClick}
+      >
+        Главная
+      </Link>
+      <Link 
+        to="/catalog" 
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+        onClick={onClick}
+      >
+        Каталог
+      </Link>
+      <Link 
+        to="/stores" 
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+        onClick={onClick}
+      >
+        Магазины
+      </Link>
+      <Link 
+        to="/requests" 
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+        onClick={onClick}
+      >
+        Запросы
+      </Link>
+      <Link 
+        to="/about" 
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+        onClick={onClick}
+      >
+        О нас
+      </Link>
+    </nav>
+  );
 
   return (
-    <header className={cn(
-      "sticky top-0 z-50 w-full border-b transition-all duration-300",
-      isScrolled 
-        ? "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" 
-        : "bg-background"
-    )}>
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Package className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-xl">PartsBay</span>
-          </Link>
+    <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
+      <div className="container flex items-center justify-between py-3 md:py-4 px-4 md:px-8 mx-auto">
+        <Link 
+          to="/" 
+          className="text-2xl font-extrabold tracking-tight"
+        >
+          <span className="text-primary">partsbay</span>
+          <span className="text-secondary">.ae</span>
+        </Link>
 
-          {/* Desktop Navigation - Only for authenticated users */}
-          {user && (
-            <div className="hidden md:flex items-center space-x-1">
-              <NavigationMenu>
-                <NavigationMenuList>
-                  {navigationItems.map((item) => (
-                    <NavigationMenuItem key={item.href}>
-                      <NavigationMenuLink
-                        asChild
-                        className={cn(
-                          "px-3 py-2 text-sm font-medium transition-colors hover:text-primary",
-                          isActive(item.href) ? "text-primary" : "text-muted-foreground"
+        {isMobile ? (
+          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" className="md:hidden p-2">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="bg-white border-r border-gray-200 shadow-2xl w-[82vw]">
+              <div className="flex flex-col space-y-6 py-6">
+                <NavLinks onClick={() => setIsMenuOpen(false)} />
+              </div>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <NavLinks />
+        )}
+
+        <div className="flex items-center space-x-3">
+          {user ? (
+            <div className="flex items-center space-x-2">
+              {/* Show NotificationBell only on desktop */}
+              {!isMobile && <NotificationBell />}
+              
+              {/* Mobile: Link to profile menu page */}
+              {isMobile ? (
+                <Link to="/profile-menu">
+                  <Button 
+                    variant="ghost" 
+                    className="relative rounded-full h-10 w-10 p-0 text-primary bg-accent/50 border border-primary/20 transition-transform hover:scale-110"
+                  >
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage 
+                        src={user.user_metadata?.avatar_url || ''} 
+                        alt={user.user_metadata?.full_name || 'User'} 
+                      />
+                      <AvatarFallback className="bg-primary text-white">
+                        {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </Link>
+              ) : (
+                /* Desktop: Dropdown menu */
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="relative rounded-full h-10 w-10 p-0 text-primary bg-accent/50 border border-primary/20 transition-transform hover:scale-110"
+                    >
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage 
+                          src={user.user_metadata?.avatar_url || ''} 
+                          alt={user.user_metadata?.full_name || 'User'} 
+                        />
+                        <AvatarFallback className="bg-primary text-white">
+                          {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-white text-foreground shadow-elevation border border-gray-200 rounded-lg animate-scale-in">
+                    <DropdownMenuLabel className="flex flex-col gap-1">
+                      <span>{user.user_metadata?.full_name || user.email}</span>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    
+                    {/* Profile Settings */}
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to="/profile" className="flex w-full items-center">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Настройки профиля</span>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+
+                    {/* Universal Items */}
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to="/notifications" className="flex w-full items-center">
+                        <Bell className="mr-2 h-4 w-4" />
+                        <span>Уведомления</span>
+                        {unreadCount > 0 && (
+                          <Badge variant="destructive" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                            {unreadCount > 99 ? '99+' : unreadCount}
+                          </Badge>
                         )}
-                      >
-                        <Link to={item.href}>
-                          {item.label}
-                        </Link>
-                      </NavigationMenuLink>
-                    </NavigationMenuItem>
-                  ))}
-                </NavigationMenuList>
-              </NavigationMenu>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to="/favorites" className="flex w-full items-center">
+                        <Heart className="mr-2 h-4 w-4" />
+                        <span>Избранное</span>
+                        {favorites.length > 0 && (
+                          <Badge variant="secondary" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
+                            {favorites.length > 99 ? '99+' : favorites.length}
+                          </Badge>
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+
+                    {/* Buyer-specific Items */}
+                    {profile?.user_type === 'buyer' && (
+                      <>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/buyer-orders" className="flex w-full items-center">
+                            <ShoppingCart className="mr-2 h-4 w-4" />
+                            <span>Мои заказы</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/buyer-price-offers" className="flex w-full items-center">
+                            <Gavel className="mr-2 h-4 w-4" />
+                            <span>Торги</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+
+                    {/* Seller-specific Items */}
+                    {profile?.user_type === 'seller' && (
+                      <>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/dashboard" className="flex w-full items-center">
+                            <Store className="mr-2 h-4 w-4" />
+                            <span>Панель продавца</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/listings" className="flex w-full items-center">
+                            <Package className="mr-2 h-4 w-4" />
+                            <span>Мои товары</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/add-product" className="flex w-full items-center">
+                            <Plus className="mr-2 h-4 w-4" />
+                            <span>Добавить товар</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/orders" className="flex w-full items-center">
+                            <ClipboardList className="mr-2 h-4 w-4" />
+                            <span>Мои заказы</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/seller/price-offers" className="flex w-full items-center">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            <span>Предложения по товарам</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    
+                    {/* Admin Panel */}
+                    {!isLoading && !isCheckingAdmin && isAdmin && (
+                      <>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/admin" className="flex w-full items-center">
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            <span>Админ панель</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+
+                    {/* Help */}
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to="/help" className="flex w-full items-center">
+                        <HelpCircle className="mr-2 h-4 w-4" />
+                        <span>Помощь</span>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+                    
+                    {/* Logout */}
+                    <DropdownMenuItem 
+                      onClick={handleLogout} 
+                      className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Выйти</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <Button 
+                asChild 
+                variant="ghost"
+                className="text-foreground hover:text-primary"
+              >
+                <Link to="/login">Вход</Link>
+              </Button>
+              <Button asChild variant="default">
+                <Link to="/register">Регистрация</Link>
+              </Button>
             </div>
           )}
-
-          {/* Right side - User actions */}
-          <div className="flex items-center space-x-2">
-            {user ? (
-              <>
-                {/* Authenticated user actions */}
-                <Button variant="ghost" size="icon" asChild className="hidden md:flex">
-                  <Link to="/notifications">
-                    <Bell className="h-5 w-5" />
-                  </Link>
-                </Button>
-                
-                <Button variant="ghost" size="icon" asChild className="hidden md:flex">
-                  <Link to="/favorites">
-                    <ShoppingCart className="h-5 w-5" />
-                  </Link>
-                </Button>
-
-                <Button variant="ghost" size="icon" asChild className="hidden md:flex">
-                  <Link to="/profile">
-                    <User className="h-5 w-5" />
-                  </Link>
-                </Button>
-
-                {/* Mobile menu for authenticated users */}
-                <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="md:hidden">
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                    <SheetHeader>
-                      <SheetTitle>Меню</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6 space-y-4">
-                      {navigationItems.map((item) => (
-                        <Link
-                          key={item.href}
-                          to={item.href}
-                          onClick={closeMenu}
-                          className={cn(
-                            "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors",
-                            isActive(item.href) 
-                              ? "bg-primary text-primary-foreground" 
-                              : "hover:bg-accent"
-                          )}
-                        >
-                          <item.icon className="h-5 w-5" />
-                          <span>{item.label}</span>
-                        </Link>
-                      ))}
-                      
-                      <div className="border-t pt-4">
-                        <Link
-                          to="/profile"
-                          onClick={closeMenu}
-                          className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-accent"
-                        >
-                          <User className="h-5 w-5" />
-                          <span>Профиль</span>
-                        </Link>
-                        <Link
-                          to="/notifications"
-                          onClick={closeMenu}
-                          className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-accent"
-                        >
-                          <Bell className="h-5 w-5" />
-                          <span>Уведомления</span>
-                        </Link>
-                        <Link
-                          to="/favorites"
-                          onClick={closeMenu}
-                          className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-accent"
-                        >
-                          <ShoppingCart className="h-5 w-5" />
-                          <span>Избранное</span>
-                        </Link>
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-start"
-                          onClick={handleLogout}
-                        >
-                          Выйти
-                        </Button>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </>
-            ) : (
-              <>
-                {/* Unauthenticated user actions */}
-                <Button variant="ghost" asChild className="hidden md:flex">
-                  <Link to="/login">Войти</Link>
-                </Button>
-                <Button asChild className="hidden md:flex">
-                  <Link to="/register">Зарегистрироваться</Link>
-                </Button>
-
-                {/* Mobile menu for unauthenticated users */}
-                <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="md:hidden">
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-                    <SheetHeader>
-                      <SheetTitle>Меню</SheetTitle>
-                    </SheetHeader>
-                    <div className="mt-6 space-y-4">
-                      <Button asChild className="w-full" onClick={closeMenu}>
-                        <Link to="/login">Войти</Link>
-                      </Button>
-                      <Button asChild variant="outline" className="w-full" onClick={closeMenu}>
-                        <Link to="/register">Зарегистрироваться</Link>
-                      </Button>
-                    </div>
-                  </SheetContent>
-                </Sheet>
-              </>
-            )}
-          </div>
         </div>
       </div>
     </header>
