@@ -2,13 +2,19 @@
 import React from 'react';
 import Layout from "@/components/layout/Layout";
 import HeroSection from "@/components/home/HeroSection";
+import PublicHeroSection from "@/components/home/PublicHeroSection";
+import PublicFeaturesSection from "@/components/home/PublicFeaturesSection";
+import PublicCTASection from "@/components/home/PublicCTASection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import FeaturedProductsSection from "@/components/home/FeaturedProductsSection";
 import SEOHead from "@/components/seo/SEOHead";
 import { ShoppingCart, ChevronRight, Store, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
+  const { user, isLoading } = useAuth();
+
   // Structured Data для SEO
   const structuredData = {
     "@context": "https://schema.org",
@@ -32,6 +38,42 @@ const Index = () => {
     ]
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show different content based on authentication status
+  if (!user) {
+    // Public landing page for unauthenticated users
+    return (
+      <>
+        <SEOHead
+          title="PartsBay.ae - Оптовый рынок автозапчастей из ОАЭ | B2B Маркетплейс"
+          description="Покупайте автозапчасти оптом напрямую у проверенных поставщиков из ОАЭ. Более 100 продавцов, 5000+ товаров, прозрачные цены и быстрая доставка."
+          keywords="автозапчасти оптом ОАЭ, B2B маркетплейс автозапчастей, поставщики Дубай, оптовые продажи запчастей, PartsBay"
+          canonicalUrl="https://partsbay.ae"
+          structuredData={structuredData}
+        />
+        
+        <Layout>
+          <div className="bg-white">
+            <PublicHeroSection />
+            <PublicFeaturesSection />
+            <PublicCTASection />
+          </div>
+        </Layout>
+      </>
+    );
+  }
+
+  // Full functionality for authenticated users
   return (
     <>
       <SEOHead

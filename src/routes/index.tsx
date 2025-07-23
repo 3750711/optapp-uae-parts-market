@@ -1,9 +1,11 @@
+
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import RouteSEO from '@/components/routing/RouteSEO';
 import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary';
 import { RouteSuspenseFallback } from '@/components/routing/RouteSuspenseFallback';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import AuthRequiredRoute from '@/components/auth/AuthRequiredRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 
@@ -84,23 +86,8 @@ const AppRoutes: React.FC = () => {
       <RouteErrorBoundary>
         <Suspense fallback={<RouteSuspenseFallback />}>
           <Routes>
-            {/* Публичные маршруты */}
+            {/* Публичные маршруты - только главная страница и авторизация */}
             <Route path="/" element={<Index />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/catalog" element={
-              <CatalogErrorBoundary>
-                <Catalog />
-              </CatalogErrorBoundary>
-            } />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/stores" element={<Stores />} />
-            <Route path="/store/:id" element={<StoreDetail />} />
-            <Route path="/requests" element={<Requests />} />
-            <Route path="/request/:id" element={<RequestDetail />} />
-            <Route path="/buyer-guide" element={<BuyerGuide />} />
-            <Route path="/seller/:id" element={<PublicSellerProfile />} />
-            <Route path="/public-seller-profile/:id" element={<PublicSellerProfile />} />
             <Route path="/generate-og-image" element={<GenerateOGImage />} />
             <Route path="/404" element={<NotFound />} />
 
@@ -134,6 +121,65 @@ const AppRoutes: React.FC = () => {
               <Suspense fallback={<RouteSuspenseFallback />}>
                 <VerifyEmail />
               </Suspense>
+            } />
+
+            {/* Страницы, требующие авторизации */}
+            <Route path="/about" element={
+              <AuthRequiredRoute title="О компании" description="Узнайте больше о PartsBay.ae после регистрации">
+                <About />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/contact" element={
+              <AuthRequiredRoute title="Контакты" description="Свяжитесь с нами после регистрации">
+                <Contact />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/catalog" element={
+              <AuthRequiredRoute title="Каталог товаров" description="Просмотрите полный каталог автозапчастей после регистрации">
+                <CatalogErrorBoundary>
+                  <Catalog />
+                </CatalogErrorBoundary>
+              </AuthRequiredRoute>
+            } />
+            <Route path="/product/:id" element={
+              <AuthRequiredRoute title="Детали товара" description="Просмотрите подробную информацию о товаре после регистрации">
+                <ProductDetail />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/stores" element={
+              <AuthRequiredRoute title="Магазины" description="Просмотрите список магазинов после регистрации">
+                <Stores />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/store/:id" element={
+              <AuthRequiredRoute title="Магазин" description="Просмотрите товары магазина после регистрации">
+                <StoreDetail />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/requests" element={
+              <AuthRequiredRoute title="Запросы" description="Просмотрите активные запросы после регистрации">
+                <Requests />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/request/:id" element={
+              <AuthRequiredRoute title="Запрос" description="Просмотрите подробности запроса после регистрации">
+                <RequestDetail />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/buyer-guide" element={
+              <AuthRequiredRoute title="Руководство покупателя" description="Изучите руководство для покупателей после регистрации">
+                <BuyerGuide />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/seller/:id" element={
+              <AuthRequiredRoute title="Профиль продавца" description="Просмотрите профиль продавца после регистрации">
+                <PublicSellerProfile />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/public-seller-profile/:id" element={
+              <AuthRequiredRoute title="Профиль продавца" description="Просмотрите профиль продавца после регистрации">
+                <PublicSellerProfile />
+              </AuthRequiredRoute>
             } />
 
             {/* Защищенные маршруты */}
