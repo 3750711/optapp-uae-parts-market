@@ -51,7 +51,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
       <div className="space-y-8">
         <ProductInfo 
           product={product} 
-          onProductUpdate={onProductUpdate}
+          sellerProfile={sellerProfile}
           deliveryMethod={deliveryMethod}
           onDeliveryMethodChange={onDeliveryMethodChange}
         />
