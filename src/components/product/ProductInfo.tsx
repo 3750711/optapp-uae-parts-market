@@ -40,10 +40,64 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
 
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
+  // Function to get product images
+  const getProductImages = async (): Promise<string[]> => {
+    try {
+      const { data: images, error } = await supabase
+        .from('product_images')
+        .select('url, is_primary')
+        .eq('product_id', product.id)
+        .order('is_primary', { ascending: false }); // Primary images first
+
+      if (error) {
+        console.error('Error fetching product images:', error);
+        return [];
+      }
+
+      return images?.map(img => img.url) || [];
+    } catch (error) {
+      console.error('Error getting product images:', error);
+      return [];
+    }
+  };
+
+  // Function to get product videos
+  const getProductVideos = async (): Promise<string[]> => {
+    try {
+      const { data: videos, error } = await supabase
+        .from('product_videos')
+        .select('url')
+        .eq('product_id', product.id);
+
+      if (error) {
+        console.error('Error fetching product videos:', error);
+        return [];
+      }
+
+      return videos?.map(video => video.url) || [];
+    } catch (error) {
+      console.error('Error getting product videos:', error);
+      return [];
+    }
+  };
+
   const handleOrderConfirm = async (orderData: { text_order?: string }) => {
     setIsSubmittingOrder(true);
     try {
-      console.log('Creating order with RPC function:', {
+      console.log('Starting order creation process for product:', product.id);
+      
+      // Get product images and videos
+      const [productImages, productVideos] = await Promise.all([
+        getProductImages(),
+        getProductVideos()
+      ]);
+
+      console.log('Retrieved product media:', {
+        images: productImages.length,
+        videos: productVideos.length
+      });
+
+      const orderParams = {
         p_title: product.title,
         p_price: product.price,
         p_place_number: product.place_number || 1,
@@ -53,54 +107,32 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         p_buyer_id: user?.id,
         p_brand: product.brand || '',
         p_model: product.model || '',
-        p_status: 'created',
-        p_order_created_type: 'product_order',
+        p_status: 'created' as const,
+        p_order_created_type: 'product_order' as const,
         p_telegram_url_order: null,
-        p_images: [],
+        p_images: productImages, // Pass actual product images
         p_product_id: product.id,
         p_delivery_method: deliveryMethod,
-        p_text_order: orderData.text_order,
-        p_delivery_price_confirm: null,
+        p_text_order: orderData.text_order || null,
+        p_delivery_price_confirm: product.delivery_price || null, // Pass actual delivery price
         p_quantity: 1,
-        p_description: product.description,
-        p_buyer_opt_id: profile?.opt_id,
-        p_lot_number_order: product.lot_number,
-        p_telegram_url_buyer: profile?.telegram,
-        p_video_url: []
-      });
+        p_description: product.description || null,
+        p_buyer_opt_id: profile?.opt_id || null,
+        p_lot_number_order: product.lot_number || null,
+        p_telegram_url_buyer: profile?.telegram || null,
+        p_video_url: productVideos // Pass actual product videos
+      };
+
+      console.log('Creating order with parameters:', orderParams);
 
       const { data: orderId, error } = await supabase
-        .rpc('create_user_order', {
-          p_title: product.title,
-          p_price: product.price,
-          p_place_number: product.place_number || 1,
-          p_seller_id: product.seller_id,
-          p_order_seller_name: product.seller_name,
-          p_seller_opt_id: null,
-          p_buyer_id: user?.id,
-          p_brand: product.brand || '',
-          p_model: product.model || '',
-          p_status: 'created' as const,
-          p_order_created_type: 'product_order' as const,
-          p_telegram_url_order: null,
-          p_images: [],
-          p_product_id: product.id,
-          p_delivery_method: deliveryMethod,
-          p_text_order: orderData.text_order || null,
-          p_delivery_price_confirm: null,
-          p_quantity: 1,
-          p_description: product.description || null,
-          p_buyer_opt_id: profile?.opt_id || null,
-          p_lot_number_order: product.lot_number || null,
-          p_telegram_url_buyer: profile?.telegram || null,
-          p_video_url: []
-        });
+        .rpc('create_user_order', orderParams);
 
       if (error) throw error;
 
       console.log('Order created successfully with ID:', orderId);
 
-      // Инвалидируем кэш товара после создания заказа
+      // Invalidate caches after successful order creation
       invalidateAllCaches(product.id);
 
       toast({
