@@ -90,7 +90,7 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
       let maxOther = 0;
       if (hasOffer && isLeading) {
         // User is leading - show second highest offer (max price from others)
-        maxOther = maxPrice > userPrice ? maxPrice : 0; // This shouldn't happen if user is leading
+        maxOther = maxPrice;
       } else {
         // User is not leading or has no offer - show highest offer from all users
         maxOther = maxPrice;
@@ -111,34 +111,53 @@ export const MakeOfferButtonOptimized: React.FC<MakeOfferButtonOptimizedProps> =
         hasUserOffer: hasOffer,
         userOfferPrice: userPrice
       };
-    } else if (userOffer || competitiveData) {
-      const isLeading = competitiveData?.current_user_is_max === true;
-      const userPrice = Number(userOffer?.offered_price) || 0;
-      const maxPrice = Number(competitiveData?.max_offer_price) || 0;
-      const hasOffer = !!userOffer;
+    } else if (competitiveData) {
+      // Always use competitive data if available (it has the most up-to-date info)
+      const isLeading = competitiveData.current_user_is_max === true;
+      const userPrice = Number(competitiveData.current_user_offer_price) || 0;
+      const maxPrice = Number(competitiveData.max_offer_price) || 0;
+      const hasOffer = userPrice > 0;
       
       // Calculate maxOtherOffer correctly
       let maxOther = 0;
       if (hasOffer && isLeading) {
-        // User is leading - show max offer from competitive data (should be second highest)
+        // User is leading - show max offer from competitive data (second highest)
         maxOther = maxPrice;
       } else {
         // User is not leading or has no offer - show highest offer
         maxOther = maxPrice;
       }
       
-      console.log('🏷️ Individual offer logic:', {
+      console.log('🏷️ Competitive data logic:', {
         isLeading,
         userPrice,
         maxPrice,
         hasOffer,
         maxOther,
-        productId: product.id
+        productId: product.id,
+        competitiveData
       });
       
       return {
         isLeadingBid: isLeading,
         maxOtherOffer: maxOther,
+        hasUserOffer: hasOffer,
+        userOfferPrice: userPrice
+      };
+    } else if (userOffer) {
+      // Fallback to userOffer only if no competitive data
+      const userPrice = Number(userOffer.offered_price) || 0;
+      const hasOffer = !!userOffer;
+      
+      console.log('🏷️ UserOffer fallback logic:', {
+        userPrice,
+        hasOffer,
+        productId: product.id
+      });
+      
+      return {
+        isLeadingBid: false, // Can't determine without competitive data
+        maxOtherOffer: 0,
         hasUserOffer: hasOffer,
         userOfferPrice: userPrice
       };
