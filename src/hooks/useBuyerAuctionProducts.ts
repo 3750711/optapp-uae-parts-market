@@ -1,3 +1,6 @@
 
-// This file exports simplified buyer auction hooks
-export { useRealtimeBuyerAuctions as useBuyerAuctionProducts, useBuyerOfferCounts } from './useRealtimeBuyerAuctions';
+// This file exports optimized buyer auction hooks
+export { 
+  useOptimizedRealtimeBuyerAuctions as useBuyerAuctionProducts, 
+  useOptimizedBuyerOfferCounts as useBuyerOfferCounts 
+} from './useOptimizedRealtimeBuyerAuctions';

@@ -1,11 +1,11 @@
 
-// Улучшенная функция debounce с отменой запросов
+// Enhanced debounce function with cancellation support
 export function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
   let timeout: ReturnType<typeof setTimeout> | null = null;
   let abortController: AbortController | null = null;
 
   const debounced = (...args: Parameters<F>): void => {
-    // Отменяем предыдущий запрос если он еще выполняется
+    // Cancel previous request if it exists
     if (abortController) {
       abortController.abort();
     }
@@ -16,10 +16,10 @@ export function debounce<F extends (...args: any[]) => any>(func: F, waitFor: nu
     }
 
     timeout = setTimeout(() => {
-      // Создаем новый AbortController для текущего запроса
+      // Create new AbortController for current request
       abortController = new AbortController();
       
-      // Если функция возвращает Promise с поддержкой отмены
+      // Execute the function
       const result = func(...args);
       if (result && typeof result.then === 'function') {
         result.catch((error: any) => {
@@ -31,7 +31,7 @@ export function debounce<F extends (...args: any[]) => any>(func: F, waitFor: nu
     }, waitFor);
   };
 
-  // Добавляем метод для принудительной отмены
+  // Add cancel method
   debounced.cancel = () => {
     if (timeout !== null) {
       clearTimeout(timeout);
@@ -46,7 +46,7 @@ export function debounce<F extends (...args: any[]) => any>(func: F, waitFor: nu
   return debounced;
 }
 
-// Улучшенная функция throttle с поддержкой отмены
+// Enhanced throttle function with cancellation support
 export function throttle<F extends (...args: any[]) => any>(func: F, limit: number) {
   let inThrottle: boolean = false;
   let lastFunc: ReturnType<typeof setTimeout> | null = null;
