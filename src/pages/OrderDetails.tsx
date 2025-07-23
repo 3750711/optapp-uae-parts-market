@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -14,25 +13,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 const OrderDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const { user, profile, isLoading: isAuthLoading } = useAuth();
+  const { user, profile } = useAuth();
   const [showConfirmImages, setShowConfirmImages] = React.useState(false);
 
-  // Log AuthContext state for debugging
-  React.useEffect(() => {
-    console.log('OrderDetails AuthContext state:', {
-      user: !!user,
-      profile: !!profile,
-      profileUserType: profile?.user_type,
-      isAuthLoading,
-      userId: user?.id
-    });
-  }, [user, profile, isAuthLoading]);
-
-  // Main order query - independent of profile loading
-  const { data: order, isLoading: isOrderLoading, error: orderError } = useQuery({
+  const { data: order, isLoading, error } = useQuery({
     queryKey: ['order', id],
     queryFn: async () => {
-      console.log('Fetching order data for ID:', id);
       if (!id) throw new Error('Order ID is required');
       
       const { data, error } = await supabase
@@ -45,12 +31,7 @@ const OrderDetails = () => {
         .eq('id', id)
         .single();
 
-      if (error) {
-        console.error('Order fetch error:', error);
-        throw error;
-      }
-      
-      console.log('Order data fetched:', data);
+      if (error) throw error;
       return data;
     },
     enabled: !!id,
@@ -59,7 +40,6 @@ const OrderDetails = () => {
     gcTime: 1000 * 60 * 5
   });
 
-  // Images query - independent of profile
   const { data: images = [] } = useQuery({
     queryKey: ['order-images', id],
     queryFn: async () => {
@@ -70,10 +50,7 @@ const OrderDetails = () => {
         .select('url')
         .eq('order_id', id);
 
-      if (error) {
-        console.error('Images fetch error:', error);
-        throw error;
-      }
+      if (error) throw error;
       return data?.map(img => img.url) || [];
     },
     enabled: !!id,
@@ -81,7 +58,6 @@ const OrderDetails = () => {
     staleTime: 0
   });
 
-  // Videos query - independent of profile
   const { data: videos = [] } = useQuery({
     queryKey: ['order-videos', id],
     queryFn: async () => {
@@ -92,10 +68,7 @@ const OrderDetails = () => {
         .select('url')
         .eq('order_id', id);
 
-      if (error) {
-        console.error('Videos fetch error:', error);
-        throw error;
-      }
+      if (error) throw error;
       return data?.map(video => video.url) || [];
     },
     enabled: !!id,
@@ -103,57 +76,38 @@ const OrderDetails = () => {
     staleTime: 0
   });
 
-  // Confirm images query - dependent on profile being loaded AND user being admin
   const { data: confirmImages = [] } = useQuery({
     queryKey: ['confirm-images', id],
     queryFn: async () => {
-      console.log('Fetching confirm images for admin user');
-      if (!id) return [];
+      if (!profile || profile.user_type !== 'admin') return [];
       
       const { data, error } = await supabase
         .from('confirm_images')
         .select('url')
         .eq('order_id', id);
 
-      if (error) {
-        console.error('Confirm images fetch error:', error);
-        throw error;
-      }
+      if (error) throw error;
       return data?.map(img => img.url) || [];
     },
-    enabled: !!id && !isAuthLoading && profile?.user_type === 'admin'
+    enabled: !!id && profile?.user_type === 'admin',
+    refetchOnWindowFocus: true,
+    staleTime: 0
   });
 
-  if (!id) {
-    return (
-      <Layout>
-        <div className="container mx-auto py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-destructive">Ошибка</h1>
-            <p className="text-gray-600 mt-2">ID заказа не указан</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // Show loading while auth is loading or main order is loading
-  if (isAuthLoading || isOrderLoading) {
+  if (isLoading) {
     return (
       <Layout>
         <div className="container mx-auto py-8 flex justify-center">
           <div className="flex items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="text-lg text-muted-foreground">
-              {isAuthLoading ? 'Проверка прав доступа...' : 'Загрузка заказа...'}
-            </span>
+            <span className="text-lg text-muted-foreground">Загрузка заказа...</span>
           </div>
         </div>
       </Layout>
     );
   }
 
-  if (orderError || !order) {
+  if (error || !order) {
     return (
       <Layout>
         <div className="container mx-auto py-8">
@@ -165,11 +119,6 @@ const OrderDetails = () => {
               <p className="text-muted-foreground">
                 Заказ с указанным ID не существует или у вас нет прав для его просмотра.
               </p>
-              {orderError && (
-                <p className="text-xs text-red-500 mt-2">
-                  Ошибка: {orderError.message}
-                </p>
-              )}
             </CardContent>
           </Card>
         </div>

@@ -19,69 +19,22 @@ export const useOrderUpdate = ({ orderId, onSuccess }: UseOrderUpdateProps) => {
 
     setIsUpdating(true);
     try {
-      console.log('🔄 Updating order media:', orderId, { 
-        images: images?.length, 
-        videos: videos?.length 
+      console.log('🔄 Updating order media:', orderId, { images: images?.length, videos: videos?.length });
+
+      const { data, error } = await supabase.rpc('update_order_media', {
+        p_order_id: orderId,
+        p_images: images || null,
+        p_video_url: videos || null
       });
 
-      // Обновляем изображения через функцию update_order_media
-      if (images) {
-        const { error: imagesError } = await supabase.rpc('update_order_media', {
-          p_order_id: orderId,
-          p_images: images,
-          p_video_url: null // Не трогаем video_url
+      if (error) {
+        console.error('❌ Error updating order media:', error);
+        toast({
+          title: "Ошибка сохранения",
+          description: "Не удалось сохранить медиафайлы в заказе",
+          variant: "destructive",
         });
-
-        if (imagesError) {
-          console.error('❌ Error updating order images:', imagesError);
-          toast({
-            title: "Ошибка сохранения",
-            description: "Не удалось сохранить изображения в заказе",
-            variant: "destructive",
-          });
-          return false;
-        }
-      }
-
-      // Обновляем видео через таблицу order_videos
-      if (videos) {
-        // Сначала удаляем все существующие видео
-        const { error: deleteError } = await supabase
-          .from('order_videos')
-          .delete()
-          .eq('order_id', orderId);
-
-        if (deleteError) {
-          console.error('❌ Error deleting existing videos:', deleteError);
-          toast({
-            title: "Ошибка сохранения",
-            description: "Не удалось обновить видео в заказе",
-            variant: "destructive",
-          });
-          return false;
-        }
-
-        // Затем добавляем новые видео
-        if (videos.length > 0) {
-          const videosToInsert = videos.map(url => ({
-            order_id: orderId,
-            url: url
-          }));
-
-          const { error: insertError } = await supabase
-            .from('order_videos')
-            .insert(videosToInsert);
-
-          if (insertError) {
-            console.error('❌ Error inserting new videos:', insertError);
-            toast({
-              title: "Ошибка сохранения",
-              description: "Не удалось сохранить видео в заказе",
-              variant: "destructive",
-            });
-            return false;
-          }
-        }
+        return false;
       }
 
       console.log('✅ Order media updated successfully');
