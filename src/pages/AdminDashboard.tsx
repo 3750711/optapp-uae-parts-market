@@ -3,7 +3,7 @@ import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import DashboardHeader from '@/components/admin/dashboard/DashboardHeader';
 import AdminMetricsSection from '@/components/admin/dashboard/AdminMetricsSection';
-import { AdminActionsSection } from '@/components/admin/dashboard/AdminActionsSection';
+import AdminActionsSection from '@/components/admin/dashboard/AdminActionsSection';
 
 const AdminDashboard = () => {
   return (

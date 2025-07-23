@@ -23,3 +23,5 @@ export const AdminActionsSection = () => {
     </div>
   );
 };
+
+export default AdminActionsSection;
