@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { useBatchOffersInvalidation } from '@/hooks/use-price-offers-batch';
+import { usePerformanceMonitor } from '@/hooks/use-performance-monitor';
 
 export interface AuctionProduct extends Product {
   user_offer_price?: number;
@@ -16,18 +18,18 @@ export interface AuctionProduct extends Product {
   has_pending_offer?: boolean;
 }
 
-// Кэш активных продуктов пользователя для быстрой проверки релевантности
+// Optimized cache for user's active products
 const userActiveProductsCache = new Map<string, Set<string>>();
 
-// Упрощенная и надежная функция проверки релевантности
-const isRelevantUpdate = async (payload: any, userId: string) => {
-  // Полное логирование payload для диагностики
-  console.log('🔍 Full payload debug:', {
+// Enhanced relevance check with performance monitoring
+const isRelevantUpdate = async (payload: any, userId: string, recordRealTimeUpdate: (duration: number) => void) => {
+  const startTime = performance.now();
+  
+  console.log('🔍 Enhanced relevance check:', {
     eventType: payload.eventType,
     table: payload.table,
-    schema: payload.schema,
-    new: payload.new,
-    old: payload.old,
+    hasNew: !!payload.new,
+    hasOld: !!payload.old,
     userId
   });
 
@@ -36,23 +38,26 @@ const isRelevantUpdate = async (payload: any, userId: string) => {
   
   if (!productId) {
     console.warn('⚠️ No product_id in payload');
+    recordRealTimeUpdate(performance.now() - startTime);
     return false;
   }
 
-  // Проверка 1: Прямое обновление предложения пользователя
+  // Direct user offer update - highest priority
   if (buyerId === userId) {
     console.log('✅ Relevant: Direct user offer update', { productId, userId, buyerId });
+    recordRealTimeUpdate(performance.now() - startTime);
     return true;
   }
 
-  // Проверка 2: Быстрая проверка через кэш (с fallback)
+  // Fast cache check
   const cachedProducts = userActiveProductsCache.get(userId);
   if (cachedProducts?.has(productId)) {
-    console.log('✅ Relevant: User has cached active offer on this product', { productId, userId });
+    console.log('✅ Relevant: User has cached active offer', { productId, userId });
+    recordRealTimeUpdate(performance.now() - startTime);
     return true;
   }
 
-  // Проверка 3: Прямая проверка в БД (упрощенная, без зависимости от кэша)
+  // Database check with error handling
   try {
     const { data, error } = await supabase
       .from('price_offers')
@@ -64,29 +69,37 @@ const isRelevantUpdate = async (payload: any, userId: string) => {
 
     if (error) {
       console.error('❌ Error in DB relevance check:', error);
-      // В случае ошибки БД, считаем релевантным для безопасности
-      return true;
+      recordRealTimeUpdate(performance.now() - startTime);
+      return true; // Safe fallback
     }
 
     const isRelevant = data && data.length > 0;
     
-    // Обновляем кэш только в случае положительного результата
+    // Update cache for positive results
     if (isRelevant) {
       const userCache = userActiveProductsCache.get(userId) || new Set();
       userCache.add(productId);
       userActiveProductsCache.set(userId, userCache);
     }
 
-    console.log('📊 DB relevance result:', { productId, userId, isRelevant, hasData: !!data?.length });
+    console.log('📊 DB relevance result:', { 
+      productId, 
+      userId, 
+      isRelevant, 
+      hasData: !!data?.length,
+      checkTime: performance.now() - startTime
+    });
+    
+    recordRealTimeUpdate(performance.now() - startTime);
     return isRelevant;
   } catch (error) {
     console.error('❌ Exception in relevance check:', error);
-    // В случае исключения, считаем релевантным для безопасности
-    return true;
+    recordRealTimeUpdate(performance.now() - startTime);
+    return true; // Safe fallback
   }
 };
 
-// Функция для обновления кэша активных продуктов
+// Update cache helper
 const updateActiveProductsCache = (userId: string, products: AuctionProduct[]) => {
   const activeProductIds = products
     .filter(p => p.user_offer_status === 'pending')
@@ -99,42 +112,80 @@ const updateActiveProductsCache = (userId: string, products: AuctionProduct[]) =
 export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { invalidateBatchOffers } = useBatchOffersInvalidation();
+  const { recordRealTimeUpdate } = usePerformanceMonitor();
+  
   const [isConnected, setIsConnected] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
   const [realtimeEvents, setRealtimeEvents] = useState<string[]>([]);
   const [freshDataIndicator, setFreshDataIndicator] = useState(false);
+  
   const channelRef = useRef<RealtimeChannel | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttemptsRef = useRef<number>(0);
-  const MAX_RECONNECT_ATTEMPTS = 5;
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const pendingUpdatesRef = useRef<Set<string>>(new Set());
+  
+  const MAX_RECONNECT_ATTEMPTS = 3;
+  const DEBOUNCE_MS = 150; // Optimized debounce time
 
-  // Стабильная функция invalidации без циклических зависимостей
-  const invalidateQueries = useCallback((reason: string) => {
-    console.log(`🔄 Invalidating queries: ${reason}`);
+  // Enhanced batch invalidation with performance monitoring
+  const processPendingUpdates = useCallback(() => {
+    const startTime = performance.now();
+    const productIds = Array.from(pendingUpdatesRef.current);
+    
+    if (productIds.length === 0) return;
+
+    console.log('🚀 Processing batch updates for products:', productIds);
+    
+    // Batch invalidate offers
+    invalidateBatchOffers(productIds);
+    
+    // Update UI state
     setLastUpdateTime(new Date());
     setFreshDataIndicator(true);
-    
-    // Убираем индикатор свежих данных через 3 секунды
     setTimeout(() => setFreshDataIndicator(false), 3000);
     
+    // Invalidate auction queries
     queryClient.invalidateQueries({
       queryKey: ['buyer-auction-products'],
       exact: false
     });
-  }, [queryClient]);
+    
+    // Clear pending updates
+    pendingUpdatesRef.current.clear();
+    
+    // Record performance metrics
+    recordRealTimeUpdate(performance.now() - startTime);
+    
+    console.log('✅ Batch update completed in', performance.now() - startTime, 'ms');
+  }, [invalidateBatchOffers, queryClient, recordRealTimeUpdate]);
 
-  // Оптимизированная функция debounced invalidation
-  const debouncedInvalidation = useCallback((() => {
-    let timeoutId: NodeJS.Timeout;
-    return (reason: string, delay: number = 100) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        invalidateQueries(reason);
-      }, delay);
-    };
-  })(), [invalidateQueries]);
+  // Enhanced reconnection logic with exponential backoff
+  const handleReconnect = useCallback(() => {
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.error('❌ Max reconnection attempts reached');
+      return;
+    }
 
-  // Основной запрос данных аукциона
+    reconnectAttemptsRef.current += 1;
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 8000);
+    
+    console.log(`🔄 Reconnecting (${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms`);
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    }, delay);
+  }, []);
+
+  // Main auction data query
   const queryResult = useQuery({
     queryKey: ['buyer-auction-products', user?.id, statusFilter],
     queryFn: async (): Promise<AuctionProduct[]> => {
@@ -301,52 +352,30 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
 
       console.log('✅ Processed auction products:', products.length);
       
-      // Обновляем кэш активных продуктов
+      // Update cache
       updateActiveProductsCache(user.id, products);
       
       return products;
     },
     enabled: !!user,
-    staleTime: 2000,
-    gcTime: 10000,
+    staleTime: 1000,
+    gcTime: 5000,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchInterval: isConnected ? false : 10000
   });
 
-  // Функция переподключения
-  const handleReconnect = useCallback(() => {
-    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-      console.error('❌ Max reconnection attempts reached');
-      return;
-    }
-
-    reconnectAttemptsRef.current += 1;
-    console.log(`🔄 Attempting to reconnect (${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`);
-
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    }, 2000 * reconnectAttemptsRef.current);
-  }, []);
-
-  // Оптимизированная Real-time подписка
+  // Enhanced Real-time subscription with batch processing
   useEffect(() => {
     if (!user) {
       setIsConnected(false);
       return;
     }
 
-    console.log('🔄 Setting up optimized Realtime subscription for user:', user.id);
+    console.log('🔄 Setting up enhanced Real-time subscription for user:', user.id);
 
     const channel = supabase
-      .channel(`auction_updates_${user.id}`)
+      .channel(`enhanced_buyer_auctions_${user.id}`)
       .on(
         'postgres_changes',
         {
@@ -355,95 +384,89 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
           table: 'price_offers'
         },
         async (payload) => {
-          const startTime = Date.now();
           const productId = payload.new?.product_id || payload.old?.product_id;
           const buyerId = payload.new?.buyer_id || payload.old?.buyer_id;
           
-          console.log('📡 Realtime event received:', {
+          console.log('📡 Enhanced Real-time event:', {
             event: payload.eventType,
             productId,
             buyerId,
-            timestamp: new Date().toISOString(),
-            hasNewData: !!payload.new,
-            hasOldData: !!payload.old
+            timestamp: new Date().toISOString()
           });
           
-          // Добавляем расширенное событие в дебаг список
-          const eventDetails = `${payload.eventType}: ${productId} (buyer: ${buyerId?.slice(0,8)}...) at ${new Date().toLocaleTimeString()}`;
+          // Add to events log
+          const eventDetails = `${payload.eventType}: ${productId?.slice(0,8)}... (${buyerId?.slice(0,8)}...) at ${new Date().toLocaleTimeString()}`;
           setRealtimeEvents(prev => [eventDetails, ...prev.slice(0, 9)]);
           
-          // Проверяем релевантность асинхронно
-          const isRelevant = await isRelevantUpdate(payload, user.id);
-          const processingTime = Date.now() - startTime;
+          // Check relevance with performance monitoring
+          const isRelevant = await isRelevantUpdate(payload, user.id, recordRealTimeUpdate);
           
           if (isRelevant) {
-            // Определяем тип и приоритет обновления
-            const isUserAction = buyerId === user.id;
-            const isCompetitorAction = !isUserAction && (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE');
-            const isCriticalUpdate = isCompetitorAction && payload.eventType === 'INSERT';
+            // Add to pending updates for batch processing
+            pendingUpdatesRef.current.add(productId);
             
-            // Оптимизированные задержки
-            const delay = isCriticalUpdate ? 10 : isUserAction ? 20 : isCompetitorAction ? 30 : 100;
+            // Clear existing debounce timer
+            if (debounceTimerRef.current) {
+              clearTimeout(debounceTimerRef.current);
+            }
             
-            console.log(`⚡ Processing relevant update:`, {
-              productId,
-              isUserAction,
-              isCompetitorAction,
-              isCriticalUpdate,
-              delay,
-              processingTime,
-              eventType: payload.eventType
-            });
+            // Set new debounce timer
+            debounceTimerRef.current = setTimeout(() => {
+              processPendingUpdates();
+            }, DEBOUNCE_MS);
             
-            debouncedInvalidation(`${payload.eventType} on product ${productId}`, delay);
+            console.log(`⚡ Queued for batch processing: ${productId}`);
           } else {
-            console.log(`⏭️ Skipped irrelevant update (${processingTime}ms):`, {
-              productId,
-              buyerId,
-              eventType: payload.eventType
-            });
+            console.log(`⏭️ Skipped irrelevant update: ${productId}`);
           }
         }
       )
       .subscribe((status) => {
-        console.log('📡 Realtime connection status:', status);
+        console.log('📡 Enhanced Real-time status:', status);
         setIsConnected(status === 'SUBSCRIBED');
         
         if (status === 'SUBSCRIBED') {
           reconnectAttemptsRef.current = 0;
+          console.log('✅ Successfully connected to Real-time');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Global channel error, attempting to reconnect...');
+          console.error('❌ Channel error, attempting reconnect...');
           handleReconnect();
         } else if (status === 'CLOSED') {
-          console.warn('⚠️ Realtime connection closed, triggering refresh');
-          setTimeout(() => {
-            queryClient.invalidateQueries({
-              queryKey: ['buyer-auction-products'],
-              exact: false
-            });
-          }, 1000);
+          console.warn('⚠️ Connection closed, fallback to polling');
+          setIsConnected(false);
         }
       });
 
     channelRef.current = channel;
 
     return () => {
-      console.log('🔌 Cleaning up Realtime subscription');
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+      console.log('🔌 Cleaning up enhanced Real-time subscription');
+      
+      // Process any pending updates before cleanup
+      if (pendingUpdatesRef.current.size > 0) {
+        processPendingUpdates();
+      }
+      
+      // Clear timers
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      
+      // Remove channel
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [user?.id, queryClient, debouncedInvalidation, handleReconnect]);
+  }, [user?.id, handleReconnect, processPendingUpdates, recordRealTimeUpdate]);
 
-  // Принудительное обновление
+  // Force refresh function
   const forceRefresh = useCallback(async () => {
     console.log('🔄 Force refreshing auction data...');
     if (user) {
-      // Очищаем кэш для пользователя
       userActiveProductsCache.delete(user.id);
     }
     await queryClient.invalidateQueries({
@@ -463,7 +486,7 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
   };
 };
 
-// Hook для подсчета предложений (без изменений)
+// Optimized buyer offer counts hook
 export const useBuyerOfferCounts = () => {
   const { user } = useAuth();
 
@@ -497,7 +520,7 @@ export const useBuyerOfferCounts = () => {
       };
     },
     enabled: !!user,
-    staleTime: 2000,
-    gcTime: 10000,
+    staleTime: 1000,
+    gcTime: 5000,
   });
 };
