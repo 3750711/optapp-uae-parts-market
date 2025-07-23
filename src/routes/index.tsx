@@ -224,6 +224,11 @@ const AppRoutes: React.FC = () => {
                 <SellerOrders />
               </ProtectedRoute>
             } />
+            <Route path="/seller/orders/:id" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <SellerOrderDetails />
+              </ProtectedRoute>
+            } />
             <Route path="/seller/order-details/:id" element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <SellerOrderDetails />
