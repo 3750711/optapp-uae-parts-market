@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -7,9 +8,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Save, Loader, Eye } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-// Import admin components and hooks
-import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
-import OptimizedSellerOrderFormFields from "@/components/admin/order/OptimizedSellerOrderFormFields";
+// Import seller-specific components and hooks
+import { useSellerOrderFormLogic } from "@/hooks/useSellerOrderFormLogic";
+import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
 import SimpleMediaSection from "@/components/admin/order/SimpleMediaSection";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { OrderPreviewDialog } from "@/components/admin/order/OrderPreviewDialog";
@@ -30,8 +31,6 @@ const SellerCreateOrder = () => {
     images,
     videos,
     buyerProfiles,
-    sellerProfiles,
-    selectedSeller,
     isLoading,
     createdOrder,
     setImages,
@@ -42,8 +41,9 @@ const SellerCreateOrder = () => {
     handleSubmit: originalHandleSubmit,
     resetForm,
     creationStage,
-    creationProgress
-  } = useAdminOrderFormLogic();
+    creationProgress,
+    isInitializing
+  } = useSellerOrderFormLogic();
 
   // Add submission guard
   const { guardedSubmit, canSubmit } = useSubmissionGuard({
@@ -56,13 +56,6 @@ const SellerCreateOrder = () => {
       });
     }
   });
-
-  // Auto-set current user as seller when component mounts
-  React.useEffect(() => {
-    if (user && user.id && !formData.sellerId) {
-      handleInputChange('sellerId', user.id);
-    }
-  }, [user, formData.sellerId, handleInputChange]);
 
   const onImagesUpload = (urls: string[]) => {
     handleImageUpload(urls);
@@ -86,7 +79,7 @@ const SellerCreateOrder = () => {
 
   // Show preview when "Create Order" is clicked
   const handleCreateOrderClick = () => {
-    console.log('🔍 Checking form validation:', {
+    console.log('🔍 Checking form validation for seller:', {
       title: formData.title,
       price: formData.price,
       sellerId: formData.sellerId,
@@ -97,7 +90,7 @@ const SellerCreateOrder = () => {
     if (!canShowPreview()) {
       toast({
         title: "Заполните обязательные поля",
-        description: "Необходимо заполнить название, цену, продавца и OPT_ID покупателя",
+        description: "Необходимо заполнить название, цену и OPT_ID покупателя",
         variant: "destructive",
       });
       return;
@@ -119,17 +112,15 @@ const SellerCreateOrder = () => {
     setShowPreview(false);
   };
 
-  // Validate form for preview - исправляем проверку полей
+  // Validate form for preview - check seller form requirements
   const canShowPreview = () => {
     const isValid = formData.title && 
                    formData.price && 
-                   formData.sellerId && 
-                   formData.buyerOptId; // Используем buyerOptId вместо buyerId
+                   formData.buyerOptId; // Only need buyer OPT_ID for sellers
     
-    console.log('🔍 Form validation result:', {
+    console.log('🔍 Seller form validation result:', {
       title: !!formData.title,
       price: !!formData.price,
-      sellerId: !!formData.sellerId,
       buyerOptId: !!formData.buyerOptId,
       isValid: isValid
     });
@@ -140,6 +131,15 @@ const SellerCreateOrder = () => {
   // Get buyer profile for preview
   const getBuyerProfile = () => {
     return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
+  };
+
+  // Get seller profile for preview (current user)
+  const getSellerProfile = () => {
+    return {
+      id: user?.id || '',
+      full_name: user?.user_metadata?.full_name || 'Текущий пользователь',
+      opt_id: user?.user_metadata?.opt_id || ''
+    };
   };
 
   // Get stage message based on current creation stage
@@ -164,7 +164,31 @@ const SellerCreateOrder = () => {
     }
   };
 
-  const isFormDisabled = isLoading || !canSubmit;
+  const isFormDisabled = isLoading || !canSubmit || isInitializing;
+
+  // Show loading state while initializing
+  if (isInitializing) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Создание заказа</CardTitle>
+                <CardDescription>Загрузка данных...</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-center py-8">
+                  <Loader className="h-8 w-8 animate-spin mr-2" />
+                  <span>Загрузка покупателей и брендов...</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   if (createdOrder) {
     return (
@@ -204,7 +228,7 @@ const SellerCreateOrder = () => {
             </CardHeader>
             
             <CardContent className="space-y-8">
-              <OptimizedSellerOrderFormFields
+              <SellerOrderFormFields
                 formData={formData}
                 handleInputChange={handleInputChange}
                 disabled={isFormDisabled}
@@ -267,7 +291,7 @@ const SellerCreateOrder = () => {
             formData={formData}
             images={images}
             videos={videos}
-            selectedSeller={selectedSeller}
+            selectedSeller={getSellerProfile()}
             buyerProfile={getBuyerProfile()}
             onConfirm={handleConfirmOrder}
             onBack={handleBackToEdit}
