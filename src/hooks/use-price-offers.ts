@@ -157,9 +157,29 @@ export const useUpdatePriceOffer = () => {
       return result;
     },
     onSuccess: (data) => {
+      console.log('🔄 Price offer updated successfully, invalidating caches:', data);
+      
+      // Invalidate buyer-related caches
       queryClient.invalidateQueries({ queryKey: ['user-offer', data.product_id] });
       queryClient.invalidateQueries({ queryKey: ['competitive-offers', data.product_id] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-price-offers'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-offers'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-offer-counts'] });
+      
+      // Invalidate seller-related caches
+      queryClient.invalidateQueries({ queryKey: ['seller-price-offers'] });
+      queryClient.invalidateQueries({ queryKey: ['product-offers', data.product_id] });
+      
+      // Invalidate admin-related caches
+      queryClient.invalidateQueries({ queryKey: ['admin-price-offers'] });
+      
+      // Invalidate batch offers
       invalidateBatchOffers([data.product_id]);
+      
+      // Force refetch of critical queries for immediate UI updates
+      queryClient.refetchQueries({ queryKey: ['seller-price-offers'] });
+      queryClient.refetchQueries({ queryKey: ['admin-price-offers'] });
+      
       toast.success('Предложение обновлено!');
     },
     onError: (error) => {

@@ -1,4 +1,3 @@
-
 import { QueryClient } from '@tanstack/react-query';
 import { CACHE_KEYS, CACHE_FILTERS, createCacheKey } from './cacheKeys';
 import { debounce } from './debounce';
@@ -87,9 +86,30 @@ export class PusherCacheOptimizer {
       refetchType: 'none'
     });
     
+    this.queryClient.invalidateQueries({
+      queryKey: ['product-offers', productId],
+      refetchType: 'none'
+    });
+    
     // Update batch offer caches
     this.queryClient.invalidateQueries({
       queryKey: [CACHE_KEYS.BATCH_OFFERS],
+      refetchType: 'none'
+    });
+    
+    // Update price offer related caches
+    this.queryClient.invalidateQueries({
+      queryKey: ['seller-price-offers'],
+      refetchType: 'none'
+    });
+    
+    this.queryClient.invalidateQueries({
+      queryKey: ['admin-price-offers'],
+      refetchType: 'none'
+    });
+    
+    this.queryClient.invalidateQueries({
+      queryKey: ['buyer-price-offers'],
       refetchType: 'none'
     });
   }
@@ -103,6 +123,9 @@ export class PusherCacheOptimizer {
       this.queryClient.invalidateQueries({
         queryKey: ['competitive-offers', productId]
       });
+      this.queryClient.invalidateQueries({
+        queryKey: ['product-offers', productId]
+      });
     }
     
     this.queryClient.invalidateQueries({
@@ -111,6 +134,18 @@ export class PusherCacheOptimizer {
     
     this.queryClient.invalidateQueries({
       queryKey: [CACHE_KEYS.BUYER_OFFER_COUNTS]
+    });
+    
+    this.queryClient.invalidateQueries({
+      queryKey: ['seller-price-offers']
+    });
+    
+    this.queryClient.invalidateQueries({
+      queryKey: ['admin-price-offers']
+    });
+    
+    this.queryClient.invalidateQueries({
+      queryKey: ['buyer-price-offers']
     });
   }
 
