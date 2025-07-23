@@ -1,101 +1,80 @@
 import React, { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle, Package2, Truck, ShoppingCart, Info } from "lucide-react";
-import ProductActions from "./ProductActions";
-import { useNavigate } from "react-router-dom";
+import { ShoppingCart, Heart, Share2, Phone, MessageCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import ProductEditForm from "./ProductEditForm";
-import OrderConfirmationDialog from "./OrderConfirmationDialog";
+import { useFavorites } from "@/hooks/useFavorites";
+import { toast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Database } from "@/integrations/supabase/types";
+import OrderConfirmationDialog from "@/components/product/OrderConfirmationDialog";
+import { CommunicationWarningDialog } from "@/components/product/seller/CommunicationWarningDialog";
 import { SimpleMakeOfferButton } from "@/components/price-offer/SimpleMakeOfferButton";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { useImageCacheManager } from "./images/ImageCacheManager";
 
 interface ProductInfoProps {
   product: Product;
-  onProductUpdate: () => void;
-  deliveryMethod: Database["public"]["Enums"]["delivery_method"];
-  onDeliveryMethodChange: (method: Database["public"]["Enums"]["delivery_method"]) => void;
+  sellerProfile: any;
+  deliveryMethod: any;
+  onDeliveryMethodChange: (method: any) => void;
 }
 
-const ProductInfo: React.FC<ProductInfoProps> = ({ 
-  product, 
-  onProductUpdate, 
-  deliveryMethod, 
-  onDeliveryMethodChange 
+const ProductInfo: React.FC<ProductInfoProps> = ({
+  product,
+  sellerProfile,
+  deliveryMethod,
+  onDeliveryMethodChange,
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [contactType, setContactType] = useState<'telegram' | 'whatsapp'>('telegram');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const { user, profile } = useAuth();
-  const { isAdmin } = useAdminAccess();
-  const { toast } = useToast();
+  const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
   const navigate = useNavigate();
   const { invalidateAllCaches } = useImageCacheManager();
   const isOwner = user?.id === product.seller_id;
 
-  const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
-
-  // Function to get product images
-  const getProductImages = async (): Promise<string[]> => {
-    try {
-      const { data: images, error } = await supabase
-        .from('product_images')
-        .select('url, is_primary')
-        .eq('product_id', product.id)
-        .order('is_primary', { ascending: false }); // Primary images first
-
-      if (error) {
-        console.error('Error fetching product images:', error);
-        return [];
-      }
-
-      return images?.map(img => img.url) || [];
-    } catch (error) {
-      console.error('Error getting product images:', error);
-      return [];
-    }
-  };
-
-  // Function to get product videos
-  const getProductVideos = async (): Promise<string[]> => {
-    try {
-      const { data: videos, error } = await supabase
-        .from('product_videos')
-        .select('url')
-        .eq('product_id', product.id);
-
-      if (error) {
-        console.error('Error fetching product videos:', error);
-        return [];
-      }
-
-      return videos?.map(video => video.url) || [];
-    } catch (error) {
-      console.error('Error getting product videos:', error);
-      return [];
-    }
+  // Function to get product videos with enhanced logging
+  const getProductVideos = () => {
+    const videos = product.product_videos?.map(video => video.url) || [];
+    console.log('🎬 Desktop - Getting product videos:', {
+      product_id: product.id,
+      product_videos_raw: product.product_videos,
+      videos_count: videos.length,
+      videos: videos
+    });
+    return videos;
   };
 
   const handleOrderConfirm = async (orderData: { text_order?: string }) => {
     setIsSubmittingOrder(true);
     try {
-      console.log('Starting order creation process for product:', product.id);
+      // Prepare product images - get URLs from product_images
+      const productImages = product.product_images?.map(img => img.url) || [];
+      console.log('📸 Desktop - Product images for order:', productImages);
       
-      // Get product images and videos
-      const [productImages, productVideos] = await Promise.all([
-        getProductImages(),
-        getProductVideos()
-      ]);
-
-      console.log('Retrieved product media:', {
-        images: productImages.length,
-        videos: productVideos.length
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Получаем видео из товара с улучшенным логированием
+      const productVideos = getProductVideos();
+      console.log('🎬 Desktop - Product videos for order:', {
+        product_id: product.id,
+        videos_count: productVideos.length,
+        videos: productVideos,
+        product_videos_exist: !!product.product_videos,
+        product_videos_length: product.product_videos?.length || 0
       });
+      
+      // Prepare delivery price - only for cargo methods and if delivery price exists
+      const shouldIncludeDeliveryPrice = 
+        (deliveryMethod === 'cargo_rf' || deliveryMethod === 'cargo_kz') && 
+        product.delivery_price && 
+        product.delivery_price > 0;
+      
+      const deliveryPriceConfirm = shouldIncludeDeliveryPrice ? product.delivery_price : null;
+      console.log('💰 Desktop - Delivery method:', deliveryMethod);
+      console.log('💰 Desktop - Product delivery price:', product.delivery_price);
+      console.log('💰 Desktop - Should include delivery price:', shouldIncludeDeliveryPrice);
+      console.log('💰 Desktop - Final delivery price for order:', deliveryPriceConfirm);
 
       const orderParams = {
         p_title: product.title,
@@ -107,32 +86,36 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         p_buyer_id: user?.id,
         p_brand: product.brand || '',
         p_model: product.model || '',
-        p_status: 'created' as const,
-        p_order_created_type: 'product_order' as const,
+        p_status: 'created',
+        p_order_created_type: 'product_order',
         p_telegram_url_order: null,
-        p_images: productImages, // Pass actual product images
+        p_images: productImages,
         p_product_id: product.id,
         p_delivery_method: deliveryMethod,
-        p_text_order: orderData.text_order || null,
-        p_delivery_price_confirm: product.delivery_price || null, // Pass actual delivery price
+        p_text_order: orderData.text_order,
+        p_delivery_price_confirm: deliveryPriceConfirm,
         p_quantity: 1,
-        p_description: product.description || null,
-        p_buyer_opt_id: profile?.opt_id || null,
-        p_lot_number_order: product.lot_number || null,
-        p_telegram_url_buyer: profile?.telegram || null,
-        p_video_url: productVideos // Pass actual product videos
+        p_description: product.description,
+        p_buyer_opt_id: profile?.opt_id,
+        p_lot_number_order: product.lot_number,
+        p_telegram_url_buyer: profile?.telegram,
+        p_video_url: productVideos // ИСПРАВЛЕНО: передаем видео из товара
       };
 
-      console.log('Creating order with parameters:', orderParams);
+      console.log('🚀 Desktop - Creating order with RPC function:', {
+        ...orderParams,
+        p_video_url_count: orderParams.p_video_url.length,
+        p_video_url_details: orderParams.p_video_url
+      });
 
       const { data: orderId, error } = await supabase
         .rpc('create_user_order', orderParams);
 
       if (error) throw error;
 
-      console.log('Order created successfully with ID:', orderId);
+      console.log('✅ Desktop - Order created successfully with ID:', orderId);
 
-      // Invalidate caches after successful order creation
+      // Инвалидируем кэш товара после создания заказа
       invalidateAllCaches(product.id);
 
       toast({
@@ -143,7 +126,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       setShowOrderDialog(false);
       navigate('/buyer-orders');
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('❌ Desktop - Error creating order:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось создать заказ. Попробуйте еще раз.",
@@ -154,139 +137,125 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     }
   };
 
-  const getStatusBadge = () => {
-    switch (product.status) {
-      case 'pending':
-        return <Badge variant="warning" className="animate-pulse-soft">Ожидает проверки</Badge>;
-      case 'active':
-        return <Badge variant="success">Опубликован</Badge>;
-      case 'sold':
-        return <Badge variant="info">Продан</Badge>;
-      case 'archived':
-        return <Badge variant="outline" className="bg-gray-100">Архив</Badge>;
-      default:
-        return null;
+  const handleShare = async () => {
+    const url = window.location.href;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.title,
+          url: url,
+        });
+      } catch (error) {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Ссылка скопирована",
+          description: "Ссылка на товар скопирована в буфер обмена",
+        });
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Ссылка скопирована",
+          description: "Ссылка на товар скопирована в буфер обмена",
+        });
+      } catch (error) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось скопировать ссылку",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const handleSave = () => {
-    setIsEditing(false);
-    onProductUpdate();
+  const handleContactClick = () => {
+    setContactType('telegram');
+    setShowContactDialog(true);
   };
 
-  if (isEditing && isOwner && product.status !== 'sold') {
-    return (
-      <div className="bg-white p-6 rounded-xl shadow-card animate-fade-in">
-        <ProductEditForm
-          product={product}
-          onCancel={() => setIsEditing(false)}
-          onSave={handleSave}
-          isCreator={true}
-        />
-      </div>
-    );
-  }
+  const handleContactProceed = () => {
+    const phoneNumber = sellerProfile?.phone;
+    const telegramUsername = sellerProfile?.telegram;
+    
+    if (contactType === 'telegram' && telegramUsername) {
+      const telegramUrl = `https://t.me/${telegramUsername.replace('@', '')}`;
+      window.open(telegramUrl, '_blank');
+    } else if (contactType === 'whatsapp' && phoneNumber) {
+      const whatsappUrl = `https://wa.me/${phoneNumber.replace(/\D/g, '')}`;
+      window.open(whatsappUrl, '_blank');
+    }
+    
+    setShowContactDialog(false);
+  };
 
-  const location = product.product_location || "Dubai";
+  if (isOwner) return null;
 
   return (
-    <div className="animate-fade-in">
-      {/* Product Actions */}
-      <ProductActions 
-        productId={product.id} 
-        productTitle={product.title}
-        viewCount={product.view_count || 0}
-      />
-      
+    <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          {getStatusBadge()}
-          <span className="text-muted-foreground flex items-center text-sm">
-            <MapPin className="h-4 w-4 mr-1" /> {location}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {isOwner && product.status !== 'sold' && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() => setIsEditing(true)}
-            >
-              <Edit className="h-4 w-4" />
-              Редактировать
-            </Button>
-          )}
-        </div>
-      </div>
-      
-      <h1 className="text-2xl md:text-3xl font-bold mb-3 text-foreground">{product.title}</h1>
-      <div className="mb-4 flex items-center gap-2">
-        <span className="font-bold text-2xl text-primary">
-          {product.price} $
-        </span>
-        {canViewDeliveryPrice ? (
-          product.delivery_price !== null && product.delivery_price !== undefined && product.delivery_price > 0 ? (
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <Truck className="w-4 h-4 text-gray-500" />
-              <span>Доставка: {product.delivery_price} $</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 text-sm text-gray-500">
-              <Info className="w-4 h-4" />
-              <span>Стоимость доставки уточняется при заказе</span>
-            </div>
-          )
-        ) : (
-          user ? (
-            <div className="flex items-center gap-1 text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-lg border border-blue-200">
-              <Info className="w-4 h-4" />
-              <span>Стоимость доставки доступна для OPT пользователей</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 text-sm bg-yellow-50 text-yellow-700 px-3 py-2 rounded-lg border border-yellow-200">
-              <Info className="w-4 h-4" />
-              <span>
-                <a href="/login" className="text-blue-600 hover:underline font-medium">Авторизуйтесь</a> для просмотра стоимости доставки
-              </span>
-            </div>
-          )
-        )}
-      </div>
-      
-      {/* Кнопки "Купить" и "Предложить цену" */}
-      {!isOwner && product.status === 'active' && user && (
-        <div className="mb-6 flex gap-4 items-center">
+        <h2 className="text-xl font-semibold">Действия с товаром</h2>
+        <div className="flex gap-2">
+          {/* Favorite Button */}
           <Button
-            onClick={() => setShowOrderDialog(true)}
-            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 text-lg"
-            size="lg"
+            variant="outline"
+            size="icon"
+            onClick={() => toggleFavorite(product.id)}
+            disabled={isUpdating}
+            className={`${
+              isFavorite(product.id) 
+                ? 'text-red-600 border-red-200 bg-red-50' 
+                : ''
+            }`}
           >
-            <ShoppingCart className="mr-2 h-5 w-5" />
-            Купить товар
+            <Heart 
+              className={`h-5 w-5 ${isFavorite(product.id) ? 'fill-current' : ''}`} 
+            />
           </Button>
-          
-          <SimpleMakeOfferButton
-            product={product}
-          />
-        </div>
-      )}
-      
-      <div className="mb-6 space-y-4">
-        <h3 className="font-medium mb-3 flex items-center">
-          <AlertCircle className="h-4 w-4 mr-1.5 text-muted-foreground" />
-          Описание:
-        </h3>
-        <p className="text-foreground/80 leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100">
-          {product.description || "Описание отсутствует"}
-        </p>
-        <div className="flex items-center text-muted-foreground mt-2">
-          <Package2 className="h-4 w-4 mr-1.5" />
-          <span>Количество мест для отправки: {product.place_number || 1}</span>
+
+          {/* Share Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleShare}
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
         </div>
       </div>
 
-      {/* Order Confirmation Dialog */}
+      {product.status === 'active' && user && (
+        <div className="flex gap-2 mb-4">
+          {/* Contact Button */}
+          <Button
+            onClick={handleContactClick}
+            variant="outline"
+            className="flex-1"
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Связаться
+          </Button>
+          
+          {/* Make Offer Button */}
+          <div className="flex-1">
+            <SimpleMakeOfferButton
+              product={product}
+            />
+          </div>
+          
+          {/* Buy Button */}
+          <Button
+            onClick={() => setShowOrderDialog(true)}
+            className="flex-1 bg-green-600 hover:bg-green-700"
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Купить за ${product.price}
+          </Button>
+        </div>
+      )}
+
+      {/* Order Dialog */}
       <OrderConfirmationDialog
         open={showOrderDialog}
         onOpenChange={setShowOrderDialog}
@@ -308,6 +277,18 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         profile={profile}
         deliveryMethod={deliveryMethod}
         onDeliveryMethodChange={onDeliveryMethodChange}
+      />
+
+      {/* Contact Dialog */}
+      <CommunicationWarningDialog
+        open={showContactDialog}
+        onOpenChange={setShowContactDialog}
+        onProceed={handleContactProceed}
+        communicationRating={sellerProfile?.communication_ability || 3}
+        productTitle={product.title}
+        productPrice={product.price}
+        lotNumber={product.lot_number}
+        contactType={contactType}
       />
     </div>
   );

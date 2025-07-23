@@ -35,12 +35,31 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
   const { invalidateAllCaches } = useImageCacheManager();
   const isOwner = user?.id === product.seller_id;
 
+  // Function to get product videos
+  const getProductVideos = () => {
+    const videos = product.product_videos?.map(video => video.url) || [];
+    console.log('🎬 Mobile - Getting product videos:', {
+      product_id: product.id,
+      videos_count: videos.length,
+      videos: videos
+    });
+    return videos;
+  };
+
   const handleOrderConfirm = async (orderData: { text_order?: string }) => {
     setIsSubmittingOrder(true);
     try {
       // Prepare product images - get URLs from product_images
       const productImages = product.product_images?.map(img => img.url) || [];
-      console.log('Product images for order:', productImages);
+      console.log('📸 Mobile - Product images for order:', productImages);
+      
+      // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Получаем видео из товара
+      const productVideos = getProductVideos();
+      console.log('🎬 Mobile - Product videos for order:', {
+        product_id: product.id,
+        videos_count: productVideos.length,
+        videos: productVideos
+      });
       
       // Prepare delivery price - only for cargo methods and if delivery price exists
       const shouldIncludeDeliveryPrice = 
@@ -49,10 +68,10 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
         product.delivery_price > 0;
       
       const deliveryPriceConfirm = shouldIncludeDeliveryPrice ? product.delivery_price : null;
-      console.log('Delivery method:', deliveryMethod);
-      console.log('Product delivery price:', product.delivery_price);
-      console.log('Should include delivery price:', shouldIncludeDeliveryPrice);
-      console.log('Final delivery price for order:', deliveryPriceConfirm);
+      console.log('💰 Mobile - Delivery method:', deliveryMethod);
+      console.log('💰 Mobile - Product delivery price:', product.delivery_price);
+      console.log('💰 Mobile - Should include delivery price:', shouldIncludeDeliveryPrice);
+      console.log('💰 Mobile - Final delivery price for order:', deliveryPriceConfirm);
 
       const orderParams = {
         p_title: product.title,
@@ -67,27 +86,31 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
         p_status: 'created',
         p_order_created_type: 'product_order',
         p_telegram_url_order: null,
-        p_images: productImages, // Now passing actual product images
+        p_images: productImages,
         p_product_id: product.id,
         p_delivery_method: deliveryMethod,
         p_text_order: orderData.text_order,
-        p_delivery_price_confirm: deliveryPriceConfirm, // Now passing actual delivery price
+        p_delivery_price_confirm: deliveryPriceConfirm,
         p_quantity: 1,
         p_description: product.description,
         p_buyer_opt_id: profile?.opt_id,
         p_lot_number_order: product.lot_number,
         p_telegram_url_buyer: profile?.telegram,
-        p_video_url: []
+        p_video_url: productVideos // ИСПРАВЛЕНО: передаем видео из товара
       };
 
-      console.log('Creating order with RPC function:', orderParams);
+      console.log('🚀 Mobile - Creating order with RPC function:', {
+        ...orderParams,
+        p_video_url_count: orderParams.p_video_url.length,
+        p_video_url_details: orderParams.p_video_url
+      });
 
       const { data: orderId, error } = await supabase
         .rpc('create_user_order', orderParams);
 
       if (error) throw error;
 
-      console.log('Order created successfully with ID:', orderId);
+      console.log('✅ Mobile - Order created successfully with ID:', orderId);
 
       // Инвалидируем кэш товара после создания заказа
       invalidateAllCaches(product.id);
@@ -100,7 +123,7 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
       setShowOrderDialog(false);
       navigate('/buyer-orders');
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('❌ Mobile - Error creating order:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось создать заказ. Попробуйте еще раз.",
