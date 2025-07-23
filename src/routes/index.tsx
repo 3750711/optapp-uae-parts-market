@@ -1,14 +1,27 @@
+
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import RouteSEO from '@/components/routing/RouteSEO';
 import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary';
 import { RouteSuspenseFallback } from '@/components/routing/RouteSuspenseFallback';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import AuthRequiredRoute from '@/components/auth/AuthRequiredRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 
-// Lazy loaded публичные страницы
+// Lazy loaded публичные страницы (доступны всем)
 const Index = lazy(() => import('@/pages/Index'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
+
+// Lazy loaded страницы аутентификации (доступны всем)
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+
+// Lazy loaded страницы, требующие авторизации
 const About = lazy(() => import('@/pages/About'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const Catalog = lazy(() => import('@/pages/Catalog'));
@@ -20,15 +33,6 @@ const RequestDetail = lazy(() => import('@/pages/RequestDetail'));
 const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
 const PublicSellerProfile = lazy(() => import('@/pages/PublicSellerProfile'));
 const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
-const NotFound = lazy(() => import('@/pages/NotFound'));
-
-// Lazy loaded страницы аутентификации
-const Login = lazy(() => import('@/pages/Login'));
-const Register = lazy(() => import('@/pages/Register'));
-const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
-const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
-const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 
 // Lazy loaded защищенные страницы
 const Profile = lazy(() => import('@/pages/Profile'));
@@ -84,56 +88,80 @@ const AppRoutes: React.FC = () => {
       <RouteErrorBoundary>
         <Suspense fallback={<RouteSuspenseFallback />}>
           <Routes>
-            {/* Публичные маршруты */}
+            {/* Публичные маршруты (доступны всем) */}
             <Route path="/" element={<Index />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/catalog" element={
-              <CatalogErrorBoundary>
-                <Catalog />
-              </CatalogErrorBoundary>
-            } />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/stores" element={<Stores />} />
-            <Route path="/store/:id" element={<StoreDetail />} />
-            <Route path="/requests" element={<Requests />} />
-            <Route path="/request/:id" element={<RequestDetail />} />
-            <Route path="/buyer-guide" element={<BuyerGuide />} />
-            <Route path="/seller/:id" element={<PublicSellerProfile />} />
-            <Route path="/public-seller-profile/:id" element={<PublicSellerProfile />} />
-            <Route path="/generate-og-image" element={<GenerateOGImage />} />
             <Route path="/404" element={<NotFound />} />
 
-            {/* Маршруты аутентификации */}
-            <Route path="/login" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <Login />
-              </Suspense>
+            {/* Маршруты аутентификации (доступны всем) */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/seller-register" element={<SellerRegister />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+
+            {/* Маршруты, требующие авторизации */}
+            <Route path="/about" element={
+              <AuthRequiredRoute>
+                <About />
+              </AuthRequiredRoute>
             } />
-            <Route path="/register" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <Register />
-              </Suspense>
+            <Route path="/contact" element={
+              <AuthRequiredRoute>
+                <Contact />
+              </AuthRequiredRoute>
             } />
-            <Route path="/seller-register" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <SellerRegister />
-              </Suspense>
+            <Route path="/catalog" element={
+              <AuthRequiredRoute>
+                <CatalogErrorBoundary>
+                  <Catalog />
+                </CatalogErrorBoundary>
+              </AuthRequiredRoute>
             } />
-            <Route path="/forgot-password" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <ForgotPassword />
-              </Suspense>
+            <Route path="/product/:id" element={
+              <AuthRequiredRoute>
+                <ProductDetail />
+              </AuthRequiredRoute>
             } />
-            <Route path="/reset-password" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <ResetPassword />
-              </Suspense>
+            <Route path="/stores" element={
+              <AuthRequiredRoute>
+                <Stores />
+              </AuthRequiredRoute>
             } />
-            <Route path="/verify-email" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <VerifyEmail />
-              </Suspense>
+            <Route path="/store/:id" element={
+              <AuthRequiredRoute>
+                <StoreDetail />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/requests" element={
+              <AuthRequiredRoute>
+                <Requests />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/request/:id" element={
+              <AuthRequiredRoute>
+                <RequestDetail />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/buyer-guide" element={
+              <AuthRequiredRoute>
+                <BuyerGuide />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/seller/:id" element={
+              <AuthRequiredRoute>
+                <PublicSellerProfile />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/public-seller-profile/:id" element={
+              <AuthRequiredRoute>
+                <PublicSellerProfile />
+              </AuthRequiredRoute>
+            } />
+            <Route path="/generate-og-image" element={
+              <AuthRequiredRoute>
+                <GenerateOGImage />
+              </AuthRequiredRoute>
             } />
 
             {/* Защищенные маршруты */}
@@ -348,7 +376,11 @@ const AppRoutes: React.FC = () => {
             } />
 
             {/* Catch-all маршрут */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={
+              <AuthRequiredRoute>
+                <NotFound />
+              </AuthRequiredRoute>
+            } />
           </Routes>
         </Suspense>
       </RouteErrorBoundary>

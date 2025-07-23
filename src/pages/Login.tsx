@@ -1,157 +1,115 @@
 
-import React, { useState } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2, Eye, EyeOff, Mail, Hash } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Eye, EyeOff, AlertCircle, Loader2, Mail, Phone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { detectInputType, getEmailByOptId, formatCountdown } from '@/utils/authUtils';
+import { AuthError, AuthErrorType } from '@/types/auth';
 import Layout from '@/components/layout/Layout';
-import { supabase } from '@/integrations/supabase/client';
-import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
-import { useRateLimit } from '@/hooks/useRateLimit';
-import { TelegramLoginWidget } from '@/components/auth/TelegramLoginWidget';
-import { TelegramAuthWarning } from '@/components/auth/TelegramAuthWarning';
-import { AuthErrorAlert } from '@/components/auth/AuthErrorAlert';
-import { Separator } from '@/components/ui/separator';
-import { AuthErrorType, AuthError } from '@/types/auth';
-
-
 
 const Login = () => {
-  const [loginInput, setLoginInput] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [authError, setAuthError] = useState<AuthError | null>(null);
-  const [showTelegramWarning, setShowTelegramWarning] = useState(false);
-  
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { checkRateLimit } = useRateLimit();
-  const { signIn } = useAuth();
-  
-  const from = searchParams.get('from') || '/';
+  const [error, setError] = useState<AuthError | null>(null);
+  const [countdown, setCountdown] = useState(0);
 
-  const inputType = detectInputType(loginInput);
-  const isOptId = inputType === 'opt_id';
-  
-  // Показываем email как приоритетный, OPT ID как альтернативу
-  const isEmailFormat = inputType === 'email' || loginInput.length === 0;
+  const fromPath = searchParams.get('from') || '/';
 
-  const createAuthError = (type: AuthErrorType, customMessage?: string): AuthError => {
-    const errorMessages = {
-      [AuthErrorType.INVALID_CREDENTIALS]: 'Неверный пароль. Проверьте правильность введенных данных.',
-      [AuthErrorType.USER_NOT_FOUND]: 'Пользователь с таким email не найден. Возможно, вы еще не зарегистрированы?',
-      [AuthErrorType.OPT_ID_NOT_FOUND]: 'OPT ID не найден в системе. Проверьте правильность введенного ID.',
-      [AuthErrorType.RATE_LIMITED]: 'Слишком много попыток входа. Попробуйте позже через несколько минут.',
-      [AuthErrorType.NETWORK_ERROR]: 'Проблемы с подключением к интернету. Проверьте соединение и попробуйте снова.',
-      [AuthErrorType.GENERIC_ERROR]: 'Произошла неожиданная ошибка. Попробуйте обновить страницу.'
-    };
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
-    const actionConfig = {
-      [AuthErrorType.USER_NOT_FOUND]: { text: 'Зарегистрироваться', link: '/register' },
-      [AuthErrorType.INVALID_CREDENTIALS]: { text: 'Восстановить пароль', link: '/forgot-password' },
-      [AuthErrorType.OPT_ID_NOT_FOUND]: { text: 'Зарегистрироваться', link: '/register' }
-    };
-
-    return {
-      type,
-      message: customMessage || errorMessages[type],
-      actionText: actionConfig[type]?.text,
-      actionLink: actionConfig[type]?.link
-    };
-  };
-
-
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!loginInput || !password) {
-      setAuthError(createAuthError(AuthErrorType.GENERIC_ERROR, 'Пожалуйста, заполните все поля'));
-      return;
-    }
-    
-    if (!checkRateLimit('вход в систему')) {
-      setAuthError(createAuthError(AuthErrorType.RATE_LIMITED));
-      return;
-    }
-
+    setError(null);
     setIsLoading(true);
-    setAuthError(null);
-    setShowTelegramWarning(false);
 
     try {
-      let email = loginInput;
+      const inputType = detectInputType(identifier.trim());
+      let email = identifier.trim();
 
-      // Если введен OPT ID, получаем email
-      if (isOptId) {
-        const result = await getEmailByOptId(loginInput);
+      // If input is OPT ID, get email first
+      if (inputType === 'opt_id') {
+        const { email: foundEmail, isRateLimited } = await getEmailByOptId(identifier.trim());
         
-        if (result.isRateLimited) {
-          setAuthError(createAuthError(AuthErrorType.RATE_LIMITED));
+        if (isRateLimited) {
+          setError({
+            type: AuthErrorType.RATE_LIMITED,
+            message: 'Слишком много попыток. Попробуйте через минуту.'
+          });
+          setCountdown(60);
           return;
         }
-        
-        if (!result.email) {
-          setAuthError(createAuthError(AuthErrorType.OPT_ID_NOT_FOUND));
+
+        if (!foundEmail) {
+          setError({
+            type: AuthErrorType.OPT_ID_NOT_FOUND,
+            message: 'OPT ID не найден в системе',
+            actionText: 'Зарегистрироваться',
+            actionLink: '/register'
+          });
           return;
         }
-        
-        email = result.email;
+
+        email = foundEmail;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        if (error.message === 'Invalid login credentials') {
-          try {
-            // Проверяем метод аутентификации пользователя через безопасную функцию
-            const { data: authData } = await supabase.rpc('check_user_auth_method', {
-              p_login_input: loginInput
-            });
-            
-            if (authData?.auth_method === 'telegram') {
-              setShowTelegramWarning(true);
-              return;
-            } else if (authData?.auth_method === null) {
-              // Пользователь не найден
-              setAuthError(createAuthError(
-                inputType === 'opt_id' ? AuthErrorType.OPT_ID_NOT_FOUND : AuthErrorType.USER_NOT_FOUND
-              ));
-              return;
-            } else {
-              // Пользователь найден, но пароль неверный
-              setAuthError(createAuthError(AuthErrorType.INVALID_CREDENTIALS));
-              return;
-            }
-          } catch (authCheckError) {
-            console.error('Error checking auth method:', authCheckError);
-            // Fallback to generic invalid credentials error
-            setAuthError(createAuthError(AuthErrorType.INVALID_CREDENTIALS));
-            return;
-          }
+      const { error: loginError } = await login(email, password);
+
+      if (loginError) {
+        console.error('Login error:', loginError);
+        
+        let errorType: AuthErrorType;
+        let errorMessage: string;
+        
+        if (loginError.message?.includes('Invalid login credentials')) {
+          errorType = AuthErrorType.INVALID_CREDENTIALS;
+          errorMessage = 'Неверный email/OPT ID или пароль';
+        } else if (loginError.message?.includes('Email not confirmed')) {
+          errorType = AuthErrorType.USER_NOT_FOUND;
+          errorMessage = 'Подтвердите email для входа в систему';
         } else {
-          // Other auth errors
-          setAuthError(createAuthError(AuthErrorType.GENERIC_ERROR, error.message));
-          return;
+          errorType = AuthErrorType.GENERIC_ERROR;
+          errorMessage = loginError.message || 'Произошла ошибка при входе';
         }
+
+        setError({
+          type: errorType,
+          message: errorMessage
+        });
+        return;
       }
 
       toast({
-        title: "Вход выполнен успешно",
+        title: "Успешный вход",
         description: "Добро пожаловать!",
       });
+
+      // Redirect to the original page or home
+      navigate(fromPath, { replace: true });
       
-      navigate(from, { replace: true });
     } catch (err) {
-      console.error('Login error:', err);
-      setAuthError(createAuthError(AuthErrorType.NETWORK_ERROR));
+      console.error('Unexpected login error:', err);
+      setError({
+        type: AuthErrorType.GENERIC_ERROR,
+        message: 'Произошла неожиданная ошибка'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -159,130 +117,129 @@ const Login = () => {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Вход</CardTitle>
-            <CardDescription className="text-center">
-              Войдите в свой аккаунт для продолжения
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-white p-4">
+        <Card className="w-full max-w-md shadow-2xl border-0 bg-white/90 backdrop-blur-sm">
+          <CardHeader className="text-center space-y-2">
+            <CardTitle className="text-3xl font-bold">Вход в систему</CardTitle>
+            <CardDescription className="text-base">
+              Войдите в свой аккаунт, чтобы получить доступ к платформе
             </CardDescription>
           </CardHeader>
+          
           <CardContent className="space-y-6">
-            {/* Email/Password Form */}
-            <div className="space-y-4">
-              <form onSubmit={handleEmailSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="loginInput" className="flex items-center gap-2">
-                      {isEmailFormat ? (
-                        <>
-                          <Mail className="h-4 w-4" />
-                          Email
-                        </>
-                      ) : (
-                        <>
-                          <Hash className="h-4 w-4" />
-                          OPT ID
-                        </>
-                      )}
-                    </Label>
-                    <Input
-                      id="loginInput"
-                      type="text"
-                      placeholder={isEmailFormat ? "Введите ваш email" : "Введите ваш OPT ID"}
-                      value={loginInput}
-                      onChange={(e) => setLoginInput(e.target.value)}
-                      required
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Вы можете войти используя <strong>email</strong> или OPT ID
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Пароль</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Введите ваш пароль"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+            {error && (
+              <Alert className="border-red-200 bg-red-50">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertDescription className="text-red-700">
+                  <div className="flex flex-col space-y-2">
+                    <span>{error.message}</span>
+                    {error.actionText && error.actionLink && (
+                      <Button variant="outline" size="sm" asChild className="w-fit">
+                        <Link to={error.actionLink}>{error.actionText}</Link>
                       </Button>
-                    </div>
-                  </div>
-
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Входим...
-                      </>
-                    ) : (
-                      'Войти'
                     )}
-                  </Button>
-              </form>
-            </div>
-
-            {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">или</span>
-              </div>
-            </div>
-
-            {/* Telegram Login */}
-            <div className="space-y-4">
-              <TelegramLoginWidget 
-                onSuccess={() => navigate(from, { replace: true })}
-                onError={(error) => setAuthError(createAuthError(AuthErrorType.GENERIC_ERROR, error))}
-              />
-            </div>
-
-            {showTelegramWarning && (
-              <TelegramAuthWarning onClose={() => setShowTelegramWarning(false)} />
+                    {error.type === AuthErrorType.RATE_LIMITED && countdown > 0 && (
+                      <span className="text-sm">
+                        Повторить можно через: {formatCountdown(countdown)}
+                      </span>
+                    )}
+                  </div>
+                </AlertDescription>
+              </Alert>
             )}
 
-            {authError && (
-              <AuthErrorAlert 
-                error={authError} 
-                onClose={() => setAuthError(null)} 
-              />
-            )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="identifier" className="text-sm font-medium">
+                  Email или OPT ID
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="identifier"
+                    type="text"
+                    placeholder="Введите email или OPT ID"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="pr-10"
+                    required
+                    disabled={isLoading || countdown > 0}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    {detectInputType(identifier) === 'email' ? (
+                      <Mail className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Phone className="h-4 w-4 text-gray-400" />
+                    )}
+                  </div>
+                </div>
+              </div>
 
-            <div className="text-center space-y-2">
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">
+                  Пароль
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Введите пароль"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                    required
+                    disabled={isLoading || countdown > 0}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={isLoading || countdown > 0}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading || countdown > 0}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Вход...
+                  </>
+                ) : countdown > 0 ? (
+                  `Повторить через ${formatCountdown(countdown)}`
+                ) : (
+                  'Войти'
+                )}
+              </Button>
+            </form>
+
+            <div className="text-center">
               <Link 
                 to="/forgot-password" 
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 Забыли пароль?
               </Link>
-              <div className="text-sm text-gray-600">
-                Нет аккаунта?{' '}
-                <Link to="/register" className="text-blue-600 hover:underline">
-                  Зарегистрироваться
-                </Link>
+            </div>
+
+            <Separator />
+
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                Нет аккаунта?
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" className="flex-1" asChild>
+                  <Link to="/register">Зарегистрироваться</Link>
+                </Button>
+                <Button variant="outline" className="flex-1" asChild>
+                  <Link to="/seller-register">Для продавцов</Link>
+                </Button>
               </div>
             </div>
           </CardContent>
