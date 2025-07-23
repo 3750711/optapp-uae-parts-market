@@ -84,11 +84,56 @@ export const usePerformanceMonitor = () => {
     };
   }, []);
 
+  const recordOptimisticSuccess = useCallback((duration: number) => {
+    performanceStore.realTimeUpdates.push(duration);
+    if (performanceStore.realTimeUpdates.length > 100) {
+      performanceStore.realTimeUpdates.shift();
+    }
+  }, []);
+
+  const recordOptimisticFailure = useCallback((duration: number) => {
+    performanceStore.realTimeUpdates.push(duration);
+    if (performanceStore.realTimeUpdates.length > 100) {
+      performanceStore.realTimeUpdates.shift();
+    }
+  }, []);
+
+  const recordUIResponse = useCallback((duration: number) => {
+    recordRealTimeUpdate(duration);
+  }, [recordRealTimeUpdate]);
+
+  const reset = useCallback(() => {
+    performanceStore.realTimeUpdates.length = 0;
+    performanceStore.debounceOperations.length = 0;
+    performanceStore.queryExecutions.length = 0;
+  }, []);
+
+  const exportMetrics = useCallback(() => {
+    const metrics = getMetrics();
+    const data = {
+      timestamp: new Date().toISOString(),
+      metrics,
+      summary: {
+        totalOperations: metrics.realTimeUpdates.count + metrics.debounceOperations.count + metrics.queryExecutions.count,
+        averageResponseTime: (metrics.realTimeUpdates.average + metrics.debounceOperations.average + metrics.queryExecutions.average) / 3
+      }
+    };
+    return data;
+  }, [getMetrics]);
+
+  const metrics = getMetrics();
+
   return {
     recordRealTimeUpdate,
     startDebounce,
     endDebounce,
     recordQueryExecution,
-    getMetrics
+    recordOptimisticSuccess,
+    recordOptimisticFailure,
+    recordUIResponse,
+    getMetrics,
+    reset,
+    exportMetrics,
+    metrics
   };
 };

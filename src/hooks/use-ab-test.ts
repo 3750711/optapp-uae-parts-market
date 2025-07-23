@@ -81,12 +81,43 @@ export const useABTest = () => {
     };
   }, []);
 
+  const currentTest = getTestData();
+  
+  const startTest = useCallback(() => {
+    interactionsRef.current = [];
+    recordInteraction('test_started', { variant: variantRef.current });
+  }, [recordInteraction]);
+
+  const stopTest = useCallback(() => {
+    recordInteraction('test_stopped', { variant: variantRef.current });
+  }, [recordInteraction]);
+
+  const generateReport = useCallback(() => {
+    const data = getTestData();
+    return {
+      variant: data.variant,
+      config: data.config,
+      totalInteractions: data.totalInteractions,
+      interactions: data.interactions,
+      timestamp: new Date().toISOString()
+    };
+  }, [getTestData]);
+
+  const results = getTestData();
+  const isTestActive = interactionsRef.current.length > 0;
+
   return {
     variant: variantRef.current,
     getCurrentDebounceTime,
     getMaxReconnectAttempts,
     getBatchSize,
     recordInteraction,
-    getTestData
+    getTestData,
+    currentTest,
+    results,
+    startTest,
+    stopTest,
+    generateReport,
+    isTestActive
   };
 };

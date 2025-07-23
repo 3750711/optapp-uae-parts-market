@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,8 @@ import {
   Download,
   RefreshCw,
   Zap,
-  Target
+  Target,
+  Database
 } from 'lucide-react';
 import { usePerformanceMonitor } from '@/hooks/use-performance-monitor';
 
@@ -29,7 +30,7 @@ export const PerformanceMetricsDashboard: React.FC = () => {
     setIsExporting(true);
     try {
       const data = exportMetrics();
-      const blob = new Blob([data], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -44,17 +45,20 @@ export const PerformanceMetricsDashboard: React.FC = () => {
   };
 
   const formatTime = (ms: number): string => {
+    if (isNaN(ms) || ms === 0) return '0ms';
     if (ms < 1000) return `${Math.round(ms)}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
   };
 
   const getStatusColor = (value: number, good: number, warning: number): string => {
+    if (isNaN(value)) return 'text-gray-600';
     if (value <= good) return 'text-green-600';
     if (value <= warning) return 'text-yellow-600';
     return 'text-red-600';
   };
 
   const getStatusBadge = (value: number, good: number, warning: number): { variant: string; text: string } => {
+    if (isNaN(value)) return { variant: 'secondary', text: 'Нет данных' };
     if (value <= good) return { variant: 'default', text: 'Отлично' };
     if (value <= warning) return { variant: 'secondary', text: 'Хорошо' };
     return { variant: 'destructive', text: 'Требует внимания' };
@@ -91,81 +95,73 @@ export const PerformanceMetricsDashboard: React.FC = () => {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Real-time латентность</CardTitle>
+            <CardTitle className="text-sm font-medium">Real-time обновления</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={getStatusColor(metrics.averageRealTimeLatency, 500, 1000)}>
-                {formatTime(metrics.averageRealTimeLatency)}
+              <span className={getStatusColor(metrics.realTimeUpdates.average, 50, 100)}>
+                {formatTime(metrics.realTimeUpdates.average)}
               </span>
             </div>
             <Badge 
-              variant={getStatusBadge(metrics.averageRealTimeLatency, 500, 1000).variant as any}
+              variant={getStatusBadge(metrics.realTimeUpdates.average, 50, 100).variant as any}
               className="mt-2"
             >
-              {getStatusBadge(metrics.averageRealTimeLatency, 500, 1000).text}
+              {getStatusBadge(metrics.realTimeUpdates.average, 50, 100).text}
             </Badge>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Optimistic Updates</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              <span className={getStatusColor(100 - metrics.successRate, 5, 15)}>
-                {metrics.successRate.toFixed(1)}%
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {metrics.optimisticUpdateSuccess} успешных / {metrics.optimisticUpdateFailure} ошибок
+            <p className="text-xs text-muted-foreground mt-1">
+              Всего: {metrics.realTimeUpdates.count} / Макс: {formatTime(metrics.realTimeUpdates.max)}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Batch запросы</CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Debounce операции</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={getStatusColor(metrics.averageBatchQueryTime, 200, 500)}>
-                {formatTime(metrics.averageBatchQueryTime)}
+              <span className={getStatusColor(metrics.debounceOperations.average, 100, 200)}>
+                {formatTime(metrics.debounceOperations.average)}
               </span>
             </div>
             <Badge 
-              variant={getStatusBadge(metrics.averageBatchQueryTime, 200, 500).variant as any}
+              variant={getStatusBadge(metrics.debounceOperations.average, 100, 200).variant as any}
               className="mt-2"
             >
-              {getStatusBadge(metrics.averageBatchQueryTime, 200, 500).text}
+              {getStatusBadge(metrics.debounceOperations.average, 100, 200).text}
             </Badge>
+            <p className="text-xs text-muted-foreground mt-1">
+              Всего: {metrics.debounceOperations.count} / Макс: {formatTime(metrics.debounceOperations.max)}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">UI отклик</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Query выполнения</CardTitle>
+            <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={getStatusColor(metrics.averageUIResponseTime, 100, 300)}>
-                {formatTime(metrics.averageUIResponseTime)}
+              <span className={getStatusColor(metrics.queryExecutions.average, 200, 500)}>
+                {formatTime(metrics.queryExecutions.average)}
               </span>
             </div>
             <Badge 
-              variant={getStatusBadge(metrics.averageUIResponseTime, 100, 300).variant as any}
+              variant={getStatusBadge(metrics.queryExecutions.average, 200, 500).variant as any}
               className="mt-2"
             >
-              {getStatusBadge(metrics.averageUIResponseTime, 100, 300).text}
+              {getStatusBadge(metrics.queryExecutions.average, 200, 500).text}
             </Badge>
+            <p className="text-xs text-muted-foreground mt-1">
+              Всего: {metrics.queryExecutions.count} / Макс: {formatTime(metrics.queryExecutions.max)}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -182,38 +178,33 @@ export const PerformanceMetricsDashboard: React.FC = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Успешность Optimistic Updates</span>
-                <span className="font-semibold">{metrics.successRate.toFixed(1)}%</span>
-              </div>
-              <Progress value={metrics.successRate} className="h-2" />
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Производительность Real-time</span>
-                <span className="font-semibold">
-                  {metrics.averageRealTimeLatency < 500 ? '95%' : 
-                   metrics.averageRealTimeLatency < 1000 ? '75%' : '45%'}
-                </span>
+                <span>Real-time обновления</span>
+                <span className="font-semibold">{formatTime(metrics.realTimeUpdates.average)}</span>
               </div>
               <Progress 
-                value={metrics.averageRealTimeLatency < 500 ? 95 : 
-                       metrics.averageRealTimeLatency < 1000 ? 75 : 45} 
+                value={Math.min(100, Math.max(0, 100 - (metrics.realTimeUpdates.average / 2)))} 
                 className="h-2" 
               />
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Производительность Batch</span>
-                <span className="font-semibold">
-                  {metrics.averageBatchQueryTime < 200 ? '95%' : 
-                   metrics.averageBatchQueryTime < 500 ? '80%' : '60%'}
-                </span>
+                <span>Debounce операции</span>
+                <span className="font-semibold">{formatTime(metrics.debounceOperations.average)}</span>
               </div>
               <Progress 
-                value={metrics.averageBatchQueryTime < 200 ? 95 : 
-                       metrics.averageBatchQueryTime < 500 ? 80 : 60} 
+                value={Math.min(100, Math.max(0, 100 - (metrics.debounceOperations.average / 3)))} 
+                className="h-2" 
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Query выполнения</span>
+                <span className="font-semibold">{formatTime(metrics.queryExecutions.average)}</span>
+              </div>
+              <Progress 
+                value={Math.min(100, Math.max(0, 100 - (metrics.queryExecutions.average / 10)))} 
                 className="h-2" 
               />
             </div>
@@ -221,14 +212,16 @@ export const PerformanceMetricsDashboard: React.FC = () => {
             <div className="pt-4 border-t">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Общий уровень ошибок</span>
-                  <div className={`font-semibold ${getStatusColor(metrics.errorRate, 2, 5)}`}>
-                    {metrics.errorRate.toFixed(1)}%
+                  <span className="text-muted-foreground">Всего операций</span>
+                  <div className="font-semibold">
+                    {metrics.realTimeUpdates.count + metrics.debounceOperations.count + metrics.queryExecutions.count}
                   </div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Всего предложений</span>
-                  <div className="font-semibold">{metrics.totalOffers}</div>
+                  <span className="text-muted-foreground">Средняя производительность</span>
+                  <div className="font-semibold">
+                    {formatTime((metrics.realTimeUpdates.average + metrics.debounceOperations.average + metrics.queryExecutions.average) / 3)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -246,52 +239,42 @@ export const PerformanceMetricsDashboard: React.FC = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 border border-green-200">
                 <div>
-                  <div className="font-semibold text-green-800">Real-time латентность</div>
-                  <div className="text-sm text-green-600">Цель: &lt; 500ms</div>
+                  <div className="font-semibold text-green-800">Real-time обновления</div>
+                  <div className="text-sm text-green-600">Цель: &lt; 50ms</div>
                 </div>
                 <CheckCircle className={`h-5 w-5 ${
-                  metrics.averageRealTimeLatency < 500 ? 'text-green-600' : 'text-gray-400'
+                  metrics.realTimeUpdates.average < 50 ? 'text-green-600' : 'text-gray-400'
                 }`} />
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 border border-blue-200">
                 <div>
-                  <div className="font-semibold text-blue-800">Optimistic Updates</div>
-                  <div className="text-sm text-blue-600">Цель: &gt; 95%</div>
+                  <div className="font-semibold text-blue-800">Debounce операции</div>
+                  <div className="text-sm text-blue-600">Цель: &lt; 100ms</div>
                 </div>
                 <CheckCircle className={`h-5 w-5 ${
-                  metrics.successRate > 95 ? 'text-green-600' : 'text-gray-400'
+                  metrics.debounceOperations.average < 100 ? 'text-green-600' : 'text-gray-400'
                 }`} />
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50 border border-purple-200">
                 <div>
-                  <div className="font-semibold text-purple-800">Batch запросы</div>
+                  <div className="font-semibold text-purple-800">Query выполнения</div>
                   <div className="text-sm text-purple-600">Цель: &lt; 200ms</div>
                 </div>
                 <CheckCircle className={`h-5 w-5 ${
-                  metrics.averageBatchQueryTime < 200 ? 'text-green-600' : 'text-gray-400'
-                }`} />
-              </div>
-
-              <div className="flex items-center justify-between p-3 rounded-lg bg-orange-50 border border-orange-200">
-                <div>
-                  <div className="font-semibold text-orange-800">UI отклик</div>
-                  <div className="text-sm text-orange-600">Цель: &lt; 100ms</div>
-                </div>
-                <CheckCircle className={`h-5 w-5 ${
-                  metrics.averageUIResponseTime < 100 ? 'text-green-600' : 'text-gray-400'
+                  metrics.queryExecutions.average < 200 ? 'text-green-600' : 'text-gray-400'
                 }`} />
               </div>
             </div>
 
-            {metrics.errorRate > 5 && (
+            {(metrics.realTimeUpdates.average > 100 || metrics.queryExecutions.average > 500) && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
                 <div>
-                  <div className="font-semibold text-red-800">Высокий уровень ошибок</div>
+                  <div className="font-semibold text-red-800">Производительность требует внимания</div>
                   <div className="text-sm text-red-600">
-                    Требуется оптимизация: {metrics.errorRate.toFixed(1)}%
+                    Некоторые операции выполняются медленно
                   </div>
                 </div>
               </div>

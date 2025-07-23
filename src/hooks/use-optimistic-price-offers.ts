@@ -97,7 +97,7 @@ export const useOptimisticPriceOffers = () => {
     queryClient.invalidateQueries({ queryKey: ['price-offers', productId] });
     
     // Record success
-    recordOptimisticSuccess();
+    recordOptimisticSuccess(0);
   }, [queryClient, recordOptimisticSuccess]);
 
   const rejectOptimisticOffer = useCallback((productId: string, error?: string) => {
@@ -122,7 +122,7 @@ export const useOptimisticPriceOffers = () => {
     }
 
     // Record failure
-    recordOptimisticFailure(error);
+    recordOptimisticFailure(0);
 
     // Clear error state after 3 seconds
     setTimeout(() => {
