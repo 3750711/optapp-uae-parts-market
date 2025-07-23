@@ -1,20 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
-import { Gavel, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, SortAsc, Grid, List } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeBuyerAuctions, useBuyerOfferCounts } from '@/hooks/useRealtimeBuyerAuctions';
 import { useBatchOffers } from '@/hooks/use-price-offers-batch';
-import ProductListItem from '@/components/product/ProductListItem';
-import { OfferStatusFilter } from '@/components/offers/OfferStatusFilter';
-import { PusherConnectionIndicator } from '@/components/offers/PusherConnectionIndicator';
+import { AuctionCard } from '@/components/auction/AuctionCard';
+import { AuctionHero } from '@/components/auction/AuctionHero';
+import { AuctionSidebar } from '@/components/auction/AuctionSidebar';
+import { LiveTicker } from '@/components/auction/LiveTicker';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('time');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [favoriteProducts, setFavoriteProducts] = useState<Set<string>>(new Set());
   
   const { 
     data: auctionProducts, 
@@ -27,29 +31,90 @@ const BuyerPriceOffers: React.FC = () => {
   } = useRealtimeBuyerAuctions(statusFilter);
   
   const { data: offerCounts } = useBuyerOfferCounts();
-
-  // Get batch data for optimization
   const productIds = auctionProducts?.map(p => p.id) || [];
   const { data: batchOffersData } = useBatchOffers(productIds);
 
-  // Debug logging to track data flow
-  useEffect(() => {
-    console.log('🏠 BuyerPriceOffers data update:', {
-      statusFilter,
-      productsCount: auctionProducts?.length || 0,
-      lastUpdateTime: lastUpdateTime?.toISOString(),
-      isConnected,
-      realtimeEventsCount: realtimeEvents?.length || 0,
-      batchOffersDataCount: batchOffersData?.length || 0
-    });
-  }, [statusFilter, auctionProducts, lastUpdateTime, isConnected, realtimeEvents, batchOffersData]);
+  // Calculate hero stats
+  const heroStats = useMemo(() => {
+    const stats = {
+      activeAuctions: auctionProducts?.filter(p => p.user_offer_status === 'pending').length || 0,
+      totalBids: auctionProducts?.length || 0,
+      totalValue: auctionProducts?.reduce((sum, p) => sum + (p.user_offer_price || 0), 0) || 0,
+      userWins: auctionProducts?.filter(p => p.user_offer_status === 'accepted').length || 0,
+      userActive: offerCounts?.active || 0,
+      userLeading: auctionProducts?.filter(p => p.is_user_leading).length || 0,
+    };
+    return stats;
+  }, [auctionProducts, offerCounts]);
 
-  // Log when realtime events arrive
-  useEffect(() => {
-    if (realtimeEvents && realtimeEvents.length > 0) {
-      console.log('🔔 New realtime events in BuyerPriceOffers:', realtimeEvents.slice(0, 3));
-    }
+  // Process products for display
+  const processedProducts = useMemo(() => {
+    if (!auctionProducts) return [];
+
+    let filtered = auctionProducts.filter(product => {
+      const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           product.model?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || 
+                           (statusFilter === 'active' && product.user_offer_status === 'pending') ||
+                           (statusFilter === 'leading' && product.is_user_leading) ||
+                           (statusFilter === 'ending' && product.user_offer_expires_at) ||
+                           (statusFilter === 'completed' && ['expired', 'rejected', 'accepted'].includes(product.user_offer_status || ''));
+      
+      return matchesSearch && matchesStatus;
+    });
+
+    // Sort products
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'price':
+          return (b.user_offer_price || 0) - (a.user_offer_price || 0);
+        case 'activity':
+          return (b.offers_count || 0) - (a.offers_count || 0);
+        case 'time':
+        default:
+          return new Date(b.user_offer_created_at || '').getTime() - new Date(a.user_offer_created_at || '').getTime();
+      }
+    });
+
+    return filtered;
+  }, [auctionProducts, searchTerm, statusFilter, sortBy]);
+
+  // Create recent activity from realtime events
+  const recentActivity = useMemo(() => {
+    return (realtimeEvents || []).slice(0, 10).map(event => ({
+      id: event.id,
+      type: event.action === 'created' ? 'bid' as const : 'bid' as const,
+      product: `Product ${event.product_id}`,
+      amount: event.offered_price,
+      time: new Date(event.created_at)
+    }));
   }, [realtimeEvents]);
+
+  // Live ticker events
+  const liveEvents = useMemo(() => {
+    return (realtimeEvents || []).map(event => ({
+      id: event.id,
+      type: 'bid' as const,
+      product: `Товар ${event.product_id.slice(0, 8)}...`,
+      user: event.buyer_id.slice(0, 8),
+      amount: event.offered_price,
+      time: new Date(event.created_at)
+    }));
+  }, [realtimeEvents]);
+
+  const handleFavoriteToggle = (productId: string) => {
+    setFavoriteProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
 
   if (!user) {
     return (
@@ -65,22 +130,24 @@ const BuyerPriceOffers: React.FC = () => {
     );
   }
 
-  const filteredProducts = auctionProducts?.filter(product => 
-    product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.model?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
-
   if (isLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-32 bg-gray-200 rounded-lg"></div>
+          <div className="animate-pulse space-y-6">
+            <div className="h-32 bg-gray-200 rounded-lg"></div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
+                ))}
               </div>
-            ))}
+              <div className="space-y-4">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </Layout>
@@ -90,120 +157,117 @@ const BuyerPriceOffers: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        {/* Hero Section */}
+        <AuctionHero 
+          stats={heroStats} 
+          lastUpdateTime={lastUpdateTime}
+        />
+
+        {/* Live Ticker */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Gavel className="h-6 w-6 text-primary" />
-              <h1 className="text-2xl font-bold text-gray-900">
-                Мои предложения
-              </h1>
-              {/* Enhanced real-time indicator */}
-              {isConnected && (
-                <div className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  Live
-                  {realtimeEvents && realtimeEvents.length > 0 && (
-                    <span className="text-xs bg-green-600 text-white px-1 rounded">
-                      {realtimeEvents.length}
-                    </span>
-                  )}
-                </div>
-              )}
+          <LiveTicker 
+            events={liveEvents}
+            isConnected={isConnected}
+          />
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <AuctionSidebar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              statusFilter={statusFilter}
+              onStatusChange={setStatusFilter}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              offerCounts={offerCounts || { active: 0, cancelled: 0, completed: 0, total: 0 }}
+              recentActivity={recentActivity}
+            />
+          </div>
+
+          {/* Product Grid */}
+          <div className="lg:col-span-3">
+            {/* View Controls */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold">
+                  {processedProducts.length} торгов
+                </h2>
+                {statusFilter !== 'all' && (
+                  <span className="text-sm text-gray-500">
+                    • {statusFilter === 'active' ? 'Активные' : 
+                       statusFilter === 'leading' ? 'Лидируете' :
+                       statusFilter === 'ending' ? 'Заканчиваются' : 'Завершенные'}
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-            
-            {/* Simple connection indicator */}
-            <PusherConnectionIndicator
-              connectionState={connectionState}
-              onReconnect={forceRefresh}
-              lastUpdateTime={lastUpdateTime}
-              realtimeEvents={realtimeEvents}
-              compact={true}
-            />
-          </div>
-          
-          <div className="mb-4">
-            <p className="text-gray-600">
-              Управляйте своими предложениями цены и отслеживайте статус торгов
-            </p>
-          </div>
 
-          {/* Connection status */}
-          <PusherConnectionIndicator
-            connectionState={connectionState}
-            onReconnect={forceRefresh}
-            lastUpdateTime={lastUpdateTime}
-            realtimeEvents={realtimeEvents}
-            compact={false}
-          />
-        </div>
-
-        {/* Status Filter */}
-        {offerCounts && (
-          <OfferStatusFilter
-            activeFilter={statusFilter}
-            onFilterChange={setStatusFilter}
-            counts={offerCounts}
-          />
-        )}
-
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Поиск по товарам..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+            {/* Products Display */}
+            {processedProducts.length === 0 ? (
+              <Card>
+                <CardContent className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <Search className="h-16 w-16 mx-auto" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2 text-gray-900">
+                    {searchTerm ? 'Товары не найдены' : 'Нет торгов'}
+                  </h3>
+                  <p className="text-gray-500">
+                    {searchTerm 
+                      ? 'Попробуйте изменить поисковый запрос' 
+                      : 'Начните участвовать в торгах, чтобы увидеть их здесь'
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className={
+                viewMode === 'grid' 
+                  ? 'grid grid-cols-1 md:grid-cols-2 gap-6' 
+                  : 'space-y-4'
+              }>
+                {processedProducts.map((product) => {
+                  const batchData = batchOffersData?.find(b => b.product_id === product.id);
+                  
+                  return (
+                    <AuctionCard
+                      key={product.id}
+                      product={product}
+                      userOfferPrice={product.user_offer_price}
+                      maxCompetitorPrice={product.max_other_offer}
+                      isUserLeading={product.is_user_leading}
+                      totalOffers={product.offers_count || 0}
+                      expiresAt={product.user_offer_expires_at}
+                      lastUpdateTime={lastUpdateTime}
+                      onFavorite={handleFavoriteToggle}
+                      isFavorite={favoriteProducts.has(product.id)}
+                    />
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Debug info for testing */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
-            <div>Products: {filteredProducts.length}</div>
-            <div>Last Update: {lastUpdateTime?.toISOString()}</div>
-            <div>Events: {realtimeEvents?.length || 0}</div>
-            <div>Batch Data: {batchOffersData?.length || 0}</div>
-          </div>
-        )}
-
-        {filteredProducts.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Gavel className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">
-                {searchTerm ? 'Товары не найдены' : 
-                 statusFilter === 'all' ? 'Нет предложений' : 
-                 statusFilter === 'active' ? 'Нет активных предложений' :
-                 statusFilter === 'cancelled' ? 'Нет отмененных предложений' :
-                 'Нет завершенных предложений'}
-              </h3>
-              <p className="text-gray-500">
-                {searchTerm 
-                  ? 'Попробуйте изменить поисковый запрос' 
-                  : statusFilter === 'all' ? 'Вы пока не делали предложений цены'
-                  : 'Попробуйте выбрать другой фильтр статуса'
-                }
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-4">
-            {filteredProducts.map((product) => (
-              <ProductListItem
-                key={product.id}
-                product={product}
-                batchOffersData={batchOffersData}
-                showOfferStatus={true}
-                showAuctionInfo={true}
-                lastUpdateTime={lastUpdateTime}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </Layout>
   );
