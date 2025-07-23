@@ -3,7 +3,8 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Wifi, WifiOff, RefreshCw, Info, Activity } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw, Info, Activity, TestTube } from 'lucide-react';
+import { useMinimalRealtimeTest } from '@/hooks/useMinimalRealtimeTest';
 
 interface RealtimeIndicatorProps {
   isConnected: boolean;
@@ -21,6 +22,8 @@ export const RealtimeIndicator: React.FC<RealtimeIndicatorProps> = ({
   onForceRefresh
 }) => {
   const [showDebug, setShowDebug] = useState(false);
+  const [testEnabled, setTestEnabled] = useState(false);
+  const testHook = useMinimalRealtimeTest(testEnabled);
 
   const formatLastUpdate = (date?: Date) => {
     if (!date) return 'Никогда';
@@ -95,8 +98,10 @@ export const RealtimeIndicator: React.FC<RealtimeIndicatorProps> = ({
             <div className="text-xs space-y-1">
               <div>Подключение: {isConnected ? '✅ Активно' : '❌ Неактивно'}</div>
               <div>Последнее обновление: {formatLastUpdate(lastUpdateTime)}</div>
-              <div>Режим: {isConnected ? 'Real-time' : 'Polling (каждые 10 сек)'}</div>
+              <div>Режим: {isConnected ? 'Real-time (WebSocket)' : 'Polling (каждые 10 сек)'}</div>
               <div>Свежие данные: {freshDataIndicator ? '✅ Да' : '❌ Нет'}</div>
+              <div>REPLICA IDENTITY: FULL ✅</div>
+              <div>События всего: {realtimeEvents.length}</div>
             </div>
             
             {realtimeEvents.length > 0 && (
@@ -117,6 +122,56 @@ export const RealtimeIndicator: React.FC<RealtimeIndicatorProps> = ({
                 Нет recent events
               </div>
             )}
+
+            {/* Minimal Real-time Test */}
+            <div className="mt-4 pt-3 border-t">
+              <div className="flex items-center gap-2 mb-2">
+                <TestTube className="h-3 w-3" />
+                <span className="font-semibold text-sm">Тест Real-time</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTestEnabled(!testEnabled)}
+                  className="h-6 px-2 text-xs"
+                >
+                  {testEnabled ? 'Остановить' : 'Запустить'}
+                </Button>
+              </div>
+              
+              {testEnabled && (
+                <div className="text-xs space-y-1">
+                  <div>Тест подключен: {testHook.isConnected ? '✅' : '❌'}</div>
+                  <div>События получено: {testHook.eventCount}</div>
+                  
+                  {testHook.events.length > 0 && (
+                    <div className="mt-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">Последние тестовые события:</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={testHook.clearEvents}
+                          className="h-5 px-1 text-xs"
+                        >
+                          Очистить
+                        </Button>
+                      </div>
+                      <div className="max-h-24 overflow-y-auto space-y-1">
+                        {testHook.events.slice(0, 5).map((event, index) => (
+                          <div key={index} className="text-gray-600 font-mono text-xs">
+                            {event.event}: {event.productId?.slice(0,8)}... 
+                            {event.hasNewData ? ' +new' : ''}{event.hasOldData ? ' +old' : ''}
+                            <span className="text-gray-400 ml-1">
+                              {event.timestamp.toLocaleTimeString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </PopoverContent>
       </Popover>

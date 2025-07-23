@@ -19,55 +19,70 @@ export interface AuctionProduct extends Product {
 // Кэш активных продуктов пользователя для быстрой проверки релевантности
 const userActiveProductsCache = new Map<string, Set<string>>();
 
-// Оптимизированная функция проверки релевантности
+// Упрощенная и надежная функция проверки релевантности
 const isRelevantUpdate = async (payload: any, userId: string) => {
+  // Полное логирование payload для диагностики
+  console.log('🔍 Full payload debug:', {
+    eventType: payload.eventType,
+    table: payload.table,
+    schema: payload.schema,
+    new: payload.new,
+    old: payload.old,
+    userId
+  });
+
   const productId = payload.new?.product_id || payload.old?.product_id;
-  if (!productId) return false;
+  const buyerId = payload.new?.buyer_id || payload.old?.buyer_id;
+  
+  if (!productId) {
+    console.warn('⚠️ No product_id in payload');
+    return false;
+  }
 
-  // Проверяем, есть ли у пользователя предложения на этот продукт
-  if (payload.new?.buyer_id === userId || payload.old?.buyer_id === userId) {
-    console.log('📥 Relevant: Direct user offer update', { productId, userId });
+  // Проверка 1: Прямое обновление предложения пользователя
+  if (buyerId === userId) {
+    console.log('✅ Relevant: Direct user offer update', { productId, userId, buyerId });
     return true;
   }
 
-  // Быстрая проверка через кэш
+  // Проверка 2: Быстрая проверка через кэш (с fallback)
   const cachedProducts = userActiveProductsCache.get(userId);
-  if (cachedProducts && cachedProducts.has(productId)) {
-    console.log('📥 Relevant: Cached product match', { productId, userId });
+  if (cachedProducts?.has(productId)) {
+    console.log('✅ Relevant: User has cached active offer on this product', { productId, userId });
     return true;
   }
 
-  // Проверяем в базе данных, есть ли у пользователя активные предложения на этот продукт
+  // Проверка 3: Прямая проверка в БД (упрощенная, без зависимости от кэша)
   try {
     const { data, error } = await supabase
       .from('price_offers')
-      .select('id')
+      .select('id, status')
       .eq('buyer_id', userId)
       .eq('product_id', productId)
       .eq('status', 'pending')
       .limit(1);
 
     if (error) {
-      console.error('❌ Error checking relevance:', error);
-      return false;
+      console.error('❌ Error in DB relevance check:', error);
+      // В случае ошибки БД, считаем релевантным для безопасности
+      return true;
     }
 
     const isRelevant = data && data.length > 0;
     
-    // Обновляем кэш
+    // Обновляем кэш только в случае положительного результата
     if (isRelevant) {
-      if (!cachedProducts) {
-        userActiveProductsCache.set(userId, new Set([productId]));
-      } else {
-        cachedProducts.add(productId);
-      }
+      const userCache = userActiveProductsCache.get(userId) || new Set();
+      userCache.add(productId);
+      userActiveProductsCache.set(userId, userCache);
     }
 
-    console.log('📥 DB relevance check:', { productId, userId, isRelevant });
+    console.log('📊 DB relevance result:', { productId, userId, isRelevant, hasData: !!data?.length });
     return isRelevant;
   } catch (error) {
-    console.error('❌ Error in relevance check:', error);
-    return false;
+    console.error('❌ Exception in relevance check:', error);
+    // В случае исключения, считаем релевантным для безопасности
+    return true;
   }
 };
 
@@ -340,37 +355,53 @@ export const useRealtimeBuyerAuctions = (statusFilter?: string) => {
           table: 'price_offers'
         },
         async (payload) => {
+          const startTime = Date.now();
           const productId = payload.new?.product_id || payload.old?.product_id;
-          console.log('📥 Realtime: Price offer update:', {
+          const buyerId = payload.new?.buyer_id || payload.old?.buyer_id;
+          
+          console.log('📡 Realtime event received:', {
             event: payload.eventType,
             productId,
-            buyerId: payload.new?.buyer_id || payload.old?.buyer_id
+            buyerId,
+            timestamp: new Date().toISOString(),
+            hasNewData: !!payload.new,
+            hasOldData: !!payload.old
           });
           
-          // Добавляем событие в дебаг список
-          const eventDetails = `${payload.eventType}: ${productId} at ${new Date().toLocaleTimeString()}`;
-          setRealtimeEvents(prev => [eventDetails, ...prev.slice(0, 4)]);
+          // Добавляем расширенное событие в дебаг список
+          const eventDetails = `${payload.eventType}: ${productId} (buyer: ${buyerId?.slice(0,8)}...) at ${new Date().toLocaleTimeString()}`;
+          setRealtimeEvents(prev => [eventDetails, ...prev.slice(0, 9)]);
           
           // Проверяем релевантность асинхронно
           const isRelevant = await isRelevantUpdate(payload, user.id);
+          const processingTime = Date.now() - startTime;
           
           if (isRelevant) {
-            // Определяем приоритет обновления
-            const isUserAction = payload.new?.buyer_id === user.id || payload.old?.buyer_id === user.id;
-            const isCompetitorAction = !isUserAction && payload.eventType === 'UPDATE';
+            // Определяем тип и приоритет обновления
+            const isUserAction = buyerId === user.id;
+            const isCompetitorAction = !isUserAction && (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE');
+            const isCriticalUpdate = isCompetitorAction && payload.eventType === 'INSERT';
             
-            // Разные задержки для разных типов событий
-            const delay = isCompetitorAction ? 50 : isUserAction ? 100 : 200;
+            // Оптимизированные задержки
+            const delay = isCriticalUpdate ? 10 : isUserAction ? 20 : isCompetitorAction ? 30 : 100;
             
-            console.log(`⚡ Processing relevant update with ${delay}ms delay:`, {
+            console.log(`⚡ Processing relevant update:`, {
+              productId,
               isUserAction,
               isCompetitorAction,
-              productId
+              isCriticalUpdate,
+              delay,
+              processingTime,
+              eventType: payload.eventType
             });
             
             debouncedInvalidation(`${payload.eventType} on product ${productId}`, delay);
           } else {
-            console.log('⏭️ Skipping irrelevant update');
+            console.log(`⏭️ Skipped irrelevant update (${processingTime}ms):`, {
+              productId,
+              buyerId,
+              eventType: payload.eventType
+            });
           }
         }
       )
