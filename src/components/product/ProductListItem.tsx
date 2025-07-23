@@ -6,7 +6,7 @@ import { MapPin, Eye, Clock, Star, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Product } from '@/types/product';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
-import { AuctionInfoCompact } from '@/components/offers/AuctionInfoCompact';
+// Auction functionality removed
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -265,23 +265,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 <span>Место: {product.place_number}</span>
               </div>
 
-              {/* Auction Info - show only for active offers with auction info enabled */}
-              {showAuctionInfo && 
-               product.user_offer_status === 'pending' && 
-               product.user_offer_price && 
-               product.user_offer_expires_at && (
-                <AuctionInfoCompact
-                  productId={product.id}
-                  sellerId={product.seller_id}
-                  originalPrice={product.price}
-                  userOfferPrice={product.user_offer_price}
-                  maxCompetitorPrice={maxCompetitorPrice}
-                  isUserLeading={isUserLeading}
-                  totalOffers={totalOffers}
-                  expiresAt={product.user_offer_expires_at}
-                  lastUpdateTime={lastUpdateTime}
-                />
-              )}
+              {/* Auction functionality removed - simplified to basic offer display */}
             </div>
           </div>
         </div>

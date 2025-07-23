@@ -7,7 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import OrderConfirmationDialog from "@/components/product/OrderConfirmationDialog";
 import { CommunicationWarningDialog } from "@/components/product/seller/CommunicationWarningDialog";
-import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
+import { SimpleMakeOfferButton } from "@/components/price-offer/SimpleMakeOfferButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useImageCacheManager } from "../images/ImageCacheManager";
@@ -215,7 +215,7 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
             
             {/* Make Offer Button - Mobile Version */}
             <div className="flex-1">
-              <MakeOfferButtonOptimized
+              <SimpleMakeOfferButton
                 product={product}
                 compact
               />

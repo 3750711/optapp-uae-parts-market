@@ -686,14 +686,11 @@ export type Database = {
           created_at: string
           delivery_price: number | null
           description: string | null
-          has_active_offers: boolean | null
           id: string
           last_notification_sent_at: string | null
           location: string | null
           lot_number: number
-          max_offer_price: number | null
           model: string | null
-          offers_count: number | null
           optid_created: string | null
           phone_url: string | null
           place_number: number | null
@@ -718,14 +715,11 @@ export type Database = {
           created_at?: string
           delivery_price?: number | null
           description?: string | null
-          has_active_offers?: boolean | null
           id?: string
           last_notification_sent_at?: string | null
           location?: string | null
           lot_number?: number
-          max_offer_price?: number | null
           model?: string | null
-          offers_count?: number | null
           optid_created?: string | null
           phone_url?: string | null
           place_number?: number | null
@@ -750,14 +744,11 @@ export type Database = {
           created_at?: string
           delivery_price?: number | null
           description?: string | null
-          has_active_offers?: boolean | null
           id?: string
           last_notification_sent_at?: string | null
           location?: string | null
           lot_number?: number
-          max_offer_price?: number | null
           model?: string | null
-          offers_count?: number | null
           optid_created?: string | null
           phone_url?: string | null
           place_number?: number | null
@@ -1296,6 +1287,14 @@ export type Database = {
         Args: { p_login_input: string }
         Returns: Json
       }
+      check_user_pending_offer: {
+        Args: { p_product_id: string; p_user_id: string }
+        Returns: {
+          has_offer: boolean
+          offer_price: number
+          offer_id: string
+        }[]
+      }
       cleanup_expired_email_verification_codes: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1376,44 +1375,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
-      get_competitive_offer_data: {
-        Args: { p_product_id: string; p_user_id?: string }
-        Returns: {
-          max_offer_price: number
-          current_user_is_max: boolean
-          total_offers_count: number
-          current_user_offer_price: number
-        }[]
-      }
       get_email_by_opt_id: {
         Args:
           | { p_opt_id: string }
           | { p_opt_id: string; p_ip_address?: unknown }
         Returns: string
       }
-      get_max_offer_for_product: {
-        Args: { p_product_id: string; p_exclude_user_id?: string }
-        Returns: {
-          max_offer_price: number
-          current_user_is_max: boolean
-          total_offers_count: number
-          current_user_offer_price: number
-        }[]
-      }
       get_next_order_number: {
         Args: Record<PropertyKey, never>
         Returns: number
-      }
-      get_offers_batch: {
-        Args: { p_product_ids: string[]; p_user_id?: string }
-        Returns: {
-          product_id: string
-          max_offer_price: number
-          current_user_is_max: boolean
-          total_offers_count: number
-          current_user_offer_price: number
-          has_pending_offer: boolean
-        }[]
       }
       get_rls_policies_status: {
         Args: Record<PropertyKey, never>

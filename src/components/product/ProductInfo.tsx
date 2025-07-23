@@ -12,7 +12,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
-import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
+import { SimpleMakeOfferButton } from "@/components/price-offer/SimpleMakeOfferButton";
 import { useImageCacheManager } from "./images/ImageCacheManager";
 
 interface ProductInfoProps {
@@ -234,7 +234,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             Купить товар
           </Button>
           
-          <MakeOfferButtonOptimized
+          <SimpleMakeOfferButton
             product={product}
           />
         </div>

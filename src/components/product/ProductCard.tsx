@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, MapPin, Phone, MessageCircle, ExternalLink, ShoppingCart } from "lucide-react";
 import ProductCarousel from "./ProductCarousel";
-import { MakeOfferButtonOptimized } from "@/components/price-offer/MakeOfferButtonOptimized";
+import { SimpleMakeOfferButton } from "@/components/price-offer/SimpleMakeOfferButton";
 import { SimpleOfferButton } from "@/components/price-offer/SimpleOfferButton";
 import { BlitzPriceSection } from "@/components/price-offer/BlitzPriceSection";
 import { formatPrice } from "@/utils/formatPrice";
@@ -271,9 +271,8 @@ const ProductCard = memo(({
               product={productForOfferButton}
             />
           ) : (
-            <MakeOfferButtonOptimized 
-              product={productForOfferButton} 
-              batchOffersData={batchOffersData}
+            <SimpleMakeOfferButton 
+              product={productForOfferButton}
             />
           )
         )}

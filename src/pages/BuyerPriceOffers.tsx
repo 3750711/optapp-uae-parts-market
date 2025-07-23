@@ -7,9 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBuyerAuctionProducts, useBuyerOfferCounts } from '@/hooks/useBuyerAuctionProducts';
-import { AuctionProductCard } from '@/components/auction/AuctionProductCard';
-import { PusherConnectionIndicator } from '@/components/offers/PusherConnectionIndicator';
+import { useSimpleBuyerOffers, useSimpleBuyerOfferCounts } from '@/hooks/useSimpleBuyerOffers';
+import { SimpleOfferCard } from '@/components/offers/SimpleOfferCard';
 import Layout from '@/components/layout/Layout';
 
 const BuyerPriceOffers: React.FC = () => {
@@ -19,50 +18,44 @@ const BuyerPriceOffers: React.FC = () => {
   const [favoriteProducts, setFavoriteProducts] = useState<Set<string>>(new Set());
   
   const { 
-    data: auctionProducts, 
+    data: offerProducts, 
     isLoading, 
-    lastUpdateTime,
-    isConnected,
-    connectionState,
-    realtimeEvents,
     forceRefresh
-  } = useBuyerAuctionProducts(statusFilter);
+  } = useSimpleBuyerOffers(statusFilter);
 
-  const { data: offerCounts } = useBuyerOfferCounts();
+  const { data: offerCounts } = useSimpleBuyerOfferCounts();
 
   // Process and filter products
   const filteredProducts = useMemo(() => {
-    if (!auctionProducts) return [];
+    if (!offerProducts) return [];
 
-    return auctionProducts.filter(product => {
+    return offerProducts.filter(product => {
       const matchesSearch = product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            product.brand.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     });
-  }, [auctionProducts, searchTerm]);
+  }, [offerProducts, searchTerm]);
 
-  // Calculate stats from offer counts or fallback to old method
+  // Calculate stats from offer counts
   const stats = useMemo(() => {
     if (offerCounts) {
-      const totalValue = auctionProducts?.reduce((sum, p) => sum + (p.user_offer_price || 0), 0) || 0;
+      const totalValue = offerProducts?.reduce((sum, p) => sum + (p.user_offer_price || 0), 0) || 0;
       return {
         active: offerCounts.active,
-        leading: auctionProducts?.filter(p => p.is_user_leading).length || 0,
         total: offerCounts.total,
         totalValue
       };
     }
     
-    // Fallback to old calculation
-    if (!auctionProducts) return { active: 0, leading: 0, total: 0, totalValue: 0 };
+    // Fallback calculation
+    if (!offerProducts) return { active: 0, total: 0, totalValue: 0 };
     
     return {
-      active: auctionProducts.filter(p => p.user_offer_status === 'pending').length,
-      leading: auctionProducts.filter(p => p.is_user_leading).length,
-      total: auctionProducts.length,
-      totalValue: auctionProducts.reduce((sum, p) => sum + (p.user_offer_price || 0), 0)
+      active: offerProducts.filter(p => p.user_offer_status === 'pending').length,
+      total: offerProducts.length,
+      totalValue: offerProducts.reduce((sum, p) => sum + (p.user_offer_price || 0), 0)
     };
-  }, [auctionProducts, offerCounts]);
+  }, [offerProducts, offerCounts]);
 
   const getStatusProducts = (status: string) => {
     if (!filteredProducts) return [];
@@ -70,8 +63,6 @@ const BuyerPriceOffers: React.FC = () => {
     switch (status) {
       case 'active':
         return filteredProducts.filter(p => p.user_offer_status === 'pending');
-      case 'leading':
-        return filteredProducts.filter(p => p.is_user_leading);
       case 'completed':
         return filteredProducts.filter(p => ['expired', 'rejected', 'accepted'].includes(p.user_offer_status || ''));
       default:
@@ -133,45 +124,28 @@ const BuyerPriceOffers: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Header with Connection Status */}
+        {/* Header */}
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Мои торги
+            Мои предложения
           </h1>
           <p className="text-muted-foreground text-lg">
-            Отслеживайте свои ставки и торги в режиме реального времени
+            Управляйте своими предложениями цены
           </p>
-          
-          {/* Real-time Connection Status */}
-          <div className="flex justify-center">
-            <PusherConnectionIndicator
-              connectionState={connectionState}
-              onReconnect={forceRefresh}
-              lastUpdateTime={lastUpdateTime}
-              realtimeEvents={realtimeEvents}
-              compact={true}
-            />
-          </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className={stats.active > 0 ? "border-blue-200 bg-blue-50/30" : ""}>
             <CardContent className="p-6 text-center">
               <div className="text-2xl font-bold text-blue-600">{stats.active}</div>
-              <div className="text-sm text-muted-foreground">Активные торги</div>
-            </CardContent>
-          </Card>
-          <Card className={stats.leading > 0 ? "border-green-200 bg-green-50/30" : ""}>
-            <CardContent className="p-6 text-center">
-              <div className="text-2xl font-bold text-green-600">{stats.leading}</div>
-              <div className="text-sm text-muted-foreground">Лидируете</div>
+              <div className="text-sm text-muted-foreground">Активные предложения</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6 text-center">
               <div className="text-2xl font-bold text-purple-600">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Всего торгов</div>
+              <div className="text-sm text-muted-foreground">Всего предложений</div>
             </CardContent>
           </Card>
           <Card>
@@ -197,10 +171,9 @@ const BuyerPriceOffers: React.FC = () => {
 
         {/* Tabs */}
         <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="all">Все ({filteredProducts.length})</TabsTrigger>
             <TabsTrigger value="active">Активные ({getStatusProducts('active').length})</TabsTrigger>
-            <TabsTrigger value="leading">Лидирую ({getStatusProducts('leading').length})</TabsTrigger>
             <TabsTrigger value="completed">Завершенные ({getStatusProducts('completed').length})</TabsTrigger>
           </TabsList>
 
@@ -225,10 +198,9 @@ const BuyerPriceOffers: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {getStatusProducts(statusFilter).map((product) => (
-                  <AuctionProductCard
+                  <SimpleOfferCard
                     key={product.id}
                     product={product}
-                    lastUpdateTime={lastUpdateTime}
                     onFavorite={handleFavoriteToggle}
                     isFavorite={favoriteProducts.has(product.id)}
                   />
@@ -238,26 +210,6 @@ const BuyerPriceOffers: React.FC = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Debug Info - only in development */}
-        {process.env.NODE_ENV === 'development' && (
-          <Card className="mt-8">
-            <CardContent className="p-4">
-              <h3 className="font-semibold mb-2">Диагностика real-time системы</h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p>Статус подключения: <span className={isConnected ? 'text-green-600' : 'text-red-600'}>{isConnected ? 'Подключено' : 'Отключено'}</span></p>
-                  <p>Последнее обновление: {lastUpdateTime?.toLocaleTimeString('ru-RU')}</p>
-                  <p>Всего продуктов: {auctionProducts?.length || 0}</p>
-                </div>
-                <div>
-                  <p>Последние события: {realtimeEvents?.length || 0}</p>
-                  <p>Фильтр: {statusFilter}</p>
-                  <p>Поиск: {searchTerm || 'нет'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </div>
     </Layout>
   );
