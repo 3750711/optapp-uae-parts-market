@@ -203,7 +203,7 @@ export const AdminFreeOrderForm = () => {
     if (!canShowPreview()) {
       toast({
         title: "Заполните обязательные поля",
-        description: "Необходимо заполнить название, цену, продавца и OPT_ID покупателя",
+        description: "Необходимо заполнить название, цену, бренд, продавца и OPT_ID покупателя",
         variant: "destructive",
       });
       return;
@@ -227,13 +227,15 @@ export const AdminFreeOrderForm = () => {
     const isValid = formData.title && 
                    formData.price && 
                    formData.sellerId && 
-                   formData.buyerOptId;
+                   formData.buyerOptId &&
+                   formData.brandId;
     
     console.log('🔍 Form validation result:', {
       title: !!formData.title,
       price: !!formData.price,
       sellerId: !!formData.sellerId,
       buyerOptId: !!formData.buyerOptId,
+      brandId: !!formData.brandId,
       isValid: isValid
     });
     

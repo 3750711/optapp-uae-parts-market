@@ -176,8 +176,8 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     e.preventDefault();
     
     // Validate required fields
-    if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
-      throw new Error('Пожалуйста, заполните все обязательные поля');
+    if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId || !formData.brandId) {
+      throw new Error('Пожалуйста, заполните все обязательные поля включая бренд');
     }
 
     try {

@@ -96,7 +96,7 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
           {/* Бренд и модель */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="brandId">Бренд</Label>
+              <Label htmlFor="brandId">Бренд *</Label>
               {isLoadingBrands ? (
                 <Skeleton className="h-10 w-full" />
               ) : (
