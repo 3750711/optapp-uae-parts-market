@@ -26,9 +26,20 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
   
   try {
     // Prepare order notification message with the updated format according to requirements
-    const statusText = orderData.status === 'created' ? 'Создан' : 
-                      orderData.status === 'seller_confirmed' ? 'Подтвержден продавцом' : 
-                      orderData.status;
+    const getStatusText = (status: string) => {
+      switch (status) {
+        case 'created': return 'Создан';
+        case 'seller_confirmed': return 'Подтвержден продавцом';
+        case 'admin_confirmed': return 'Подтвержден администратором';
+        case 'processed': return 'Зарегистрирован';
+        case 'shipped': return 'Отправлен';
+        case 'delivered': return 'Доставлен';
+        case 'cancelled': return 'Отменен';
+        default: return status;
+      }
+    };
+    
+    const statusText = getStatusText(orderData.status);
                       
     const deliveryMethodText = orderData.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
                               orderData.delivery_method === 'self_pickup' ? 'Самовывоз' : 
