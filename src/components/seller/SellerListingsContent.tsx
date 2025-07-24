@@ -27,6 +27,8 @@ const SellerListingsContent = () => {
   // Search states
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSearchTerm, setActiveSearchTerm] = useState("");
+  const [lotSearchQuery, setLotSearchQuery] = useState("");
+  const [activeLotSearchTerm, setActiveLotSearchTerm] = useState("");
   
   const {
     data,
@@ -38,7 +40,7 @@ const SellerListingsContent = () => {
     error,
     refetch
   } = useInfiniteQuery({
-    queryKey: ['seller-products-infinite', user?.id, activeSearchTerm],
+    queryKey: ['seller-products-infinite', user?.id, activeSearchTerm, activeLotSearchTerm],
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) {
         prodError('User not authenticated in seller listings');
@@ -83,10 +85,17 @@ const SellerListingsContent = () => {
           `)
           .eq('seller_id', user.id);
 
-        // Add search filter if activeSearchTerm is provided
+        // Add search filters
         if (activeSearchTerm && activeSearchTerm.trim() !== '') {
           const searchTerm = activeSearchTerm.trim();
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
+        }
+        
+        if (activeLotSearchTerm && activeLotSearchTerm.trim() !== '') {
+          const lotNumber = parseInt(activeLotSearchTerm.trim());
+          if (!isNaN(lotNumber)) {
+            query = query.eq('lot_number', lotNumber);
+          }
         }
 
         const { data, error } = await query
@@ -124,11 +133,14 @@ const SellerListingsContent = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveSearchTerm(searchQuery);
+    setActiveLotSearchTerm(lotSearchQuery);
   };
 
   const handleClearSearch = () => {
     setSearchQuery("");
     setActiveSearchTerm("");
+    setLotSearchQuery("");
+    setActiveLotSearchTerm("");
   };
 
   const handleStatusChange = async () => {
@@ -139,12 +151,12 @@ const SellerListingsContent = () => {
       description: "Изменения применены",
     });
     queryClient.invalidateQueries({
-      queryKey: ['seller-products-infinite', user?.id, activeSearchTerm],
+      queryKey: ['seller-products-infinite', user?.id, activeSearchTerm, activeLotSearchTerm],
       refetchType: 'none'
     });
     setTimeout(() => {
       queryClient.refetchQueries({
-        queryKey: ['seller-products-infinite', user?.id, activeSearchTerm],
+        queryKey: ['seller-products-infinite', user?.id, activeSearchTerm, activeLotSearchTerm],
         type: 'active'
       });
     }, 1000);
@@ -288,33 +300,47 @@ const SellerListingsContent = () => {
       {/* Search Form */}
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleSearchSubmit} className="flex gap-3">
-            <div className="flex-1">
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск по названию, бренду или модели..."
-                className="w-full"
-              />
-            </div>
-            <Button type="submit" className="px-6">
-              <Search className="h-4 w-4 mr-2" />
-              Найти
-            </Button>
-            {activeSearchTerm && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClearSearch}
-                className="px-4"
-              >
-                <X className="h-4 w-4" />
+          <form onSubmit={handleSearchSubmit} className="space-y-3">
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Поиск по названию, бренду или модели..."
+                  className="w-full"
+                />
+              </div>
+              <div className="w-32">
+                <Input
+                  type="number"
+                  value={lotSearchQuery}
+                  onChange={(e) => setLotSearchQuery(e.target.value)}
+                  placeholder="№ лота"
+                  className="w-full"
+                />
+              </div>
+              <Button type="submit" className="px-6">
+                <Search className="h-4 w-4 mr-2" />
+                Найти
               </Button>
-            )}
+              {(activeSearchTerm || activeLotSearchTerm) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleClearSearch}
+                  className="px-4"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </form>
-          {activeSearchTerm && (
+          {(activeSearchTerm || activeLotSearchTerm) && (
             <div className="mt-3 text-sm text-muted-foreground">
-              Результаты поиска по запросу: "{activeSearchTerm}"
+              Результаты поиска:
+              {activeSearchTerm && <span> текст "{activeSearchTerm}"</span>}
+              {activeSearchTerm && activeLotSearchTerm && <span>, </span>}
+              {activeLotSearchTerm && <span> лот №{activeLotSearchTerm}</span>}
             </div>
           )}
         </CardContent>
