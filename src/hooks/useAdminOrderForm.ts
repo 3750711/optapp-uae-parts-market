@@ -72,12 +72,17 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos, on
         }
       }
 
+      // Validate required fields
+      if (!values.brand || values.brand.trim() === '') {
+        throw new Error('Поле "Бренд" обязательно для заполнения');
+      }
+
       // Update order data - let DB trigger handle notifications for status changes
       const updateData: any = {
         order_number: newOrderNumber || order.order_number,
         title: values.title,
-        brand: values.brand || null,
-        model: values.model || null,
+        brand: values.brand.trim() || order.brand, // Use existing brand if new one is empty
+        model: values.model?.trim() || '', // Use empty string instead of null
         price: parseFloat(values.price) || 0,
         place_number: parseInt(values.place_number, 10) || 1,
         description: values.description || null,
@@ -108,8 +113,8 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos, on
       const updatedOrderData = {
         order_number: parseInt(values.order_number, 10) || order?.order_number,
         title: values.title,
-        brand: values.brand || null,
-        model: values.model || null,
+        brand: values.brand.trim() || order?.brand,
+        model: values.model?.trim() || '',
         price: parseFloat(values.price) || 0,
         place_number: parseInt(values.place_number, 10) || 1,
         status: values.status,
