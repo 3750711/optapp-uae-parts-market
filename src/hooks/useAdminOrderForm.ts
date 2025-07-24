@@ -13,9 +13,10 @@ interface UseAdminOrderFormProps {
   onClose: () => void;
   orderImages: string[];
   orderVideos: string[];
+  onStatusChange?: (orderId: string, newStatus: string) => Promise<void>;
 }
 
-export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos }: UseAdminOrderFormProps) => {
+export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos, onStatusChange }: UseAdminOrderFormProps) => {
   const queryClient = useQueryClient();
 
   const form = useForm({
@@ -54,6 +55,14 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos }: 
     mutationFn: async (values: any) => {
       if (!order?.id) throw new Error("ID заказа отсутствует");
 
+      // Check if status changed and handle it separately with notifications
+      const statusChanged = values.status !== order.status;
+      
+      // If status changed and we have onStatusChange, use it first
+      if (statusChanged && onStatusChange) {
+        await onStatusChange(order.id, values.status);
+      }
+
       // Проверяем уникальность номера заказа если он изменился
       const newOrderNumber = parseInt(values.order_number, 10);
       if (newOrderNumber && newOrderNumber !== order.order_number) {
@@ -71,22 +80,28 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos }: 
         }
       }
 
-      // 1. Обновляем основные данные заказа и массив изображений
+      // Update order data (status already updated via onStatusChange if it changed)
+      const updateData: any = {
+        order_number: newOrderNumber || order.order_number,
+        title: values.title,
+        brand: values.brand || null,
+        model: values.model || null,
+        price: parseFloat(values.price) || 0,
+        place_number: parseInt(values.place_number, 10) || 1,
+        description: values.description || null,
+        delivery_price_confirm: parseFloat(values.delivery_price_confirm) || null,
+        delivery_method: values.delivery_method,
+        images: orderImages,
+      };
+
+      // Only include status if we didn't handle it separately
+      if (!statusChanged || !onStatusChange) {
+        updateData.status = values.status;
+      }
+
       const { error: orderUpdateError } = await supabase
         .from('orders')
-        .update({
-          order_number: newOrderNumber || order.order_number,
-          title: values.title,
-          brand: values.brand || null,
-          model: values.model || null,
-          price: parseFloat(values.price) || 0,
-          place_number: parseInt(values.place_number, 10) || 1,
-          status: values.status,
-          description: values.description || null,
-          delivery_price_confirm: parseFloat(values.delivery_price_confirm) || null,
-          delivery_method: values.delivery_method,
-          images: orderImages,
-        })
+        .update(updateData)
         .eq('id', order.id);
       
       if (orderUpdateError) throw orderUpdateError;

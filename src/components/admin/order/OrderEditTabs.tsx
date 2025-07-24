@@ -16,6 +16,7 @@ interface OrderEditTabsProps {
   onImagesChange: (urls: string[]) => void;
   onVideosChange: (urls: string[]) => void;
   onVideoDelete: (url: string) => void;
+  onStatusChange?: (orderId: string, newStatus: string) => Promise<void>;
 }
 
 export const OrderEditTabs: React.FC<OrderEditTabsProps> = ({
@@ -25,7 +26,8 @@ export const OrderEditTabs: React.FC<OrderEditTabsProps> = ({
   orderVideos,
   onImagesChange,
   onVideosChange,
-  onVideoDelete
+  onVideoDelete,
+  onStatusChange
 }) => {
   const isMobile = useIsMobile();
 
@@ -83,7 +85,7 @@ export const OrderEditTabs: React.FC<OrderEditTabsProps> = ({
       </TabsList>
 
       <TabsContent value="basic" className="mt-0">
-        <OrderBasicInfoTab form={form} order={order} />
+        <OrderBasicInfoTab form={form} order={order} onStatusChange={onStatusChange} />
       </TabsContent>
 
       <TabsContent value="media" className="mt-0">

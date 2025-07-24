@@ -26,9 +26,10 @@ import { useIsMobile } from '@/hooks/use-mobile';
 interface OrderBasicInfoTabProps {
   form: any;
   order: any;
+  onStatusChange?: (orderId: string, newStatus: string) => Promise<void>;
 }
 
-export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, order }) => {
+export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, order, onStatusChange }) => {
   const isMobile = useIsMobile();
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
   const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>({});
@@ -369,7 +370,22 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
                   <FormLabel className="text-sm md:text-base">Статус</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={async (newStatus) => {
+                      field.onChange(newStatus);
+                      // If onStatusChange is available and status actually changed, call it
+                      if (onStatusChange && order?.id && newStatus !== order.status) {
+                        try {
+                          await onStatusChange(order.id, newStatus);
+                        } catch (error) {
+                          console.error('Error changing status from form:', error);
+                          // Revert the form field on error
+                          field.onChange(order.status);
+                        }
+                      }
+                    }} 
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger className="h-12 md:h-10">
                         <SelectValue placeholder="Выберите статус" />
