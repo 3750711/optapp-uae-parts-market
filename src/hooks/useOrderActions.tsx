@@ -325,6 +325,8 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
     if (!selectedOrder) return;
     
     try {
+      console.log('Updating order status:', { orderId, newStatus, userId: supabase.auth.getUser() });
+      
       // Оптимистично обновляем кэш
       queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
         if (!oldData?.data) return oldData;
@@ -339,14 +341,18 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
         };
       });
 
+      // Simplified update query without complex joins
       const { data: updatedOrder, error } = await supabase
         .from('orders')
         .update({ status: newStatus })
         .eq('id', orderId)
-        .select('*, seller:profiles!orders_seller_id_fkey(*)')
+        .select()
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('Order update error:', error);
+        throw error;
+      }
       
       try {
         const { data: orderImages } = await supabase
