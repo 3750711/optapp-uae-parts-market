@@ -27,11 +27,13 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
 import { UserEditDialogProps, UserFormValues } from './types';
 import { UserEditForm } from './UserEditForm';
 
 export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps) => {
   const { toast } = useToast();
+  const { checkTokenValidity, forceRefreshSession } = useAuth();
   const isMobile = useIsMobile();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [pendingValues, setPendingValues] = React.useState<UserFormValues | null>(null);
@@ -47,6 +49,16 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
       
       console.log("Submitting user edit for:", user?.id, "with values:", values);
       
+      // Check token validity before proceeding
+      const isTokenValid = await checkTokenValidity();
+      if (!isTokenValid) {
+        console.log("Token is invalid, attempting to refresh...");
+        const refreshSuccess = await forceRefreshSession();
+        if (!refreshSuccess) {
+          throw new Error("Authentication session expired. Please log in again.");
+        }
+      }
+      
       const cleanedValues = Object.entries(values).reduce((acc, [key, value]) => {
         if (key === 'rating' && value) {
           acc[key] = parseFloat(value as string);
@@ -56,31 +68,59 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
         return acc;
       }, {} as Record<string, any>);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(cleanedValues)
-        .eq('id', user!.id);
+      // Use secure RPC function for admin updates
+      const { data, error } = await supabase.rpc('secure_update_profile', {
+        p_user_id: user!.id,
+        p_updates: cleanedValues
+      });
 
       if (error) {
         console.error("Error updating user:", error);
-        toast({
-          title: "Ошибка",
-          description: `Не удалось обновить данные пользователя: ${error.message}`,
-          variant: "destructive",
-        });
-      } else {
-        console.log("User updated successfully");
-        toast({
-          title: "Успех",
-          description: "Данные пользователя обновлены",
-        });
-        if (onSuccess) onSuccess();
+        
+        // Check if it's an authentication error and try to recover
+        if (error.message?.includes('auth') || error.message?.includes('token') || error.message?.includes('session')) {
+          console.log("Authentication error detected, attempting session refresh...");
+          const refreshSuccess = await forceRefreshSession();
+          if (refreshSuccess) {
+            // Retry the operation after refreshing
+            const { data: retryData, error: retryError } = await supabase.rpc('secure_update_profile', {
+              p_user_id: user!.id,
+              p_updates: cleanedValues
+            });
+            
+            if (retryError) {
+              throw retryError;
+            }
+            
+            if (!retryData?.success) {
+              throw new Error(retryData?.message || 'Failed to update profile after session refresh');
+            }
+          } else {
+            throw new Error("Session refresh failed. Please log in again.");
+          }
+        } else {
+          throw error;
+        }
+      } else if (!data?.success) {
+        throw new Error(data?.message || 'Failed to update profile');
       }
-    } catch (err) {
+
+      console.log("User updated successfully");
+      toast({
+        title: "Успех",
+        description: "Данные пользователя обновлены",
+      });
+      if (onSuccess) onSuccess();
+    } catch (err: any) {
       console.error("Exception updating user:", err);
+      
+      const errorMessage = err.message?.includes('auth') || err.message?.includes('token') || err.message?.includes('session')
+        ? "Ошибка аутентификации. Попробуйте обновить страницу и войти заново."
+        : `Не удалось обновить данные пользователя: ${err.message}`;
+        
       toast({
         title: "Ошибка",
-        description: "Произошла непредвиденная ошибка при обновлении пользователя",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

@@ -18,6 +18,8 @@ interface AuthContextType {
   updateProfile: (updates: Partial<ProfileType>) => Promise<{ error: any }>;
   refreshProfile: () => Promise<void>;
   refreshAdminStatus: () => Promise<void>;
+  checkTokenValidity: () => Promise<boolean>;
+  forceRefreshSession: () => Promise<boolean>;
   isLoading: boolean;
   isProfileLoading: boolean;
 }
@@ -147,6 +149,65 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await fetchUserProfile(user.id);
     }
   }, [user, fetchUserProfile]);
+
+  // Функция проверки валидности токена
+  const checkTokenValidity = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.log('No access token found');
+        return false;
+      }
+
+      // Check if token is expired
+      const now = Math.floor(Date.now() / 1000);
+      const tokenExpiry = session.expires_at || 0;
+      
+      if (now >= tokenExpiry) {
+        console.log('Token has expired');
+        return false;
+      }
+
+      // Test token with a simple request
+      const { error } = await supabase.auth.getUser();
+      if (error) {
+        console.log('Token validation failed:', error.message);
+        return false;
+      }
+
+      console.log('Token is valid');
+      return true;
+    } catch (error) {
+      console.error('Error checking token validity:', error);
+      return false;
+    }
+  }, []);
+
+  // Функция принудительного обновления сессии
+  const forceRefreshSession = useCallback(async () => {
+    try {
+      console.log('Forcing session refresh...');
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('Failed to refresh session:', error);
+        return false;
+      }
+
+      if (data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        console.log('Session refreshed successfully');
+        return true;
+      }
+
+      console.log('No session returned from refresh');
+      return false;
+    } catch (error) {
+      console.error('Error during session refresh:', error);
+      return false;
+    }
+  }, []);
 
   // Мемоизированная функция обновления профиля с безопасностью
   const updateProfile = useCallback(async (updates: Partial<ProfileType>) => {
@@ -339,9 +400,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateProfile,
     refreshProfile,
     refreshAdminStatus,
+    checkTokenValidity,
+    forceRefreshSession,
     isLoading,
     isProfileLoading
-  }), [user, profile, session, isAdmin, signUp, signIn, signInWithTelegram, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading, isProfileLoading]);
+  }), [user, profile, session, isAdmin, signUp, signIn, signInWithTelegram, signOut, updateProfile, refreshProfile, refreshAdminStatus, checkTokenValidity, forceRefreshSession, isLoading, isProfileLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>
