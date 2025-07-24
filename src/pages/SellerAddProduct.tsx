@@ -287,30 +287,25 @@ const SellerAddProduct = () => {
 
       console.log('✅ Product created:', product.id);
 
-      // Add images with improved error handling
-      const imageInsertErrors: { url: string; error: any }[] = [];
-      for (const url of imageUrls) {
-        const { error: imageError } = await supabase
-          .from('product_images')
-          .insert({
-            product_id: product.id,
-            url: url,
-            is_primary: url === primaryImage
-          });
-          
-        if (imageError) {
-          console.error('❌ Error adding image:', imageError);
-          imageInsertErrors.push({ url, error: imageError });
-        }
+      // Add images using mass insert (like admin)
+      const imageInserts = imageUrls.map(url => ({
+        product_id: product.id,
+        url: url,
+        is_primary: url === primaryImage
+      }));
+      
+      const { error: imageError } = await supabase
+        .from('product_images')
+        .insert(imageInserts);
+        
+      if (imageError) {
+        console.error('❌ Error adding images:', imageError);
+        // Rollback: delete the product if image upload fails
+        await supabase.from('products').delete().eq('id', product.id);
+        throw new Error(`Ошибка добавления изображений: ${imageError.message}`);
       }
-
-      if (imageInsertErrors.length > 0) {
-        toast({
-            title: "Ошибка при сохранении изображений",
-            description: `Не удалось сохранить ${imageInsertErrors.length} из ${imageUrls.length} изображений. Вы можете добавить их позже через редактирование товара.`,
-            variant: "destructive",
-        });
-      }
+      
+      console.log(`✅ ${imageUrls.length} images inserted for product ${product.id}`);
 
       // Extract public_id from primary image and update product with Cloudinary data
       if (primaryImage) {
@@ -347,19 +342,22 @@ const SellerAddProduct = () => {
         }
       }
 
-      // Add videos if any
+      // Add videos using mass insert (like admin)
       if (videoUrls.length > 0) {
-        for (const videoUrl of videoUrls) {
-          const { error: videoError } = await supabase
-            .from('product_videos')
-            .insert({
-              product_id: product.id,
-              url: videoUrl
-            });
-            
-          if (videoError) {
-            console.error('❌ Error adding video:', videoError);
-          }
+        const videoInserts = videoUrls.map(videoUrl => ({
+          product_id: product.id,
+          url: videoUrl
+        }));
+        
+        const { error: videoError } = await supabase
+          .from('product_videos')
+          .insert(videoInserts);
+          
+        if (videoError) {
+          console.error('❌ Error adding videos:', videoError);
+          // Non-critical error - don't rollback for videos
+        } else {
+          console.log(`✅ ${videoUrls.length} videos inserted for product ${product.id}`);
         }
       }
 
