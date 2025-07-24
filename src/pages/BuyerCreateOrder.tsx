@@ -458,19 +458,8 @@ const BuyerCreateOrder = () => {
         }
       }
 
-      // Send notification to Telegram with explicit 'create' action
-      try {
-        console.log("Sending Telegram notification for new order creation");
-        await supabase.functions.invoke('send-telegram-notification', {
-          body: { 
-            order: { ...createdOrder[0], images: productImages },
-            action: 'create'
-          }
-        });
-        console.log("Telegram notification sent for new order");
-      } catch (notifyError) {
-        console.error('Failed to send order notification:', notifyError);
-      }
+      // Уведомления будут отправлены автоматически через триггеры базы данных
+      console.log("Order created, notifications will be sent via database triggers");
 
       toast({
         title: "Заказ создан",

@@ -338,27 +338,8 @@ const SellerSellProduct = () => {
         console.error("Error fetching created order:", fetchError);
       }
 
-      // Отправляем Telegram уведомление о создании заказа
-      if (createdOrder) {
-        try {
-          console.log("Sending Telegram notification for order creation:", createdOrder);
-          
-          const { error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
-            body: {
-              order: createdOrder,
-              action: 'create'
-            }
-          });
-
-          if (notificationError) {
-            console.error("Error sending order creation notification:", notificationError);
-          } else {
-            console.log("Order creation notification sent successfully");
-          }
-        } catch (notificationError) {
-          console.error("Exception while sending order notification:", notificationError);
-        }
-      }
+      // Уведомления будут отправлены автоматически через триггеры базы данных
+      console.log("Order created, notifications will be sent via database triggers");
 
       toast({
         title: "Заказ создан",
