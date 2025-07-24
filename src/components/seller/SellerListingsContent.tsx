@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,8 +10,10 @@ import { ProductProps } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { useIntersection } from "@/hooks/useIntersection";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, Search, X } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerListingsSkeleton";
 import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
 
@@ -21,6 +23,10 @@ const SellerListingsContent = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
   const productsPerPage = 12;
+  
+  // Search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeSearchTerm, setActiveSearchTerm] = useState("");
   
   const {
     data,
@@ -32,7 +38,7 @@ const SellerListingsContent = () => {
     error,
     refetch
   } = useInfiniteQuery({
-    queryKey: ['seller-products-infinite', user?.id],
+    queryKey: ['seller-products-infinite', user?.id, activeSearchTerm],
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) {
         prodError('User not authenticated in seller listings');
@@ -56,7 +62,7 @@ const SellerListingsContent = () => {
           throw new Error(`Ошибка подключения: ${connectionError.message}`);
         }
         
-        const { data, error } = await supabase
+        let query = supabase
           .from('products')
           .select(`
             id,
@@ -75,7 +81,15 @@ const SellerListingsContent = () => {
               is_primary
             )
           `)
-          .eq('seller_id', user.id)
+          .eq('seller_id', user.id);
+
+        // Add search filter if activeSearchTerm is provided
+        if (activeSearchTerm && activeSearchTerm.trim() !== '') {
+          const searchTerm = activeSearchTerm.trim();
+          query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
+        }
+
+        const { data, error } = await query
           .order('created_at', { ascending: false })
           .range(from, to);
 
@@ -106,6 +120,17 @@ const SellerListingsContent = () => {
     refetchOnMount: false,
   });
 
+  // Search handlers
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveSearchTerm(searchQuery);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setActiveSearchTerm("");
+  };
+
   const handleStatusChange = async () => {
     devLog("Product status changed, applying optimistic update");
     
@@ -114,12 +139,12 @@ const SellerListingsContent = () => {
       description: "Изменения применены",
     });
     queryClient.invalidateQueries({
-      queryKey: ['seller-products-infinite', user?.id],
+      queryKey: ['seller-products-infinite', user?.id, activeSearchTerm],
       refetchType: 'none'
     });
     setTimeout(() => {
       queryClient.refetchQueries({
-        queryKey: ['seller-products-infinite', user?.id],
+        queryKey: ['seller-products-infinite', user?.id, activeSearchTerm],
         type: 'active'
       });
     }, 1000);
@@ -260,9 +285,44 @@ const SellerListingsContent = () => {
         </Badge>
       </div>
       
+      {/* Search Form */}
+      <Card>
+        <CardContent className="pt-6">
+          <form onSubmit={handleSearchSubmit} className="flex gap-3">
+            <div className="flex-1">
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по названию, бренду или модели..."
+                className="w-full"
+              />
+            </div>
+            <Button type="submit" className="px-6">
+              <Search className="h-4 w-4 mr-2" />
+              Найти
+            </Button>
+            {activeSearchTerm && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClearSearch}
+                className="px-4"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </form>
+          {activeSearchTerm && (
+            <div className="mt-3 text-sm text-muted-foreground">
+              Результаты поиска по запросу: "{activeSearchTerm}"
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      
       {mappedProducts.length > 0 ? (
         <>
-          <ProductGrid 
+          <ProductGrid
             products={mappedProducts} 
             showAllStatuses={true}
             showSoldButton={true}
