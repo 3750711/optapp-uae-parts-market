@@ -1496,6 +1496,10 @@ export type Database = {
           model_name: string
         }[]
       }
+      secure_update_profile: {
+        Args: { p_user_id: string; p_updates: Json }
+        Returns: Json
+      }
       seller_create_order: {
         Args:
           | {
