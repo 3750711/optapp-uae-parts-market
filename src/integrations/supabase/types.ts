@@ -1575,6 +1575,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      validate_profile_update: {
+        Args: {
+          p_user_id: string
+          p_new_user_type: Database["public"]["Enums"]["user_type"]
+          p_new_verification_status: Database["public"]["Enums"]["verification_status"]
+          p_new_is_trusted_seller: boolean
+        }
+        Returns: boolean
+      }
       verify_and_reset_password_v2: {
         Args: { p_email: string; p_code: string; p_new_password: string }
         Returns: Json

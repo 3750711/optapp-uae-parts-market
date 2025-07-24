@@ -148,7 +148,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [user, fetchUserProfile]);
 
-  // Мемоизированная функция обновления профиля
+  // Мемоизированная функция обновления профиля с безопасностью
   const updateProfile = useCallback(async (updates: Partial<ProfileType>) => {
     if (!user) return { error: 'No user logged in' };
 
@@ -159,12 +159,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         normalizedUpdates.telegram = normalizeTelegramUsername(normalizedUpdates.telegram);
       }
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(normalizedUpdates)
-        .eq('id', user.id);
+      // Check if we're trying to update sensitive fields
+      const sensitiveFields = ['user_type', 'verification_status', 'is_trusted_seller'];
+      const hasSensitiveUpdates = sensitiveFields.some(field => field in normalizedUpdates);
 
-      if (error) throw error;
+      if (hasSensitiveUpdates) {
+        // Use secure RPC function for sensitive updates
+        const { data, error } = await supabase.rpc('secure_update_profile', {
+          p_user_id: user.id,
+          p_updates: normalizedUpdates
+        });
+
+        if (error) throw error;
+        
+        if (!data?.success) {
+          throw new Error(data?.message || 'Failed to update profile');
+        }
+      } else {
+        // Use direct update for non-sensitive fields
+        const { error } = await supabase
+          .from('profiles')
+          .update(normalizedUpdates)
+          .eq('id', user.id);
+
+        if (error) throw error;
+      }
 
       setProfile(prev => prev ? { ...prev, ...normalizedUpdates } : null);
       

@@ -28,6 +28,11 @@ interface CustomRPCFunctions {
     p_product_id: string;
     p_url: string;
   }) => void;
+
+  secure_update_profile: (args: {
+    p_user_id: string;
+    p_updates: Record<string, any>;
+  }) => { success: boolean; message: string };
 }
 
 // Extend the built-in Database type
