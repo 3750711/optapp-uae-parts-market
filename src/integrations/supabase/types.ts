@@ -792,6 +792,7 @@ export type Database = {
           fts: unknown | null
           full_name: string | null
           id: string
+          is_trusted_seller: boolean
           last_login: string | null
           listing_count: number
           location: string | null
@@ -819,6 +820,7 @@ export type Database = {
           fts?: unknown | null
           full_name?: string | null
           id: string
+          is_trusted_seller?: boolean
           last_login?: string | null
           listing_count?: number
           location?: string | null
@@ -846,6 +848,7 @@ export type Database = {
           fts?: unknown | null
           full_name?: string | null
           id?: string
+          is_trusted_seller?: boolean
           last_login?: string | null
           listing_count?: number
           location?: string | null

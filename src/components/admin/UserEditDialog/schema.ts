@@ -1,4 +1,3 @@
-
 import * as z from "zod";
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileType } from "@/components/profile/types";
@@ -40,6 +39,7 @@ export const createUserFormSchema = (originalUser: OriginalUser) => z.object({
     },
     { message: "Рейтинг должен быть от 0 до 5" }
   ).optional().or(z.literal('')),
+  is_trusted_seller: z.boolean().optional(),
 }).refine(async (data) => {
     // Проверяем уникальность OPT ID только если он изменился и не пуст
     if (data.opt_id && data.opt_id.trim() !== "" && data.opt_id !== originalUser.opt_id) {
