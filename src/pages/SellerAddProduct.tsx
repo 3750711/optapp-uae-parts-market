@@ -261,6 +261,15 @@ const SellerAddProduct = () => {
         timestamp: new Date().toISOString()
       });
       
+      // Determine product status based on seller trust level (like admin approach)
+      const productStatus = profile?.is_trusted_seller ? 'active' : 'pending';
+      
+      console.log('👤 Seller trust status:', {
+        isTrustedSeller: profile?.is_trusted_seller,
+        productStatus,
+        sellerId: user.id
+      });
+
       // Create product using standard Supabase insert with automatic seller assignment
       const { data: product, error: productError } = await supabase
         .from('products')
@@ -273,7 +282,7 @@ const SellerAddProduct = () => {
           description: values.description || null,
           seller_id: user.id, // Automatically assign current user as seller
           seller_name: profile?.full_name || '',
-          status: 'pending',
+          status: productStatus, // Use determined status based on trust level
           place_number: Number(values.placeNumber) || 1,
           delivery_price: Number(values.deliveryPrice) || 0,
         })
@@ -361,12 +370,29 @@ const SellerAddProduct = () => {
         }
       }
 
+      // For trusted sellers, send notification like admin (after images are added)
+      if (profile?.is_trusted_seller) {
+        try {
+          console.log('📢 Sending notification for trusted seller product:', product.id);
+          await supabase.functions.invoke('send-telegram-notification', {
+            body: { productId: product.id }
+          });
+          console.log('✅ Notification sent successfully for trusted seller');
+        } catch (notificationError) {
+          console.error('⚠️ Notification failed (non-critical):', notificationError);
+        }
+      }
+
       // Clear saved draft
       clearSavedData();
 
+      const successMessage = profile?.is_trusted_seller 
+        ? "Товар успешно опубликован"
+        : "Товар отправлен на модерацию и будет опубликован после проверки";
+
       toast({
         title: "Товар создан",
-        description: "Товар отправлен на модерацию и будет опубликован после проверки",
+        description: successMessage,
       });
 
       navigate(`/product/${product.id}`);
