@@ -55,14 +55,6 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos, on
     mutationFn: async (values: any) => {
       if (!order?.id) throw new Error("ID заказа отсутствует");
 
-      // Check if status changed and handle it separately with notifications
-      const statusChanged = values.status !== order.status;
-      
-      // If status changed and we have onStatusChange, use it first
-      if (statusChanged && onStatusChange) {
-        await onStatusChange(order.id, values.status);
-      }
-
       // Проверяем уникальность номера заказа если он изменился
       const newOrderNumber = parseInt(values.order_number, 10);
       if (newOrderNumber && newOrderNumber !== order.order_number) {
@@ -80,7 +72,7 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos, on
         }
       }
 
-      // Update order data (status already updated via onStatusChange if it changed)
+      // Update order data - let DB trigger handle notifications for status changes
       const updateData: any = {
         order_number: newOrderNumber || order.order_number,
         title: values.title,
@@ -92,12 +84,8 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos, on
         delivery_price_confirm: parseFloat(values.delivery_price_confirm) || null,
         delivery_method: values.delivery_method,
         images: orderImages,
+        status: values.status,
       };
-
-      // Only include status if we didn't handle it separately
-      if (!statusChanged || !onStatusChange) {
-        updateData.status = values.status;
-      }
 
       const { error: orderUpdateError } = await supabase
         .from('orders')
