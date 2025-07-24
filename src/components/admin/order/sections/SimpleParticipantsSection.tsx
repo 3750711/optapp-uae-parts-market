@@ -74,36 +74,6 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
       <h3 className="text-lg font-semibold">Участники заказа</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
-          <Select
-            value={buyerOptId}
-            onValueChange={onBuyerOptIdChange}
-            disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Выберите покупателя..." />
-            </SelectTrigger>
-            <SelectContent>
-              {buyerOptions.map((buyer) => (
-                <SelectItem key={buyer.id} value={buyer.opt_id}>
-                  {buyer.full_name || 'Без имени'} ({buyer.opt_id})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {!selectedBuyerExists && buyerOptId && (
-            <p className="text-sm text-red-600 mt-1">
-              Покупатель с OPT_ID "{buyerOptId}" не найден в списке. Проверьте правильность написания.
-            </p>
-          )}
-          {buyerOptions.length === 0 && (
-            <p className="text-sm text-gray-500 mt-1">
-              Нет доступных профилей покупателей с OPT_ID
-            </p>
-          )}
-        </div>
-
         {!hideSeller && (
           <div>
             <Label htmlFor="sellerId">Продавец *</Label>
@@ -135,6 +105,36 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
             )}
           </div>
         )}
+
+        <div>
+          <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
+          <Select
+            value={buyerOptId}
+            onValueChange={onBuyerOptIdChange}
+            disabled={disabled}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Выберите покупателя..." />
+            </SelectTrigger>
+            <SelectContent>
+              {buyerOptions.map((buyer) => (
+                <SelectItem key={buyer.id} value={buyer.opt_id}>
+                  {buyer.full_name || 'Без имени'} ({buyer.opt_id})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!selectedBuyerExists && buyerOptId && (
+            <p className="text-sm text-red-600 mt-1">
+              Покупатель с OPT_ID "{buyerOptId}" не найден в списке. Проверьте правильность написания.
+            </p>
+          )}
+          {buyerOptions.length === 0 && (
+            <p className="text-sm text-gray-500 mt-1">
+              Нет доступных профилей покупателей с OPT_ID
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

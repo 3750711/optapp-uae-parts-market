@@ -183,31 +183,6 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
-              {isLoadingBuyers ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Select
-                  value={formData.buyerOptId || ''}
-                  onValueChange={(value) => handleInputChange('buyerOptId', value)}
-                  onOpenChange={(open) => open && handleBuyerFocus()}
-                  disabled={disabled}
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Выберите покупателя..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {buyerProfiles.map((buyer) => (
-                      <SelectItem key={buyer.id} value={buyer.opt_id}>
-                        {buyer.full_name || 'Без имени'} ({buyer.opt_id})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            <div className="space-y-2">
               <Label htmlFor="sellerId">Продавец *</Label>
               {isLoadingSellers ? (
                 <Skeleton className="h-10 w-full" />
@@ -225,6 +200,31 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                     {sellerProfiles.map((seller) => (
                       <SelectItem key={seller.id} value={seller.id}>
                         {seller.opt_id ? `${seller.full_name || 'Без имени'} (${seller.opt_id})` : (seller.full_name || 'Без имени')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
+              {isLoadingBuyers ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select
+                  value={formData.buyerOptId || ''}
+                  onValueChange={(value) => handleInputChange('buyerOptId', value)}
+                  onOpenChange={(open) => open && handleBuyerFocus()}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Выберите покупателя..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {buyerProfiles.map((buyer) => (
+                      <SelectItem key={buyer.id} value={buyer.opt_id}>
+                        {buyer.full_name || 'Без имени'} ({buyer.opt_id})
                       </SelectItem>
                     ))}
                   </SelectContent>

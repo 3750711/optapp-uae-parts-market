@@ -46,18 +46,6 @@ export const ParticipantsSection: React.FC<ParticipantsSectionProps> = ({
       <h3 className="text-lg font-semibold">Участники заказа</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
-          <OptimizedSelect
-            options={buyerOptions}
-            value={buyerOptId}
-            onValueChange={onBuyerOptIdChange}
-            placeholder="Выберите покупателя..."
-            searchPlaceholder="Поиск по имени или OPT_ID..."
-            disabled={disabled}
-          />
-        </div>
-
         {!hideSeller && (
           <div>
             <Label htmlFor="sellerId">Продавец *</Label>
@@ -71,6 +59,18 @@ export const ParticipantsSection: React.FC<ParticipantsSectionProps> = ({
             />
           </div>
         )}
+
+        <div>
+          <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
+          <OptimizedSelect
+            options={buyerOptions}
+            value={buyerOptId}
+            onValueChange={onBuyerOptIdChange}
+            placeholder="Выберите покупателя..."
+            searchPlaceholder="Поиск по имени или OPT_ID..."
+            disabled={disabled}
+          />
+        </div>
       </div>
     </div>
   );
