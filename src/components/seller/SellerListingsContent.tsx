@@ -1,5 +1,6 @@
 
 import React, { useRef, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,7 @@ import { ProductProps } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { useIntersection } from "@/hooks/useIntersection";
-import { AlertTriangle, RefreshCw, Search, X } from "lucide-react";
+import { AlertTriangle, RefreshCw, Search, X, ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +19,7 @@ import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerLi
 import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
 
 const SellerListingsContent = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -290,8 +292,19 @@ const SellerListingsContent = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Мои объявления</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Назад
+          </Button>
+          <h1 className="text-3xl font-bold">Мои объявления</h1>
+        </div>
         <Badge variant="outline" className="text-lg">
           Всего: {mappedProducts.length}
         </Badge>
