@@ -172,6 +172,11 @@ const AppRoutes: React.FC = () => {
                 <OrderDetails />
               </ProtectedRoute>
             } />
+            <Route path="/order/:id" element={
+              <ProtectedRoute>
+                <OrderDetailsRedirect />
+              </ProtectedRoute>
+            } />
             <Route path="/orders/:id" element={
               <ProtectedRoute>
                 <OrderDetailsRedirect />
