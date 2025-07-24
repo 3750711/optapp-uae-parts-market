@@ -91,8 +91,8 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
       `Цена доставки: ${orderData.delivery_price_confirm || 0} $`,
       ``,
       `===`,
-      `Продавец: ${orderData.seller_opt_id || ''}`,
-      `Покупатель: ${orderData.buyer_opt_id || ''}`
+      `${orderData.seller_opt_id || ''}`,
+      `${orderData.buyer_opt_id || ''}`
     ].join('\n');
 
     // First fetch order images from the database if available
