@@ -198,6 +198,11 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
   try {
     console.log('🔧 Extracting public_id from URL:', cloudinaryUrl);
     
+    if (!cloudinaryUrl || !cloudinaryUrl.includes('cloudinary.com')) {
+      console.log('❌ Not a Cloudinary URL');
+      return null;
+    }
+    
     // Remove query parameters if any
     const cleanUrl = cloudinaryUrl.split('?')[0];
     
@@ -216,14 +221,23 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
     while (publicIdIndex < urlParts.length) {
       const part = urlParts[publicIdIndex];
       
-      // Skip transformation parameters (contain commas, underscores, colons)
-      if (part.includes(',') || part.includes('_') && part.includes(':')) {
+      // Skip transformation parameters (contain commas or contain common transformation patterns)
+      if (part.includes(',') || 
+          /^[wh]_\d+/.test(part) ||     // width/height parameters
+          /^c_/.test(part) ||            // crop parameters
+          /^q_/.test(part) ||            // quality parameters
+          /^f_/.test(part) ||            // format parameters
+          /^g_/.test(part) ||            // gravity parameters
+          /^dpr_/.test(part) ||          // device pixel ratio
+          /^fl_/.test(part)) {           // flags like progressive
+        console.log('🔄 Skipping transformation parameter:', part);
         publicIdIndex++;
         continue;
       }
       
       // Skip version (starts with 'v' followed by numbers)
       if (/^v\d+$/.test(part)) {
+        console.log('🔄 Skipping version:', part);
         publicIdIndex++;
         continue;
       }
@@ -244,12 +258,13 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
     console.log('✅ Extracted public_id:', {
       originalUrl: cloudinaryUrl,
       publicIdWithExtension,
-      publicIdFinal
+      publicIdFinal,
+      skippedParts: urlParts.slice(uploadIndex + 1, publicIdIndex)
     });
     
     return publicIdFinal;
   } catch (error) {
-    console.error('Error extracting public_id from URL:', error);
+    console.error('❌ Error extracting public_id from URL:', error);
     return null;
   }
 };

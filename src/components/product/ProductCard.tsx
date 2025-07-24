@@ -11,6 +11,7 @@ import { formatPrice } from "@/utils/formatPrice";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useNavigate } from "react-router-dom";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 
 export interface ProductProps {
   id: string;
@@ -153,12 +154,15 @@ const ProductCard = memo(({
               cloudinaryUrl={product.cloudinary_url}
             />
           ) : primaryImage && !imageError ? (
-            <img
+            <OptimizedImage
               src={primaryImage.url}
               alt={product.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               onError={() => setImageError(true)}
-              loading="lazy"
+              cloudinaryPublicId={product.cloudinary_public_id}
+              cloudinaryUrl={product.cloudinary_url}
+              size="card"
+              priority={false}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-gray-400">
