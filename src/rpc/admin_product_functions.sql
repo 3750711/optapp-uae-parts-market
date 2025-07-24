@@ -144,13 +144,15 @@ BEGIN
     'Mail-igorek@mail.ru',
     'Mironenkonastya1997@mail.ru',
     'dorovskikh.toni@bk.ru',
-    'ts12@g.com'
+    'ts12@g.com',
+    'fa@g.com'
   ) OR NEW.telegram_url IN (
     'Elena_gult',
     'SanSanichUAE',
     'OptSeller_Georgii',
     'Nastya_PostingLots_OptCargo',
-    'OptSeller_IgorK'
+    'OptSeller_IgorK',
+    'faruknose'
   ) THEN
     -- Для доверенных пользователей сразу устанавливаем статус active
     NEW.status = 'active';
