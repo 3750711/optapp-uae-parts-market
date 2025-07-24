@@ -6,13 +6,15 @@ import { MapPin, Eye, Clock, Star, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Product } from '@/types/product';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
+import OptimizedImage from '@/components/ui/OptimizedImage';
+import { ProductProps } from '@/components/product/ProductCard';
 // Auction functionality removed
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 interface ProductListItemProps {
-  product: Product & {
+  product: ProductProps & {
     user_offer_price?: number;
     user_offer_status?: string;
     user_offer_created_at?: string;
@@ -148,14 +150,14 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           {/* Product Image */}
           <div className="flex-shrink-0">
             <Link to={`/product/${product.id}`}>
-              <img
-                src={product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg"}
+              <OptimizedImage
+                src={product.image || product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg"}
                 alt={product.title}
                 className="w-24 h-24 object-cover rounded-lg"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "/placeholder.svg";
-                }}
+                cloudinaryPublicId={product.cloudinary_public_id}
+                cloudinaryUrl={product.cloudinary_url}
+                size="thumbnail"
+                priority={false}
               />
             </Link>
           </div>
