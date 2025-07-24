@@ -4,41 +4,18 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { getCachedAdminRights, setCachedAdminRights, clearAdminCache } from '@/utils/performanceUtils';
 import { normalizeTelegramUsername } from '@/utils/telegramNormalization';
-
-interface Profile {
-  id: string;
-  full_name?: string;
-  avatar_url?: string;
-  user_type?: 'admin' | 'seller' | 'buyer';
-  opt_id?: string;
-  telegram?: string;
-  rating?: number;
-  location?: string;
-  verification_status?: string;
-  opt_status?: string;
-  email?: string;
-  phone?: string;
-  company_name?: string;
-  description_user?: string;
-  communication_ability?: number;
-  created_at?: string;
-  first_login_completed?: boolean;
-  fts?: unknown;
-  listing_count?: number;
-  last_login?: string;
-  email_confirmed?: boolean;
-}
+import { ProfileType } from '@/components/profile/types';
 
 interface AuthContextType {
   user: User | null;
-  profile: Profile | null;
+  profile: ProfileType | null;
   session: Session | null;
   isAdmin: boolean | null;
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithTelegram: (authData: any) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
-  updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
+  updateProfile: (updates: Partial<ProfileType>) => Promise<{ error: any }>;
   refreshProfile: () => Promise<void>;
   refreshAdminStatus: () => Promise<void>;
   isLoading: boolean;
@@ -61,7 +38,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<ProfileType | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -94,7 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Update state with the new profile
-      setProfile(basicProfile);
+      setProfile(basicProfile as ProfileType);
       setIsAdmin(false);
       console.log('Basic profile created successfully');
     } catch (error) {
@@ -172,7 +149,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user, fetchUserProfile]);
 
   // Мемоизированная функция обновления профиля
-  const updateProfile = useCallback(async (updates: Partial<Profile>) => {
+  const updateProfile = useCallback(async (updates: Partial<ProfileType>) => {
     if (!user) return { error: 'No user logged in' };
 
     try {
