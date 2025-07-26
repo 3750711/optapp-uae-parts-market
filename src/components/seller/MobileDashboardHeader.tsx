@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -29,12 +30,14 @@ export const MobileDashboardHeader: React.FC<MobileDashboardHeaderProps> = ({
       "border border-primary/10",
       className
     )}>
-      <Avatar className="h-16 w-16 border-2 border-primary/20">
-        <AvatarImage src={userAvatar || undefined} alt={userName || 'Seller'} />
-        <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
-          {getInitials(userName)}
-        </AvatarFallback>
-      </Avatar>
+      <Link to="/seller/profile" className="group">
+        <Avatar className="h-16 w-16 border-2 border-primary/20 cursor-pointer transition-all duration-200 group-hover:border-primary/40 group-hover:scale-105">
+          <AvatarImage src={userAvatar || undefined} alt={userName || 'Seller'} />
+          <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold group-hover:bg-primary/20">
+            {getInitials(userName)}
+          </AvatarFallback>
+        </Avatar>
+      </Link>
       
       <div className="flex-1 min-w-0">
         <h1 className="text-2xl font-bold text-foreground truncate">

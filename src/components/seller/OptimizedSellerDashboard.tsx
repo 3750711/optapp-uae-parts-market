@@ -37,7 +37,7 @@ const OptimizedSellerDashboard = () => {
     {
       title: "Мой склад",
       description: "Управление товарами на складе",
-      href: "/seller/products",
+      href: "/seller/listings",
       icon: Warehouse,
       color: "text-primary",
       bgColor: "hover:bg-primary/5"
@@ -45,7 +45,7 @@ const OptimizedSellerDashboard = () => {
     {
       title: "Продать товар",
       description: "Быстрая продажа существующего товара",
-      href: "/seller/products/sell",
+      href: "/seller/sell-product",
       icon: ShoppingCart,
       color: "text-primary",
       bgColor: "hover:bg-primary/5"
