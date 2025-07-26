@@ -1,6 +1,8 @@
 import React, { memo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { getNotificationTranslations, getNotificationLocale } from '@/utils/notificationTranslations';
 import { 
   ShoppingCart, 
   Package, 
@@ -70,7 +72,11 @@ const getNotificationColor = (type: NotificationType) => {
 
 const NotificationItemComponent = ({ notification, onClose }: NotificationItemProps) => {
   const { markAsRead, deleteNotification } = useNotifications();
+  const { profile } = useAuth();
   const navigate = useNavigate();
+
+  const translations = getNotificationTranslations(profile?.user_type || 'buyer');
+  const locale = getNotificationLocale(profile?.user_type || 'buyer') === 'en' ? enUS : ru;
 
   const handleClick = () => {
     if (!notification.read) {
@@ -136,12 +142,12 @@ const NotificationItemComponent = ({ notification, onClose }: NotificationItemPr
               <p className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(notification.created_at), { 
                   addSuffix: true, 
-                  locale: ru 
+                  locale 
                 })}
               </p>
               {!notification.read && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary w-fit">
-                  Новое
+                  {translations.newLabel}
                 </span>
               )}
             </div>
@@ -155,7 +161,7 @@ const NotificationItemComponent = ({ notification, onClose }: NotificationItemPr
                 size="sm"
                 className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors duration-200 touch-manipulation"
                 onClick={handleMarkAsRead}
-                title="Отметить как прочитанное"
+                title={translations.markAsRead}
               >
                 <Eye className="h-3 w-3 md:h-4 md:w-4" />
               </Button>
@@ -165,7 +171,7 @@ const NotificationItemComponent = ({ notification, onClose }: NotificationItemPr
               size="sm"
               className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 touch-manipulation"
               onClick={handleDelete}
-              title="Удалить уведомление"
+              title={translations.deleteNotification}
             >
               <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
             </Button>

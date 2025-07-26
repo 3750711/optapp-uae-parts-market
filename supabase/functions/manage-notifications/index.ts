@@ -43,15 +43,28 @@ serve(async (req) => {
 });
 
 async function createNotification(supabase: any, payload: any) {
-  const { user_id, type, title, message, data } = payload;
+  const { user_id, type, title, message, data, title_en, message_en } = payload;
+
+  // Get user type to determine language
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('user_type')
+    .eq('id', user_id)
+    .single();
+
+  const userType = profile?.user_type || 'buyer';
+  const language = userType === 'seller' ? 'en' : 'ru';
 
   const { data: notification, error } = await supabase
     .from('notifications')
     .insert({
       user_id,
       type,
-      title,
-      message,
+      title: title || '',
+      message: message || '',
+      title_en: title_en || '',
+      message_en: message_en || '',
+      language,
       data: data || {}
     })
     .select()
@@ -68,9 +81,34 @@ async function createNotification(supabase: any, payload: any) {
 async function createBulkNotifications(supabase: any, payload: any) {
   const { notifications } = payload;
 
+  // Process each notification to add language and translations
+  const processedNotifications = await Promise.all(
+    notifications.map(async (notification: any) => {
+      // Get user type to determine language
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', notification.user_id)
+        .single();
+
+      const userType = profile?.user_type || 'buyer';
+      const language = userType === 'seller' ? 'en' : 'ru';
+
+      return {
+        ...notification,
+        language,
+        title: notification.title || '',
+        message: notification.message || '',
+        title_en: notification.title_en || '',
+        message_en: notification.message_en || '',
+        data: notification.data || {}
+      };
+    })
+  );
+
   const { data, error } = await supabase
     .from('notifications')
-    .insert(notifications)
+    .insert(processedNotifications)
     .select();
 
   if (error) throw error;

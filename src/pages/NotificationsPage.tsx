@@ -8,12 +8,25 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NotificationItem } from '@/components/notifications/NotificationItem';
 import { formatDistanceToNow } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { ru, enUS } from 'date-fns/locale';
 import Header from '@/components/layout/Header';
+import { useAuth } from '@/contexts/AuthContext';
+import { getNotificationTranslations, getNotificationLocale } from '@/utils/notificationTranslations';
 
 const NotificationsPage = () => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const { notifications, unreadCount, markAllAsRead, loading } = useNotifications();
+
+  // Get translations based on user type
+  const translations = useMemo(() => {
+    return getNotificationTranslations(profile?.user_type || 'buyer');
+  }, [profile?.user_type]);
+
+  // Get locale for date formatting
+  const locale = useMemo(() => {
+    return getNotificationLocale(profile?.user_type || 'buyer') === 'en' ? enUS : ru;
+  }, [profile?.user_type]);
 
   // Memoized grouped notifications to prevent recalculation on every render
   const groupedNotifications = useMemo(() => {
@@ -26,13 +39,13 @@ const NotificationsPage = () => {
       let groupKey: string;
       
       if (date.toDateString() === today.toDateString()) {
-        groupKey = 'Сегодня';
+        groupKey = translations.today;
       } else if (date.toDateString() === yesterday.toDateString()) {
-        groupKey = 'Вчера';
+        groupKey = translations.yesterday;
       } else if (date > new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)) {
-        groupKey = 'На этой неделе';
+        groupKey = translations.thisWeek;
       } else {
-        groupKey = 'Ранее';
+        groupKey = translations.earlier;
       }
       
       if (!groups[groupKey]) {
@@ -113,7 +126,7 @@ const NotificationsPage = () => {
             className="gap-2 hover:bg-primary/10 text-muted-foreground hover:text-primary p-2 md:px-4"
           >
             <ArrowLeft className="h-4 w-4" />
-            <span className="hidden sm:inline">Назад</span>
+            <span className="hidden sm:inline">{translations.backButton}</span>
           </Button>
         </div>
       {/* Header */}
@@ -123,9 +136,9 @@ const NotificationsPage = () => {
             <Bell className="h-5 w-5 md:h-6 md:w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Уведомления</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{translations.pageTitle}</h1>
             <p className="text-sm md:text-base text-muted-foreground">
-              {unreadCount > 0 ? `${unreadCount} непрочитанных` : 'Все уведомления прочитаны'}
+              {translations.unreadCount(unreadCount)}
             </p>
           </div>
         </div>
@@ -134,8 +147,8 @@ const NotificationsPage = () => {
           {unreadCount > 0 && (
             <Button onClick={markAllAsRead} className="gap-2 text-sm">
               <CheckCheck className="h-4 w-4" />
-              <span className="hidden sm:inline">Прочитать все</span>
-              <span className="sm:hidden">Все</span>
+              <span className="hidden sm:inline">{translations.markAllAsRead}</span>
+              <span className="sm:hidden">{translations.markAllShort}</span>
             </Button>
           )}
         </div>
@@ -147,9 +160,9 @@ const NotificationsPage = () => {
           <CardContent className="py-12">
             <div className="text-center">
               <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-lg font-semibold mb-2">Уведомления не найдены</h3>
+              <h3 className="text-lg font-semibold mb-2">{translations.noNotifications}</h3>
               <p className="text-muted-foreground">
-                У вас пока нет уведомлений
+                {translations.noNotificationsDesc}
               </p>
             </div>
           </CardContent>

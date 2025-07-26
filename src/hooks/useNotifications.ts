@@ -3,17 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Notification } from '@/types/notification';
 import { toast } from '@/hooks/use-toast';
+import { getNotificationTranslations } from '@/utils/notificationTranslations';
 
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   // Memoize unread count calculation to avoid recalculation on every render
   const memoizedUnreadCount = useMemo(() => {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
+
+  // Get translations based on user type
+  const translations = useMemo(() => {
+    return getNotificationTranslations(profile?.user_type || 'buyer');
+  }, [profile?.user_type]);
 
   // Optimized fetch notifications with better query
   const fetchNotifications = useCallback(async () => {
@@ -22,26 +28,45 @@ export const useNotifications = () => {
     try {
       const { data, error } = await supabase
         .from('notifications')
-        .select('id, user_id, type, title, message, data, read, created_at, updated_at')
+        .select('id, user_id, type, title, message, title_en, message_en, language, data, read, created_at, updated_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(30); // Reduced limit for better performance
 
       if (error) throw error;
 
-      setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.read).length || 0);
+      // Process notifications to show correct language based on user type
+      const processedNotifications = (data || []).map(notification => {
+        const userType = profile?.user_type || 'buyer';
+        const isSellerViewingEnglish = userType === 'seller';
+        
+        return {
+          ...notification,
+          title: isSellerViewingEnglish && notification.title_en 
+            ? notification.title_en 
+            : notification.title || translations.notificationTitles[notification.type as keyof typeof translations.notificationTitles] || 'Notification',
+          message: isSellerViewingEnglish && notification.message_en 
+            ? notification.message_en 
+            : notification.message || translations.notificationMessages[notification.type as keyof typeof translations.notificationMessages]?.(notification.data) || ''
+        };
+      });
+
+      setNotifications(processedNotifications);
+      setUnreadCount(processedNotifications?.filter(n => !n.read).length || 0);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      const errorTitle = profile?.user_type === 'seller' ? 'Error' : 'Ошибка';
+      const errorDesc = profile?.user_type === 'seller' ? 'Failed to load notifications' : 'Не удалось загрузить уведомления';
+      
       toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить уведомления",
+        title: errorTitle,
+        description: errorDesc,
         variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, profile?.user_type, translations]);
 
   // Optimized mark notification as read
   const markAsRead = useCallback(async (notificationId: string) => {
@@ -117,12 +142,26 @@ export const useNotifications = () => {
         },
         (payload) => {
           const newNotification = payload.new as Notification;
-          setNotifications(prev => [newNotification, ...prev.slice(0, 29)]);
+          const userType = profile?.user_type || 'buyer';
+          const isSellerViewingEnglish = userType === 'seller';
+          
+          // Process the notification for correct language display
+          const processedNotification = {
+            ...newNotification,
+            title: isSellerViewingEnglish && newNotification.title_en 
+              ? newNotification.title_en 
+              : newNotification.title || translations.notificationTitles[newNotification.type as keyof typeof translations.notificationTitles] || 'Notification',
+            message: isSellerViewingEnglish && newNotification.message_en 
+              ? newNotification.message_en 
+              : newNotification.message || translations.notificationMessages[newNotification.type as keyof typeof translations.notificationMessages]?.(newNotification.data) || ''
+          };
+
+          setNotifications(prev => [processedNotification, ...prev.slice(0, 29)]);
 
           // Show toast for new notification
           toast({
-            title: newNotification.title,
-            description: newNotification.message,
+            title: processedNotification.title,
+            description: processedNotification.message,
           });
         }
       )
@@ -136,8 +175,22 @@ export const useNotifications = () => {
         },
         (payload) => {
           const updatedNotification = payload.new as Notification;
+          const userType = profile?.user_type || 'buyer';
+          const isSellerViewingEnglish = userType === 'seller';
+          
+          // Process the updated notification for correct language display
+          const processedUpdatedNotification = {
+            ...updatedNotification,
+            title: isSellerViewingEnglish && updatedNotification.title_en 
+              ? updatedNotification.title_en 
+              : updatedNotification.title || translations.notificationTitles[updatedNotification.type as keyof typeof translations.notificationTitles] || 'Notification',
+            message: isSellerViewingEnglish && updatedNotification.message_en 
+              ? updatedNotification.message_en 
+              : updatedNotification.message || translations.notificationMessages[updatedNotification.type as keyof typeof translations.notificationMessages]?.(updatedNotification.data) || ''
+          };
+
           setNotifications(prev => 
-            prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
+            prev.map(n => n.id === updatedNotification.id ? processedUpdatedNotification : n)
           );
         }
       )
@@ -146,7 +199,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, profile?.user_type, translations, fetchNotifications]);
 
   return {
     notifications,

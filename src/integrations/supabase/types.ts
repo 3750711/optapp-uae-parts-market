@@ -287,9 +287,12 @@ export type Database = {
           created_at: string
           data: Json | null
           id: string
+          language: string | null
           message: string | null
+          message_en: string | null
           read: boolean
           title: string
+          title_en: string | null
           type: string
           updated_at: string
           user_id: string
@@ -298,9 +301,12 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          language?: string | null
           message?: string | null
+          message_en?: string | null
           read?: boolean
           title: string
+          title_en?: string | null
           type: string
           updated_at?: string
           user_id: string
@@ -309,9 +315,12 @@ export type Database = {
           created_at?: string
           data?: Json | null
           id?: string
+          language?: string | null
           message?: string | null
+          message_en?: string | null
           read?: boolean
           title?: string
+          title_en?: string | null
           type?: string
           updated_at?: string
           user_id?: string
