@@ -294,12 +294,13 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                    <p className="text-sm text-muted-foreground mb-2">
                      {t.storePhotosDescription}
                    </p>
-                  <ImageUpload 
-                    images={images}
-                    onUpload={(uploadedUrls) => setImages([...images, ...uploadedUrls])}
-                    onDelete={(url) => setImages(images.filter(img => img !== url))}
-                    maxImages={10}
-                  />
+                   <ImageUpload 
+                     images={images}
+                     onUpload={(uploadedUrls) => setImages([...images, ...uploadedUrls])}
+                     onDelete={(url) => setImages(images.filter(img => img !== url))}
+                     maxImages={10}
+                     translations={t.imageUpload}
+                   />
                 </div>
 
                 <Button 

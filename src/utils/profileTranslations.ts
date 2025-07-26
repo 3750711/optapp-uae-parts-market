@@ -149,7 +149,22 @@ export const profileTranslations = {
     storeUpdated: "Магазин обновлен",
     storeUpdatedDesc: "Данные магазина успешно обновлены",
     storeUpdateError: "Ошибка обновления",
-    storeUpdateErrorDesc: "Произошла ошибка при обновлении данных магазина"
+    storeUpdateErrorDesc: "Произошла ошибка при обновлении данных магазина",
+    
+    // Image upload translations
+    imageUpload: {
+      limitExceeded: "Превышен лимит",
+      maxImagesText: "Максимальное количество изображений:",
+      success: "Успех",
+      uploadedText: "Загружено {count} из {total} изображений",
+      error: "Ошибка",
+      uploadFailed: "Не удалось загрузить изображение",
+      uploading: "Загрузка изображений...",
+      dragDropText: "Нажмите или перетащите изображения для загрузки",
+      imagesUploaded: "изображений загружено",
+      selectImages: "Выбрать изображения",
+      selectFiles: "Выберите файлы для загрузки"
+    }
   },
   en: {
     // Profile page
@@ -301,7 +316,22 @@ export const profileTranslations = {
     storeUpdated: "Store Updated",
     storeUpdatedDesc: "Store data successfully updated",
     storeUpdateError: "Update Error",
-    storeUpdateErrorDesc: "An error occurred while updating store data"
+    storeUpdateErrorDesc: "An error occurred while updating store data",
+    
+    // Image upload translations
+    imageUpload: {
+      limitExceeded: "Limit Exceeded",
+      maxImagesText: "Maximum number of images:",
+      success: "Success",
+      uploadedText: "Uploaded {count} of {total} images",
+      error: "Error",
+      uploadFailed: "Failed to upload image",
+      uploading: "Uploading images...",
+      dragDropText: "Click or drag images to upload",
+      imagesUploaded: "images uploaded",
+      selectImages: "Select Images",
+      selectFiles: "Select files to upload"
+    }
   }
 };
 

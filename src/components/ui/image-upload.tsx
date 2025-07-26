@@ -15,6 +15,19 @@ export interface ImageUploadProps {
   maxImages?: number;
   storageBucket?: string;
   filePrefix?: string; // New prop for file prefix
+  translations?: {
+    limitExceeded: string;
+    maxImagesText: string;
+    success: string;
+    uploadedText: string;
+    error: string;
+    uploadFailed: string;
+    uploading: string;
+    dragDropText: string;
+    imagesUploaded: string;
+    selectImages: string;
+    selectFiles: string;
+  };
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -23,11 +36,27 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   onDelete,
   maxImages = 10,
   storageBucket = "product-images",
-  filePrefix = "" // Default empty prefix
+  filePrefix = "", // Default empty prefix
+  translations
 }) => {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  
+  // Default Russian texts
+  const t = translations || {
+    limitExceeded: "Превышен лимит",
+    maxImagesText: "Максимальное количество изображений:",
+    success: "Успех",
+    uploadedText: "Загружено {count} из {total} изображений",
+    error: "Ошибка",
+    uploadFailed: "Не удалось загрузить изображение",
+    uploading: "Загрузка изображений...",
+    dragDropText: "Нажмите или перетащите изображения для загрузки",
+    imagesUploaded: "изображений загружено",
+    selectImages: "Выбрать изображения",
+    selectFiles: "Выберите файлы для загрузки"
+  };
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -42,8 +71,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       
       if (images.length + files.length > maxImages) {
         toast({
-          title: "Превышен лимит",
-          description: `Максимальное количество изображений: ${maxImages}`,
+          title: t.limitExceeded,
+          description: `${t.maxImagesText} ${maxImages}`,
           variant: "destructive",
         });
         setUploading(false);
@@ -97,15 +126,15 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         const updatedImages = [...images, ...validUrls];
         onUpload(updatedImages);
         toast({
-          title: "Успех",
-          description: `Загружено ${validUrls.length} из ${files.length} изображений`,
+          title: t.success,
+          description: t.uploadedText.replace('{count}', validUrls.length.toString()).replace('{total}', files.length.toString()),
         });
       }
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить изображение",
+        title: t.error,
+        description: t.uploadFailed,
         variant: "destructive",
       });
     } finally {
@@ -121,7 +150,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       {uploading ? (
         <div className="bg-gray-50 border rounded-md p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Загрузка изображений...</span>
+            <span className="text-sm font-medium">{t.uploading}</span>
             <span className="text-sm">{progress}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -135,10 +164,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center bg-gray-50">
           <UploadCloud className="h-8 w-8 text-gray-400 mb-2" />
           <p className="text-sm text-gray-500 mb-4 text-center">
-            Нажмите или перетащите изображения для загрузки
+            {t.dragDropText}
             <br />
             <span className="text-xs">
-              {images.length}/{maxImages} изображений загружено
+              {images.length}/{maxImages} {t.imagesUploaded}
             </span>
           </p>
           <Button
@@ -148,7 +177,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             disabled={images.length >= maxImages}
             className="relative"
           >
-            Выбрать изображения
+            {t.selectImages}
             <Input
               type="file"
               multiple
@@ -156,7 +185,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               onChange={handleUpload}
               disabled={uploading || images.length >= maxImages}
               className="absolute inset-0 opacity-0 cursor-pointer"
-              title="Выберите файлы для загрузки"
+              title={t.selectFiles}
             />
           </Button>
         </div>
