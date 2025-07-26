@@ -200,6 +200,12 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                     Sold
                   </Badge>
                 )}
+                {product.status === 'pending' && (
+                  <Badge variant="warning" className="text-xs px-1.5 py-0.5 animate-pulse">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Pending
+                  </Badge>
+                )}
                 {product.status === 'active' && (
                   <Badge variant="default" className="text-xs px-1.5 py-0.5">
                     Active
