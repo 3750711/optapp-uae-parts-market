@@ -1,0 +1,48 @@
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { devLog } from "@/utils/logger";
+
+interface HomeRedirectProps {
+  children: React.ReactNode;
+}
+
+const HomeRedirect = ({ children }: HomeRedirectProps) => {
+  const { user, profile, isLoading } = useAuth();
+  
+  devLog("HomeRedirect: Auth state:", { 
+    user: !!user, 
+    profile: !!profile, 
+    isLoading,
+    userType: profile?.user_type
+  });
+  
+  // Show loading while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>
+      </div>
+    );
+  }
+  
+  // If user is authenticated, redirect based on their role
+  if (user && profile) {
+    devLog("HomeRedirect: User authenticated, redirecting based on role");
+    
+    switch (profile.user_type) {
+      case 'seller':
+        return <Navigate to="/seller/dashboard" replace />;
+      case 'admin':
+        return <Navigate to="/admin" replace />;
+      case 'buyer':
+      default:
+        // Buyers and other users stay on home page
+        break;
+    }
+  }
+  
+  // User is not authenticated or is a buyer - show the home page
+  return <>{children}</>;
+};
+
+export default HomeRedirect;

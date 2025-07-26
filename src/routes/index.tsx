@@ -80,6 +80,9 @@ const AdminPriceOffers = lazy(() => import('@/pages/admin/AdminPriceOffers'));
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
 const SellerMobileProfileMenu = lazy(() => import('@/pages/SellerMobileProfileMenu'));
 
+// Routing components
+const HomeRedirect = lazy(() => import('@/components/routing/HomeRedirect'));
+
 const AppRoutes: React.FC = () => {
   return (
     <>
@@ -88,7 +91,11 @@ const AppRoutes: React.FC = () => {
         <Suspense fallback={<RouteSuspenseFallback />}>
           <Routes>
             {/* Публичные маршруты - доступны всем */}
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={
+              <HomeRedirect>
+                <Index />
+              </HomeRedirect>
+            } />
             <Route path="/404" element={<NotFound />} />
 
             {/* Маршруты аутентификации - только для гостей */}
