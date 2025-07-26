@@ -36,9 +36,9 @@ const SellerDashboard = () => {
               className="mr-4" 
               onClick={handleGoBack}
             >
-              <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+              <ChevronLeft className="h-5 w-5 mr-1" /> Back
             </Button>
-            <h1 className="text-2xl font-bold">Панель продавца</h1>
+            <h1 className="text-2xl font-bold">Seller Dashboard</h1>
           </div>
           
           <OptimizedSellerDashboard />

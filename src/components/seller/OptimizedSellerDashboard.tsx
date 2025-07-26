@@ -12,7 +12,7 @@ const OptimizedSellerDashboard = () => {
 
   const handleContactAdmin = () => {
     try {
-      const userDataText = `I have a problem boss, my ID is ${profile?.opt_id || 'Not specified'}`;
+      const userDataText = `Hello, I need assistance. My ID is ${profile?.opt_id || 'Not specified'}`;
       const encodedText = encodeURIComponent(userDataText);
       const telegramLink = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
       
@@ -28,43 +28,43 @@ const OptimizedSellerDashboard = () => {
     {
       to: "/seller/add-product",
       icon: PlusCircle,
-      title: "Добавить товар",
-      description: "Разместите новый товар на маркетплейсе",
+      title: "Add Product",
+      description: "List a new product on the marketplace",
       color: "border-green-200 hover:border-green-300 hover:bg-green-50"
     },
     {
       to: "/seller/listings",
       icon: FileText,
-      title: "Мой склад",
-      description: "Просмотр всех ваших товаров на складе",
+      title: "My Warehouse",
+      description: "View all your warehouse products",
       color: "border-blue-200 hover:border-blue-300 hover:bg-blue-50"
     },
     {
       to: "/seller/sell-product",
       icon: ShoppingCart,
-      title: "Продать товар",
-      description: "Создайте заказ из ваших товаров",
+      title: "Sell Product",
+      description: "Create an order from your products",
       color: "border-purple-200 hover:border-purple-300 hover:bg-purple-50"
     },
     {
       to: "/seller/create-order",
       icon: ShoppingBag,
-      title: "Создать заказ",
-      description: "Оформите новый заказ",
+      title: "Create Order",
+      description: "Process a new order",
       color: "border-orange-200 hover:border-orange-300 hover:bg-orange-50"
     },
     {
       to: "/catalog",
       icon: Layers,
-      title: "Каталог",
-      description: "Просмотр всех доступных товаров",
+      title: "Catalog",
+      description: "Browse all available products",
       color: "border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50"
     },
     {
       to: "/seller/orders",
       icon: ListOrdered,
-      title: "Мои заказы",
-      description: "Просмотр и управление заказами",
+      title: "My Orders",
+      description: "View and manage orders",
       color: "border-red-200 hover:border-red-300 hover:bg-red-50"
     }
   ];
@@ -72,8 +72,8 @@ const OptimizedSellerDashboard = () => {
   const contactAdminItem = {
     onClick: handleContactAdmin,
     icon: MessageCircle,
-    title: "Связаться с админом",
-    description: "Получите помощь от администратора",
+    title: "Contact Admin",
+    description: "Get help from administrator",
     color: "border-yellow-200 hover:border-yellow-300 hover:bg-yellow-50"
   };
 
@@ -81,8 +81,8 @@ const OptimizedSellerDashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold">Панель продавца</h2>
-          <p className="text-muted-foreground mt-1">Управляйте своими товарами и заказами</p>
+          <h2 className="text-2xl sm:text-3xl font-bold">Seller Dashboard</h2>
+          <p className="text-muted-foreground mt-1">Manage your products and orders</p>
         </div>
       </div>
       
