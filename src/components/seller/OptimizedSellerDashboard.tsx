@@ -54,13 +54,6 @@ const OptimizedSellerDashboard = () => {
       color: "border-orange-200 hover:border-orange-300 hover:bg-orange-50"
     },
     {
-      to: "/catalog",
-      icon: Layers,
-      title: "Catalog",
-      description: "Browse all available products",
-      color: "border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50"
-    },
-    {
       to: "/seller/orders",
       icon: ListOrdered,
       title: "My Orders",
