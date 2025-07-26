@@ -192,49 +192,49 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               </div>
               
               <div className="flex flex-col items-end gap-1 ml-4">
-                <Badge variant="outline" className="text-xs">
-                  Лот #{product.lot_number}
+                <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                  Lot #{product.lot_number}
                 </Badge>
                 {product.status === 'sold' && (
-                  <Badge variant="destructive" className="text-xs">
-                    Продано
+                  <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                    Sold
                   </Badge>
                 )}
                 {product.status === 'active' && (
-                  <Badge variant="default" className="text-xs">
-                    Активно
+                  <Badge variant="default" className="text-xs px-1.5 py-0.5">
+                    Active
                   </Badge>
                 )}
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <span className="font-medium">{product.brand}</span>
-                {product.model && <span>{product.model}</span>}
-                <span className="capitalize">{product.condition}</span>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                {product.brand && <span className="font-medium">{product.brand}</span>}
+                {product.model && <span>• {product.model}</span>}
+                {product.condition && <span>• {product.condition}</span>}
               </div>
 
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 text-sm text-gray-500">
+                <div className="flex items-center gap-3 text-xs text-gray-500">
                   {product.product_location && (
                     <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
+                      <MapPin className="h-3 w-3" />
                       <span>{product.product_location}</span>
                     </div>
                   )}
                   
                   {product.view_count !== undefined && (
                     <div className="flex items-center gap-1">
-                      <Eye className="h-4 w-4" />
+                      <Eye className="h-3 w-3" />
                       <span>{product.view_count}</span>
                     </div>
                   )}
 
                   {product.rating_seller && (
                     <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-400" />
-                      <span>{product.rating_seller}</span>
+                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <span>{product.rating_seller.toFixed(1)}</span>
                     </div>
                   )}
                 </div>
