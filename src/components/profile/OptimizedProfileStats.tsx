@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingBag, Package, Star, Clock, TrendingUp, MessageCircle } from 'lucide-react';
 import { ProfileType } from './types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getProfileTranslations } from '@/utils/profileTranslations';
 
 interface OptimizedProfileStatsProps {
   profile: ProfileType;
@@ -22,6 +23,7 @@ const OptimizedProfileStats: React.FC<OptimizedProfileStatsProps> = memo(({
   isLoading = false
 }) => {
   const isSeller = profile.user_type === 'seller';
+  const t = getProfileTranslations(profile.user_type);
 
   const handleContactAdmin = () => {
     window.open('https://t.me/Nastya_PostingLots_OptCargo', '_blank');
@@ -29,28 +31,28 @@ const OptimizedProfileStats: React.FC<OptimizedProfileStatsProps> = memo(({
 
   const stats = [
     {
-      title: 'Активные объявления',
+      title: t.activeListings,
       value: profile.listing_count || 0,
       icon: <Package className="h-5 w-5 text-blue-600" />,
       color: 'bg-blue-50 border-blue-200',
       visible: isSeller
     },
     {
-      title: 'Всего заказов',
+      title: t.totalOrders,
       value: orderStats?.totalOrders || 0,
       icon: <ShoppingBag className="h-5 w-5 text-green-600" />,
       color: 'bg-green-50 border-green-200',
       visible: true
     },
     {
-      title: 'Рейтинг',
-      value: profile.rating ? `${profile.rating.toFixed(1)}/5` : 'Нет оценок',
+      title: t.rating,
+      value: profile.rating ? `${profile.rating.toFixed(1)}/5` : t.noRatingsYet,
       icon: <Star className="h-5 w-5 text-yellow-600" />,
       color: 'bg-yellow-50 border-yellow-200',
       visible: isSeller
     },
     {
-      title: 'Дней на платформе',
+      title: t.daysOnPlatform,
       value: profile.created_at 
         ? Math.floor((Date.now() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24)) 
         : 0,
@@ -69,7 +71,7 @@ const OptimizedProfileStats: React.FC<OptimizedProfileStatsProps> = memo(({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-optapp-yellow" />
-              <CardTitle className="text-lg font-semibold">Статистика профиля</CardTitle>
+              <CardTitle className="text-lg font-semibold">{t.profileStats}</CardTitle>
             </div>
             <Skeleton className="h-9 w-40" />
           </div>
@@ -99,7 +101,7 @@ const OptimizedProfileStats: React.FC<OptimizedProfileStatsProps> = memo(({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-optapp-yellow" />
-            <CardTitle className="text-lg font-semibold">Статистика профиля</CardTitle>
+            <CardTitle className="text-lg font-semibold">{t.profileStats}</CardTitle>
           </div>
           <Button
             variant="ghost"
@@ -108,7 +110,7 @@ const OptimizedProfileStats: React.FC<OptimizedProfileStatsProps> = memo(({
             className="text-optapp-yellow hover:text-optapp-dark transition-colors"
           >
             <MessageCircle className="h-4 w-4 mr-1" />
-            Связаться с админом
+            {t.contactAdmin}
           </Button>
         </div>
       </CardHeader>

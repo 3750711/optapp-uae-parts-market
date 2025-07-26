@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import StoreEditForm from "@/components/store/StoreEditForm";
 import { DeleteAccountButton } from "@/components/profile/DeleteAccountButton";
 import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
-import QuickActions from "@/components/profile/QuickActions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { getProfileTranslations } from "@/utils/profileTranslations";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -73,6 +73,7 @@ const Profile = () => {
       return;
     }
     
+    const t = getProfileTranslations(profile?.user_type || 'buyer');
     console.log("Profile: Starting form submission", formData);
     setIsFormLoading(true);
     
@@ -88,8 +89,8 @@ const Profile = () => {
       if (!hasChanges) {
         console.log("Profile: No changes detected, skipping update");
         toast({
-          title: "Без изменений",
-          description: "Нет изменений для сохранения",
+          title: t.noChanges,
+          description: t.noChangesDesc,
         });
         return;
       }
@@ -115,21 +116,21 @@ const Profile = () => {
       await refetch(); // Обновляем кэш оптимизированного хука
 
       toast({
-        title: "Профиль обновлен",
-        description: "Ваши данные успешно сохранены",
+        title: t.profileUpdated,
+        description: t.profileUpdatedDesc,
       });
     } catch (error: any) {
       console.error("Profile: Profile update error:", error);
       
       if (error.message.includes("profiles_opt_id_key")) {
         toast({
-          title: "Ошибка обновления",
-          description: "OPT ID уже используется другим пользователем",
+          title: t.updateError,
+          description: t.optIdError,
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Ошибка обновления",
+          title: t.updateError,
           description: error.message || "Произошла ошибка при обновлении данных",
           variant: "destructive",
         });
@@ -180,19 +181,20 @@ const Profile = () => {
   };
 
   const handleSignOut = async () => {
+    const t = getProfileTranslations(profile?.user_type || 'buyer');
     try {
       console.log("Profile: Signing out user");
       await signOut();
       toast({
-        title: "Вы вышли из аккаунта",
-        description: "До свидания!",
+        title: t.signOutSuccess,
+        description: t.signOutSuccessDesc,
       });
       navigate("/");
     } catch (error) {
       console.error("Profile: Ошибка при выходе:", error);
       toast({
-        title: "Ошибка выхода",
-        description: "Не удалось выйти из аккаунта. Пожалуйста, попробуйте снова.",
+        title: t.signOutError,
+        description: t.signOutErrorDesc,
         variant: "destructive",
       });
     }
@@ -215,18 +217,19 @@ const Profile = () => {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center items-center">
-          <div className="text-center">
-            <p className="text-gray-600 mb-4">Не удалось загрузить профиль</p>
-            <Button onClick={() => refetch()}>
-              Попробовать снова
-            </Button>
-          </div>
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">{getProfileTranslations('buyer').profileLoadError}</p>
+          <Button onClick={() => refetch()}>
+            {getProfileTranslations('buyer').retryLoad}
+          </Button>
+        </div>
         </div>
       </Layout>
     );
   }
 
   const isSeller = profile.user_type === 'seller';
+  const t = getProfileTranslations(profile.user_type);
   console.log("Profile: Rendering profile page for user type:", profile.user_type);
 
   return (
@@ -240,10 +243,10 @@ const Profile = () => {
               className="mr-4 hover:bg-gray-100" 
               onClick={() => navigate(-1)}
             >
-              <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+              <ChevronLeft className="h-5 w-5 mr-1" /> {t.back}
             </Button>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-optapp-dark to-gray-700 bg-clip-text text-transparent">
-              Мой профиль
+              {t.myProfile}
             </h1>
           </div>
 
@@ -260,7 +263,6 @@ const Profile = () => {
                 orderStats={orderStats}
                 isLoading={isLoading}
               />
-              <QuickActions profile={profile} />
               <ProfileProgress profile={profile} />
               <ProfileForm
                 profile={profile}
@@ -291,8 +293,7 @@ const Profile = () => {
 
               {/* Right Column - Main Content */}
               <div className="lg:col-span-8 space-y-6">
-                <QuickActions profile={profile} />
-                <ProfileProgress profile={profile} />
+              <ProfileProgress profile={profile} />
                 
                 <ProfileForm
                   profile={profile}
@@ -317,21 +318,21 @@ const Profile = () => {
               onClick={handleSignOutClick}
             >
               <LogOut className="mr-1 h-3 w-3" />
-              Выйти из аккаунта
+              {t.signOut}
             </Button>
           </div>
           
           <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Выйти из аккаунта</AlertDialogTitle>
+                <AlertDialogTitle>{t.signOutConfirm}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Вы уверены, что хотите выйти из аккаунта?
+                  {t.signOutConfirmDesc}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Отмена</AlertDialogCancel>
-                <AlertDialogAction onClick={handleSignOut}>Выйти</AlertDialogAction>
+                <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSignOut}>{t.signOutBtn}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

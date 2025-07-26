@@ -26,6 +26,7 @@ import { TelegramField } from "./fields/TelegramField";
 import { ProfileTextField } from "./fields/ProfileTextField";
 import EmailChangeForm from "./EmailChangeForm";
 import { Save, Edit } from "lucide-react";
+import { getProfileTranslations } from "@/utils/profileTranslations";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -65,6 +66,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const canEditOptId = (user?.id === profile.id) || isAdmin;
   const isSeller = profile.user_type === 'seller';
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const t = getProfileTranslations(profile.user_type);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -115,7 +117,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Данные профиля</CardTitle>
+        <CardTitle>{t.profileData}</CardTitle>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -123,7 +125,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             <ProfileTextField
               name="fullName"
               control={form.control}
-              label="Имя и фамилия"
+              label={t.fullName}
               placeholder="Введите ваше имя"
             />
             
@@ -132,7 +134,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t.email}</FormLabel>
                   <div className="flex items-center gap-2">
                     <FormControl>
                       <Input
@@ -172,7 +174,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             <ProfileTextField
               name="phone"
               control={form.control}
-              label="Телефон"
+              label={t.phone}
               placeholder="+971 XX XXX XXXX"
               type="tel"
             />
@@ -180,7 +182,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               <ProfileTextField
                 name="companyName"
                 control={form.control}
-                label="Название компании"
+                label={t.companyName}
                 placeholder="Введите название вашей компании"
               />
             )}
@@ -200,7 +202,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Описание профиля</FormLabel>
+                  <FormLabel>{t.description}</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Расскажите немного о себе..."
@@ -219,7 +221,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               disabled={isLoading}
             >
               <Save className="h-5 w-5 mr-2" />
-              {isLoading ? "Сохранение..." : "Сохранить изменения"}
+              {isLoading ? (profile.user_type === 'seller' ? 'Saving...' : 'Сохранение...') : t.saveChanges}
             </Button>
           </form>
         </Form>

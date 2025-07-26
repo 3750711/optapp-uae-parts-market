@@ -3,12 +3,15 @@ import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ProfileType } from "./types";
 import { Star, StarHalf } from "lucide-react";
+import { getProfileTranslations } from "@/utils/profileTranslations";
 
 interface ProfileInfoProps {
   profile: ProfileType;
 }
 
 const ProfileInfo: React.FC<ProfileInfoProps> = ({ profile }) => {
+  const t = getProfileTranslations(profile.user_type);
+  
   const renderRatingStars = (rating: number | null) => {
     if (!rating) return null;
     
@@ -32,29 +35,29 @@ const ProfileInfo: React.FC<ProfileInfoProps> = ({ profile }) => {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle>Информация аккаунта</CardTitle>
+        <CardTitle>{t.accountInfo}</CardTitle>
       </CardHeader>
       <CardContent className="pt-4">
         <div className="space-y-3">
           <div>
-            <p className="text-sm text-gray-500">Дата регистрации</p>
+            <p className="text-sm text-gray-500">{t.registrationDate}</p>
             <p>{new Date(profile?.created_at || '').toLocaleDateString()}</p>
           </div>
           {profile?.last_login && (
             <div>
-              <p className="text-sm text-gray-500">Последний вход</p>
+              <p className="text-sm text-gray-500">{t.lastLogin}</p>
               <p>{new Date(profile?.last_login).toLocaleDateString()}</p>
             </div>
           )}
           {profile?.user_type === 'seller' && (
             <>
               <div>
-                <p className="text-sm text-gray-500">Количество объявлений</p>
+                <p className="text-sm text-gray-500">{t.listingCount}</p>
                 <p>{profile?.listing_count || 0}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Рейтинг продавца</p>
-                {profile?.rating ? renderRatingStars(profile?.rating) : <p>Пока нет оценок</p>}
+                <p className="text-sm text-gray-500">{t.sellerRating}</p>
+                {profile?.rating ? renderRatingStars(profile?.rating) : <p>{t.noRatingsYet}</p>}
               </div>
             </>
           )}

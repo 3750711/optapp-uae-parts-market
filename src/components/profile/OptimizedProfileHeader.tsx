@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ProfileType } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getProfileTranslations } from "@/utils/profileTranslations";
 
 interface OptimizedProfileHeaderProps {
   profile: ProfileType;
@@ -43,11 +44,13 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const t = getProfileTranslations(profile.user_type);
+
     if (!file.type.startsWith('image/')) {
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Пожалуйста, выберите изображение"
+        title: t.uploadError,
+        description: t.selectImage
       });
       return;
     }
@@ -55,8 +58,8 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
     if (file.size > 2 * 1024 * 1024) {
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Размер файла не должен превышать 2МБ"
+        title: t.uploadError,
+        description: t.fileSizeError
       });
       return;
     }
@@ -79,15 +82,15 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
       if (onAvatarUpdate) {
         await onAvatarUpdate(publicUrlData.publicUrl);
         toast({
-          title: "Фото обновлено",
-          description: "Ваш аватар успешно обновлен"
+          title: t.avatarUpdated,
+          description: t.avatarUpdatedDesc
         });
       }
     } catch (error: any) {
       console.error("Avatar upload error:", error);
       toast({
         variant: "destructive",
-        title: "Ошибка загрузки",
+        title: t.uploadError,
         description: error.message || "Не удалось загрузить изображение"
       });
     } finally {
@@ -96,10 +99,11 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
   };
 
   if (isLoading) {
+    const t = getProfileTranslations('buyer');
     return (
       <Card className="bg-gradient-to-br from-white via-blue-50 to-indigo-100 border shadow-lg">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-semibold">Профиль пользователя</CardTitle>
+          <CardTitle className="text-lg font-semibold">{t.userProfile}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center pt-6 pb-8">
           <div className="animate-pulse space-y-4 w-full max-w-xs">
@@ -115,10 +119,12 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
     );
   }
 
+  const t = getProfileTranslations(profile.user_type);
+  
   return (
     <Card className="bg-gradient-to-br from-white via-blue-50 to-indigo-100 border shadow-lg hover:shadow-xl transition-all duration-300">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold">Профиль пользователя</CardTitle>
+        <CardTitle className="text-lg font-semibold">{t.userProfile}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center pt-6 pb-8">
         <div className="relative mb-6">
@@ -177,14 +183,14 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
                 ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800' 
                 : 'bg-gradient-to-r from-green-100 to-green-200 text-green-800'
             }`}>
-              {profile?.user_type === 'seller' ? 'Продавец' : 'Покупатель'}
+              {profile?.user_type === 'seller' ? t.seller : t.buyer}
             </span>
             <span className={`inline-block px-4 py-2 rounded-full text-sm font-medium shadow-sm ${
               profile?.verification_status === 'verified' 
                 ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800' 
                 : 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800'
             }`}>
-              {profile?.verification_status === 'verified' ? 'Проверено' : 'Ожидает проверки'}
+              {profile?.verification_status === 'verified' ? t.verified : t.pendingVerification}
             </span>
           </div>
         </div>
@@ -202,7 +208,7 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
         
         {profile?.rating && (
           <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600 mb-2 font-medium">Рейтинг:</p>
+            <p className="text-sm text-gray-600 mb-2 font-medium">{t.rating}:</p>
             {renderRatingStars(profile?.rating)}
           </div>
         )}

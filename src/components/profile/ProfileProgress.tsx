@@ -5,23 +5,26 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle, Target } from 'lucide-react';
 import { ProfileType } from './types';
+import { getProfileTranslations } from '@/utils/profileTranslations';
 
 interface ProfileProgressProps {
   profile: ProfileType;
 }
 
 const ProfileProgress: React.FC<ProfileProgressProps> = ({ profile }) => {
+  const t = getProfileTranslations(profile.user_type);
+  
   const calculateProgress = () => {
     const isSeller = profile.user_type === 'seller';
     
     const fields = [
-      { name: 'Имя', value: profile.full_name, weight: 15 },
-      { name: 'Телефон', value: profile.phone, weight: 15 },
-      { name: 'Telegram', value: profile.telegram, weight: 20 },
+      { name: t.fullName, value: profile.full_name, weight: 15 },
+      { name: t.phone, value: profile.phone, weight: 15 },
+      { name: t.telegram, value: profile.telegram, weight: 20 },
       { name: 'OPT ID', value: profile.opt_id, weight: 25 },
       // Название компании только для продавцов
-      ...(isSeller ? [{ name: 'Название компании', value: profile.company_name, weight: 15 }] : []),
-      { name: 'Описание', value: profile.description_user, weight: 10 }
+      ...(isSeller ? [{ name: t.companyName, value: profile.company_name, weight: 15 }] : []),
+      { name: t.description, value: profile.description_user, weight: 10 }
     ];
 
     let totalProgress = 0;
@@ -49,10 +52,17 @@ const ProfileProgress: React.FC<ProfileProgressProps> = ({ profile }) => {
   };
 
   const getProgressMessage = () => {
-    if (totalProgress >= 90) return 'Отличная работа! Ваш профиль почти полностью заполнен.';
-    if (totalProgress >= 70) return 'Хорошо! Заполните еще несколько полей для лучшего результата.';
-    if (totalProgress >= 50) return 'Неплохое начало! Добавьте больше информации о себе.';
-    return 'Заполните профиль для лучшего взаимодействия с пользователями.';
+    if (profile.user_type === 'seller') {
+      if (totalProgress >= 90) return 'Excellent work! Your profile is almost completely filled.';
+      if (totalProgress >= 70) return 'Good! Fill in a few more fields for better results.';
+      if (totalProgress >= 50) return 'Nice start! Add more information about yourself.';
+      return 'Complete your profile for better user interaction.';
+    } else {
+      if (totalProgress >= 90) return 'Отличная работа! Ваш профиль почти полностью заполнен.';
+      if (totalProgress >= 70) return 'Хорошо! Заполните еще несколько полей для лучшего результата.';
+      if (totalProgress >= 50) return 'Неплохое начало! Добавьте больше информации о себе.';
+      return 'Заполните профиль для лучшего взаимодействия с пользователями.';
+    }
   };
 
   return (
@@ -60,13 +70,13 @@ const ProfileProgress: React.FC<ProfileProgressProps> = ({ profile }) => {
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Target className="h-5 w-5 text-optapp-yellow" />
-          <CardTitle className="text-lg font-semibold">Заполненность профиля</CardTitle>
+          <CardTitle className="text-lg font-semibold">{t.profileCompletion}</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-medium">Прогресс</span>
+            <span className="text-sm font-medium">{t.progress}</span>
             <span className="text-sm font-bold">{totalProgress}%</span>
           </div>
           <Progress value={totalProgress} className="h-3" />
@@ -79,7 +89,7 @@ const ProfileProgress: React.FC<ProfileProgressProps> = ({ profile }) => {
             <div>
               <h4 className="text-sm font-medium text-green-700 mb-2 flex items-center gap-1">
                 <CheckCircle className="h-4 w-4" />
-                Заполнено
+                {t.completed}
               </h4>
               <div className="flex flex-wrap gap-1">
                 {completedFields.map((field, index) => (
@@ -95,7 +105,7 @@ const ProfileProgress: React.FC<ProfileProgressProps> = ({ profile }) => {
             <div>
               <h4 className="text-sm font-medium text-orange-700 mb-2 flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" />
-                Рекомендуется заполнить
+                {t.recommendedToFill}
               </h4>
               <div className="flex flex-wrap gap-1">
                 {missingFields.map((field, index) => (
