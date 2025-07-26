@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useEmailVerification } from '@/hooks/useEmailVerification';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { getProfileTranslations } from '@/utils/profileTranslations';
 
 interface EmailChangeFormProps {
   currentEmail: string;
@@ -22,13 +23,14 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
   const [code, setCode] = useState('');
   const [isChanging, setIsChanging] = useState(false);
   const { sendVerificationCode, verifyEmailCode, isLoading } = useEmailVerification();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, profile } = useAuth();
+  const t = getProfileTranslations(profile?.user_type || 'buyer');
 
   const handleSendCode = async () => {
     if (!newEmail || !newEmail.includes('@')) {
       toast({
-        title: "Некорректный email",
-        description: "Введите корректный email адрес",
+        title: t.invalidEmail,
+        description: t.invalidEmailDesc,
         variant: "destructive",
       });
       return;
@@ -36,8 +38,8 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
 
     if (newEmail === currentEmail) {
       toast({
-        title: "Тот же email",
-        description: "Новый email должен отличаться от текущего",
+        title: t.sameEmail,
+        description: t.sameEmailDesc,
         variant: "destructive",
       });
       return;
@@ -47,8 +49,8 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
     if (result.success) {
       setStep('verify');
       toast({
-        title: "Код отправлен",
-        description: "Код подтверждения отправлен на новый email",
+        title: t.codeSent,
+        description: t.codeSentDesc,
       });
 
       // Для отладки показываем код в консоли
@@ -57,7 +59,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
       }
     } else {
       toast({
-        title: "Ошибка отправки",
+        title: t.sendError,
         description: result.message,
         variant: "destructive",
       });
@@ -117,8 +119,8 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
   const handleVerifyAndChange = async () => {
     if (code.length !== 6) {
       toast({
-        title: "Неполный код",
-        description: "Введите полный 6-значный код",
+        title: t.incompleteCode,
+        description: t.incompleteCodeDesc,
         variant: "destructive",
       });
       return;
@@ -132,7 +134,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
       
       if (!verificationResult.success) {
         toast({
-          title: "Неверный код",
+          title: t.invalidCode,
           description: verificationResult.message,
           variant: "destructive",
         });
@@ -147,8 +149,8 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
 
       if (updateError) {
         toast({
-          title: "Ошибка обновления",
-          description: "Не удалось обновить email. Попробуйте позже.",
+          title: t.updateEmailError,
+          description: t.updateEmailErrorDesc,
           variant: "destructive",
         });
         return;
@@ -164,8 +166,8 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
       await refreshProfile();
       
       toast({
-        title: "Email изменен",
-        description: "Ваш email успешно изменен. Уведомления отправлены на оба адреса: старый (для безопасности) и новый (подтверждение).",
+        title: t.emailChanged,
+        description: t.emailChangedDesc,
       });
 
       if (onSuccess) {
@@ -175,8 +177,8 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
     } catch (error) {
       console.error('Error changing email:', error);
       toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при изменении email",
+        title: t.changeEmailError,
+        description: t.changeEmailErrorDesc,
         variant: "destructive",
       });
     } finally {
@@ -189,10 +191,10 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Mail className="h-5 w-5 text-optapp-yellow" />
-          Изменение email
+          {t.emailChangeTitle}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Текущий email: {currentEmail}
+          {t.currentEmail} {currentEmail}
         </p>
       </CardHeader>
       
@@ -200,13 +202,13 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
         {step === 'email' && (
           <div className="space-y-4">
             <div>
-              <Label htmlFor="newEmail">Новый email адрес</Label>
+              <Label htmlFor="newEmail">{t.newEmailLabel}</Label>
               <Input
                 id="newEmail"
                 type="email"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="new@email.com"
+                placeholder={t.newEmailPlaceholder}
                 disabled={isLoading}
               />
             </div>
@@ -217,7 +219,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
                 disabled={!newEmail || isLoading}
                 className="flex-1 bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
               >
-                {isLoading ? "Отправка..." : "Отправить код"}
+                {isLoading ? t.sending : t.sendCode}
               </Button>
               
               {onCancel && (
@@ -226,7 +228,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
                   variant="outline"
                   disabled={isLoading}
                 >
-                  Отмена
+                  {t.cancel}
                 </Button>
               )}
             </div>
@@ -237,7 +239,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
           <div className="space-y-4">
             <div className="text-center">
               <p className="text-sm text-muted-foreground mb-2">
-                Код отправлен на: <span className="font-medium">{newEmail}</span>
+                {t.emailSentTo} <span className="font-medium">{newEmail}</span>
               </p>
               
               <Button
@@ -246,12 +248,12 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
                 onClick={() => setStep('email')}
                 className="text-xs"
               >
-                Изменить email
+                {t.changeEmail2}
               </Button>
             </div>
 
             <div className="space-y-3">
-              <Label>Код подтверждения</Label>
+              <Label>{t.verificationCode}</Label>
               <div className="flex justify-center">
                 <InputOTP
                   value={code}
@@ -276,7 +278,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
                 disabled={code.length !== 6 || isChanging}
                 className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
               >
-                {isChanging ? "Изменение..." : "Изменить email"}
+                {isChanging ? t.changing : t.changeEmailAction}
               </Button>
 
               <Button
@@ -285,7 +287,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
                 disabled={isLoading}
                 className="w-full"
               >
-                {isLoading ? "Отправка..." : "Отправить код повторно"}
+                {isLoading ? t.sending : t.resendCode}
               </Button>
 
               {onCancel && (
@@ -295,15 +297,15 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
                   disabled={isChanging}
                   className="w-full"
                 >
-                  Отмена
+                  {t.cancel}
                 </Button>
               )}
             </div>
 
             <div className="text-xs text-muted-foreground text-center">
-              <p>После изменения email вы получите уведомления на:</p>
-              <p>• Старый адрес - уведомление о смене (безопасность)</p>
-              <p>• Новый адрес - подтверждение изменения</p>
+              <p>{t.emailChangeNotification}</p>
+              <p>{t.emailChangeOldNotification}</p>
+              <p>{t.emailChangeNewNotification}</p>
             </div>
           </div>
         )}

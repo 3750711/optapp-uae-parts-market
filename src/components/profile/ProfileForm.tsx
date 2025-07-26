@@ -126,7 +126,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               name="fullName"
               control={form.control}
               label={t.fullName}
-              placeholder="Введите ваше имя"
+              placeholder={t.fullNamePlaceholder}
             />
             
             <FormField
@@ -175,7 +175,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               name="phone"
               control={form.control}
               label={t.phone}
-              placeholder="+971 XX XXX XXXX"
+              placeholder={t.phonePlaceholder}
               type="tel"
             />
             {isSeller && (
@@ -183,7 +183,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 name="companyName"
                 control={form.control}
                 label={t.companyName}
-                placeholder="Введите название вашей компании"
+                placeholder={t.companyNamePlaceholder}
               />
             )}
             <TelegramField 
@@ -205,7 +205,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                   <FormLabel>{t.description}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Расскажите немного о себе..."
+                      placeholder={t.descriptionPlaceholder}
                       className="resize-y min-h-[100px]"
                       {...field}
                     />
@@ -221,7 +221,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               disabled={isLoading}
             >
               <Save className="h-5 w-5 mr-2" />
-              {isLoading ? (profile.user_type === 'seller' ? 'Saving...' : 'Сохранение...') : t.saveChanges}
+              {isLoading ? t.saving : t.saveChanges}
             </Button>
           </form>
         </Form>

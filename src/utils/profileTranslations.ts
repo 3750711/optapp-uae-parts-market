@@ -32,6 +32,66 @@ export const profileTranslations = {
     description: "Описание профиля",
     saveChanges: "Сохранить изменения",
     changeEmail: "Изменить Email",
+    saving: "Сохранение...",
+    
+    // Placeholders
+    fullNamePlaceholder: "Введите ваше имя и фамилию",
+    phonePlaceholder: "Введите номер телефона",
+    companyNamePlaceholder: "Введите название компании",
+    telegramPlaceholder: "@username",
+    descriptionPlaceholder: "Расскажите о себе или вашей компании",
+    
+    // User types
+    accountType: "Тип аккаунта",
+    selectUserType: "Выбрать тип пользователя",
+    buyerType: "Покупатель",
+    sellerType: "Продавец", 
+    adminType: "Администратор",
+    userTypeReadOnly: "Тип аккаунта нельзя изменить после регистрации",
+    
+    // Telegram field
+    telegramDescription: "Укажите ваш Telegram username для связи",
+    
+    // OPT ID field
+    optIdPlaceholder: "Введите ваш OPT ID",
+    optIdChangeContact: "Если вам нужно изменить OPT ID пожалуйста свяжитесь с администратором",
+    optIdAccessDenied: "OPT ID можно изменить только владельцу профиля или администратору",
+    optIdOnceOnly: "Укажите OPT ID. После сохранения изменить его будет нельзя.",
+    
+    // Email change form
+    emailChangeTitle: "Изменение email",
+    currentEmail: "Текущий email:",
+    newEmailLabel: "Новый email адрес",
+    newEmailPlaceholder: "new@email.com",
+    sendCode: "Отправить код",
+    sending: "Отправка...",
+    verificationCode: "Код подтверждения",
+    changeEmail2: "Изменить email",
+    changing: "Изменение...",
+    resendCode: "Отправить код повторно",
+    changeEmailAction: "Изменить email",
+    
+    // Email change notifications
+    invalidEmail: "Некорректный email",
+    invalidEmailDesc: "Введите корректный email адрес",
+    sameEmail: "Тот же email",
+    sameEmailDesc: "Новый email должен отличаться от текущего",
+    codeSent: "Код отправлен",
+    codeSentDesc: "Код подтверждения отправлен на новый email",
+    sendError: "Ошибка отправки",
+    incompleteCode: "Неполный код",
+    incompleteCodeDesc: "Введите полный 6-значный код",
+    invalidCode: "Неверный код",
+    emailChanged: "Email изменен",
+    emailChangedDesc: "Ваш email успешно изменен. Уведомления отправлены на оба адреса: старый (для безопасности) и новый (подтверждение).",
+    updateEmailError: "Ошибка обновления",
+    updateEmailErrorDesc: "Не удалось обновить email. Попробуйте позже.",
+    changeEmailError: "Ошибка",
+    changeEmailErrorDesc: "Произошла ошибка при изменении email",
+    emailChangeNotification: "После изменения email вы получите уведомления на:",
+    emailChangeOldNotification: "• Старый адрес - уведомление о смене (безопасность)",
+    emailChangeNewNotification: "• Новый адрес - подтверждение изменения",
+    emailSentTo: "Код отправлен на:",
     
     // Profile stats
     profileStats: "Статистика профиля",
@@ -102,6 +162,66 @@ export const profileTranslations = {
     description: "Profile Description",
     saveChanges: "Save Changes",
     changeEmail: "Change Email",
+    saving: "Saving...",
+    
+    // Placeholders
+    fullNamePlaceholder: "Enter your full name",
+    phonePlaceholder: "Enter phone number",
+    companyNamePlaceholder: "Enter company name",
+    telegramPlaceholder: "@username",
+    descriptionPlaceholder: "Tell about yourself or your company",
+    
+    // User types
+    accountType: "Account Type",
+    selectUserType: "Select user type",
+    buyerType: "Buyer",
+    sellerType: "Seller",
+    adminType: "Administrator",
+    userTypeReadOnly: "Account type cannot be changed after registration",
+    
+    // Telegram field
+    telegramDescription: "Enter your Telegram username for contact",
+    
+    // OPT ID field
+    optIdPlaceholder: "Enter your OPT ID",
+    optIdChangeContact: "If you need to change OPT ID please contact administrator",
+    optIdAccessDenied: "OPT ID can only be changed by profile owner or administrator",
+    optIdOnceOnly: "Enter OPT ID. It cannot be changed after saving.",
+    
+    // Email change form
+    emailChangeTitle: "Change Email",
+    currentEmail: "Current email:",
+    newEmailLabel: "New email address",
+    newEmailPlaceholder: "new@email.com",
+    sendCode: "Send Code",
+    sending: "Sending...",
+    verificationCode: "Verification Code",
+    changeEmail2: "Change Email",
+    changing: "Changing...",
+    resendCode: "Resend Code",
+    changeEmailAction: "Change Email",
+    
+    // Email change notifications
+    invalidEmail: "Invalid Email",
+    invalidEmailDesc: "Enter a valid email address",
+    sameEmail: "Same Email",
+    sameEmailDesc: "New email must be different from current",
+    codeSent: "Code Sent",
+    codeSentDesc: "Verification code sent to new email",
+    sendError: "Send Error",
+    incompleteCode: "Incomplete Code",
+    incompleteCodeDesc: "Enter complete 6-digit code",
+    invalidCode: "Invalid Code",
+    emailChanged: "Email Changed",
+    emailChangedDesc: "Your email has been successfully changed. Notifications sent to both addresses: old (for security) and new (confirmation).",
+    updateEmailError: "Update Error",
+    updateEmailErrorDesc: "Failed to update email. Please try later.",
+    changeEmailError: "Error",
+    changeEmailErrorDesc: "An error occurred while changing email",
+    emailChangeNotification: "After changing email you will receive notifications to:",
+    emailChangeOldNotification: "• Old address - change notification (security)",
+    emailChangeNewNotification: "• New address - change confirmation",
+    emailSentTo: "Code sent to:",
     
     // Profile stats
     profileStats: "Profile Statistics",

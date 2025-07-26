@@ -11,6 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { normalizeTelegramUsername, validateAndNormalizeTelegramUsername } from "@/utils/telegramNormalization";
+import { getProfileTranslations } from "@/utils/profileTranslations";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface TelegramFieldProps {
   control: any;
@@ -26,10 +28,12 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
   telegram_edit_count = 0,
   disabled = false,
   description,
-  placeholder = "@username",
+  placeholder,
   initialValue = ""
 }) => {
   const { isAdmin } = useAdminAccess();
+  const { profile } = useAuth();
+  const t = getProfileTranslations(profile?.user_type || 'buyer');
   
   // Admins can edit at any time, regular users can always edit now
   const isEditable = true;
@@ -43,7 +47,7 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
           <FormLabel>Telegram</FormLabel>
           <FormControl>
             <Input 
-              placeholder={placeholder}
+              placeholder={placeholder || t.telegramPlaceholder}
               {...field} 
               disabled={disabled || !isEditable}
               className={!isEditable ? "bg-gray-100 cursor-not-allowed" : ""}
@@ -62,7 +66,7 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
             <FormDescription>{description}</FormDescription>
           ) : (
             <FormDescription>
-              Укажите ваш Telegram username для связи
+              {t.telegramDescription}
             </FormDescription>
           )}
           <FormMessage />

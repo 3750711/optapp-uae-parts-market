@@ -14,6 +14,8 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
+import { getProfileTranslations } from "@/utils/profileTranslations";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UserTypeFieldProps {
   control: any;
@@ -23,36 +25,41 @@ interface UserTypeFieldProps {
 export const UserTypeField: React.FC<UserTypeFieldProps> = ({
   control,
   readOnlyUserType,
-}) => (
-  <FormField
-    control={control}
-    name="userType"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Тип аккаунта</FormLabel>
-        <FormControl>
-          <Select
-            disabled={readOnlyUserType}
-            onValueChange={field.onChange}
-            value={field.value}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Выбрать тип пользователя" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="buyer">Покупатель</SelectItem>
-              <SelectItem value="seller">Продавец</SelectItem>
-              <SelectItem value="admin">Администратор</SelectItem>
-            </SelectContent>
-          </Select>
-        </FormControl>
-        <FormMessage />
-        {readOnlyUserType && (
-          <p className="text-sm text-muted-foreground mt-1">
-            Тип аккаунта нельзя изменить после регистрации
-          </p>
-        )}
-      </FormItem>
-    )}
-  />
-);
+}) => {
+  const { profile } = useAuth();
+  const t = getProfileTranslations(profile?.user_type || 'buyer');
+
+  return (
+    <FormField
+      control={control}
+      name="userType"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{t.accountType}</FormLabel>
+          <FormControl>
+            <Select
+              disabled={readOnlyUserType}
+              onValueChange={field.onChange}
+              value={field.value}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t.selectUserType} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="buyer">{t.buyerType}</SelectItem>
+                <SelectItem value="seller">{t.sellerType}</SelectItem>
+                <SelectItem value="admin">{t.adminType}</SelectItem>
+              </SelectContent>
+            </Select>
+          </FormControl>
+          <FormMessage />
+          {readOnlyUserType && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {t.userTypeReadOnly}
+            </p>
+          )}
+        </FormItem>
+      )}
+    />
+  );
+};

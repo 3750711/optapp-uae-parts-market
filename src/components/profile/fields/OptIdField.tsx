@@ -8,6 +8,8 @@ import {
   FormMessage
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { getProfileTranslations } from "@/utils/profileTranslations";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface OptIdFieldProps {
   control: any;
@@ -20,6 +22,9 @@ export const OptIdField: React.FC<OptIdFieldProps> = ({
   canEditOptId,
   initialValue = ""
 }) => {
+  const { profile } = useAuth();
+  const t = getProfileTranslations(profile?.user_type || 'buyer');
+  
   // Can only edit if: has permission AND the field is currently empty
   const isEditable = canEditOptId && initialValue === "";
   
@@ -32,7 +37,7 @@ export const OptIdField: React.FC<OptIdFieldProps> = ({
           <FormLabel>OPT ID</FormLabel>
           <FormControl>
             <Input
-              placeholder="Введите ваш OPT ID"
+              placeholder={t.optIdPlaceholder}
               {...field}
               readOnly={!isEditable}
               className={!isEditable ? "bg-gray-100 cursor-not-allowed" : ""}
@@ -41,17 +46,17 @@ export const OptIdField: React.FC<OptIdFieldProps> = ({
           <FormMessage />
           {!isEditable && initialValue && (
             <p className="text-sm text-yellow-600 mt-1">
-              Если вам нужно изменить OPT ID пожалуйста свяжитесь с администратором
+              {t.optIdChangeContact}
             </p>
           )}
           {!isEditable && !initialValue && (
             <p className="text-sm text-muted-foreground mt-1">
-              OPT ID можно изменить только владельцу профиля или администратору
+              {t.optIdAccessDenied}
             </p>
           )}
           {isEditable && (
             <p className="text-sm text-muted-foreground mt-1">
-              Укажите OPT ID. После сохранения изменить его будет нельзя.
+              {t.optIdOnceOnly}
             </p>
           )}
         </FormItem>
