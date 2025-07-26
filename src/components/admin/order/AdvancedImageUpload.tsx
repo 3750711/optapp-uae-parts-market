@@ -143,9 +143,9 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
     <div className="space-y-6">
       {/* Header with upload info */}
       <div className="flex items-center justify-between">
-        <Label className="text-base font-medium">Изображения заказа</Label>
+        <Label className="text-base font-medium">Order Images</Label>
         <div className="text-sm text-gray-600">
-          📸 {images.length}/{maxImages} изображений
+          📸 {images.length}/{maxImages} images
         </div>
       </div>
 
@@ -160,12 +160,12 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
         {hasActiveUploads ? (
           <>
             <Upload className="mr-2 h-4 w-4 animate-pulse" />
-            Умная загрузка...
+            Smart Upload...
           </>
         ) : (
           <>
             <Upload className="mr-2 h-4 w-4" />
-            Загрузить фото ({images.length}/{maxImages})
+            Upload Photos ({images.length}/{maxImages})
           </>
         )}
       </Button>
@@ -189,7 +189,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
           className="w-full"
         >
           <X className="h-4 w-4 mr-2" />
-          Отменить загрузку
+          Cancel Upload
         </Button>
       )}
 
@@ -198,10 +198,10 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between text-sm">
             <span className="text-green-800">
-              ✅ Загружено изображений: {images.length}
+              ✅ Images Uploaded: {images.length}
             </span>
             <span className="text-green-600 text-xs">
-              🧠 Умное сжатие: файлы &lt;400KB без потерь
+              🧠 Smart Compression: Files &lt;400KB Lossless
             </span>
           </div>
         </div>
@@ -221,12 +221,12 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       {hasActiveUploads && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-sm text-blue-800">
-            🧠 Умное сжатие активно
+            🧠 Smart Compression Active
           </div>
           <div className="text-xs text-blue-600 mt-1">
-            • Файлы &lt;400KB - без сжатия (оригинальное качество)<br/>
-            • Файлы 400KB-2MB - легкое сжатие (90% качества)<br/>
-            • Файлы &gt;2MB - адаптивное сжатие
+            • Files &lt;400KB - No compression (original quality)<br/>
+            • Files 400KB-2MB - Light compression (90% quality)<br/>
+            • Files &gt;2MB - Adaptive compression
           </div>
         </div>
       )}
