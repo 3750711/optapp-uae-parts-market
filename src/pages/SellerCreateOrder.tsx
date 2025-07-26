@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Save, Loader, Eye } from "lucide-react";
+import { Save, Loader, Eye, ArrowLeft } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 // Import seller-specific components and hooks
@@ -197,6 +197,18 @@ const SellerCreateOrder = () => {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          {/* Header with Back Button */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold">Create Order</h1>
+              <p className="text-muted-foreground">Fill in the order information</p>
+            </div>
+            <Button variant="outline" onClick={handleGoBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+          </div>
+          
           <Card>
             <CardHeader>
               <CardTitle>Create Order</CardTitle>
@@ -230,6 +242,18 @@ const SellerCreateOrder = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Create Order</h1>
+            <p className="text-muted-foreground">Fill in the order information</p>
+          </div>
+          <Button variant="outline" onClick={handleGoBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+        </div>
+        
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
