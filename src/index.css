@@ -79,6 +79,57 @@
 }
 
 @layer utilities {
+  /* Mobile-optimized dashboard grid */
+  .dashboard-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: 1fr;
+  }
+  
+  @media (min-width: 640px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .dashboard-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+  
+  /* Fast card animations with GPU acceleration */
+  .fast-card {
+    will-change: transform, box-shadow;
+    transform: translateZ(0);
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .fast-card:hover {
+    transform: translateY(-2px) translateZ(0);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  /* Mobile touch optimization */
+  @media (max-width: 767px) {
+    .touch-target {
+      min-height: 48px;
+      min-width: 48px;
+    }
+    
+    .mobile-card {
+      padding: 1rem;
+      border-radius: 0.75rem;
+    }
+  }
+
   /* Animation utilities */
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out forwards;

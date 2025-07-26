@@ -1,16 +1,20 @@
 
-import React from "react";
-import OptimizedSellerDashboard from "@/components/seller/OptimizedSellerDashboard";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import React, { useEffect } from "react";
+import FastSellerDashboard from "@/components/seller/FastSellerDashboard";
+import FastProtectedRoute from "@/components/auth/FastProtectedRoute";
+import { initMobileOptimizations } from "@/utils/mobileOptimizations";
 
 const SellerDashboard = () => {
+  useEffect(() => {
+    initMobileOptimizations();
+  }, []);
 
   return (
-    <ProtectedRoute allowedRoles={['seller']}>
+    <FastProtectedRoute allowedRoles={['seller']}>
       <div className="container mx-auto px-4 py-8">
-        <OptimizedSellerDashboard />
+        <FastSellerDashboard />
       </div>
-    </ProtectedRoute>
+    </FastProtectedRoute>
   );
 };
 
