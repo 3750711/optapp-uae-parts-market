@@ -81,9 +81,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Оптимизированная функция загрузки профиля с кэшированием
+  // Оптимизированная функция загрузки профиля с кэшированием и таймаутом
   const fetchUserProfile = useCallback(async (userId: string, retryCount = 0) => {
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000;
+    const PROFILE_TIMEOUT = 10000; // 10 seconds timeout
+    
+    console.log(`Fetching profile for user ${userId}, attempt ${retryCount + 1}/${MAX_RETRIES + 1}`);
     setIsProfileLoading(true);
+    
     try {
       // Проверяем кэш админских прав
       const cachedAdminRights = getCachedAdminRights(userId);
@@ -91,45 +97,68 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAdmin(cachedAdminRights);
       }
 
-      const { data, error } = await supabase
+      // Add timeout to profile fetch
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), PROFILE_TIMEOUT);
+      });
+
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as any;
+
       if (error) {
         console.error('Error fetching profile:', error);
-        setIsProfileLoading(false);
+        
+        // If it's the last retry, try to create basic profile
+        if (retryCount >= MAX_RETRIES) {
+          console.log('Max retries reached. Creating basic profile...');
+          await createBasicProfile(userId);
+          return;
+        }
+        
+        // Retry on error
+        setTimeout(() => {
+          fetchUserProfile(userId, retryCount + 1);
+        }, RETRY_DELAY);
         return;
       }
 
       if (data) {
+        console.log('Profile loaded successfully:', data.id);
         setProfile(data);
         const adminStatus = data.user_type === 'admin';
         setIsAdmin(adminStatus);
-        // Кэшируем результат
         setCachedAdminRights(userId, adminStatus);
       } else {
-        // Profile doesn't exist yet - for new users (especially Telegram users)
         console.log('Profile not found for user:', userId);
-        setProfile(null);
-        setIsAdmin(false);
         
-        // Retry mechanism for new users - wait a bit and try again
-        if (retryCount < 3) {
-          console.log(`Retrying profile fetch (attempt ${retryCount + 1}/3) in 1 second...`);
+        if (retryCount < MAX_RETRIES) {
+          console.log(`Retrying profile fetch (attempt ${retryCount + 1}/${MAX_RETRIES}) in ${RETRY_DELAY}ms...`);
           setTimeout(() => {
             fetchUserProfile(userId, retryCount + 1);
-          }, 1000);
-          return; // Don't set loading to false yet
+          }, RETRY_DELAY);
+          return;
         } else {
           console.log('Profile still not found after retries. Creating basic profile...');
-          // Try to create a basic profile for email users
           await createBasicProfile(userId);
         }
       }
     } catch (error) {
       console.error('Profile fetch error:', error);
+      
+      if (retryCount >= MAX_RETRIES) {
+        console.log('Max retries reached after error. Creating basic profile...');
+        await createBasicProfile(userId);
+      } else {
+        setTimeout(() => {
+          fetchUserProfile(userId, retryCount + 1);
+        }, RETRY_DELAY);
+        return;
+      }
     } finally {
       setIsProfileLoading(false);
     }

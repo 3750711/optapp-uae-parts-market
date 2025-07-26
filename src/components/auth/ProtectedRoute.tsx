@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { devLog } from "@/utils/logger";
 import EmailVerificationBanner from "./EmailVerificationBanner";
+import ProfileLoadingScreen from "./ProfileLoadingScreen";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -40,19 +41,11 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
     return <Navigate to={`/login?from=${encodeURIComponent(location.pathname)}`} replace />;
   }
   
-  // If profile is still loading but user exists, show minimal loading
+  // If profile is still loading but user exists, show enhanced loading with timeout
   if (!profile) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="max-w-md mx-auto text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">
-            Настройка профиля...
-          </h2>
-          <p className="text-gray-600">
-            Подождите, мы создаем ваш профиль
-          </p>
-        </div>
+        <ProfileLoadingScreen />
       </div>
     );
   }
