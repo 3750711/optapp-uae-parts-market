@@ -3,7 +3,8 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Eye, Clock, Star, Activity } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
 import OptimizedImage from '@/components/ui/OptimizedImage';
@@ -44,6 +45,23 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 }) => {
   const [isRecentUpdate, setIsRecentUpdate] = useState(false);
   const [priceChanged, setPriceChanged] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleProductClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Check if current user is the seller of this product
+    const isSeller = user?.id === product.seller_id;
+    
+    if (isSeller) {
+      // Redirect sellers to their seller-specific product page
+      navigate(`/seller/product/${product.id}`);
+    } else {
+      // Redirect all other users to the regular product page
+      navigate(`/product/${product.id}`);
+    }
+  };
 
   // Handle recent updates animation
   useEffect(() => {
@@ -155,7 +173,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 
           {/* Product Image */}
           <div className="flex-shrink-0">
-            <Link to={`/product/${product.id}`}>
+            <div onClick={handleProductClick} className="cursor-pointer">
               <OptimizedImage
                 src={product.image || product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg"}
                 alt={product.title}
@@ -165,19 +183,19 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 size="thumbnail"
                 priority={false}
               />
-            </Link>
+            </div>
           </div>
 
           {/* Product Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <Link 
-                  to={`/product/${product.id}`}
-                  className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2"
+                <div 
+                  onClick={handleProductClick}
+                  className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2 cursor-pointer"
                 >
                   {product.title}
-                </Link>
+                </div>
                 
                 {showOfferStatus && product.user_offer_status && (
                   <div className="flex items-center gap-2 mt-2">
