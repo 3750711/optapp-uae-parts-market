@@ -163,7 +163,7 @@ const Header = () => {
               
               {/* Mobile: Link to profile menu page */}
               {isMobile ? (
-                <Link to="/profile-menu">
+                <Link to={profile?.user_type === 'seller' ? '/seller/profile-menu' : '/profile-menu'}>
                   <Button 
                     variant="ghost" 
                     className="relative rounded-full h-10 w-10 p-0 text-primary bg-accent/50 border border-primary/20 transition-transform hover:scale-110"

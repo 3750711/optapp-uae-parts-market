@@ -78,6 +78,7 @@ const AdminPriceOffers = lazy(() => import('@/pages/admin/AdminPriceOffers'));
 
 // Mobile specific pages
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
+const SellerMobileProfileMenu = lazy(() => import('@/pages/SellerMobileProfileMenu'));
 
 const AppRoutes: React.FC = () => {
   return (
@@ -214,6 +215,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/profile-menu" element={
               <ProtectedRoute>
                 <MobileProfileMenu />
+              </ProtectedRoute>
+            } />
+            <Route path="/seller/profile-menu" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <SellerMobileProfileMenu />
               </ProtectedRoute>
             } />
             <Route path="/create-store" element={
