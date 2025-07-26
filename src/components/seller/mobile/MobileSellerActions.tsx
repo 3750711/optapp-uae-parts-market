@@ -45,15 +45,15 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       queryClient.invalidateQueries({ queryKey: ['seller-product', product.id] });
       queryClient.invalidateQueries({ queryKey: ['seller-products'] });
       toast({
-        title: "Статус обновлен",
-        description: "Статус вашего объявления успешно изменен.",
+        title: "Status Updated",
+        description: "Your listing status has been successfully changed.",
       });
       onProductUpdate();
     },
     onError: () => {
       toast({
-        title: "Ошибка",
-        description: "Не удалось обновить статус объявления.",
+        title: "Error",
+        description: "Failed to update listing status.",
         variant: "destructive"
       });
     }
@@ -80,7 +80,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       try {
         await navigator.share({
           title: product.title,
-          text: `Проверьте это объявление: ${product.title}`,
+          text: `Check out this listing: ${product.title}`,
           url: window.location.href,
         });
       } catch (error) {
@@ -90,8 +90,8 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       // Fallback: copy to clipboard
       await navigator.clipboard.writeText(window.location.href);
       toast({
-        title: "Ссылка скопирована",
-        description: "Ссылка на объявление скопирована в буфер обмена",
+        title: "Link Copied",
+        description: "Listing link copied to clipboard",
       });
     }
   };
@@ -119,8 +119,8 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
             className="flex-1 flex items-center gap-2"
             onClick={handleEdit}
           >
-            <Edit className="h-4 w-4" />
-            Редактировать
+              <Edit className="h-4 w-4" />
+              Edit
           </Button>
 
           {/* View Offers Button */}
@@ -130,7 +130,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
             onClick={handleViewOffers}
           >
             <Eye className="h-4 w-4" />
-            Предложения
+            Offers
           </Button>
 
           {/* Status Action Button */}
@@ -142,20 +142,20 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
                   className="flex-1 flex items-center gap-2"
                 >
                   <Archive className="h-4 w-4" />
-                  {product.status === 'active' ? 'Продано' : 'Действие'}
+                  {product.status === 'active' ? 'Sold' : 'Action'}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Отметить как проданное?</AlertDialogTitle>
+                  <AlertDialogTitle>Mark as sold?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Объявление будет помечено как проданное и убрано из активных объявлений.
+                    The listing will be marked as sold and removed from active listings.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={() => handleStatusChange('sold')}>
-                    Пометить как проданное
+                    Mark as Sold
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -170,7 +170,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
               disabled={isUpdating}
             >
               <RotateCcw className="h-4 w-4" />
-              Восстановить
+              Restore
             </Button>
           )}
         </div>

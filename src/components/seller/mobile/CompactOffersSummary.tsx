@@ -54,12 +54,12 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            Предложения цены
+            Price Offers
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <p className="text-sm text-muted-foreground">
-            Пока нет предложений цены
+            No price offers yet
           </p>
         </CardContent>
       </Card>
@@ -83,7 +83,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            Предложения цены
+            Price Offers
           </CardTitle>
           <Button 
             variant="ghost" 
@@ -92,7 +92,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
             className="h-8 px-2"
           >
             <Eye className="h-3 w-3 mr-1" />
-            Все
+            All
           </Button>
         </div>
       </CardHeader>
@@ -101,17 +101,17 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
         <div className="grid grid-cols-3 gap-3 mb-3">
           <div className="text-center bg-muted p-2 rounded-lg">
             <div className="text-lg font-bold text-primary">{offers.length}</div>
-            <div className="text-xs text-muted-foreground">Всего</div>
+            <div className="text-xs text-muted-foreground">Total</div>
           </div>
           
           <div className="text-center bg-muted p-2 rounded-lg">
             <div className="text-lg font-bold text-accent">{formatPrice(maxOffer)}</div>
-            <div className="text-xs text-muted-foreground">Макс. цена</div>
+            <div className="text-xs text-muted-foreground">Max Price</div>
           </div>
           
           <div className="text-center bg-muted p-2 rounded-lg">
             <div className="text-lg font-bold text-secondary">{pendingOffers.length}</div>
-            <div className="text-xs text-muted-foreground">Ожидают</div>
+            <div className="text-xs text-muted-foreground">Pending</div>
           </div>
         </div>
 
@@ -120,7 +120,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
           <div className="flex gap-2 mb-3">
             <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs">
               <Clock className="h-3 w-3 mr-1" />
-              {pendingOffers.length} новых
+              {pendingOffers.length} new
             </Badge>
           </div>
         )}
@@ -134,7 +134,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
                   {formatPrice(pendingOffers[0].offered_price)}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  от {pendingOffers[0].profiles?.full_name || 'Покупатель'}
+                  from {pendingOffers[0].profiles?.full_name || 'Buyer'}
                 </div>
               </div>
               <div className="text-xs text-muted-foreground">
