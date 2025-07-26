@@ -13,6 +13,7 @@ import ProductStatusChangeDialog from '@/components/product/ProductStatusChangeD
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { formatPrice } from '@/utils/formatPrice';
 
 interface ProductListItemProps {
   product: ProductProps & {
@@ -210,6 +211,11 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   <Badge variant="default" className="text-xs px-1.5 py-0.5">
                     Active
                   </Badge>
+                )}
+                {maxCompetitorPrice > 0 && (
+                  <div className="text-xs text-green-600 font-medium mt-1">
+                    {formatPrice(maxCompetitorPrice)}
+                  </div>
                 )}
               </div>
             </div>
