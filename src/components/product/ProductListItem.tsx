@@ -213,9 +213,9 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   </Badge>
                 )}
                 {maxCompetitorPrice > 0 && (
-                  <div className="text-xs text-green-600 font-medium mt-1">
-                    {formatPrice(maxCompetitorPrice)}
-                  </div>
+                   <div className="text-xs text-green-600 font-medium mt-1">
+                     Offer ${formatPrice(maxCompetitorPrice)}
+                   </div>
                 )}
               </div>
             </div>
