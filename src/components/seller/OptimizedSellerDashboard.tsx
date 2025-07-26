@@ -3,12 +3,25 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered, FileText, ShoppingCart, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const OptimizedSellerDashboard = () => {
   const { profile } = useAuth();
   const isMobile = useIsMobile();
+
+  const getInitials = (name: string | null | undefined): string => {
+    if (!name) return 'S';
+    const words = name.trim().split(' ');
+    if (words.length === 1) {
+      return words[0].charAt(0).toUpperCase();
+    }
+    return words
+      .slice(0, 2)
+      .map(word => word.charAt(0).toUpperCase())
+      .join('');
+  };
 
   const handleContactAdmin = () => {
     try {
@@ -79,11 +92,19 @@ const OptimizedSellerDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold">Seller Dashboard</h2>
           <p className="text-muted-foreground mt-1">Manage your products and orders</p>
         </div>
+        <Link to="/seller/profile-menu" className="shrink-0">
+          <Avatar className={`${isMobile ? 'h-10 w-10' : 'h-12 w-12'} hover:scale-110 transition-transform cursor-pointer border-2 border-primary/20 bg-background`}>
+            <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || 'Seller'} />
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              {getInitials(profile?.full_name)}
+            </AvatarFallback>
+          </Avatar>
+        </Link>
       </div>
       
       <div className={`grid grid-cols-1 ${isMobile ? 'gap-3' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'}`}>
