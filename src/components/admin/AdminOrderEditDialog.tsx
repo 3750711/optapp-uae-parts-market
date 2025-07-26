@@ -93,7 +93,6 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                     orderVideos={orderVideos}
                     onVideosChange={handleVideosChange}
                     onVideoDelete={handleVideoDelete}
-                    onStatusChange={onStatusChange}
                   />
                 </div>
               </ScrollArea>
