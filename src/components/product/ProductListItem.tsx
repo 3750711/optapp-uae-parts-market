@@ -263,8 +263,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               </div>
 
               <div className="flex items-center justify-between text-sm text-gray-600">
-                <span>Продавец: {product.seller_name}</span>
-                <span>Место: {product.place_number}</span>
+                <span>Place: {product.place_number}</span>
               </div>
 
               {/* Auction functionality removed - simplified to basic offer display */}
