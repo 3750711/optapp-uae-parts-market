@@ -46,7 +46,7 @@ const SellerListingsContent = () => {
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) {
         prodError('User not authenticated in seller listings');
-        throw new Error('Пользователь не авторизован');
+        throw new Error('User not authenticated');
       }
       
       const from = pageParam * productsPerPage;
@@ -63,7 +63,7 @@ const SellerListingsContent = () => {
           
         if (connectionError) {
           prodError('Database connection error in seller listings', { error: connectionError });
-          throw new Error(`Ошибка подключения: ${connectionError.message}`);
+          throw new Error(`Connection error: ${connectionError.message}`);
         }
         
         let query = supabase
@@ -106,7 +106,7 @@ const SellerListingsContent = () => {
 
         if (error) {
           prodError('Database error in seller listings', { error });
-          throw new Error(`Ошибка загрузки товаров: ${error.message}`);
+          throw new Error(`Error loading products: ${error.message}`);
         }
         
         devLog(`✅ Successfully fetched ${data?.length || 0} products`);
@@ -149,8 +149,8 @@ const SellerListingsContent = () => {
     devLog("Product status changed, applying optimistic update");
     
     toast({
-      title: "Статус обновлен",
-      description: "Изменения применены",
+      title: "Status updated",
+      description: "Changes applied",
     });
     queryClient.invalidateQueries({
       queryKey: ['seller-products-infinite', user?.id, activeSearchTerm, activeLotSearchTerm],
@@ -180,8 +180,8 @@ const SellerListingsContent = () => {
         prodError('Error loading more products', { error });
         toast({
           variant: "destructive",
-          title: "Ошибка загрузки",
-          description: "Не удалось загрузить больше товаров",
+          title: "Loading error",
+          description: "Failed to load more products",
         });
       }
     }
@@ -192,15 +192,15 @@ const SellerListingsContent = () => {
       devLog('🔄 Retrying seller products fetch...');
       await refetch();
       toast({
-        title: "Обновление данных",
-        description: "Загружаем ваши товары...",
+        title: "Updating data",
+        description: "Loading your products...",
       });
     } catch (error) {
       prodError('Retry failed in seller listings', { error });
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось обновить данные",
+        title: "Error",
+        description: "Failed to update data",
       });
     }
   };
@@ -209,10 +209,10 @@ const SellerListingsContent = () => {
   useEffect(() => {
     if (isError && error) {
       prodError('Seller listings error', { error });
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         variant: "destructive",
-        title: "Ошибка загрузки товаров",
+        title: "Error loading products",
         description: errorMessage,
       });
     }
@@ -257,22 +257,22 @@ const SellerListingsContent = () => {
   }
 
   if (isError) {
-    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Мои объявления</h1>
+          <h1 className="text-3xl font-bold">My Listings</h1>
         </div>
         
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
             <div>
-              <div className="font-medium mb-1">Ошибка загрузки товаров</div>
+              <div className="font-medium mb-1">Error loading products</div>
               <div className="text-sm">{errorMessage}</div>
               <div className="text-xs mt-1 opacity-75">
-                Проверьте подключение к интернету и попробуйте снова
+                Check your internet connection and try again
               </div>
             </div>
             <Button 
@@ -282,7 +282,7 @@ const SellerListingsContent = () => {
               className="ml-4"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Повторить
+              Retry
             </Button>
           </AlertDescription>
         </Alert>
@@ -297,16 +297,16 @@ const SellerListingsContent = () => {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/seller/dashboard')}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Назад
+            Back
           </Button>
-          <h1 className="text-3xl font-bold">Мои объявления</h1>
+          <h1 className="text-3xl font-bold">My Listings</h1>
         </div>
         <Badge variant="outline" className="text-lg">
-          Всего: {mappedProducts.length}
+          Total: {mappedProducts.length}
         </Badge>
       </div>
       
@@ -319,7 +319,7 @@ const SellerListingsContent = () => {
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Поиск по названию, бренду или модели..."
+                  placeholder="Search by title, brand or model..."
                   className="w-full"
                 />
               </div>
@@ -328,13 +328,13 @@ const SellerListingsContent = () => {
                   type="number"
                   value={lotSearchQuery}
                   onChange={(e) => setLotSearchQuery(e.target.value)}
-                  placeholder="№ лота"
+                  placeholder="Lot #"
                   className="w-full"
                 />
               </div>
               <Button type="submit" className="px-6">
                 <Search className="h-4 w-4 mr-2" />
-                Найти
+                Search
               </Button>
               {(activeSearchTerm || activeLotSearchTerm) && (
                 <Button
@@ -350,10 +350,10 @@ const SellerListingsContent = () => {
           </form>
           {(activeSearchTerm || activeLotSearchTerm) && (
             <div className="mt-3 text-sm text-muted-foreground">
-              Результаты поиска:
-              {activeSearchTerm && <span> текст "{activeSearchTerm}"</span>}
+              Search results:
+              {activeSearchTerm && <span> text "{activeSearchTerm}"</span>}
               {activeSearchTerm && activeLotSearchTerm && <span>, </span>}
-              {activeLotSearchTerm && <span> лот №{activeLotSearchTerm}</span>}
+              {activeLotSearchTerm && <span> lot #{activeLotSearchTerm}</span>}
             </div>
           )}
         </CardContent>
@@ -377,7 +377,7 @@ const SellerListingsContent = () => {
                 {isFetchingNextPage ? (
                   <div className="flex items-center justify-center">
                     <div className="w-8 h-8 border-4 border-t-link rounded-full animate-spin"></div>
-                    <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
+                    <span className="ml-3 text-muted-foreground">Loading products...</span>
                   </div>
                 ) : (
                   <Button 
@@ -385,7 +385,7 @@ const SellerListingsContent = () => {
                     className="bg-primary hover:bg-primary/90"
                     disabled={isError}
                   >
-                    Загрузить ещё
+                    Load More
                   </Button>
                 )}
               </div>
@@ -394,7 +394,7 @@ const SellerListingsContent = () => {
           
           {!hasNextPage && !isFetchingNextPage && mappedProducts.length > 0 && (
             <div className="text-center py-6 text-gray-500">
-              Вы просмотрели все ваши объявления
+              You have viewed all your listings
             </div>
           )}
         </>
@@ -407,10 +407,10 @@ const SellerListingsContent = () => {
               </svg>
             </div>
             <h3 className="text-xl font-medium text-gray-900 mb-2">
-              У вас пока нет объявлений
+              You don't have any listings yet
             </h3>
             <p className="text-gray-500 mb-6">
-              Создайте свое первое объявление, чтобы начать продавать
+              Create your first listing to start selling
             </p>
           </div>
         </div>

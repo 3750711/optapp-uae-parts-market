@@ -1,6 +1,5 @@
 
 import React from "react";
-import Layout from "@/components/layout/Layout";
 import { Suspense, lazy } from 'react';
 import SellerListingsErrorBoundary from "@/components/seller/SellerListingsErrorBoundary";
 import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerListingsSkeleton";
@@ -10,15 +9,13 @@ const SellerListingsContent = lazy(() => import('@/components/seller/SellerListi
 
 const SellerListings = () => {
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <SellerListingsErrorBoundary>
-          <Suspense fallback={<EnhancedSellerListingsSkeleton />}>
-            <SellerListingsContent />
-          </Suspense>
-        </SellerListingsErrorBoundary>
-      </div>
-    </Layout>
+    <div className="container mx-auto px-4 py-8">
+      <SellerListingsErrorBoundary>
+        <Suspense fallback={<EnhancedSellerListingsSkeleton />}>
+          <SellerListingsContent />
+        </Suspense>
+      </SellerListingsErrorBoundary>
+    </div>
   );
 };
 

@@ -37,15 +37,15 @@ class SellerListingsErrorBoundary extends Component<Props, State> {
       return (
         <div className="container mx-auto px-4 py-8">
           <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Мои объявления</h1>
+            <h1 className="text-3xl font-bold">My Listings</h1>
             
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium mb-1">Произошла ошибка</div>
+                  <div className="font-medium mb-1">An error occurred</div>
                   <div className="text-sm">
-                    {this.state.error?.message || 'Неизвестная ошибка при загрузке страницы'}
+                    {this.state.error?.message || 'Unknown error while loading page'}
                   </div>
                 </div>
                 <Button 
@@ -55,7 +55,7 @@ class SellerListingsErrorBoundary extends Component<Props, State> {
                   className="ml-4"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Обновить страницу
+                  Refresh Page
                 </Button>
               </AlertDescription>
             </Alert>
