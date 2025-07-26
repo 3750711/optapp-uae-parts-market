@@ -1351,6 +1351,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      create_bilingual_notification: {
+        Args: { p_user_id: string; p_type: string; p_data?: Json }
+        Returns: string
+      }
       create_order_reminder_notifications: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1575,6 +1579,10 @@ export type Database = {
       sync_orphaned_telegram_users_safe: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      translate_notification: {
+        Args: { p_type: string; p_data: Json; p_user_id?: string }
+        Returns: Json
       }
       update_order_media: {
         Args: {
