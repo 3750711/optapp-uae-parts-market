@@ -149,66 +149,66 @@ const AppRoutes: React.FC = () => {
               </GuestRoute>
             } />
 
-            {/* Защищенные публичные маршруты - требуют авторизации */}
+            {/* Защищенные публичные маршруты - заблокированы для продавцов */}
             <Route path="/about" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <About />
               </ProtectedRoute>
             } />
             <Route path="/contact" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <Contact />
               </ProtectedRoute>
             } />
             <Route path="/catalog" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <CatalogErrorBoundary>
                   <Catalog />
                 </CatalogErrorBoundary>
               </ProtectedRoute>
             } />
             <Route path="/product/:id" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <ProductDetail />
               </ProtectedRoute>
             } />
             <Route path="/stores" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <Stores />
               </ProtectedRoute>
             } />
             <Route path="/store/:id" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <StoreDetail />
               </ProtectedRoute>
             } />
             <Route path="/requests" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <Requests />
               </ProtectedRoute>
             } />
             <Route path="/request/:id" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <RequestDetail />
               </ProtectedRoute>
             } />
             <Route path="/buyer-guide" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <BuyerGuide />
               </ProtectedRoute>
             } />
             <Route path="/seller/:id" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <PublicSellerProfile />
               </ProtectedRoute>
             } />
             <Route path="/public-seller-profile/:id" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <PublicSellerProfile />
               </ProtectedRoute>
             } />
             <Route path="/generate-og-image" element={
-              <ProtectedRoute>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <GenerateOGImage />
               </ProtectedRoute>
             } />
@@ -230,22 +230,22 @@ const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/create-store" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['buyer', 'admin']}>
                 <CreateStore />
               </ProtectedRoute>
             } />
             <Route path="/create-request" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['buyer', 'admin']}>
                 <CreateRequest />
               </ProtectedRoute>
             } />
             <Route path="/buyer-orders" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['buyer', 'admin']}>
                 <BuyerOrders />
               </ProtectedRoute>
             } />
             <Route path="/buyer-create-order" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['buyer', 'admin']}>
                 <BuyerCreateOrder />
               </ProtectedRoute>
             } />
@@ -280,7 +280,7 @@ const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/favorites" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['buyer', 'admin']}>
                 <Favorites />
               </ProtectedRoute>
             } />
