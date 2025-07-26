@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import Layout from "@/components/layout/Layout";
+
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -89,10 +89,10 @@ const SellerAddProduct = () => {
     enabled: !isSubmitting
   });
 
-  // Breadcrumbs навигация
+  // Breadcrumbs navigation
   const breadcrumbItems = useMemo(() => [
-    { label: "Панель продавца", href: "/seller/dashboard" },
-    { label: "Добавить товар" }
+    { label: "Seller Dashboard", href: "/seller/dashboard" },
+    { label: "Add Product" }
   ], []);
 
   const watchBrandId = form.watch("brandId");
@@ -129,8 +129,8 @@ const SellerAddProduct = () => {
         }
 
         toast({
-          title: "Авто обнаружено",
-          description: "Марка и модель автомобиля определены из названия",
+          title: "Car Detected",
+          description: "Car brand and model determined from title",
         });
       }
     }
@@ -209,8 +209,8 @@ const SellerAddProduct = () => {
 
     if (imageUrls.length === 0) {
       toast({
-        title: "Ошибка",
-        description: "Добавьте хотя бы одну фотографию",
+        title: "Error",
+        description: "Add at least one photo",
         variant: "destructive",
       });
       return;
@@ -218,8 +218,8 @@ const SellerAddProduct = () => {
 
     if (!user?.id) {
       toast({
-        title: "Ошибка",
-        description: "Пользователь не авторизован",
+        title: "Error",
+        description: "User not authorized",
         variant: "destructive",
       });
       return;
@@ -227,8 +227,8 @@ const SellerAddProduct = () => {
     
     if (!profile?.opt_id) {
       toast({
-        title: "Профиль не заполнен",
-        description: "У вашего профиля отсутствует OPT ID. Пожалуйста, обратитесь к администратору для его получения.",
+        title: "Profile Incomplete",
+        description: "Your profile is missing an OPT ID. Please contact the administrator to obtain one.",
         variant: "destructive",
       });
       return;
@@ -311,7 +311,7 @@ const SellerAddProduct = () => {
         console.error('❌ Error adding images:', imageError);
         // Rollback: delete the product if image upload fails
         await supabase.from('products').delete().eq('id', product.id);
-        throw new Error(`Ошибка добавления изображений: ${imageError.message}`);
+        throw new Error(`Error adding images: ${imageError.message}`);
       }
       
       console.log(`✅ ${imageUrls.length} images inserted for product ${product.id}`);
@@ -387,11 +387,11 @@ const SellerAddProduct = () => {
       clearSavedData();
 
       const successMessage = profile?.is_trusted_seller 
-        ? "Товар успешно опубликован"
-        : "Товар отправлен на модерацию и будет опубликован после проверки";
+        ? "Product successfully published"
+        : "Product sent for moderation and will be published after review";
 
       toast({
-        title: "Товар создан",
+        title: "Product Created",
         description: successMessage,
       });
 
@@ -399,8 +399,8 @@ const SellerAddProduct = () => {
     } catch (error) {
       console.error("💥 Error creating product:", error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось создать товар. Попробуйте позже.",
+        title: "Error",
+        description: "Failed to create product. Please try again later.",
         variant: "destructive",
       });
     }
@@ -421,7 +421,7 @@ const SellerAddProduct = () => {
   if (isLoadingCarData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <span>Загрузка данных автомобилей...</span>
+        <span>Loading car data...</span>
       </div>
     );
   }
@@ -430,41 +430,31 @@ const SellerAddProduct = () => {
   try {
     return (
       <GlobalErrorBoundary>
-        <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
             <Breadcrumb className="mb-6">
               <BreadcrumbList>
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link to="/" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
-                      <Home className="h-4 w-4 mr-1" />
-                      Главная
-                    </Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
                     <Link to="/seller/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-                      Панель продавца
+                      Seller Dashboard
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbPage className="text-foreground">
-                  Добавить товар
+                  Add Product
                 </BreadcrumbPage>
               </BreadcrumbList>
             </Breadcrumb>
             
-            <h1 className="text-3xl font-bold mb-6">Добавить товар</h1>
+            <h1 className="text-3xl font-bold mb-6">Add Product</h1>
             
             {showDraftSaved && (
               <Alert className="mb-6">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Загружен сохраненный черновик. Вы можете продолжить заполнение формы.
+                  Saved draft loaded. You can continue filling out the form.
                 </AlertDescription>
               </Alert>
             )}
@@ -472,14 +462,14 @@ const SellerAddProduct = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  Информация о товаре
+                  Product Information
                   <Badge variant="outline" className="text-xs flex items-center gap-1">
                     <Sparkles className="h-3 w-3" />
-                    Cloudinary интеграция
+                    Cloudinary integration
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  Заполните все поля для создания товара. Товар будет отправлен на модерацию.
+                  Fill in all fields to create a product. The product will be sent for moderation.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -504,7 +494,6 @@ const SellerAddProduct = () => {
             </Card>
           </div>
         </div>
-      </Layout>
       </GlobalErrorBoundary>
     );
   } catch (e: any) {

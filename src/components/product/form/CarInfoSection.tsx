@@ -43,14 +43,14 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
         name="brandId"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Марка автомобиля</FormLabel>
+            <FormLabel>Car Brand</FormLabel>
             <FormControl>
               <EnhancedVirtualizedSelect
                 options={brands}
                 value={field.value}
                 onValueChange={field.onChange}
-                placeholder="Выберите марку"
-                searchPlaceholder="Поиск марки..."
+                placeholder="Select brand"
+                searchPlaceholder="Search brand..."
                 disabled={isLoadingCarData}
               />
             </FormControl>
@@ -64,14 +64,14 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
         name="modelId"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Модель (необязательно)</FormLabel>
+            <FormLabel>Model (optional)</FormLabel>
             <FormControl>
               <EnhancedVirtualizedSelect
                 options={models}
                 value={field.value}
                 onValueChange={field.onChange}
-                placeholder={watchBrandId ? "Выберите модель" : "Сначала выберите марку"}
-                searchPlaceholder="Поиск модели..."
+                placeholder={watchBrandId ? "Select model" : "First select brand"}
+                searchPlaceholder="Search model..."
                 disabled={!watchBrandId || isLoadingCarData}
               />
             </FormControl>

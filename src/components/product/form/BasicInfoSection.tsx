@@ -24,10 +24,10 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
         name="title"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Название товара</FormLabel>
+            <FormLabel>Product Title</FormLabel>
             <FormControl>
               <Input 
-                placeholder="Например: Передний бампер BMW X5 F15"
+                placeholder="For example: BMW X5 F15 Front Bumper"
                 {...field}
               />
             </FormControl>
@@ -42,7 +42,7 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
           name="price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Цена ($)</FormLabel>
+              <FormLabel>Price ($)</FormLabel>
               <FormControl>
                 <Input 
                   type="number"
@@ -61,7 +61,7 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
           name="deliveryPrice"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Стоимость доставки ($)</FormLabel>
+              <FormLabel>Delivery Cost ($)</FormLabel>
               <FormControl>
                 <Input 
                   type="number"
@@ -82,12 +82,12 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
         name="placeNumber"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Количество мест для отправки</FormLabel>
+            <FormLabel>Number of Places for Shipping</FormLabel>
             <FormControl>
               <Input 
                 type="number"
                 min="1"
-                placeholder="Количество мест"
+                placeholder="Number of places"
                 {...field}
               />
             </FormControl>
@@ -101,10 +101,10 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Описание товара (необязательно)</FormLabel>
+            <FormLabel>Product Description (optional)</FormLabel>
             <FormControl>
               <Textarea 
-                placeholder="Описание товара"
+                placeholder="Product description"
                 className="min-h-[100px]"
                 {...field}
               />

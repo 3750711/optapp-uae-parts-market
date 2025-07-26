@@ -13,13 +13,13 @@ import CarInfoSection from "./form/CarInfoSection";
 import { z } from "zod";
 
 export const productSchema = z.object({
-  title: z.string().min(3, { message: "Название должно содержать не менее 3 символов" }),
-  price: z.string().min(1, { message: "Укажите цену товара" }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: "Цена должна быть положительным числом" }),
-  brandId: z.string().min(1, { message: "Выберите марку автомобиля" }),
+  title: z.string().min(3, { message: "Title must contain at least 3 characters" }),
+  price: z.string().min(1, { message: "Please specify product price" }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: "Price must be a positive number" }),
+  brandId: z.string().min(1, { message: "Please select car brand" }),
   modelId: z.string().optional(),
-  placeNumber: z.string().min(1, { message: "Укажите количество мест" }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, { message: "Количество мест должно быть целым положительным числом" }),
+  placeNumber: z.string().min(1, { message: "Please specify number of places" }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, { message: "Number of places must be a positive integer" }),
   description: z.string().optional(),
-  deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), { message: "Стоимость доставки должна быть числом" }),
+  deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), { message: "Delivery cost must be a number" }),
   sellerId: z.string().optional(),
 });
 
@@ -73,16 +73,16 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {showSellerSelection && sellers.length > 0 && (
-          <FormSectionWrapper title="Продавец">
+          <FormSectionWrapper title="Seller">
             <SellerSelectionSection form={form} sellers={sellers} />
           </FormSectionWrapper>
         )}
 
-        <FormSectionWrapper title="Основная информация">
+        <FormSectionWrapper title="Basic Information">
           <BasicInfoSection form={form} />
         </FormSectionWrapper>
 
-        <FormSectionWrapper title="Информация об автомобиле">
+        <FormSectionWrapper title="Car Information">
           <CarInfoSection
             form={form}
             brands={brands}
@@ -92,7 +92,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           />
         </FormSectionWrapper>
         
-        <FormSectionWrapper title="Медиафайлы">
+        <FormSectionWrapper title="Media Files">
           <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
             <OptimizedMediaSection 
               imageUrls={imageUrls}
@@ -114,10 +114,10 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Публикация...
+              Publishing...
             </>
           ) : (
-            'Опубликовать'
+            'Publish'
           )}
         </Button>
       </form>

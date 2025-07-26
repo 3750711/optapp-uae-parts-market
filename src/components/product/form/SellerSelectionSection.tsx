@@ -43,14 +43,14 @@ const SellerSelectionSection = React.memo<SellerSelectionSectionProps>(({ form, 
       name="sellerId"
       render={({ field }) => (
         <FormItem>
-          <FormLabel>Продавец</FormLabel>
+          <FormLabel>Seller</FormLabel>
           <FormControl>
             <Select
               value={field.value}
               onValueChange={field.onChange}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Выберите продавца" />
+                <SelectValue placeholder="Select seller" />
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 {sortedSellers.map((seller) => (
