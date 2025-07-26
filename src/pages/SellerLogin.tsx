@@ -9,6 +9,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { TelegramLoginWidget } from "@/components/auth/TelegramLoginWidget";
 import { devLog } from "@/utils/logger";
+import { getLoginTranslations } from '@/utils/loginTranslations';
+import { useLanguage } from '@/hooks/useLanguage';
+import LanguageToggle from '@/components/auth/LanguageToggle';
 
 const SellerLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -17,6 +20,9 @@ const SellerLogin: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signInWithTelegram } = useAuth();
   const navigate = useNavigate();
+  const { language, changeLanguage } = useLanguage('en');
+  
+  const t = getLoginTranslations(language);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,22 +33,22 @@ const SellerLogin: React.FC = () => {
       
       if (error) {
         toast({
-          title: "Login Failed",
-          description: error.message || "Invalid credentials. Please try again.",
+          title: t.errors.loginFailed,
+          description: error.message || t.errors.invalidCredentials,
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Welcome back!",
-          description: "Successfully logged in to your seller account.",
+          title: t.welcomeBack,
+          description: language === 'en' ? "Successfully logged in to your seller account." : "Успешный вход в аккаунт продавца.",
         });
         navigate('/seller/dashboard');
       }
     } catch (error) {
       devLog('Login error:', error);
       toast({
-        title: "Login Failed",
-        description: "An error occurred during login. Please try again.",
+        title: t.errors.loginFailed,
+        description: t.errors.genericError,
         variant: "destructive",
       });
     } finally {
@@ -60,36 +66,36 @@ const SellerLogin: React.FC = () => {
             <div className="space-y-8">
               <div>
                 <h1 className="text-4xl lg:text-5xl font-bold mb-4">
-                  <span className="text-primary">Seller</span> Portal
+                  <span className="text-primary">{language === 'en' ? 'Seller' : 'Продавец'}</span> {t.sellerPortal}
                 </h1>
                 <p className="text-xl text-gray-600 mb-8">
-                  Access your seller dashboard and manage your auto parts business on PartsBay.ae
+                  {t.sellerPortalDescription}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-6">
                 <div className="bg-white rounded-xl p-6 shadow-card">
                   <Store className="h-8 w-8 text-primary mb-3" />
-                  <h3 className="font-semibold mb-2">Manage Inventory</h3>
-                  <p className="text-sm text-gray-600">Add and manage your auto parts listings</p>
+                  <h3 className="font-semibold mb-2">{t.manageInventory}</h3>
+                  <p className="text-sm text-gray-600">{t.manageInventoryDesc}</p>
                 </div>
 
                 <div className="bg-white rounded-xl p-6 shadow-card">
                   <ShoppingBag className="h-8 w-8 text-secondary mb-3" />
-                  <h3 className="font-semibold mb-2">Process Orders</h3>
-                  <p className="text-sm text-gray-600">Handle customer orders efficiently</p>
+                  <h3 className="font-semibold mb-2">{t.processOrders}</h3>
+                  <p className="text-sm text-gray-600">{t.processOrdersDesc}</p>
                 </div>
 
                 <div className="bg-white rounded-xl p-6 shadow-card">
                   <Users className="h-8 w-8 text-primary mb-3" />
-                  <h3 className="font-semibold mb-2">Connect with Buyers</h3>
-                  <p className="text-sm text-gray-600">Reach thousands of wholesale buyers</p>
+                  <h3 className="font-semibold mb-2">{t.connectWithBuyers}</h3>
+                  <p className="text-sm text-gray-600">{t.connectWithBuyersDesc}</p>
                 </div>
 
                 <div className="bg-white rounded-xl p-6 shadow-card">
                   <TrendingUp className="h-8 w-8 text-secondary mb-3" />
-                  <h3 className="font-semibold mb-2">Grow Your Business</h3>
-                  <p className="text-sm text-gray-600">Expand your market reach in UAE</p>
+                  <h3 className="font-semibold mb-2">{t.growYourBusiness}</h3>
+                  <p className="text-sm text-gray-600">{t.growYourBusinessDesc}</p>
                 </div>
               </div>
             </div>
@@ -97,20 +103,29 @@ const SellerLogin: React.FC = () => {
             {/* Right side - Login form */}
             <div className="flex justify-center">
               <Card className="w-full max-w-md bg-white shadow-elevation border-0">
-                <CardHeader className="space-y-1 text-center">
-                  <CardTitle className="text-2xl font-bold">Seller Login</CardTitle>
-                  <p className="text-gray-600">Enter your credentials to access your seller dashboard</p>
+                <CardHeader className="space-y-1">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 text-center">
+                      <CardTitle className="text-2xl font-bold">{t.sellerLoginTitle}</CardTitle>
+                      <p className="text-gray-600">{t.sellerLoginDescription}</p>
+                    </div>
+                    <LanguageToggle
+                      language={language}
+                      onLanguageChange={changeLanguage}
+                      className="mt-1"
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
                       <label htmlFor="email" className="text-sm font-medium text-gray-700">
-                        Email Address
+                        {t.email} {language === 'en' ? 'Address' : 'адрес'}
                       </label>
                       <Input
                         id="email"
                         type="email"
-                        placeholder="your@email.com"
+                        placeholder={t.sellerEmailPlaceholder}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -120,13 +135,13 @@ const SellerLogin: React.FC = () => {
 
                     <div className="space-y-2">
                       <label htmlFor="password" className="text-sm font-medium text-gray-700">
-                        Password
+                        {t.password}
                       </label>
                       <div className="relative">
                         <Input
                           id="password"
                           type={showPassword ? "text" : "password"}
-                          placeholder="Enter your password"
+                          placeholder={t.sellerPasswordPlaceholder}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           required
@@ -147,7 +162,7 @@ const SellerLogin: React.FC = () => {
                       className="w-full"
                       disabled={isLoading}
                     >
-                      {isLoading ? "Signing In..." : "Sign In"}
+                      {isLoading ? t.signingIn : t.signIn}
                     </Button>
                   </form>
 
@@ -156,7 +171,7 @@ const SellerLogin: React.FC = () => {
                       <span className="w-full border-t" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                      <span className="bg-white px-2 text-gray-500">{t.orContinueWith}</span>
                     </div>
                   </div>
 
@@ -164,15 +179,15 @@ const SellerLogin: React.FC = () => {
                     <TelegramLoginWidget
                       onSuccess={() => {
                         toast({
-                          title: "Welcome back!",
-                          description: "Successfully logged in with Telegram.",
+                          title: t.welcomeBack,
+                          description: t.telegramLoginSuccess,
                         });
                         navigate('/seller/dashboard');
                       }}
                       onError={(error) => {
                         toast({
-                          title: "Telegram Login Failed",
-                          description: error || "Unable to login with Telegram. Please try again.",
+                          title: t.errors.telegramLoginFailed,
+                          description: error || (language === 'en' ? "Unable to login with Telegram. Please try again." : "Не удалось войти через Telegram. Попробуйте снова."),
                           variant: "destructive",
                         });
                       }}
@@ -184,26 +199,26 @@ const SellerLogin: React.FC = () => {
                       to="/forgot-password" 
                       className="text-primary hover:underline block"
                     >
-                      Forgot your password?
+                      {t.forgotPassword}
                     </Link>
                     
                     <div className="space-y-2">
-                      <p className="text-gray-600">Don't have a seller account?</p>
+                      <p className="text-gray-600">{t.dontHaveSellerAccount}</p>
                       <Link 
                         to="/seller-register" 
                         className="text-secondary hover:underline font-medium"
                       >
-                        Register as a Seller
+                        {t.registerAsSeller}
                       </Link>
                     </div>
 
                     <div className="pt-4 border-t">
-                      <p className="text-gray-600 mb-2">Looking for buyer access?</p>
+                      <p className="text-gray-600 mb-2">{t.lookingForBuyerAccess}</p>
                       <Link 
                         to="/login" 
                         className="text-primary hover:underline font-medium"
                       >
-                        Buyer Login
+                        {t.buyerLogin}
                       </Link>
                     </div>
                   </div>

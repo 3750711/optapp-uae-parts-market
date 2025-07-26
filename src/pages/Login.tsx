@@ -17,6 +17,9 @@ import { TelegramAuthWarning } from '@/components/auth/TelegramAuthWarning';
 import { AuthErrorAlert } from '@/components/auth/AuthErrorAlert';
 import { Separator } from '@/components/ui/separator';
 import { AuthErrorType, AuthError } from '@/types/auth';
+import { getLoginTranslations } from '@/utils/loginTranslations';
+import { useLanguage } from '@/hooks/useLanguage';
+import LanguageToggle from '@/components/auth/LanguageToggle';
 
 
 
@@ -32,8 +35,10 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const { checkRateLimit } = useRateLimit();
   const { signIn } = useAuth();
+  const { language, changeLanguage } = useLanguage('ru');
   
   const from = searchParams.get('from') || '/';
+  const t = getLoginTranslations(language);
 
   const inputType = detectInputType(loginInput);
   const isOptId = inputType === 'opt_id';
@@ -43,18 +48,18 @@ const Login = () => {
 
   const createAuthError = (type: AuthErrorType, customMessage?: string): AuthError => {
     const errorMessages = {
-      [AuthErrorType.INVALID_CREDENTIALS]: 'Неверный пароль. Проверьте правильность введенных данных.',
-      [AuthErrorType.USER_NOT_FOUND]: 'Пользователь с таким email не найден. Возможно, вы еще не зарегистрированы?',
-      [AuthErrorType.OPT_ID_NOT_FOUND]: 'OPT ID не найден в системе. Проверьте правильность введенного ID.',
-      [AuthErrorType.RATE_LIMITED]: 'Слишком много попыток входа. Попробуйте позже через несколько минут.',
-      [AuthErrorType.NETWORK_ERROR]: 'Проблемы с подключением к интернету. Проверьте соединение и попробуйте снова.',
-      [AuthErrorType.GENERIC_ERROR]: 'Произошла неожиданная ошибка. Попробуйте обновить страницу.'
+      [AuthErrorType.INVALID_CREDENTIALS]: t.errors.invalidCredentials,
+      [AuthErrorType.USER_NOT_FOUND]: t.errors.userNotFound,
+      [AuthErrorType.OPT_ID_NOT_FOUND]: t.errors.optIdNotFound,
+      [AuthErrorType.RATE_LIMITED]: t.errors.rateLimited,
+      [AuthErrorType.NETWORK_ERROR]: t.errors.networkError,
+      [AuthErrorType.GENERIC_ERROR]: t.errors.genericError
     };
 
     const actionConfig = {
-      [AuthErrorType.USER_NOT_FOUND]: { text: 'Зарегистрироваться', link: '/register' },
-      [AuthErrorType.INVALID_CREDENTIALS]: { text: 'Восстановить пароль', link: '/forgot-password' },
-      [AuthErrorType.OPT_ID_NOT_FOUND]: { text: 'Зарегистрироваться', link: '/register' }
+      [AuthErrorType.USER_NOT_FOUND]: { text: t.errorActions.register, link: '/register' },
+      [AuthErrorType.INVALID_CREDENTIALS]: { text: t.errorActions.recoverPassword, link: '/forgot-password' },
+      [AuthErrorType.OPT_ID_NOT_FOUND]: { text: t.errorActions.register, link: '/register' }
     };
 
     return {
@@ -70,11 +75,11 @@ const Login = () => {
     e.preventDefault();
     
     if (!loginInput || !password) {
-      setAuthError(createAuthError(AuthErrorType.GENERIC_ERROR, 'Пожалуйста, заполните все поля'));
+      setAuthError(createAuthError(AuthErrorType.GENERIC_ERROR, t.errors.fillAllFields));
       return;
     }
     
-    if (!checkRateLimit('вход в систему')) {
+    if (!checkRateLimit(language === 'ru' ? 'вход в систему' : 'login')) {
       setAuthError(createAuthError(AuthErrorType.RATE_LIMITED));
       return;
     }
@@ -144,8 +149,8 @@ const Login = () => {
       }
 
       toast({
-        title: "Вход выполнен успешно",
-        description: "Добро пожаловать!",
+        title: t.loginSuccess,
+        description: t.welcomeBack,
       });
       
       navigate(from, { replace: true });
@@ -162,10 +167,19 @@ const Login = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Вход</CardTitle>
-            <CardDescription className="text-center">
-              Войдите в свой аккаунт для продолжения
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <CardTitle className="text-2xl font-bold text-center">{t.loginTitle}</CardTitle>
+                <CardDescription className="text-center">
+                  {t.loginDescription}
+                </CardDescription>
+              </div>
+              <LanguageToggle
+                language={language}
+                onLanguageChange={changeLanguage}
+                className="mt-1"
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Email/Password Form */}
@@ -176,35 +190,35 @@ const Login = () => {
                       {isEmailFormat ? (
                         <>
                           <Mail className="h-4 w-4" />
-                          Email
+                          {t.email}
                         </>
                       ) : (
                         <>
                           <Hash className="h-4 w-4" />
-                          OPT ID
+                          {t.optId}
                         </>
                       )}
                     </Label>
                     <Input
                       id="loginInput"
                       type="text"
-                      placeholder={isEmailFormat ? "Введите ваш email" : "Введите ваш OPT ID"}
+                      placeholder={isEmailFormat ? t.emailPlaceholder : t.optIdPlaceholder}
                       value={loginInput}
                       onChange={(e) => setLoginInput(e.target.value)}
                       required
                     />
                     <p className="text-xs text-muted-foreground">
-                      Вы можете войти используя <strong>email</strong> или OPT ID
+                      {t.loginHelperText}
                     </p>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="password">Пароль</Label>
+                    <Label htmlFor="password">{t.password}</Label>
                     <div className="relative">
                       <Input
                         id="password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Введите ваш пароль"
+                        placeholder={t.passwordPlaceholder}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -233,10 +247,10 @@ const Login = () => {
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Входим...
+                        {t.signingIn}
                       </>
                     ) : (
-                      'Войти'
+                      t.signIn
                     )}
                   </Button>
               </form>
@@ -248,7 +262,7 @@ const Login = () => {
                 <Separator className="w-full" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">или</span>
+                <span className="bg-background px-2 text-muted-foreground">{t.or}</span>
               </div>
             </div>
 
@@ -276,12 +290,12 @@ const Login = () => {
                 to="/forgot-password" 
                 className="text-sm text-blue-600 hover:underline"
               >
-                Забыли пароль?
+                {t.forgotPassword}
               </Link>
               <div className="text-sm text-gray-600">
-                Нет аккаунта?{' '}
+                {t.noAccount}{' '}
                 <Link to="/register" className="text-blue-600 hover:underline">
-                  Зарегистрироваться
+                  {t.register}
                 </Link>
               </div>
             </div>
