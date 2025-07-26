@@ -40,7 +40,7 @@ const MobileProductCard = React.memo(({ product, onSelect, onPreview }: MobilePr
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
-            <span className="text-xs">Нет фото</span>
+            <span className="text-xs">No Photo</span>
           </div>
         )}
         
@@ -57,7 +57,7 @@ const MobileProductCard = React.memo(({ product, onSelect, onPreview }: MobilePr
       <div className="p-3 space-y-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           <Badge variant="outline" className="text-xs">
-            Лот: {product.lot_number}
+            Lot: {product.lot_number}
           </Badge>
           <Badge 
             variant={product.status === 'active' ? 'success' : 'secondary'}
@@ -93,7 +93,7 @@ const MobileProductCard = React.memo(({ product, onSelect, onPreview }: MobilePr
           onClick={() => onSelect(product)}
           className="w-full mt-2 bg-primary text-white py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
         >
-          Выбрать
+          Select
         </button>
       </div>
     </div>

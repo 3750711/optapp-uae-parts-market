@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import Layout from "@/components/layout/Layout";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,17 +66,17 @@ const SellerSellProduct = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [searchInputRef, setSearchInputRef] = useState<HTMLInputElement | null>(null);
 
-  // Мемоизированные breadcrumbs
+  // Memoized breadcrumbs
   const breadcrumbItems = useMemo(() => [
-    { label: "Продать товар" }
+    { label: "Sell Product" }
   ], []);
 
   // Проверяем, что пользователь - продавец
   useEffect(() => {
     if (profile && profile.user_type !== 'seller') {
       toast({
-        title: "Ошибка доступа",
-        description: "Эта страница доступна только продавцам",
+        title: "Access Error",
+        description: "This page is only available to sellers",
         variant: "destructive",
       });
       navigate('/');
@@ -100,8 +100,8 @@ const SellerSellProduct = () => {
       } catch (error) {
         console.error("Error fetching buyers:", error);
         toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить список покупателей",
+          title: "Error",
+          description: "Failed to load buyers list",
           variant: "destructive",
         });
       }
@@ -137,8 +137,8 @@ const SellerSellProduct = () => {
         if (error.name !== 'AbortError' && isMounted) {
           console.error("Error fetching products:", error);
           toast({
-            title: "Ошибка",
-            description: "Не удалось загрузить ваши товары",
+            title: "Error",
+            description: "Failed to load your products",
             variant: "destructive",
           });
         }
@@ -253,7 +253,7 @@ const SellerSellProduct = () => {
     } else if (step > 1) {
       setStep(step - 1);
     } else {
-      navigate('/seller/profile');
+      navigate('/seller/dashboard');
     }
   }, [showConfirmDialog, showPreview, step, navigate]);
 
@@ -271,8 +271,8 @@ const SellerSellProduct = () => {
   }) => {
     if (!selectedProduct || !selectedBuyer || !profile) {
       toast({
-        title: "Ошибка",
-        description: "Не все данные заполнены",
+        title: "Error",
+        description: "Not all data is filled",
         variant: "destructive",
       });
       return;
@@ -342,8 +342,8 @@ const SellerSellProduct = () => {
       console.log("Order created, notifications will be sent via database triggers");
 
       toast({
-        title: "Заказ создан",
-        description: `Заказ успешно создан`,
+        title: "Order Created",
+        description: `Order successfully created`,
       });
 
       // Закрываем диалог подтверждения и открываем диалог загрузки фото
@@ -352,10 +352,10 @@ const SellerSellProduct = () => {
 
     } catch (error) {
       console.error("Error creating order:", error);
-      const errorMessage = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       toast({
-        title: "Ошибка создания заказа",
-        description: `Детали: ${errorMessage}`,
+        title: "Order Creation Error",
+        description: `Details: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
@@ -407,7 +407,7 @@ const SellerSellProduct = () => {
   };
 
   const handleGoBack = () => {
-    navigate('/seller/profile');
+    navigate('/seller/dashboard');
   };
 
   if (!profile || profile.user_type !== 'seller') {
@@ -415,7 +415,7 @@ const SellerSellProduct = () => {
   }
 
   return (
-    <Layout>
+    <div className="min-h-screen bg-background">
       {/* Горячие клавиши */}
       <KeyboardShortcuts
         onCancel={handleKeyboardCancel}
@@ -435,12 +435,12 @@ const SellerSellProduct = () => {
               className="mr-4" 
               onClick={handleGoBack}
             >
-              <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+              <ChevronLeft className="h-5 w-5 mr-1" /> Back
             </Button>
-            <h1 className="text-3xl font-bold">Продать товар</h1>
+            <h1 className="text-3xl font-bold">Sell Product</h1>
           </div>
           <p className="text-gray-600 mt-2">
-            Выберите товар из вашего склада и покупателя для создания заказа
+            Select a product from your inventory and a buyer to create an order
           </p>
         </div>
 
@@ -448,9 +448,9 @@ const SellerSellProduct = () => {
         <div className="mb-8">
           <div className="flex items-center space-x-4">
             {[
-              { num: 1, title: "Товар", completed: step > 1 },
-              { num: 2, title: "Покупатель", completed: step > 2 },
-              { num: 3, title: "Создание", completed: false }
+              { num: 1, title: "Product", completed: step > 1 },
+              { num: 2, title: "Buyer", completed: step > 2 },
+              { num: 3, title: "Creation", completed: false }
             ].map((stepItem, index) => (
               <React.Fragment key={stepItem.num}>
                 <div className="flex items-center space-x-2">
@@ -479,9 +479,9 @@ const SellerSellProduct = () => {
         {step === 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>Шаг 1: Выберите товар</CardTitle>
+              <CardTitle>Step 1: Select Product</CardTitle>
               <CardDescription>
-                Товары из вашего склада
+                Products from your inventory
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -500,14 +500,14 @@ const SellerSellProduct = () => {
                   <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     {products.length === 0 
-                      ? "Нет товаров на складе"
-                      : "Товары не найдены"
+                      ? "No products in inventory"
+                      : "No products found"
                     }
                   </h3>
                   <p className="text-gray-500">
                     {products.length === 0 
-                      ? "Добавьте товары в ваш склад, чтобы начать продажи"
-                      : "Попробуйте изменить критерии поиска"
+                      ? "Add products to your inventory to start selling"
+                      : "Try changing your search criteria"
                     }
                   </p>
                 </div>
@@ -539,17 +539,17 @@ const SellerSellProduct = () => {
         {step === 2 && selectedProduct && (
           <Card>
             <CardHeader>
-              <CardTitle>Шаг 2: Выберите покупателя</CardTitle>
+              <CardTitle>Step 2: Select Buyer</CardTitle>
               <CardDescription>
-                Товар: {selectedProduct.title}
+                Product: {selectedProduct.title}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Label htmlFor="buyer">Покупатель</Label>
+                <Label htmlFor="buyer">Buyer</Label>
                 <Select onValueChange={handleBuyerSelect}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Выберите покупателя" />
+                    <SelectValue placeholder="Select buyer" />
                   </SelectTrigger>
                   <SelectContent>
                     {buyers.map((buyer) => (
@@ -562,7 +562,7 @@ const SellerSellProduct = () => {
               </div>
               <div className="mt-6 flex space-x-2">
                 <Button variant="outline" onClick={() => setStep(1)}>
-                  Назад
+                  Back
                 </Button>
               </div>
             </CardContent>
@@ -607,7 +607,7 @@ const SellerSellProduct = () => {
           />
         )}
       </div>
-    </Layout>
+    </div>
   );
 };
 

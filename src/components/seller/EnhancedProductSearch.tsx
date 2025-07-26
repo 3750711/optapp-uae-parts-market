@@ -95,8 +95,8 @@ const EnhancedProductSearch = React.memo(({
     clearSavedFilters();
     setHasUnsavedChanges(false);
     toast({
-      title: "Фильтры очищены",
-      description: "Все фильтры были сброшены",
+      title: "Filters Cleared",
+      description: "All filters have been reset",
     });
   };
 
@@ -104,8 +104,8 @@ const EnhancedProductSearch = React.memo(({
     saveFilters(filters);
     setHasUnsavedChanges(false);
     toast({
-      title: "Фильтры сохранены",
-      description: "Ваши настройки фильтров сохранены",
+      title: "Filters Saved",
+      description: "Your filter settings have been saved",
     });
   };
 
@@ -115,8 +115,8 @@ const EnhancedProductSearch = React.memo(({
       onSearchChange(savedFilters);
       setHasUnsavedChanges(false);
       toast({
-        title: "Фильтры восстановлены",
-        description: "Применены сохраненные настройки",
+        title: "Filters Restored",
+        description: "Saved settings have been applied",
       });
     }
   };
@@ -131,7 +131,7 @@ const EnhancedProductSearch = React.memo(({
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Поиск по названию, бренду, модели..."
+              placeholder="Search by title, brand, model..."
               value={filters.searchTerm}
               onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
               className="pl-10"
@@ -146,7 +146,7 @@ const EnhancedProductSearch = React.memo(({
               size="sm"
             >
               <Filter className="h-4 w-4" />
-              <span className="hidden sm:inline">Фильтры</span>
+              <span className="hidden sm:inline">Filters</span>
             </Button>
 
             <Select value={filters.sortBy} onValueChange={(value) => updateFilters({ sortBy: value })}>
@@ -154,10 +154,10 @@ const EnhancedProductSearch = React.memo(({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="created_at">По дате</SelectItem>
-                <SelectItem value="price">По цене</SelectItem>
-                <SelectItem value="title">По названию</SelectItem>
-                <SelectItem value="lot_number">По лоту</SelectItem>
+                <SelectItem value="created_at">By Date</SelectItem>
+                <SelectItem value="price">By Price</SelectItem>
+                <SelectItem value="title">By Title</SelectItem>
+                <SelectItem value="lot_number">By Lot</SelectItem>
               </SelectContent>
             </Select>
 
@@ -179,11 +179,11 @@ const EnhancedProductSearch = React.memo(({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="lotNumber" className="text-sm font-medium">
-                  Номер лота
+                  Lot Number
                 </Label>
                 <Input
                   id="lotNumber"
-                  placeholder="Введите номер лота"
+                  placeholder="Enter lot number"
                   value={filters.lotNumber}
                   onChange={(e) => updateFilters({ lotNumber: e.target.value })}
                 />
@@ -191,12 +191,12 @@ const EnhancedProductSearch = React.memo(({
               
               <div>
                 <Label htmlFor="priceFrom" className="text-sm font-medium">
-                  Цена от ($)
+                  Price From ($)
                 </Label>
                 <Input
                   id="priceFrom"
                   type="number"
-                  placeholder="Мин. цена"
+                  placeholder="Min price"
                   value={filters.priceFrom}
                   onChange={(e) => updateFilters({ priceFrom: e.target.value })}
                 />
@@ -204,12 +204,12 @@ const EnhancedProductSearch = React.memo(({
               
               <div>
                 <Label htmlFor="priceTo" className="text-sm font-medium">
-                  Цена до ($)
+                  Price To ($)
                 </Label>
                 <Input
                   id="priceTo"
                   type="number"
-                  placeholder="Макс. цена"
+                  placeholder="Max price"
                   value={filters.priceTo}
                   onChange={(e) => updateFilters({ priceTo: e.target.value })}
                 />
@@ -226,7 +226,7 @@ const EnhancedProductSearch = React.memo(({
                   className="flex items-center gap-1"
                 >
                   <Save className="h-3 w-3" />
-                  Сохранить фильтры
+                  Save Filters
                 </Button>
               )}
               
@@ -238,7 +238,7 @@ const EnhancedProductSearch = React.memo(({
                   className="flex items-center gap-1"
                 >
                   <RotateCcw className="h-3 w-3" />
-                  Восстановить
+                  Restore
                 </Button>
               )}
             </div>
@@ -249,14 +249,14 @@ const EnhancedProductSearch = React.memo(({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-4 border-t">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">
-              Показано: <span className="font-medium">{filteredCount}</span> из <span className="font-medium">{totalProducts}</span>
+              Showing: <span className="font-medium">{filteredCount}</span> of <span className="font-medium">{totalProducts}</span>
             </span>
             
             {hasActiveFilters && (
               <div className="flex items-center gap-1 flex-wrap">
                 {filters.searchTerm && (
                   <Badge variant="secondary" className="text-xs">
-                    Поиск: {filters.searchTerm}
+                    Search: {filters.searchTerm}
                     <X 
                       className="ml-1 h-3 w-3 cursor-pointer hover:text-red-500" 
                       onClick={() => updateFilters({ searchTerm: '' })}
@@ -265,7 +265,7 @@ const EnhancedProductSearch = React.memo(({
                 )}
                 {filters.lotNumber && (
                   <Badge variant="secondary" className="text-xs">
-                    Лот: {filters.lotNumber}
+                    Lot: {filters.lotNumber}
                     <X 
                       className="ml-1 h-3 w-3 cursor-pointer hover:text-red-500" 
                       onClick={() => updateFilters({ lotNumber: '' })}
@@ -274,7 +274,7 @@ const EnhancedProductSearch = React.memo(({
                 )}
                 {(filters.priceFrom || filters.priceTo) && (
                   <Badge variant="secondary" className="text-xs">
-                    Цена: {filters.priceFrom || '0'} - {filters.priceTo || '∞'}
+                    Price: {filters.priceFrom || '0'} - {filters.priceTo || '∞'}
                     <X 
                       className="ml-1 h-3 w-3 cursor-pointer hover:text-red-500" 
                       onClick={() => updateFilters({ priceFrom: '', priceTo: '' })}
@@ -292,7 +292,7 @@ const EnhancedProductSearch = React.memo(({
               onClick={clearAllFilters}
               className="text-xs"
             >
-              Очистить всё
+              Clear All
             </Button>
           )}
         </div>

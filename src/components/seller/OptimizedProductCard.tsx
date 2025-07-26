@@ -42,7 +42,7 @@ const OptimizedProductCard = React.memo(({ product, onSelect }: OptimizedProduct
             />
           ) : (
             <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">
-              <span className="text-gray-400 text-xs">Нет фото</span>
+              <span className="text-gray-400 text-xs">No Photo</span>
             </div>
           )}
         </div>
@@ -51,7 +51,7 @@ const OptimizedProductCard = React.memo(({ product, onSelect }: OptimizedProduct
         <div className="flex-grow min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <Badge variant="outline" className="text-xs">
-              Лот: {product.lot_number || 'N/A'}
+              Lot: {product.lot_number || 'N/A'}
             </Badge>
             <Badge 
               variant={product.status === 'active' ? 'success' : 'secondary'}
@@ -77,7 +77,7 @@ const OptimizedProductCard = React.memo(({ product, onSelect }: OptimizedProduct
             </span>
             {product.delivery_price && (
               <span className="text-xs text-gray-500">
-                Доставка: ${formatPrice(product.delivery_price)}
+                Delivery: ${formatPrice(product.delivery_price)}
               </span>
             )}
           </div>
