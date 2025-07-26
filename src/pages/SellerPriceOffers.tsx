@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Layout from "@/components/layout/Layout";
+import SellerLayout from "@/components/layout/SellerLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,6 @@ import {
 import { useSellerPriceOffers, useUpdatePriceOffer } from "@/hooks/use-price-offers";
 import { PriceOffer } from "@/types/price-offer";
 import { formatDistanceToNow } from "date-fns";
-import { ru } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -50,25 +49,21 @@ const SellerPriceOffers = () => {
   const updateOffer = useUpdatePriceOffer();
 
   const handleGoBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/');
-    }
+    navigate('/seller/dashboard');
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Новое предложение</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">New Offer</Badge>;
       case "accepted":
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Принято</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Accepted</Badge>;
       case "rejected":
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Отклонено</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border-red-200">Rejected</Badge>;
       case "expired":
-        return <Badge variant="secondary">Истекло</Badge>;
+        return <Badge variant="secondary">Expired</Badge>;
       case "cancelled":
-        return <Badge variant="outline">Отменено</Badge>;
+        return <Badge variant="outline">Cancelled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -79,12 +74,11 @@ const SellerPriceOffers = () => {
     const now = new Date();
     
     if (expirationTime <= now) {
-      return "Истекло";
+      return "Expired";
     }
     
-    return `Истекает ${formatDistanceToNow(expirationTime, {
+    return `Expires ${formatDistanceToNow(expirationTime, {
       addSuffix: true,
-      locale: ru,
     })}`;
   };
 
@@ -117,13 +111,13 @@ const SellerPriceOffers = () => {
 
       if (action === "accept") {
         toast({
-          title: "Предложение принято!",
-          description: "Заказ будет создан автоматически. Обновите страницу через несколько секунд, чтобы увидеть ссылку на заказ.",
+          title: "Offer Accepted!",
+          description: "Order will be created automatically. Refresh the page in a few seconds to see the order link.",
         });
       } else {
         toast({
-          title: "Предложение отклонено",
-          description: "Покупатель будет уведомлен об отклонении.",
+          title: "Offer Rejected",
+          description: "Buyer will be notified of rejection.",
         });
       }
 
@@ -131,8 +125,8 @@ const SellerPriceOffers = () => {
     } catch (error) {
       console.error("Error processing offer:", error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось обработать предложение. Попробуйте еще раз.",
+        title: "Error",
+        description: "Failed to process offer. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -142,13 +136,13 @@ const SellerPriceOffers = () => {
 
   if (isLoading) {
     return (
-      <Layout>
+      <SellerLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center py-12">
             <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         </div>
-      </Layout>
+      </SellerLayout>
     );
   }
 
@@ -156,33 +150,22 @@ const SellerPriceOffers = () => {
   const otherOffers = offers?.filter(offer => offer.status !== "pending" || isOfferExpired(offer.expires_at)) || [];
 
   return (
-    <Layout>
+    <SellerLayout>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleGoBack}
-            className="flex items-center gap-2"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Назад
-          </Button>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Предложения цены</h1>
-            <p className="text-muted-foreground">
-              Управляйте предложениями цены по вашим товарам
-            </p>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">Price Offers</h1>
+          <p className="text-muted-foreground">
+            Manage price offers for your products
+          </p>
         </div>
 
         {!offers || offers.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Нет предложений</h3>
+              <h3 className="text-xl font-semibold mb-2">No Offers</h3>
               <p className="text-muted-foreground">
-                Пока никто не делал предложений цены по вашим товарам.
+                Nobody has made price offers for your products yet.
               </p>
             </CardContent>
           </Card>
@@ -193,7 +176,7 @@ const SellerPriceOffers = () => {
               <div>
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                   <AlertCircle className="h-5 w-5 text-yellow-600" />
-                  Требуют ответа ({pendingOffers.length})
+                  Require Response ({pendingOffers.length})
                 </h2>
                 <div className="grid gap-4">
                   {pendingOffers.map((offer) => (
@@ -202,7 +185,7 @@ const SellerPriceOffers = () => {
                         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                           <div className="space-y-2">
                             <CardTitle className="text-lg">
-                              {offer.product?.title || "Товар удален"}
+                              {offer.product?.title || "Product deleted"}
                             </CardTitle>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Clock className="h-4 w-4" />
@@ -243,20 +226,20 @@ const SellerPriceOffers = () => {
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div className="flex items-center gap-4">
                               <div className="text-center">
-                                <div className="text-sm text-muted-foreground mb-1">Ваша цена</div>
+                                <div className="text-sm text-muted-foreground mb-1">Your Price</div>
                                 <div className="text-lg font-semibold line-through text-gray-500">
                                   {formatPrice(offer.original_price)}
                                 </div>
                               </div>
                               <div className="text-center">
-                                <div className="text-sm text-muted-foreground mb-1">Предложение</div>
+                                <div className="text-sm text-muted-foreground mb-1">Offer</div>
                                 <div className="text-2xl font-bold text-green-600">
                                   {formatPrice(offer.offered_price)}
                                 </div>
                               </div>
                             </div>
                             <div className="text-center">
-                              <div className="text-sm text-muted-foreground mb-1">Разница</div>
+                              <div className="text-sm text-muted-foreground mb-1">Difference</div>
                               <div className="text-lg font-semibold text-red-600">
                                 -{formatPrice(offer.original_price - offer.offered_price)}
                               </div>
@@ -268,16 +251,16 @@ const SellerPriceOffers = () => {
                         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                           <h5 className="font-medium mb-2 flex items-center gap-2">
                             <User className="h-4 w-4" />
-                            Информация о покупателе
+                            Buyer Information
                           </h5>
                           <div className="space-y-1 text-sm">
                             <div className="flex items-center justify-between">
-                              <span>Имя:</span>
-                              <span className="font-medium">{offer.buyer_profile?.full_name || 'Не указано'}</span>
+                              <span>Name:</span>
+                              <span className="font-medium">{offer.buyer_profile?.full_name || 'Not specified'}</span>
                             </div>
                             <div className="flex items-center justify-between">
                               <span>OPT ID:</span>
-                              <span className="font-medium">{offer.buyer_profile?.opt_id || 'Не указано'}</span>
+                              <span className="font-medium">{offer.buyer_profile?.opt_id || 'Not specified'}</span>
                             </div>
                             {offer.buyer_profile?.telegram && (
                               <div className="flex items-center justify-between">
@@ -290,7 +273,7 @@ const SellerPriceOffers = () => {
 
                         {offer.message && (
                           <div className="bg-gray-50 rounded-lg p-4 border">
-                            <p className="text-sm font-medium mb-2">Сообщение покупателя:</p>
+                            <p className="text-sm font-medium mb-2">Buyer Message:</p>
                             <p className="text-sm text-muted-foreground">
                               {offer.message}
                             </p>
@@ -304,7 +287,7 @@ const SellerPriceOffers = () => {
                             disabled={isOfferExpired(offer.expires_at)}
                           >
                             <Check className="h-4 w-4 mr-2" />
-                            Принять предложение
+                            Accept Offer
                           </Button>
                           <Button
                             variant="outline"
@@ -313,7 +296,7 @@ const SellerPriceOffers = () => {
                             disabled={isOfferExpired(offer.expires_at)}
                           >
                             <X className="h-4 w-4 mr-2" />
-                            Отклонить
+                            Reject
                           </Button>
                         </div>
                       </CardContent>
@@ -327,7 +310,7 @@ const SellerPriceOffers = () => {
             {otherOffers.length > 0 && (
               <div>
                 <h2 className="text-xl font-semibold mb-4">
-                  История предложений ({otherOffers.length})
+                  Offer History ({otherOffers.length})
                 </h2>
                 <div className="grid gap-4">
                   {otherOffers.map((offer) => (
@@ -336,11 +319,11 @@ const SellerPriceOffers = () => {
                         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                           <div className="space-y-2">
                             <CardTitle className="text-lg">
-                              {offer.product?.title || "Товар удален"}
+                              {offer.product?.title || "Product deleted"}
                             </CardTitle>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
                               <Clock className="h-4 w-4" />
-                              {formatDistanceToNow(new Date(offer.updated_at), { addSuffix: true, locale: ru })}
+                              {formatDistanceToNow(new Date(offer.updated_at), { addSuffix: true })}
                             </div>
                           </div>
                           {getStatusBadge(offer.status)}
@@ -364,20 +347,20 @@ const SellerPriceOffers = () => {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <p className="text-sm text-muted-foreground">Ваша цена</p>
-                            <p className="font-semibold">{formatPrice(offer.original_price)}</p>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-sm text-muted-foreground">Your Price</p>
+                              <p className="font-semibold">{formatPrice(offer.original_price)}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-muted-foreground">Offer</p>
+                              <p className="font-semibold">{formatPrice(offer.offered_price)}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm text-muted-foreground">Предложение</p>
-                            <p className="font-semibold">{formatPrice(offer.offered_price)}</p>
-                          </div>
-                        </div>
 
                         {offer.seller_response && (
                           <div className="bg-gray-50 rounded-lg p-3 border">
-                            <p className="text-sm font-medium mb-1">Ваш ответ:</p>
+                            <p className="text-sm font-medium mb-1">Your Response:</p>
                             <p className="text-sm text-muted-foreground">
                               {offer.seller_response}
                             </p>
@@ -388,7 +371,7 @@ const SellerPriceOffers = () => {
                           <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                             <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
                               <ShoppingCart className="h-4 w-4" />
-                              Заказ создан
+                              Order Created
                             </p>
                             <Button
                               variant="outline"
@@ -396,21 +379,21 @@ const SellerPriceOffers = () => {
                               onClick={() => navigate(`/seller/order-details/${offer.order_id}`)}
                               className="mt-2"
                             >
-                              Перейти к заказу
+                              View Order
                             </Button>
                           </div>
                         )}
 
                         {offer.status === 'accepted' && !offer.order_id && (
-                          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                            <p className="text-sm font-medium text-blue-800 mb-1 flex items-center gap-2">
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                              Создание заказа...
-                            </p>
-                            <p className="text-xs text-blue-700">
-                              Заказ создается автоматически. Обновите страницу через несколько секунд.
-                            </p>
-                          </div>
+                           <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                             <p className="text-sm font-medium text-blue-800 mb-1 flex items-center gap-2">
+                               <RefreshCw className="h-4 w-4 animate-spin" />
+                               Creating order...
+                             </p>
+                             <p className="text-xs text-blue-700">
+                               Order is being created automatically. Refresh the page in a few seconds.
+                             </p>
+                           </div>
                         )}
                       </CardContent>
                     </Card>
@@ -429,7 +412,7 @@ const SellerPriceOffers = () => {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {responseModal.action === "accept" ? "Принять предложение" : "Отклонить предложение"}
+                {responseModal.action === "accept" ? "Accept Offer" : "Reject Offer"}
               </DialogTitle>
             </DialogHeader>
 
@@ -454,13 +437,13 @@ const SellerPriceOffers = () => {
                   
                   <div className="flex justify-between items-center pt-2 border-t">
                     <div>
-                      <div className="text-sm text-muted-foreground">Ваша цена</div>
+                      <div className="text-sm text-muted-foreground">Your Price</div>
                       <div className="font-semibold line-through text-gray-500">
                         {formatPrice(responseModal.offer.original_price)}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm text-muted-foreground">Предложение</div>
+                      <div className="text-sm text-muted-foreground">Offer</div>
                       <div className="text-lg font-bold text-green-600">
                         {formatPrice(responseModal.offer.offered_price)}
                       </div>
@@ -471,10 +454,10 @@ const SellerPriceOffers = () => {
                     <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                       <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
                         <ShoppingCart className="h-4 w-4" />
-                        Заказ будет создан автоматически
+                        Order will be created automatically
                       </p>
                       <p className="text-xs text-green-700">
-                        После принятия предложения заказ создастся автоматически
+                        After accepting the offer, order will be created automatically
                       </p>
                     </div>
                   )}
@@ -484,8 +467,8 @@ const SellerPriceOffers = () => {
               <div>
                 <Label htmlFor="response">
                   {responseModal.action === "accept" 
-                    ? "Сообщение покупателю (необязательно)"
-                    : "Причина отклонения (необязательно)"
+                    ? "Message to buyer (optional)"
+                    : "Reason for rejection (optional)"
                   }
                 </Label>
                 <Textarea
@@ -494,8 +477,8 @@ const SellerPriceOffers = () => {
                   onChange={(e) => setSellerResponse(e.target.value)}
                   placeholder={
                     responseModal.action === "accept"
-                      ? "Спасибо за предложение! Принимаю вашу цену."
-                      : "К сожалению, не могу принять такую цену..."
+                      ? "Thank you for your offer! I accept your price."
+                      : "Unfortunately, I cannot accept this price..."
                   }
                   rows={3}
                 />
@@ -509,7 +492,7 @@ const SellerPriceOffers = () => {
                   disabled={isSubmitting}
                   className="flex-1"
                 >
-                  Отменить
+                  Cancel
                 </Button>
                 <Button
                   onClick={handleSubmitResponse}
@@ -517,8 +500,8 @@ const SellerPriceOffers = () => {
                   className="flex-1"
                   variant={responseModal.action === "accept" ? "default" : "destructive"}
                 >
-                  {isSubmitting ? "Обработка..." : 
-                   responseModal.action === "accept" ? "Принять предложение" : "Отклонить"
+                  {isSubmitting ? "Processing..." : 
+                   responseModal.action === "accept" ? "Accept Offer" : "Reject"
                   }
                 </Button>
               </div>
@@ -526,7 +509,7 @@ const SellerPriceOffers = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </Layout>
+    </SellerLayout>
   );
 };
 

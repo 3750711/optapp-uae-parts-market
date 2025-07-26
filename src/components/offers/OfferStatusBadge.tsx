@@ -17,42 +17,42 @@ export const OfferStatusBadge: React.FC<OfferStatusBadgeProps> = ({
     switch (status) {
       case 'pending':
         return {
-          label: 'Активное',
+          label: 'Active',
           icon: Clock,
           variant: 'default' as const,
           className: 'bg-blue-50 text-blue-700 border-blue-200'
         };
       case 'cancelled':
         return {
-          label: 'Отменено',
+          label: 'Cancelled',
           icon: XCircle,
           variant: 'secondary' as const,
           className: 'bg-gray-50 text-gray-700 border-gray-200'
         };
       case 'expired':
         return {
-          label: 'Истекло',
+          label: 'Expired',
           icon: AlertTriangle,
           variant: 'outline' as const,
           className: 'bg-yellow-50 text-yellow-700 border-yellow-200'
         };
       case 'rejected':
         return {
-          label: 'Отклонено',
+          label: 'Rejected',
           icon: ThumbsDown,
           variant: 'destructive' as const,
           className: 'bg-red-50 text-red-700 border-red-200'
         };
       case 'accepted':
         return {
-          label: 'Принято',
+          label: 'Accepted',
           icon: CheckCircle,
           variant: 'default' as const,
           className: 'bg-green-50 text-green-700 border-green-200'
         };
       default:
         return {
-          label: 'Неизвестно',
+          label: 'Unknown',
           icon: Clock,
           variant: 'outline' as const,
           className: 'bg-gray-50 text-gray-700 border-gray-200'

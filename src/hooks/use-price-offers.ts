@@ -126,16 +126,16 @@ export const useCreatePriceOffer = () => {
       queryClient.invalidateQueries({ queryKey: ['competitive-offers', data.product_id] });
       queryClient.invalidateQueries({ queryKey: ['pending-offer', data.product_id] });
       invalidateBatchOffers([data.product_id]);
-      toast.success('Предложение отправлено!');
+      toast.success('Offer sent!');
     },
     onError: (error) => {
       console.error('Error creating offer:', error);
       
       // Специальная обработка constraint violation
       if (error.message?.includes('duplicate key value violates unique constraint')) {
-        toast.error('У вас уже есть активное предложение для этого товара. Обновите страницу и попробуйте снова.');
+        toast.error('You already have an active offer for this product. Refresh the page and try again.');
       } else {
-        toast.error('Ошибка при отправке предложения');
+        toast.error('Error sending offer');
       }
     },
   });
@@ -182,11 +182,11 @@ export const useUpdatePriceOffer = () => {
       queryClient.refetchQueries({ queryKey: ['seller-price-offers'] });
       queryClient.refetchQueries({ queryKey: ['admin-price-offers'] });
       
-      toast.success('Предложение обновлено!');
+      toast.success('Offer updated!');
     },
     onError: (error) => {
       console.error('Error updating offer:', error);
-      toast.error('Ошибка при обновлении предложения');
+      toast.error('Error updating offer');
     },
   });
 };

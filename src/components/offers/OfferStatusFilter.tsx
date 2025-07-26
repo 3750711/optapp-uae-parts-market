@@ -23,28 +23,28 @@ export const OfferStatusFilter: React.FC<OfferStatusFilterProps> = ({
   const filters = [
     {
       key: 'all',
-      label: 'Все',
+      label: 'All',
       count: counts.total,
       icon: Filter,
       color: 'default' as const
     },
     {
       key: 'active',
-      label: 'Активные',
+      label: 'Active',
       count: counts.active,
       icon: Clock,
       color: 'default' as const
     },
     {
       key: 'cancelled',
-      label: 'Отмененные',
+      label: 'Cancelled',
       count: counts.cancelled,
       icon: XCircle,
       color: 'secondary' as const
     },
     {
       key: 'completed',
-      label: 'Завершенные',
+      label: 'Completed',
       count: counts.completed,
       icon: CheckCircle,
       color: 'outline' as const
