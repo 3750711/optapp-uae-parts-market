@@ -11,6 +11,7 @@ import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { CompactOrderInfo } from './CompactOrderInfo';
 import { ResendNotificationButton } from './ResendNotificationButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -162,7 +163,25 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
     <Card className={`${highlightColor} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden flex flex-col`}>
       <CardHeader className="space-y-3 pb-4">
         <div className="flex justify-between items-start">
-          <EnhancedOrderStatusBadge status={order.status} />
+          <div className="flex items-center gap-3">
+            <OrderImageThumbnail 
+              orderId={order.id} 
+              size="thumbnail" 
+              className="w-12 h-12 flex-shrink-0"
+            />
+            <div className="flex flex-col gap-1">
+              <EnhancedOrderStatusBadge status={order.status} />
+              <div className="text-xs text-muted-foreground">
+                {new Date(order.created_at).toLocaleDateString('ru-RU', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </div>
+            </div>
+          </div>
           <div className="flex items-center gap-1">
             <ResendNotificationButton 
               orderId={order.id}
@@ -178,16 +197,6 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
               <Eye className="h-4 w-4" />
             </Button>
           </div>
-        </div>
-        
-        <div className="text-xs text-muted-foreground">
-          {new Date(order.created_at).toLocaleDateString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
         </div>
       </CardHeader>
 

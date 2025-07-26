@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 import { OrderConfirmButton } from '@/components/order/OrderConfirmButton';
+import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 const statusColors = {
   created: 'bg-gray-100 text-gray-800',
@@ -80,8 +81,17 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, isSeller }) => {
       </div>
 
       <div className="mt-3">
-        <div className="font-medium text-base mb-1">{order.title}</div>
-        <div className="text-sm text-muted-foreground mb-2">{order.brand} {order.model}</div>
+        <div className="flex items-start gap-3 mb-2">
+          <OrderImageThumbnail 
+            orderId={order.id} 
+            size="card" 
+            className="w-16 h-16 flex-shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-base mb-1">{order.title}</div>
+            <div className="text-sm text-muted-foreground">{order.brand} {order.model}</div>
+          </div>
+        </div>
         
         <div className="flex items-center justify-between mb-2">
           <span className="font-medium text-lg text-optapp-dark">{order.price} $</span>
