@@ -108,7 +108,16 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos, on
         if (videoInsertError) throw videoInsertError;
       }
     },
-    onSuccess: (_, values) => {
+    onSuccess: async (_, values) => {
+      // If status changed and onStatusChange is provided, call it
+      if (onStatusChange && order && values.status !== order.status) {
+        try {
+          await onStatusChange(order.id, values.status);
+        } catch (error) {
+          console.error('Error calling status change handler:', error);
+        }
+      }
+
       // Оптимистично обновляем кэш с новыми данными
       const updatedOrderData = {
         order_number: parseInt(values.order_number, 10) || order?.order_number,

@@ -7,12 +7,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 interface OrderEditHeaderProps {
   order: any;
-  onStatusChange?: (orderId: string, newStatus: string) => Promise<void>;
+  form: any;
 }
 
-export const OrderEditHeader: React.FC<OrderEditHeaderProps> = ({ order, onStatusChange }) => {
+export const OrderEditHeader: React.FC<OrderEditHeaderProps> = ({ order, form }) => {
   const isMobile = useIsMobile();
-  const [isChangingStatus, setIsChangingStatus] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -54,17 +53,9 @@ export const OrderEditHeader: React.FC<OrderEditHeaderProps> = ({ order, onStatu
     }
   };
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (!onStatusChange || !order?.id || newStatus === order.status) return;
-    
-    setIsChangingStatus(true);
-    try {
-      await onStatusChange(order.id, newStatus);
-    } catch (error) {
-      console.error('Error changing status:', error);
-    } finally {
-      setIsChangingStatus(false);
-    }
+  const handleStatusChange = (newStatus: string) => {
+    if (!form || newStatus === form.getValues().status) return;
+    form.setValue('status', newStatus);
   };
 
   return (
@@ -75,15 +66,14 @@ export const OrderEditHeader: React.FC<OrderEditHeaderProps> = ({ order, onStatu
         </DialogTitle>
         
         <div className={`flex items-center gap-2 ${isMobile ? 'flex-col' : 'flex-row'}`}>
-          <Badge className={`${getStatusColor(order?.status)} ${isMobile ? 'text-xs px-2 py-1' : ''}`}>
-            {getStatusText(order?.status)}
+          <Badge className={`${getStatusColor(form?.getValues().status || order?.status)} ${isMobile ? 'text-xs px-2 py-1' : ''}`}>
+            {getStatusText(form?.getValues().status || order?.status)}
           </Badge>
           
-          {onStatusChange && (
+          {form && (
             <Select
-              value={order?.status}
+              value={form.getValues().status || order?.status}
               onValueChange={handleStatusChange}
-              disabled={isChangingStatus}
             >
               <SelectTrigger className={`${isMobile ? 'w-full text-xs' : 'w-[200px]'} h-8`}>
                 <SelectValue placeholder="Изменить статус" />

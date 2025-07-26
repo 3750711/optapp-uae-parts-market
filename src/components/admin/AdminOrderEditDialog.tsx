@@ -73,7 +73,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full bg-slate-50 relative">
             <div className="flex-shrink-0">
-              <OrderEditHeader order={order} onStatusChange={onStatusChange} />
+              <OrderEditHeader order={order} form={form} />
             </div>
 
             <div className="flex-1 min-h-0 overflow-hidden pb-20 md:pb-0">
