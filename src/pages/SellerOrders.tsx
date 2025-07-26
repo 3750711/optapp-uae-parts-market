@@ -26,6 +26,7 @@ import {
 import OrderPriceConfirmDialog from "@/components/order/OrderPriceConfirmDialog";
 import { Check } from "lucide-react";
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
+import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
@@ -313,10 +314,17 @@ const SellerOrders = () => {
                   </CardHeader>
                   
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="font-medium">{order.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {order.brand} {order.model}
+                    <div className="flex items-start gap-3">
+                      <OrderImageThumbnail 
+                        orderId={order.id} 
+                        size="card" 
+                        className="w-16 h-16 flex-shrink-0"
+                      />
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="font-medium">{order.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {order.brand} {order.model}
+                        </div>
                       </div>
                     </div>
 
