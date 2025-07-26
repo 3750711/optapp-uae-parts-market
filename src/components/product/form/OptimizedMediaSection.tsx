@@ -151,7 +151,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
             onClick={() => document.getElementById('optimized-image-input')?.click()}
           >
             <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? 'Умная загрузка...' : 'Загрузить фото'}
+            {isUploading ? 'Smart Upload...' : 'Upload Photos'}
           </Button>
           <input
             key={fileInputKey}
@@ -173,7 +173,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
             maxVideos={2}
             productId={productId}
             showOnlyButton={true}
-            buttonText="Загрузить видео"
+            buttonText="Upload Videos"
             buttonIcon={<Video className="h-4 w-4" />}
           />
         </div>
@@ -188,7 +188,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
           className="w-full"
         >
           <X className="h-4 w-4 mr-2" />
-          Отменить загрузку
+          Cancel Upload
         </Button>
       )}
 
@@ -197,10 +197,10 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between text-sm">
             <span className="text-green-800">
-              📁 Медиафайлов: {totalMediaCount} (📸 Фото: {imageUrls.length}/30, 🎥 Видео: {videoUrls.length}/2)
+              📁 Media Files: {totalMediaCount} (📸 Photos: {imageUrls.length}/30, 🎥 Videos: {videoUrls.length}/2)
             </span>
             <span className="text-green-600 text-xs">
-              🧠 Умное качество
+              🧠 Smart Quality
             </span>
           </div>
         </div>
@@ -219,7 +219,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       {/* Галерея видео */}
       {videoUrls.length > 0 && (
         <div className="space-y-2">
-          <Label>Загруженные видео</Label>
+          <Label>Uploaded Videos</Label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {videoUrls.map((url, index) => (
               <div key={`video-${index}`} className="relative aspect-square rounded-lg overflow-hidden border">
@@ -233,7 +233,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
                   <Video className="w-6 h-6 text-white" />
                 </div>
                 <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                  Видео
+                  Video
                 </div>
                 <button
                   type="button"
@@ -253,11 +253,11 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       {isUploading && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-sm text-blue-800">
-            🧠 Умное сжатие для продуктов
+            🧠 Smart Compression for Products
           </div>
           <div className="text-xs text-blue-600 mt-1">
-            • Маленькие файлы (&lt;400KB) сохраняют оригинальное качество<br/>
-            • Большие файлы сжимаются адаптивно без потери деталей
+            • Small files (&lt;400KB) maintain original quality<br/>
+            • Large files are compressed adaptively without losing details
           </div>
         </div>
       )}

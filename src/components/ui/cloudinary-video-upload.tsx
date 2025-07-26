@@ -28,7 +28,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
   productId,
   showOnlyButton = false,
   showGalleryOnly = false,
-  buttonText = "Загрузить видео",
+  buttonText = "Upload Videos",
   buttonIcon = <Video className="h-4 w-4" />,
   className,
   disabled = false,
@@ -48,8 +48,8 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
     const files = Array.from(e.target.files);
     if (videos.length + files.length > maxVideos) {
       toast({
-        title: "Превышен лимит",
-        description: `Максимальное количество видео: ${maxVideos}`,
+        title: "Limit Exceeded",
+        description: `Maximum number of videos: ${maxVideos}`,
         variant: "destructive",
       });
       return;
@@ -63,16 +63,16 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
       
       if (!isAllowed) {
         toast({
-          title: "Неверный формат файла",
-          description: `Файл "${file.name}" имеет неподдерживаемый формат.`,
+          title: "Invalid File Format",
+          description: `File "${file.name}" has unsupported format.`,
           variant: "destructive",
         });
         continue;
       }
       if (file.size > MAX_VIDEO_SIZE_BYTES) {
         toast({
-          title: "Файл слишком большой",
-          description: `Размер файла "${file.name}" превышает ${MAX_VIDEO_SIZE_MB}MB.`,
+          title: "File Too Large",
+          description: `File "${file.name}" exceeds ${MAX_VIDEO_SIZE_MB}MB.`,
           variant: "destructive",
         });
         continue;
@@ -130,7 +130,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
           ) : (
             buttonIcon
           )}
-          {isUploading ? 'Загрузка в Cloudinary...' : buttonText}
+          {isUploading ? 'Uploading to Cloudinary...' : buttonText}
         </Button>
         
         <input
@@ -203,12 +203,12 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
             {isUploading ? (
               <div className="flex flex-col items-center">
                 <Loader2 className="animate-spin h-6 w-6 mb-2" />
-                <span className="text-xs text-gray-500">Загрузка в Cloudinary...</span>
+                <span className="text-xs text-gray-500">Uploading to Cloudinary...</span>
               </div>
             ) : (
               <>
                 <div className="text-2xl text-gray-400 font-bold">+</div>
-                <p className="text-xs text-gray-500">Добавить видео</p>
+                <p className="text-xs text-gray-500">Add Video</p>
               </>
             )}
           </div>
@@ -233,7 +233,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
       />
       
       <p className="text-xs text-gray-500">
-        ДО {maxVideos} роликов. Поддержка: mp4, mov, avi, webm. Загрузка через Cloudinary CDN. Максимум 20MB на файл.
+        Up to {maxVideos} videos. Supported: mp4, mov, avi, webm. Upload via Cloudinary CDN. Maximum 20MB per file.
       </p>
       
       {videos.length < maxVideos && (
@@ -247,12 +247,12 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
           {isUploading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Загрузка в Cloudinary...
+              Uploading to Cloudinary...
             </>
           ) : (
             <>
               <Upload className="h-4 w-4" />
-              Выбрать видео
+              Choose Videos
             </>
           )}
         </Button>
