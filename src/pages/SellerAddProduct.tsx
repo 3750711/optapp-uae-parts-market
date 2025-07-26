@@ -26,12 +26,13 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { Link } from "react-router-dom";
-import { Home } from "lucide-react";
+import { Home, ArrowLeft } from "lucide-react";
 import AddProductForm, { productSchema, ProductFormValues } from "@/components/product/AddProductForm";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 
@@ -432,6 +433,18 @@ const SellerAddProduct = () => {
       <GlobalErrorBoundary>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
+            <div className="flex items-center gap-4 mb-6">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/seller/dashboard')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </div>
+            
             <Breadcrumb className="mb-6">
               <BreadcrumbList>
                 <BreadcrumbItem>
