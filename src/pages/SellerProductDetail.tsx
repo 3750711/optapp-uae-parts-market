@@ -8,20 +8,15 @@ import { toast } from "@/hooks/use-toast";
 import ProductBreadcrumb from "@/components/product/ProductBreadcrumb";
 import ProductSEO from "@/components/seo/ProductSEO";
 import ProductSkeleton from "@/components/product/ProductSkeleton";
+import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import SellerProductContent from "@/components/seller/SellerProductContent";
+import SellerProductActions from "@/components/seller/SellerProductActions";
+import SellerOffersSummary from "@/components/seller/SellerOffersSummary";
 import { Product } from "@/types/product";
 import SellerLayout from "@/components/layout/SellerLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield } from "lucide-react";
-
-// Enhanced components
-import EnhancedSellerProductHeader from "@/components/seller/enhanced/EnhancedSellerProductHeader";
-import SellerAnalyticsDashboard from "@/components/seller/analytics/SellerAnalyticsDashboard";
-import SellerPriceHistory from "@/components/seller/analytics/SellerPriceHistory";
-import SellerPerformanceMetrics from "@/components/seller/analytics/SellerPerformanceMetrics";
-import EnhancedSellerOffers from "@/components/seller/enhanced/EnhancedSellerOffers";
-import SellerQuickActions from "@/components/seller/actions/SellerQuickActions";
 
 const SellerProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -168,8 +163,8 @@ const SellerProductDetail = () => {
           isSeller={true}
         />
         
-        {/* Enhanced Header with Statistics */}
-        <EnhancedSellerProductHeader 
+        {/* Header */}
+        <ProductDetailHeader 
           product={product}
           onBack={handleBack}
         />
@@ -181,39 +176,18 @@ const SellerProductDetail = () => {
           isAdmin={false}
         />
         
-        {/* Quick Actions */}
-        <SellerQuickActions 
+        {/* Seller Action Buttons */}
+        <SellerProductActions 
           product={product}
           onProductUpdate={handleProductUpdate}
         />
         
-        {/* Analytics Dashboard */}
-        <SellerAnalyticsDashboard 
-          productId={product.id}
-          viewCount={product.view_count}
-          offersCount={product.offers_count}
-          maxOfferPrice={product.max_offer_price}
-        />
-        
-        {/* Price History and Recommendations */}
-        <SellerPriceHistory 
-          currentPrice={product.price}
+        {/* Offers Summary */}
+        <SellerOffersSummary 
           productId={product.id}
         />
         
-        {/* Performance Metrics */}
-        <SellerPerformanceMetrics 
-          productId={product.id}
-          sellerRating={product.profiles?.rating}
-          responseTime={2.5}
-        />
-        
-        {/* Enhanced Offers */}
-        <EnhancedSellerOffers 
-          productId={product.id}
-        />
-        
-        {/* Main Product Content */}
+        {/* Main content */}
         <SellerProductContent 
           product={product}
           imageUrls={imageUrls}
