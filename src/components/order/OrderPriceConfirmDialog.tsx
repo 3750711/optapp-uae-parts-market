@@ -63,15 +63,15 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
     <MobileKeyboardOptimizedDialog 
       open={open} 
       onOpenChange={onOpenChange}
-      title="Подтверждение заказа"
+      title="Order Confirmation"
     >
       <DialogDescription className="mb-4">
-        Подтвердите или измените цену заказа
+        Confirm or change the order price
       </DialogDescription>
       
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="price">Подтвердите или измените цену ($)</Label>
+          <Label htmlFor="price">Confirm or change price ($)</Label>
           <TouchOptimizedInput
             id="price"
             type="number"
@@ -81,7 +81,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
             step="0.01"
             inputMode="decimal"
             className="text-lg"
-            placeholder="Введите цену"
+            placeholder="Enter price"
           />
         </div>
         
@@ -96,7 +96,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
               htmlFor="noDiscount"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              Я не договаривался о скидке
+              I did not negotiate a discount
             </Label>
           </div>
         )}
@@ -109,7 +109,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
           disabled={isSubmitting}
           className="flex-1"
         >
-          Отмена
+          Cancel
         </Button>
         <Button
           onClick={handleSubmit}
@@ -124,10 +124,10 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
           {isSubmitting ? (
             <>
               <Loader2 className="animate-spin w-4 h-4 mr-2" />
-              Подтверждение...
+              Confirming...
             </>
           ) : (
-            <>Подтвердить</>
+            <>Confirm</>
           )}
         </Button>
       </DialogFooter>

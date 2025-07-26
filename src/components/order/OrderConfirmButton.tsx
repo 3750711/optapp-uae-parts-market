@@ -59,7 +59,7 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
     return (
       <div className="flex items-center gap-2 text-green-600">
         <Check className="h-4 w-4" />
-        <span>Фото с подтверждением загружены</span>
+        <span>Confirmation photos uploaded</span>
       </div>
     );
   }
@@ -72,32 +72,32 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
         className="w-full text-green-600 hover:text-green-700 hover:bg-green-50 gap-2"
       >
         <Upload className="h-4 w-4" />
-        Прикрепить фото с подписью
+        Attach photo with signature
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Загрузка фотографий подтверждения</DialogTitle>
+            <DialogTitle>Upload confirmation photos</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6">
             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
               <p className="font-medium text-yellow-800 mb-4">
-                Напишите на проданном товаре номер заказа и ID покупателя
+                Write the order number and buyer ID on the sold item
               </p>
               {orderDetails && (
                 <div className="space-y-3">
                   <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">Номер заказа:</h3>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Order Number:</h3>
                     <p className="text-2xl font-extrabold text-primary">
-                      {orderDetails.order_number || 'Не указан'}
+                      {orderDetails.order_number || 'Not specified'}
                     </p>
                   </div>
                   <div className="bg-white p-3 rounded-lg shadow-sm">
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">OPT_ID покупателя:</h3>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Buyer OPT_ID:</h3>
                     <p className="text-2xl font-extrabold text-secondary">
-                      {orderDetails.buyer?.opt_id || 'Не указан'}
+                      {orderDetails.buyer?.opt_id || 'Not specified'}
                     </p>
                   </div>
                 </div>
@@ -113,7 +113,7 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
               className="w-full sm:w-auto"
               variant="default"
             >
-              Подтвердить
+              Confirm
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Link, Loader2, CheckCircle, X } from "lucide-react";
+import { Link, Loader2, CheckCircle, X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { OrderConfirmButton } from "@/components/order/OrderConfirmButton";
@@ -119,8 +118,8 @@ const SellerOrders = () => {
       queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
       
       toast({
-        title: "Заказ подтвержден",
-        description: "Статус заказа успешно обновлен",
+        title: "Order Confirmed",
+        description: "Order status successfully updated",
       });
 
       setIsPriceDialogOpen(false);
@@ -129,8 +128,8 @@ const SellerOrders = () => {
     onError: (error) => {
       console.error('Error confirming order:', error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось подтвердить заказ",
+        title: "Error",
+        description: "Failed to confirm order",
         variant: "destructive",
       });
     },
@@ -171,15 +170,15 @@ const SellerOrders = () => {
       queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
       
       toast({
-        title: "Заказ отменен",
-        description: "Статус заказа успешно обновлен",
+        title: "Order Cancelled",
+        description: "Order status successfully updated",
       });
     },
     onError: (error) => {
       console.error('Error cancelling order:', error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось отменить заказ",
+        title: "Error",
+        description: "Failed to cancel order",
         variant: "destructive",
       });
     },
@@ -236,44 +235,68 @@ const SellerOrders = () => {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'created':
-        return 'Создан';
+        return 'Created';
       case 'seller_confirmed':
-        return 'Подтвержден продавцом';
+        return 'Confirmed by Seller';
       case 'admin_confirmed':
-        return 'Подтвержден администратором';
+        return 'Confirmed by Admin';
       case 'processed':
-        return 'Зарегистрирован';
+        return 'Processed';
       case 'shipped':
-        return 'Отправлен';
+        return 'Shipped';
       case 'delivered':
-        return 'Доставлен';
+        return 'Delivered';
       default:
         return status;
     }
   };
 
   const getOrderTypeLabel = (type: 'free_order' | 'ads_order') => {
-    return type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению';
+    return type === 'free_order' ? 'Free Order' : 'Listing Order';
   };
 
   if (isLoading) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow" />
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center gap-4 mb-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/seller/dashboard')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </div>
+          <div className="flex justify-center items-center min-h-[60vh]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col gap-4 md:gap-6">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate('/seller/dashboard')}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">Мои заказы</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">My Orders</h1>
             <p className="text-sm md:text-base text-muted-foreground mt-1">
-              Управление созданными заказами и заказами по объявлениям
+              Manage created orders and listing orders
             </p>
           </div>
           
@@ -307,7 +330,7 @@ const SellerOrders = () => {
                       <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
                       {order.lot_number_order && (
                         <div className="text-sm text-muted-foreground">
-                          Лот: {order.lot_number_order}
+                          Lot: {order.lot_number_order}
                         </div>
                       )}
                     </div>
@@ -331,23 +354,23 @@ const SellerOrders = () => {
                     <div className="flex justify-between items-center">
                       <div className="font-medium text-lg">{order.price} $</div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <span className="font-medium">Мест для о��правки:</span>
+                        <span className="font-medium">Shipping places:</span>
                         <span>{order.place_number || 1}</span>
                       </div>
                     </div>
 
                     {order.seller?.opt_status === 'opt_user' && order.delivery_price_confirm && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="font-medium">Стоимость доставки:</span>
+                        <span className="font-medium">Delivery cost:</span>
                         <span>{order.delivery_price_confirm} $</span>
                       </div>
                     )}
 
                     <div className="space-y-2">
-                      <div className="text-sm font-medium text-muted-foreground">Покупатель</div>
+                      <div className="text-sm font-medium text-muted-foreground">Buyer</div>
                       <div className="space-y-1">
                         <Badge variant="outline" className="font-mono">
-                          {order.buyer_opt_id || 'Не указан'}
+                          {order.buyer_opt_id || 'Not specified'}
                         </Badge>
                         {order.buyer?.telegram && (
                           <a
@@ -366,7 +389,7 @@ const SellerOrders = () => {
 
                     {order.text_order && order.text_order.trim() !== "" && (
                       <div className="text-sm text-gray-600 mt-2 border-t pt-2">
-                        <span className="font-medium">Дополнительная информация:</span>
+                        <span className="font-medium">Additional information:</span>
                         <p className="mt-1 whitespace-pre-wrap line-clamp-3">{order.text_order}</p>
                       </div>
                     )}
@@ -393,7 +416,7 @@ const SellerOrders = () => {
                             }}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Подтвердить
+                            Confirm
                           </Button>
 
                           <AlertDialog>
@@ -405,19 +428,19 @@ const SellerOrders = () => {
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <X className="h-4 w-4 mr-2" />
-                                Отменить
+                                Cancel
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Отменить заказ?</AlertDialogTitle>
+                                <AlertDialogTitle>Cancel order?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Вы уверены, что хотите отменить заказ? Это действие нельзя будет отменить.
+                                  Are you sure you want to cancel this order? This action cannot be undone.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
-                                  Отмена
+                                  Cancel
                                 </AlertDialogCancel>
                                 <AlertDialogAction
                                   className="bg-red-600 hover:bg-red-700 text-white"
@@ -426,7 +449,7 @@ const SellerOrders = () => {
                                     cancelOrderMutation.mutate(order.id);
                                   }}
                                 >
-                                  Подтвердить
+                                  Confirm
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -446,12 +469,11 @@ const SellerOrders = () => {
             </div>
           ) : (
             <div className="text-center p-4 md:p-8 text-muted-foreground">
-              У вас пока нет заказов
+              You have no orders yet
             </div>
           )}
         </div>
       </div>
-
       <OrderPriceConfirmDialog
         open={isPriceDialogOpen}
         onOpenChange={setIsPriceDialogOpen}
@@ -467,7 +489,7 @@ const SellerOrders = () => {
         }}
         isSubmitting={confirmOrderMutation.isPending}
       />
-    </Layout>
+    </div>
   );
 };
 

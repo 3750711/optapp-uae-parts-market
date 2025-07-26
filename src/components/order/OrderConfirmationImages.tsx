@@ -48,16 +48,16 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
       if (error) throw error;
 
       toast({
-        title: "Успех",
-        description: `Загружено ${urls.length} подтверждающих фотографий`,
+        title: "Success",
+        description: `Uploaded ${urls.length} confirmation photos`,
       });
 
       queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
     } catch (error) {
       console.error('Error saving confirmation image URLs:', error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось сохранить URL фотографий",
+        title: "Error",
+        description: "Failed to save photo URLs",
         variant: "destructive",
       });
     }
@@ -76,16 +76,16 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
       if (error) throw error;
 
       toast({
-        title: "Успех",
-        description: "Фотография удалена",
+        title: "Success",
+        description: "Photo deleted",
       });
 
       queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
     } catch (error) {
       console.error('Error deleting confirmation image:', error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось удалить фотографию",
+        title: "Error",
+        description: "Failed to delete photo",
         variant: "destructive",
       });
     }
@@ -102,7 +102,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
   if (isError) {
     return (
       <div className="text-center p-4 text-destructive bg-destructive/10 rounded-md">
-        Ошибка загрузки фотографий. Попробуйте обновить.
+        Error loading photos. Please refresh.
       </div>
     );
   }
@@ -110,7 +110,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
   if (!canEdit && images.length === 0) {
     return (
       <div className="text-center p-8 text-muted-foreground min-h-[200px] flex items-center justify-center">
-        Подтверждающие фотографии не загружены.
+        Confirmation photos not uploaded.
       </div>
     );
   }
@@ -124,7 +124,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
         maxImages={20}
         productId={orderId}
         disabled={!canEdit}
-        buttonText="Загрузить фото подтверждения"
+        buttonText="Upload confirmation photos"
         disableToast={true}
       />
     </div>

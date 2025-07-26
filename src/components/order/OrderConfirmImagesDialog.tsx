@@ -34,12 +34,12 @@ export const OrderConfirmImagesDialog = ({ orderId }: OrderConfirmImagesDialogPr
       <DialogTrigger asChild>
         <div className="flex items-center gap-2 text-green-600 text-sm cursor-pointer hover:text-green-700">
           <Check className="h-4 w-4" />
-          <span>Фото с подтверждением получены</span>
+          <span>Confirmation photos received</span>
         </div>
       </DialogTrigger>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Фотографии подтверждения</DialogTitle>
+          <DialogTitle>Confirmation Photos</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           {images?.map((url, index) => (
