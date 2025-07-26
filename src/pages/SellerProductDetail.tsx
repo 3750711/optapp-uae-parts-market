@@ -13,15 +13,18 @@ import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import SellerProductContent from "@/components/seller/SellerProductContent";
 import SellerProductActions from "@/components/seller/SellerProductActions";
 import SellerOffersSummary from "@/components/seller/SellerOffersSummary";
+import MobileSellerProductLayout from "@/components/seller/mobile/MobileSellerProductLayout";
 import { Product } from "@/types/product";
 import SellerLayout from "@/components/layout/SellerLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield } from "lucide-react";
+import { useMobileLayout } from "@/hooks/useMobileLayout";
 
 const SellerProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const { isMobile } = useMobileLayout();
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
@@ -144,7 +147,29 @@ const SellerProductDetail = () => {
     : [];
   
   const sellerName = product.seller_name || (profile?.full_name || "Неизвестный продавец");
+
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <SellerLayout className="p-0">
+        <ProductSEO 
+          product={product}
+          sellerName={sellerName}
+          images={imageUrls}
+        />
+        <MobileSellerProductLayout
+          product={product}
+          imageUrls={imageUrls}
+          videoUrls={videoUrls}
+          selectedImage={selectedImage}
+          onImageClick={handleImageClick}
+          onProductUpdate={handleProductUpdate}
+        />
+      </SellerLayout>
+    );
+  }
   
+  // Desktop Layout
   return (
     <SellerLayout>
       {/* SEO Component */}
