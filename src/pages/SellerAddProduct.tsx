@@ -460,11 +460,6 @@ const SellerAddProduct = () => {
     </div>
   );
 
-  // Show loading only if brands are being loaded initially
-  if (shouldLoadBrands && isLoadingCarData && brands.length === 0) {
-    return <LoadingState />;
-  }
-
   // Memoized back handler
   const handleBack = useCallback(() => {
     navigate('/seller/dashboard');
@@ -475,8 +470,16 @@ const SellerAddProduct = () => {
     guardedSubmit(() => createProduct(values));
   }, [guardedSubmit, createProduct]);
 
+  // Check if we should show loading state
+  const isInitialLoading = shouldLoadBrands && isLoadingCarData && brands.length === 0;
+
   // Error Boundary (UI-level)
   try {
+    // Show loading state if initial car data is being loaded
+    if (isInitialLoading) {
+      return <LoadingState />;
+    }
+
     return (
       <GlobalErrorBoundary>
         <div className="container mx-auto px-4 py-8">
