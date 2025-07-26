@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import ProductGrid from "@/components/product/ProductGrid";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerListingsSkeleton";
 import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
-import { useBatchOffers } from "@/hooks/use-price-offers-batch";
+import { BatchOfferData } from "@/hooks/use-price-offers-batch";
 
 const SellerListingsContent = () => {
   const navigate = useNavigate();
@@ -222,14 +222,71 @@ const SellerListingsContent = () => {
   const allProducts = data?.pages.flat() || [];
   throttledDevLog('seller-stats', `📊 Total seller products loaded: ${allProducts.length}`);
 
-  // Get product IDs for batch offers
+  // Get product IDs for offers query
   const productIds = React.useMemo(() => 
     allProducts.map(product => product.id), 
     [allProducts]
   );
 
-  // Fetch batch offers data
-  const { data: batchOffersData } = useBatchOffers(productIds, productIds.length > 0);
+  // Fetch offers data directly from price_offers table
+  const { data: offersData } = useQuery({
+    queryKey: ['seller-product-offers', productIds],
+    queryFn: async () => {
+      if (productIds.length === 0) return [];
+      
+      const { data, error } = await supabase
+        .from('price_offers')
+        .select(`
+          id,
+          product_id,
+          offered_price,
+          status,
+          buyer_id,
+          created_at
+        `)
+        .in('product_id', productIds)
+        .order('offered_price', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: productIds.length > 0,
+    staleTime: 30000,
+  });
+
+  // Convert offers data to batch format for compatibility
+  const batchOffersData = React.useMemo(() => {
+    if (!offersData || offersData.length === 0) return [];
+    
+    const grouped = offersData.reduce((acc, offer) => {
+      const productId = offer.product_id;
+      if (!acc[productId]) {
+        acc[productId] = {
+          product_id: productId,
+          max_offer_price: 0,
+          current_user_is_max: false,
+          total_offers_count: 0,
+          current_user_offer_price: 0,
+          has_pending_offer: false,
+        };
+      }
+      
+      const group = acc[productId];
+      group.total_offers_count++;
+      
+      if (offer.offered_price > group.max_offer_price) {
+        group.max_offer_price = offer.offered_price;
+      }
+      
+      if (offer.status === 'pending') {
+        group.has_pending_offer = true;
+      }
+      
+      return acc;
+    }, {} as Record<string, BatchOfferData>);
+    
+    return Object.values(grouped) as BatchOfferData[];
+  }, [offersData]);
 
   const mappedProducts: ProductProps[] = React.useMemo(() => {
     try {
