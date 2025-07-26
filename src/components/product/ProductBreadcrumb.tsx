@@ -16,13 +16,15 @@ interface ProductBreadcrumbProps {
   brand?: string;
   model?: string;
   categoryName?: string;
+  isSeller?: boolean;
 }
 
 const ProductBreadcrumb: React.FC<ProductBreadcrumbProps> = ({
   productTitle,
   brand,
   model,
-  categoryName = "Автозапчасти"
+  categoryName = "Автозапчасти",
+  isSeller = false
 }) => {
   // Укорачиваем название товара для breadcrumb
   const shortTitle = productTitle.length > 50 
@@ -34,9 +36,9 @@ const ProductBreadcrumb: React.FC<ProductBreadcrumbProps> = ({
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link to="/" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
+            <Link to={isSeller ? "/seller/dashboard" : "/"} className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
               <Home className="h-4 w-4 mr-1" />
-              Главная
+              {isSeller ? "Панель продавца" : "Главная"}
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
@@ -45,8 +47,8 @@ const ProductBreadcrumb: React.FC<ProductBreadcrumbProps> = ({
         
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <Link to="/catalog" className="text-muted-foreground hover:text-foreground transition-colors">
-              Каталог
+            <Link to={isSeller ? "/seller/listings" : "/catalog"} className="text-muted-foreground hover:text-foreground transition-colors">
+              {isSeller ? "Мои объявления" : "Каталог"}
             </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>

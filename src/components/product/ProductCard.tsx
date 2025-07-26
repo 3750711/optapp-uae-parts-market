@@ -72,7 +72,17 @@ const ProductCard = memo(({
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigate(`/product/${product.id}`);
+    
+    // Check if current user is the seller of this product
+    const isSeller = user?.id === product.seller_id;
+    
+    if (isSeller) {
+      // Redirect sellers to their seller-specific product page
+      navigate(`/seller/product/${product.id}`);
+    } else {
+      // Redirect all other users to the regular product page
+      navigate(`/product/${product.id}`);
+    }
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -84,6 +94,8 @@ const ProductCard = memo(({
   const handleBuyNow = () => {
     console.log('Buy now clicked for product:', product.id);
     // TODO: Implement buy now functionality
+    
+    // Always redirect to regular product page for buying
     navigate(`/product/${product.id}?action=buy`);
   };
 
@@ -319,7 +331,14 @@ const ProductCard = memo(({
             className="text-xs"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`/product/${product.id}`);
+              
+              // Use same logic as card click for "Details" button
+              const isSeller = user?.id === product.seller_id;
+              if (isSeller) {
+                navigate(`/seller/product/${product.id}`);
+              } else {
+                navigate(`/product/${product.id}`);
+              }
             }}
           >
             <ExternalLink className="h-3 w-3 mr-1" />

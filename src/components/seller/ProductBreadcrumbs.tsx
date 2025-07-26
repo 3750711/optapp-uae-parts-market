@@ -10,13 +10,14 @@ interface BreadcrumbItem {
 
 interface ProductBreadcrumbsProps {
   items: BreadcrumbItem[];
+  isSeller?: boolean;
 }
 
-const ProductBreadcrumbs = React.memo(({ items }: ProductBreadcrumbsProps) => {
+const ProductBreadcrumbs = React.memo(({ items, isSeller = false }: ProductBreadcrumbsProps) => {
   return (
     <nav className="flex items-center space-x-2 text-sm text-gray-600 mb-4">
       <Link 
-        to="/seller/dashboard" 
+        to={isSeller ? "/seller/dashboard" : "/"} 
         className="flex items-center hover:text-primary transition-colors"
       >
         <Home className="h-4 w-4 mr-1" />
