@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useAllCarBrands } from "@/hooks/useAllCarBrands";
+import { useLazyCarBrands } from "@/hooks/useLazyCarBrands";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
@@ -26,8 +26,8 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { Link } from "react-router-dom";
-import { Home, ArrowLeft } from "lucide-react";
-import AddProductForm, { productSchema, ProductFormValues } from "@/components/product/AddProductForm";
+import { Home, ArrowLeft, Loader2 } from "lucide-react";
+import { productSchema, ProductFormValues } from "@/components/product/AddProductForm";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,12 @@ import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
+import { initMobileFormOptimizations, trackMobileFormMetrics } from "@/utils/mobileFormOptimizations";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+// Lazy load the mobile-optimized form
+const MobileFastAddProduct = React.lazy(() => import("@/components/product/MobileFastAddProduct"));
+const AddProductForm = React.lazy(() => import("@/components/product/AddProductForm"));
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -46,17 +52,22 @@ const SellerAddProduct = () => {
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const isMobile = useIsMobile();
 
-  // Use the new hook that loads all car brands and models
+  // Use lazy car brands hook for better performance
   const { 
     brands, 
     brandModels, 
+    allModels,
     selectBrand,
     findBrandIdByName,
     findModelIdByName, 
     isLoading: isLoadingCarData,
-    allModels, // Needed for title parser
-  } = useAllCarBrands();
+    enableBrandsLoading,
+    enableAllModelsLoading,
+    shouldLoadBrands,
+    shouldLoadAllModels
+  } = useLazyCarBrands();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -69,13 +80,28 @@ const SellerAddProduct = () => {
       description: "",
       deliveryPrice: "",
     },
-    mode: "onChange",
+    mode: "onBlur", // Changed from onChange for better mobile performance
   });
 
-  // Initialize our title parser
+  // Initialize mobile optimizations
+  useEffect(() => {
+    initMobileFormOptimizations();
+    trackMobileFormMetrics.formStart();
+    
+    return () => {
+      trackMobileFormMetrics.formComplete();
+    };
+  }, []);
+
+  // Load car brands when component mounts (lazy loading)
+  useEffect(() => {
+    enableBrandsLoading();
+  }, [enableBrandsLoading]);
+
+  // Initialize our title parser (only when needed)
   const { parseProductTitle } = useProductTitleParser(
     brands,
-    allModels, // Pass allModels here
+    allModels,
     findBrandIdByName,
     findModelIdByName
   );
@@ -116,9 +142,14 @@ const SellerAddProduct = () => {
     }
   }, [loadSavedData, form, isSubmitting, draftLoaded]);
 
-  // Handle title changes with debounce - only if car data should load
+  // Handle title changes with debounce - optimized for mobile
   const handleTitleChange = useCallback((title: string) => {
     if (title && brands.length > 0 && !watchBrandId) {
+      // Enable all models loading if not already enabled
+      if (!shouldLoadAllModels) {
+        enableAllModelsLoading();
+      }
+      
       console.log("Parsing title for auto-detection:", title);
       const { brandId, modelId } = parseProductTitle(title);
       
@@ -135,18 +166,19 @@ const SellerAddProduct = () => {
         });
       }
     }
-  }, [brands, parseProductTitle, form, watchBrandId, toast]);
+  }, [brands, parseProductTitle, form, watchBrandId, toast, shouldLoadAllModels, enableAllModelsLoading]);
 
-  // Debounced title processing
+  // Debounced title processing - increased delay for mobile
   useEffect(() => {
     if (!watchTitle) return;
     
+    const delay = isMobile ? 1000 : 500; // Longer delay on mobile
     const timeoutId = setTimeout(() => {
       handleTitleChange(watchTitle);
-    }, 500);
+    }, delay);
 
     return () => clearTimeout(timeoutId);
-  }, [watchTitle, handleTitleChange]);
+  }, [watchTitle, handleTitleChange, isMobile]);
 
   // Handle brand and model changes - only if car data should load
   useEffect(() => {
@@ -418,102 +450,179 @@ const SellerAddProduct = () => {
     };
   }, [imageUrls]);
 
-  // Fallback UI для загрузки данных по брендам:
-  if (isLoadingCarData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <span>Loading car data...</span>
+  // Loading state with minimal UI
+  const LoadingState = () => (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="text-sm text-muted-foreground">Loading car data...</span>
       </div>
-    );
-  }
+    </div>
+  );
+
+  // Memoized back handler
+  const handleBack = useCallback(() => {
+    navigate('/seller/dashboard');
+  }, [navigate]);
+
+  // Memoized form submission
+  const handleFormSubmit = useCallback((values: ProductFormValues) => {
+    guardedSubmit(() => createProduct(values));
+  }, [guardedSubmit, createProduct]);
+
+  // Check if we should show loading state
+  const isInitialLoading = shouldLoadBrands && isLoadingCarData && brands.length === 0;
 
   // Error Boundary (UI-level)
   try {
+    // Show loading state if initial car data is being loaded
+    if (isInitialLoading) {
+      return <LoadingState />;
+    }
+
     return (
       <GlobalErrorBoundary>
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center gap-4 mb-6">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigate('/seller/dashboard')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
-              </Button>
+          {!isMobile && (
+            <div className="max-w-3xl mx-auto">
+              <div className="flex items-center gap-4 mb-6">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleBack}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Dashboard
+                </Button>
+              </div>
+              
+              <Breadcrumb className="mb-6">
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link to="/seller/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+                        Seller Dashboard
+                      </Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbPage className="text-foreground">
+                    Add Product
+                  </BreadcrumbPage>
+                </BreadcrumbList>
+              </Breadcrumb>
+              
+              <h1 className="text-3xl font-bold mb-6">Add Product</h1>
+              
+              {showDraftSaved && (
+                <Alert className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Saved draft loaded. You can continue filling out the form.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    Product Information
+                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      Cloudinary integration
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>
+                    Fill in all fields to create a product. The product will be sent for moderation.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Suspense fallback={<LoadingState />}>
+                    <AddProductForm
+                      form={form}
+                      onSubmit={handleFormSubmit}
+                      isSubmitting={isSubmitting}
+                      imageUrls={imageUrls}
+                      videoUrls={videoUrls}
+                      brands={brands}
+                      brandModels={brandModels}
+                      isLoadingCarData={isLoadingCarData}
+                      watchBrandId={form.watch("brandId")}
+                      handleMobileOptimizedImageUpload={handleImageUpload}
+                      setVideoUrls={setVideoUrls}
+                      primaryImage={primaryImage}
+                      setPrimaryImage={setPrimaryImage}
+                      onImageDelete={handleImageDelete}
+                    />
+                  </Suspense>
+                </CardContent>
+              </Card>
             </div>
-            
-            <Breadcrumb className="mb-6">
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link to="/seller/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-                      Seller Dashboard
-                    </Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbPage className="text-foreground">
-                  Add Product
-                </BreadcrumbPage>
-              </BreadcrumbList>
-            </Breadcrumb>
-            
-            <h1 className="text-3xl font-bold mb-6">Add Product</h1>
-            
-            {showDraftSaved && (
-              <Alert className="mb-6">
+          )}
+
+          {/* Mobile-optimized form */}
+          {isMobile && (
+            <Suspense fallback={<LoadingState />}>
+              <MobileFastAddProduct
+                form={form}
+                onSubmit={handleFormSubmit}
+                isSubmitting={isSubmitting}
+                imageUrls={imageUrls}
+                videoUrls={videoUrls}
+                brands={brands}
+                brandModels={brandModels}
+                isLoadingCarData={isLoadingCarData}
+                watchBrandId={form.watch("brandId")}
+                handleMobileOptimizedImageUpload={handleImageUpload}
+                setVideoUrls={setVideoUrls}
+                primaryImage={primaryImage}
+                setPrimaryImage={setPrimaryImage}
+                onImageDelete={handleImageDelete}
+                onBack={handleBack}
+              />
+            </Suspense>
+          )}
+
+          {/* Mobile draft notification */}
+          {isMobile && showDraftSaved && (
+            <div className="fixed top-4 left-4 right-4 z-50">
+              <Alert className="bg-background/95 backdrop-blur-sm border shadow-lg">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Saved draft loaded. You can continue filling out the form.
+                  Saved draft loaded. Continue filling out the form.
                 </AlertDescription>
               </Alert>
-            )}
-            
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  Product Information
-                  <Badge variant="outline" className="text-xs flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    Cloudinary integration
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  Fill in all fields to create a product. The product will be sent for moderation.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AddProductForm
-                  form={form}
-                  onSubmit={(values) => guardedSubmit(() => createProduct(values))}
-                  isSubmitting={isSubmitting}
-                  imageUrls={imageUrls}
-                  videoUrls={videoUrls}
-                  brands={brands}
-                  brandModels={brandModels}
-                  isLoadingCarData={isLoadingCarData}
-                  watchBrandId={form.watch("brandId")}
-                  handleMobileOptimizedImageUpload={handleImageUpload}
-                  setVideoUrls={setVideoUrls}
-                  primaryImage={primaryImage}
-                  setPrimaryImage={setPrimaryImage}
-                  showSellerSelection={false}
-                  onImageDelete={handleImageDelete}
-                />
-              </CardContent>
-            </Card>
-          </div>
+            </div>
+          )}
         </div>
       </GlobalErrorBoundary>
     );
-  } catch (e: any) {
+  } catch (error) {
+    console.error('💥 Critical error in SellerAddProduct page:', error);
+    
+    // Fallback UI for critical errors
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="text-red-500 text-lg mb-2">Произошла ошибка при загрузке страницы</div>
-        <div className="text-gray-500">{e?.message}</div>
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              Page Error
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              A critical error occurred while loading this page. Please try refreshing the page or contact support.
+            </p>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="w-full"
+            >
+              Refresh Page
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
