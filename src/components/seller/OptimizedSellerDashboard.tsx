@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered, FileText, ShoppingCart } from "lucide-react";
+import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered, FileText, ShoppingCart, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -45,6 +45,13 @@ const OptimizedSellerDashboard = () => {
       title: "Sell Product",
       description: "Create an order from your products",
       color: "border-purple-200 hover:border-purple-300 hover:bg-purple-50"
+    },
+    {
+      to: "/seller/price-offers",
+      icon: DollarSign,
+      title: "Price Offers",
+      description: "Manage price offers from buyers",
+      color: "border-teal-200 hover:border-teal-300 hover:bg-teal-50"
     },
     {
       to: "/seller/create-order",
