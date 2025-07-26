@@ -59,16 +59,29 @@ const setupMobilePerformanceMonitoring = () => {
   document.addEventListener('touchstart', handleFirstInteraction, { once: true });
   document.addEventListener('focusin', handleFirstInteraction, { once: true });
 
-  // Monitor Core Web Vitals for mobile
-  if ('web-vital' in window) {
-    // @ts-ignore
-    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-      getCLS(console.log);
-      getFID(console.log);
-      getFCP(console.log);
-      getLCP(console.log);
-      getTTFB(console.log);
-    });
+  // Monitor Core Web Vitals for mobile using native APIs
+  if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
+    try {
+      // Monitor FCP (First Contentful Paint)
+      const fcpObserver = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          if (entry.name === 'first-contentful-paint') {
+            console.log(`📱 FCP: ${Math.round(entry.startTime)}ms`);
+          }
+        });
+      });
+      fcpObserver.observe({ entryTypes: ['paint'] });
+
+      // Monitor LCP (Largest Contentful Paint)
+      const lcpObserver = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          console.log(`📱 LCP: ${Math.round(entry.startTime)}ms`);
+        });
+      });
+      lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
+    } catch (error) {
+      console.warn('Performance monitoring not available:', error);
+    }
   }
 };
 
