@@ -8,6 +8,7 @@ import { Product } from '@/types/product';
 import { OfferStatusBadge } from '@/components/offers/OfferStatusBadge';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { ProductProps } from '@/components/product/ProductCard';
+import ProductStatusChangeDialog from '@/components/product/ProductStatusChangeDialog';
 // Auction functionality removed
 import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -27,6 +28,8 @@ interface ProductListItemProps {
   showOfferStatus?: boolean;
   showAuctionInfo?: boolean;
   lastUpdateTime?: Date;
+  showSoldButton?: boolean;
+  onStatusChange?: (productId: string, newStatus: string) => void;
 }
 
 const ProductListItem: React.FC<ProductListItemProps> = ({ 
@@ -35,6 +38,8 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   showOfferStatus = false,
   showAuctionInfo = false,
   lastUpdateTime,
+  showSoldButton = false,
+  onStatusChange,
 }) => {
   const [isRecentUpdate, setIsRecentUpdate] = useState(false);
   const [priceChanged, setPriceChanged] = useState(false);
@@ -235,11 +240,23 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 </div>
 
                 <div className="text-right">
-                  <div className={cn(
-                    "text-xl font-bold text-gray-900 transition-all duration-300",
-                    priceChanged && "text-blue-600 animate-pulse"
-                  )}>
-                    ${formatPrice(product.price)}
+                  <div className="flex items-center justify-end gap-2 mb-1">
+                    <div className={cn(
+                      "text-xl font-bold text-gray-900 transition-all duration-300",
+                      priceChanged && "text-blue-600 animate-pulse"
+                    )}>
+                      ${formatPrice(product.price)}
+                    </div>
+                    
+                    {showSoldButton && product.status === 'active' && onStatusChange && (
+                      <div className="ml-2">
+                        <ProductStatusChangeDialog
+                          productId={product.id}
+                          productName={product.title}
+                          onStatusChange={() => onStatusChange(product.id, 'sold')}
+                        />
+                      </div>
+                    )}
                   </div>
                   
                   {showOfferStatus && product.user_offer_price && (

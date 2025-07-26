@@ -84,9 +84,8 @@ const ProductStatusChangeDialog = ({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full">
-          <Tag className="mr-2 h-4 w-4" />
-          Отметить как проданный
+        <Button variant="outline" size="sm" className="h-8 px-2 text-xs">
+          Sold
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
