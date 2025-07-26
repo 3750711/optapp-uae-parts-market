@@ -76,10 +76,10 @@ const SellerListingsContent = () => {
             model,
             status,
             created_at,
-            seller_name,
             delivery_price,
             optid_created,
             lot_number,
+            place_number,
             product_images(
               url,
               is_primary
@@ -237,13 +237,12 @@ const SellerListingsContent = () => {
           image: imageUrl,
           brand: product.brand || '',
           model: product.model || '',
-          condition: product.condition || 'Новое',
-          seller_name: product.seller_name,
           status: product.status,
           seller_id: user?.id,
           delivery_price: product.delivery_price,
           optid_created: product.optid_created,
-          lot_number: product.lot_number
+          lot_number: product.lot_number,
+          place_number: product.place_number
         };
       });
     } catch (mappingError) {

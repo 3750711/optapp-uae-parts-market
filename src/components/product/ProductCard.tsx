@@ -20,7 +20,7 @@ export interface ProductProps {
   brand?: string;
   model?: string;
   condition?: string;
-  seller_name: string;
+  seller_name?: string;
   seller_id: string;
   status: 'pending' | 'active' | 'sold' | 'archived';
   description?: string;
