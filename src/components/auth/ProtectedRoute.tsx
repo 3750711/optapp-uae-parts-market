@@ -70,6 +70,10 @@ const ProtectedRoute = ({ children, allowedRoles, requireEmailVerification = fal
   // Check for role restrictions if provided
   if (allowedRoles && !allowedRoles.includes(profile.user_type)) {
     devLog("ProtectedRoute: User doesn't have required role");
+    // Redirect sellers to their dashboard, others to home
+    if (profile.user_type === 'seller') {
+      return <Navigate to="/seller/dashboard" replace />;
+    }
     return <Navigate to="/" replace />;
   }
   

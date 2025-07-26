@@ -5,6 +5,7 @@ import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary';
 import { RouteSuspenseFallback } from '@/components/routing/RouteSuspenseFallback';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
+import GuestRoute from '@/components/auth/GuestRoute';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 
 // Lazy loaded публичные страницы
@@ -25,6 +26,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 // Lazy loaded страницы аутентификации
 const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
+const SellerLogin = lazy(() => import('@/pages/SellerLogin'));
 const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
@@ -84,56 +86,123 @@ const AppRoutes: React.FC = () => {
       <RouteErrorBoundary>
         <Suspense fallback={<RouteSuspenseFallback />}>
           <Routes>
-            {/* Публичные маршруты */}
+            {/* Публичные маршруты - доступны всем */}
             <Route path="/" element={<Index />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/catalog" element={
-              <CatalogErrorBoundary>
-                <Catalog />
-              </CatalogErrorBoundary>
-            } />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/stores" element={<Stores />} />
-            <Route path="/store/:id" element={<StoreDetail />} />
-            <Route path="/requests" element={<Requests />} />
-            <Route path="/request/:id" element={<RequestDetail />} />
-            <Route path="/buyer-guide" element={<BuyerGuide />} />
-            <Route path="/seller/:id" element={<PublicSellerProfile />} />
-            <Route path="/public-seller-profile/:id" element={<PublicSellerProfile />} />
-            <Route path="/generate-og-image" element={<GenerateOGImage />} />
             <Route path="/404" element={<NotFound />} />
 
-            {/* Маршруты аутентификации */}
+            {/* Маршруты аутентификации - только для гостей */}
             <Route path="/login" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <Login />
-              </Suspense>
+              <GuestRoute>
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <Login />
+                </Suspense>
+              </GuestRoute>
             } />
             <Route path="/register" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <Register />
-              </Suspense>
+              <GuestRoute>
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <Register />
+                </Suspense>
+              </GuestRoute>
+            } />
+            <Route path="/seller-login" element={
+              <GuestRoute>
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <SellerLogin />
+                </Suspense>
+              </GuestRoute>
             } />
             <Route path="/seller-register" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <SellerRegister />
-              </Suspense>
+              <GuestRoute>
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <SellerRegister />
+                </Suspense>
+              </GuestRoute>
             } />
             <Route path="/forgot-password" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <ForgotPassword />
-              </Suspense>
+              <GuestRoute>
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <ForgotPassword />
+                </Suspense>
+              </GuestRoute>
             } />
             <Route path="/reset-password" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <ResetPassword />
-              </Suspense>
+              <GuestRoute>
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <ResetPassword />
+                </Suspense>
+              </GuestRoute>
             } />
             <Route path="/verify-email" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <VerifyEmail />
-              </Suspense>
+              <GuestRoute>
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <VerifyEmail />
+                </Suspense>
+              </GuestRoute>
+            } />
+
+            {/* Защищенные публичные маршруты - требуют авторизации */}
+            <Route path="/about" element={
+              <ProtectedRoute>
+                <About />
+              </ProtectedRoute>
+            } />
+            <Route path="/contact" element={
+              <ProtectedRoute>
+                <Contact />
+              </ProtectedRoute>
+            } />
+            <Route path="/catalog" element={
+              <ProtectedRoute>
+                <CatalogErrorBoundary>
+                  <Catalog />
+                </CatalogErrorBoundary>
+              </ProtectedRoute>
+            } />
+            <Route path="/product/:id" element={
+              <ProtectedRoute>
+                <ProductDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/stores" element={
+              <ProtectedRoute>
+                <Stores />
+              </ProtectedRoute>
+            } />
+            <Route path="/store/:id" element={
+              <ProtectedRoute>
+                <StoreDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/requests" element={
+              <ProtectedRoute>
+                <Requests />
+              </ProtectedRoute>
+            } />
+            <Route path="/request/:id" element={
+              <ProtectedRoute>
+                <RequestDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/buyer-guide" element={
+              <ProtectedRoute>
+                <BuyerGuide />
+              </ProtectedRoute>
+            } />
+            <Route path="/seller/:id" element={
+              <ProtectedRoute>
+                <PublicSellerProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/public-seller-profile/:id" element={
+              <ProtectedRoute>
+                <PublicSellerProfile />
+              </ProtectedRoute>
+            } />
+            <Route path="/generate-og-image" element={
+              <ProtectedRoute>
+                <GenerateOGImage />
+              </ProtectedRoute>
             } />
 
             {/* Защищенные маршруты */}

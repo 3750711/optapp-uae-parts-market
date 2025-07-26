@@ -243,7 +243,7 @@ const SellerRegister: React.FC = () => {
                 </div>
                 
                 <p className="text-sm text-gray-500 mt-4">
-                  Уже зарегистрированы? <Link to="/login" className="text-primary hover:underline">Войти в аккаунт</Link>
+                  Уже зарегистрированы? <Link to="/seller-login" className="text-primary hover:underline">Войти как продавец</Link>
                 </p>
               </form>
             </div>

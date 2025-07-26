@@ -7,8 +7,11 @@ import FeaturedProductsSection from "@/components/home/FeaturedProductsSection";
 import SEOHead from "@/components/seo/SEOHead";
 import { ShoppingCart, ChevronRight, Store, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
+  const { user, profile } = useAuth();
+  
   // Structured Data для SEO
   const structuredData = {
     "@context": "https://schema.org",
@@ -77,13 +80,25 @@ const Index = () => {
                     </li>
                   </ul>
                   <div className="mt-5">
-                    <Link 
-                      to="/seller-register"
-                      className="text-primary hover:text-primary-hover transition-colors inline-flex items-center group-hover:translate-x-1 transform duration-200"
-                    >
-                      Стать продавцом
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Link>
+                    {user && profile?.user_type === 'seller' ? (
+                      <Link 
+                        to="/seller/dashboard"
+                        className="text-primary hover:text-primary-hover transition-colors inline-flex items-center group-hover:translate-x-1 transform duration-200"
+                      >
+                        Панель продавца
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    ) : user ? (
+                      <span className="text-gray-500">Доступно только для продавцов</span>
+                    ) : (
+                      <Link 
+                        to="/seller-register"
+                        className="text-primary hover:text-primary-hover transition-colors inline-flex items-center group-hover:translate-x-1 transform duration-200"
+                      >
+                        Стать продавцом
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    )}
                   </div>
                 </div>
                 
@@ -109,13 +124,23 @@ const Index = () => {
                     </li>
                   </ul>
                   <div className="mt-5">
-                    <Link 
-                      to="/catalog"
-                      className="text-secondary hover:text-secondary-hover transition-colors inline-flex items-center group-hover:translate-x-1 transform duration-200"
-                    >
-                      Перейти в каталог
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Link>
+                    {user && profile?.user_type !== 'seller' ? (
+                      <Link 
+                        to="/catalog"
+                        className="text-secondary hover:text-secondary-hover transition-colors inline-flex items-center group-hover:translate-x-1 transform duration-200"
+                      >
+                        Перейти в каталог
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    ) : (
+                      <Link 
+                        to="/register"
+                        className="text-secondary hover:text-secondary-hover transition-colors inline-flex items-center group-hover:translate-x-1 transform duration-200"
+                      >
+                        Зарегистрироваться
+                        <ChevronRight className="ml-1 h-4 w-4" />
+                      </Link>
+                    )}
                   </div>
                 </div>
                 
@@ -154,8 +179,37 @@ const Index = () => {
             </div>
           </section>
 
-          {/* Популярные товары с lazy loading */}
-          <FeaturedProductsSection />
+          {/* Популярные товары с lazy loading - только для авторизованных пользователей */}
+          {user && profile?.user_type !== 'seller' && <FeaturedProductsSection />}
+          
+          {/* Призыв к регистрации для неавторизованных пользователей */}
+          {!user && (
+            <section className="py-16 bg-primary/5">
+              <div className="container mx-auto px-4 text-center">
+                <h2 className="text-2xl md:text-3xl font-bold mb-6">
+                  Присоединяйтесь к PartsBay.ae
+                </h2>
+                <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+                  Получите доступ к каталогу автозапчастей, свяжитесь с поставщиками 
+                  и начните выгодные покупки уже сегодня
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link 
+                    to="/register"
+                    className="bg-primary text-white px-8 py-3 rounded-lg hover:bg-primary-hover transition-colors inline-flex items-center justify-center"
+                  >
+                    Регистрация покупателя
+                  </Link>
+                  <Link 
+                    to="/seller-login"
+                    className="bg-secondary text-white px-8 py-3 rounded-lg hover:bg-secondary-hover transition-colors inline-flex items-center justify-center"
+                  >
+                    Вход для продавцов
+                  </Link>
+                </div>
+              </div>
+            </section>
+          )}
         </div>
       </Layout>
     </>

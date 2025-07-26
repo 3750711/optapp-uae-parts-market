@@ -87,34 +87,43 @@ const Header = () => {
       >
         Главная
       </Link>
-      <Link 
-        to="/catalog" 
-        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        Каталог
-      </Link>
-      <Link 
-        to="/stores" 
-        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        Магазины
-      </Link>
-      <Link 
-        to="/requests" 
-        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        Запросы
-      </Link>
-      <Link 
-        to="/about" 
-        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        О нас
-      </Link>
+      {/* Show navigation links only for authenticated users */}
+      {user && (
+        <>
+          {profile?.user_type !== 'seller' && (
+            <>
+              <Link 
+                to="/catalog" 
+                className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+                onClick={onClick}
+              >
+                Каталог
+              </Link>
+              <Link 
+                to="/stores" 
+                className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+                onClick={onClick}
+              >
+                Магазины
+              </Link>
+              <Link 
+                to="/requests" 
+                className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+                onClick={onClick}
+              >
+                Запросы
+              </Link>
+            </>
+          )}
+          <Link 
+            to="/about" 
+            className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+            onClick={onClick}
+          >
+            О нас
+          </Link>
+        </>
+      )}
     </nav>
   );
 
