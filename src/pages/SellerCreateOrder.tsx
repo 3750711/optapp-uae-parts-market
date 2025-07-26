@@ -1,6 +1,4 @@
-
 import React, { useState, useMemo } from "react";
-import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -51,8 +49,8 @@ const SellerCreateOrder = () => {
     timeout: 10000,
     onDuplicateSubmit: () => {
       toast({
-        title: "Заказ создается",
-        description: "Пожалуйста подождите, заказ уже создается",
+        title: "Order is being created",
+        description: "Please wait, order is already being created",
         variant: "destructive",
       });
     }
@@ -112,8 +110,8 @@ const SellerCreateOrder = () => {
 
     if (!canShowPreview()) {
       toast({
-        title: "Заполните обязательные поля",
-        description: "Необходимо заполнить название, цену и OPT_ID покупателя",
+        title: "Fill in required fields",
+        description: "You need to fill in the title, price and buyer's OPT_ID",
         variant: "destructive",
       });
       return;
@@ -160,7 +158,7 @@ const SellerCreateOrder = () => {
   const getSellerProfile = () => {
     return {
       id: user?.id || '',
-      full_name: user?.user_metadata?.full_name || 'Текущий пользователь',
+      full_name: user?.user_metadata?.full_name || 'Current User',
       opt_id: user?.user_metadata?.opt_id || ''
     };
   };
@@ -169,21 +167,21 @@ const SellerCreateOrder = () => {
   const getStageMessage = () => {
     switch (creationStage) {
       case 'validating':
-        return 'Проверка данных формы...';
+        return 'Validating form data...';
       case 'fetching_buyer':
-        return 'Поиск профиля покупателя...';
+        return 'Searching buyer profile...';
       case 'creating_order':
-        return 'Создание заказа в базе данных...';
+        return 'Creating order in database...';
       case 'fetching_order':
-        return 'Получение данных созданного заказа...';
+        return 'Fetching created order data...';
       case 'saving_videos':
-        return 'Сохранение видео...';
+        return 'Saving videos...';
       case 'sending_notification':
-        return 'Отправка уведомления...';
+        return 'Sending notification...';
       case 'completed':
-        return 'Заказ успешно создан!';
+        return 'Order created successfully!';
       default:
-        return 'Создание заказа...';
+        return 'Creating order...';
     }
   };
 
@@ -197,142 +195,136 @@ const SellerCreateOrder = () => {
   // Show loading state while initializing
   if (isInitializing) {
     return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-4xl mx-auto">
-            <Card>
-              <CardHeader>
-                <CardTitle>Создание заказа</CardTitle>
-                <CardDescription>Загрузка данных...</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center py-8">
-                  <Loader className="h-8 w-8 animate-spin mr-2" />
-                  <span>Загрузка покупателей и брендов...</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Order</CardTitle>
+              <CardDescription>Loading data...</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center py-8">
+                <Loader className="h-8 w-8 animate-spin mr-2" />
+                <span>Loading buyers and brands...</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   if (createdOrder) {
     return (
-      <Layout>
-        <CreatedOrderView
-          order={createdOrder}
-          images={images}
-          videos={videos}
-          onNewOrder={resetForm}
-          onOrderUpdate={handleOrderUpdate}
-          buyerProfile={getBuyerProfile()}
-        />
-      </Layout>
+      <CreatedOrderView
+        order={createdOrder}
+        images={images}
+        videos={videos}
+        onNewOrder={resetForm}
+        onOrderUpdate={handleOrderUpdate}
+        buyerProfile={getBuyerProfile()}
+      />
     );
   }
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className={isMobile ? "text-xl" : ""}>Создание заказа</CardTitle>
-                  <CardDescription>
-                    Заполните информацию о заказе
-                  </CardDescription>
-                </div>
-                {isLoading && (
-                  <div className="flex items-center text-orange-600 text-sm">
-                    <Save className="h-4 w-4 mr-1" />
-                    Создание заказа
-                  </div>
-                )}
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className={isMobile ? "text-xl" : ""}>Create Order</CardTitle>
+                <CardDescription>
+                  Fill in the order information
+                </CardDescription>
               </div>
-            </CardHeader>
+              {isLoading && (
+                <div className="flex items-center text-orange-600 text-sm">
+                  <Save className="h-4 w-4 mr-1" />
+                  Creating order
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          
+          <CardContent className="space-y-8">
+            <SellerOrderFormFields
+              formData={formData}
+              handleInputChange={handleInputChange}
+              disabled={isFormDisabled}
+            />
             
-            <CardContent className="space-y-8">
-              <SellerOrderFormFields
-                formData={formData}
-                handleInputChange={handleInputChange}
-                disabled={isFormDisabled}
-              />
-              
-              <AdvancedImageUpload
-                images={images}
-                onImagesUpload={onImagesUpload}
-                onImageDelete={onImageDelete}
-                onSetPrimaryImage={onSetPrimaryImage}
-                primaryImage={primaryImage}
-                orderId={temporaryOrderId}
-                disabled={isFormDisabled}
-                maxImages={25}
-              />
-            </CardContent>
-            
-            <CardFooter>
-              <div className="flex flex-col space-y-4 w-full">
-                {isLoading && (
-                  <div className="border rounded-md p-4 bg-gray-50 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                        <span className="font-medium">{getStageMessage()}</span>
-                      </div>
-                      <span className="text-sm text-gray-500">{creationProgress}%</span>
+            <AdvancedImageUpload
+              images={images}
+              onImagesUpload={onImagesUpload}
+              onImageDelete={onImageDelete}
+              onSetPrimaryImage={onSetPrimaryImage}
+              primaryImage={primaryImage}
+              orderId={temporaryOrderId}
+              disabled={isFormDisabled}
+              maxImages={25}
+            />
+          </CardContent>
+          
+          <CardFooter>
+            <div className="flex flex-col space-y-4 w-full">
+              {isLoading && (
+                <div className="border rounded-md p-4 bg-gray-50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                      <span className="font-medium">{getStageMessage()}</span>
                     </div>
-                    <Progress value={creationProgress} className="h-2" />
-                    {creationStage === 'completed' && (
-                      <div className="text-sm text-gray-600">
-                        Уведомление в Telegram будет отправлено в фоновом режиме.
-                      </div>
-                    )}
+                    <span className="text-sm text-gray-500">{creationProgress}%</span>
                   </div>
-                )}
-                
-                <div className="flex justify-end w-full gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => navigate('/seller/dashboard')}
-                    disabled={isFormDisabled}
-                    className={isMobile ? "min-h-[44px]" : ""}
-                  >
-                    Отмена
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleCreateOrderClick}
-                    disabled={isFormDisabled}
-                    className={isMobile ? "min-h-[44px]" : ""}
-                  >
-                    Создать заказ
-                  </Button>
+                  <Progress value={creationProgress} className="h-2" />
+                  {creationStage === 'completed' && (
+                    <div className="text-sm text-gray-600">
+                      Telegram notification will be sent in the background.
+                    </div>
+                  )}
                 </div>
+              )}
+              
+              <div className="flex justify-end w-full gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate('/seller/dashboard')}
+                  disabled={isFormDisabled}
+                  className={isMobile ? "min-h-[44px]" : ""}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleCreateOrderClick}
+                  disabled={isFormDisabled}
+                  className={isMobile ? "min-h-[44px]" : ""}
+                >
+                  Create Order
+                </Button>
               </div>
-            </CardFooter>
-          </Card>
+            </div>
+          </CardFooter>
+        </Card>
 
-          {/* Order Preview Dialog */}
-          <OrderPreviewDialog
-            open={showPreview}
-            onOpenChange={setShowPreview}
-            formData={formData}
-            images={images}
-            videos={videos}
-            selectedSeller={getSellerProfile()}
-            buyerProfile={getBuyerProfile()}
-            onConfirm={handleConfirmOrder}
-            onBack={handleBackToEdit}
-            isLoading={isLoading}
-          />
-        </div>
+        {/* Order Preview Dialog */}
+        <OrderPreviewDialog
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          formData={formData}
+          images={images}
+          videos={videos}
+          selectedSeller={getSellerProfile()}
+          buyerProfile={getBuyerProfile()}
+          onConfirm={handleConfirmOrder}
+          onBack={handleBackToEdit}
+          isLoading={isLoading}
+        />
       </div>
-    </Layout>
+    </div>
   );
 };
 

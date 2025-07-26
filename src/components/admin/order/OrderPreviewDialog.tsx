@@ -61,13 +61,13 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
   const getDeliveryMethodLabel = (method: string) => {
     switch (method) {
       case 'self_pickup':
-        return 'Самовывоз';
+        return 'Self Pickup';
       case 'cargo_rf':
-        return 'Cargo РФ';
+        return 'Cargo RF';
       case 'cargo_kz':
-        return 'Cargo КЗ';
+        return 'Cargo KZ';
       default:
-        return method || 'Не указан';
+        return method || 'Not specified';
     }
   };
 
@@ -78,11 +78,11 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         <div className="flex items-center gap-3">
           <CheckCircle className="w-6 h-6 text-blue-600 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-blue-800">Предпросмотр заказа</h1>
-            <p className="text-sm text-blue-700">Проверьте данные перед созданием</p>
+            <h1 className="text-lg font-bold text-blue-800">Order Preview</h1>
+            <p className="text-sm text-blue-700">Check data before creating</p>
           </div>
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            Готов
+            Ready
           </Badge>
         </div>
       </div>
@@ -96,39 +96,39 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2 mb-3">
                 <Package className="h-5 w-5 text-gray-500" />
-                <span className="font-medium">Товар</span>
+                <span className="font-medium">Product</span>
               </div>
               
               <div className="space-y-3">
                 <div className="text-lg font-semibold text-gray-900">
-                  {formData.title || 'Не указано'}
+                  {formData.title || 'Not specified'}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-gray-500">Бренд:</span>
-                    <div className="font-medium mt-1">{formData.brand || 'Не указан'}</div>
+                    <span className="text-gray-500">Brand:</span>
+                    <div className="font-medium mt-1">{formData.brand || 'Not specified'}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Модель:</span>
-                    <div className="font-medium mt-1">{formData.model || 'Не указана'}</div>
+                    <span className="text-gray-500">Model:</span>
+                    <div className="font-medium mt-1">{formData.model || 'Not specified'}</div>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">${formatPrice(formData.price)}</div>
-                    <div className="text-xs text-gray-500">Цена</div>
+                    <div className="text-xs text-gray-500">Price</div>
                   </div>
                   {formData.delivery_price && parseFloat(formData.delivery_price) > 0 && (
                     <div className="text-center">
                       <div className="text-lg font-semibold text-orange-600">${formatPrice(formData.delivery_price)}</div>
-                      <div className="text-xs text-gray-500">Доставка</div>
+                      <div className="text-xs text-gray-500">Delivery</div>
                     </div>
                   )}
                   <div className="text-center">
                     <div className="text-lg font-medium">{formData.place_number || 1}</div>
-                    <div className="text-xs text-gray-500">Мест</div>
+                    <div className="text-xs text-gray-500">Places</div>
                   </div>
                 </div>
               </div>
@@ -140,7 +140,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2 mb-3">
                 <User className="h-5 w-5 text-gray-500" />
-                <span className="font-medium">Участники</span>
+                <span className="font-medium">Participants</span>
               </div>
               
               <div className="space-y-3">
@@ -148,8 +148,8 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs text-blue-600 font-medium mb-1">Продавец</div>
-                      <div className="font-medium">{selectedSeller?.full_name || 'Не указан'}</div>
+                      <div className="text-xs text-blue-600 font-medium mb-1">Seller</div>
+                      <div className="font-medium">{selectedSeller?.full_name || 'Not specified'}</div>
                     </div>
                     {selectedSeller?.opt_id && (
                       <Badge variant="outline" className="ml-2">
@@ -163,11 +163,11 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs text-green-600 font-medium mb-1">Покупатель</div>
-                      <div className="font-medium">{buyerProfile?.full_name || 'Не указан'}</div>
+                      <div className="text-xs text-green-600 font-medium mb-1">Buyer</div>
+                      <div className="font-medium">{buyerProfile?.full_name || 'Not specified'}</div>
                     </div>
                     <Badge variant="outline" className="ml-2">
-                      {formData.buyerOptId || 'Не указан'}
+                      {formData.buyerOptId || 'Not specified'}
                     </Badge>
                   </div>
                 </div>
@@ -194,7 +194,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Camera className="h-5 w-5 text-gray-500" />
-                  <span className="font-medium">Медиафайлы ({images.length + videos.length})</span>
+                  <span className="font-medium">Media Files ({images.length + videos.length})</span>
                   <Badge variant="outline" className="ml-auto">
                     📸 {images.length} • 🎥 {videos.length}
                   </Badge>
@@ -213,7 +213,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
           {formData.text_order && (
             <Card className="border border-gray-200">
               <CardContent className="p-4">
-                <div className="font-medium mb-3">Дополнительная информация</div>
+                <div className="font-medium mb-3">Additional Information</div>
                 <div className="bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto">
                   <p className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">{formData.text_order}</p>
                 </div>
@@ -224,22 +224,22 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
           {/* Summary Stats */}
           <Card className="border border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50">
             <CardContent className="p-4">
-              <div className="font-medium mb-3">Сводка заказа</div>
+              <div className="font-medium mb-3">Order Summary</div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Товаров:</span>
+                  <span className="text-gray-600">Products:</span>
                   <span className="font-medium">1</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Мест:</span>
+                  <span className="text-gray-600">Places:</span>
                   <span className="font-medium">{formData.place_number || 1}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Фото:</span>
+                  <span className="text-gray-600">Photos:</span>
                   <span className="font-medium">{images.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Видео:</span>
+                  <span className="text-gray-600">Videos:</span>
                   <span className="font-medium">{videos.length}</span>
                 </div>
               </div>
@@ -258,7 +258,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         disabled={isLoading}
         className={isMobile ? "flex-1" : ""}
       >
-        Назад
+        Back
       </Button>
       <Button 
         onClick={onConfirm} 
@@ -268,12 +268,12 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Создание...
+            Creating...
           </>
         ) : (
           <>
             <CheckCircle className="mr-2 h-4 w-4" />
-            Создать заказ
+            Create Order
           </>
         )}
       </Button>
@@ -287,9 +287,9 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
           <SheetHeader className="pb-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <SheetTitle>Предпросмотр заказа</SheetTitle>
+                <SheetTitle>Order Preview</SheetTitle>
                 <SheetDescription>
-                  Проверьте данные перед созданием
+                  Check data before creating
                 </SheetDescription>
               </div>
               <SheetClose asChild>
@@ -318,9 +318,9 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0 pb-4">
-          <DialogTitle>Предпросмотр заказа</DialogTitle>
+          <DialogTitle>Order Preview</DialogTitle>
           <DialogDescription>
-            Проверьте все данные перед созданием заказа
+            Check all data before creating the order
           </DialogDescription>
         </DialogHeader>
         

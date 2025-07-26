@@ -45,14 +45,14 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   const getBuyerDisplayInfo = () => {
     if (buyerProfile) {
       return {
-        name: buyerProfile.full_name || 'Не указано',
-        optId: buyerProfile.opt_id || 'Не указан'
+        name: buyerProfile.full_name || 'Not specified',
+        optId: buyerProfile.opt_id || 'Not specified'
       };
     }
     
     return {
-      name: order.buyer_opt_id || 'Не указано',
-      optId: order.buyer_opt_id || 'Не указан'
+      name: order.buyer_opt_id || 'Not specified',
+      optId: order.buyer_opt_id || 'Not specified'
     };
   };
 
@@ -66,19 +66,19 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
 
   // Защитная функция для получения номера заказа
   const getOrderNumber = () => {
-    if (!order.order_number) return 'Не указан';
+    if (!order.order_number) return 'Not specified';
     return order.order_number.toString().toUpperCase();
   };
 
   // Функция для отображения бренда с fallback
   const getBrandDisplay = () => {
-    if (!order.brand || order.brand.trim() === '') return 'Не указан';
+    if (!order.brand || order.brand.trim() === '') return 'Not specified';
     return order.brand;
   };
 
   // Функция для отображения модели с fallback
   const getModelDisplay = () => {
-    if (!order.model || order.model.trim() === '') return 'Не указана';
+    if (!order.model || order.model.trim() === '') return 'Not specified';
     return order.model;
   };
 
@@ -107,26 +107,26 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
             </div>
             <div className={isMobile ? 'text-center' : ''}>
               <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-green-800 mb-2`}>
-                Заказ успешно создан!
+                Order Created Successfully!
               </h1>
               <p className={`text-green-700 mb-4 ${isMobile ? 'text-sm' : ''}`}>
-                Заказ #{getOrderNumber()} готов к обработке
+                Order #{getOrderNumber()} ready for processing
               </p>
               
               {/* Подпишите проданный товар section */}
               <div className={`bg-yellow-50 border border-yellow-200 rounded-lg ${isMobile ? 'p-3' : 'p-4'} mb-4`}>
                 <h3 className={`font-bold text-yellow-800 mb-3 ${isMobile ? 'text-sm' : ''}`}>
-                  ПОДПИШИТЕ ПРОДАННЫЙ ТОВАР:
+                  LABEL THE SOLD PRODUCT:
                 </h3>
                 <div className="space-y-2">
                   <div className={`bg-white rounded-lg ${isMobile ? 'p-2' : 'p-3'} border-2 border-yellow-300`}>
-                    <div className={`text-yellow-700 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>OPT ID ПОКУПАТЕЛЯ:</div>
+                    <div className={`text-yellow-700 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>BUYER'S OPT ID:</div>
                     <div className={`font-bold text-yellow-900 tracking-wider ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                       {buyerInfo.optId.toUpperCase()}
                     </div>
                   </div>
                   <div className={`bg-white rounded-lg ${isMobile ? 'p-2' : 'p-3'} border-2 border-yellow-300`}>
-                    <div className={`text-yellow-700 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>НОМЕР ЗАКАЗА:</div>
+                    <div className={`text-yellow-700 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>ORDER NUMBER:</div>
                     <div className={`font-bold text-yellow-900 tracking-wider ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                       {getOrderNumber()}
                     </div>
@@ -142,7 +142,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
                 className={`${isMobile ? 'w-full h-12 text-sm' : 'w-full'} bg-blue-600 hover:bg-blue-700 text-white`}
               >
                 <Camera className="mr-2 h-4 w-4" />
-                Загрузить подтверждающие фото
+                Upload Confirmation Photos
               </Button>
             </div>
           </div>
@@ -153,29 +153,29 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
       <div className="space-y-4">
         {/* Basic Information */}
         <MobileFormSection 
-          title="Информация о заказе" 
+          title="Order Information" 
           icon={<Package className="h-4 w-4" />}
           defaultOpen={true}
         >
           <div className="space-y-3">
             <div>
-              <div className="text-xs text-muted-foreground">Номер заказа</div>
+              <div className="text-xs text-muted-foreground">Order Number</div>
               <div className={`font-mono font-bold ${isMobile ? 'text-base' : 'text-lg'}`}>{getOrderNumber()}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Наименование</div>
+              <div className="text-xs text-muted-foreground">Title</div>
               <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{order.title}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Бренд</div>
+              <div className="text-xs text-muted-foreground">Brand</div>
               <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{getBrandDisplay()}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Модель</div>
+              <div className="text-xs text-muted-foreground">Model</div>
               <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{getModelDisplay()}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Статус</div>
+              <div className="text-xs text-muted-foreground">Status</div>
               <EnhancedOrderStatusBadge status={order.status} size="md" />
             </div>
           </div>
@@ -183,23 +183,23 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
 
         {/* Financial Information */}
         <MobileFormSection 
-          title="Финансовая информация" 
+          title="Financial Information" 
           icon={<DollarSign className="h-4 w-4" />}
           defaultOpen={true}
         >
           <div className="space-y-3">
             <div>
-              <div className="text-xs text-muted-foreground">Цена товара</div>
+              <div className="text-xs text-muted-foreground">Product Price</div>
               <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-green-600`}>${order.price}</div>
             </div>
             {order.delivery_price_confirm && (
               <div>
-                <div className="text-xs text-muted-foreground">Стоимость доставки</div>
+                <div className="text-xs text-muted-foreground">Delivery Cost</div>
                 <div className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold`}>${order.delivery_price_confirm}</div>
               </div>
             )}
             <div>
-              <div className="text-xs text-muted-foreground">Количество мест</div>
+              <div className="text-xs text-muted-foreground">Number of Places</div>
               <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{order.place_number || 1}</div>
             </div>
           </div>
@@ -207,14 +207,14 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
 
         {/* Participants */}
         <MobileFormSection 
-          title="Участники заказа" 
+          title="Order Participants" 
           icon={<User className="h-4 w-4" />}
           defaultOpen={true}
         >
           <div className="space-y-3">
             <div className={`bg-blue-50 ${isMobile ? 'p-3' : 'p-4'} rounded-lg`}>
-              <div className="text-xs text-muted-foreground mb-1">Продавец</div>
-              <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{order.order_seller_name || 'Не указан'}</div>
+              <div className="text-xs text-muted-foreground mb-1">Seller</div>
+              <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{order.order_seller_name || 'Not specified'}</div>
               {order.seller_opt_id && (
                 <div className={`text-xs text-muted-foreground font-mono ${isMobile ? 'text-xs' : ''}`}>
                   OPT_ID: {order.seller_opt_id}
@@ -222,7 +222,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
               )}
             </div>
             <div className={`bg-green-50 ${isMobile ? 'p-3' : 'p-4'} rounded-lg`}>
-              <div className="text-xs text-muted-foreground mb-1">Покупатель</div>
+              <div className="text-xs text-muted-foreground mb-1">Buyer</div>
               <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{buyerInfo.name}</div>
               <div className={`text-xs text-muted-foreground font-mono ${isMobile ? 'text-xs' : ''}`}>
                 OPT_ID: {buyerInfo.optId}
@@ -233,18 +233,18 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
 
         {/* Timeline */}
         <MobileFormSection 
-          title="Временная линия" 
+          title="Timeline" 
           icon={<Calendar className="h-4 w-4" />}
           defaultOpen={true}
         >
           <div className="space-y-3">
             <div>
-              <div className="text-xs text-muted-foreground">Дата создания</div>
+              <div className="text-xs text-muted-foreground">Created Date</div>
               <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{formatDate(order.created_at)}</div>
             </div>
             {order.updated_at && order.updated_at !== order.created_at && (
               <div>
-                <div className="text-xs text-muted-foreground">Последнее обновление</div>
+                <div className="text-xs text-muted-foreground">Last Updated</div>
                 <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{formatDate(order.updated_at)}</div>
               </div>
             )}
@@ -254,7 +254,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
 
       {/* Enhanced Media Section with upload buttons */}
       <MobileFormSection 
-        title="Медиафайлы заказа"
+        title="Order Media Files"
         icon={<Camera className="h-4 w-4" />}
         defaultOpen={true}
       >
@@ -270,7 +270,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
       {/* Additional Information */}
       {order.text_order && (
         <MobileFormSection 
-          title="Дополнительная информация"
+          title="Additional Information"
           defaultOpen={true}
         >
           <div className={`bg-muted/30 ${isMobile ? 'p-3' : 'p-4'} rounded-lg`}>
@@ -288,7 +288,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
             className="w-full h-12 text-sm font-medium"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Создать новый заказ
+            Create New Order
           </Button>
         </div>
       ) : (
@@ -299,7 +299,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
             className="min-w-[200px]"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Создать новый заказ
+            Create New Order
           </Button>
         </div>
       )}

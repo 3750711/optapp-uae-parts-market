@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -69,17 +68,17 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Основная информация о заказе</CardTitle>
+          <CardTitle>Main Order Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Название товара */}
           <div className="space-y-2">
-            <Label htmlFor="title">Название товара *</Label>
+            <Label htmlFor="title">Product Title *</Label>
             <Input
               id="title"
               value={formData.title || ''}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              placeholder="Введите название товара..."
+              placeholder="Enter product title..."
               disabled={disabled}
               className="bg-white"
             />
@@ -88,7 +87,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
           {/* Бренд и модель */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="brandId">Бренд</Label>
+              <Label htmlFor="brandId">Brand</Label>
               {isLoadingBrands ? (
                 <Skeleton className="h-10 w-full" />
               ) : (
@@ -99,7 +98,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                   disabled={disabled}
                 >
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Выберите бренд..." />
+                    <SelectValue placeholder="Select brand..." />
                   </SelectTrigger>
                   <SelectContent>
                     {brands.map((brand) => (
@@ -113,7 +112,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="modelId">Модель</Label>
+              <Label htmlFor="modelId">Model</Label>
               {isLoadingModels ? (
                 <Skeleton className="h-10 w-full" />
               ) : (
@@ -123,7 +122,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                   disabled={disabled || !formData.brandId}
                 >
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder={formData.brandId ? "Выберите модель..." : "Сначала выберите бренд"} />
+                    <SelectValue placeholder={formData.brandId ? "Select model..." : "Select brand first"} />
                   </SelectTrigger>
                   <SelectContent>
                     {models.map((model) => (
@@ -140,7 +139,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
           {/* Цена */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Цена товара *</Label>
+              <Label htmlFor="price">Product Price *</Label>
               <Input
                 id="price"
                 type="number"
@@ -153,7 +152,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="delivery_price">Стоимость доставки</Label>
+              <Label htmlFor="delivery_price">Delivery Cost</Label>
               <Input
                 id="delivery_price"
                 type="number"
@@ -170,11 +169,11 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
 
       <Card>
         <CardHeader>
-          <CardTitle>Покупатель</CardTitle>
+          <CardTitle>Buyer</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
+            <Label htmlFor="buyerOptId">Buyer's OPT_ID *</Label>
             {isLoadingBuyers ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -185,12 +184,12 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                 disabled={disabled}
               >
                 <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Выберите покупателя..." />
+                  <SelectValue placeholder="Select buyer..." />
                 </SelectTrigger>
                 <SelectContent>
                   {buyerProfiles.map((buyer) => (
                     <SelectItem key={buyer.id} value={buyer.opt_id}>
-                      {buyer.full_name || 'Без имени'} ({buyer.opt_id})
+                      {buyer.full_name || 'No name'} ({buyer.opt_id})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -198,7 +197,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
             )}
             {buyerProfiles.length === 0 && !isLoadingBuyers && (
               <p className="text-sm text-gray-500 mt-1">
-                Нет доступных профилей покупателей
+                No buyer profiles available
               </p>
             )}
           </div>
@@ -207,13 +206,13 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
 
       <Card>
         <CardHeader>
-          <CardTitle>Детали заказа</CardTitle>
+          <CardTitle>Order Details</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="deliveryMethod">Способ доставки</Label>
+                <Label htmlFor="deliveryMethod">Delivery Method</Label>
                 <Select
                   value={formData.deliveryMethod || 'cargo_rf'}
                   onValueChange={(value) => handleInputChange('deliveryMethod', value)}
@@ -223,15 +222,15 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="self_pickup">Самовывоз</SelectItem>
-                    <SelectItem value="cargo_rf">Карго РФ</SelectItem>
-                    <SelectItem value="cargo_kz">Карго КЗ</SelectItem>
+                    <SelectItem value="self_pickup">Self Pickup</SelectItem>
+                    <SelectItem value="cargo_rf">Cargo RF</SelectItem>
+                    <SelectItem value="cargo_kz">Cargo KZ</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="place_number">Количество мест *</Label>
+                <Label htmlFor="place_number">Number of Places *</Label>
                 <Input
                   id="place_number"
                   type="number"
@@ -246,12 +245,12 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="text_order">Дополнительная информация</Label>
+              <Label htmlFor="text_order">Additional Information</Label>
               <Textarea
                 id="text_order"
                 value={formData.text_order || ''}
                 onChange={(e) => handleInputChange('text_order', e.target.value)}
-                placeholder="Введите дополнительную информацию о заказе..."
+                placeholder="Enter additional order information..."
                 rows={3}
                 disabled={disabled}
                 className="bg-white"
