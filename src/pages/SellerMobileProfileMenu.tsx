@@ -14,19 +14,17 @@ import {
   Store, 
   MessageSquare,
   Bell,
-  Heart,
+  
   HelpCircle,
   ClipboardList,
   DollarSign
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/useNotifications';
-import { useFavorites } from '@/hooks/useFavorites';
 
 const SellerMobileProfileMenu = () => {
   const { user, signOut, profile } = useAuth();
   const { unreadCount } = useNotifications();
-  const { favorites } = useFavorites();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -120,17 +118,6 @@ const SellerMobileProfileMenu = () => {
           </Button>
         </Link>
 
-        <Link to="/favorites">
-          <Button variant="ghost" className="w-full justify-start h-12 text-base">
-            <Heart className="mr-3 h-5 w-5" />
-            <span className="flex-1 text-left">Favorites</span>
-            {favorites.length > 0 && (
-              <Badge variant="secondary" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs min-w-0">
-                {favorites.length > 99 ? '99+' : favorites.length}
-              </Badge>
-            )}
-          </Button>
-        </Link>
 
         <Separator className="my-4" />
 
