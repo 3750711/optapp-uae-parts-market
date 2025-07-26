@@ -38,7 +38,7 @@ const ProductStatusChangeDialog = ({
       const userId = userData.user?.id;
       
       if (!userId) {
-        toast.error("Не удалось получить информацию о пользователе");
+        toast.error("Unable to get user information");
         return;
       }
       
@@ -70,11 +70,11 @@ const ProductStatusChangeDialog = ({
 
       if (error) throw error;
 
-      toast.success("Статус товара успешно изменен на 'Продано'");
+      toast.success("Product status successfully changed to 'Sold'");
       
       onStatusChange();
     } catch (error) {
-      toast.error("Ошибка при изменении статуса товара");
+      toast.error("Error changing product status");
       console.error("Error marking product as sold:", error);
     } finally {
       setIsProcessing(false);
@@ -91,19 +91,19 @@ const ProductStatusChangeDialog = ({
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Подтвердите действие</AlertDialogTitle>
+          <AlertDialogTitle>Confirm Action</AlertDialogTitle>
           <AlertDialogDescription>
-            Вы уверены, что хотите отметить товар "{productName}" как проданный?
-            Это действие нельзя отменить.
+            Are you sure you want to mark "{productName}" as sold?
+            This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Отмена</AlertDialogCancel>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleMarkAsSold}
             disabled={isProcessing}
           >
-            {isProcessing ? "Обработка..." : "Подтвердить"}
+            {isProcessing ? "Processing..." : "Confirm"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
