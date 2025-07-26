@@ -279,9 +279,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <span>Place: {product.place_number}</span>
-              </div>
 
               {/* Auction functionality removed - simplified to basic offer display */}
             </div>
