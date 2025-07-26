@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import ProductGrid from "@/components/product/ProductGrid";
+import SellerProductCard from "@/components/seller/SellerProductCard";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/product";
 import { ProductProps } from "@/components/product/ProductCard";
@@ -361,12 +361,16 @@ const SellerListingsContent = () => {
       
       {mappedProducts.length > 0 ? (
         <>
-          <ProductGrid
-            products={mappedProducts} 
-            showAllStatuses={true}
-            showSoldButton={true}
-            onStatusChange={handleStatusChange}
-          />
+          {/* Mobile-optimized grid for seller listings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {mappedProducts.map((product) => (
+              <SellerProductCard
+                key={product.id}
+                product={product}
+                onStatusChange={handleStatusChange}
+              />
+            ))}
+          </div>
           
           {(hasNextPage || isFetchingNextPage) && (
             <div className="mt-8 flex flex-col items-center justify-center">
