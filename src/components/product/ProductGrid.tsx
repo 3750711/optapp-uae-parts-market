@@ -2,6 +2,7 @@
 import React from "react";
 import UnifiedProductGrid, { ViewMode } from "./UnifiedProductGrid";
 import { ProductProps } from "./ProductCard";
+import { BatchOfferData } from '@/hooks/use-price-offers-batch';
 
 interface ProductGridProps {
   products: ProductProps[];
@@ -10,6 +11,7 @@ interface ProductGridProps {
   showSoldButton?: boolean;
   onStatusChange?: () => void;
   viewMode?: ViewMode;
+  batchOffersData?: BatchOfferData[];
 }
 
 const ProductGrid: React.FC<ProductGridProps> = (props) => {

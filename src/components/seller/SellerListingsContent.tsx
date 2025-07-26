@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerListingsSkeleton";
 import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
+import { useBatchOffers } from "@/hooks/use-price-offers-batch";
 
 const SellerListingsContent = () => {
   const navigate = useNavigate();
@@ -221,6 +222,15 @@ const SellerListingsContent = () => {
   const allProducts = data?.pages.flat() || [];
   throttledDevLog('seller-stats', `📊 Total seller products loaded: ${allProducts.length}`);
 
+  // Get product IDs for batch offers
+  const productIds = React.useMemo(() => 
+    allProducts.map(product => product.id), 
+    [allProducts]
+  );
+
+  // Fetch batch offers data
+  const { data: batchOffersData } = useBatchOffers(productIds, productIds.length > 0);
+
   const mappedProducts: ProductProps[] = React.useMemo(() => {
     try {
       return allProducts.map(product => {
@@ -365,6 +375,7 @@ const SellerListingsContent = () => {
             showAllStatuses={true}
             showSoldButton={true}
             onStatusChange={handleStatusChange}
+            batchOffersData={batchOffersData}
           />
           
           {(hasNextPage || isFetchingNextPage) && (
