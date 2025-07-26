@@ -127,7 +127,29 @@ export const profileTranslations = {
     lastLogin: "Последний вход",
     listingCount: "Количество объявлений",
     sellerRating: "Рейтинг продавца",
-    noRatingsYet: "Пока нет оценок"
+    noRatingsYet: "Пока нет оценок",
+    
+    // Store management
+    storeManagement: "Управление магазином",
+    storeInfo: "Информация о магазине",
+    noStoreYet: "У вас еще нет магазина. Заполните поле \"Название компании\" в профиле, чтобы создать магазин автоматически.",
+    generalInfo: "Основная информация",
+    storeName: "Название магазина",
+    storeNamePlaceholder: "Введите название магазина",
+    storeDescription: "Описание",
+    storeDescriptionPlaceholder: "Введите описание магазина",
+    storeAddress: "Адрес",
+    storeAddressPlaceholder: "Введите адрес магазина",
+    storePhone: "Телефон",
+    storePhonePlaceholder: "Введите телефон магазина",
+    storeLocation: "Местоположение",
+    storeLocationDescription: "Местоположение автоматически подтягивается из вашего профиля",
+    storePhotos: "Фотографии магазина",
+    storePhotosDescription: "Добавьте фотографии вашего магазина, чтобы покупатели могли лучше узнать о нем",
+    storeUpdated: "Магазин обновлен",
+    storeUpdatedDesc: "Данные магазина успешно обновлены",
+    storeUpdateError: "Ошибка обновления",
+    storeUpdateErrorDesc: "Произошла ошибка при обновлении данных магазина"
   },
   en: {
     // Profile page
@@ -257,7 +279,29 @@ export const profileTranslations = {
     lastLogin: "Last Login",
     listingCount: "Number of Listings",
     sellerRating: "Seller Rating",
-    noRatingsYet: "No ratings yet"
+    noRatingsYet: "No ratings yet",
+    
+    // Store management
+    storeManagement: "Store Management",
+    storeInfo: "Store Information",
+    noStoreYet: "You don't have a store yet. Fill in the \"Company Name\" field in your profile to create a store automatically.",
+    generalInfo: "General Information",
+    storeName: "Store Name",
+    storeNamePlaceholder: "Enter store name",
+    storeDescription: "Description",
+    storeDescriptionPlaceholder: "Enter store description",
+    storeAddress: "Address",
+    storeAddressPlaceholder: "Enter store address",
+    storePhone: "Phone",
+    storePhonePlaceholder: "Enter store phone",
+    storeLocation: "Location",
+    storeLocationDescription: "Location is automatically pulled from your profile",
+    storePhotos: "Store Photos",
+    storePhotosDescription: "Add photos of your store so customers can learn more about it",
+    storeUpdated: "Store Updated",
+    storeUpdatedDesc: "Store data successfully updated",
+    storeUpdateError: "Update Error",
+    storeUpdateErrorDesc: "An error occurred while updating store data"
   }
 };
 

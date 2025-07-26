@@ -15,6 +15,7 @@ import { MapPin } from "lucide-react";
 import StoreLocationPicker from "./StoreLocationPicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getProfileTranslations } from "@/utils/profileTranslations";
 
 const storeFormSchema = z.object({
   name: z.string().min(3, 'Название должно быть не менее 3 символов'),
@@ -37,7 +38,8 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
   const [images, setImages] = useState<string[]>([]);
   const [storeId, setStoreId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("general");
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const t = getProfileTranslations(profile?.user_type || 'buyer');
 
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeFormSchema),
@@ -158,16 +160,16 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
           }
         }
 
-        toast("Магазин обновлен", {
-          description: "Данные магазина успешно обновлены",
+        toast(t.storeUpdated, {
+          description: t.storeUpdatedDesc,
         });
         
         if (onSuccess) onSuccess();
       }
     } catch (error: any) {
       console.error('Error updating store:', error);
-      toast("Ошибка обновления", {
-        description: error.message || "Произошла ошибка при обновлении данных магазина",
+      toast(t.storeUpdateError, {
+        description: error.message || t.storeUpdateErrorDesc,
       });
     } finally {
       setIsLoading(false);
@@ -178,11 +180,11 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Информация о магазине</CardTitle>
+          <CardTitle>{t.storeInfo}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            У вас еще нет магазина. Заполните поле "Название компании" в профиле, чтобы создать магазин автоматически.
+            {t.noStoreYet}
           </p>
         </CardContent>
       </Card>
@@ -196,12 +198,12 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Управление магазином</CardTitle>
+        <CardTitle>{t.storeManagement}</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="grid grid-cols-1 w-full mb-4">
-            <TabsTrigger value="general">Основная информация</TabsTrigger>
+            <TabsTrigger value="general">{t.generalInfo}</TabsTrigger>
           </TabsList>
           <TabsContent value="general">
             <Form {...form}>
@@ -210,13 +212,13 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                   control={form.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Название магазина *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Введите название магазина" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                     <FormItem>
+                       <FormLabel>{t.storeName} *</FormLabel>
+                       <FormControl>
+                         <Input placeholder={t.storeNamePlaceholder} {...field} />
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
                   )}
                 />
 
@@ -224,18 +226,18 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                   control={form.control}
                   name="description"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Описание</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Введите описание магазина" 
-                          className="min-h-[120px]" 
-                          {...field} 
-                          value={field.value || ''}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                     <FormItem>
+                       <FormLabel>{t.storeDescription}</FormLabel>
+                       <FormControl>
+                         <Textarea 
+                           placeholder={t.storeDescriptionPlaceholder} 
+                           className="min-h-[120px]" 
+                           {...field} 
+                           value={field.value || ''}
+                         />
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
                   )}
                 />
 
@@ -243,13 +245,13 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                   control={form.control}
                   name="address"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Адрес *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Введите адрес магазина" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                     <FormItem>
+                       <FormLabel>{t.storeAddress} *</FormLabel>
+                       <FormControl>
+                         <Input placeholder={t.storeAddressPlaceholder} {...field} />
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
                   )}
                 />
 
@@ -257,13 +259,13 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                   control={form.control}
                   name="phone"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Телефон</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Введите телефон магазина" {...field} value={field.value || ''} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                     <FormItem>
+                       <FormLabel>{t.storePhone}</FormLabel>
+                       <FormControl>
+                         <Input placeholder={t.storePhonePlaceholder} {...field} value={field.value || ''} />
+                       </FormControl>
+                       <FormMessage />
+                     </FormItem>
                   )}
                 />
 
@@ -271,27 +273,27 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                   control={form.control}
                   name="location"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Местоположение</FormLabel>
-                      <FormControl>
-                        <StoreLocationPicker 
-                          initialLocation={field.value || ''} 
-                          onLocationChange={handleLocationChange}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Местоположение автоматически подтягивается из вашего профиля
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                     <FormItem>
+                       <FormLabel>{t.storeLocation}</FormLabel>
+                       <FormControl>
+                         <StoreLocationPicker 
+                           initialLocation={field.value || ''} 
+                           onLocationChange={handleLocationChange}
+                         />
+                       </FormControl>
+                       <FormDescription>
+                         {t.storeLocationDescription}
+                       </FormDescription>
+                       <FormMessage />
+                     </FormItem>
                   )}
                 />
 
-                <div className="space-y-2">
-                  <FormLabel>Фотографии магазина</FormLabel>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Добавьте фотографии вашего магазина, чтобы покупатели могли лучше узнать о нем
-                  </p>
+                 <div className="space-y-2">
+                   <FormLabel>{t.storePhotos}</FormLabel>
+                   <p className="text-sm text-muted-foreground mb-2">
+                     {t.storePhotosDescription}
+                   </p>
                   <ImageUpload 
                     images={images}
                     onUpload={(uploadedUrls) => setImages([...images, ...uploadedUrls])}
@@ -305,7 +307,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                   className="w-full" 
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
+                   {isLoading ? t.saving : t.saveChanges}
                 </Button>
               </form>
             </Form>
