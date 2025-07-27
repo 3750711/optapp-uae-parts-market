@@ -63,7 +63,14 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
     }
 
     try {
-      // Update product status - the database trigger will handle the notification automatically
+      console.log(`🔄 [ProductStatusDialog] Admin changing product status: ${product.status} -> ${values.status} for product: ${product.id}`);
+      
+      // Get current user for logging
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      // Update product status - the database trigger should handle the notification automatically
+      console.log(`💾 [ProductStatusDialog] Updating product status in database...`);
       const { data, error } = await supabase
         .from('products')
         .update({ status: values.status })
@@ -71,22 +78,58 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         .select();
 
       if (error) {
+        console.error("❌ [ProductStatusDialog] Database update failed:", error);
         throw error;
       }
+      
+      console.log(`✅ [ProductStatusDialog] Database update successful:`, data);
 
       // Fallback: Direct call to Edge Function for Telegram notification
+      console.log(`📱 [ProductStatusDialog] Sending fallback Telegram notification...`);
       try {
-        await supabase.functions.invoke('send-telegram-notification', {
+        const { data: functionData, error: functionError } = await supabase.functions.invoke('send-telegram-notification', {
           body: {
-            action: 'status_change',
             productId: product.id,
-            type: 'product'
+            notificationType: values.status === 'sold' ? 'sold' : 'status_change'
           }
         });
-        console.log('Fallback admin Telegram notification sent successfully');
+        
+        if (functionError) {
+          console.error("❌ [ProductStatusDialog] Fallback notification error:", functionError);
+        } else {
+          console.log(`✅ [ProductStatusDialog] Fallback notification sent successfully:`, functionData);
+        }
       } catch (notificationError) {
-        console.error('Fallback admin notification failed:', notificationError);
+        console.error('❌ [ProductStatusDialog] Fallback notification exception:', notificationError);
         // Don't throw here - product update was successful
+      }
+
+      // Log the admin action
+      if (userId) {
+        try {
+          const { error: logError } = await supabase
+            .from("event_logs")
+            .insert({
+              action_type: "update",
+              entity_type: "product",
+              entity_id: product.id,
+              user_id: userId,
+              details: {
+                title: product.title,
+                old_status: product.status,
+                new_status: values.status,
+                source: "admin_panel"
+              }
+            });
+          
+          if (logError) {
+            console.error("⚠️ [ProductStatusDialog] Error logging admin action:", logError);
+          } else {
+            console.log(`📝 [ProductStatusDialog] Admin action logged successfully`);
+          }
+        } catch (logException) {
+          console.error("⚠️ [ProductStatusDialog] Exception while logging:", logException);
+        }
       }
 
       toast({
@@ -94,10 +137,11 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         description: "Статус товара успешно обновлен",
       });
       
+      console.log(`🎉 [ProductStatusDialog] Product status change completed successfully`);
       setOpen(false);
       if (onSuccess) onSuccess();
     } catch (error) {
-      console.error('Error updating product status:', error);
+      console.error('❌ [ProductStatusDialog] Error in onSubmit:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось обновить статус товара: " + (error instanceof Error ? error.message : String(error)),

@@ -32,65 +32,98 @@ const ProductStatusChangeDialog = ({
   const handleMarkAsSold = async () => {
     try {
       setIsProcessing(true);
+      console.log(`🔄 [ProductStatusChangeDialog] Starting product status change to 'sold' for product: ${productId}`);
       
       // Get the current user for logging
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       
       if (!userId) {
+        console.error("❌ [ProductStatusChangeDialog] No user ID found");
         toast.error("Unable to get user information");
         return;
       }
       
-      // Manually log the action to ensure it's recorded
-      const { error: logError } = await supabase
-        .from("action_logs")
-        .insert({
-          action_type: "update",
-          entity_type: "product",
-          entity_id: productId,
-          user_id: userId,
-          details: {
-            title: productName,
-            old_status: "active", // Assuming it was active before
-            new_status: "sold",
-          }
-        });
+      console.log(`👤 [ProductStatusChangeDialog] User ID: ${userId}`);
       
-      if (logError) {
-        console.error("Error logging product status change:", logError);
-      }
+      // Get current product status before update
+      const { data: currentProduct } = await supabase
+        .from("products")
+        .select("status")
+        .eq("id", productId)
+        .single();
       
-      // Update the product status - the database trigger will handle the notification
+      const oldStatus = currentProduct?.status || "unknown";
+      console.log(`📊 [ProductStatusChangeDialog] Current status: ${oldStatus} -> sold`);
+      
+      // Update the product status - the database trigger should handle the notification
+      console.log(`💾 [ProductStatusChangeDialog] Updating product status in database...`);
       const { data, error } = await supabase
         .from("products")
         .update({ status: "sold" })
         .eq("id", productId)
         .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ [ProductStatusChangeDialog] Database update failed:", error);
+        throw error;
+      }
+      
+      console.log(`✅ [ProductStatusChangeDialog] Database update successful:`, data);
 
       // Fallback: Direct call to Edge Function for Telegram notification
+      console.log(`📱 [ProductStatusChangeDialog] Sending fallback Telegram notification...`);
       try {
-        await supabase.functions.invoke('send-telegram-notification', {
+        const { data: functionData, error: functionError } = await supabase.functions.invoke('send-telegram-notification', {
           body: {
-            action: 'status_change',
             productId: productId,
-            type: 'product'
+            notificationType: 'sold'
           }
         });
-        console.log('Fallback Telegram notification sent successfully');
+        
+        if (functionError) {
+          console.error("❌ [ProductStatusChangeDialog] Fallback notification error:", functionError);
+        } else {
+          console.log(`✅ [ProductStatusChangeDialog] Fallback notification sent successfully:`, functionData);
+        }
       } catch (notificationError) {
-        console.error('Fallback notification failed:', notificationError);
+        console.error('❌ [ProductStatusChangeDialog] Fallback notification exception:', notificationError);
         // Don't throw here - product update was successful
       }
 
+      // Manually log the action to ensure it's recorded
+      try {
+        const { error: logError } = await supabase
+          .from("event_logs")
+          .insert({
+            action_type: "update",
+            entity_type: "product",
+            entity_id: productId,
+            user_id: userId,
+            details: {
+              title: productName,
+              old_status: oldStatus,
+              new_status: "sold",
+              source: "seller_dashboard"
+            }
+          });
+        
+        if (logError) {
+          console.error("⚠️ [ProductStatusChangeDialog] Error logging action:", logError);
+        } else {
+          console.log(`📝 [ProductStatusChangeDialog] Action logged successfully`);
+        }
+      } catch (logException) {
+        console.error("⚠️ [ProductStatusChangeDialog] Exception while logging:", logException);
+      }
+
       toast.success("Product status successfully changed to 'Sold'");
+      console.log(`🎉 [ProductStatusChangeDialog] Product status change completed successfully`);
       
       onStatusChange();
     } catch (error) {
+      console.error("❌ [ProductStatusChangeDialog] Error in handleMarkAsSold:", error);
       toast.error("Error changing product status");
-      console.error("Error marking product as sold:", error);
     } finally {
       setIsProcessing(false);
     }
