@@ -24,7 +24,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield } from "lucide-react";
 import { useMobileLayout } from "@/hooks/useMobileLayout";
 import ProductErrorBoundary from "@/components/error/ProductErrorBoundary";
-import { MobileStabilizer } from "@/components/MobileStabilizer";
 
 const SellerProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -188,111 +187,98 @@ const SellerProductDetail = () => {
   const sellerName = product.seller_name || (profile?.full_name || "Неизвестный продавец");
 
   // Mobile Layout - always render to avoid conditional hook usage
-  return (
-    <MobileStabilizer
-      fallback={
-        <ProductErrorBoundary>
-          <SellerLayout className="p-0">
+  if (isMobile) {
+    return (
+      <ProductErrorBoundary>
+        <SellerLayout className="p-0">
+          {product && (
+            <ProductSEO 
+              product={product}
+              sellerName={sellerName}
+              images={imageUrls}
+            />
+          )}
+          
+           {product ? (
+            <MobileSellerProductLayout
+              product={product}
+              imageUrls={imageUrls || []}
+              videoUrls={videoUrls || []}
+              selectedImage={selectedImage || (imageUrls && imageUrls[0]) || null}
+              onImageClick={handleImageClick}
+              onProductUpdate={handleProductUpdate}
+              updateTitle={updateTitle}
+              updatePrice={updatePrice}
+              updateDescription={updateDescription}
+              updatePlaceNumber={updatePlaceNumber}
+              updateDeliveryPrice={updateDeliveryPrice}
+              updateLocation={updateLocation}
+            />
+          ) : (
             <div className="flex items-center justify-center min-h-screen">
               <div className="text-muted-foreground">Loading...</div>
             </div>
-          </SellerLayout>
-        </ProductErrorBoundary>
-      }
-    >
-      {(isMobileStable) => 
-        isMobileStable ? (
-          <ProductErrorBoundary>
-            <SellerLayout className="p-0">
-              {product && (
-                <ProductSEO 
-                  product={product}
-                  sellerName={sellerName}
-                  images={imageUrls}
-                />
-              )}
-              
-              {product ? (
-                <MobileSellerProductLayout
-                  key={`mobile-${product.id}`}
-                  product={product}
-                  imageUrls={imageUrls || []}
-                  videoUrls={videoUrls || []}
-                  selectedImage={selectedImage || (imageUrls && imageUrls[0]) || null}
-                  onImageClick={handleImageClick}
-                  onProductUpdate={handleProductUpdate}
-                  updateTitle={updateTitle}
-                  updatePrice={updatePrice}
-                  updateDescription={updateDescription}
-                  updatePlaceNumber={updatePlaceNumber}
-                  updateDeliveryPrice={updateDeliveryPrice}
-                  updateLocation={updateLocation}
-                />
-              ) : (
-                <div className="flex items-center justify-center min-h-screen">
-                  <div className="text-muted-foreground">Loading...</div>
-                </div>
-              )}
-            </SellerLayout>
-          </ProductErrorBoundary>
-        ) : (
-          // Desktop Layout
-          <ProductErrorBoundary>
-            <SellerLayout>
-              {/* SEO Component */}
-              <ProductSEO 
-                product={product}
-                sellerName={sellerName}
-                images={imageUrls}
-              />
-              
-              <div className="container mx-auto px-4 py-6 max-w-7xl">
-                {/* Breadcrumb Navigation */}
-                <ProductBreadcrumb
-                  productTitle={product.title}
-                  brand={product.brand}
-                  model={product.model}
-                  isSeller={true}
-                />
-                
-                {/* Header */}
-                <ProductDetailHeader 
-                  product={product}
-                  onBack={handleBack}
-                />
-                
-                {/* Status warnings */}
-                <ProductDetailAlerts 
-                  product={product}
-                  isOwner={true}
-                  isAdmin={false}
-                />
-                
-                {/* Seller Action Buttons */}
-                <SellerProductActions 
-                  product={product}
-                  onProductUpdate={handleProductUpdate}
-                />
-                
-                {/* Offers Summary */}
-                <SellerOffersSummary 
-                  productId={product.id}
-                />
-                
-                {/* Main content */}
-                <SellerProductContent 
-                  product={product}
-                  imageUrls={imageUrls}
-                  videoUrls={videoUrls}
-                  selectedImage={selectedImage}
-                  onImageClick={handleImageClick}
-                />
-              </div>
-            </SellerLayout>
-          </ProductErrorBoundary>
-        )
-      }
-    </MobileStabilizer>
+          )}
+        </SellerLayout>
+      </ProductErrorBoundary>
+    );
+  }
+  
+  // Desktop Layout
+  return (
+    <ProductErrorBoundary>
+      <SellerLayout>
+        {/* SEO Component */}
+        <ProductSEO 
+          product={product}
+          sellerName={sellerName}
+          images={imageUrls}
+        />
+        
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          {/* Breadcrumb Navigation */}
+          <ProductBreadcrumb
+            productTitle={product.title}
+            brand={product.brand}
+            model={product.model}
+            isSeller={true}
+          />
+          
+          {/* Header */}
+          <ProductDetailHeader 
+            product={product}
+            onBack={handleBack}
+          />
+          
+          {/* Status warnings */}
+          <ProductDetailAlerts 
+            product={product}
+            isOwner={true}
+            isAdmin={false}
+          />
+          
+          {/* Seller Action Buttons */}
+          <SellerProductActions 
+            product={product}
+            onProductUpdate={handleProductUpdate}
+          />
+          
+          {/* Offers Summary */}
+          <SellerOffersSummary 
+            productId={product.id}
+          />
+          
+          {/* Main content */}
+          <SellerProductContent 
+            product={product}
+            imageUrls={imageUrls}
+            videoUrls={videoUrls}
+            selectedImage={selectedImage}
+            onImageClick={handleImageClick}
+          />
+        </div>
+      </SellerLayout>
+    </ProductErrorBoundary>
   );
 };
 

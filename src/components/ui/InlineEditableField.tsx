@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Check, X, Edit3 } from 'lucide-react';
@@ -54,7 +54,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
     }
   }, [isEditing]);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = async () => {
     if (!editValue.trim() && required) {
       setError('This field is required');
       return;
@@ -79,13 +79,13 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [editValue, required, type, onSave, value]);
+  };
 
-  const handleCancel = useCallback(() => {
+  const handleCancel = () => {
     setEditValue(value.toString());
     setIsEditing(false);
     setError(null);
-  }, [value]);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isLoading) {
