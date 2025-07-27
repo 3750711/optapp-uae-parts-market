@@ -215,8 +215,6 @@ const getStatusBadge = () => {
       {/* Price Offers */}
       <CompactOffersSummary productId={product.id} />
 
-      {/* Bottom padding for sticky actions */}
-      <div className="h-20"></div>
 
       {/* Sticky Actions */}
       <MobileSellerActions 
