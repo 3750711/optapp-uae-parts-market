@@ -70,6 +70,21 @@ const ProductStatusChangeDialog = ({
 
       if (error) throw error;
 
+      // Fallback: Direct call to Edge Function for Telegram notification
+      try {
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: {
+            action: 'status_change',
+            productId: productId,
+            type: 'product'
+          }
+        });
+        console.log('Fallback Telegram notification sent successfully');
+      } catch (notificationError) {
+        console.error('Fallback notification failed:', notificationError);
+        // Don't throw here - product update was successful
+      }
+
       toast.success("Product status successfully changed to 'Sold'");
       
       onStatusChange();

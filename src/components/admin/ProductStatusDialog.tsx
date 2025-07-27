@@ -74,6 +74,21 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         throw error;
       }
 
+      // Fallback: Direct call to Edge Function for Telegram notification
+      try {
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: {
+            action: 'status_change',
+            productId: product.id,
+            type: 'product'
+          }
+        });
+        console.log('Fallback admin Telegram notification sent successfully');
+      } catch (notificationError) {
+        console.error('Fallback admin notification failed:', notificationError);
+        // Don't throw here - product update was successful
+      }
+
       toast({
         title: "Успех",
         description: "Статус товара успешно обновлен",
