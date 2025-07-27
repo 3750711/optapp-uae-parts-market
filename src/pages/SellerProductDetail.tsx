@@ -170,24 +170,33 @@ const SellerProductDetail = () => {
   
   const sellerName = product.seller_name || (profile?.full_name || "Неизвестный продавец");
 
-  // Mobile Layout - ensure all data is ready before rendering
-  if (isMobile && product && imageUrls && videoUrls) {
+  // Mobile Layout - always render to avoid conditional hook usage
+  if (isMobile) {
     return (
       <ProductErrorBoundary>
         <SellerLayout className="p-0">
-          <ProductSEO 
-            product={product}
-            sellerName={sellerName}
-            images={imageUrls}
-          />
-          <MobileSellerProductLayout
-            product={product}
-            imageUrls={imageUrls}
-            videoUrls={videoUrls}
-            selectedImage={selectedImage || imageUrls[0] || null}
-            onImageClick={handleImageClick}
-            onProductUpdate={handleProductUpdate}
-          />
+          {product && (
+            <ProductSEO 
+              product={product}
+              sellerName={sellerName}
+              images={imageUrls}
+            />
+          )}
+          
+          {product ? (
+            <MobileSellerProductLayout
+              product={product}
+              imageUrls={imageUrls || []}
+              videoUrls={videoUrls || []}
+              selectedImage={selectedImage || (imageUrls && imageUrls[0]) || null}
+              onImageClick={handleImageClick}
+              onProductUpdate={handleProductUpdate}
+            />
+          ) : (
+            <div className="flex items-center justify-center min-h-screen">
+              <div className="text-muted-foreground">Loading...</div>
+            </div>
+          )}
         </SellerLayout>
       </ProductErrorBoundary>
     );
