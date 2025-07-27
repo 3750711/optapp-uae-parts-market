@@ -6,6 +6,9 @@ import ProductGallery from "@/components/product/ProductGallery";
 import { Badge } from "@/components/ui/badge";
 import CompactOffersSummary from "./CompactOffersSummary";
 import MobileSellerActions from "./MobileSellerActions";
+import { InlineEditableField } from "@/components/ui/InlineEditableField";
+import { InlineEditableTextarea } from "@/components/ui/InlineEditableTextarea";
+import { useInlineEdit } from "@/hooks/useInlineEdit";
 
 interface MobileSellerProductLayoutProps {
   product: Product;
@@ -24,6 +27,20 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = ({
   onImageClick,
   onProductUpdate,
 }) => {
+  const {
+    updateTitle,
+    updatePrice,
+    updateDescription,
+    updateBrand,
+    updateModel,
+    updateCondition,
+    updatePlaceNumber,
+    updateDeliveryPrice,
+    updateLocation,
+  } = useInlineEdit({ 
+    productId: product.id, 
+    onUpdate: onProductUpdate 
+  });
 const getStatusBadge = () => {
     switch (product.status) {
       case 'pending':
@@ -51,30 +68,78 @@ const getStatusBadge = () => {
     <div className="min-h-screen bg-background">
       {/* Sticky Header */}
       <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold line-clamp-2 text-foreground">{product.title}</h1>
-              {getSpecifications() && (
-                <p className="text-sm text-muted-foreground mt-1">{getSpecifications()}</p>
-              )}
-            </div>
-            {getStatusBadge()}
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-2xl font-bold text-primary">{product.price} $</span>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Eye className="h-4 w-4" />
-                {product.view_count || 0}
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1 min-w-0">
+                <InlineEditableField
+                  value={product.title}
+                  onSave={updateTitle}
+                  placeholder="Product title"
+                  displayClassName="text-lg font-bold line-clamp-2 text-foreground"
+                  className="mb-1"
+                  required
+                />
+                {getSpecifications() && (
+                  <div className="text-sm text-muted-foreground mt-1 flex gap-2">
+                    {product.brand && (
+                      <InlineEditableField
+                        value={product.brand}
+                        onSave={updateBrand}
+                        placeholder="Brand"
+                        displayClassName="text-sm text-muted-foreground"
+                      />
+                    )}
+                    {product.model && (
+                      <>
+                        <span>•</span>
+                        <InlineEditableField
+                          value={product.model}
+                          onSave={updateModel}
+                          placeholder="Model"
+                          displayClassName="text-sm text-muted-foreground"
+                        />
+                      </>
+                    )}
+                    {product.lot_number && (
+                      <>
+                        <span>•</span>
+                        <span className="text-sm text-muted-foreground">Lot #{product.lot_number}</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {product.product_location || "Dubai"}
+              {getStatusBadge()}
+            </div>
+            <div className="flex items-center justify-between">
+              <InlineEditableField
+                value={product.price}
+                onSave={updatePrice}
+                type="price"
+                suffix=" $"
+                displayClassName="text-2xl font-bold text-primary"
+                placeholder="0.00"
+                required
+                min={0}
+                step="0.01"
+              />
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Eye className="h-4 w-4" />
+                  {product.view_count || 0}
+                </div>
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  <InlineEditableField
+                    value={product.product_location || "Dubai"}
+                    onSave={updateLocation}
+                    placeholder="Location"
+                    displayClassName="text-sm text-muted-foreground"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
       </div>
 
       {/* Image Gallery */}
@@ -98,10 +163,33 @@ const getStatusBadge = () => {
               <div className="text-xs text-muted-foreground">Views</div>
             </div>
             <div className="bg-muted p-3 rounded-lg">
-              <div className="text-lg font-bold text-accent">{product.place_number || 1}</div>
+              <InlineEditableField
+                value={product.place_number || 1}
+                onSave={updatePlaceNumber}
+                type="number"
+                displayClassName="text-lg font-bold text-accent"
+                placeholder="1"
+                min={1}
+                required
+              />
               <div className="text-xs text-muted-foreground">Places</div>
             </div>
           </div>
+          {product.delivery_price !== null && product.delivery_price !== undefined && (
+            <div className="mt-4 bg-muted p-3 rounded-lg">
+              <div className="text-xs text-muted-foreground mb-1">Delivery Price</div>
+              <InlineEditableField
+                value={product.delivery_price}
+                onSave={updateDeliveryPrice}
+                type="price"
+                suffix=" $"
+                displayClassName="text-lg font-bold text-secondary"
+                placeholder="0.00"
+                min={0}
+                step="0.01"
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -116,9 +204,14 @@ const getStatusBadge = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <p className="text-sm text-foreground/80 leading-relaxed">
-              {product.description || "No description available"}
-            </p>
+            <InlineEditableTextarea
+              value={product.description || ""}
+              onSave={updateDescription}
+              placeholder="Add product description..."
+              displayClassName="text-sm text-foreground/80 leading-relaxed"
+              emptyText="Click to add description"
+              maxLength={1000}
+            />
           </div>
           
           <div className="bg-muted p-3 rounded-lg">
