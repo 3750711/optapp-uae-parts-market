@@ -28,15 +28,19 @@ export const useUnifiedSearch = (searchInput: string): UnifiedSearchResult => {
       };
     }
     
-    // Check if it's an OPT ID (format: OPT-xxx or optxxx)
-    const optIdPattern = /^(opt-?)?(\d+)$/i;
+    // Check if it's an OPT ID (format: OPT-xxx or optxxx or FA/other letters)
+    const optIdPattern = /^(opt-?)?[a-zA-Z]+(-?\d+)?$/i;
     const optMatch = trimmed.match(optIdPattern);
-    if (optMatch) {
+    if (optMatch && !(/^\d+$/.test(trimmed))) {
+      // Only treat as OPT-ID if it contains letters and is not purely numeric
+      const cleanOptId = trimmed.toUpperCase().startsWith('OPT-') 
+        ? trimmed.toUpperCase() 
+        : `OPT-${trimmed.toUpperCase()}`;
       return {
         textSearch: null,
         lotNumber: null,
         placeNumber: null,
-        optIdSearch: `OPT-${optMatch[2]}`,
+        optIdSearch: cleanOptId,
       };
     }
     
