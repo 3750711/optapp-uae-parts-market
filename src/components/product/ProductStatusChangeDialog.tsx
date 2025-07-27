@@ -56,7 +56,7 @@ const ProductStatusChangeDialog = ({
       const oldStatus = currentProduct?.status || "unknown";
       console.log(`📊 [ProductStatusChangeDialog] Current status: ${oldStatus} -> sold`);
       
-      // Update the product status - the database trigger should handle the notification
+      // Update the product status - the database trigger will handle the notification automatically
       console.log(`💾 [ProductStatusChangeDialog] Updating product status in database...`);
       const { data, error } = await supabase
         .from("products")
@@ -69,27 +69,7 @@ const ProductStatusChangeDialog = ({
         throw error;
       }
       
-      console.log(`✅ [ProductStatusChangeDialog] Database update successful:`, data);
-
-      // Fallback: Direct call to Edge Function for Telegram notification
-      console.log(`📱 [ProductStatusChangeDialog] Sending fallback Telegram notification...`);
-      try {
-        const { data: functionData, error: functionError } = await supabase.functions.invoke('send-telegram-notification', {
-          body: {
-            productId: productId,
-            notificationType: 'sold'
-          }
-        });
-        
-        if (functionError) {
-          console.error("❌ [ProductStatusChangeDialog] Fallback notification error:", functionError);
-        } else {
-          console.log(`✅ [ProductStatusChangeDialog] Fallback notification sent successfully:`, functionData);
-        }
-      } catch (notificationError) {
-        console.error('❌ [ProductStatusChangeDialog] Fallback notification exception:', notificationError);
-        // Don't throw here - product update was successful
-      }
+      console.log(`✅ [ProductStatusChangeDialog] Database update successful - notification will be sent automatically by trigger:`, data);
 
       // Manually log the action to ensure it's recorded
       try {
