@@ -31,8 +31,6 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = ({
     updateTitle,
     updatePrice,
     updateDescription,
-    updateBrand,
-    updateModel,
     updateCondition,
     updatePlaceNumber,
     updateDeliveryPrice,
@@ -82,22 +80,12 @@ const getStatusBadge = () => {
                 {getSpecifications() && (
                   <div className="text-sm text-muted-foreground mt-1 flex gap-2">
                     {product.brand && (
-                      <InlineEditableField
-                        value={product.brand}
-                        onSave={updateBrand}
-                        placeholder="Brand"
-                        displayClassName="text-sm text-muted-foreground"
-                      />
+                      <span className="text-sm text-muted-foreground">{product.brand}</span>
                     )}
                     {product.model && (
                       <>
                         <span>•</span>
-                        <InlineEditableField
-                          value={product.model}
-                          onSave={updateModel}
-                          placeholder="Model"
-                          displayClassName="text-sm text-muted-foreground"
-                        />
+                        <span className="text-sm text-muted-foreground">{product.model}</span>
                       </>
                     )}
                     {product.lot_number && (
