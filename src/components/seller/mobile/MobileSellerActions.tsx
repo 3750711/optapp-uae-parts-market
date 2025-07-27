@@ -113,46 +113,45 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       {/* Bottom Sticky Actions */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
         <div className="flex gap-2">
-          {/* Status Action Button */}
-          {product.status === 'active' && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="default" 
-                  className="flex-1 flex items-center gap-2"
-                >
-                  <Archive className="h-4 w-4" />
-                  {product.status === 'active' ? 'Sold' : 'Action'}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Mark as sold?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    The listing will be marked as sold and removed from active listings.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => handleStatusChange('sold')}>
-                    Mark as Sold
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
+          {/* Status Action Button - Always render for hook stability */}
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="default" 
+                className="flex-1 flex items-center gap-2"
+                disabled={product.status !== 'active'}
+                style={{ display: product.status === 'active' ? 'flex' : 'none' }}
+              >
+                <Archive className="h-4 w-4" />
+                Sold
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Mark as sold?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  The listing will be marked as sold and removed from active listings.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleStatusChange('sold')}>
+                  Mark as Sold
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
-          {(product.status === 'archived' || product.status === 'sold') && (
-            <Button 
-              variant="default" 
-              className="flex-1 flex items-center gap-2"
-              onClick={() => handleStatusChange('active')}
-              disabled={isUpdating}
-            >
-              <RotateCcw className="h-4 w-4" />
-              Restore
-            </Button>
-          )}
+          <Button 
+            variant="default" 
+            className="flex-1 flex items-center gap-2"
+            onClick={() => handleStatusChange('active')}
+            disabled={isUpdating || product.status === 'active'}
+            style={{ display: (product.status === 'archived' || product.status === 'sold') ? 'flex' : 'none' }}
+          >
+            <RotateCcw className="h-4 w-4" />
+            Restore
+          </Button>
         </div>
       </div>
     </>
