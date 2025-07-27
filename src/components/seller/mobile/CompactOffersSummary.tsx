@@ -72,6 +72,33 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
     return offerPrice > max ? offerPrice : max;
   }, 0);
 
+  // Sort offers by price (highest to lowest), then by creation date
+  const sortedOffers = [...offers].sort((a, b) => {
+    const priceA = Number(a.offered_price);
+    const priceB = Number(b.offered_price);
+    if (priceB !== priceA) {
+      return priceB - priceA;
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      pending: { className: "bg-yellow-100 text-yellow-800", label: "Pending" },
+      accepted: { className: "bg-green-100 text-green-800", label: "Accepted" },
+      rejected: { className: "bg-red-100 text-red-800", label: "Rejected" },
+      expired: { className: "bg-gray-100 text-gray-800", label: "Expired" },
+      cancelled: { className: "bg-gray-100 text-gray-800", label: "Cancelled" },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    return (
+      <Badge variant="secondary" className={`${config.className} text-xs`}>
+        {config.label}
+      </Badge>
+    );
+  };
+
   const handleViewOffers = () => {
     navigate('/seller/price-offers', { 
       state: { productId } 
@@ -126,24 +153,42 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
           </div>
         )}
 
-        {/* Latest Offer */}
-        {pendingOffers.length > 0 && (
-          <div className="bg-accent/10 p-3 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-semibold text-accent text-sm">
-                  {formatPrice(pendingOffers[0].offered_price)}
+        {/* All Offers - sorted by price */}
+        <div className="space-y-2">
+          <div className="text-sm font-medium text-foreground mb-2">All Offers</div>
+          {sortedOffers.slice(0, 7).map((offer, index) => (
+            <div key={offer.id} className="bg-muted/50 p-3 rounded-lg border">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-semibold text-foreground text-sm">
+                  {formatPrice(offer.offered_price)}
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  from {pendingOffers[0].profiles?.full_name || 'Buyer'}
+                {getStatusBadge(offer.status)}
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>from {offer.profiles?.full_name || 'Buyer'}</span>
+                <span>{new Date(offer.created_at).toLocaleDateString()}</span>
+              </div>
+              {offer.message && (
+                <div className="text-xs text-muted-foreground mt-1 truncate">
+                  "{offer.message}"
                 </div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {new Date(pendingOffers[0].created_at).toLocaleDateString()}
-              </div>
+              )}
             </div>
-          </div>
-        )}
+          ))}
+          
+          {sortedOffers.length > 7 && (
+            <div className="text-center pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleViewOffers}
+                className="text-xs"
+              >
+                Show {sortedOffers.length - 7} more offers
+              </Button>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
