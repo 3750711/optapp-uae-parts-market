@@ -84,9 +84,10 @@ const ProductStatusChangeDialog = ({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="sm" className="h-10 px-3 text-sm min-w-[80px] touch-manipulation">
-          <Tag className="mr-1.5 h-4 w-4" />
-          Mark Sold
+        <Button variant="destructive" size="sm" className="h-10 px-2 text-xs min-w-0 flex-shrink-0 whitespace-nowrap touch-manipulation">
+          <Tag className="mr-1 h-3 w-3" />
+          <span className="hidden sm:inline">Mark Sold</span>
+          <span className="sm:hidden">Sold</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
