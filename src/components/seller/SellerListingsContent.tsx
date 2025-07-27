@@ -11,7 +11,7 @@ import { ProductProps } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { useIntersection } from "@/hooks/useIntersection";
-import { AlertTriangle, RefreshCw, Search, X, ArrowLeft } from "lucide-react";
+import { AlertTriangle, RefreshCw, Search, ArrowLeft } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -136,10 +136,6 @@ const SellerListingsContent = () => {
     setActiveSearch(searchInput);
   };
 
-  const handleClearSearch = () => {
-    setSearchInput("");
-    setActiveSearch("");
-  };
 
   const handleStatusChange = async () => {
     devLog("Product status changed, applying optimistic update");
@@ -384,18 +380,7 @@ const SellerListingsContent = () => {
                 className="w-full pl-10"
               />
             </div>
-            <Button type="submit">Найти</Button>
-            {activeSearch && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleClearSearch}
-                className="px-4"
-              >
-                <X className="h-4 w-4 mr-2" />
-                Сбросить
-              </Button>
-            )}
+            <Button type="submit">Search</Button>
           </form>
           {activeSearch && (
             <div className="mt-3 text-sm text-muted-foreground">
