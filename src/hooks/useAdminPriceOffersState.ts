@@ -102,8 +102,10 @@ export const useAdminPriceOffersState = () => {
           bValue = b.offered_price;
           break;
         case 'status':
-          aValue = a.status;
-          bValue = b.status;
+          // Order statuses for better sorting
+          const statusOrder = { 'pending': 0, 'accepted': 1, 'rejected': 2, 'cancelled': 3, 'expired': 4 };
+          aValue = statusOrder[a.status as keyof typeof statusOrder] ?? 999;
+          bValue = statusOrder[b.status as keyof typeof statusOrder] ?? 999;
           break;
         case 'created_at':
         default:

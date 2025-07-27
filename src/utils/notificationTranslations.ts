@@ -62,6 +62,7 @@ export const russianTranslations: NotificationTranslations = {
     'PRICE_OFFER_SUBMITTED': 'Предложение цены отправлено',
     'PRICE_OFFER_RESPONSE': 'Ответ на предложение цены',
     'PRICE_OFFER_ACCEPTED': 'Предложение цены принято',
+    'PRICE_OFFER_CANCELLED': 'Предложение цены отменено',
     'PROFILE_UPDATE': 'Обновление профиля',
     'SYSTEM_MESSAGE': 'Системное сообщение'
   },
@@ -78,6 +79,7 @@ export const russianTranslations: NotificationTranslations = {
     'PRICE_OFFER_SUBMITTED': (data) => `Ваше предложение цены ${data.offered_price} руб. отправлено`,
     'PRICE_OFFER_RESPONSE': (data) => `Получен ответ на ваше предложение цены`,
     'PRICE_OFFER_ACCEPTED': (data) => `Ваше предложение цены ${data.offered_price} руб. принято`,
+    'PRICE_OFFER_CANCELLED': (data) => `Ваше предложение цены отменено. ${data.reason === 'product_sold' ? 'Товар был продан' : 'Причина не указана'}`,
     'PROFILE_UPDATE': (data) => 'Ваш профиль был обновлен',
     'SYSTEM_MESSAGE': (data) => data.message || 'Системное уведомление'
   }
@@ -116,6 +118,7 @@ export const englishTranslations: NotificationTranslations = {
     'PRICE_OFFER_SUBMITTED': 'Price Offer Submitted',
     'PRICE_OFFER_RESPONSE': 'Price Offer Response',
     'PRICE_OFFER_ACCEPTED': 'Price Offer Accepted',
+    'PRICE_OFFER_CANCELLED': 'Price Offer Cancelled',
     'PROFILE_UPDATE': 'Profile Update',
     'SYSTEM_MESSAGE': 'System Message'
   },
@@ -132,6 +135,7 @@ export const englishTranslations: NotificationTranslations = {
     'PRICE_OFFER_SUBMITTED': (data) => `Your price offer $${data.offered_price} has been submitted`,
     'PRICE_OFFER_RESPONSE': (data) => `Response received for your price offer`,
     'PRICE_OFFER_ACCEPTED': (data) => `Your price offer $${data.offered_price} has been accepted`,
+    'PRICE_OFFER_CANCELLED': (data) => `Your price offer has been cancelled. ${data.reason === 'product_sold' ? 'Product was sold' : 'Reason not specified'}`,
     'PROFILE_UPDATE': (data) => 'Your profile has been updated',
     'SYSTEM_MESSAGE': (data) => data.message || 'System notification'
   }

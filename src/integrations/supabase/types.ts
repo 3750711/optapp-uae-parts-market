@@ -1293,6 +1293,10 @@ export type Database = {
         Args: { p_product_id: string; p_url: string }
         Returns: undefined
       }
+      cancel_price_offers_for_sold_product: {
+        Args: { product_id_param: string }
+        Returns: number
+      }
       check_force_logout_status: {
         Args: { p_user_id: string }
         Returns: boolean

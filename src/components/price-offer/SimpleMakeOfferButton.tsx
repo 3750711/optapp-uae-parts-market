@@ -29,7 +29,7 @@ export const SimpleMakeOfferButton: React.FC<SimpleMakeOfferButtonProps> = ({
   if (!user || !profile) return null;
   if (profile.id === product.seller_id) return null;
   if (profile.user_type !== "buyer" && !hasAdminAccess) return null;
-  if (product.status !== 'active' && product.status !== 'sold' && !userOffer) return null;
+  if (product.status !== 'active') return null;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
