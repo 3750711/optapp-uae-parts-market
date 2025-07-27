@@ -133,7 +133,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
           </div>
           
           <div className="text-center bg-muted p-2 rounded-lg">
-            <div className="text-lg font-bold text-accent">{formatPrice(maxOffer)}</div>
+            <div className="text-lg font-bold text-primary">{formatPrice(maxOffer)}</div>
             <div className="text-xs text-muted-foreground">Max Price</div>
           </div>
           
