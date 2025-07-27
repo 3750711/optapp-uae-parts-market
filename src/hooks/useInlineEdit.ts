@@ -40,6 +40,34 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
     }
   };
 
+  const updateDeliveryPrice = async (value: string | number) => {
+    setIsUpdating(true);
+    
+    try {
+      // Check current product status
+      const { data: currentProduct, error: fetchError } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', productId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (currentProduct.status === 'active') {
+        toast.error('Cannot change delivery price for published products');
+        return;
+      }
+
+      await updateField('delivery_price', value);
+    } catch (error) {
+      console.error('Error updating delivery price:', error);
+      toast.error('Failed to update delivery price');
+      throw error;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const createFieldUpdater = (field: string) => {
     return async (value: string | number) => {
       await updateField(field, value);
@@ -57,7 +85,7 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
     updateModel: createFieldUpdater('model'),
     updateCondition: createFieldUpdater('condition'),
     updatePlaceNumber: createFieldUpdater('place_number'),
-    updateDeliveryPrice: createFieldUpdater('delivery_price'),
+    updateDeliveryPrice,
     updateLocation: createFieldUpdater('product_location'),
   };
 };

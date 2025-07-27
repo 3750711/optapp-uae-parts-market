@@ -19,6 +19,8 @@ interface InlineEditableFieldProps {
   min?: number;
   max?: number;
   step?: string;
+  disabled?: boolean;
+  disabledMessage?: string;
 }
 
 export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
@@ -36,6 +38,8 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
   min,
   max,
   step,
+  disabled = false,
+  disabledMessage,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value.toString());
@@ -150,15 +154,20 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
   return (
     <div 
       className={cn(
-        "group cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1 transition-colors relative",
+        disabled 
+          ? "rounded px-2 py-1 -mx-2 -my-1 cursor-not-allowed opacity-60" 
+          : "group cursor-pointer hover:bg-muted/50 rounded px-2 py-1 -mx-2 -my-1 transition-colors relative",
         className
       )}
-      onClick={() => setIsEditing(true)}
+      onClick={() => !disabled && setIsEditing(true)}
+      title={disabled ? disabledMessage : undefined}
     >
       <span className={cn("select-none", displayClassName)}>
         {displayValue()}
       </span>
-      <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity absolute -right-5 top-1/2 -translate-y-1/2" />
+      {!disabled && (
+        <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity absolute -right-5 top-1/2 -translate-y-1/2" />
+      )}
     </div>
   );
 };

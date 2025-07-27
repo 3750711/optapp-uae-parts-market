@@ -187,6 +187,8 @@ const getStatusBadge = () => {
                 placeholder="0.00"
                 min={0}
                 step="0.01"
+                disabled={product.status === 'active'}
+                disabledMessage="Cannot change delivery price for published products"
               />
             </div>
           )}
