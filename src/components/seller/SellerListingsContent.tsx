@@ -18,8 +18,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerListingsSkeleton";
 import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
-import { useUnifiedSearch } from "@/hooks/useUnifiedSearch";
-
 const SellerListingsContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -28,9 +26,9 @@ const SellerListingsContent = () => {
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
   const productsPerPage = 12;
   
-  // Unified search state
+  // Search state
   const [searchInput, setSearchInput] = useState("");
-  const { searchConditions, hasActiveSearch, debouncedSearchTerm } = useUnifiedSearch(searchInput);
+  const [activeSearch, setActiveSearch] = useState("");
   
   const {
     data,
@@ -42,7 +40,7 @@ const SellerListingsContent = () => {
     error,
     refetch
   } = useInfiniteQuery({
-    queryKey: ['seller-products-infinite', user?.id, debouncedSearchTerm],
+    queryKey: ['seller-products-infinite', user?.id, activeSearch],
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) {
         prodError('User not authenticated in seller listings');
@@ -87,17 +85,18 @@ const SellerListingsContent = () => {
           `)
           .eq('seller_id', user.id);
 
-        // Add unified search filters
-        if (searchConditions.textSearch) {
-          query = query.or(`title.ilike.%${searchConditions.textSearch}%,brand.ilike.%${searchConditions.textSearch}%,model.ilike.%${searchConditions.textSearch}%`);
-        }
-        
-        if (searchConditions.lotNumber !== null) {
-          query = query.or(`lot_number.eq.${searchConditions.lotNumber},place_number.eq.${searchConditions.placeNumber}`);
-        }
-        
-        if (searchConditions.optIdSearch) {
-          query = query.eq('optid_created', searchConditions.optIdSearch);
+        // Add search filters
+        if (activeSearch.trim()) {
+          const searchTerm = activeSearch.trim();
+          
+          // Check if it's a number (lot/place search)
+          if (/^\d+$/.test(searchTerm)) {
+            const numberValue = parseInt(searchTerm);
+            query = query.or(`lot_number.eq.${numberValue},place_number.eq.${numberValue}`);
+          } else {
+            // Text search in title, brand, model
+            query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
+          }
         }
 
         const { data, error } = await query
@@ -132,8 +131,14 @@ const SellerListingsContent = () => {
   });
 
   // Search handlers
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setActiveSearch(searchInput);
+  };
+
   const handleClearSearch = () => {
     setSearchInput("");
+    setActiveSearch("");
   };
 
   const handleStatusChange = async () => {
@@ -144,12 +149,12 @@ const SellerListingsContent = () => {
       description: "Changes applied",
     });
     queryClient.invalidateQueries({
-      queryKey: ['seller-products-infinite', user?.id, debouncedSearchTerm],
+      queryKey: ['seller-products-infinite', user?.id, activeSearch],
       refetchType: 'none'
     });
     setTimeout(() => {
       queryClient.refetchQueries({
-        queryKey: ['seller-products-infinite', user?.id, debouncedSearchTerm],
+        queryKey: ['seller-products-infinite', user?.id, activeSearch],
         type: 'active'
       });
     }, 1000);
@@ -366,40 +371,38 @@ const SellerListingsContent = () => {
         </Badge>
       </div>
       
-      {/* Unified Search */}
+      {/* Search */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-3">
+          <form onSubmit={handleSearchSubmit} className="flex gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search by title, brand, model, lot number, place number, or OPT-ID..."
+                placeholder="Search by title, brand, model or lot/place number..."
                 className="w-full pl-10"
               />
             </div>
-            {hasActiveSearch && (
+            <Button type="submit">Найти</Button>
+            {activeSearch && (
               <Button
                 type="button"
                 variant="outline"
                 onClick={handleClearSearch}
                 className="px-4"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 mr-2" />
+                Сбросить
               </Button>
             )}
-          </div>
-          {hasActiveSearch && (
+          </form>
+          {activeSearch && (
             <div className="mt-3 text-sm text-muted-foreground">
-              {searchConditions.textSearch && (
-                <span>Searching in: title, brand, model "{searchConditions.textSearch}"</span>
-              )}
-              {searchConditions.lotNumber !== null && (
-                <span>Searching by: lot #{searchConditions.lotNumber} or place #{searchConditions.placeNumber}</span>
-              )}
-              {searchConditions.optIdSearch && (
-                <span>Searching by: OPT-ID "{searchConditions.optIdSearch}"</span>
+              {/^\d+$/.test(activeSearch) ? (
+                <span>Поиск по номеру лота/места: {activeSearch}</span>
+              ) : (
+                <span>Поиск по тексту: "{activeSearch}"</span>
               )}
             </div>
           )}
