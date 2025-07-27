@@ -23,7 +23,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield } from "lucide-react";
 import { useMobileLayout } from "@/hooks/useMobileLayout";
 import ProductErrorBoundary from "@/components/error/ProductErrorBoundary";
-import { useInlineEdit } from "@/hooks/useInlineEdit";
 
 const SellerProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,17 +31,6 @@ const SellerProductDetail = () => {
   const { isMobile } = useMobileLayout();
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  // Handle product updates
-  const handleProductUpdate = () => {
-    // Product update handled by React Query cache invalidation
-  };
-
-  // Initialize inline edit hooks early to ensure consistent hook calls
-  const inlineEditHooks = useInlineEdit({ 
-    productId: id || '', 
-    onUpdate: handleProductUpdate 
-  });
   
   // Security check: ensure user is a seller
   useEffect(() => {
@@ -107,8 +95,13 @@ const SellerProductDetail = () => {
     navigate('/seller/listings');
   };
   
-  // Loading state - show loading until we have both product data and user authentication
-  if (isLoading || !product || !id || !user || profile?.user_type !== 'seller') {
+  // Handle product updates
+  const handleProductUpdate = () => {
+    // Product update handled by React Query cache invalidation
+  };
+  
+  // Loading state
+  if (isLoading && !product) {
     return (
       <SellerLayout>
         <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -194,7 +187,6 @@ const SellerProductDetail = () => {
             selectedImage={selectedImage}
             onImageClick={handleImageClick}
             onProductUpdate={handleProductUpdate}
-            inlineEditHooks={inlineEditHooks}
           />
         </SellerLayout>
       </ProductErrorBoundary>
