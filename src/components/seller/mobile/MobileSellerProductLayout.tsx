@@ -19,7 +19,7 @@ interface MobileSellerProductLayoutProps {
   onProductUpdate: () => void;
 }
 
-const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = ({
+const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = React.memo(({
   product,
   imageUrls,
   videoUrls,
@@ -27,6 +27,11 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = ({
   onImageClick,
   onProductUpdate,
 }) => {
+  // Ensure we have a valid product before using hooks
+  if (!product?.id) {
+    return null;
+  }
+
   const {
     updateTitle,
     updatePrice,
@@ -132,13 +137,19 @@ const getStatusBadge = () => {
 
       {/* Image Gallery */}
       <div className="bg-card mb-2">
-        <ProductGallery 
-          images={imageUrls}
-          videos={videoUrls}
-          title={product.title}
-          selectedImage={selectedImage} 
-          onImageClick={onImageClick}
-        />
+        {imageUrls.length > 0 || videoUrls.length > 0 ? (
+          <ProductGallery 
+            images={imageUrls}
+            videos={videoUrls}
+            title={product.title}
+            selectedImage={selectedImage} 
+            onImageClick={onImageClick}
+          />
+        ) : (
+          <div className="aspect-square bg-muted flex items-center justify-center">
+            <span className="text-muted-foreground">No images available</span>
+          </div>
+        )}
       </div>
 
 
@@ -223,6 +234,6 @@ const getStatusBadge = () => {
       />
     </div>
   );
-};
+});
 
 export default MobileSellerProductLayout;

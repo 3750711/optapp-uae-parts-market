@@ -170,8 +170,8 @@ const SellerProductDetail = () => {
   
   const sellerName = product.seller_name || (profile?.full_name || "Неизвестный продавец");
 
-  // Mobile Layout
-  if (isMobile) {
+  // Mobile Layout - ensure all data is ready before rendering
+  if (isMobile && product && imageUrls && videoUrls) {
     return (
       <ProductErrorBoundary>
         <SellerLayout className="p-0">
@@ -184,7 +184,7 @@ const SellerProductDetail = () => {
             product={product}
             imageUrls={imageUrls}
             videoUrls={videoUrls}
-            selectedImage={selectedImage}
+            selectedImage={selectedImage || imageUrls[0] || null}
             onImageClick={handleImageClick}
             onProductUpdate={handleProductUpdate}
           />
