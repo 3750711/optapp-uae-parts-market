@@ -16,6 +16,14 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
     setIsUpdating(true);
     
     try {
+      // Optimistic update
+      queryClient.setQueryData(['seller-product', productId], (oldData: any) => {
+        if (oldData) {
+          return { ...oldData, [field]: value };
+        }
+        return oldData;
+      });
+
       const { error } = await supabase
         .from('products')
         .update({ [field]: value })
@@ -23,8 +31,11 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
 
       if (error) throw error;
 
-      // Invalidate queries to refetch updated data
+      // Invalidate all relevant caches
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      queryClient.invalidateQueries({ queryKey: ['seller-product', productId] });
+      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       
       toast.success('Product updated successfully');
       
@@ -34,6 +45,10 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
     } catch (error) {
       console.error('Error updating product:', error);
       toast.error('Failed to update product');
+      
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['seller-product', productId] });
+      
       throw error;
     } finally {
       setIsUpdating(false);
@@ -55,6 +70,7 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
 
       if (currentProduct.status === 'active') {
         toast.error('Cannot change delivery price for published products');
+        setIsUpdating(false);
         return;
       }
 
@@ -63,8 +79,6 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
       console.error('Error updating delivery price:', error);
       toast.error('Failed to update delivery price');
       throw error;
-    } finally {
-      setIsUpdating(false);
     }
   };
 

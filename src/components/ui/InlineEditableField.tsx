@@ -70,8 +70,11 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
       
       await onSave(valueToSave);
       setIsEditing(false);
+      // Keep the edited value for immediate display
+      setEditValue(valueToSave.toString());
     } catch (err) {
       setError('Failed to save changes');
+      setEditValue(value.toString()); // Revert on error
       console.error('Save error:', err);
     } finally {
       setIsLoading(false);

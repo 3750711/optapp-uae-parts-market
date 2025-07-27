@@ -49,8 +49,11 @@ export const InlineEditableTextarea: React.FC<InlineEditableTextareaProps> = ({
     try {
       await onSave(editValue.trim());
       setIsEditing(false);
+      // Update the displayed value immediately
+      setEditValue(editValue.trim());
     } catch (err) {
       setError('Failed to save changes');
+      setEditValue(value); // Revert on error
       console.error('Save error:', err);
     } finally {
       setIsLoading(false);
