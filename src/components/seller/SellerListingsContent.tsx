@@ -319,7 +319,7 @@ const SellerListingsContent = () => {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">My Listings</h1>
+          <h1 className="text-3xl font-bold">My SHOP</h1>
         </div>
         
         <Alert variant="destructive">
@@ -360,11 +360,8 @@ const SellerListingsContent = () => {
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
-          <h1 className="text-3xl font-bold">My Listings</h1>
+          <h1 className="text-3xl font-bold">My SHOP</h1>
         </div>
-        <Badge variant="outline" className="text-lg">
-          Total: {mappedProducts.length}
-        </Badge>
       </div>
       
       {/* Search */}
