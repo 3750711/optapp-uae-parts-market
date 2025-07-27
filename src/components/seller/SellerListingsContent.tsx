@@ -18,6 +18,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerListingsSkeleton";
 import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
+import { useUnifiedSearch } from "@/hooks/useUnifiedSearch";
 
 const SellerListingsContent = () => {
   const navigate = useNavigate();
@@ -27,11 +28,9 @@ const SellerListingsContent = () => {
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
   const productsPerPage = 12;
   
-  // Search states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeSearchTerm, setActiveSearchTerm] = useState("");
-  const [lotSearchQuery, setLotSearchQuery] = useState("");
-  const [activeLotSearchTerm, setActiveLotSearchTerm] = useState("");
+  // Unified search state
+  const [searchInput, setSearchInput] = useState("");
+  const { searchConditions, hasActiveSearch, debouncedSearchTerm } = useUnifiedSearch(searchInput);
   
   const {
     data,
@@ -43,7 +42,7 @@ const SellerListingsContent = () => {
     error,
     refetch
   } = useInfiniteQuery({
-    queryKey: ['seller-products-infinite', user?.id, activeSearchTerm, activeLotSearchTerm],
+    queryKey: ['seller-products-infinite', user?.id, debouncedSearchTerm],
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) {
         prodError('User not authenticated in seller listings');
@@ -88,17 +87,17 @@ const SellerListingsContent = () => {
           `)
           .eq('seller_id', user.id);
 
-        // Add search filters
-        if (activeSearchTerm && activeSearchTerm.trim() !== '') {
-          const searchTerm = activeSearchTerm.trim();
-          query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
+        // Add unified search filters
+        if (searchConditions.textSearch) {
+          query = query.or(`title.ilike.%${searchConditions.textSearch}%,brand.ilike.%${searchConditions.textSearch}%,model.ilike.%${searchConditions.textSearch}%`);
         }
         
-        if (activeLotSearchTerm && activeLotSearchTerm.trim() !== '') {
-          const lotNumber = parseInt(activeLotSearchTerm.trim());
-          if (!isNaN(lotNumber)) {
-            query = query.eq('lot_number', lotNumber);
-          }
+        if (searchConditions.lotNumber !== null) {
+          query = query.or(`lot_number.eq.${searchConditions.lotNumber},place_number.eq.${searchConditions.placeNumber}`);
+        }
+        
+        if (searchConditions.optIdSearch) {
+          query = query.eq('optid_created', searchConditions.optIdSearch);
         }
 
         const { data, error } = await query
@@ -133,17 +132,8 @@ const SellerListingsContent = () => {
   });
 
   // Search handlers
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setActiveSearchTerm(searchQuery);
-    setActiveLotSearchTerm(lotSearchQuery);
-  };
-
   const handleClearSearch = () => {
-    setSearchQuery("");
-    setActiveSearchTerm("");
-    setLotSearchQuery("");
-    setActiveLotSearchTerm("");
+    setSearchInput("");
   };
 
   const handleStatusChange = async () => {
@@ -154,12 +144,12 @@ const SellerListingsContent = () => {
       description: "Changes applied",
     });
     queryClient.invalidateQueries({
-      queryKey: ['seller-products-infinite', user?.id, activeSearchTerm, activeLotSearchTerm],
+      queryKey: ['seller-products-infinite', user?.id, debouncedSearchTerm],
       refetchType: 'none'
     });
     setTimeout(() => {
       queryClient.refetchQueries({
-        queryKey: ['seller-products-infinite', user?.id, activeSearchTerm, activeLotSearchTerm],
+        queryKey: ['seller-products-infinite', user?.id, debouncedSearchTerm],
         type: 'active'
       });
     }, 1000);
@@ -376,50 +366,41 @@ const SellerListingsContent = () => {
         </Badge>
       </div>
       
-      {/* Search Form */}
+      {/* Unified Search */}
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleSearchSubmit} className="space-y-3">
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by title, brand or model..."
-                  className="w-full"
-                />
-              </div>
-              <div className="w-32">
-                <Input
-                  type="number"
-                  value={lotSearchQuery}
-                  onChange={(e) => setLotSearchQuery(e.target.value)}
-                  placeholder="Lot #"
-                  className="w-full"
-                />
-              </div>
-              <Button type="submit" className="px-6">
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </Button>
-              {(activeSearchTerm || activeLotSearchTerm) && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleClearSearch}
-                  className="px-4"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Search by title, brand, model, lot number, place number, or OPT-ID..."
+                className="w-full pl-10"
+              />
             </div>
-          </form>
-          {(activeSearchTerm || activeLotSearchTerm) && (
+            {hasActiveSearch && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleClearSearch}
+                className="px-4"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          {hasActiveSearch && (
             <div className="mt-3 text-sm text-muted-foreground">
-              Search results:
-              {activeSearchTerm && <span> text "{activeSearchTerm}"</span>}
-              {activeSearchTerm && activeLotSearchTerm && <span>, </span>}
-              {activeLotSearchTerm && <span> lot #{activeLotSearchTerm}</span>}
+              {searchConditions.textSearch && (
+                <span>Searching in: title, brand, model "{searchConditions.textSearch}"</span>
+              )}
+              {searchConditions.lotNumber !== null && (
+                <span>Searching by: lot #{searchConditions.lotNumber} or place #{searchConditions.placeNumber}</span>
+              )}
+              {searchConditions.optIdSearch && (
+                <span>Searching by: OPT-ID "{searchConditions.optIdSearch}"</span>
+              )}
             </div>
           )}
         </CardContent>
