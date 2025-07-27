@@ -7,6 +7,7 @@ import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { cn } from "@/lib/utils";
 import { UploadProgressCard } from "@/components/ui/image-upload/UploadProgressCard";
 import { shouldCompressFile, formatFileSize } from "@/utils/smartImageCompression";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -41,6 +42,14 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   disabled = false,
   disableToast = false,
 }) => {
+  const { profile } = useAuth();
+  const isSeller = profile?.user_type === 'seller';
+  
+  // Translation helper
+  const getTranslatedText = (russianText: string, englishText: string) => {
+    return isSeller ? englishText : russianText;
+  };
+  
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { 
@@ -178,7 +187,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           ) : (
             buttonIcon
           )}
-          {isUploading ? "Умная загрузка..." : buttonText}
+          {isUploading ? getTranslatedText("Умная загрузка...", "Smart upload...") : (buttonText === "Загрузить фотографии" ? getTranslatedText("Загрузить фотографии", "Upload photos") : buttonText)}
         </Button>
         
         <input
@@ -209,14 +218,14 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             disabled={disabled}
           >
             <X className="mr-2 h-4 w-4" />
-            Отменить загрузку
+            {getTranslatedText("Отменить загрузку", "Cancel upload")}
           </Button>
         )}
 
         {/* Smart compression info */}
         {isUploading && (
           <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
-            🧠 Умное качество: маленькие файлы без потерь, большие - оптимизация
+            {getTranslatedText("🧠 Умное качество: маленькие файлы без потерь, большие - оптимизация", "🧠 Smart quality: small files lossless, large files optimized")}
           </div>
         )}
       </div>
@@ -287,7 +296,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         ) : (
           buttonIcon
         )}
-        {isUploading ? "Умная загрузка..." : buttonText}
+        {isUploading ? getTranslatedText("Умная загрузка...", "Smart upload...") : (buttonText === "Загрузить фотографии" ? getTranslatedText("Загрузить фотографии", "Upload photos") : buttonText)}
       </Button>
       
       <input
@@ -318,7 +327,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           disabled={disabled}
         >
           <X className="mr-2 h-4 w-4" />
-          Отменить загрузку
+          {getTranslatedText("Отменить загрузку", "Cancel upload")}
         </Button>
       )}
 
@@ -326,11 +335,13 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       {isUploading && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-sm text-blue-800">
-            🧠 Умная обработка изображений
+            {getTranslatedText("🧠 Умная обработка изображений", "🧠 Smart Image Processing")}
           </div>
           <div className="text-xs text-blue-600 mt-1">
-            • Файлы &lt;400KB - оригинальное качество<br/>
-            • Файлы &gt;400KB - умная оптимизация
+            {getTranslatedText(
+              "• Файлы <400KB - оригинальное качество<br/>• Файлы >400KB - умная оптимизация",
+              "• Files <400KB - original quality<br/>• Files >400KB - smart optimization"
+            )}
           </div>
         </div>
       )}
