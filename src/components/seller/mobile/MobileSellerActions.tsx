@@ -113,26 +113,6 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       {/* Bottom Sticky Actions */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
         <div className="flex gap-2">
-          {/* Edit Button */}
-          <Button 
-            variant="outline" 
-            className="flex-1 flex items-center gap-2"
-            onClick={handleEdit}
-          >
-              <Edit className="h-4 w-4" />
-              Edit
-          </Button>
-
-          {/* View Offers Button */}
-          <Button 
-            variant="outline" 
-            className="flex-1 flex items-center gap-2"
-            onClick={handleViewOffers}
-          >
-            <Eye className="h-4 w-4" />
-            Offers
-          </Button>
-
           {/* Status Action Button */}
           {product.status === 'active' && (
             <AlertDialog>
