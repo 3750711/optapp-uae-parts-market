@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, SkipForward, Check, X } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -50,6 +51,15 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   const [additionalPhotosConfirmed, setAdditionalPhotosConfirmed] = useState(false);
   const [conversationScreenshotConfirmed, setConversationScreenshotConfirmed] = useState(false);
 
+  // Handle skip attempts when confirmations are required
+  const handleSkipAttempt = () => {
+    if (totalFiles > 0 && !canSave) {
+      toast.error("Please confirm both required confirmations before saving");
+      return;
+    }
+    onSkip();
+  };
+
   // Translation helper
   const t = {
     title: isSeller ? "Order Confirmation Files Upload" : "Загрузка файлов подтверждения заказа",
@@ -85,6 +95,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   const totalFiles = confirmImages.length + confirmVideos.length;
   const isDisabled = !isComponentReady || sessionLost || isUploading;
   const canSave = additionalPhotosConfirmed && conversationScreenshotConfirmed && totalFiles > 0;
+  const isSkipDisabled = isUploading || (totalFiles > 0 && !canSave);
 
   // Prevent accidental closing during upload
   const handleOpenChange = (newOpen: boolean) => {
@@ -192,8 +203,8 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
     <>
       <Button 
         variant="secondary" 
-        onClick={onSkip}
-        disabled={isUploading}
+        onClick={handleSkipAttempt}
+        disabled={isSkipDisabled}
         className="flex-1 sm:flex-none min-h-[44px] text-sm flex items-center gap-2"
       >
         <SkipForward className="h-4 w-4" />
@@ -275,8 +286,8 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
               <div className="flex gap-2 order-2">
                 <Button 
                   variant="secondary" 
-                  onClick={onSkip}
-                  disabled={isUploading}
+                  onClick={handleSkipAttempt}
+                  disabled={isSkipDisabled}
                   className="flex-1 min-h-[44px] text-sm flex items-center gap-2"
                 >
                   <SkipForward className="h-4 w-4" />
@@ -311,8 +322,8 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           <div className="flex gap-2 order-2 sm:order-1">
             <Button 
               variant="secondary" 
-              onClick={onSkip}
-              disabled={isUploading}
+              onClick={handleSkipAttempt}
+              disabled={isSkipDisabled}
               className="flex-1 sm:flex-none h-10 text-sm flex items-center gap-1"
             >
               <SkipForward className="h-3 w-3 sm:h-4 sm:w-4" />
