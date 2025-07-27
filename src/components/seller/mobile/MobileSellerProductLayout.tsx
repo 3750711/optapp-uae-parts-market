@@ -31,7 +31,6 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = ({
     updateTitle,
     updatePrice,
     updateDescription,
-    updateCondition,
     updatePlaceNumber,
     updateDeliveryPrice,
     updateLocation,
