@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useInlineEdit } from "@/hooks/useInlineEdit";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { devLog, criticalError, optimizeImageLoad } from "@/utils/productionOptimizer";
@@ -31,6 +32,21 @@ const SellerProductDetail = () => {
   const { isMobile } = useMobileLayout();
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
+  // Initialize inline edit hooks at the top level to avoid conditional hook usage
+  const {
+    updateTitle,
+    updatePrice,
+    updateDescription,
+    updatePlaceNumber,
+    updateDeliveryPrice,
+    updateLocation,
+  } = useInlineEdit({
+    productId: id || '',
+    onUpdate: () => {
+      // Product update handled by React Query cache invalidation
+    }
+  });
   
   // Security check: ensure user is a seller
   useEffect(() => {
@@ -183,7 +199,7 @@ const SellerProductDetail = () => {
             />
           )}
           
-          {product ? (
+           {product ? (
             <MobileSellerProductLayout
               product={product}
               imageUrls={imageUrls || []}
@@ -191,6 +207,12 @@ const SellerProductDetail = () => {
               selectedImage={selectedImage || (imageUrls && imageUrls[0]) || null}
               onImageClick={handleImageClick}
               onProductUpdate={handleProductUpdate}
+              updateTitle={updateTitle}
+              updatePrice={updatePrice}
+              updateDescription={updateDescription}
+              updatePlaceNumber={updatePlaceNumber}
+              updateDeliveryPrice={updateDeliveryPrice}
+              updateLocation={updateLocation}
             />
           ) : (
             <div className="flex items-center justify-center min-h-screen">
