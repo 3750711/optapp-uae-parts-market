@@ -1,8 +1,9 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, SkipForward, Check, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +46,10 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   const isMobile = useIsMobile();
   const isSeller = profile?.user_type === 'seller';
 
+  // Checkbox states for mandatory confirmations
+  const [additionalPhotosConfirmed, setAdditionalPhotosConfirmed] = useState(false);
+  const [conversationScreenshotConfirmed, setConversationScreenshotConfirmed] = useState(false);
+
   // Translation helper
   const t = {
     title: isSeller ? "Order Confirmation Files Upload" : "Загрузка файлов подтверждения заказа",
@@ -55,10 +60,11 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
     processingDescription: isSeller 
       ? "Images are automatically optimized for fast loading: small files (<400KB) are not compressed, large ones are optimized to WebP format."
       : "Изображения автоматически оптимизируются для быстрой загрузки: малые файлы (<400KB) не сжимаются, большие - оптимизируются до WebP формата.",
-    cancel: isSeller ? "Cancel" : "Отмена",
     skip: isSeller ? "Skip" : "Пропустить",
     saveAndContinue: isSeller ? "Save and Continue" : "Сохранить и продолжить",
-    saving: isSeller ? "Saving..." : "Сохранение..."
+    saving: isSeller ? "Saving..." : "Сохранение...",
+    additionalPhotosLabel: "I uploaded additional photos that I sent to the seller",
+    conversationScreenshotLabel: "I added screenshot of conversation with client"
   };
   const {
     confirmImages,
@@ -78,6 +84,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
   const totalFiles = confirmImages.length + confirmVideos.length;
   const isDisabled = !isComponentReady || sessionLost || isUploading;
+  const canSave = additionalPhotosConfirmed && conversationScreenshotConfirmed && totalFiles > 0;
 
   // Prevent accidental closing during upload
   const handleOpenChange = (newOpen: boolean) => {
@@ -139,6 +146,43 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
             uploadError={uploadError}
             isSeller={isSeller}
           />
+
+          {/* Mandatory confirmation checkboxes */}
+          {totalFiles > 0 && (
+            <div className="space-y-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="text-sm font-medium text-orange-800">
+                Required confirmations before saving:
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="additional-photos"
+                  checked={additionalPhotosConfirmed}
+                  onCheckedChange={(checked) => setAdditionalPhotosConfirmed(checked === true)}
+                />
+                <label 
+                  htmlFor="additional-photos"
+                  className="text-sm text-orange-700 leading-relaxed cursor-pointer"
+                >
+                  {t.additionalPhotosLabel}
+                </label>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <Checkbox
+                  id="conversation-screenshot"
+                  checked={conversationScreenshotConfirmed}
+                  onCheckedChange={(checked) => setConversationScreenshotConfirmed(checked === true)}
+                />
+                <label 
+                  htmlFor="conversation-screenshot"
+                  className="text-sm text-orange-700 leading-relaxed cursor-pointer"
+                >
+                  {t.conversationScreenshotLabel}
+                </label>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -146,14 +190,6 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
   const ActionButtons = () => (
     <>
-      <Button 
-        variant="outline" 
-        onClick={onCancel} 
-        disabled={isUploading}
-        className="flex-1 sm:flex-none min-h-[44px] text-sm"
-      >
-        {t.cancel}
-      </Button>
       <Button 
         variant="secondary" 
         onClick={onSkip}
@@ -165,7 +201,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
       </Button>
       <Button
         onClick={handleSaveMedia}
-        disabled={isDisabled || totalFiles === 0}
+        disabled={isDisabled || !canSave}
         className="bg-green-600 hover:bg-green-700 min-h-[44px] text-sm flex items-center gap-2 flex-1 sm:flex-none"
       >
         {isUploading ? (
@@ -219,7 +255,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
               {/* Main action button */}
               <Button
                 onClick={handleSaveMedia}
-                disabled={isDisabled || totalFiles === 0}
+                disabled={isDisabled || !canSave}
                 className="bg-green-600 hover:bg-green-700 min-h-[48px] text-base flex items-center gap-2 w-full order-1"
               >
                 {isUploading ? (
@@ -237,14 +273,6 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
               
               {/* Secondary buttons */}
               <div className="flex gap-2 order-2">
-                <Button 
-                  variant="outline" 
-                  onClick={onCancel} 
-                  disabled={isUploading}
-                  className="flex-1 min-h-[44px] text-sm"
-                >
-                  {t.cancel}
-                </Button>
                 <Button 
                   variant="secondary" 
                   onClick={onSkip}
@@ -282,14 +310,6 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
         <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t mt-auto">
           <div className="flex gap-2 order-2 sm:order-1">
             <Button 
-              variant="outline" 
-              onClick={onCancel} 
-              disabled={isUploading}
-              className="flex-1 sm:flex-none h-10 text-sm"
-            >
-              {t.cancel}
-            </Button>
-            <Button 
               variant="secondary" 
               onClick={onSkip}
               disabled={isUploading}
@@ -302,7 +322,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           
           <Button
             onClick={handleSaveMedia}
-            disabled={isDisabled || totalFiles === 0}
+            disabled={isDisabled || !canSave}
             className="bg-green-600 hover:bg-green-700 h-10 text-sm flex items-center gap-1 order-1 sm:order-2"
           >
             {isUploading ? (
