@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { devLog, criticalError, optimizeImageLoad } from "@/utils/productionOptimizer";
+import { performanceTracker } from "@/utils/performanceTracker";
 import ProductBreadcrumb from "@/components/product/ProductBreadcrumb";
 import ProductSEO from "@/components/seo/ProductSEO";
 import ProductSkeleton from "@/components/product/ProductSkeleton";
+import ProductLoadingState from "@/components/loading/ProductLoadingState";
 import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import SellerProductContent from "@/components/seller/SellerProductContent";
@@ -19,6 +22,7 @@ import SellerLayout from "@/components/layout/SellerLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield } from "lucide-react";
 import { useMobileLayout } from "@/hooks/useMobileLayout";
+import ProductErrorBoundary from "@/components/error/ProductErrorBoundary";
 
 const SellerProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -43,7 +47,7 @@ const SellerProductDetail = () => {
   // Product query with seller ownership validation
   const { data: product, isLoading, error, isError } = useQuery({
     queryKey: ['seller-product', id],
-    queryFn: async () => {
+    queryFn: () => performanceTracker.measureAsync('seller-product-fetch', async () => {
       if (!id) {
         throw new Error('No product ID provided');
       }
@@ -74,9 +78,14 @@ const SellerProductDetail = () => {
         
         return data as Product;
       } catch (error) {
+        criticalError(error as Error, { 
+          context: 'SellerProductDetail fetch', 
+          productId: id, 
+          userId: user.id 
+        });
         throw error;
       }
-    },
+    }),
     enabled: !!id && !!user && profile?.user_type === 'seller',
     retry: false, // Don't retry for security errors
   });
@@ -96,7 +105,7 @@ const SellerProductDetail = () => {
     return (
       <SellerLayout>
         <div className="container mx-auto px-4 py-6 max-w-7xl">
-          <ProductSkeleton />
+          <ProductLoadingState message="Loading your product details..." />
         </div>
       </SellerLayout>
     );
@@ -123,105 +132,122 @@ const SellerProductDetail = () => {
     );
   }
   
-  // Set the first image as selected if none is selected
-  if (product.product_images?.length && !selectedImage) {
-    const primaryImage = product.product_images.find(img => img.is_primary)?.url 
-      || product.product_images[0]?.url;
-      
-    if (primaryImage) {
-      setSelectedImage(primaryImage);
+  // Set the first image as selected if none is selected - moved to useMemo to avoid setState in render
+  const initialSelectedImage = useMemo(() => {
+    if (product.product_images?.length && !selectedImage) {
+      const primaryImage = product.product_images.find(img => img.is_primary)?.url 
+        || product.product_images[0]?.url;
+      return primaryImage || null;
     }
-  }
+    return selectedImage;
+  }, [product.product_images, selectedImage]);
+
+  // Update selected image only when needed
+  useEffect(() => {
+    if (initialSelectedImage && initialSelectedImage !== selectedImage) {
+      setSelectedImage(initialSelectedImage);
+    }
+  }, [initialSelectedImage, selectedImage]);
   
   const handleImageClick = (url: string) => {
     setSelectedImage(url);
   };
   
-  // Extract URLs for components
-  const imageUrls = product.product_images 
-    ? product.product_images.map(img => img.url) 
-    : [];
+  // Extract and optimize URLs for components
+  const imageUrls = useMemo(() => 
+    product.product_images 
+      ? product.product_images.map(img => optimizeImageLoad(img.url)) 
+      : [],
+    [product.product_images]
+  );
   
-  const videoUrls = product.product_videos 
-    ? product.product_videos.map(video => video.url) 
-    : [];
+  const videoUrls = useMemo(() => 
+    product.product_videos 
+      ? product.product_videos.map(video => video.url) 
+      : [],
+    [product.product_videos]
+  );
   
   const sellerName = product.seller_name || (profile?.full_name || "Неизвестный продавец");
 
   // Mobile Layout
   if (isMobile) {
     return (
-      <SellerLayout className="p-0">
-        <ProductSEO 
-          product={product}
-          sellerName={sellerName}
-          images={imageUrls}
-        />
-        <MobileSellerProductLayout
-          product={product}
-          imageUrls={imageUrls}
-          videoUrls={videoUrls}
-          selectedImage={selectedImage}
-          onImageClick={handleImageClick}
-          onProductUpdate={handleProductUpdate}
-        />
-      </SellerLayout>
+      <ProductErrorBoundary>
+        <SellerLayout className="p-0">
+          <ProductSEO 
+            product={product}
+            sellerName={sellerName}
+            images={imageUrls}
+          />
+          <MobileSellerProductLayout
+            product={product}
+            imageUrls={imageUrls}
+            videoUrls={videoUrls}
+            selectedImage={selectedImage}
+            onImageClick={handleImageClick}
+            onProductUpdate={handleProductUpdate}
+          />
+        </SellerLayout>
+      </ProductErrorBoundary>
     );
   }
   
   // Desktop Layout
   return (
-    <SellerLayout>
-      {/* SEO Component */}
-      <ProductSEO 
-        product={product}
-        sellerName={sellerName}
-        images={imageUrls}
-      />
-      
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Breadcrumb Navigation */}
-        <ProductBreadcrumb
-          productTitle={product.title}
-          brand={product.brand}
-          model={product.model}
-          isSeller={true}
-        />
-        
-        {/* Header */}
-        <ProductDetailHeader 
+    <ProductErrorBoundary>
+      <SellerLayout>
+        {/* SEO Component */}
+        <ProductSEO 
           product={product}
-          onBack={handleBack}
+          sellerName={sellerName}
+          images={imageUrls}
         />
         
-        {/* Status warnings */}
-        <ProductDetailAlerts 
-          product={product}
-          isOwner={true}
-          isAdmin={false}
-        />
-        
-        {/* Seller Action Buttons */}
-        <SellerProductActions 
-          product={product}
-          onProductUpdate={handleProductUpdate}
-        />
-        
-        {/* Offers Summary */}
-        <SellerOffersSummary 
-          productId={product.id}
-        />
-        
-        {/* Main content */}
-        <SellerProductContent 
-          product={product}
-          imageUrls={imageUrls}
-          videoUrls={videoUrls}
-          selectedImage={selectedImage}
-          onImageClick={handleImageClick}
-        />
-      </div>
-    </SellerLayout>
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          {/* Breadcrumb Navigation */}
+          <ProductBreadcrumb
+            productTitle={product.title}
+            brand={product.brand}
+            model={product.model}
+            isSeller={true}
+          />
+          
+          {/* Header */}
+          <ProductDetailHeader 
+            product={product}
+            onBack={handleBack}
+          />
+          
+          {/* Status warnings */}
+          <ProductDetailAlerts 
+            product={product}
+            isOwner={true}
+            isAdmin={false}
+          />
+          
+          {/* Seller Action Buttons */}
+          <SellerProductActions 
+            product={product}
+            onProductUpdate={handleProductUpdate}
+          />
+          
+          {/* Offers Summary */}
+          <SellerOffersSummary 
+            productId={product.id}
+          />
+          
+          {/* Main content */}
+          <SellerProductContent 
+            product={product}
+            imageUrls={imageUrls}
+            videoUrls={videoUrls}
+            selectedImage={selectedImage}
+            onImageClick={handleImageClick}
+          />
+        </div>
+      </SellerLayout>
+    </ProductErrorBoundary>
   );
 };
 

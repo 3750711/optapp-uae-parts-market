@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { criticalError } from '@/utils/productionOptimizer';
 
 interface UseInlineEditProps {
   productId: string;
@@ -43,7 +44,12 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
         onUpdate();
       }
     } catch (error) {
-      console.error('Error updating product:', error);
+      criticalError(error as Error, { 
+        context: 'useInlineEdit.updateField', 
+        productId, 
+        field, 
+        value 
+      });
       toast.error('Failed to update product');
       
       // Revert optimistic update on error
@@ -76,7 +82,11 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
 
       await updateField('delivery_price', value);
     } catch (error) {
-      console.error('Error updating delivery price:', error);
+      criticalError(error as Error, { 
+        context: 'useInlineEdit.updateDeliveryPrice', 
+        productId, 
+        deliveryPrice: value 
+      });
       toast.error('Failed to update delivery price');
       throw error;
     }
