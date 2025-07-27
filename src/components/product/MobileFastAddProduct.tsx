@@ -27,6 +27,7 @@ interface MobileFastAddProductProps {
   setPrimaryImage?: (url: string) => void;
   onImageDelete?: (url: string) => void;
   onBack?: () => void;
+  onUploadStateChange?: (isUploading: boolean) => void;
 }
 
 const LoadingSpinner = memo(() => (
@@ -51,6 +52,7 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
   setPrimaryImage,
   onImageDelete,
   onBack,
+  onUploadStateChange,
 }) => {
   const isMobile = useIsMobile();
 
@@ -83,9 +85,10 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
         primaryImage={primaryImage}
         onSetPrimaryImage={setPrimaryImage}
         onImageDelete={onImageDelete}
+        onUploadStateChange={onUploadStateChange}
       />
     </Suspense>
-  ), [imageUrls, videoUrls, handleMobileOptimizedImageUpload, setVideoUrls, primaryImage, setPrimaryImage, onImageDelete]);
+  ), [imageUrls, videoUrls, handleMobileOptimizedImageUpload, setVideoUrls, primaryImage, setPrimaryImage, onImageDelete, onUploadStateChange]);
 
   const handleSubmitMemo = useCallback((values: ProductFormValues) => {
     onSubmit(values);

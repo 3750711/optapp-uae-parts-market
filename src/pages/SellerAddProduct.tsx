@@ -52,6 +52,7 @@ const SellerAddProduct = () => {
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [isMediaUploading, setIsMediaUploading] = useState(false);
   const isMobile = useIsMobile();
 
   // Use lazy car brands hook for better performance
@@ -465,6 +466,11 @@ const SellerAddProduct = () => {
     navigate('/seller/dashboard');
   }, [navigate]);
 
+  // Handle media upload state changes
+  const handleUploadStateChange = useCallback((uploading: boolean) => {
+    setIsMediaUploading(uploading);
+  }, []);
+
   // Memoized form submission
   const handleFormSubmit = useCallback((values: ProductFormValues) => {
     guardedSubmit(() => createProduct(values));
@@ -542,7 +548,7 @@ const SellerAddProduct = () => {
                     <AddProductForm
                       form={form}
                       onSubmit={handleFormSubmit}
-                      isSubmitting={isSubmitting}
+                      isSubmitting={isSubmitting || isMediaUploading}
                       imageUrls={imageUrls}
                       videoUrls={videoUrls}
                       brands={brands}
@@ -554,6 +560,7 @@ const SellerAddProduct = () => {
                       primaryImage={primaryImage}
                       setPrimaryImage={setPrimaryImage}
                       onImageDelete={handleImageDelete}
+                      onUploadStateChange={handleUploadStateChange}
                     />
                   </Suspense>
                 </CardContent>
@@ -567,7 +574,7 @@ const SellerAddProduct = () => {
               <MobileFastAddProduct
                 form={form}
                 onSubmit={handleFormSubmit}
-                isSubmitting={isSubmitting}
+                isSubmitting={isSubmitting || isMediaUploading}
                 imageUrls={imageUrls}
                 videoUrls={videoUrls}
                 brands={brands}
@@ -580,6 +587,7 @@ const SellerAddProduct = () => {
                 setPrimaryImage={setPrimaryImage}
                 onImageDelete={handleImageDelete}
                 onBack={handleBack}
+                onUploadStateChange={handleUploadStateChange}
               />
             </Suspense>
           )}

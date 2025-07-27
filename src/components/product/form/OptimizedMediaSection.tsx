@@ -1,11 +1,12 @@
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Upload, Video, X } from "lucide-react";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { useOptimizedImageUpload } from "@/hooks/useOptimizedImageUpload";
 import { useImageDeletionState } from "@/hooks/useImageDeletionState";
+import { useEnhancedMediaUpload } from "@/hooks/useEnhancedMediaUpload";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
 
 interface OptimizedMediaSectionProps {
@@ -18,6 +19,7 @@ interface OptimizedMediaSectionProps {
   primaryImage?: string;
   productId?: string;
   disabled?: boolean;
+  onUploadStateChange?: (isUploading: boolean) => void;
 }
 
 const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
@@ -29,10 +31,26 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   onSetPrimaryImage,
   primaryImage,
   productId,
-  disabled = false
+  disabled = false,
+  onUploadStateChange
 }) => {
   const { uploadFiles, uploadQueue, isUploading, cancelUpload, markAsDeleted } = useOptimizedImageUpload();
   const [fileInputKey, setFileInputKey] = useState(0);
+
+  // Enhanced video upload state from hook
+  const { isUploading: isVideoUploading } = useEnhancedMediaUpload({
+    orderId: productId || 'temp',
+    maxImageSize: 10,
+    maxVideoSize: 100,
+    compressionQuality: 0.8
+  });
+
+  // Notify parent about upload state changes
+  const isMediaUploading = isUploading || isVideoUploading;
+  
+  useEffect(() => {
+    onUploadStateChange?.(isMediaUploading);
+  }, [isMediaUploading, onUploadStateChange]);
 
   console.log('📊 OptimizedMediaSection render:', { 
     imageCount: imageUrls.length, 

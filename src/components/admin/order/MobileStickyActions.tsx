@@ -54,9 +54,9 @@ export const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
         disabled={primaryAction.disabled}
         size="lg"
         className="w-full touch-target min-h-[48px] text-base font-medium"
-      >
-        {primaryAction.loading ? 'Загрузка...' : primaryAction.label}
-      </Button>
+        >
+          {primaryAction.loading ? 'Загрузка...' : primaryAction.label}
+        </Button>
       {secondaryAction && (
         <Button
           variant="outline"

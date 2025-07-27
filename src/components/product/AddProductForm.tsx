@@ -46,6 +46,7 @@ interface AddProductFormProps {
   sellers?: Array<{ id: string, full_name: string, opt_id?: string }>;
   showSellerSelection?: boolean;
   onImageDelete?: (url: string) => void;
+  onUploadStateChange?: (isUploading: boolean) => void;
 }
 
 // Always use the optimized media section
@@ -68,6 +69,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   sellers = [],
   showSellerSelection = false,
   onImageDelete,
+  onUploadStateChange,
 }) => {
   return (
     <Form {...form}>
@@ -102,6 +104,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
               primaryImage={primaryImage}
               onSetPrimaryImage={setPrimaryImage}
               onImageDelete={onImageDelete}
+              onUploadStateChange={onUploadStateChange}
             />
           </Suspense>
         </FormSectionWrapper>
