@@ -221,6 +221,66 @@ export async function handleProductNotification(productId: string, notificationT
     }
   }
 
+  // Handle 'status_change' notification type
+  if (notificationType === 'status_change') {
+    try {
+      const statusMessages = {
+        'pending': '⏳ Товар отправлен на модерацию',
+        'active': '✅ Товар опубликован в каталоге',
+        'sold': '😔 Товар помечен как проданный',
+        'archived': '📦 Товар перемещен в архив'
+      };
+      
+      const statusMessage = statusMessages[product.status] || `📄 Статус товара изменен на: ${product.status}`;
+      const statusChangeText = `${statusMessage}
+Лот #${product.lot_number}: ${product.title} ${product.brand}`;
+      
+      console.log(`Sending status change message to Telegram: ${statusChangeText}`);
+      const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: PRODUCT_GROUP_CHAT_ID,
+          text: statusChangeText,
+          parse_mode: 'HTML'
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (!result.ok) {
+        console.error('Telegram API error for status change notification:', result);
+        return new Response(
+          JSON.stringify({ success: false, message: 'Failed to send status change notification' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      console.log('Status change notification sent successfully');
+      
+      // Update the notification timestamp
+      const { error: updateError } = await supabaseClient
+        .from('products')
+        .update({ last_notification_sent_at: new Date().toISOString() })
+        .eq('id', productId);
+        
+      if (updateError) {
+        console.error('Error updating notification timestamp:', updateError);
+      }
+      
+      return new Response(
+        JSON.stringify({ success: true, message: 'Status change notification sent successfully' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      console.error('Error sending status change notification:', error);
+      return new Response(
+        JSON.stringify({ success: false, message: `Failed to send status change notification: ${error.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+  }
+
   // For regular product notifications, continue with image processing and send to PRODUCT_GROUP_CHAT_ID
   return await sendImageMediaGroups(
     images.map((image: any) => image.url), 
