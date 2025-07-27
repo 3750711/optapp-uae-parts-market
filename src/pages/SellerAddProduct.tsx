@@ -428,7 +428,7 @@ const SellerAddProduct = () => {
         description: successMessage,
       });
 
-      navigate(`/product/${product.id}`);
+      navigate(`/seller/product/${product.id}`);
     } catch (error) {
       console.error("💥 Error creating product:", error);
       toast({
