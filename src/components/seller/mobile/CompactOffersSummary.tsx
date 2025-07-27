@@ -48,7 +48,10 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
     );
   }
 
-  if (!offers || offers.length === 0) {
+  // Always render card structure for hook stability
+  const shouldShowContent = offers && offers.length > 0;
+  
+  if (!shouldShowContent) {
     return (
       <Card className="rounded-none border-0 shadow-none mb-2">
         <CardHeader className="pb-2">
