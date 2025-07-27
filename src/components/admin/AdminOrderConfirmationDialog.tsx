@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,16 @@ interface AdminOrderConfirmationDialogProps {
       textOrder: string;
     };
   }) => Promise<void>;
+  onSave?: (editedData: {
+    title: string;
+    brand: string;
+    model: string;
+    price: number;
+    deliveryPrice: number;
+    placeNumber: number;
+    textOrder: string;
+    deliveryMethod: string;
+  }) => void;
   isSubmitting?: boolean;
   product?: Product;
   seller?: SellerProfile;
@@ -96,12 +106,14 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   onOpenChange,
   onClose,
   onConfirm,
+  onSave,
   isSubmitting,
   product,
   seller,
   buyer,
   onCancel,
 }) => {
+  const [savedEditedData, setSavedEditedData] = useState<any>(null);
   const { profile } = useAuth();
   const isSeller = profile?.user_type === 'seller';
 
@@ -221,10 +233,10 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   const displayData = orderId ? order : {
     id: product?.id || '',
     created_at: new Date().toISOString(),
-    deliveryMethod: 'self_pickup',
-    place_number: 1,
-    total_sum: product?.price || 0,
-    text_order: product?.title || '',
+    deliveryMethod: savedEditedData?.deliveryMethod || 'self_pickup',
+    place_number: savedEditedData?.placeNumber || 1,
+    total_sum: savedEditedData?.price || product?.price || 0,
+    text_order: savedEditedData?.title || product?.title || '',
     images: product?.product_images?.map(img => img.url) || [],
     videos: [],
     profiles: seller ? {
@@ -235,6 +247,13 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
       location: '',
       telegram: seller.telegram || ''
     } : undefined
+  };
+
+  const handleSaveChanges = (editedData: any) => {
+    setSavedEditedData(editedData);
+    if (onSave) {
+      onSave(editedData);
+    }
   };
 
   const handleClose = () => {
@@ -284,12 +303,14 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] pr-4">
             <EditableOrderForm
-              product={product}
+              product={savedEditedData ? { ...product, ...savedEditedData } : product}
               seller={seller}
               buyer={buyer}
               onConfirm={onConfirm}
+              onSave={handleSaveChanges}
               isSubmitting={isSubmitting || false}
               isSeller={isSeller}
+              savedData={savedEditedData}
             />
           </ScrollArea>
           <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">

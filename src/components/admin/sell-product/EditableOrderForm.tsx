@@ -45,8 +45,19 @@ interface EditableOrderFormProps {
       textOrder: string;
     };
   }) => Promise<void>;
+  onSave?: (editedData: {
+    title: string;
+    brand: string;
+    model: string;
+    price: number;
+    deliveryPrice: number;
+    placeNumber: number;
+    textOrder: string;
+    deliveryMethod: string;
+  }) => void;
   isSubmitting: boolean;
   isSeller?: boolean;
+  savedData?: any;
 }
 
 interface EditableData {
@@ -65,8 +76,10 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
   seller,
   buyer,
   onConfirm,
+  onSave,
   isSubmitting,
-  isSeller = false
+  isSeller = false,
+  savedData
 }) => {
   
   // Translation objects
@@ -239,14 +252,14 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editableData, setEditableData] = useState<EditableData>({
-    title: product.title,
-    brand: product.brand || '',
-    model: product.model || '',
-    price: product.price,
-    deliveryPrice: product.delivery_price || 0,
-    deliveryMethod: 'cargo_rf',
-    placeNumber: 1,
-    textOrder: ''
+    title: savedData?.title || product.title,
+    brand: savedData?.brand || product.brand || '',
+    model: savedData?.model || product.model || '',
+    price: savedData?.price || product.price,
+    deliveryPrice: savedData?.deliveryPrice || product.delivery_price || 0,
+    deliveryMethod: savedData?.deliveryMethod || 'cargo_rf',
+    placeNumber: savedData?.placeNumber || 1,
+    textOrder: savedData?.textOrder || ''
   });
 
   const [originalData, setOriginalData] = useState<EditableData>(editableData);
@@ -323,13 +336,34 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
     return true;
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
+    if (!validateForm()) return;
+
+    // Save changes without creating order
+    if (onSave) {
+      onSave({
+        title: editableData.title,
+        brand: editableData.brand,
+        model: editableData.model,
+        price: editableData.price,
+        deliveryPrice: editableData.deliveryPrice,
+        placeNumber: editableData.placeNumber,
+        textOrder: editableData.textOrder,
+        deliveryMethod: editableData.deliveryMethod
+      });
+    }
+    
+    setIsEditing(false);
+    localStorage.removeItem('adminSellProduct_editData');
+  };
+
+  const handleConfirmOrder = async () => {
     if (!validateForm()) return;
 
     // 📸 ИСПРАВЛЕНО: Правильно передаем изображения товара
     const productImageUrls = product.product_images?.map(img => img.url) || [];
     
-    console.log("📸 EditableOrderForm - handleSave - Image transfer:", {
+    console.log("📸 EditableOrderForm - handleConfirmOrder - Image transfer:", {
       product_images_raw: product.product_images,
       product_image_urls: productImageUrls,
       product_images_count: productImageUrls.length
@@ -359,7 +393,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
       setIsEditing(false);
       localStorage.removeItem('adminSellProduct_editData');
     } catch (error) {
-      console.error('Error saving order:', error);
+      console.error('Error creating order:', error);
     }
   };
 
@@ -674,23 +708,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
 
       <div className="flex justify-end pt-4">
         <Button
-          onClick={() => {
-            // 📸 ИСПРАВЛЕНО: В режиме просмотра тоже правильно передаем изображения
-            const productImageUrls = product.product_images?.map(img => img.url) || [];
-            
-            console.log("📸 EditableOrderForm - View mode confirm - Image transfer:", {
-              product_images_raw: product.product_images,
-              product_image_urls: productImageUrls,
-              product_images_count: productImageUrls.length
-            });
-
-            onConfirm({
-              price: editableData.price,
-              deliveryPrice: editableData.deliveryPrice,
-              deliveryMethod: editableData.deliveryMethod,
-              orderImages: productImageUrls // ✅ ИСПРАВЛЕНО: Передаем изображения товара
-            });
-          }}
+          onClick={handleConfirmOrder}
           disabled={isSubmitting}
           className="bg-green-600 hover:bg-green-700"
         >
