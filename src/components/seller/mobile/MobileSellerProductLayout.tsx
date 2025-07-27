@@ -8,7 +8,6 @@ import CompactOffersSummary from "./CompactOffersSummary";
 import MobileSellerActions from "./MobileSellerActions";
 import { InlineEditableField } from "@/components/ui/InlineEditableField";
 import { InlineEditableTextarea } from "@/components/ui/InlineEditableTextarea";
-import { useInlineEdit } from "@/hooks/useInlineEdit";
 
 interface MobileSellerProductLayoutProps {
   product: Product;
@@ -17,15 +16,25 @@ interface MobileSellerProductLayoutProps {
   selectedImage: string | null;
   onImageClick: (url: string) => void;
   onProductUpdate: () => void;
+  inlineEditHooks: {
+    isUpdating: boolean;
+    updateTitle: (value: string | number) => Promise<void>;
+    updatePrice: (value: string | number) => Promise<void>;
+    updateDescription: (value: string | number) => Promise<void>;
+    updatePlaceNumber: (value: string | number) => Promise<void>;
+    updateDeliveryPrice: (value: string | number) => Promise<void>;
+    updateLocation: (value: string | number) => Promise<void>;
+  };
 }
 
-const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = ({
+const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = React.memo(({
   product,
   imageUrls,
   videoUrls,
   selectedImage,
   onImageClick,
   onProductUpdate,
+  inlineEditHooks,
 }) => {
   const {
     updateTitle,
@@ -34,11 +43,9 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = ({
     updatePlaceNumber,
     updateDeliveryPrice,
     updateLocation,
-  } = useInlineEdit({ 
-    productId: product.id, 
-    onUpdate: onProductUpdate 
-  });
-const getStatusBadge = () => {
+  } = inlineEditHooks;
+
+  const getStatusBadge = () => {
     switch (product.status) {
       case 'pending':
         return <Badge variant="warning" className="text-xs">Pending Review</Badge>;
@@ -222,6 +229,8 @@ const getStatusBadge = () => {
       />
     </div>
   );
-};
+});
+
+MobileSellerProductLayout.displayName = 'MobileSellerProductLayout';
 
 export default MobileSellerProductLayout;
