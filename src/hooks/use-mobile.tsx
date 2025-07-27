@@ -5,10 +5,12 @@ const MOBILE_BREAKPOINT = 768 // Corresponds to Tailwind's `md` breakpoint
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean>(false)
+  const [isStable, setIsStable] = React.useState<boolean>(false)
 
   React.useEffect(() => {
     if (typeof window === 'undefined') {
       setIsMobile(false);
+      setIsStable(true);
       return;
     }
 
@@ -16,6 +18,11 @@ export function useIsMobile() {
     
     const onChange = () => {
       setIsMobile(mql.matches)
+      
+      // Add stability timer to prevent rapid changes
+      setTimeout(() => {
+        setIsStable(true);
+      }, 100);
     }
 
     mql.addEventListener("change", onChange)
@@ -25,5 +32,6 @@ export function useIsMobile() {
     return () => mql.removeEventListener("change", onChange)
   }, [])
 
-  return isMobile;
+  // Return stable value only after stabilization
+  return isStable ? isMobile : false;
 }
