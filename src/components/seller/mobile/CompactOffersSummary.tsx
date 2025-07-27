@@ -67,9 +67,10 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
   }
 
   const pendingOffers = offers.filter(offer => offer.status === 'pending');
-  const maxOffer = offers.reduce((max, offer) => 
-    offer.offered_price > max ? offer.offered_price : max, 0
-  );
+  const maxOffer = offers.reduce((max, offer) => {
+    const offerPrice = Number(offer.offered_price);
+    return offerPrice > max ? offerPrice : max;
+  }, 0);
 
   const handleViewOffers = () => {
     navigate('/seller/price-offers', { 
