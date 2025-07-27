@@ -45,7 +45,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
   }, [sellers]);
 
   return (
-    <div className="grid grid-cols-1 gap-4">
+    <div className="space-y-6">
       {/* Seller Selection - Only for admin */}
       {showSellerSelection && (
         <FormField
@@ -53,7 +53,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
           name={"sellerId" as FieldPath<FormValues>}
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Продавец *</FormLabel>
+              <FormLabel className="text-sm font-medium text-foreground">Продавец *</FormLabel>
               <FormControl>
                 <OptimizedSelect
                   options={sellerOptions}
@@ -76,12 +76,13 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
         name="title"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Название товара *</FormLabel>
+            <FormLabel className="text-sm font-medium text-foreground">Название товара *</FormLabel>
             <FormControl>
               <Input
                 placeholder="Например: Фара передняя левая BMW X5"
                 {...field}
-                className="text-base"
+                className="mobile-input bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200"
+                inputMode="text"
               />
             </FormControl>
             <FormMessage />
@@ -90,19 +91,20 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
       />
 
       {/* Price and Place Number */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Цена * (AED)</FormLabel>
+              <FormLabel className="text-sm font-medium text-foreground">Цена * (AED)</FormLabel>
               <FormControl>
                 <Input
                   type="number"
+                  inputMode="decimal"
                   placeholder="100"
                   {...field}
-                  className="text-base"
+                  className="mobile-input bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200"
                 />
               </FormControl>
               <FormMessage />
@@ -115,13 +117,14 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
           name="placeNumber"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Количество мест *</FormLabel>
+              <FormLabel className="text-sm font-medium text-foreground">Количество мест *</FormLabel>
               <FormControl>
                 <Input
                   type="number"
+                  inputMode="numeric"
                   placeholder="1"
                   {...field}
-                  className="text-base"
+                  className="mobile-input bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200"
                 />
               </FormControl>
               <FormMessage />
@@ -136,12 +139,12 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Описание</FormLabel>
+            <FormLabel className="text-sm font-medium text-foreground">Описание</FormLabel>
             <FormControl>
               <Textarea
                 placeholder="Дополнительная информация о товаре..."
-                className="resize-none text-base"
-                rows={3}
+                className="mobile-input resize-none bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200 min-h-[100px]"
+                rows={4}
                 {...field}
               />
             </FormControl>
@@ -156,13 +159,14 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
         name="deliveryPrice"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Стоимость доставки (AED)</FormLabel>
+            <FormLabel className="text-sm font-medium text-foreground">Стоимость доставки (AED)</FormLabel>
             <FormControl>
               <Input
                 type="number"
+                inputMode="decimal"
                 placeholder="0"
                 {...field}
-                className="text-base"
+                className="mobile-input bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200"
               />
             </FormControl>
             <FormMessage />

@@ -27,22 +27,24 @@ const StickyMobileActions: React.FC<StickyMobileActionsProps> = ({
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 safe-area-bottom">
-      <Button 
-        type="submit" 
-        className="w-full h-12 text-base font-medium"
-        disabled={isSubmitting || disabled}
-        onClick={onSubmit}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {loadingText}
-          </>
-        ) : (
-          submitText
-        )}
-      </Button>
+    <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border/50 p-4 z-50 pb-safe shadow-lg">
+      <div className="max-w-sm mx-auto">
+        <Button 
+          type="submit" 
+          className="w-full h-12 text-base font-medium touch-target bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+          disabled={isSubmitting || disabled}
+          onClick={onSubmit}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {loadingText}
+            </>
+          ) : (
+            submitText
+          )}
+        </Button>
+      </div>
     </div>
   );
 };

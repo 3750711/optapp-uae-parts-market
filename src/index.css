@@ -300,36 +300,102 @@ button, a, input, textarea, select {
   }
 }
 
-/* Mobile Form Optimizations */
+/* Enhanced Mobile Form Optimizations */
 .mobile-fast-form {
-  @apply w-full min-h-screen;
+  @apply w-full min-h-screen bg-background;
   contain: layout style paint;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-optimized {
-  @apply p-4 space-y-4;
+  @apply px-4 py-2 space-y-6;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6rem);
 }
 
 .mobile-header {
-  @apply flex items-center gap-3 mb-4 sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-2;
+  @apply flex items-center gap-3 mb-6 sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-3 -mx-4 px-4;
+  border-bottom: 1px solid hsl(var(--border) / 0.1);
 }
 
 .mobile-section {
-  @apply bg-card rounded-lg border shadow-sm;
+  @apply bg-card rounded-xl border border-border/30 shadow-sm;
   contain: layout style;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.mobile-section:hover {
+  @apply shadow-md border-border/50;
 }
 
 .mobile-section-content {
-  @apply p-4;
+  @apply p-5;
 }
 
 .mobile-input {
-  @apply h-12 px-3 text-base;
+  @apply h-12 px-4 text-base rounded-lg border-border/60;
+  min-height: 48px;
+  touch-action: manipulation;
+  font-size: 16px; /* Prevents zoom on iOS */
+  transition: all 0.2s ease;
+}
+
+.mobile-input:focus {
+  @apply ring-2 ring-primary/20 border-primary;
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+}
+
+.mobile-submit-btn {
+  @apply w-full h-12 text-base font-medium rounded-lg;
   min-height: 48px;
   touch-action: manipulation;
 }
 
-.mobile-submit-btn {
-  @apply w-full h-12 text-base font-medium;
-  min-height: 48px;
+/* Safe area utilities */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Enhanced touch optimization */
+@media (max-width: 767px) {
+  .touch-optimized {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .mobile-card-enhanced {
+    @apply bg-card border border-border/30 rounded-xl p-4 shadow-sm;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .mobile-card-enhanced:active {
+    transform: scale(0.98);
+    @apply shadow-none;
+  }
+  
+  /* Improved form spacing for mobile */
+  .mobile-form-spacing > * + * {
+    margin-top: 1.5rem;
+  }
+  
+  /* Better button styles for mobile */
+  .mobile-button {
+    @apply px-4 py-3 rounded-lg font-medium text-base;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
 }

@@ -96,74 +96,94 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
   }, [onBack]);
 
   return (
-    <div className={`mobile-fast-form ${isMobile ? 'mobile-optimized' : 'desktop-optimized'}`}>
-      {/* Mobile-optimized header */}
-      <div className="mobile-header">
-        {onBack && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleBackMemo}
-            className="mobile-back-btn"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-        )}
-        <h1 className="mobile-title">Add Product</h1>
-      </div>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmitMemo)} className="mobile-form-grid">
-          {/* Basic Info Section */}
-          <section className="mobile-section" aria-label="Basic Information">
-            <div className="mobile-section-header">
-              <h2 className="mobile-section-title">Basic Information</h2>
+    <div className="mobile-fast-form animate-fade-in">
+      <div className="mobile-optimized pb-safe">
+        {/* Enhanced Mobile Header with safe area support */}
+        <div className="mobile-header pt-safe border-b border-border/20">
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleBackMemo}
+                className="touch-target flex items-center gap-2 hover:bg-accent/50 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span className="font-medium">Back</span>
+              </Button>
+            )}
+            <div className="flex-1">
+              <h1 className="text-xl font-bold text-foreground">Add Product</h1>
+              <p className="text-sm text-muted-foreground">Fill in the details below</p>
             </div>
-            <div className="mobile-section-content">
-              {basicInfoSection}
-            </div>
-          </section>
-
-          {/* Car Info Section */}
-          <section className="mobile-section" aria-label="Car Information">
-            <div className="mobile-section-header">
-              <h2 className="mobile-section-title">Car Information</h2>
-            </div>
-            <div className="mobile-section-content">
-              {carInfoSection}
-            </div>
-          </section>
-          
-          {/* Media Section - Load only when in viewport */}
-          <section className="mobile-section" aria-label="Media Files">
-            <div className="mobile-section-header">
-              <h2 className="mobile-section-title">Media Files</h2>
-            </div>
-            <div className="mobile-section-content">
-              {mediaSection}
-            </div>
-          </section>
-          
-          {/* Submit Button */}
-          <div className="mobile-submit-section">
-            <Button 
-              type="submit" 
-              className="mobile-submit-btn"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Publishing...
-                </>
-              ) : (
-                'Publish Product'
-              )}
-            </Button>
           </div>
-        </form>
-      </Form>
+        </div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmitMemo)} className="space-y-6">
+            {/* Enhanced Basic Information Section */}
+            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label="Basic Information">
+              <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  Basic Information
+                </h2>
+              </div>
+              <div className="p-4">
+                {basicInfoSection}
+              </div>
+            </section>
+
+            {/* Enhanced Car Information Section */}
+            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label="Car Information">
+              <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  Car Information
+                </h2>
+              </div>
+              <div className="p-4">
+                {carInfoSection}
+              </div>
+            </section>
+            
+            {/* Enhanced Media Files Section */}
+            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label="Media Files">
+              <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  Media Files
+                </h2>
+              </div>
+              <div className="p-4">
+                {mediaSection}
+              </div>
+            </section>
+            
+            {/* Enhanced Submit Button - Mobile Sticky with better spacing */}
+            <div className="pb-24">
+              <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border/50 p-4 z-50 pb-safe shadow-lg">
+                <div className="max-w-sm mx-auto">
+                  <Button 
+                    type="submit" 
+                    className="w-full h-12 text-base font-medium touch-target bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Publishing...
+                      </>
+                    ) : (
+                      'Publish Product'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 });
