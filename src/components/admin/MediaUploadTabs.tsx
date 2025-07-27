@@ -14,6 +14,7 @@ interface MediaUploadTabsProps {
   onVideoDelete: (url: string) => void;
   orderId: string;
   disabled: boolean;
+  isSeller?: boolean;
 }
 
 export const MediaUploadTabs: React.FC<MediaUploadTabsProps> = ({
@@ -24,18 +25,24 @@ export const MediaUploadTabs: React.FC<MediaUploadTabsProps> = ({
   onImageDelete,
   onVideoDelete,
   orderId,
-  disabled
+  disabled,
+  isSeller = false
 }) => {
+  const t = {
+    photos: isSeller ? "Photos" : "Фото",
+    videos: isSeller ? "Videos" : "Видео",
+    uploadVideoButton: isSeller ? "Upload confirmation video" : "Загрузить видео подтверждения"
+  };
   return (
     <Tabs defaultValue="images" className="w-full">
       <TabsList className="grid w-full grid-cols-2 h-8 sm:h-10">
         <TabsTrigger value="images" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
           <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
-          Фото ({confirmImages.length})
+          {t.photos} ({confirmImages.length})
         </TabsTrigger>
         <TabsTrigger value="videos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
           <Video className="h-3 w-3 sm:h-4 sm:w-4" />
-          Видео ({confirmVideos.length})
+          {t.videos} ({confirmVideos.length})
         </TabsTrigger>
       </TabsList>
 
@@ -59,7 +66,7 @@ export const MediaUploadTabs: React.FC<MediaUploadTabsProps> = ({
             onDelete={onVideoDelete}
             maxVideos={5}
             productId={orderId}
-            buttonText="Загрузить видео подтверждения"
+            buttonText={t.uploadVideoButton}
             disabled={disabled}
           />
         </div>

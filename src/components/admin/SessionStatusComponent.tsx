@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface SessionStatusComponentProps {
   isComponentReady: boolean;
@@ -10,6 +11,7 @@ interface SessionStatusComponentProps {
   uploadError: string | null;
   onSessionRecovery: () => void;
   onReset: () => void;
+  isSeller?: boolean;
 }
 
 export const SessionStatusComponent: React.FC<SessionStatusComponentProps> = ({
@@ -17,14 +19,26 @@ export const SessionStatusComponent: React.FC<SessionStatusComponentProps> = ({
   sessionLost,
   uploadError,
   onSessionRecovery,
-  onReset
+  onReset,
+  isSeller
 }) => {
+  const { profile } = useAuth();
+  const isSellerUser = isSeller || profile?.user_type === 'seller';
+
+  const t = {
+    initializing: isSellerUser ? "Initializing component..." : "Инициализация компонента...",
+    sessionLost: isSellerUser 
+      ? "Session lost. Connection recovery required for file upload"
+      : "Сессия потеряна. Требуется восстановление соединения для загрузки файлов",
+    recover: isSellerUser ? "Recover" : "Восстановить",
+    tryAgain: isSellerUser ? "Try Again" : "Попробовать снова"
+  };
   if (!isComponentReady) {
     return (
       <Alert>
         <Loader2 className="h-4 w-4 animate-spin" />
         <AlertDescription className="text-xs sm:text-sm">
-          Инициализация компонента... Пожалуйста, подождите.
+          {t.initializing}
         </AlertDescription>
       </Alert>
     );
@@ -35,7 +49,7 @@ export const SessionStatusComponent: React.FC<SessionStatusComponentProps> = ({
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <span className="text-xs sm:text-sm">Сессия потеряна. Необходимо восстановить соединение для загрузки файлов.</span>
+          <span className="text-xs sm:text-sm">{t.sessionLost}</span>
           <Button 
             variant="outline" 
             size="sm" 
@@ -43,7 +57,7 @@ export const SessionStatusComponent: React.FC<SessionStatusComponentProps> = ({
             className="h-6 px-2 text-xs self-start sm:self-center"
           >
             <RefreshCw className="h-3 w-3 mr-1" />
-            Восстановить
+            {t.recover}
           </Button>
         </AlertDescription>
       </Alert>
@@ -62,7 +76,7 @@ export const SessionStatusComponent: React.FC<SessionStatusComponentProps> = ({
             onClick={onReset}
             className="h-6 px-2 text-xs self-start sm:self-center"
           >
-            Попробовать снова
+            {t.tryAgain}
           </Button>
         </AlertDescription>
       </Alert>

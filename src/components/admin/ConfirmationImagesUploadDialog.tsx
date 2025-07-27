@@ -2,6 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, SkipForward, Check, X } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -40,7 +41,25 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   onSkip,
   onCancel,
 }) => {
+  const { profile } = useAuth();
   const isMobile = useIsMobile();
+  const isSeller = profile?.user_type === 'seller';
+
+  // Translation helper
+  const t = {
+    title: isSeller ? "Order Confirmation Files Upload" : "Загрузка файлов подтверждения заказа",
+    description: isSeller 
+      ? "Upload photos and videos confirming order completion, or skip this step."
+      : "Загрузите фотографии и видео, подтверждающие выполнение заказа, или пропустите этот шаг.",
+    smartProcessing: isSeller ? "Smart Image Processing" : "Умная обработка изображений",
+    processingDescription: isSeller 
+      ? "Images are automatically optimized for fast loading: small files (<400KB) are not compressed, large ones are optimized to WebP format."
+      : "Изображения автоматически оптимизируются для быстрой загрузки: малые файлы (<400KB) не сжимаются, большие - оптимизируются до WebP формата.",
+    cancel: isSeller ? "Cancel" : "Отмена",
+    skip: isSeller ? "Skip" : "Пропустить",
+    saveAndContinue: isSeller ? "Save and Continue" : "Сохранить и продолжить",
+    saving: isSeller ? "Saving..." : "Сохранение..."
+  };
   const {
     confirmImages,
     confirmVideos,
@@ -79,6 +98,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
         uploadError={uploadError}
         onSessionRecovery={handleSessionRecovery}
         onReset={handleReset}
+        isSeller={isSeller}
       />
 
       {isComponentReady && !sessionLost && (
@@ -90,11 +110,10 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                 <Upload className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
                 <div className="text-sm">
                   <div className="font-medium text-blue-900 mb-1">
-                    Умная обработка изображений
+                    {t.smartProcessing}
                   </div>
                   <div className="text-blue-700 text-xs leading-relaxed">
-                    Изображения автоматически оптимизируются для быстрой загрузки: 
-                    малые файлы (&lt;400KB) не сжимаются, большие - оптимизируются до WebP формата.
+                    {t.processingDescription}
                   </div>
                 </div>
               </div>
@@ -110,6 +129,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
             onVideoDelete={handleVideoDelete}
             orderId={orderId}
             disabled={isDisabled}
+            isSeller={isSeller}
           />
 
           <UploadedFilesInfo
@@ -117,6 +137,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
             confirmImages={confirmImages}
             confirmVideos={confirmVideos}
             uploadError={uploadError}
+            isSeller={isSeller}
           />
         </>
       )}
@@ -131,7 +152,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
         disabled={isUploading}
         className="flex-1 sm:flex-none min-h-[44px] text-sm"
       >
-        Отмена
+        {t.cancel}
       </Button>
       <Button 
         variant="secondary" 
@@ -140,7 +161,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
         className="flex-1 sm:flex-none min-h-[44px] text-sm flex items-center gap-2"
       >
         <SkipForward className="h-4 w-4" />
-        Пропустить
+        {t.skip}
       </Button>
       <Button
         onClick={handleSaveMedia}
@@ -150,12 +171,12 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
         {isUploading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Сохранение...
+            {t.saving}
           </>
         ) : (
           <>
             <Check className="h-4 w-4" />
-            Сохранить и продолжить
+            {t.saveAndContinue}
           </>
         )}
       </Button>
@@ -178,10 +199,10 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           <SheetHeader className="text-left p-4 pb-2 border-b">
             <SheetTitle className="text-lg flex items-center gap-2">
               <Upload className="h-5 w-5" />
-              Загрузка файлов подтверждения заказа
+              {t.title}
             </SheetTitle>
             <SheetDescription className="text-sm">
-              Загрузите фотографии и видео, подтверждающие выполнение заказа, или пропустите этот шаг.
+              {t.description}
             </SheetDescription>
           </SheetHeader>
           
@@ -204,12 +225,12 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                 {isUploading ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin" />
-                    Сохранение...
+                    {t.saving}
                   </>
                 ) : (
                   <>
                     <Check className="h-5 w-5" />
-                    Сохранить и продолжить ({totalFiles})
+                    {t.saveAndContinue} ({totalFiles})
                   </>
                 )}
               </Button>
@@ -222,7 +243,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                   disabled={isUploading}
                   className="flex-1 min-h-[44px] text-sm"
                 >
-                  Отмена
+                  {t.cancel}
                 </Button>
                 <Button 
                   variant="secondary" 
@@ -231,7 +252,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                   className="flex-1 min-h-[44px] text-sm flex items-center gap-2"
                 >
                   <SkipForward className="h-4 w-4" />
-                  Пропустить
+                  {t.skip}
                 </Button>
               </div>
             </div>
@@ -247,10 +268,10 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
         <DialogHeader className="space-y-2 pb-2 sm:pb-4">
           <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
             <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
-            Загрузка файлов подтверждения заказа
+            {t.title}
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            Загрузите фотографии и видео, подтверждающие выполнение заказа, или пропустите этот шаг.
+            {t.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -266,7 +287,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
               disabled={isUploading}
               className="flex-1 sm:flex-none h-10 text-sm"
             >
-              Отмена
+              {t.cancel}
             </Button>
             <Button 
               variant="secondary" 
@@ -275,7 +296,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
               className="flex-1 sm:flex-none h-10 text-sm flex items-center gap-1"
             >
               <SkipForward className="h-3 w-3 sm:h-4 sm:w-4" />
-              Пропустить
+              {t.skip}
             </Button>
           </div>
           
@@ -287,12 +308,12 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
             {isUploading ? (
               <>
                 <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-                Сохранение...
+                {t.saving}
               </>
             ) : (
               <>
                 <Check className="h-3 w-3 sm:h-4 sm:w-4" />
-                Сохранить и продолжить
+                {t.saveAndContinue}
               </>
             )}
           </Button>
