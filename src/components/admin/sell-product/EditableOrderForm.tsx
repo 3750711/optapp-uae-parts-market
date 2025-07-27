@@ -46,6 +46,7 @@ interface EditableOrderFormProps {
     };
   }) => Promise<void>;
   isSubmitting: boolean;
+  isSeller?: boolean;
 }
 
 interface EditableData {
@@ -64,8 +65,177 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
   seller,
   buyer,
   onConfirm,
-  isSubmitting
+  isSubmitting,
+  isSeller = false
 }) => {
+  
+  // Translation objects
+  const translations = {
+    editOrder: {
+      ru: "Редактирование заказа",
+      en: "Edit Order"
+    },
+    cancel: {
+      ru: "Отменить",
+      en: "Cancel"
+    },
+    save: {
+      ru: "Сохранить",
+      en: "Save"
+    },
+    productName: {
+      ru: "Название товара *",
+      en: "Product Name *"
+    },
+    productNamePlaceholder: {
+      ru: "Введите название товара",
+      en: "Enter product name"
+    },
+    brand: {
+      ru: "Бренд",
+      en: "Brand"
+    },
+    brandPlaceholder: {
+      ru: "Введите бренд",
+      en: "Enter brand"
+    },
+    model: {
+      ru: "Модель",
+      en: "Model"
+    },
+    modelPlaceholder: {
+      ru: "Введите модель",
+      en: "Enter model"
+    },
+    price: {
+      ru: "Цена ($) *",
+      en: "Price ($) *"
+    },
+    deliveryMethod: {
+      ru: "Способ доставки",
+      en: "Delivery Method"
+    },
+    deliveryMethodPlaceholder: {
+      ru: "Выберите способ доставки",
+      en: "Select delivery method"
+    },
+    cargoRf: {
+      ru: "🚛 Доставка Cargo РФ",
+      en: "🚛 Cargo RF Delivery"
+    },
+    selfPickup: {
+      ru: "📦 Самовывоз",
+      en: "📦 Self Pickup"
+    },
+    cargoKz: {
+      ru: "🚚 Доставка Cargo KZ",
+      en: "🚚 Cargo KZ Delivery"
+    },
+    deliveryPrice: {
+      ru: "Цена доставки ($)",
+      en: "Delivery Price ($)"
+    },
+    placesCount: {
+      ru: "Количество мест *",
+      en: "Number of Places *"
+    },
+    additionalInfo: {
+      ru: "Дополнительная информация",
+      en: "Additional Information"
+    },
+    additionalInfoPlaceholder: {
+      ru: "Укажите дополнительную информацию по заказу",
+      en: "Specify additional order information"
+    },
+    productMedia: {
+      ru: "Медиафайлы товара",
+      en: "Product Media"
+    },
+    sellerLabel: {
+      ru: "Продавец",
+      en: "Seller"
+    },
+    buyerLabel: {
+      ru: "Покупатель",
+      en: "Buyer"
+    },
+    orderDetails: {
+      ru: "Детали заказа",
+      en: "Order Details"
+    },
+    edit: {
+      ru: "Редактировать",
+      en: "Edit"
+    },
+    productInfo: {
+      ru: "Информация о товаре",
+      en: "Product Information"
+    },
+    name: {
+      ru: "Название:",
+      en: "Name:"
+    },
+    brandLabel: {
+      ru: "Бренд:",
+      en: "Brand:"
+    },
+    modelLabel: {
+      ru: "Модель:",
+      en: "Model:"
+    },
+    priceLabel: {
+      ru: "Цена:",
+      en: "Price:"
+    },
+    delivery: {
+      ru: "Доставка:",
+      en: "Delivery:"
+    },
+    notSpecified: {
+      ru: "Не указан",
+      en: "Not specified"
+    },
+    notSpecifiedFemale: {
+      ru: "Не указана",
+      en: "Not specified"
+    },
+    orderParams: {
+      ru: "Параметры заказа",
+      en: "Order Parameters"
+    },
+    deliveryLabel: {
+      ru: "Доставка:",
+      en: "Delivery:"
+    },
+    placesCountLabel: {
+      ru: "Количество мест:",
+      en: "Number of places:"
+    },
+    total: {
+      ru: "Итого:",
+      en: "Total:"
+    },
+    validationError: {
+      ru: "Ошибка валидации",
+      en: "Validation Error"
+    },
+    productNameRequired: {
+      ru: "Название товара обязательно для заполнения",
+      en: "Product name is required"
+    },
+    priceRequired: {
+      ru: "Цена должна быть больше 0",
+      en: "Price must be greater than 0"
+    },
+    placesRequired: {
+      ru: "Количество мест должно быть больше 0",
+      en: "Number of places must be greater than 0"
+    }
+  };
+
+  const t = (key: keyof typeof translations) => {
+    return translations[key][isSeller ? 'en' : 'ru'];
+  };
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editableData, setEditableData] = useState<EditableData>({
@@ -125,8 +295,8 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
   const validateForm = (): boolean => {
     if (!editableData.title.trim()) {
       toast({
-        title: "Ошибка валидации",
-        description: "Название товара обязательно для заполнения",
+        title: t('validationError'),
+        description: t('productNameRequired'),
         variant: "destructive",
       });
       return false;
@@ -134,8 +304,8 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
 
     if (editableData.price <= 0) {
       toast({
-        title: "Ошибка валидации",
-        description: "Цена должна быть больше 0",
+        title: t('validationError'),
+        description: t('priceRequired'),
         variant: "destructive",
       });
       return false;
@@ -143,8 +313,8 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
 
     if (editableData.placeNumber <= 0) {
       toast({
-        title: "Ошибка валидации",
-        description: "Количество мест должно быть больше 0",
+        title: t('validationError'),
+        description: t('placesRequired'),
         variant: "destructive",
       });
       return false;
@@ -211,7 +381,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Редактирование заказа</h3>
+          <h3 className="text-lg font-semibold">{t('editOrder')}</h3>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -220,7 +390,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
               disabled={isSubmitting}
             >
               <X className="h-4 w-4 mr-1" />
-              Отменить
+              {t('cancel')}
             </Button>
             <Button
               size="sm"
@@ -228,7 +398,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
               disabled={isSubmitting}
             >
               <Save className="h-4 w-4 mr-1" />
-              Сохранить
+              {t('save')}
             </Button>
           </div>
         </div>
@@ -236,43 +406,43 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Название товара */}
           <div className="md:col-span-2">
-            <Label htmlFor="title">Название товара *</Label>
+            <Label htmlFor="title">{t('productName')}</Label>
             <Input
               id="title"
               value={editableData.title}
               onChange={(e) => updateField('title', e.target.value)}
-              placeholder="Введите название товара"
+              placeholder={t('productNamePlaceholder')}
               disabled={isSubmitting}
             />
           </div>
 
           {/* Бренд */}
           <div>
-            <Label htmlFor="brand">Бренд</Label>
+            <Label htmlFor="brand">{t('brand')}</Label>
             <Input
               id="brand"
               value={editableData.brand}
               onChange={(e) => updateField('brand', e.target.value)}
-              placeholder="Введите бренд"
+              placeholder={t('brandPlaceholder')}
               disabled={isSubmitting}
             />
           </div>
 
           {/* Модель */}
           <div>
-            <Label htmlFor="model">Модель</Label>
+            <Label htmlFor="model">{t('model')}</Label>
             <Input
               id="model"
               value={editableData.model}
               onChange={(e) => updateField('model', e.target.value)}
-              placeholder="Введите модель"
+              placeholder={t('modelPlaceholder')}
               disabled={isSubmitting}
             />
           </div>
 
           {/* Цена */}
           <div>
-            <Label htmlFor="price">Цена ($) *</Label>
+            <Label htmlFor="price">{t('price')}</Label>
             <Input
               id="price"
               type="number"
@@ -287,19 +457,19 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
 
           {/* Способ доставки */}
           <div>
-            <Label>Способ доставки</Label>
+            <Label>{t('deliveryMethod')}</Label>
             <Select
               value={editableData.deliveryMethod}
               onValueChange={(value) => updateField('deliveryMethod', value)}
               disabled={isSubmitting}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Выберите способ доставки" />
+                <SelectValue placeholder={t('deliveryMethodPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cargo_rf">🚛 Доставка Cargo РФ</SelectItem>
-                <SelectItem value="self_pickup">📦 Самовывоз</SelectItem>
-                <SelectItem value="cargo_kz">🚚 Доставка Cargo KZ</SelectItem>
+                <SelectItem value="cargo_rf">{t('cargoRf')}</SelectItem>
+                <SelectItem value="self_pickup">{t('selfPickup')}</SelectItem>
+                <SelectItem value="cargo_kz">{t('cargoKz')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -307,7 +477,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
           {/* Цена доставки - показываем только для Cargo РФ */}
           {editableData.deliveryMethod === 'cargo_rf' && (
             <div>
-              <Label htmlFor="deliveryPrice">Цена доставки ($)</Label>
+              <Label htmlFor="deliveryPrice">{t('deliveryPrice')}</Label>
               <Input
                 id="deliveryPrice"
                 type="number"
@@ -323,7 +493,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
 
           {/* Количество мест */}
           <div>
-            <Label htmlFor="placeNumber">Количество мест *</Label>
+            <Label htmlFor="placeNumber">{t('placesCount')}</Label>
             <Input
               id="placeNumber"
               type="number"
@@ -336,12 +506,12 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
 
           {/* Дополнительная информация */}
           <div className="md:col-span-2">
-            <Label htmlFor="textOrder">Дополнительная информация</Label>
+            <Label htmlFor="textOrder">{t('additionalInfo')}</Label>
             <Textarea
               id="textOrder"
               value={editableData.textOrder}
               onChange={(e) => updateField('textOrder', e.target.value)}
-              placeholder="Укажите дополнительную информацию по заказу"
+              placeholder={t('additionalInfoPlaceholder')}
               rows={3}
               disabled={isSubmitting}
             />
@@ -351,7 +521,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
         {/* Медиафайлы товара */}
         {product.product_images && product.product_images.length > 0 && (
           <div className="space-y-3">
-            <h4 className="font-medium">Медиафайлы товара ({product.product_images.length})</h4>
+            <h4 className="font-medium">{t('productMedia')} ({product.product_images.length})</h4>
             <Card>
               <CardContent className="p-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -374,12 +544,12 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
         {/* Информация об участниках */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
           <div className="bg-blue-50 p-3 rounded-lg">
-            <h4 className="font-medium text-blue-800 mb-2">Продавец</h4>
+            <h4 className="font-medium text-blue-800 mb-2">{t('sellerLabel')}</h4>
             <p className="text-sm text-blue-700">{seller.full_name}</p>
             <p className="text-xs text-blue-600">OPT ID: {seller.opt_id}</p>
           </div>
           <div className="bg-green-50 p-3 rounded-lg">
-            <h4 className="font-medium text-green-800 mb-2">Покупатель</h4>
+            <h4 className="font-medium text-green-800 mb-2">{t('buyerLabel')}</h4>
             <p className="text-sm text-green-700">{buyer.full_name}</p>
             <p className="text-xs text-green-600">OPT ID: {buyer.opt_id}</p>
           </div>
@@ -392,7 +562,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Детали заказа</h3>
+        <h3 className="text-lg font-semibold">{t('orderDetails')}</h3>
         <Button
           variant="outline"
           size="sm"
@@ -400,34 +570,34 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
           disabled={isSubmitting}
         >
           <Edit3 className="h-4 w-4 mr-1" />
-          Редактировать
+          {t('edit')}
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white border rounded-lg p-4">
-          <h4 className="font-medium mb-3">Информация о товаре</h4>
+          <h4 className="font-medium mb-3">{t('productInfo')}</h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">Название:</span>
+              <span className="text-gray-600">{t('name')}</span>
               <span className="font-medium">{editableData.title}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Бренд:</span>
-              <span className="font-medium">{editableData.brand || 'Не указан'}</span>
+              <span className="text-gray-600">{t('brandLabel')}</span>
+              <span className="font-medium">{editableData.brand || t('notSpecified')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Модель:</span>
-              <span className="font-medium">{editableData.model || 'Не указана'}</span>
+              <span className="text-gray-600">{t('modelLabel')}</span>
+              <span className="font-medium">{editableData.model || t('notSpecifiedFemale')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Цена:</span>
+              <span className="text-gray-600">{t('priceLabel')}</span>
               <span className="font-medium text-green-600">${editableData.price}</span>
             </div>
             {/* Показываем стоимость доставки только для Cargo РФ и если она больше 0 */}
             {shouldShowDeliveryPrice() && (
               <div className="flex justify-between">
-                <span className="text-gray-600">Доставка:</span>
+                <span className="text-gray-600">{t('delivery')}</span>
                 <span className="font-medium text-orange-600">${editableData.deliveryPrice}</span>
               </div>
             )}
@@ -435,22 +605,22 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
         </div>
 
         <div className="bg-white border rounded-lg p-4">
-          <h4 className="font-medium mb-3">Параметры заказа</h4>
+          <h4 className="font-medium mb-3">{t('orderParams')}</h4>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">Доставка:</span>
+              <span className="text-gray-600">{t('deliveryLabel')}</span>
               <span className="font-medium">
-                {editableData.deliveryMethod === 'self_pickup' ? '📦 Самовывоз' :
-                 editableData.deliveryMethod === 'cargo_rf' ? '🚛 Cargo РФ' :
-                 editableData.deliveryMethod === 'cargo_kz' ? '🚚 Cargo KZ' : editableData.deliveryMethod}
+                {editableData.deliveryMethod === 'self_pickup' ? t('selfPickup') :
+                 editableData.deliveryMethod === 'cargo_rf' ? t('cargoRf') :
+                 editableData.deliveryMethod === 'cargo_kz' ? t('cargoKz') : editableData.deliveryMethod}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Количество мест:</span>
+              <span className="text-gray-600">{t('placesCountLabel')}</span>
               <span className="font-medium">{editableData.placeNumber}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Итого:</span>
+              <span className="text-gray-600">{t('total')}</span>
               <span className="font-bold text-lg text-green-600">
                 ${getTotalPrice()}
               </span>
@@ -462,7 +632,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
       {/* Медиафайлы товара в режиме просмотра */}
       {product.product_images && product.product_images.length > 0 && (
         <div className="space-y-3">
-          <h4 className="font-medium">Медиафайлы товара ({product.product_images.length})</h4>
+          <h4 className="font-medium">{t('productMedia')} ({product.product_images.length})</h4>
           <Card>
             <CardContent className="p-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -484,19 +654,19 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
 
       {editableData.textOrder && (
         <div className="bg-gray-50 p-4 rounded-lg">
-          <h4 className="font-medium mb-2">Дополнительная информация</h4>
+          <h4 className="font-medium mb-2">{t('additionalInfo')}</h4>
           <p className="text-sm text-gray-700 whitespace-pre-wrap">{editableData.textOrder}</p>
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
         <div className="bg-blue-50 p-3 rounded-lg">
-          <h4 className="font-medium text-blue-800 mb-2">Продавец</h4>
+          <h4 className="font-medium text-blue-800 mb-2">{t('sellerLabel')}</h4>
           <p className="text-sm text-blue-700">{seller.full_name}</p>
           <p className="text-xs text-blue-600">OPT ID: {seller.opt_id}</p>
         </div>
         <div className="bg-green-50 p-3 rounded-lg">
-          <h4 className="font-medium text-green-800 mb-2">Покупатель</h4>
+          <h4 className="font-medium text-green-800 mb-2">{t('buyerLabel')}</h4>
           <p className="text-sm text-green-700">{buyer.full_name}</p>
           <p className="text-xs text-green-600">OPT ID: {buyer.opt_id}</p>
         </div>
@@ -524,7 +694,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
           disabled={isSubmitting}
           className="bg-green-600 hover:bg-green-700"
         >
-          {isSubmitting ? 'Создание заказа...' : 'Подтвердить заказ'}
+          {isSubmitting ? (isSeller ? 'Creating order...' : 'Создание заказа...') : (isSeller ? 'Confirm Order' : 'Подтвердить заказ')}
         </Button>
       </div>
     </div>

@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import EditableOrderForm from "./sell-product/EditableOrderForm";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface OrderData {
   id: string;
@@ -101,6 +102,88 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   buyer,
   onCancel,
 }) => {
+  const { profile } = useAuth();
+  const isSeller = profile?.user_type === 'seller';
+
+  // Translation objects
+  const translations = {
+    loading: {
+      ru: "Загрузка заказа...",
+      en: "Loading order..."
+    },
+    loadingDesc: {
+      ru: "Пожалуйста, подождите.",
+      en: "Please wait."
+    },
+    error: {
+      ru: "Ошибка",
+      en: "Error"
+    },
+    errorDesc: {
+      ru: "Не удалось загрузить информацию о заказе.",
+      en: "Failed to load order information."
+    },
+    confirmTitle: {
+      ru: "Подтверждение заказа",
+      en: "Order Confirmation"
+    },
+    confirmDesc: {
+      ru: "Проверьте и при необходимости отредактируйте детали заказа перед подтверждением.",
+      en: "Review and edit order details if needed before confirmation."
+    },
+    cancel: {
+      ru: "Отменить",
+      en: "Cancel"
+    },
+    orderInfo: {
+      ru: "Информация о заказе",
+      en: "Order Information"
+    },
+    orderDetails: {
+      ru: "Детали заказа для просмотра.",
+      en: "Order details for review."
+    },
+    close: {
+      ru: "Закрыть",
+      en: "Close"
+    },
+    creationDate: {
+      ru: "Дата создания:",
+      en: "Creation date:"
+    },
+    deliveryMethod: {
+      ru: "Способ доставки:",
+      en: "Delivery method:"
+    },
+    placesCount: {
+      ru: "Количество мест:",
+      en: "Number of places:"
+    },
+    seller: {
+      ru: "Продавец:",
+      en: "Seller:"
+    },
+    orderSum: {
+      ru: "Сумма заказа:",
+      en: "Order amount:"
+    },
+    additionalInfo: {
+      ru: "Дополнительная информация:",
+      en: "Additional information:"
+    },
+    sellerInfo: {
+      ru: "Информация о продавце:",
+      en: "Seller information:"
+    },
+    buyerInfo: {
+      ru: "Информация о покупателе:",
+      en: "Buyer information:"
+    }
+  };
+
+  const t = (key: keyof typeof translations) => {
+    return translations[key][isSeller ? 'en' : 'ru'];
+  };
   const { data: order, isLoading, isError } = useQuery({
     queryKey: ["order", orderId],
     queryFn: async () => {
@@ -167,8 +250,8 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Загрузка заказа...</DialogTitle>
-            <DialogDescription>Пожалуйста, подождите.</DialogDescription>
+            <DialogTitle>{t('loading')}</DialogTitle>
+            <DialogDescription>{t('loadingDesc')}</DialogDescription>
           </DialogHeader>
         </DialogContent>
       </Dialog>
@@ -180,8 +263,8 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Ошибка</DialogTitle>
-            <DialogDescription>Не удалось загрузить информацию о заказе.</DialogDescription>
+            <DialogTitle>{t('error')}</DialogTitle>
+            <DialogDescription>{t('errorDesc')}</DialogDescription>
           </DialogHeader>
         </DialogContent>
       </Dialog>
@@ -194,9 +277,9 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Подтверждение заказа</DialogTitle>
+            <DialogTitle>{t('confirmTitle')}</DialogTitle>
             <DialogDescription>
-              Проверьте и при необходимости отредактируйте детали заказа перед подтверждением.
+              {t('confirmDesc')}
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[70vh] pr-4">
@@ -206,11 +289,12 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
               buyer={buyer}
               onConfirm={onConfirm}
               isSubmitting={isSubmitting || false}
+              isSeller={isSeller}
             />
           </ScrollArea>
           <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
             <Button variant="secondary" onClick={onCancel || handleClose}>
-              Отменить
+              {t('cancel')}
             </Button>
           </div>
         </DialogContent>
@@ -223,9 +307,9 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Информация о заказе</DialogTitle>
+          <DialogTitle>{t('orderInfo')}</DialogTitle>
           <DialogDescription>
-            Детали заказа для просмотра.
+            {t('orderDetails')}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-[80vh] w-full">
@@ -235,37 +319,37 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                 <div className="flex items-center space-x-4">
                   <Calendar className="h-4 w-4 text-gray-500" />
                   <span>
-                    Дата создания:{" "}
+                    {t('creationDate')}{" "}
                     {displayData ? new Date(displayData.created_at).toLocaleDateString() : 'N/A'}
                   </span>
                 </div>
                 <div className="flex items-center space-x-4">
                   <Truck className="h-4 w-4 text-gray-500" />
-                  <span>Способ доставки: {displayData?.deliveryMethod || 'self_pickup'}</span>
+                  <span>{t('deliveryMethod')} {displayData?.deliveryMethod || 'self_pickup'}</span>
                 </div>
                 <div className="flex items-center space-x-4">
                   <Package className="h-4 w-4 text-gray-500" />
-                  <span>Количество мест: {displayData?.place_number || 1}</span>
+                  <span>{t('placesCount')} {displayData?.place_number || 1}</span>
                 </div>
                 {(displayData?.profiles || seller) && (
                   <div className="flex items-center space-x-4">
                     <User className="h-4 w-4 text-gray-500" />
-                    <span>Продавец: {displayData?.profiles?.full_name || seller?.full_name}</span>
+                    <span>{t('seller')} {displayData?.profiles?.full_name || seller?.full_name}</span>
                   </div>
                 )}
                 <div className="flex items-center space-x-4">
                   <DollarSign className="h-4 w-4 text-gray-500" />
-                  <span>Сумма заказа: {displayData?.total_sum || product?.price}</span>
+                  <span>{t('orderSum')} {displayData?.total_sum || product?.price}</span>
                 </div>
                 <div className="flex items-center space-x-4">
                   <MessageSquare className="h-4 w-4 text-gray-500" />
-                  <span>Дополнительная информация: {displayData?.text_order || product?.title}</span>
+                  <span>{t('additionalInfo')} {displayData?.text_order || product?.title}</span>
                 </div>
                 {(displayData?.profiles || seller) && (
                   <>
                     <Separator />
                     <div className="space-y-2">
-                      <div className="text-sm font-bold">Информация о продавце:</div>
+                      <div className="text-sm font-bold">{t('sellerInfo')}</div>
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4 text-gray-500" />
                         <span>{displayData?.profiles?.full_name || seller?.full_name}</span>
@@ -289,7 +373,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                   <>
                     <Separator />
                     <div className="space-y-2">
-                      <div className="text-sm font-bold">Информация о покупателе:</div>
+                      <div className="text-sm font-bold">{t('buyerInfo')}</div>
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4 text-gray-500" />
                         <span>{buyer.full_name}</span>
@@ -337,7 +421,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
         </ScrollArea>
         <div className="flex justify-end space-x-2 mt-4">
           <Button variant="secondary" onClick={handleClose}>
-            Закрыть
+            {t('close')}
           </Button>
         </div>
       </DialogContent>
