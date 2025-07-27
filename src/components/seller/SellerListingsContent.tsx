@@ -385,9 +385,9 @@ const SellerListingsContent = () => {
           {activeSearch && (
             <div className="mt-3 text-sm text-muted-foreground">
               {/^\d+$/.test(activeSearch) ? (
-                <span>Поиск по номеру лота/места: {activeSearch}</span>
+                <span>Search by lot/place number: {activeSearch}</span>
               ) : (
-                <span>Поиск по тексту: "{activeSearch}"</span>
+                <span>Text search: "{activeSearch}"</span>
               )}
             </div>
           )}
