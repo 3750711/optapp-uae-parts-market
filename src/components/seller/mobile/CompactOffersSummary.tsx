@@ -157,7 +157,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
         <div className="space-y-2">
           <div className="text-sm font-medium text-foreground mb-2">All Offers</div>
           {sortedOffers.slice(0, 7).map((offer, index) => (
-            <div key={offer.id} className="bg-muted/50 p-3 rounded-lg border">
+            <div key={offer.id} className={`p-3 rounded-lg border ${offer.status === 'pending' ? 'bg-green-50 border-green-200' : 'bg-muted/50'}`}>
               <div className="flex items-center justify-between mb-2">
                 <div className="font-semibold text-foreground text-sm">
                   {formatPrice(offer.offered_price)}
