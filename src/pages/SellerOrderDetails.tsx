@@ -179,9 +179,13 @@ const SellerOrderDetails = () => {
 
   const isOrderSeller = order.seller_id === user?.id;
   const isSelfOrder = order.seller_id === order.buyer_id;
-  // Объединяем видео из поля video_url и из таблицы order_videos
-  const allVideos = [...(order.video_url || []), ...videos];
-  const allImages = [...(order.images || []), ...images];
+  
+  // Функция для дедупликации массива по значению
+  const deduplicateArray = (arr: string[]) => [...new Set(arr)];
+  
+  // Объединяем видео из поля video_url и из таблицы order_videos с дедупликацией
+  const allVideos = deduplicateArray([...videos, ...(order.video_url || [])]);
+  const allImages = deduplicateArray([...images, ...(order.images || [])]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
