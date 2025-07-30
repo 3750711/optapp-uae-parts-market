@@ -33,6 +33,27 @@ interface CustomRPCFunctions {
     p_user_id: string;
     p_updates: Record<string, any>;
   }) => { success: boolean; message: string };
+
+  seller_create_order: (args: {
+    p_title: string;
+    p_price: number;
+    p_place_number: number;
+    p_seller_id: string;
+    p_order_seller_name: string;
+    p_seller_opt_id: string;
+    p_buyer_id: string;
+    p_brand: string;
+    p_model: string;
+    p_status: 'created' | 'seller_confirmed' | 'processed' | 'cancelled';
+    p_order_created_type: 'free_order' | 'product_order';
+    p_telegram_url_order: string | null;
+    p_images: string[];
+    p_product_id: string | null;
+    p_delivery_method: 'self_pickup' | 'delivery';
+    p_text_order: string | null;
+    p_delivery_price_confirm: number | null;
+    p_videos?: string[];
+  }) => string; // Returns UUID
 }
 
 // Extend the built-in Database type
