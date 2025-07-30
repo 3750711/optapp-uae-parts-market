@@ -1,6 +1,6 @@
 // Authentication utilities for admin notifications
 
-export async function verifyAdminAccess(supabaseClient: any, authHeader: string) {
+export async function verifyAuthentication(supabaseClient: any, authHeader: string) {
   if (!authHeader) {
     throw new Error('Authorization header is required');
   }
@@ -15,10 +15,10 @@ export async function verifyAdminAccess(supabaseClient: any, authHeader: string)
     throw new Error('Invalid or expired token');
   }
 
-  // Check if user is admin
+  // Get user profile for additional information
   const { data: profile, error: profileError } = await supabaseClient
     .from('profiles')
-    .select('user_type')
+    .select('user_type, full_name, opt_id')
     .eq('id', user.id)
     .single();
 
@@ -27,9 +27,5 @@ export async function verifyAdminAccess(supabaseClient: any, authHeader: string)
     throw new Error('User profile not found');
   }
 
-  if (profile.user_type !== 'admin') {
-    throw new Error('Admin access required');
-  }
-
-  return user;
+  return { user, profile };
 }
