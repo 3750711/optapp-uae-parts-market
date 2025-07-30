@@ -27,7 +27,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
       case "expired":
         return <Badge variant="secondary">Expired</Badge>;
       case "cancelled":
-        return <Badge variant="outline">Cancelled</Badge>;
+        return <Badge variant="outline" className="whitespace-nowrap">Cancelled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -70,7 +70,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
           </div>
           {offer.buyer_profile?.telegram && (
             <div className="text-xs text-muted-foreground">
-              @{offer.buyer_profile.telegram}
+              {offer.buyer_profile.telegram.startsWith('@') ? offer.buyer_profile.telegram : `@${offer.buyer_profile.telegram}`}
             </div>
           )}
         </div>
