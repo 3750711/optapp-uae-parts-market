@@ -17,13 +17,16 @@ export const useInlineEdit = ({ productId, onUpdate }: UseInlineEditProps) => {
     setIsUpdating(true);
     
     try {
-      // Optimistic update
-      queryClient.setQueryData(['seller-product', productId], (oldData: any) => {
-        if (oldData) {
-          return { ...oldData, [field]: value };
-        }
-        return oldData;
-      });
+      // Only perform optimistic update if we have existing data
+      const existingData = queryClient.getQueryData(['seller-product', productId]);
+      if (existingData) {
+        queryClient.setQueryData(['seller-product', productId], (oldData: any) => {
+          if (oldData) {
+            return { ...oldData, [field]: value };
+          }
+          return oldData;
+        });
+      }
 
       const { error } = await supabase
         .from('products')

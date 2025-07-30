@@ -19,11 +19,11 @@ export const MobileStabilizer: React.FC<MobileStabilizerProps> = ({
   const [stabilizedValue, setStabilizedValue] = useState(false);
 
   useEffect(() => {
-    // Wait for next tick to ensure hooks are stable
+    // Wait longer than useIsMobile stabilization (100ms) to ensure consistency
     const stabilizeTimer = setTimeout(() => {
       setStabilizedValue(isMobile);
       setIsStabilized(true);
-    }, 50);
+    }, 150);
 
     return () => clearTimeout(stabilizeTimer);
   }, [isMobile]);

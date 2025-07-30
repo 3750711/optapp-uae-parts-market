@@ -32,7 +32,10 @@ const SellerProductDetail = () => {
   const { user, profile } = useAuth();
   const isMobile = useIsMobile();
   
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(() => {
+    // Initialize with first available image to prevent dependency cycles
+    return null;
+  });
   
   // Initialize inline edit hooks at the top level to avoid conditional hook usage
   const {
@@ -105,6 +108,10 @@ const SellerProductDetail = () => {
     }),
     enabled: !!id && !!user && profile?.user_type === 'seller',
     retry: false, // Don't retry for security errors
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
+    refetchOnMount: false,
+    refetchOnWindowFocus: false
   });
   
   // Handle back navigation
