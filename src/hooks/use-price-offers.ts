@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CreatePriceOfferData, PriceOffer, UpdatePriceOfferData } from '@/types/price-offer';
 import { toast } from 'sonner';
 import { useBatchOffersInvalidation } from './use-price-offers-batch';
+import { useEffect } from 'react';
 
 // Hook для проверки существующего предложения пользователя
 export const useCheckPendingOffer = (productId: string, enabled: boolean = true) => {
@@ -217,11 +218,12 @@ export const useProductOffers = (productId: string, enabled: boolean = true) => 
   });
 };
 
-// Hook для получения предложений покупателя
+// Hook для получения предложений покупателя с real-time обновлениями
 export const useBuyerPriceOffers = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
-  return useQuery({
+  const query = useQuery({
     queryKey: ['buyer-price-offers', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -254,13 +256,52 @@ export const useBuyerPriceOffers = () => {
     },
     enabled: !!user?.id,
   });
+
+  // Set up real-time subscription for buyer price offers
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('Setting up real-time subscription for buyer price offers');
+
+    const channel = supabase
+      .channel('buyer-price-offers-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'price_offers',
+          filter: `buyer_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Buyer price offer change detected:', payload);
+          
+          // Show notification if offer was cancelled
+          if (payload.eventType === 'UPDATE' && payload.new?.status === 'cancelled') {
+            toast.info('One of your offers was cancelled because the product has been sold to another buyer.');
+          }
+          
+          // Invalidate and refetch the query
+          queryClient.invalidateQueries({ queryKey: ['buyer-price-offers', user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time subscription for buyer price offers');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
+
+  return query;
 };
 
-// Hook для получения предложений продавца
+// Hook для получения предложений продавца с real-time обновлениями
 export const useSellerPriceOffers = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
-  return useQuery({
+  const query = useQuery({
     queryKey: ['seller-price-offers', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -294,6 +335,53 @@ export const useSellerPriceOffers = () => {
     },
     enabled: !!user?.id,
   });
+
+  // Set up real-time subscription for price offers
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('Setting up real-time subscription for seller price offers');
+
+    const channel = supabase
+      .channel('seller-price-offers-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'price_offers',
+          filter: `seller_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Price offer change detected:', payload);
+          // Invalidate and refetch the query
+          queryClient.invalidateQueries({ queryKey: ['seller-price-offers', user.id] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'products',
+        },
+        (payload) => {
+          console.log('Product status change detected:', payload);
+          // If product status changed to sold, refresh price offers
+          if (payload.new?.status === 'sold') {
+            queryClient.invalidateQueries({ queryKey: ['seller-price-offers', user.id] });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up real-time subscription for seller price offers');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
+
+  return query;
 };
 
 // Hook для админа для получения всех предложений

@@ -1347,6 +1347,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_orphaned_pending_offers: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       cleanup_verification_codes_for_email: {
         Args: { p_email: string }
         Returns: Json
