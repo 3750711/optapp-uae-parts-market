@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Store, Activity, Plus, Car, FileText, Package, MessageSquare, DollarSign } from 'lucide-react';
+import { Store, Activity, Plus, Car, FileText, Package, MessageSquare, DollarSign, CheckSquare } from 'lucide-react';
 import ActionCard from './ActionCard';
 
 const AdminActionsSection: React.FC = () => {
@@ -63,6 +63,14 @@ const AdminActionsSection: React.FC = () => {
       icon: DollarSign,
       link: "/admin/price-offers",
       bgColor: "bg-green-600",
+      textColor: "text-white"
+    },
+    {
+      title: "Product Moderation",
+      subtitle: "Review and publish pending products",
+      icon: CheckSquare,
+      link: "/admin/product-moderation",
+      bgColor: "bg-orange-500",
       textColor: "text-white"
     }
   ];
