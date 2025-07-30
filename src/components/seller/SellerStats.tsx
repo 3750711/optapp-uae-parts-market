@@ -14,6 +14,7 @@ import {
   Clock
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { sellerDashboardTranslations } from "@/utils/translations/sellerDashboard";
 
 const SellerStats = () => {
   const { user } = useAuth();
@@ -83,12 +84,12 @@ const SellerStats = () => {
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6">
           <div className="text-center">
-            <p className="text-red-600 mb-2">Ошибка загрузки статистики</p>
+            <p className="text-red-600 mb-2">{sellerDashboardTranslations.stats.errorLoading}</p>
             <button 
               onClick={() => refetch()}
               className="text-sm text-red-800 underline hover:no-underline"
             >
-              Попробовать снова
+              {sellerDashboardTranslations.stats.retry}
             </button>
           </div>
         </CardContent>
@@ -116,70 +117,70 @@ const SellerStats = () => {
 
   const statsCards = [
     {
-      title: "Всего товаров",
+      title: "Total Products",
       value: stats?.totalProducts || 0,
       icon: Package,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      detail: `${stats?.activeProducts || 0} активных`
+      detail: `${stats?.activeProducts || 0} active`
     },
     {
-      title: "Ожидающие",
+      title: "Pending",
       value: stats?.pendingProducts || 0,
       icon: Clock,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
-      detail: "товаров на модерации"
+      detail: "products in review"
     },
     {
-      title: "Продано",
+      title: "Sold",
       value: stats?.soldProducts || 0,
       icon: TrendingUp,
       color: "text-green-600",
       bgColor: "bg-green-50",
-      detail: "товаров всего"
+      detail: "products total"
     },
     {
-      title: "Всего заказов",
+      title: "Total Orders",
       value: stats?.totalOrders || 0,
       icon: ShoppingCart,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
-      detail: `${stats?.completedOrders || 0} завершено`
+      detail: `${stats?.completedOrders || 0} completed`
     },
     {
-      title: "Активные заказы",
+      title: "Active Orders",
       value: stats?.pendingOrders || 0,
       icon: Eye,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
-      detail: "в обработке"
+      detail: "in progress"
     },
     {
-      title: "Общий доход",
+      title: "Total Revenue",
       value: `${(stats?.totalRevenue || 0).toLocaleString()} AED`,
       icon: DollarSign,
       color: "text-green-600",
       bgColor: "bg-green-50",
-      detail: "за все время",
+      detail: "all time",
       isRevenue: true
     },
     {
-      title: "За месяц",
+      title: "This Month",
       value: `${(stats?.monthlyRevenue || 0).toLocaleString()} AED`,
       icon: TrendingUp,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      detail: `${stats?.recentOrdersCount || 0} заказов`,
+      detail: `${stats?.recentOrdersCount || 0} orders`,
       isRevenue: true
     },
     {
-      title: "Средний чек",
+      title: "Average Order",
       value: `${(stats?.averageOrderValue || 0).toFixed(0)} AED`,
       icon: DollarSign,
       color: "text-indigo-600",
       bgColor: "bg-indigo-50",
-      detail: "на заказ",
+      detail: "per order",
       isRevenue: true
     }
   ];
@@ -187,9 +188,9 @@ const SellerStats = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Статистика</h3>
+        <h3 className="text-lg font-semibold">Statistics</h3>
         <Badge variant="outline" className="text-xs">
-          Обновлено: {new Date().toLocaleTimeString()}
+          {sellerDashboardTranslations.stats.lastUpdated}: {new Date().toLocaleTimeString()}
         </Badge>
       </div>
       

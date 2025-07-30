@@ -4,6 +4,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
+import { sellerDashboardTranslations } from "@/utils/translations/sellerDashboard";
 
 // SVG Icons as components for better performance
 const PlusCircleIcon = memo(() => (
@@ -98,7 +99,7 @@ const FastSellerDashboard = memo(() => {
 
   const handleContactAdmin = useCallback(() => {
     try {
-      const userDataText = `Hello, I need assistance. My ID is ${profile?.opt_id || 'Not specified'}`;
+      const userDataText = `${sellerDashboardTranslations.contactAdminMessage} ${profile?.opt_id || sellerDashboardTranslations.notSpecified}`;
       const encodedText = encodeURIComponent(userDataText);
       const telegramLink = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
       window.open(telegramLink, '_blank');
@@ -111,43 +112,43 @@ const FastSellerDashboard = memo(() => {
     {
       to: "/seller/add-product",
       icon: PlusCircleIcon,
-      title: "Add Product",
-      description: "List a new product on the marketplace",
+      title: sellerDashboardTranslations.addProduct.title,
+      description: sellerDashboardTranslations.addProduct.description,
       color: "border-green-200 hover:border-green-300 hover:bg-green-50"
     },
     {
       to: "/seller/listings",
       icon: FileTextIcon,
-      title: "My Warehouse",
-      description: "View all your warehouse products",
+      title: sellerDashboardTranslations.myWarehouse.title,
+      description: sellerDashboardTranslations.myWarehouse.description,
       color: "border-blue-200 hover:border-blue-300 hover:bg-blue-50"
     },
     {
       to: "/seller/sell-product",
       icon: ShoppingCartIcon,
-      title: "Sell Product",
-      description: "Create an order from your products",
+      title: sellerDashboardTranslations.sellProduct.title,
+      description: sellerDashboardTranslations.sellProduct.description,
       color: "border-purple-200 hover:border-purple-300 hover:bg-purple-50"
     },
     {
       to: "/seller/price-offers",
       icon: DollarSignIcon,
-      title: "Price Offers",
-      description: "Manage price offers from buyers",
+      title: sellerDashboardTranslations.priceOffers.title,
+      description: sellerDashboardTranslations.priceOffers.description,
       color: "border-teal-200 hover:border-teal-300 hover:bg-teal-50"
     },
     {
       to: "/seller/create-order",
       icon: ShoppingBagIcon,
-      title: "Create Order",
-      description: "Process a new order",
+      title: sellerDashboardTranslations.createOrder.title,
+      description: sellerDashboardTranslations.createOrder.description,
       color: "border-orange-200 hover:border-orange-300 hover:bg-orange-50"
     },
     {
       to: "/seller/orders",
       icon: ListOrderedIcon,
-      title: "My Orders",
-      description: "View and manage orders",
+      title: sellerDashboardTranslations.myOrders.title,
+      description: sellerDashboardTranslations.myOrders.description,
       color: "border-red-200 hover:border-red-300 hover:bg-red-50"
     }
   ], []);
@@ -155,8 +156,8 @@ const FastSellerDashboard = memo(() => {
   const contactAdminItem = useMemo(() => ({
     onClick: handleContactAdmin,
     icon: MessageCircleIcon,
-    title: "Contact Admin",
-    description: "Get help from administrator",
+    title: sellerDashboardTranslations.contactAdmin.title,
+    description: sellerDashboardTranslations.contactAdmin.description,
     color: "border-yellow-200 hover:border-yellow-300 hover:bg-yellow-50"
   }), [handleContactAdmin]);
 
@@ -164,8 +165,8 @@ const FastSellerDashboard = memo(() => {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold">Seller Dashboard</h2>
-          <p className="text-muted-foreground mt-1">Manage your products and orders</p>
+          <h2 className="text-2xl sm:text-3xl font-bold">{sellerDashboardTranslations.pageTitle}</h2>
+          <p className="text-muted-foreground mt-1">{sellerDashboardTranslations.pageSubtitle}</p>
         </div>
         <Link to="/seller/profile-menu" className="shrink-0">
           <Avatar className={`${isMobile ? 'h-10 w-10' : 'h-12 w-12'} hover:scale-110 transition-transform cursor-pointer border-2 border-primary/20 bg-background`}>

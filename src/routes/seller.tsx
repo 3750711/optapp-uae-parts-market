@@ -3,7 +3,7 @@ import React, { lazy } from 'react';
 import { Route } from 'react-router-dom';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
-// Lazy loaded продавецкие страницы
+// Lazy loaded seller pages
 const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
 const SellerListings = lazy(() => import('@/pages/SellerListings'));
 const SellerAddProduct = lazy(() => import('@/pages/SellerAddProduct'));
