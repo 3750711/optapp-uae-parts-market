@@ -20,7 +20,7 @@ const SellerLayout: React.FC<SellerLayoutProps> = ({ children, className }) => {
   }, []);
 
   const handleBackToDashboard = () => {
-    navigate('/seller/dashboard');
+    navigate('/seller/orders');
   };
 
   return (
@@ -34,7 +34,7 @@ const SellerLayout: React.FC<SellerLayoutProps> = ({ children, className }) => {
             className="flex items-center gap-2"
           >
             <ChevronLeft className="h-4 w-4" />
-            Back to Dashboard
+            Back to Orders
           </Button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
+import SellerLayout from '@/components/layout/SellerLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -124,22 +125,24 @@ const SellerOrderDetails = () => {
     enabled: !!id && !!user && !!order
   });
 
+  const LayoutComponent = isSeller ? SellerLayout : Layout;
+
   if (isLoading) {
     return (
-      <Layout>
+      <LayoutComponent>
         <div className="container mx-auto py-8 flex justify-center">
           <div className="flex items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <span className="text-lg text-muted-foreground">{t.loading}</span>
           </div>
         </div>
-      </Layout>
+      </LayoutComponent>
     );
   }
 
   if (error || !order) {
     return (
-      <Layout>
+      <LayoutComponent>
         <div className="container mx-auto py-8">
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
@@ -152,7 +155,7 @@ const SellerOrderDetails = () => {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </LayoutComponent>
     );
   }
 
@@ -160,7 +163,7 @@ const SellerOrderDetails = () => {
   const canViewOrder = user && (order.seller_id === user.id || order.buyer_id === user.id);
   if (!canViewOrder) {
     return (
-      <Layout>
+      <LayoutComponent>
         <div className="container mx-auto py-8">
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
@@ -173,7 +176,7 @@ const SellerOrderDetails = () => {
             </CardContent>
           </Card>
         </div>
-      </Layout>
+      </LayoutComponent>
     );
   }
 
@@ -275,7 +278,7 @@ const SellerOrderDetails = () => {
   };
 
   return (
-    <Layout>
+    <LayoutComponent>
       <div className="container mx-auto py-8 max-w-5xl">
         {/* Header Card */}
         <Card className="mb-8 overflow-hidden">
@@ -603,7 +606,7 @@ const SellerOrderDetails = () => {
           </Dialog>
         )}
       </div>
-    </Layout>
+    </LayoutComponent>
   );
 };
 
