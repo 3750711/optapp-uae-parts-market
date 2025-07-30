@@ -1,29 +1,18 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SellerLayout from "@/components/layout/SellerLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
-  Clock,
-  Package,
-  Check,
-  X,
   RefreshCw,
-  AlertCircle,
-  MessageSquare,
   DollarSign,
-  ChevronLeft,
-  User,
-  Phone,
-  Star,
   ShoppingCart
 } from "lucide-react";
-import { useSellerPriceOffers, useUpdatePriceOffer } from "@/hooks/use-price-offers";
+import { useUpdatePriceOffer } from "@/hooks/use-price-offers";
+import { useSellerOffersGrouped } from "@/hooks/useSellerOffersGrouped";
 import { PriceOffer } from "@/types/price-offer";
-import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -33,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/utils/formatPrice";
+import { ProductOffersCard } from "@/components/offers/ProductOffersCard";
 
 const SellerPriceOffers = () => {
   const navigate = useNavigate();
@@ -45,45 +35,11 @@ const SellerPriceOffers = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { profile } = useAuth();
-  const { data: offers, isLoading } = useSellerPriceOffers();
+  const { data: groupedOffers, isLoading } = useSellerOffersGrouped();
   const updateOffer = useUpdatePriceOffer();
 
   const handleGoBack = () => {
     navigate('/seller/dashboard');
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">New Offer</Badge>;
-      case "accepted":
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Accepted</Badge>;
-      case "rejected":
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Rejected</Badge>;
-      case "expired":
-        return <Badge variant="secondary">Expired</Badge>;
-      case "cancelled":
-        return <Badge variant="outline">Cancelled</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const getTimeRemaining = (expiresAt: string) => {
-    const expirationTime = new Date(expiresAt);
-    const now = new Date();
-    
-    if (expirationTime <= now) {
-      return "Expired";
-    }
-    
-    return `Expires ${formatDistanceToNow(expirationTime, {
-      addSuffix: true,
-    })}`;
-  };
-
-  const isOfferExpired = (expiresAt: string) => {
-    return new Date(expiresAt) <= new Date();
   };
 
   const handleOfferAction = (offer: PriceOffer, action: "accept" | "reject") => {
@@ -146,8 +102,6 @@ const SellerPriceOffers = () => {
     );
   }
 
-  const pendingOffers = offers?.filter(offer => offer.status === "pending" && !isOfferExpired(offer.expires_at)) || [];
-  const otherOffers = offers?.filter(offer => offer.status !== "pending" || isOfferExpired(offer.expires_at)) || [];
 
   return (
     <SellerLayout>
@@ -159,248 +113,26 @@ const SellerPriceOffers = () => {
           </p>
         </div>
 
-        {!offers || offers.length === 0 ? (
+        {!groupedOffers || groupedOffers.length === 0 ? (
           <Card>
             <CardContent className="text-center py-12">
               <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Offers</h3>
+              <h3 className="text-xl font-semibold mb-2">No Price Offers</h3>
               <p className="text-muted-foreground">
-                Nobody has made price offers for your products yet.
+                No one has made price offers for your products yet.
               </p>
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-8">
-            {/* Pending offers */}
-            {pendingOffers.length > 0 && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-yellow-600" />
-                  Require Response ({pendingOffers.length})
-                </h2>
-                <div className="grid gap-4">
-                  {pendingOffers.map((offer) => (
-                    <Card key={offer.id} className="border-yellow-200 bg-yellow-50/30">
-                      <CardHeader className="pb-4">
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                          <div className="space-y-2">
-                            <CardTitle className="text-lg">
-                              {offer.product?.title || "Product deleted"}
-                            </CardTitle>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Clock className="h-4 w-4" />
-                              {getTimeRemaining(offer.expires_at)}
-                            </div>
-                          </div>
-                          {getStatusBadge(offer.status)}
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-4">
-                        {/* Product Information */}
-                        <div className="flex flex-col md:flex-row gap-4">
-                          {offer.product?.product_images?.[0] && (
-                            <img
-                              src={offer.product.product_images[0].url}
-                              alt={offer.product.title}
-                              className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
-                            />
-                          )}
-                          <div className="flex-1 space-y-2">
-                            <div>
-                              <h4 className="font-medium">{offer.product?.title}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {offer.product?.brand} {offer.product?.model}
-                              </p>
-                            </div>
-                            {offer.product?.description && (
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {offer.product.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Price Comparison */}
-                        <div className="bg-white rounded-lg p-4 border">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex items-center gap-4">
-                              <div className="text-center">
-                                <div className="text-sm text-muted-foreground mb-1">Your Price</div>
-                                <div className="text-lg font-semibold line-through text-gray-500">
-                                  {formatPrice(offer.original_price)}
-                                </div>
-                              </div>
-                              <div className="text-center">
-                                <div className="text-sm text-muted-foreground mb-1">Offer</div>
-                                <div className="text-2xl font-bold text-green-600">
-                                  {formatPrice(offer.offered_price)}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-sm text-muted-foreground mb-1">Difference</div>
-                              <div className="text-lg font-semibold text-red-600">
-                                -{formatPrice(offer.original_price - offer.offered_price)}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Buyer Information */}
-                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                          <h5 className="font-medium mb-2 flex items-center gap-2">
-                            <User className="h-4 w-4" />
-                            Buyer Information
-                          </h5>
-                          <div className="space-y-1 text-sm">
-                            <div className="flex items-center justify-between">
-                              <span>Name:</span>
-                              <span className="font-medium">{offer.buyer_profile?.full_name || 'Not specified'}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span>OPT ID:</span>
-                              <span className="font-medium">{offer.buyer_profile?.opt_id || 'Not specified'}</span>
-                            </div>
-                            {offer.buyer_profile?.telegram && (
-                              <div className="flex items-center justify-between">
-                                <span>Telegram:</span>
-                                <span className="font-medium">@{offer.buyer_profile.telegram}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {offer.message && (
-                          <div className="bg-gray-50 rounded-lg p-4 border">
-                            <p className="text-sm font-medium mb-2">Buyer Message:</p>
-                            <p className="text-sm text-muted-foreground">
-                              {offer.message}
-                            </p>
-                          </div>
-                        )}
-
-                        <div className="flex flex-col md:flex-row gap-3 pt-2">
-                          <Button
-                            onClick={() => handleOfferAction(offer, "accept")}
-                            className="bg-green-600 hover:bg-green-700 flex-1"
-                            disabled={isOfferExpired(offer.expires_at)}
-                          >
-                            <Check className="h-4 w-4 mr-2" />
-                            Accept Offer
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => handleOfferAction(offer, "reject")}
-                            className="border-red-200 text-red-700 hover:bg-red-50 flex-1"
-                            disabled={isOfferExpired(offer.expires_at)}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Reject
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Other offers */}
-            {otherOffers.length > 0 && (
-              <div>
-                <h2 className="text-xl font-semibold mb-4">
-                  Offer History ({otherOffers.length})
-                </h2>
-                <div className="grid gap-4">
-                  {otherOffers.map((offer) => (
-                    <Card key={offer.id} className="opacity-80">
-                      <CardHeader className="pb-4">
-                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                          <div className="space-y-2">
-                            <CardTitle className="text-lg">
-                              {offer.product?.title || "Product deleted"}
-                            </CardTitle>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Clock className="h-4 w-4" />
-                              {formatDistanceToNow(new Date(offer.updated_at), { addSuffix: true })}
-                            </div>
-                          </div>
-                          {getStatusBadge(offer.status)}
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="space-y-4">
-                        <div className="flex flex-col md:flex-row gap-4">
-                          {offer.product?.product_images?.[0] && (
-                            <img
-                              src={offer.product.product_images[0].url}
-                              alt={offer.product.title}
-                              className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <h4 className="font-medium">{offer.product?.title}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {offer.product?.brand} {offer.product?.model}
-                            </p>
-                          </div>
-                        </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-muted-foreground">Your Price</p>
-                              <p className="font-semibold">{formatPrice(offer.original_price)}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Offer</p>
-                              <p className="font-semibold">{formatPrice(offer.offered_price)}</p>
-                            </div>
-                          </div>
-
-                        {offer.seller_response && (
-                          <div className="bg-gray-50 rounded-lg p-3 border">
-                            <p className="text-sm font-medium mb-1">Your Response:</p>
-                            <p className="text-sm text-muted-foreground">
-                              {offer.seller_response}
-                            </p>
-                          </div>
-                        )}
-
-                        {offer.status === 'accepted' && offer.order_id && (
-                          <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                            <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
-                              <ShoppingCart className="h-4 w-4" />
-                              Order Created
-                            </p>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/seller/order-details/${offer.order_id}`)}
-                              className="mt-2"
-                            >
-                              View Order
-                            </Button>
-                          </div>
-                        )}
-
-                        {offer.status === 'accepted' && !offer.order_id && (
-                           <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                             <p className="text-sm font-medium text-blue-800 mb-1 flex items-center gap-2">
-                               <RefreshCw className="h-4 w-4 animate-spin" />
-                               Creating order...
-                             </p>
-                             <p className="text-xs text-blue-700">
-                               Order is being created automatically. Refresh the page in a few seconds.
-                             </p>
-                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
+          <div className="space-y-6">
+            {groupedOffers.map((groupedOffer) => (
+              <ProductOffersCard
+                key={groupedOffer.product.id}
+                groupedOffer={groupedOffer}
+                onAcceptOffer={(offer) => handleOfferAction(offer, "accept")}
+                onRejectOffer={(offer) => handleOfferAction(offer, "reject")}
+              />
+            ))}
           </div>
         )}
 
