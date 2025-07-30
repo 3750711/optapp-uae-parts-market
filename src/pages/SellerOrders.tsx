@@ -27,6 +27,7 @@ import { Check } from "lucide-react";
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 import OrdersSearchBar from '@/components/orders/OrdersSearchBar';
+import { useSellerOrdersQuery } from '@/hooks/useSellerOrdersQuery';
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
@@ -42,40 +43,28 @@ const SellerOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
 
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ['seller-orders', user?.id, activeSearchTerm],
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useSellerOrdersQuery({
+    sellerId: user?.id,
+    searchTerm: activeSearchTerm,
+    pageSize: 20
+  });
+
+  // Flatten the paginated data and add confirmation images
+  const ordersData = data?.pages.flatMap(page => page.data) || [];
+  const totalCount = data?.pages[0]?.totalCount || 0;
+  
+  const { data: orders } = useQuery({
+    queryKey: ['seller-orders-with-confirmations', ordersData.map(o => o.id)],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!ordersData.length) return [];
       
-      let query = supabase
-        .from('orders')
-        .select(`
-          *,
-          buyer:profiles!orders_buyer_id_fkey (
-            telegram
-          ),
-          seller:profiles!orders_seller_id_fkey (
-            opt_status
-          )
-        `)
-        .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`);
-
-      // Apply search filter if activeSearchTerm exists
-      if (activeSearchTerm && activeSearchTerm.trim() !== '') {
-        const searchValue = activeSearchTerm.trim();
-        query = query.or(`title.ilike.%${searchValue}%,brand.ilike.%${searchValue}%,model.ilike.%${searchValue}%,lot_number_order.eq.${isNaN(Number(searchValue)) ? '0' : searchValue}`);
-      }
-
-      const { data, error } = await query
-        .order('status', { ascending: true })
-        .order('created_at', { ascending: false });
-        
-      if (error) {
-        console.error("Error fetching orders:", error);
-        throw error;
-      }
-
-      const ordersWithConfirmations = await Promise.all(data.map(async (order) => {
+      const ordersWithConfirmations = await Promise.all(ordersData.map(async (order) => {
         const { data: confirmImages } = await supabase
           .from('confirm_images')
           .select('url')
@@ -87,9 +76,10 @@ const SellerOrders = () => {
         };
       }));
       
-      return ordersWithConfirmations || [];
+      return ordersWithConfirmations;
     },
-    enabled: !!user?.id
+    enabled: ordersData.length > 0,
+    initialData: ordersData
   });
 
   const confirmOrderMutation = useMutation({
@@ -330,25 +320,47 @@ const SellerOrders = () => {
             placeholder="Поиск по наименованию, марке, модели или номеру лота..."
           />
 
-          <div className="flex items-center gap-4">
-            <Button 
-              onClick={handleSearch}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              Найти
-            </Button>
-            {activeSearchTerm && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  Результаты поиска для: <strong>"{activeSearchTerm}"</strong>
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClearSearch}
-                >
-                  Очистить
-                </Button>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={handleSearch}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Поиск...
+                  </>
+                ) : (
+                  'Найти'
+                )}
+              </Button>
+              {activeSearchTerm && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Результаты поиска для: <strong>"{activeSearchTerm}"</strong>
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearSearch}
+                  >
+                    Очистить
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            {!activeSearchTerm && totalCount > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Всего заказов: <strong>{totalCount}</strong>
+              </div>
+            )}
+            
+            {activeSearchTerm && orders && orders.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                Найдено: <strong>{orders.length}</strong> из {totalCount}
               </div>
             )}
           </div>
@@ -356,8 +368,9 @@ const SellerOrders = () => {
           <Separator />
 
           {orders && orders.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {orders?.map((order) => (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {orders?.map((order) => (
                 <Card 
                   key={order.id}
                   className={`cursor-pointer hover:shadow-md transition-all ${getCardHighlightColor(order.status)}`}
@@ -519,7 +532,29 @@ const SellerOrders = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+              
+              {/* Load More Button */}
+              {hasNextPage && (
+                <div className="flex justify-center mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="px-8"
+                  >
+                    {isFetchingNextPage ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Загрузка...
+                      </>
+                    ) : (
+                      'Загрузить еще'
+                    )}
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="text-center p-4 md:p-8 text-muted-foreground">
               {activeSearchTerm ? (
