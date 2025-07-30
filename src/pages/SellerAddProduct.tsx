@@ -37,6 +37,7 @@ import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 import { initMobileFormOptimizations, trackMobileFormMetrics } from "@/utils/mobileFormOptimizations";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 
 // Lazy load the mobile-optimized form
 const MobileFastAddProduct = React.lazy(() => import("@/components/product/MobileFastAddProduct"));
@@ -54,6 +55,7 @@ const SellerAddProduct = () => {
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [isMediaUploading, setIsMediaUploading] = useState(false);
   const isMobile = useIsMobile();
+  const { notifyAdminsNewProduct } = useAdminNotifications();
 
   // Use lazy car brands hook for better performance
   const { 
@@ -404,8 +406,9 @@ const SellerAddProduct = () => {
         }
       }
 
-      // For trusted sellers, send notification like admin (after images are added)
+      // Send notifications based on product status
       if (profile?.is_trusted_seller) {
+        // For trusted sellers, send regular notification
         try {
           console.log('📢 Sending notification for trusted seller product:', product.id);
           await supabase.functions.invoke('send-telegram-notification', {
@@ -414,6 +417,15 @@ const SellerAddProduct = () => {
           console.log('✅ Notification sent successfully for trusted seller');
         } catch (notificationError) {
           console.error('⚠️ Notification failed (non-critical):', notificationError);
+        }
+      } else {
+        // For regular sellers, notify admins about pending product
+        try {
+          console.log('📢 Notifying admins about new pending product:', product.id);
+          await notifyAdminsNewProduct(product.id);
+          console.log('✅ Admin notification sent successfully');
+        } catch (notificationError) {
+          console.error('⚠️ Admin notification failed (non-critical):', notificationError);
         }
       }
 
