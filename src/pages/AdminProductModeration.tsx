@@ -14,9 +14,9 @@ const AdminProductModeration: React.FC = () => {
     initialFilters: { status: 'pending' }
   });
 
-  // Filter for pending and created products
+  // Filter for pending products only
   const pendingProducts = products.filter(product => 
-    product.status === 'pending' || product.status === 'created'
+    product.status === 'pending'
   );
 
   return (
