@@ -41,10 +41,34 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
         .eq('id', product.id);
       
       if (error) throw error;
+      return newStatus;
     },
-    onSuccess: () => {
+    onSuccess: async (newStatus) => {
       queryClient.invalidateQueries({ queryKey: ['seller-product', product.id] });
       queryClient.invalidateQueries({ queryKey: ['seller-products'] });
+      
+      // Fallback notification call for sellers (same as admin)
+      try {
+        console.log('Sending fallback Telegram notification for product:', product.id, 'with status:', newStatus);
+        
+        const notificationType = newStatus === 'sold' ? 'sold' : 'status_change';
+        
+        const { error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
+          body: {
+            productId: product.id,
+            notificationType: notificationType
+          }
+        });
+
+        if (notificationError) {
+          console.error('Fallback notification failed:', notificationError);
+        } else {
+          console.log('Fallback notification sent successfully');
+        }
+      } catch (notificationError) {
+        console.error('Error sending fallback notification:', notificationError);
+      }
+      
       toast({
         title: "Статус обновлен",
         description: "Статус вашего объявления успешно изменен.",
