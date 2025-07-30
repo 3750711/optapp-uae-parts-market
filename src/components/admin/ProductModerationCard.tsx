@@ -43,14 +43,14 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Product updated successfully",
+        title: "Успешно",
+        description: "Товар успешно обновлен",
       });
     } catch (error) {
       console.error('Error updating product:', error);
       toast({
-        title: "Error",
-        description: "Failed to update product",
+        title: "Ошибка",
+        description: "Не удалось обновить товар",
         variant: "destructive",
       });
       throw error;
@@ -68,16 +68,16 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       if (error) throw error;
 
       toast({
-        title: "Product Published",
-        description: "Product has been successfully published",
+        title: "Товар опубликован",
+        description: "Товар успешно опубликован",
       });
       
       onUpdate();
     } catch (error) {
       console.error('Error publishing product:', error);
       toast({
-        title: "Error",
-        description: "Failed to publish product",
+        title: "Ошибка",
+        description: "Не удалось опубликовать товар",
         variant: "destructive",
       });
     } finally {
@@ -122,12 +122,12 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         {/* Title */}
         <div>
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Title
+            Название
           </label>
           <InlineEditableField
             value={product.title}
             onSave={(value) => handleFieldUpdate('title', value)}
-            placeholder="Product title"
+            placeholder="Название товара"
             className="mt-1"
             displayClassName="text-sm font-medium"
           />
@@ -137,7 +137,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Price
+              Цена
             </label>
             <InlineEditableField
               value={product.price}
@@ -152,7 +152,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
           <div>
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Delivery
+              Доставка
             </label>
             <InlineEditableField
               value={product.delivery_price || 0}
@@ -168,9 +168,9 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
         {/* Product Details */}
         <div className="text-xs text-muted-foreground space-y-1">
-          <div>Seller: {product.seller_name}</div>
-          {product.brand && <div>Brand: {product.brand}</div>}
-          {product.model && <div>Model: {product.model}</div>}
+          <div>Продавец: {product.seller_name}</div>
+          {product.brand && <div>Бренд: {product.brand}</div>}
+          {product.model && <div>Модель: {product.model}</div>}
         </div>
       </CardContent>
 
@@ -183,7 +183,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             onClick={() => window.open(`/product/${product.id}`, '_blank')}
           >
             <Eye className="h-4 w-4 mr-1" />
-            Preview
+            Предпросмотр
           </Button>
           
           <Button
@@ -197,7 +197,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             ) : (
               <CheckCircle className="h-4 w-4 mr-1" />
             )}
-            Publish
+            Опубликовать
           </Button>
         </div>
       </CardFooter>

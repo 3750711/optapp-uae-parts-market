@@ -66,8 +66,8 @@ const AdminActionsSection: React.FC = () => {
       textColor: "text-white"
     },
     {
-      title: "Product Moderation",
-      subtitle: "Review and publish pending products",
+      title: "Модерация товаров",
+      subtitle: "Проверка и публикация товаров",
       icon: CheckSquare,
       link: "/admin/product-moderation",
       bgColor: "bg-orange-500",
