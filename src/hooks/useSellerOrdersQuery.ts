@@ -35,13 +35,13 @@ export const useSellerOrdersQuery = ({
         if (searchTerm && searchTerm.trim() !== '') {
           const searchValue = searchTerm.trim();
           
-          // Check if searchValue is a number for lot_number_order search
+          // Check if searchValue is a number for order_number search
           const isNumeric = !isNaN(Number(searchValue)) && searchValue !== '';
           
           if (isNumeric) {
-            // If it's numeric, search in all fields including lot_number_order
+            // If it's numeric, search in all fields including order_number
             query = query.or(
-              `title.ilike.%${searchValue}%,brand.ilike.%${searchValue}%,model.ilike.%${searchValue}%,lot_number_order.eq.${searchValue}`
+              `title.ilike.%${searchValue}%,brand.ilike.%${searchValue}%,model.ilike.%${searchValue}%,order_number.eq.${searchValue}`
             );
           } else {
             // If not numeric, only search in text fields
