@@ -26,6 +26,7 @@ import OrderPriceConfirmDialog from "@/components/order/OrderPriceConfirmDialog"
 import { Check } from "lucide-react";
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
+import OrdersSearchBar from '@/components/orders/OrdersSearchBar';
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
@@ -36,13 +37,17 @@ const SellerOrders = () => {
   const isMobile = useIsMobile();
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ['seller-orders', user?.id],
+    queryKey: ['seller-orders', user?.id, activeSearchTerm],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select(`
           *,
@@ -53,7 +58,15 @@ const SellerOrders = () => {
             opt_status
           )
         `)
-        .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`)
+        .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`);
+
+      // Apply search filter if activeSearchTerm exists
+      if (activeSearchTerm && activeSearchTerm.trim() !== '') {
+        const searchValue = activeSearchTerm.trim();
+        query = query.or(`title.ilike.%${searchValue}%,brand.ilike.%${searchValue}%,model.ilike.%${searchValue}%,lot_number_order.eq.${isNaN(Number(searchValue)) ? '0' : searchValue}`);
+      }
+
+      const { data, error } = await query
         .order('status', { ascending: true })
         .order('created_at', { ascending: false });
         
@@ -184,6 +197,16 @@ const SellerOrders = () => {
     },
   });
 
+  // Search handlers
+  const handleSearch = () => {
+    setActiveSearchTerm(searchTerm);
+  };
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setActiveSearchTerm('');
+  };
+
   const handleConfirmOrder = (orderId: string, currentPrice: number) => {
     const numericPrice = typeof currentPrice === 'number' ? currentPrice : parseFloat(String(currentPrice));
     console.log("Opening price dialog with price:", numericPrice);
@@ -298,6 +321,36 @@ const SellerOrders = () => {
             <p className="text-sm md:text-base text-muted-foreground mt-1">
               Manage created orders and listing orders
             </p>
+          </div>
+
+          <OrdersSearchBar
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            onClear={handleClearSearch}
+            placeholder="Поиск по наименованию, марке, модели или номеру лота..."
+          />
+
+          <div className="flex items-center gap-4">
+            <Button 
+              onClick={handleSearch}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Найти
+            </Button>
+            {activeSearchTerm && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  Результаты поиска для: <strong>"{activeSearchTerm}"</strong>
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearSearch}
+                >
+                  Очистить
+                </Button>
+              </div>
+            )}
           </div>
           
           <Separator />
@@ -469,7 +522,19 @@ const SellerOrders = () => {
             </div>
           ) : (
             <div className="text-center p-4 md:p-8 text-muted-foreground">
-              You have no orders yet
+              {activeSearchTerm ? (
+                <>
+                  <p className="mb-4">По запросу "{activeSearchTerm}" ничего не найдено</p>
+                  <Button
+                    variant="outline"
+                    onClick={handleClearSearch}
+                  >
+                    Очистить поиск
+                  </Button>
+                </>
+              ) : (
+                <p>У вас пока нет заказов</p>
+              )}
             </div>
           )}
         </div>
