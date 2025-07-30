@@ -15,7 +15,7 @@ const OrdersSearchBar: React.FC<OrdersSearchBarProps> = ({
   searchTerm, 
   setSearchTerm, 
   onClear,
-  placeholder = "Поиск по номеру заказа, лоту, наименованию или opt_id продавца..."
+  placeholder = "Search by order number, lot, title, brand, model or seller opt_id..."
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -47,7 +47,7 @@ const OrdersSearchBar: React.FC<OrdersSearchBarProps> = ({
             size="icon" 
             className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-gray-100"
             onClick={onClear}
-            title="Очистить поиск"
+            title="Clear search"
           >
             <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
           </Button>

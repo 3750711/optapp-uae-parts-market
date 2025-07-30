@@ -28,6 +28,7 @@ import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesD
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 import OrdersSearchBar from '@/components/orders/OrdersSearchBar';
 import { useSellerOrdersQuery } from '@/hooks/useSellerOrdersQuery';
+import { sellerOrdersTranslations as t } from '@/utils/translations/sellerOrders';
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
@@ -317,7 +318,7 @@ const SellerOrders = () => {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             onClear={handleClearSearch}
-            placeholder="Поиск по наименованию, марке, модели или номеру лота..."
+            placeholder={t.searchPlaceholder}
           />
 
           <div className="flex items-center justify-between gap-4">
@@ -330,23 +331,23 @@ const SellerOrders = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Поиск...
+                    {t.searchingButton}
                   </>
                 ) : (
-                  'Найти'
+                  t.findButton
                 )}
               </Button>
               {activeSearchTerm && (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                    Результаты поиска для: <strong>"{activeSearchTerm}"</strong>
+                    {t.searchResultsFor} <strong>"{activeSearchTerm}"</strong>
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleClearSearch}
                   >
-                    Очистить
+                    {t.clearButton}
                   </Button>
                 </div>
               )}
@@ -354,13 +355,13 @@ const SellerOrders = () => {
             
             {!activeSearchTerm && totalCount > 0 && (
               <div className="text-sm text-muted-foreground">
-                Всего заказов: <strong>{totalCount}</strong>
+                {t.totalOrders} <strong>{totalCount}</strong>
               </div>
             )}
             
             {activeSearchTerm && orders && orders.length > 0 && (
               <div className="text-sm text-muted-foreground">
-                Найдено: <strong>{orders.length}</strong> из {totalCount}
+                {t.foundResults} <strong>{orders.length}</strong> of {totalCount}
               </div>
             )}
           </div>
@@ -465,7 +466,7 @@ const SellerOrders = () => {
                         {getOrderTypeLabel(order.order_created_type)}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
-                        {new Date(order.created_at).toLocaleDateString('ru-RU')}
+                        {new Date(order.created_at).toLocaleDateString('en-US')}
                       </span>
                     </div>
 
@@ -546,10 +547,10 @@ const SellerOrders = () => {
                     {isFetchingNextPage ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Загрузка...
+                        Loading...
                       </>
                     ) : (
-                      'Загрузить еще'
+                      'Load More'
                     )}
                   </Button>
                 </div>
@@ -559,16 +560,16 @@ const SellerOrders = () => {
             <div className="text-center p-4 md:p-8 text-muted-foreground">
               {activeSearchTerm ? (
                 <>
-                  <p className="mb-4">По запросу "{activeSearchTerm}" ничего не найдено</p>
+                  <p className="mb-4">No results found for "{activeSearchTerm}"</p>
                   <Button
                     variant="outline"
                     onClick={handleClearSearch}
                   >
-                    Очистить поиск
+                    Clear search
                   </Button>
                 </>
               ) : (
-                <p>У вас пока нет заказов</p>
+                <p>You don't have any orders yet</p>
               )}
             </div>
           )}

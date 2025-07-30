@@ -58,7 +58,7 @@ export const useSellerOrdersQuery = ({
 
         if (error) {
           console.error('Error fetching seller orders:', error);
-          toast.error('Ошибка при загрузке заказов');
+          toast.error('Error loading orders');
           throw error;
         }
 
@@ -73,7 +73,7 @@ export const useSellerOrdersQuery = ({
         };
       } catch (error) {
         console.error('Error in useSellerOrdersQuery:', error);
-        toast.error('Ошибка при загрузке заказов');
+        toast.error('Error loading orders');
         throw error;
       }
     },
