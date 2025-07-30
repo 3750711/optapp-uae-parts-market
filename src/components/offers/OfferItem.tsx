@@ -27,7 +27,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
       case "expired":
         return <Badge variant="secondary">Expired</Badge>;
       case "cancelled":
-        return <Badge variant="outline" className="whitespace-nowrap">Cancelled</Badge>;
+        return <Badge variant="secondary">Cancelled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
