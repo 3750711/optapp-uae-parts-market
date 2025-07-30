@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInlineEdit } from "@/hooks/useInlineEdit";
+import { useMobileLayout } from "@/hooks/useMobileLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
-import { devLog, criticalError, optimizeImageLoad } from "@/utils/productionOptimizer";
-import { performanceTracker } from "@/utils/performanceTracker";
 import ProductBreadcrumb from "@/components/product/ProductBreadcrumb";
 import ProductSEO from "@/components/seo/ProductSEO";
 import ProductSkeleton from "@/components/product/ProductSkeleton";
-import ProductLoadingState from "@/components/loading/ProductLoadingState";
 import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import SellerProductContent from "@/components/seller/SellerProductContent";
@@ -22,19 +20,17 @@ import { Product } from "@/types/product";
 import SellerLayout from "@/components/layout/SellerLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
 import ProductErrorBoundary from "@/components/error/ProductErrorBoundary";
-import { MobileStabilizer } from "@/components/MobileStabilizer";
 
 const SellerProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const isMobile = useIsMobile();
+  const { isMobile } = useMobileLayout();
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
-  // Initialize inline edit hooks at the top level to avoid conditional hook usage
+  // Initialize inline edit hooks
   const {
     updateTitle,
     updatePrice,
@@ -64,7 +60,7 @@ const SellerProductDetail = () => {
   // Product query with seller ownership validation
   const { data: product, isLoading, error, isError } = useQuery({
     queryKey: ['seller-product', id],
-    queryFn: () => performanceTracker.measureAsync('seller-product-fetch', async () => {
+    queryFn: async () => {
       if (!id) {
         throw new Error('No product ID provided');
       }
@@ -82,7 +78,7 @@ const SellerProductDetail = () => {
             product_videos(*)
           `)
           .eq('id', id)
-          .eq('seller_id', user.id) // Ensure seller can only view their own products
+          .eq('seller_id', user.id)
           .maybeSingle();
         
         if (error) {
@@ -95,16 +91,15 @@ const SellerProductDetail = () => {
         
         return data as Product;
       } catch (error) {
-        criticalError(error as Error, { 
-          context: 'SellerProductDetail fetch', 
-          productId: id, 
-          userId: user.id 
-        });
         throw error;
       }
-    }),
+    },
     enabled: !!id && !!user && profile?.user_type === 'seller',
-    retry: false, // Don't retry for security errors
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes  
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
   
   // Handle back navigation
@@ -122,7 +117,7 @@ const SellerProductDetail = () => {
     return (
       <SellerLayout>
         <div className="container mx-auto px-4 py-6 max-w-7xl">
-          <ProductLoadingState message="Loading your product details..." />
+          <ProductSkeleton />
         </div>
       </SellerLayout>
     );
@@ -149,124 +144,117 @@ const SellerProductDetail = () => {
     );
   }
   
-  // Set the first image as selected if none is selected - moved to useMemo to avoid setState in render
-  const initialSelectedImage = useMemo(() => {
-    if (product.product_images?.length && !selectedImage) {
-      const primaryImage = product.product_images.find(img => img.is_primary)?.url 
-        || product.product_images[0]?.url;
-      return primaryImage || null;
+  // Set the first image as selected if none is selected (following ProductDetail pattern)
+  if (product && product.product_images?.length && !selectedImage) {
+    const primaryImage = product.product_images.find(img => img.is_primary)?.url 
+      || product.product_images[0]?.url;
+      
+    if (primaryImage) {
+      setSelectedImage(primaryImage);
     }
-    return selectedImage;
-  }, [product.product_images, selectedImage]);
-
-  // Update selected image only when needed
-  useEffect(() => {
-    if (initialSelectedImage && initialSelectedImage !== selectedImage) {
-      setSelectedImage(initialSelectedImage);
-    }
-  }, [initialSelectedImage, selectedImage]);
+  }
   
   const handleImageClick = (url: string) => {
     setSelectedImage(url);
   };
   
-  // Extract and optimize URLs for components
-  const imageUrls = useMemo(() => 
-    product.product_images 
-      ? product.product_images.map(img => optimizeImageLoad(img.url)) 
-      : [],
-    [product.product_images]
-  );
+  // Extract URLs for components
+  const imageUrls = product?.product_images 
+    ? product.product_images.map(img => img.url) 
+    : [];
   
-  const videoUrls = useMemo(() => 
-    product.product_videos 
-      ? product.product_videos.map(video => video.url) 
-      : [],
-    [product.product_videos]
-  );
+  const videoUrls = product?.product_videos 
+    ? product.product_videos.map(video => video.url) 
+    : [];
   
-  const sellerName = product.seller_name || (profile?.full_name || "Неизвестный продавец");
+  const sellerName = product?.seller_name || (profile?.full_name || "Неизвестный продавец");
 
-  // Unified layout - using MobileStabilizer to prevent hook order issues
+  if (!product) return null;
+
+  // Mobile Layout (following ProductDetail pattern)
+  if (isMobile) {
+    return (
+      <ProductErrorBoundary>
+        <SellerLayout className="p-0">
+          <ProductSEO 
+            product={product}
+            sellerName={sellerName}
+            images={imageUrls}
+          />
+          
+          <MobileSellerProductLayout
+            product={product}
+            imageUrls={imageUrls}
+            videoUrls={videoUrls}
+            selectedImage={selectedImage}
+            onImageClick={handleImageClick}
+            onProductUpdate={handleProductUpdate}
+            updateTitle={updateTitle}
+            updatePrice={updatePrice}
+            updateDescription={updateDescription}
+            updatePlaceNumber={updatePlaceNumber}
+            updateDeliveryPrice={updateDeliveryPrice}
+            updateLocation={updateLocation}
+          />
+        </SellerLayout>
+      </ProductErrorBoundary>
+    );
+  }
+
+  // Desktop Layout
   return (
     <ProductErrorBoundary>
-      <MobileStabilizer>
-        {(stabilizedIsMobile) => (
-          <SellerLayout className={stabilizedIsMobile ? "p-0" : ""}>
-            {/* SEO Component */}
-            <ProductSEO 
-              product={product}
-              sellerName={sellerName}
-              images={imageUrls}
-            />
-            
-            {/* Mobile Layout */}
-            <div className={stabilizedIsMobile ? "block" : "hidden"}>
-              <MobileSellerProductLayout
-                key={`mobile-${product.id}`}
-                product={product}
-                imageUrls={imageUrls || []}
-                videoUrls={videoUrls || []}
-                selectedImage={selectedImage || (imageUrls && imageUrls[0]) || null}
-                onImageClick={handleImageClick}
-                onProductUpdate={handleProductUpdate}
-                updateTitle={updateTitle}
-                updatePrice={updatePrice}
-                updateDescription={updateDescription}
-                updatePlaceNumber={updatePlaceNumber}
-                updateDeliveryPrice={updateDeliveryPrice}
-                updateLocation={updateLocation}
-              />
-            </div>
-            
-            {/* Desktop Layout */}
-            <div className={stabilizedIsMobile ? "hidden" : "block"}>
-              <div className="container mx-auto px-4 py-6 max-w-7xl">
-                {/* Breadcrumb Navigation */}
-                <ProductBreadcrumb
-                  productTitle={product.title}
-                  brand={product.brand}
-                  model={product.model}
-                  isSeller={true}
-                />
-                
-                {/* Header */}
-                <ProductDetailHeader 
-                  product={product}
-                  onBack={handleBack}
-                />
-                
-                {/* Status warnings */}
-                <ProductDetailAlerts 
-                  product={product}
-                  isOwner={true}
-                  isAdmin={false}
-                />
-                
-                {/* Seller Action Buttons */}
-                <SellerProductActions 
-                  product={product}
-                  onProductUpdate={handleProductUpdate}
-                />
-                
-                {/* Offers Summary */}
-                <SellerOffersSummary 
-                  productId={product.id}
-                />
-                
-                {/* Main content */}
-                <SellerProductContent 
-                  product={product}
-                  imageUrls={imageUrls}
-                  videoUrls={videoUrls}
-                  selectedImage={selectedImage}
-                  onImageClick={handleImageClick}
-                />
-              </div>
-            </div>
-          </SellerLayout>
-        )}
-      </MobileStabilizer>
+      <SellerLayout>
+        {/* SEO Component */}
+        <ProductSEO 
+          product={product}
+          sellerName={sellerName}
+          images={imageUrls}
+        />
+        
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          {/* Breadcrumb Navigation */}
+          <ProductBreadcrumb
+            productTitle={product.title}
+            brand={product.brand}
+            model={product.model}
+            isSeller={true}
+          />
+          
+          {/* Header */}
+          <ProductDetailHeader 
+            product={product}
+            onBack={handleBack}
+          />
+          
+          {/* Status warnings */}
+          <ProductDetailAlerts 
+            product={product}
+            isOwner={true}
+            isAdmin={false}
+          />
+          
+          {/* Seller Action Buttons */}
+          <SellerProductActions 
+            product={product}
+            onProductUpdate={handleProductUpdate}
+          />
+          
+          {/* Offers Summary */}
+          <SellerOffersSummary 
+            productId={product.id}
+          />
+          
+          {/* Main content */}
+          <SellerProductContent 
+            product={product}
+            imageUrls={imageUrls}
+            videoUrls={videoUrls}
+            selectedImage={selectedImage}
+            onImageClick={handleImageClick}
+          />
+        </div>
+      </SellerLayout>
     </ProductErrorBoundary>
   );
 };
