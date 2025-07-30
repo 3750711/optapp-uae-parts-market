@@ -77,6 +77,7 @@ const AdminLogistics = lazy(() => import('@/pages/AdminLogistics'));
 const AdminCarCatalog = lazy(() => import('@/pages/AdminCarCatalog'));
 const AdminMessages = lazy(() => import('@/pages/AdminMessages'));
 const AdminPriceOffers = lazy(() => import('@/pages/admin/AdminPriceOffers'));
+const AdminProductModeration = lazy(() => import('@/pages/AdminProductModeration'));
 
 // Mobile specific pages
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
@@ -434,6 +435,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/price-offers" element={
               <AdminRoute>
                 <AdminPriceOffers />
+              </AdminRoute>
+            } />
+            <Route path="/admin/product-moderation" element={
+              <AdminRoute>
+                <AdminProductModeration />
               </AdminRoute>
             } />
 
