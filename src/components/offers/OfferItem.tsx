@@ -55,8 +55,8 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
   return (
     <div className={`border rounded-lg p-4 space-y-3 ${isPending ? 'border-yellow-200 bg-yellow-50/30' : 'border-border'}`}>
       {/* Header with buyer info and status */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-2 md:gap-3">
+        <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" />
             <div>
@@ -69,12 +69,12 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
             </div>
           </div>
           {offer.buyer_profile?.telegram && (
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground hidden sm:block">
               {offer.buyer_profile.telegram.startsWith('@') ? offer.buyer_profile.telegram : `@${offer.buyer_profile.telegram}`}
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {getStatusBadge(offer.status)}
         </div>
       </div>
