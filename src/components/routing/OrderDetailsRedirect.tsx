@@ -16,7 +16,7 @@ const OrderDetailsRedirect = () => {
           navigate(`/admin/orders/${id}`, { replace: true });
           break;
         case 'seller':
-          navigate(`/seller/order-details/${id}`, { replace: true });
+          navigate(`/seller/orders/${id}`, { replace: true });
           break;
         case 'buyer':
         default:

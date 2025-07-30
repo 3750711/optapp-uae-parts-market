@@ -42,6 +42,7 @@ const BuyerPriceOffers = lazy(() => import('@/pages/BuyerPriceOffers'));
 const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
 const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
 const OrderDetailsRedirect = lazy(() => import('@/components/routing/OrderDetailsRedirect').then(module => ({ default: module.default })));
+const SellerOrderRedirect = lazy(() => import('@/components/routing/SellerOrderRedirect'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const Favorites = lazy(() => import('@/pages/Favorites'));
 
@@ -317,9 +318,10 @@ const AppRoutes: React.FC = () => {
                 <SellerOrderDetails />
               </ProtectedRoute>
             } />
+            {/* Redirect old route to new unified route */}
             <Route path="/seller/order-details/:id" element={
               <ProtectedRoute allowedRoles={['seller']}>
-                <SellerOrderDetails />
+                <SellerOrderRedirect />
               </ProtectedRoute>
             } />
             <Route path="/seller/create-order" element={

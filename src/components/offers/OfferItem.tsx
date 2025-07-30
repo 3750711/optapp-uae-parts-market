@@ -127,7 +127,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/seller/order-details/${offer.order_id}`)}
+            onClick={() => navigate(`/seller/orders/${offer.order_id}`)}
           >
             View Order
           </Button>

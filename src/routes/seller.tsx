@@ -42,7 +42,7 @@ export const SellerRoutes = () => (
         <SellerOrders />
       </ProtectedRoute>
     } />
-    <Route path="/seller/order-details/:id" element={
+    <Route path="/seller/orders/:id" element={
       <ProtectedRoute allowedRoles={['seller']}>
         <SellerOrderDetails />
       </ProtectedRoute>
