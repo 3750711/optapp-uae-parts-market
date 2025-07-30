@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useTelegramNotification } from "@/hooks/useTelegramNotification";
 
 interface ProductStatusChangeDialogProps {
   productId: string;
@@ -28,6 +29,7 @@ const ProductStatusChangeDialog = ({
   onStatusChange,
 }: ProductStatusChangeDialogProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const { sendProductNotification } = useTelegramNotification();
 
   const handleMarkAsSold = async () => {
     try {
@@ -99,6 +101,9 @@ const ProductStatusChangeDialog = ({
 
       toast.success("Product status successfully changed to 'Sold'");
       console.log(`🎉 [ProductStatusChangeDialog] Product status change completed successfully`);
+      
+      // Send Telegram notification (fallback in case database trigger fails)
+      await sendProductNotification(productId, 'sold');
       
       onStatusChange();
     } catch (error) {
