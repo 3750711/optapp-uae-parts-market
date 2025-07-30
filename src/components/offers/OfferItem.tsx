@@ -88,12 +88,6 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
               {formatPrice(offer.offered_price)}
             </div>
           </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Difference</div>
-            <div className="text-sm font-semibold text-red-600">
-              -{formatPrice(offer.original_price - offer.offered_price)}
-            </div>
-          </div>
         </div>
         
         <div className="text-right">

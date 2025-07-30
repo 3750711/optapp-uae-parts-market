@@ -274,6 +274,7 @@ export const useSellerPriceOffers = () => {
             title,
             brand,
             model,
+            price,
             status,
             seller_name,
             product_images:product_images(url, is_primary)
