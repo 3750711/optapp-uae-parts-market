@@ -691,6 +691,7 @@ export type Database = {
       }
       products: {
         Row: {
+          admin_notification_sent_at: string | null
           brand: string
           cloudinary_public_id: string | null
           cloudinary_url: string | null
@@ -720,6 +721,7 @@ export type Database = {
           view_count: number | null
         }
         Insert: {
+          admin_notification_sent_at?: string | null
           brand: string
           cloudinary_public_id?: string | null
           cloudinary_url?: string | null
@@ -749,6 +751,7 @@ export type Database = {
           view_count?: number | null
         }
         Update: {
+          admin_notification_sent_at?: string | null
           brand?: string
           cloudinary_public_id?: string | null
           cloudinary_url?: string | null

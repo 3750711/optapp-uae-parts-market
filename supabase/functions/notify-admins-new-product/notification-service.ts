@@ -85,6 +85,16 @@ export async function sendAdminNotifications(productId: string, supabaseClient: 
     }
   }
 
+  // Update admin_notification_sent_at timestamp
+  const { error: updateError } = await supabaseClient
+    .from('products')
+    .update({ admin_notification_sent_at: new Date().toISOString() })
+    .eq('id', productId);
+
+  if (updateError) {
+    console.error('❌ [AdminNotification] Failed to update notification timestamp:', updateError);
+  }
+
   // Log the action
   await supabaseClient
     .from('event_logs')
