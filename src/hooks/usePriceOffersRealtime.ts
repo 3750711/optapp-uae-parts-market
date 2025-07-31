@@ -29,27 +29,22 @@ export const usePriceOffersRealtime = () => {
           const updatedOffer = payload.new as PriceOffer;
           const productId = updatedOffer.product_id;
           
-          // Invalidate all relevant caches
-          queryClient.invalidateQueries({ queryKey: ['user-offer', productId] });
-          queryClient.invalidateQueries({ queryKey: ['competitive-offers', productId] });
-          queryClient.invalidateQueries({ queryKey: ['product-offers', productId] });
-          queryClient.invalidateQueries({ queryKey: ['buyer-price-offers'] });
-          queryClient.invalidateQueries({ queryKey: ['seller-price-offers'] });
-          queryClient.invalidateQueries({ queryKey: ['admin-price-offers'] });
-          queryClient.invalidateQueries({ queryKey: ['buyer-offers'] });
-          queryClient.invalidateQueries({ queryKey: ['buyer-offer-counts'] });
+          // Force remove all relevant caches
+          queryClient.removeQueries({ queryKey: ['user-offer'] });
+          queryClient.removeQueries({ queryKey: ['competitive-offers'] });
+          queryClient.removeQueries({ queryKey: ['product-offers'] });
+          queryClient.removeQueries({ queryKey: ['buyer-price-offers'] });
+          queryClient.removeQueries({ queryKey: ['seller-price-offers'] });
+          queryClient.removeQueries({ queryKey: ['admin-price-offers'] });
+          queryClient.removeQueries({ queryKey: ['buyer-offers'] });
+          queryClient.removeQueries({ queryKey: ['buyer-offer-counts'] });
           
-          // Optimistically update the cache with new data
-          queryClient.setQueryData(['user-offer', productId], (oldData: any) => {
-            if (oldData && oldData.id === updatedOffer.id) {
-              return updatedOffer;
-            }
-            return oldData;
-          });
-          
-          // Force refetch for immediate UI consistency
-          queryClient.refetchQueries({ queryKey: ['seller-price-offers'] });
-          queryClient.refetchQueries({ queryKey: ['admin-price-offers'] });
+          // Force refetch after cache clear with slight delay
+          setTimeout(() => {
+            queryClient.refetchQueries({ queryKey: ['seller-price-offers'] });
+            queryClient.refetchQueries({ queryKey: ['buyer-price-offers'] });
+            queryClient.refetchQueries({ queryKey: ['admin-price-offers'] });
+          }, 100);
         }
       )
       .on(
@@ -62,16 +57,19 @@ export const usePriceOffersRealtime = () => {
         (payload) => {
           console.log('📡 Real-time price offer created:', payload);
           
-          const newOffer = payload.new as PriceOffer;
-          const productId = newOffer.product_id;
+          // Force remove all relevant caches for new offers
+          queryClient.removeQueries({ queryKey: ['competitive-offers'] });
+          queryClient.removeQueries({ queryKey: ['product-offers'] });
+          queryClient.removeQueries({ queryKey: ['seller-price-offers'] });
+          queryClient.removeQueries({ queryKey: ['admin-price-offers'] });
+          queryClient.removeQueries({ queryKey: ['buyer-offers'] });
+          queryClient.removeQueries({ queryKey: ['buyer-offer-counts'] });
           
-          // Invalidate relevant caches for new offers
-          queryClient.invalidateQueries({ queryKey: ['competitive-offers', productId] });
-          queryClient.invalidateQueries({ queryKey: ['product-offers', productId] });
-          queryClient.invalidateQueries({ queryKey: ['seller-price-offers'] });
-          queryClient.invalidateQueries({ queryKey: ['admin-price-offers'] });
-          queryClient.invalidateQueries({ queryKey: ['buyer-offers'] });
-          queryClient.invalidateQueries({ queryKey: ['buyer-offer-counts'] });
+          // Force refetch after cache clear
+          setTimeout(() => {
+            queryClient.refetchQueries({ queryKey: ['seller-price-offers'] });
+            queryClient.refetchQueries({ queryKey: ['admin-price-offers'] });
+          }, 100);
         }
       )
       .subscribe();

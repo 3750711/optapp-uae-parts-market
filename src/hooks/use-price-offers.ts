@@ -306,6 +306,8 @@ export const useSellerPriceOffers = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
+      console.log('🔍 Fetching seller price offers for user:', user.id);
+      
       const { data, error } = await supabase
         .from('price_offers')
         .select(`
@@ -330,10 +332,18 @@ export const useSellerPriceOffers = () => {
         .eq('seller_id', user.id)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error fetching seller price offers:', error);
+        throw error;
+      }
+      
+      console.log('✅ Seller price offers fetched:', data?.length || 0, 'offers');
       return data as PriceOffer[];
     },
     enabled: !!user?.id,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   // Set up real-time subscription for price offers

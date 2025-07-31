@@ -19,12 +19,15 @@ export const SellerPriceOffersRealtime: React.FC<SellerPriceOffersRealtimeProps>
   useEffect(() => {
     if (!user || !profile || profile.user_type !== 'seller') return;
 
-    // Prefetch seller offers on component mount for better UX
+    // Clear cache and force fresh data for seller offers
+    queryClient.removeQueries({ queryKey: ['seller-price-offers'] });
+    
+    // Prefetch seller offers with no stale time to ensure fresh data
     queryClient.prefetchQuery({
       queryKey: ['seller-price-offers', user.id],
-      staleTime: 10 * 1000, // 10 seconds
+      staleTime: 0, // Always fetch fresh data
     });
-  }, [user, queryClient]);
+  }, [user, profile, queryClient]);
 
   return <>{children}</>;
 };

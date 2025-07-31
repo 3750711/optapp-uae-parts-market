@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from '@tanstack/react-query';
 import SellerLayout from "@/components/layout/SellerLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,8 +36,16 @@ const SellerPriceOffers = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const { data: groupedOffers, isLoading } = useSellerOffersGrouped();
   const updateOffer = useUpdatePriceOffer();
+
+  // Force refetch on component mount and clear cache
+  useEffect(() => {
+    console.log('🔄 SellerPriceOffers mounted, clearing cache and refetching...');
+    queryClient.removeQueries({ queryKey: ['seller-price-offers'] });
+    queryClient.refetchQueries({ queryKey: ['seller-price-offers'] });
+  }, [queryClient]);
 
   const handleGoBack = () => {
     navigate('/seller/dashboard');
