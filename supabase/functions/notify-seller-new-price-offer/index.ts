@@ -35,7 +35,9 @@ serve(async (req) => {
       offeredPrice, 
       originalPrice, 
       message, 
-      expiresAt 
+      expiresAt,
+      notificationType = 'new_offer',
+      oldPrice 
     } = await req.json();
 
     console.log('Processing price offer notification:', {
@@ -44,7 +46,9 @@ serve(async (req) => {
       sellerId,
       buyerId,
       offeredPrice,
-      originalPrice
+      originalPrice,
+      notificationType,
+      oldPrice
     });
 
     if (!BOT_TOKEN) {
@@ -127,8 +131,47 @@ serve(async (req) => {
       ? productImage.replace('/upload/', '/upload/q_auto:good,f_auto,c_limit,w_800,h_800/')
       : productImage;
 
-    // Create localized message
-    const telegramMessage = isEnglish ? `
+    // Create localized message based on notification type
+    let telegramMessage;
+    
+    if (notificationType === 'price_update') {
+      // Price update messages
+      telegramMessage = isEnglish ? `
+📝 <b>Price Offer Updated!</b>
+
+🏷️ <b>Product:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
+
+💰 <b>Original Price:</b> $${originalPrice}
+📉 <b>Previous Offer:</b> $${oldPrice}
+🎯 <b>New Offer:</b> $${offeredPrice}
+
+👤 <b>From Buyer:</b> ${buyer.full_name} (ID: ${buyer.opt_id})
+
+${message ? `💬 <b>Message:</b> ${message}\n` : ''}⏰ <b>Valid Until:</b> ${expirationDate}
+
+🔗 <b>Link:</b> https://partsbay.ae/product/${productId}
+
+Buyer updated their offer. You can respond in your account dashboard.
+      `.trim() : `
+📝 <b>Предложение цены обновлено!</b>
+
+🏷️ <b>Товар:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
+
+💰 <b>Первоначальная цена:</b> ${originalPrice.toLocaleString('ru-RU')}₽
+📉 <b>Предыдущее предложение:</b> ${oldPrice.toLocaleString('ru-RU')}₽
+🎯 <b>Новое предложение:</b> ${offeredPrice.toLocaleString('ru-RU')}₽
+
+👤 <b>От покупателя:</b> ${buyer.full_name} (ID: ${buyer.opt_id})
+
+${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Действительно до:</b> ${expirationDate}
+
+🔗 <b>Ссылка:</b> https://partsbay.ae/product/${productId}
+
+Покупатель изменил своё предложение. Ответить можно в личном кабинете на сайте.
+      `.trim();
+    } else {
+      // New offer messages (existing logic)
+      telegramMessage = isEnglish ? `
 📦 <b>New Price Offer!</b>
 
 🏷️ <b>Product:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
@@ -143,7 +186,7 @@ ${message ? `💬 <b>Message:</b> ${message}\n` : ''}⏰ <b>Valid Until:</b> ${e
 🔗 <b>Link:</b> https://partsbay.ae/product/${productId}
 
 You can respond to this offer in your account dashboard.
-    `.trim() : `
+      `.trim() : `
 📦 <b>Новое предложение цены!</b>
 
 🏷️ <b>Товар:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
@@ -158,7 +201,8 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
 🔗 <b>Ссылка:</b> https://partsbay.ae/product/${productId}
 
 Ответить на предложение можно в личном кабинете на сайте.
-    `.trim();
+      `.trim();
+    }
 
     // Send Telegram notification (with photo if available)
     let telegramResponse;
@@ -208,7 +252,7 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
       await supabase
         .from('event_logs')
         .insert({
-          action_type: 'price_offer_telegram_notification',
+          action_type: notificationType === 'price_update' ? 'price_offer_update_telegram_notification' : 'price_offer_telegram_notification',
           entity_type: 'price_offer',
           entity_id: offerId,
           user_id: sellerId,
@@ -218,6 +262,8 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
             product_title: product.title,
             offered_price: offeredPrice,
             original_price: originalPrice,
+            old_price: oldPrice,
+            notification_type: notificationType,
             telegram_message_id: telegramResult.result?.message_id
           }
         });
