@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
+import { useTelegramNotification } from "@/hooks/useTelegramNotification";
 
 interface CreateProductParams {
   values: AdminProductFormValues;
@@ -21,6 +22,7 @@ export const useAdminProductCreation = () => {
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const { notifyAdminsNewProduct } = useAdminNotifications();
+  const { sendProductNotification } = useTelegramNotification();
 
   const createProductWithTransaction = async ({
     values,
@@ -110,8 +112,15 @@ export const useAdminProductCreation = () => {
       }
       console.log(`✅ ${imageUrls.length} images inserted for product ${productId}`);
 
+      // 3. Отправляем Telegram уведомление о публикации товара
+      try {
+        await sendProductNotification(productId, 'product_published');
+        console.log(`✅ Telegram notification sent for published product ${productId}`);
+      } catch (telegramError) {
+        console.error("⚠️ Telegram notification failed (non-critical):", telegramError);
+      }
 
-      // 3. Обновляем товар с Cloudinary данными (некритично, без отката)
+      // 4. Обновляем товар с Cloudinary данными (некритично, без отката)
       if (primaryImage) {
         try {
           const publicId = extractPublicIdFromUrl(primaryImage);
@@ -126,7 +135,7 @@ export const useAdminProductCreation = () => {
         }
       }
 
-      // 4. Добавляем видео через admin RPC функцию
+      // 5. Добавляем видео через admin RPC функцию
       if (videoUrls.length > 0) {
         for (const videoUrl of videoUrls) {
           const { error: videoError } = await supabase.rpc('admin_insert_product_video', {
@@ -140,7 +149,7 @@ export const useAdminProductCreation = () => {
         console.log(`✅ ${videoUrls.length} videos inserted for product ${productId}`);
       }
 
-      // 5. Отправляем уведомления администраторам о новом товаре на модерацию
+      // 6. Отправляем уведомления администраторам о новом товаре на модерацию
       try {
         await notifyAdminsNewProduct(product.id);
       } catch (adminNotificationError) {
