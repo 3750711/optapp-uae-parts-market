@@ -65,40 +65,48 @@ export const useAdminProductCreation = () => {
 
       // --- Транзакция начинается ---
 
-      // 1. Создаем товар
-      const { data: product, error: productError } = await supabase
-        .from('products')
-        .insert({
-          title: values.title,
-          price: Number(values.price),
-          condition: "Новый",
-          brand: selectedBrand.name,
-          model: modelName,
-          description: values.description || null,
-          seller_id: values.sellerId,
-          seller_name: selectedSeller.full_name,
-          status: 'pending',
-          place_number: Number(values.placeNumber) || 1,
-          delivery_price: Number(values.deliveryPrice) || 0,
-        })
-        .select()
-        .single();
+      // 1. Создаем товар через admin RPC функцию
+      const { data: createdProductId, error: productError } = await supabase.rpc('admin_create_product', {
+        p_title: values.title,
+        p_price: Number(values.price),
+        p_condition: "Новый",
+        p_brand: selectedBrand.name,
+        p_model: modelName,
+        p_description: values.description || null,
+        p_seller_id: values.sellerId,
+        p_seller_name: selectedSeller.full_name,
+        p_status: 'pending', // Будет автоматически изменен на 'active' триггером для админов
+        p_place_number: Number(values.placeNumber) || 1,
+        p_delivery_price: Number(values.deliveryPrice) || 0,
+      });
 
       if (productError) {
         throw new Error(`Ошибка создания товара: ${productError.message}`);
       }
-      productId = product.id;
-      console.log("✅ Product created successfully:", productId);
+      productId = createdProductId;
+      console.log("✅ Product created successfully with admin RPC:", productId);
 
-      // 2. Добавляем изображения (одной операцией)
-      const imageInserts = imageUrls.map(url => ({
-        product_id: productId,
-        url: url,
-        is_primary: url === primaryImage
-      }));
-      const { error: imageError } = await supabase.from('product_images').insert(imageInserts);
-      if (imageError) {
-        throw new Error(`Ошибка добавления изображений: ${imageError.message}`);
+      // Получаем созданный товар для дальнейшей работы
+      const { data: product, error: fetchError } = await supabase
+        .from('products')
+        .select()
+        .eq('id', productId)
+        .single();
+
+      if (fetchError) {
+        throw new Error(`Ошибка получения созданного товара: ${fetchError.message}`);
+      }
+
+      // 2. Добавляем изображения через admin RPC функцию
+      for (const url of imageUrls) {
+        const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
+          p_product_id: productId,
+          p_url: url,
+          p_is_primary: url === primaryImage
+        });
+        if (imageError) {
+          throw new Error(`Ошибка добавления изображения: ${imageError.message}`);
+        }
       }
       console.log(`✅ ${imageUrls.length} images inserted for product ${productId}`);
 
@@ -118,15 +126,16 @@ export const useAdminProductCreation = () => {
         }
       }
 
-      // 4. Добавляем видео (одной операцией)
+      // 4. Добавляем видео через admin RPC функцию
       if (videoUrls.length > 0) {
-        const videoInserts = videoUrls.map(videoUrl => ({
-          product_id: productId,
-          url: videoUrl
-        }));
-        const { error: videoError } = await supabase.from('product_videos').insert(videoInserts);
-        if (videoError) {
-          throw new Error(`Ошибка добавления видео: ${videoError.message}`);
+        for (const videoUrl of videoUrls) {
+          const { error: videoError } = await supabase.rpc('admin_insert_product_video', {
+            p_product_id: productId,
+            p_url: videoUrl
+          });
+          if (videoError) {
+            throw new Error(`Ошибка добавления видео: ${videoError.message}`);
+          }
         }
         console.log(`✅ ${videoUrls.length} videos inserted for product ${productId}`);
       }
