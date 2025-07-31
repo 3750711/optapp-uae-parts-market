@@ -153,14 +153,65 @@ export const useUpdatePriceOffer = () => {
   
   return useMutation({
     mutationFn: async ({ offerId, data }: { offerId: string; data: UpdatePriceOfferData }) => {
+      console.log('🔄 useUpdatePriceOffer: Starting update', {
+        offerId,
+        data,
+        timestamp: new Date().toISOString()
+      });
+
+      // First, let's check if the offer exists and what its current state is
+      const { data: currentOffer, error: fetchError } = await supabase
+        .from('price_offers')
+        .select('*')
+        .eq('id', offerId)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ useUpdatePriceOffer: Error fetching current offer', {
+          offerId,
+          error: fetchError,
+          code: fetchError.code,
+          message: fetchError.message,
+          details: fetchError.details
+        });
+        throw new Error(`Failed to fetch offer: ${fetchError.message}`);
+      }
+
+      console.log('📋 useUpdatePriceOffer: Current offer state', currentOffer);
+
       const { data: result, error } = await supabase
         .from('price_offers')
-        .update(data)
+        .update({
+          status: data.status,
+          seller_response: data.seller_response,
+          offered_price: data.offered_price,
+          message: data.message,
+          delivery_method: data.delivery_method,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', offerId)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ useUpdatePriceOffer: Update failed', {
+          offerId,
+          error,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          updateData: data
+        });
+        throw new Error(`Failed to update offer: ${error.message}`);
+      }
+
+      console.log('✅ useUpdatePriceOffer: Update successful', {
+        offerId,
+        before: currentOffer,
+        after: result
+      });
+      
       return result;
     },
     onSuccess: (data) => {
@@ -190,8 +241,8 @@ export const useUpdatePriceOffer = () => {
       toast.success('Offer updated!');
     },
     onError: (error) => {
-      console.error('Error updating offer:', error);
-      toast.error('Error updating offer');
+      console.error('❌ useUpdatePriceOffer: Final error handler', error);
+      toast.error(`Error updating offer: ${error.message}`);
     },
   });
 };
