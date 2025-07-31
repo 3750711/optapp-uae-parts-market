@@ -51,10 +51,10 @@ serve(async (req) => {
       throw new Error('TELEGRAM_BOT_TOKEN not configured');
     }
 
-    // Get seller's telegram_id and profile info
+    // Get seller's telegram_id, profile info, and user_type for language detection
     const { data: seller, error: sellerError } = await supabase
       .from('profiles')
-      .select('telegram_id, full_name, email')
+      .select('telegram_id, full_name, email, user_type')
       .eq('id', sellerId)
       .single();
 
@@ -89,10 +89,13 @@ serve(async (req) => {
       );
     }
 
-    // Get product info
+    // Get product info with images
     const { data: product, error: productError } = await supabase
       .from('products')
-      .select('title, brand, model, description')
+      .select(`
+        title, brand, model, description, cloudinary_url,
+        product_images(url, is_primary)
+      `)
       .eq('id', productId)
       .single();
 
@@ -104,8 +107,10 @@ serve(async (req) => {
       );
     }
 
-    // Format expiration date
-    const expirationDate = new Date(expiresAt).toLocaleString('ru-RU', {
+    // Determine language and date format based on user_type
+    const isEnglish = seller.user_type === 'seller';
+    const locale = isEnglish ? 'en-US' : 'ru-RU';
+    const expirationDate = new Date(expiresAt).toLocaleString(locale, {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -113,8 +118,32 @@ serve(async (req) => {
       minute: '2-digit'
     });
 
-    // Create Telegram message
-    const telegramMessage = `
+    // Get product image
+    const primaryImage = product.product_images?.find(img => img.is_primary);
+    const productImage = primaryImage?.url || product.product_images?.[0]?.url || product.cloudinary_url;
+
+    // Apply Cloudinary optimization if available
+    const optimizedImageUrl = productImage?.includes('cloudinary.com') 
+      ? productImage.replace('/upload/', '/upload/q_auto:good,f_auto,c_limit,w_800,h_800/')
+      : productImage;
+
+    // Create localized message
+    const telegramMessage = isEnglish ? `
+📦 <b>New Price Offer!</b>
+
+🏷️ <b>Product:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
+
+💰 <b>Original Price:</b> $${originalPrice}
+🎯 <b>Offered Price:</b> $${offeredPrice}
+
+👤 <b>From Buyer:</b> ${buyer.full_name} (ID: ${buyer.opt_id})
+
+${message ? `💬 <b>Message:</b> ${message}\n` : ''}⏰ <b>Valid Until:</b> ${expirationDate}
+
+🔗 <b>Link:</b> https://partsbay.ae/product/${productId}
+
+You can respond to this offer in your account dashboard.
+    `.trim() : `
 📦 <b>Новое предложение цены!</b>
 
 🏷️ <b>Товар:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
@@ -131,20 +160,39 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
 Ответить на предложение можно в личном кабинете на сайте.
     `.trim();
 
-    // Send Telegram message
-    const telegramResponse = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: seller.telegram_id,
-          text: telegramMessage,
-          parse_mode: 'HTML',
-          disable_web_page_preview: true
-        })
-      }
-    );
+    // Send Telegram notification (with photo if available)
+    let telegramResponse;
+    if (optimizedImageUrl) {
+      // Send photo with caption
+      telegramResponse = await fetch(
+        `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: seller.telegram_id,
+            photo: optimizedImageUrl,
+            caption: telegramMessage,
+            parse_mode: 'HTML'
+          })
+        }
+      );
+    } else {
+      // Fallback to text message
+      telegramResponse = await fetch(
+        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: seller.telegram_id,
+            text: telegramMessage,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+          })
+        }
+      );
+    }
 
     const telegramResult = await telegramResponse.json();
 
