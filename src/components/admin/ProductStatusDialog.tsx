@@ -84,24 +84,26 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
       
       console.log(`✅ [ProductStatusDialog] Database update successful:`, data);
 
-      // Fallback: Direct call to Edge Function for Telegram notification
-      console.log(`📱 [ProductStatusDialog] Sending fallback Telegram notification...`);
-      try {
-        const { data: functionData, error: functionError } = await supabase.functions.invoke('send-telegram-notification', {
-          body: {
-            productId: product.id,
-            notificationType: values.status === 'sold' ? 'sold' : 'status_change'
+      // Fallback: Direct call to Edge Function for Telegram notification (skip for pending status)
+      if (values.status !== 'pending') {
+        console.log(`📱 [ProductStatusDialog] Sending fallback Telegram notification...`);
+        try {
+          const { data: functionData, error: functionError } = await supabase.functions.invoke('send-telegram-notification', {
+            body: {
+              productId: product.id,
+              notificationType: values.status === 'sold' ? 'sold' : 'status_change'
+            }
+          });
+          
+          if (functionError) {
+            console.error("❌ [ProductStatusDialog] Fallback notification error:", functionError);
+          } else {
+            console.log(`✅ [ProductStatusDialog] Fallback notification sent successfully:`, functionData);
           }
-        });
-        
-        if (functionError) {
-          console.error("❌ [ProductStatusDialog] Fallback notification error:", functionError);
-        } else {
-          console.log(`✅ [ProductStatusDialog] Fallback notification sent successfully:`, functionData);
+        } catch (notificationError) {
+          console.error('❌ [ProductStatusDialog] Fallback notification exception:', notificationError);
+          // Don't throw here - product update was successful
         }
-      } catch (notificationError) {
-        console.error('❌ [ProductStatusDialog] Fallback notification exception:', notificationError);
-        // Don't throw here - product update was successful
       }
 
       // Log the admin action

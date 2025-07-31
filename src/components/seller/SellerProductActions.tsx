@@ -49,9 +49,11 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
       queryClient.invalidateQueries({ queryKey: ['seller-product', product.id] });
       queryClient.invalidateQueries({ queryKey: ['seller-products'] });
       
-      // Send fallback Telegram notification
-      const notificationType = newStatus === 'sold' ? 'sold' : 'status_change';
-      await sendProductNotification(product.id, notificationType);
+      // Send fallback Telegram notification (skip for pending status)
+      if (newStatus !== 'pending') {
+        const notificationType = newStatus === 'sold' ? 'sold' : 'status_change';
+        await sendProductNotification(product.id, notificationType);
+      }
       
       toast({
         title: "Статус обновлен",

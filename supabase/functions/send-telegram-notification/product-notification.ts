@@ -240,9 +240,17 @@ export async function handleProductNotification(productId: string, notificationT
 
   // Handle 'status_change' notification type
   if (notificationType === 'status_change') {
+    // Skip notifications for pending status - no need to notify about moderation
+    if (product.status === 'pending') {
+      console.log('Skipping notification for pending status');
+      return new Response(
+        JSON.stringify({ success: true, message: 'Skipped notification for pending status' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     try {
       const statusMessages = {
-        'pending': '⏳ Товар отправлен на модерацию',
         'active': '✅ Товар опубликован в каталоге',
         'sold': '😔 Товар помечен как проданный',
         'archived': '📦 Товар перемещен в архив'
