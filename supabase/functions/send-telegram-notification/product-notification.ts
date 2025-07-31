@@ -94,8 +94,8 @@ export async function handleProductNotification(productId: string, notificationT
   
   console.log('Product has', images.length, 'images and', videos.length, 'videos');
   
-  // Don't send notification if there are not enough images (except for sold notifications)
-  if (notificationType !== 'sold' && images.length < MIN_IMAGES_REQUIRED) {
+  // Don't send notification if there are not enough images (except for sold notifications and product_published)
+  if (notificationType !== 'sold' && notificationType !== 'product_published' && images.length < MIN_IMAGES_REQUIRED) {
     console.log(`Not enough images found for product (${images.length}/${MIN_IMAGES_REQUIRED}), skipping notification`);
     
     // Reset the notification timestamp to allow another attempt later
@@ -219,6 +219,23 @@ export async function handleProductNotification(productId: string, notificationT
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
+  }
+
+  // Handle 'product_published' notification type - send full ad with images
+  if (notificationType === 'product_published') {
+    // For product_published (active status), send full ad with images like new product
+    console.log('Sending full ad for published product with images');
+    
+    // Use the same message format as regular product notifications
+    return await sendImageMediaGroups(
+      images.map((image: any) => image.url), 
+      messageText, 
+      supabaseClient, 
+      productId,
+      PRODUCT_GROUP_CHAT_ID,
+      corsHeaders,
+      BOT_TOKEN
+    );
   }
 
   // Handle 'status_change' notification type

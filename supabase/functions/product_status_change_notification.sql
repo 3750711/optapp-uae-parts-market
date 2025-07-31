@@ -11,26 +11,29 @@
 -- Change: Removed 5-minute notification throttling period
 -- ================================================================
 
--- Создаем объединенную улучшенную функцию для уведомлений о товарах
+-- Создаем улучшенную функцию для уведомлений о товарах
+-- ВАЖНО: НЕ отправляем уведомления при изменении статуса на 'pending' (модерация)
+-- Для статуса 'active' отправляем полное объявление с изображениями
 CREATE OR REPLACE FUNCTION public.notify_on_product_status_changes()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- Отправляем уведомление когда:
-  -- 1. При обновлении: статус меняется на active
-  -- 2. При обновлении: статус меняется на sold
-  -- 3. ИЗМЕНЕНО: Убрали проверку на прошедшие 5 минут
+  -- Отправляем уведомление только при изменении статуса на:
+  -- 1. active (опубликован) - будет отправлено полное объявление с изображениями
+  -- 2. sold (продан) - будет отправлено уведомление о продаже
+  -- НЕ отправляем уведомления при изменении на pending (модерация)
   IF (TG_OP = 'UPDATE' AND 
       ((OLD.status != 'active' AND NEW.status = 'active') OR 
        (OLD.status != 'sold' AND NEW.status = 'sold'))) THEN
     
     -- Если статус изменился на sold, отправляем уведомление в любом случае, даже без изображений
-    -- Иначе проверяем наличие изображений для других типов уведомлений
-    IF (NEW.status = 'sold' OR EXISTS (
-      SELECT 1 FROM product_images WHERE product_id = NEW.id LIMIT 1
-    )) THEN
+    -- Для active статуса проверяем наличие изображений
+    IF (NEW.status = 'sold' OR 
+        (NEW.status = 'active' AND EXISTS (
+          SELECT 1 FROM product_images WHERE product_id = NEW.id LIMIT 1
+        ))) THEN
       -- Обновляем timestamp последнего уведомления
       NEW.last_notification_sent_at := NOW();
       
@@ -40,6 +43,9 @@ BEGIN
       BEGIN
         IF NEW.status = 'sold' THEN
           notification_type := 'sold';
+        ELSIF NEW.status = 'active' THEN
+          -- Для active статуса отправляем полное объявление, а не status_change
+          notification_type := 'product_published';
         ELSE
           notification_type := 'status_change';
         END IF;
@@ -53,8 +59,7 @@ BEGIN
           );
       END;
     ELSE
-      -- Если изображений нет и это не уведомление о продаже, 
-      -- сбрасываем timestamp, чтобы можно было попробовать отправить уведомление позже
+      -- Если изображений нет для active статуса, сбрасываем timestamp
       NEW.last_notification_sent_at := NULL;
     END IF;
   END IF;
