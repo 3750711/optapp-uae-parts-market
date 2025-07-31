@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initPerformanceOptimizations } from "@/utils/performanceUtils";
+import { initializeClarity } from "@/utils/clarityTracking";
 
 // Импортируем системы мониторинга для продакшена
 import "@/utils/productionErrorReporting";
@@ -86,6 +87,9 @@ try {
   
   // Инициализируем мониторинг производительности
   initPerformanceOptimizations();
+  
+  // Инициализируем Microsoft Clarity (только в продакшене)
+  initializeClarity();
 } catch (error) {
   console.error('[INIT]', 'Failed to initialize app');
   
