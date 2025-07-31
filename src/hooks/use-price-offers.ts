@@ -70,45 +70,26 @@ export const useCreatePriceOffer = () => {
         throw new Error('User must be authenticated to create offers');
       }
 
-      // Ищем любое последнее предложение от покупателя (pending или rejected)
-      const { data: existingOffer, error: checkError } = await supabase
+      // Check if user already has a PENDING offer for this product
+      const { data: existingPendingOffer, error: checkError } = await supabase
         .from('price_offers')
         .select('id, status')
         .eq('product_id', data.product_id)
         .eq('buyer_id', user.id)
-        .in('status', ['pending', 'rejected'])
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('status', 'pending')
         .maybeSingle();
 
       if (checkError) {
-        console.error('Error checking existing offer:', checkError);
+        console.error('Error checking existing offers:', checkError);
         throw checkError;
       }
 
-      // Если есть существующее предложение (pending или rejected), обновляем его
-      if (existingOffer) {
-        const { data: result, error: updateError } = await supabase
-          .from('price_offers')
-          .update({
-            offered_price: data.offered_price,
-            message: data.message,
-            original_price: data.original_price,
-            delivery_method: data.delivery_method,
-            status: 'pending', // Сбрасываем статус в pending
-            seller_response: null, // Очищаем предыдущий ответ продавца
-            expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // +6 часов
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingOffer.id)
-          .select()
-          .single();
-        
-        if (updateError) throw updateError;
-        return result;
+      // If there's already a pending offer, prevent creating a new one
+      if (existingPendingOffer) {
+        throw new Error('You already have a pending offer for this product. Please wait for the seller to respond.');
       }
 
-      // Если нет существующего предложения, создаем новое
+      // Always create a new offer (even if there are rejected/expired ones)
       const { data: result, error } = await supabase
         .from('price_offers')
         .insert({
