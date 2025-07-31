@@ -13,6 +13,7 @@ interface SimpleOfferCardProps {
     user_offer_price?: number;
     user_offer_status?: string;
     user_offer_expires_at?: string;
+    user_offer_seller_response?: string;
   };
   lastUpdateTime?: Date;
   onFavorite?: (productId: string) => void;
@@ -208,6 +209,14 @@ export const SimpleOfferCard: React.FC<SimpleOfferCardProps> = ({
           <p className="text-sm text-muted-foreground">
             {getStatusDescription(product.user_offer_status)}
           </p>
+          
+          {/* Seller Response */}
+          {product.user_offer_status === 'rejected' && product.user_offer_seller_response && (
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-xs font-medium text-red-800 mb-1">Ответ продавца:</p>
+              <p className="text-xs text-red-700">{product.user_offer_seller_response}</p>
+            </div>
+          )}
         </div>
 
         {/* Action Button */}

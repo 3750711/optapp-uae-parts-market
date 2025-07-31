@@ -70,13 +70,15 @@ export const useCreatePriceOffer = () => {
         throw new Error('User must be authenticated to create offers');
       }
 
-      // Сначала проверяем, есть ли у пользователя pending предложение для этого товара
+      // Ищем любое последнее предложение от покупателя (pending или rejected)
       const { data: existingOffer, error: checkError } = await supabase
         .from('price_offers')
         .select('id, status')
         .eq('product_id', data.product_id)
         .eq('buyer_id', user.id)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'rejected'])
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (checkError) {
@@ -84,7 +86,7 @@ export const useCreatePriceOffer = () => {
         throw checkError;
       }
 
-      // Если есть существующее pending предложение, обновляем его
+      // Если есть существующее предложение (pending или rejected), обновляем его
       if (existingOffer) {
         const { data: result, error: updateError } = await supabase
           .from('price_offers')
@@ -93,6 +95,8 @@ export const useCreatePriceOffer = () => {
             message: data.message,
             original_price: data.original_price,
             delivery_method: data.delivery_method,
+            status: 'pending', // Сбрасываем статус в pending
+            seller_response: null, // Очищаем предыдущий ответ продавца
             expires_at: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // +6 часов
             updated_at: new Date().toISOString()
           })

@@ -10,6 +10,7 @@ export interface SimpleOfferProduct extends Product {
   user_offer_status?: string;
   user_offer_created_at?: string;
   user_offer_expires_at?: string;
+  user_offer_seller_response?: string;
 }
 
 export const useSimpleBuyerOffers = (statusFilter?: string) => {
@@ -40,6 +41,7 @@ export const useSimpleBuyerOffers = (statusFilter?: string) => {
           status,
           created_at,
           expires_at,
+          seller_response,
           products!inner (
             id,
             title,
@@ -98,7 +100,8 @@ export const useSimpleBuyerOffers = (statusFilter?: string) => {
             user_offer_price: offer.offered_price,
             user_offer_status: offer.status,
             user_offer_created_at: offer.created_at,
-            user_offer_expires_at: offer.expires_at
+            user_offer_expires_at: offer.expires_at,
+            user_offer_seller_response: offer.seller_response
           });
         }
       }
