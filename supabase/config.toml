@@ -78,6 +78,9 @@ verify_jwt = false
 [functions.send-personal-telegram-message]
 verify_jwt = true
 
+[functions.notify-seller-new-price-offer]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
