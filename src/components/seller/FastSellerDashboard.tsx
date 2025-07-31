@@ -1,9 +1,11 @@
 import React, { memo, useMemo, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
+import { useSellerPriceOffers } from "@/hooks/use-price-offers";
 import { sellerDashboardTranslations } from "@/utils/translations/sellerDashboard";
 
 // SVG Icons as components for better performance
@@ -77,6 +79,7 @@ const FastSellerDashboard = memo(() => {
   const { profile } = useAuth();
   const isMobile = useIsMobile();
   const { startTimer } = usePerformanceMonitor();
+  const { data: priceOffers, isLoading: offersLoading } = useSellerPriceOffers();
 
   useEffect(() => {
     const timer = startTimer('seller-dashboard-render');
@@ -96,6 +99,11 @@ const FastSellerDashboard = memo(() => {
       .map(word => word.charAt(0).toUpperCase())
       .join('');
   }, []);
+
+  const pendingOffersCount = useMemo(() => {
+    if (!priceOffers) return 0;
+    return priceOffers.filter(offer => offer.status === 'pending').length;
+  }, [priceOffers]);
 
   const handleContactAdmin = useCallback(() => {
     try {
@@ -135,7 +143,10 @@ const FastSellerDashboard = memo(() => {
       icon: DollarSignIcon,
       title: sellerDashboardTranslations.priceOffers.title,
       description: sellerDashboardTranslations.priceOffers.description,
-      color: "border-teal-200 hover:border-teal-300 hover:bg-teal-50"
+      color: "border-teal-200 hover:border-teal-300 hover:bg-teal-50",
+      showBadge: true,
+      badgeCount: pendingOffersCount,
+      badgeLoading: offersLoading
     },
     {
       to: "/seller/create-order",
@@ -151,7 +162,7 @@ const FastSellerDashboard = memo(() => {
       description: sellerDashboardTranslations.myOrders.description,
       color: "border-red-200 hover:border-red-300 hover:bg-red-50"
     }
-  ], []);
+  ], [pendingOffersCount, offersLoading]);
 
   const contactAdminItem = useMemo(() => ({
     onClick: handleContactAdmin,
@@ -183,7 +194,20 @@ const FastSellerDashboard = memo(() => {
           <Link key={index} to={item.to} className="block">
             <div className={`fast-card h-full bg-white rounded-lg border ${item.color} ${isMobile ? 'mobile-card touch-target' : ''}`}>
               <div className={isMobile ? "pb-2 pt-4 px-6" : "pb-2 px-6 pt-6"}>
-                <item.icon />
+                <div className="relative">
+                  <item.icon />
+                  {item.showBadge && !item.badgeLoading && item.badgeCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs font-bold"
+                    >
+                      {item.badgeCount}
+                    </Badge>
+                  )}
+                  {item.showBadge && item.badgeLoading && (
+                    <div className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-muted animate-pulse"></div>
+                  )}
+                </div>
               </div>
               <div className={`px-6 pb-6 ${isMobile ? "pt-0" : ""}`}>
                 <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold tracking-tight mb-2`}>
