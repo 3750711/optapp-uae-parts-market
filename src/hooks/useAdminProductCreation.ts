@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
+import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 
 interface CreateProductParams {
   values: AdminProductFormValues;
@@ -19,6 +20,7 @@ export const useAdminProductCreation = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
+  const { notifyAdminsNewProduct } = useAdminNotifications();
 
   const createProductWithTransaction = async ({
     values,
@@ -75,7 +77,7 @@ export const useAdminProductCreation = () => {
           description: values.description || null,
           seller_id: values.sellerId,
           seller_name: selectedSeller.full_name,
-          status: 'active',
+          status: 'pending',
           place_number: Number(values.placeNumber) || 1,
           delivery_price: Number(values.deliveryPrice) || 0,
         })
@@ -129,13 +131,11 @@ export const useAdminProductCreation = () => {
         console.log(`✅ ${videoUrls.length} videos inserted for product ${productId}`);
       }
 
-      // 5. Отправляем уведомление (некритично)
+      // 5. Отправляем уведомления администраторам о новом товаре на модерацию
       try {
-        await supabase.functions.invoke('send-telegram-notification', {
-          body: { productId: product.id }
-        });
-      } catch (notificationError) {
-        console.error("⚠️ Notification failed (non-critical):", notificationError);
+        await notifyAdminsNewProduct(product.id);
+      } catch (adminNotificationError) {
+        console.error("⚠️ Admin notification failed (non-critical):", adminNotificationError);
       }
 
       toast({
