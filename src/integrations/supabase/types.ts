@@ -1520,9 +1520,46 @@ export type Database = {
           model_name: string
         }[]
       }
+      secure_check_force_logout_status: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      secure_check_rate_limit: {
+        Args: { p_user_id: string; p_action: string; p_limit_per_hour: number }
+        Returns: boolean
+      }
+      secure_check_search_rate_limit: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      secure_check_user_auth_method: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
+      secure_check_user_not_blocked: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      secure_check_user_pending_offer: {
+        Args: { p_user_id: string; p_product_id: string }
+        Returns: boolean
+      }
+      secure_force_user_logout: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       secure_update_profile: {
         Args: { p_user_id: string; p_updates: Json }
         Returns: Json
+      }
+      secure_validate_profile_update: {
+        Args: {
+          p_user_id: string
+          p_user_type: Database["public"]["Enums"]["user_type"]
+          p_verification_status: Database["public"]["Enums"]["verification_status"]
+          p_is_trusted_seller: boolean
+        }
+        Returns: boolean
       }
       seller_create_order: {
         Args:
