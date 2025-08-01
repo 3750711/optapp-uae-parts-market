@@ -93,41 +93,51 @@ try {
 } catch (error) {
   console.error('[INIT]', 'Failed to initialize app');
   
-  // Показываем пользователю сообщение об ошибке
+  // Показываем пользователю сообщение об ошибке безопасным способом
   if (typeof document !== 'undefined') {
-    document.body.innerHTML = `
-      <div style="
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        font-family: system-ui, -apple-system, sans-serif;
-        background-color: #f9fafb;
-        color: #374151;
-      ">
-        <div style="text-align: center; max-width: 500px; padding: 2rem;">
-          <h1 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-            Ошибка загрузки приложения
-          </h1>
-          <p style="margin-bottom: 2rem; color: #6b7280;">
-            Произошла ошибка при инициализации. Попробуйте обновить страницу.
-          </p>
-          <button 
-            onclick="window.location.reload()"
-            style="
-              background-color: #3b82f6;
-              color: white;
-              padding: 0.75rem 1.5rem;
-              border: none;
-              border-radius: 0.5rem;
-              cursor: pointer;
-              font-size: 1rem;
-            "
-          >
-            Обновить страницу
-          </button>
-        </div>
-      </div>
+    // Очищаем body от существующего контента
+    document.body.innerHTML = '';
+    
+    // Создаем контейнер безопасным способом
+    const errorContainer = document.createElement('div');
+    errorContainer.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #f9fafb;
+      color: #374151;
     `;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText = 'text-align: center; max-width: 500px; padding: 2rem;';
+    
+    const title = document.createElement('h1');
+    title.style.cssText = 'font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;';
+    title.textContent = 'Ошибка загрузки приложения';
+    
+    const message = document.createElement('p');
+    message.style.cssText = 'margin-bottom: 2rem; color: #6b7280;';
+    message.textContent = 'Произошла ошибка при инициализации. Попробуйте обновить страницу.';
+    
+    const reloadButton = document.createElement('button');
+    reloadButton.style.cssText = `
+      background-color: #3b82f6;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 1rem;
+    `;
+    reloadButton.textContent = 'Обновить страницу';
+    reloadButton.addEventListener('click', () => window.location.reload());
+    
+    contentDiv.appendChild(title);
+    contentDiv.appendChild(message);
+    contentDiv.appendChild(reloadButton);
+    errorContainer.appendChild(contentDiv);
+    document.body.appendChild(errorContainer);
   }
 }
