@@ -33,11 +33,11 @@ serve(async (req) => {
       orderNumber, 
       buyerOptId, 
       productId,
-      orderTitle,
-      orderPrice,
-      orderBrand,
-      orderModel,
-      orderImages
+      title,
+      price,
+      brand,
+      model,
+      images
     } = await req.json();
 
     console.log('Processing product sold notification:', {
@@ -46,8 +46,11 @@ serve(async (req) => {
       orderNumber,
       buyerOptId,
       productId,
-      orderTitle,
-      orderPrice
+      title,
+      price,
+      brand,
+      model,
+      imagesCount: images?.length || 0
     });
 
     if (!BOT_TOKEN) {
@@ -89,7 +92,7 @@ serve(async (req) => {
     });
 
     // Get the first image from order images
-    const orderImage = orderImages && orderImages.length > 0 ? orderImages[0] : null;
+    const orderImage = images && images.length > 0 ? images[0] : null;
 
     // Apply Cloudinary optimization if available
     const optimizedImageUrl = orderImage?.includes('cloudinary.com') 
@@ -100,9 +103,9 @@ serve(async (req) => {
     const telegramMessage = isEnglish ? `
 🎉 <b>Your product sold!</b>
 
-🏷️ <b>Product:</b> ${orderTitle}${orderBrand ? ` (${orderBrand}` : ''}${orderModel ? ` ${orderModel})` : orderBrand ? ')' : ''}
+🏷️ <b>Product:</b> ${title}${brand ? ` (${brand}` : ''}${model ? ` ${model})` : brand ? ')' : ''}
 
-💰 <b>Sale Price:</b> $${orderPrice}
+💰 <b>Sale Price:</b> $${price}
 📋 <b>Order #:</b> ${orderNumber}
 👤 <b>Buyer ID:</b> ${buyerOptId}
 
@@ -114,9 +117,9 @@ Congratulations on your sale! You can view order details in your dashboard.
     `.trim() : `
 🎉 <b>Ваш товар продан!</b>
 
-🏷️ <b>Товар:</b> ${orderTitle}${orderBrand ? ` (${orderBrand}` : ''}${orderModel ? ` ${orderModel})` : orderBrand ? ')' : ''}
+🏷️ <b>Товар:</b> ${title}${brand ? ` (${brand}` : ''}${model ? ` ${model})` : brand ? ')' : ''}
 
-💰 <b>Цена продажи:</b> ${orderPrice.toLocaleString('ru-RU')}₽
+💰 <b>Цена продажи:</b> ${price?.toLocaleString('ru-RU')}₽
 📋 <b>Заказ №:</b> ${orderNumber}
 👤 <b>ID покупателя:</b> ${buyerOptId}
 
@@ -183,8 +186,8 @@ Congratulations on your sale! You can view order details in your dashboard.
             seller_name: seller.full_name,
             buyer_opt_id: buyerOptId,
             order_number: orderNumber,
-            product_title: orderTitle,
-            sale_price: orderPrice,
+            product_title: title,
+            sale_price: price,
             product_id: productId,
             telegram_message_id: telegramResult.result?.message_id
           }
