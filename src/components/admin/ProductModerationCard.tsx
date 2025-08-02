@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { InlineEditableField } from '@/components/ui/InlineEditableField';
+import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 import { CheckCircle, Eye, Package } from 'lucide-react';
 
 interface Product {
@@ -30,7 +32,40 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   onUpdate
 }) => {
   const [isPublishing, setIsPublishing] = useState(false);
+  const [brandId, setBrandId] = useState<string>('');
+  const [modelId, setModelId] = useState<string>('');
   const { toast } = useToast();
+  
+  const {
+    brands,
+    allModels,
+    isLoading: isLoadingCarData,
+    findBrandIdByName,
+    findModelIdByName,
+    findBrandNameById,
+    findModelNameById
+  } = useAllCarBrands();
+
+  // Initialize brand and model IDs from product data
+  useEffect(() => {
+    if (brands.length > 0 && product.brand) {
+      const foundBrandId = findBrandIdByName(product.brand);
+      if (foundBrandId) {
+        setBrandId(foundBrandId);
+        
+        if (product.model && allModels.length > 0) {
+          // Filter models by brand and then find the matching model
+          const brandModels = allModels.filter(model => model.brand_id === foundBrandId);
+          const foundModel = brandModels.find(model => 
+            model.name.toLowerCase() === product.model?.toLowerCase()
+          );
+          if (foundModel) {
+            setModelId(foundModel.id);
+          }
+        }
+      }
+    }
+  }, [brands, allModels, product.brand, product.model, findBrandIdByName]);
 
   const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
 
@@ -55,6 +90,28 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         variant: "destructive",
       });
       throw error;
+    }
+  };
+
+  const handleBrandChange = async (selectedBrandId: string, brandName: string) => {
+    setBrandId(selectedBrandId);
+    setModelId(''); // Reset model when brand changes
+    
+    try {
+      await handleFieldUpdate('brand', brandName);
+      await handleFieldUpdate('model', ''); // Clear model in database
+    } catch (error) {
+      console.error('Error updating brand:', error);
+    }
+  };
+
+  const handleModelChange = async (selectedModelId: string, modelName: string) => {
+    setModelId(selectedModelId);
+    
+    try {
+      await handleFieldUpdate('model', modelName);
+    } catch (error) {
+      console.error('Error updating model:', error);
     }
   };
 
@@ -134,8 +191,8 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           />
         </div>
 
-        {/* Price and Details */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* Price and Details - Mobile Responsive */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Цена
@@ -166,7 +223,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             />
           </div>
 
-          <div>
+          <div className="sm:col-span-2 lg:col-span-1">
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Доставка
             </label>
@@ -182,11 +239,24 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           </div>
         </div>
 
-        {/* Product Details */}
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div>Продавец: {product.seller_name}</div>
-          {product.brand && <div>Бренд: {product.brand}</div>}
-          {product.model && <div>Модель: {product.model}</div>}
+        {/* Car Brand and Model */}
+        <div>
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
+            Автомобиль
+          </label>
+          <SimpleCarSelector
+            brandId={brandId}
+            modelId={modelId}
+            onBrandChange={handleBrandChange}
+            onModelChange={handleModelChange}
+            disabled={isLoadingCarData}
+            isMobile={true}
+          />
+        </div>
+
+        {/* Seller Information */}
+        <div className="text-xs text-muted-foreground">
+          <div className="font-medium">Продавец: {product.seller_name}</div>
         </div>
       </CardContent>
 
