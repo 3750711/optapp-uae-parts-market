@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import StatisticsSection from "@/components/home/StatisticsSection";
-import LoginForm from "@/components/auth/LoginForm";
+import { ProfessionalAuthBlock } from "@/components/auth/ProfessionalAuthBlock";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -111,8 +111,8 @@ const Index = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-card border border-border rounded-lg p-6">
-                    <LoginForm />
+                  <div className="max-w-lg mx-auto">
+                    <ProfessionalAuthBlock />
                   </div>
                 )}
               </div>

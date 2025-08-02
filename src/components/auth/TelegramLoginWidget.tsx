@@ -174,11 +174,24 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
   return (
     <>
-      <div className="flex flex-col items-center space-y-4">
-        <div ref={widgetRef} className="telegram-widget-container" />
-        <p className="text-sm text-muted-foreground text-center">
-          Войдите через Telegram для быстрого доступа
-        </p>
+      <div className="flex flex-col items-center space-y-6">
+        <div className="text-center mb-4">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Профессиональная авторизация
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Безопасный вход через Telegram для участников B2B/B2C сообщества
+          </p>
+        </div>
+        <div ref={widgetRef} className="telegram-widget-container scale-110" />
+        <div className="text-center space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Мгновенная авторизация без дополнительных паролей
+          </p>
+          <p className="text-xs text-primary font-medium">
+            Рекомендованный способ входа
+          </p>
+        </div>
       </div>
 
       {mergeData && (
