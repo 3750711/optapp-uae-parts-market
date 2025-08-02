@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { useSellerOrderFormLogic } from "@/hooks/useSellerOrderFormLogic";
 import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
 import AdvancedImageUpload from "@/components/admin/order/AdvancedImageUpload";
+import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { OrderPreviewDialog } from "@/components/admin/order/OrderPreviewDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -289,6 +290,18 @@ const SellerCreateOrder = () => {
               disabled={isFormDisabled}
               maxImages={25}
             />
+            
+            <div>
+              <h3 className="text-lg font-medium mb-4">Videos</h3>
+              <CloudinaryVideoUpload
+                videos={videos}
+                onUpload={onVideoUpload}
+                onDelete={onVideoDelete}
+                maxVideos={3}
+                productId={temporaryOrderId}
+                disabled={isFormDisabled}
+              />
+            </div>
           </CardContent>
           
           <CardFooter>
