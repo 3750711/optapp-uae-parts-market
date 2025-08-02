@@ -12,6 +12,7 @@
 // Utility functions for sending messages via Telegram API
 
 import { MAX_IMAGES_PER_GROUP } from "./config.ts";
+import { logTelegramNotification } from "../shared/telegram-logger.ts";
 
 // Function to wait between API calls to avoid rate limiting
 export const waitBetweenBatches = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -182,8 +183,28 @@ export async function sendImageMediaGroups(
         }
       }
       
-      if (i === 0 && mediaGroupResult) {
+      if (i === 0 && mediaGroupResult && mediaGroupResult.ok) {
         console.log('First media group detailed response:', JSON.stringify(mediaGroupResult));
+        
+        // Log successful media group send (for first group with caption)
+        await logTelegramNotification(supabaseClient, {
+          function_name: 'send-telegram-notification',
+          notification_type: productId ? 'product_published' : 'media_group',
+          recipient_type: 'group',
+          recipient_identifier: chatId,
+          recipient_name: productId ? 'Product Group' : 'Media Group',
+          message_text: messageText,
+          status: 'sent',
+          telegram_message_id: mediaGroupResult.result?.[0]?.message_id?.toString(),
+          related_entity_type: productId ? 'product' : 'media',
+          related_entity_id: productId,
+          metadata: {
+            media_group_size: chunk.length,
+            total_images: imageUrls.length,
+            chunk_number: i + 1,
+            total_chunks: imageChunks.length
+          }
+        });
       }
     }
     

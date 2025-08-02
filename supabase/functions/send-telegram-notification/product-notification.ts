@@ -15,6 +15,7 @@
 
 import { BOT_TOKEN, MIN_IMAGES_REQUIRED, PRODUCT_GROUP_CHAT_ID } from "./config.ts";
 import { sendImageMediaGroups } from "./telegram-api.ts";
+import { logTelegramNotification } from "../shared/telegram-logger.ts";
 
 /**
  * Handles product status change notifications
@@ -198,6 +199,24 @@ export async function handleProductNotification(productId: string, notificationT
       
       console.log('Sold notification sent successfully');
       
+      // Log successful sold notification
+      await logTelegramNotification(supabaseClient, {
+        function_name: 'send-telegram-notification',
+        notification_type: 'product_sold',
+        recipient_type: 'group',
+        recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+        recipient_name: 'Product Group',
+        message_text: messageText,
+        status: 'sent',
+        related_entity_type: 'product',
+        related_entity_id: productId,
+        metadata: {
+          lot_number: product.lot_number,
+          product_title: product.title,
+          message_type: 'text_only'
+        }
+      });
+      
       // Update the notification timestamp
       const { error: updateError } = await supabaseClient
         .from('products')
@@ -282,6 +301,25 @@ export async function handleProductNotification(productId: string, notificationT
       }
       
       console.log('Status change notification sent successfully');
+      
+      // Log successful status change notification
+      await logTelegramNotification(supabaseClient, {
+        function_name: 'send-telegram-notification',
+        notification_type: 'product_status_change',
+        recipient_type: 'group',
+        recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+        recipient_name: 'Product Group',
+        message_text: statusChangeText,
+        status: 'sent',
+        related_entity_type: 'product',
+        related_entity_id: productId,
+        metadata: {
+          lot_number: product.lot_number,
+          product_title: product.title,
+          old_status: 'pending',
+          new_status: product.status
+        }
+      });
       
       // Update the notification timestamp
       const { error: updateError } = await supabaseClient
