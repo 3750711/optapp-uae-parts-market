@@ -34,35 +34,31 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
-        background: '#f9fafb',
-        foreground: '#111827',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: '#6366f1', // Индиго основной
-          foreground: '#ffffff',
-          hover: '#4f46e5',
-          focus: '#4338ca',
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
-          DEFAULT: '#f59e0b', // Желтый акцент
-          foreground: '#ffffff',
-          hover: '#d97706',
-          focus: '#b45309',
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
         },
         card: {
-          DEFAULT: '#fff',
-          shadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
         },
         muted: {
-          DEFAULT: '#f3f4f6',
-          foreground: '#6b7280',
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
-          DEFAULT: '#eff6ff', // Голубой акцент (светлый)
-          foreground: '#3b82f6',
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
         },
         destructive: {
-          DEFAULT: '#ef4444', // Красный
-          foreground: '#ffffff',
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
         },
       },
       boxShadow: {

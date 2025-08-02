@@ -10,14 +10,14 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon: Icon, value, label }) => {
   return (
-    <div className="text-center p-6 border border-gray-200 rounded-lg bg-white">
+    <div className="text-center p-6 border border-border rounded-lg bg-card">
       <div className="flex items-center justify-center mb-3">
-        <Icon className="w-8 h-8 text-gray-600" />
+        <Icon className="w-8 h-8 text-muted-foreground" />
       </div>
-      <div className="text-3xl font-bold text-gray-900 mb-2">
+      <div className="text-3xl font-bold text-foreground mb-2">
         {value.toLocaleString()}
       </div>
-      <p className="text-gray-600 font-medium">
+      <p className="text-muted-foreground font-medium">
         {label}
       </p>
     </div>
@@ -31,7 +31,7 @@ const StatisticsSection: React.FC = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-md mx-auto">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="h-32 bg-gray-100 rounded-lg"></div>
+          <div key={i} className="h-32 bg-muted rounded-lg"></div>
         ))}
       </div>
     );
