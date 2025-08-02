@@ -146,31 +146,9 @@ serve(async (req) => {
     
     // Send images with message
     const imageUrls = images.map((image: any) => image.url);
-    const success = await sendImageMediaGroups(imageUrls, messageText);
+    const sendResult = await sendImageMediaGroups(imageUrls, messageText, supabaseClient, productId);
     
-    // Log telegram notification
-    try {
-      await logTelegramNotification(supabaseClient, {
-        function_name: 'send-product-publish-notification',
-        notification_type: 'product_published',
-        recipient_type: 'group',
-        recipient_identifier: PRODUCT_GROUP_CHAT_ID,
-        recipient_name: 'Product Group',
-        message_text: messageText,
-        status: success ? 'sent' : 'failed',
-        related_entity_type: 'product',
-        related_entity_id: productId,
-        metadata: {
-          product_title: product.title,
-          product_price: product.price,
-          seller_name: product.seller_name,
-          lot_number: product.lot_number,
-          images_count: imageUrls.length
-        }
-      });
-    } catch (logError) {
-      console.error('Failed to log telegram notification:', logError);
-    }
+    const success = sendResult.success;
     
     if (success) {
       // Update the notification timestamp
@@ -204,11 +182,40 @@ serve(async (req) => {
 });
 
 // Function to send images in media groups
-async function sendImageMediaGroups(imageUrls: string[], messageText: string): Promise<boolean> {
+async function sendImageMediaGroups(
+  imageUrls: string[], 
+  messageText: string, 
+  supabaseClient: any, 
+  productId: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     if (imageUrls.length === 0) {
       console.log('No images to send');
-      return false;
+      
+      // Log text-only notification
+      try {
+        await logTelegramNotification(supabaseClient, {
+          function_name: 'send-product-publish-notification',
+          notification_type: 'product_published',
+          recipient_type: 'group',
+          recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+          recipient_name: 'Product Group',
+          message_text: messageText,
+          status: 'failed',
+          related_entity_type: 'product',
+          related_entity_id: productId,
+          error_details: { error: 'No images available' },
+          metadata: {
+            images_count: 0,
+            chunks_count: 0,
+            chunk_number: 0
+          }
+        });
+      } catch (logError) {
+        console.error('❌ Failed to log no images notification:', logError);
+      }
+      
+      return { success: false, error: 'No images available' };
     }
 
     console.log(`Preparing to send ${imageUrls.length} images in media group(s)`);
@@ -246,10 +253,65 @@ async function sendImageMediaGroups(imageUrls: string[], messageText: string): P
     
     if (!result.ok) {
       console.error('Error sending first media group:', result.description);
-      return false;
+      
+      // Log failed first chunk
+      try {
+        await logTelegramNotification(supabaseClient, {
+          function_name: 'send-product-publish-notification',
+          notification_type: 'product_published',
+          recipient_type: 'group',
+          recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+          recipient_name: 'Product Group',
+          message_text: messageText,
+          status: 'failed',
+          related_entity_type: 'product',
+          related_entity_id: productId,
+          error_details: { 
+            telegram_error: result.description,
+            error_code: result.error_code,
+            chunk_number: 1
+          },
+          metadata: {
+            images_count: imageUrls.length,
+            chunks_count: chunks.length,
+            chunk_number: 1,
+            chunk_size: firstChunk.length
+          }
+        });
+      } catch (logError) {
+        console.error('❌ Failed to log failed first chunk:', logError);
+      }
+      
+      return { success: false, error: result.description };
     }
     
     console.log('First media group sent successfully');
+    
+    // Log successful first chunk
+    try {
+      const telegramMessageId = result.result?.[0]?.message_id;
+      await logTelegramNotification(supabaseClient, {
+        function_name: 'send-product-publish-notification',
+        notification_type: 'product_published',
+        recipient_type: 'group',
+        recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+        recipient_name: 'Product Group',
+        message_text: messageText,
+        status: 'sent',
+        telegram_message_id: telegramMessageId?.toString(),
+        related_entity_type: 'product',
+        related_entity_id: productId,
+        metadata: {
+          images_count: imageUrls.length,
+          chunks_count: chunks.length,
+          chunk_number: 1,
+          chunk_size: firstChunk.length,
+          has_caption: true
+        }
+      });
+    } catch (logError) {
+      console.error('❌ Failed to log successful first chunk:', logError);
+    }
     
     // Send remaining chunks if any
     for (let i = 1; i < chunks.length; i++) {
@@ -276,18 +338,100 @@ async function sendImageMediaGroups(imageUrls: string[], messageText: string): P
       
       if (!result.ok) {
         console.error(`Error sending media group ${i + 1}:`, result.description);
-        return false;
+        
+        // Log failed additional chunk
+        try {
+          await logTelegramNotification(supabaseClient, {
+            function_name: 'send-product-publish-notification',
+            notification_type: 'product_published',
+            recipient_type: 'group',
+            recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+            recipient_name: 'Product Group',
+            message_text: `Additional images chunk ${i + 1}`,
+            status: 'failed',
+            related_entity_type: 'product',
+            related_entity_id: productId,
+            error_details: { 
+              telegram_error: result.description,
+              error_code: result.error_code,
+              chunk_number: i + 1
+            },
+            metadata: {
+              images_count: imageUrls.length,
+              chunks_count: chunks.length,
+              chunk_number: i + 1,
+              chunk_size: chunk.length,
+              has_caption: false
+            }
+          });
+        } catch (logError) {
+          console.error('❌ Failed to log failed additional chunk:', logError);
+        }
+        
+        return { success: false, error: result.description };
       }
       
       console.log(`Media group ${i + 1} sent successfully`);
+      
+      // Log successful additional chunk
+      try {
+        const telegramMessageId = result.result?.[0]?.message_id;
+        await logTelegramNotification(supabaseClient, {
+          function_name: 'send-product-publish-notification',
+          notification_type: 'product_published',
+          recipient_type: 'group',
+          recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+          recipient_name: 'Product Group',
+          message_text: `Additional images chunk ${i + 1}`,
+          status: 'sent',
+          telegram_message_id: telegramMessageId?.toString(),
+          related_entity_type: 'product',
+          related_entity_id: productId,
+          metadata: {
+            images_count: imageUrls.length,
+            chunks_count: chunks.length,
+            chunk_number: i + 1,
+            chunk_size: chunk.length,
+            has_caption: false
+          }
+        });
+      } catch (logError) {
+        console.error('❌ Failed to log successful additional chunk:', logError);
+      }
       
       // Add delay between chunks to avoid rate limiting
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('Error sending media groups:', error);
-    return false;
+    
+    // Log exception error
+    try {
+      await logTelegramNotification(supabaseClient, {
+        function_name: 'send-product-publish-notification',
+        notification_type: 'product_published',
+        recipient_type: 'group',
+        recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+        recipient_name: 'Product Group',
+        message_text: messageText,
+        status: 'failed',
+        related_entity_type: 'product',
+        related_entity_id: productId,
+        error_details: { 
+          exception: error.message,
+          stack: error.stack 
+        },
+        metadata: {
+          images_count: imageUrls.length,
+          error_type: 'exception'
+        }
+      });
+    } catch (logError) {
+      console.error('❌ Failed to log exception error:', logError);
+    }
+    
+    return { success: false, error: error.message };
   }
 }
