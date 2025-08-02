@@ -41,6 +41,9 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import LanguageToggle from '@/components/auth/LanguageToggle';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getMainPageTranslations } from '@/utils/mainPageTranslations';
 
 const Header = () => {
   const { user, signOut, profile, isLoading } = useAuth();
@@ -50,6 +53,8 @@ const Header = () => {
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { language, changeLanguage } = useLanguage();
+  const t = getMainPageTranslations(language);
 
   // Отладочная информация для Header
   console.log('🏠 Header Debug:', {
@@ -85,7 +90,7 @@ const Header = () => {
         className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
-        Главная
+        {t.header.home}
       </Link>
       {/* Show navigation links only for authenticated users */}
       {user && (
@@ -97,21 +102,21 @@ const Header = () => {
                 className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
                 onClick={onClick}
               >
-                Каталог
+                {t.header.catalog}
               </Link>
               <Link 
                 to="/stores" 
                 className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
                 onClick={onClick}
               >
-                Магазины
+                {t.header.stores}
               </Link>
               <Link 
                 to="/requests" 
                 className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
                 onClick={onClick}
               >
-                Запросы
+                {t.header.requests}
               </Link>
             </>
           )}
@@ -120,7 +125,7 @@ const Header = () => {
             className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
             onClick={onClick}
           >
-            О нас
+            {t.header.about}
           </Link>
         </>
       )}
@@ -156,6 +161,13 @@ const Header = () => {
         )}
 
         <div className="flex items-center space-x-3">
+          {/* Language Toggle - always visible */}
+          <LanguageToggle 
+            language={language}
+            onLanguageChange={changeLanguage}
+            className="mr-2"
+          />
+          
           {user ? (
             <div className="flex items-center space-x-2">
               {/* Show NotificationBell only on desktop */}
@@ -332,20 +344,7 @@ const Header = () => {
                 </DropdownMenu>
               )}
             </div>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Button 
-                asChild 
-                variant="ghost"
-                className="text-foreground hover:text-primary"
-              >
-                <Link to="/login">Вход</Link>
-              </Button>
-              <Button asChild variant="default">
-                <Link to="/register">Регистрация</Link>
-              </Button>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </header>

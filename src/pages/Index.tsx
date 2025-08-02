@@ -8,9 +8,13 @@ import { ProfessionalAuthBlock } from "@/components/auth/ProfessionalAuthBlock";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getMainPageTranslations } from "@/utils/mainPageTranslations";
 
 const Index = () => {
   const { user, profile } = useAuth();
+  const { language } = useLanguage();
+  const t = getMainPageTranslations(language);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -18,7 +22,7 @@ const Index = () => {
     "name": "PartsBay.ae",
     "url": "https://partsbay.ae",
     "logo": "https://partsbay.ae/logo.png",
-    "description": "Закрытая B2B/B2C платформа автозапчастей в ОАЭ. Профессиональное сообщество поставщиков и покупателей.",
+    "description": t.meta.description,
     "contactPoint": {
       "@type": "ContactPoint",
       "telephone": "+971-XXX-XXXX",
@@ -31,14 +35,14 @@ const Index = () => {
   return (
     <>
       <Helmet>
-        <title>PartsBay.ae - B2B/B2C Платформа Автозапчастей</title>
+        <title>{t.meta.title}</title>
         <meta 
           name="description" 
-          content="Закрытая профессиональная платформа автозапчастей в ОАЭ. Доступ только для зарегистрированных пользователей." 
+          content={t.meta.description}
         />
         <meta 
           name="keywords" 
-          content="B2B автозапчасти ОАЭ, платформа автозапчастей, закрытое сообщество" 
+          content={t.meta.keywords}
         />
         <link rel="canonical" href="https://partsbay.ae/" />
         <script type="application/ld+json">
@@ -58,30 +62,30 @@ const Index = () => {
 
               {/* Main Heading */}
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-                PartsBay.ae
+                {t.hero.title}
               </h1>
               
               <h2 className="text-xl md:text-2xl text-muted-foreground mb-2">
-                B2B/B2C Платформа Автозапчастей
+                {t.hero.subtitle}
               </h2>
               
               {/* Subtitle */}
               <p className="text-lg text-muted-foreground mb-12 max-w-lg mx-auto">
-                Закрытое профессиональное сообщество поставщиков и покупателей автозапчастей в ОАЭ
+                {t.hero.description}
               </p>
 
               {/* Statistics Section */}
               <div className="mb-12">
-                <StatisticsSection />
+                <StatisticsSection language={language} />
               </div>
 
               {/* Access Notice */}
               <div className="bg-muted border border-border rounded-lg p-6 mb-8">
                 <p className="text-foreground font-medium">
-                  Доступ только по регистрации
+                  {t.hero.accessTitle}
                 </p>
                 <p className="text-muted-foreground text-sm mt-1">
-                  Для доступа к платформе необходимо пройти авторизацию
+                  {t.hero.accessDescription}
                 </p>
               </div>
 
@@ -91,12 +95,12 @@ const Index = () => {
                   <div className="bg-card border border-border rounded-lg p-6">
                     <div className="text-center">
                       <h3 className="text-lg font-semibold text-foreground mb-3">
-                        Добро пожаловать, {profile?.full_name || 'Участник'}!
+                        {t.welcome.greeting}, {profile?.full_name || 'Участник'}!
                       </h3>
                       <p className="text-muted-foreground mb-6">
                         {profile?.user_type === 'seller' 
-                          ? 'Управляйте своими автозапчастями и заказами'
-                          : 'Просматривайте каталог автозапчастей'
+                          ? t.welcome.sellerDescription
+                          : t.welcome.buyerDescription
                         }
                       </p>
                       <Link 
@@ -104,7 +108,7 @@ const Index = () => {
                         className="inline-block w-full"
                       >
                         <Button className="w-full">
-                          {profile?.user_type === 'seller' ? 'Панель управления' : 'Открыть каталог'}
+                          {profile?.user_type === 'seller' ? t.welcome.sellerButton : t.welcome.buyerButton}
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       </Link>
@@ -112,7 +116,7 @@ const Index = () => {
                   </div>
                 ) : (
                   <div className="max-w-lg mx-auto">
-                    <ProfessionalAuthBlock />
+                    <ProfessionalAuthBlock language={language} />
                   </div>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Package, ShoppingBag } from 'lucide-react';
 import { useStatistics } from '@/hooks/useStatistics';
+import { getMainPageTranslations } from '@/utils/mainPageTranslations';
 
 interface StatCardProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -24,8 +25,13 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, value, label }) => {
   );
 };
 
-const StatisticsSection: React.FC = () => {
+interface StatisticsSectionProps {
+  language?: 'ru' | 'en';
+}
+
+const StatisticsSection: React.FC<StatisticsSectionProps> = ({ language = 'ru' }) => {
   const { data: stats, isLoading } = useStatistics();
+  const t = getMainPageTranslations(language);
 
   if (isLoading) {
     return (
@@ -41,12 +47,12 @@ const StatisticsSection: React.FC = () => {
     {
       icon: Package,
       value: stats?.totalProducts || 1373,
-      label: "Размещённых автозапчастей",
+      label: t.statistics.partsListed,
     },
     {
       icon: ShoppingBag,
       value: stats?.totalOrders || 983,
-      label: "Созданных заказов",
+      label: t.statistics.ordersCreated,
     },
   ];
 

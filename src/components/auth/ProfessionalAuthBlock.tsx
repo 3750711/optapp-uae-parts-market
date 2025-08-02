@@ -1,12 +1,42 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Shield, Zap } from 'lucide-react';
+import { ChevronDown, ChevronUp, Shield, Zap, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TelegramLoginWidget } from './TelegramLoginWidget';
 import LoginForm from './LoginForm';
 
-export const ProfessionalAuthBlock: React.FC = () => {
+interface ProfessionalAuthBlockProps {
+  language?: 'ru' | 'en';
+}
+
+const authTranslations = {
+  ru: {
+    features: {
+      secure: "Безопасно",
+      instant: "Мгновенно"
+    },
+    alternativeLogin: "Классический вход",
+    alternativeDescription: "Альтернативный способ входа",
+    registerPrompt: "Нет аккаунта?",
+    registerLink: "Зарегистрироваться"
+  },
+  en: {
+    features: {
+      secure: "Secure",
+      instant: "Instant"
+    },
+    alternativeLogin: "Traditional login",
+    alternativeDescription: "Alternative login method",
+    registerPrompt: "No account?",
+    registerLink: "Register"
+  }
+};
+
+export const ProfessionalAuthBlock: React.FC<ProfessionalAuthBlockProps> = ({ 
+  language = 'ru' 
+}) => {
   const [showEmailLogin, setShowEmailLogin] = useState(false);
+  const t = authTranslations[language];
 
   const handleTelegramSuccess = () => {
     // Handle successful Telegram login
@@ -31,11 +61,11 @@ export const ProfessionalAuthBlock: React.FC = () => {
         <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-muted/30 rounded-lg">
           <div className="flex items-center space-x-2">
             <Shield className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground">Безопасно</span>
+            <span className="text-xs text-muted-foreground">{t.features.secure}</span>
           </div>
           <div className="flex items-center space-x-2">
             <Zap className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground">Мгновенно</span>
+            <span className="text-xs text-muted-foreground">{t.features.instant}</span>
           </div>
         </div>
 
@@ -46,7 +76,7 @@ export const ProfessionalAuthBlock: React.FC = () => {
             onClick={() => setShowEmailLogin(!showEmailLogin)}
             className="w-full flex items-center justify-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            <span>Классический вход</span>
+            <span>{t.alternativeLogin}</span>
             {showEmailLogin ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
@@ -58,7 +88,7 @@ export const ProfessionalAuthBlock: React.FC = () => {
             <div className="mt-4 p-4 bg-muted/20 rounded-lg">
               <div className="text-center mb-4">
                 <p className="text-sm text-muted-foreground">
-                  Альтернативный способ входа
+                  {t.alternativeDescription}
                 </p>
               </div>
               <LoginForm />
@@ -69,12 +99,12 @@ export const ProfessionalAuthBlock: React.FC = () => {
         {/* Bottom links */}
         <div className="mt-6 text-center space-y-2">
           <div className="text-xs text-muted-foreground">
-            Нет аккаунта?{' '}
+            {t.registerPrompt}{' '}
             <Link
               to="/register"
               className="text-primary hover:text-primary-hover font-medium transition-colors"
             >
-              Зарегистрироваться
+              {t.registerLink}
             </Link>
           </div>
         </div>
