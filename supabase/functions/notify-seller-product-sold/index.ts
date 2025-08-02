@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { logTelegramNotification } from '../shared/telegram-logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -172,6 +173,31 @@ Congratulations on your sale! You can view order details in your dashboard.
     }
 
     console.log(`Product sold notification sent successfully to seller ${seller.full_name}`);
+
+    // Log to telegram notifications tracking
+    try {
+      await logTelegramNotification(supabase, {
+        function_name: 'notify-seller-product-sold',
+        notification_type: 'product_sold',
+        recipient_type: 'personal',
+        recipient_identifier: seller.telegram_id.toString(),
+        recipient_name: seller.full_name,
+        message_text: telegramMessage,
+        status: 'sent',
+        telegram_message_id: telegramResult.result?.message_id?.toString(),
+        related_entity_type: 'order',
+        related_entity_id: orderId,
+        metadata: {
+          order_number: orderNumber,
+          product_title: title,
+          sale_price: price,
+          product_id: productId,
+          buyer_opt_id: buyerOptId
+        }
+      });
+    } catch (logError) {
+      console.error('Failed to log telegram notification:', logError);
+    }
 
     // Log the action
     try {
