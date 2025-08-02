@@ -1,68 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { Package, ShoppingBag, Users, Building2 } from 'lucide-react';
+import React from 'react';
+import { Package, ShoppingBag } from 'lucide-react';
 import { useStatistics } from '@/hooks/useStatistics';
 
 interface StatCardProps {
   icon: React.ComponentType<{ className?: string }>;
   value: number;
   label: string;
-  gradient: string;
-  delay: number;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ icon: Icon, value, label, gradient, delay }) => {
-  const [displayValue, setDisplayValue] = useState(0);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const duration = 1000;
-      const start = Date.now();
-      const startValue = 0;
-
-      const animate = () => {
-        const now = Date.now();
-        const progress = Math.min((now - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3); // easeOut cubic
-        
-        setDisplayValue(Math.floor(startValue + (value - startValue) * eased));
-        
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
-      };
-      
-      requestAnimationFrame(animate);
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
+const StatCard: React.FC<StatCardProps> = ({ icon: Icon, value, label }) => {
   return (
-    <div className={`group relative overflow-hidden rounded-2xl p-6 ${gradient} hover-lift animate-fade-in-scale`}
-         style={{ animationDelay: `${delay}ms` }}>
-      {/* Background pattern */}
-      <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-      
-      {/* Content */}
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-            <Icon className="w-6 h-6 text-white" />
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-white">
-              {displayValue.toLocaleString()}+
-            </div>
-          </div>
-        </div>
-        
-        <p className="text-white/90 font-medium leading-relaxed">
-          {label}
-        </p>
+    <div className="text-center p-6 border border-gray-200 rounded-lg bg-white">
+      <div className="flex items-center justify-center mb-3">
+        <Icon className="w-8 h-8 text-gray-600" />
       </div>
-      
-      {/* Hover effect overlay */}
-      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className="text-3xl font-bold text-gray-900 mb-2">
+        {value.toLocaleString()}
+      </div>
+      <p className="text-gray-600 font-medium">
+        {label}
+      </p>
     </div>
   );
 };
@@ -72,9 +29,9 @@ const StatisticsSection: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 bg-muted rounded-2xl"></div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-md mx-auto">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="h-32 bg-gray-100 rounded-lg"></div>
         ))}
       </div>
     );
@@ -83,36 +40,18 @@ const StatisticsSection: React.FC = () => {
   const statisticsData = [
     {
       icon: Package,
-      value: stats?.totalProducts || 908,
-      label: "Размещенных лотов",
-      gradient: "bg-gradient-primary",
-      delay: 0,
+      value: stats?.totalProducts || 1373,
+      label: "Размещённых автозапчастей",
     },
     {
       icon: ShoppingBag,
-      value: stats?.totalOrders || 156,
-      label: "Оформленных заказов",
-      gradient: "bg-gradient-secondary",
-      delay: 150,
-    },
-    {
-      icon: Users,
-      value: stats?.totalSellers || 27,
-      label: "Проверенных продавцов",
-      gradient: "bg-gradient-success",
-      delay: 300,
-    },
-    {
-      icon: Building2,
-      value: 1,
-      label: "Профессиональное закрытое сообщество",
-      gradient: "bg-gradient-info",
-      delay: 450,
+      value: stats?.totalOrders || 983,
+      label: "Созданных заказов",
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-md mx-auto">
       {statisticsData.map((stat, index) => (
         <StatCard key={index} {...stat} />
       ))}

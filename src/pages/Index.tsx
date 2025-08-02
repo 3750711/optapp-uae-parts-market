@@ -6,22 +6,19 @@ import Layout from "@/components/layout/Layout";
 import StatisticsSection from "@/components/home/StatisticsSection";
 import LoginForm from "@/components/auth/LoginForm";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowRight, Car } from "lucide-react";
+import { ArrowRight, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AutomotiveCard } from "@/components/ui/automotive-card";
-import usedPartsBg from "@/assets/used-parts-bg.jpg";
 
 const Index = () => {
   const { user, profile } = useAuth();
 
-  // Структурированные данные для SEO
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "PartsBay.ae",
     "url": "https://partsbay.ae",
     "logo": "https://partsbay.ae/logo.png",
-    "description": "Элитная платформа для оптовых продаж автозапчастей в ОАЭ. Эксклюзивное сообщество проверенных поставщиков.",
+    "description": "Закрытая B2B/B2C платформа автозапчастей в ОАЭ. Профессиональное сообщество поставщиков и покупателей.",
     "contactPoint": {
       "@type": "ContactPoint",
       "telephone": "+971-XXX-XXXX",
@@ -34,14 +31,14 @@ const Index = () => {
   return (
     <>
       <Helmet>
-        <title>PartsBay.ae - Элитная платформа автозапчастей</title>
+        <title>PartsBay.ae - B2B/B2C Платформа Автозапчастей</title>
         <meta 
           name="description" 
-          content="Эксклюзивная платформа для премиальных автозапчастей в ОАЭ. Закрытое сообщество проверенных поставщиков." 
+          content="Закрытая профессиональная платформа автозапчастей в ОАЭ. Доступ только для зарегистрированных пользователей." 
         />
         <meta 
           name="keywords" 
-          content="премиум автозапчасти ОАЭ, элитные поставщики, эксклюзивная платформа" 
+          content="B2B автозапчасти ОАЭ, платформа автозапчастей, закрытое сообщество" 
         />
         <link rel="canonical" href="https://partsbay.ae/" />
         <script type="application/ld+json">
@@ -50,69 +47,71 @@ const Index = () => {
       </Helmet>
 
       <Layout>
-        {/* Hero Section with Clean White Background and Used Parts */}
-        <section 
-          className="relative min-h-screen pt-20 pb-16 overflow-hidden bg-white"
-          style={{
-            backgroundImage: `linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.95)), url(${usedPartsBg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat'
-          }}
-        >
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-4xl mx-auto text-center">
-              {/* Clean Logo */}
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-automotive rounded-2xl mb-8 shadow-lg animate-fade-in">
-                <Car className="w-10 h-10 text-white" />
+        <section className="min-h-screen bg-white">
+          <div className="container mx-auto px-4 py-20">
+            <div className="max-w-2xl mx-auto text-center">
+              
+              {/* Company Logo */}
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-lg mb-8">
+                <Building2 className="w-8 h-8 text-white" />
               </div>
 
-              {/* Simple Brand Heading */}
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-slide-in-up text-gray-800">
+              {/* Main Heading */}
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
                 PartsBay.ae
               </h1>
-
-              {/* Clean Tagline */}
-              <p className="text-lg md:text-xl text-gray-600 mb-12 leading-relaxed max-w-2xl mx-auto animate-slide-in-up animation-delay-200">
-                Платформа автозапчастей ОАЭ
+              
+              <h2 className="text-xl md:text-2xl text-gray-600 mb-2">
+                B2B/B2C Платформа Автозапчастей
+              </h2>
+              
+              {/* Subtitle */}
+              <p className="text-lg text-gray-500 mb-12 max-w-lg mx-auto">
+                Закрытое профессиональное сообщество поставщиков и покупателей автозапчастей в ОАЭ
               </p>
 
-              {/* Statistics */}
-              <div className="mb-16 animate-slide-in-up animation-delay-400">
+              {/* Statistics Section */}
+              <div className="mb-12">
                 <StatisticsSection />
               </div>
 
-              {/* Auth Section */}
-              <div className="max-w-md mx-auto animate-slide-in-up animation-delay-600">
+              {/* Access Notice */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-8">
+                <p className="text-gray-700 font-medium">
+                  Доступ только по регистрации
+                </p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Для доступа к платформе необходимо пройти авторизацию
+                </p>
+              </div>
+
+              {/* Authentication Section */}
+              <div className="max-w-md mx-auto">
                 {user ? (
-                  <AutomotiveCard className="p-8 bg-white/80 backdrop-blur-sm border">
+                  <div className="bg-white border border-gray-200 rounded-lg p-6">
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-automotive rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <Car className="w-8 h-8 text-white" />
-                      </div>
-                      <h2 className="text-xl font-semibold mb-3 text-gray-800">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
                         Добро пожаловать, {profile?.full_name || 'Участник'}!
-                      </h2>
+                      </h3>
                       <p className="text-gray-600 mb-6">
                         {profile?.user_type === 'seller' 
                           ? 'Управляйте своими автозапчастями и заказами'
-                          : 'Исследуйте каталог автозапчастей'
+                          : 'Просматривайте каталог автозапчастей'
                         }
                       </p>
                       <Link 
                         to={profile?.user_type === 'seller' ? '/seller/dashboard' : '/catalog'}
                         className="inline-block w-full"
                       >
-                        <Button className="w-full h-12 bg-gradient-automotive hover:shadow-lg text-white font-medium rounded-xl">
-                          <Car className="w-5 h-5 mr-2" />
+                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                           {profile?.user_type === 'seller' ? 'Панель управления' : 'Открыть каталог'}
-                          <ArrowRight className="w-5 h-5 ml-2" />
+                          <ArrowRight className="w-4 h-4 ml-2" />
                         </Button>
                       </Link>
                     </div>
-                  </AutomotiveCard>
+                  </div>
                 ) : (
-                  <div className="bg-white/80 backdrop-blur-sm rounded-xl border p-6">
+                  <div className="bg-white border border-gray-200 rounded-lg p-6">
                     <LoginForm />
                   </div>
                 )}
