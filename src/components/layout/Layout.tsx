@@ -6,9 +6,10 @@ import Footer from "./Footer";
 interface LayoutProps {
   children: React.ReactNode;
   className?: string;
+  language?: 'ru' | 'en';
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, className }) => {
+const Layout: React.FC<LayoutProps> = ({ children, className, language }) => {
   useEffect(() => {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
@@ -18,7 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className }) => {
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header />
       <main className={className || ""}>{children}</main>
-      <Footer />
+      <Footer language={language} />
     </div>
   );
 };
