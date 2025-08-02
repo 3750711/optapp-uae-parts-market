@@ -19,6 +19,8 @@ export const registrationTranslations = {
     generatingOptId: "Генерируем OPT_ID для продаж",
     optIdGenerated: "Ваш OPT_ID сгенерирован",
     optIdNote: "Сохраните этот ID - он понадобится для работы",
+    pendingApproval: "⏳ Ожидание одобрения",
+    approvalNote: "Ваш аккаунт будет рассмотрен администраторами в течение 1 рабочего дня. После одобрения вы получите полный доступ к платформе.",
     
     // Step 4: Store Information
     storeInformation: "Информация о магазине",
@@ -103,6 +105,8 @@ export const registrationTranslations = {
     generatingOptId: "Generating OPT_ID for sales",
     optIdGenerated: "Your OPT_ID has been generated",
     optIdNote: "Save this ID - you'll need it for work",
+    pendingApproval: "⏳ Pending Approval",
+    approvalNote: "Your account will be reviewed by administrators within 1 business day. After approval, you will get full access to the platform.",
     
     // Step 4: Store Information
     storeInformation: "Store Information",

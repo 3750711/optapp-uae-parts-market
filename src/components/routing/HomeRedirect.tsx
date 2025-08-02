@@ -29,6 +29,11 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
   if (user && profile) {
     devLog("HomeRedirect: User authenticated, redirecting based on role");
     
+    // Check if user is pending approval (except for admins)
+    if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
+      return <Navigate to="/pending-approval" replace />;
+    }
+    
     switch (profile.user_type) {
       case 'seller':
         return <Navigate to="/seller/dashboard" replace />;

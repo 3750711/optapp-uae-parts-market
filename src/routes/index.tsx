@@ -31,6 +31,7 @@ const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+const PendingApprovalPage = lazy(() => import('@/pages/PendingApprovalPage'));
 
 // Lazy loaded защищенные страницы
 const Profile = lazy(() => import('@/pages/Profile'));
@@ -154,6 +155,15 @@ const AppRoutes: React.FC = () => {
                   <VerifyEmail />
                 </Suspense>
               </GuestRoute>
+            } />
+
+            {/* Pending Approval Page - для пользователей ожидающих одобрения */}
+            <Route path="/pending-approval" element={
+              <ProtectedRoute>
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <PendingApprovalPage />
+                </Suspense>
+              </ProtectedRoute>
             } />
 
             {/* Защищенные публичные маршруты - заблокированы для продавцов */}

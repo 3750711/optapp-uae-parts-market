@@ -72,6 +72,15 @@ export const OptIdAnimation: React.FC<OptIdAnimationProps> = ({
                 </div>
               </div>
               
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-orange-700 font-medium mb-2">
+                  {translations.pendingApproval || "⏳ Ожидание одобрения"}
+                </p>
+                <p className="text-xs text-orange-600">
+                  {translations.approvalNote || "Ваш аккаунт будет рассмотрен администраторами в течение 1 рабочего дня. После одобрения вы получите полный доступ к платформе."}
+                </p>
+              </div>
+              
               <p className="text-sm text-muted-foreground">
                 {translations.optIdNote}
               </p>
