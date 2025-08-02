@@ -7,12 +7,51 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-const LoginForm: React.FC = () => {
+interface LoginFormProps {
+  language?: 'ru' | 'en';
+}
+
+const getLoginFormTranslations = (language: 'ru' | 'en') => {
+  const translations = {
+    ru: {
+      title: "Вход",
+      subtitle: "Войдите в свой аккаунт",
+      email: "Email",
+      password: "Пароль",
+      loading: "Вход...",
+      submit: "Войти",
+      forgotPassword: "Забыли пароль?",
+      noAccount: "Нет аккаунта?",
+      register: "Зарегистрироваться",
+      errorTitle: "Ошибка входа",
+      welcome: "Добро пожаловать!",
+      generalError: "Произошла ошибка при входе"
+    },
+    en: {
+      title: "Login",
+      subtitle: "Sign in to your account",
+      email: "Email",
+      password: "Password",
+      loading: "Signing in...",
+      submit: "Sign In",
+      forgotPassword: "Forgot password?",
+      noAccount: "No account?",
+      register: "Register",
+      errorTitle: "Login error",
+      welcome: "Welcome!",
+      generalError: "An error occurred during login"
+    }
+  };
+  return translations[language];
+};
+
+const LoginForm: React.FC<LoginFormProps> = ({ language = 'ru' }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
+  const t = getLoginFormTranslations(language);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,14 +61,14 @@ const LoginForm: React.FC = () => {
       const { error } = await signIn(email, password);
       
       if (error) {
-        toast.error('Ошибка входа', {
+        toast.error(t.errorTitle, {
           description: error.message,
         });
       } else {
-        toast.success('Добро пожаловать!');
+        toast.success(t.welcome);
       }
     } catch (error) {
-      toast.error('Произошла ошибка при входе');
+      toast.error(t.generalError);
     } finally {
       setIsLoading(false);
     }
@@ -39,14 +78,14 @@ const LoginForm: React.FC = () => {
     <div className="w-full max-w-md mx-auto">
       <div className="bg-card/80 backdrop-blur-sm rounded-2xl shadow-card-elegant border border-border/20 p-8">
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-foreground mb-2">Вход</h2>
-          <p className="text-muted-foreground">Войдите в свой аккаунт</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2">{t.title}</h2>
+          <p className="text-muted-foreground">{t.subtitle}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">
-              Email
+              {t.email}
             </Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -64,7 +103,7 @@ const LoginForm: React.FC = () => {
 
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium">
-              Пароль
+              {t.password}
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -92,7 +131,7 @@ const LoginForm: React.FC = () => {
             disabled={isLoading}
             className="w-full h-12 bg-gradient-primary hover:hover-glow text-white font-medium rounded-lg transition-all duration-300"
           >
-            {isLoading ? 'Вход...' : 'Войти'}
+            {isLoading ? t.loading : t.submit}
           </Button>
         </form>
 
@@ -101,16 +140,16 @@ const LoginForm: React.FC = () => {
             to="/forgot-password"
             className="text-sm text-primary hover:text-primary-hover transition-colors"
           >
-            Забыли пароль?
+            {t.forgotPassword}
           </Link>
           
           <div className="text-sm text-muted-foreground">
-            Нет аккаунта?{' '}
+            {t.noAccount}{' '}
             <Link
               to="/register"
               className="text-primary hover:text-primary-hover font-medium transition-colors"
             >
-              Зарегистрироваться
+              {t.register}
             </Link>
           </div>
         </div>

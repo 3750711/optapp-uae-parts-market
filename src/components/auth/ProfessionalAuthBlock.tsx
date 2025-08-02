@@ -54,6 +54,7 @@ export const ProfessionalAuthBlock: React.FC<ProfessionalAuthBlockProps> = ({
           <TelegramLoginWidget 
             onSuccess={handleTelegramSuccess}
             onError={handleTelegramError}
+            language={language}
           />
         </div>
 
@@ -91,7 +92,7 @@ export const ProfessionalAuthBlock: React.FC<ProfessionalAuthBlockProps> = ({
                   {t.alternativeDescription}
                 </p>
               </div>
-              <LoginForm />
+              <LoginForm language={language} />
             </div>
           )}
         </div>

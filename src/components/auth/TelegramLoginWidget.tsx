@@ -16,6 +16,7 @@ interface TelegramAuthData {
 interface TelegramLoginWidgetProps {
   onSuccess?: () => void;
   onError?: (error: string) => void;
+  language?: 'ru' | 'en';
 }
 
 declare global {
@@ -26,9 +27,38 @@ declare global {
   }
 }
 
+const getTelegramTranslations = (language: 'ru' | 'en') => {
+  const translations = {
+    ru: {
+      title: "Профессиональная авторизация",
+      description: "Безопасный вход через Telegram для участников B2B/B2C сообщества",
+      instant: "Мгновенная авторизация без дополнительных паролей",
+      recommended: "Рекомендованный способ входа",
+      loading: "Авторизация через Telegram...",
+      success: "Успешная авторизация через Telegram!",
+      error: "Ошибка авторизации",
+      mergeError: "Ошибка после объединения аккаунтов",
+      mergeInfo: "Вы можете создать новый аккаунт через обычную регистрацию"
+    },
+    en: {
+      title: "Professional Authorization",
+      description: "Secure Telegram login for B2B/B2C community members",
+      instant: "Instant authorization without additional passwords",
+      recommended: "Recommended login method",
+      loading: "Authorizing via Telegram...",
+      success: "Successful Telegram authorization!",
+      error: "Authorization error",
+      mergeError: "Error after account merge",
+      mergeInfo: "You can create a new account through regular registration"
+    }
+  };
+  return translations[language];
+};
+
 export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   onSuccess,
-  onError
+  onError,
+  language = 'ru'
 }) => {
   const widgetRef = useRef<HTMLDivElement>(null);
   const scriptLoadedRef = useRef(false);
@@ -54,9 +84,11 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     ).join('');
   };
 
+  const t = getTelegramTranslations(language);
+
   const handleTelegramAuth = async (authData: TelegramAuthData) => {
     try {
-      toast.loading('Авторизация через Telegram...');
+      toast.loading(t.loading);
 
       // Call the telegram-widget-auth Edge Function
       const { data, error } = await supabase.functions.invoke('telegram-widget-auth', {
@@ -90,7 +122,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
     } catch (error) {
       toast.dismiss();
-      const errorMessage = error instanceof Error ? error.message : 'Ошибка авторизации';
+      const errorMessage = error instanceof Error ? error.message : t.error;
       toast.error(errorMessage);
       onError?.(errorMessage);
     }
@@ -118,11 +150,11 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       }
 
       toast.dismiss();
-      toast.success('Успешная авторизация через Telegram!');
+      toast.success(t.success);
       onSuccess?.();
     } catch (error) {
       toast.dismiss();
-      const errorMessage = error instanceof Error ? error.message : 'Ошибка авторизации';
+      const errorMessage = error instanceof Error ? error.message : t.error;
       toast.error(errorMessage);
       onError?.(errorMessage);
     }
@@ -132,7 +164,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     try {
       await handleDirectLogin(email, password, false);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Ошибка после объединения аккаунтов';
+      const errorMessage = error instanceof Error ? error.message : t.mergeError;
       toast.error(errorMessage);
       onError?.(errorMessage);
     }
@@ -141,7 +173,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   const handleMergeCancel = async () => {
     // User chose to create a new account instead of merging
     // We can optionally implement creating a new account with a different identifier
-    toast.info('Вы можете создать новый аккаунт через обычную регистрацию');
+    toast.info(t.mergeInfo);
   };
 
   useEffect(() => {
@@ -177,19 +209,19 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       <div className="flex flex-col items-center space-y-6">
         <div className="text-center mb-4">
           <h3 className="text-lg font-semibold text-foreground mb-2">
-            Профессиональная авторизация
+            {t.title}
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Безопасный вход через Telegram для участников B2B/B2C сообщества
+            {t.description}
           </p>
         </div>
         <div ref={widgetRef} className="telegram-widget-container scale-110" />
         <div className="text-center space-y-2">
           <p className="text-xs text-muted-foreground">
-            Мгновенная авторизация без дополнительных паролей
+            {t.instant}
           </p>
           <p className="text-xs text-primary font-medium">
-            Рекомендованный способ входа
+            {t.recommended}
           </p>
         </div>
       </div>
