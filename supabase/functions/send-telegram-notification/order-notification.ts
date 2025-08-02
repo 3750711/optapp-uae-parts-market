@@ -181,27 +181,59 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
         if (!textResult.ok) {
           console.error('Error sending fallback text message:', textResult.description);
           throw new Error(textResult.description || 'Failed to send order notification');
+        } else {
+          console.log('Fallback text message sent successfully');
+          
+          // Log successful fallback text message
+          try {
+            await logTelegramNotification(supabaseClient, {
+              function_name: 'send-telegram-notification',
+              notification_type: 'order_created',
+              recipient_type: 'group',
+              recipient_identifier: ORDER_GROUP_CHAT_ID,
+              recipient_name: 'Order Group',
+              message_text: messageText,
+              status: 'sent',
+              telegram_message_id: textResult.result?.message_id?.toString(),
+              related_entity_type: 'order',
+              related_entity_id: orderData.id,
+              metadata: {
+                order_number: orderData.order_number,
+                images_count: firstBatchImages.length,
+                message_type: 'fallback_text',
+                original_media_failed: true
+              }
+            });
+          } catch (logError) {
+            console.error('Error logging fallback text notification:', logError);
+          }
         }
       } else {
         console.log('First batch of images sent successfully with notification text');
         
         // Log successful order notification with images
-        await logTelegramNotification(supabaseClient, {
-          function_name: 'send-telegram-notification',
-          notification_type: 'order_created',
-          recipient_type: 'group',
-          recipient_identifier: ORDER_GROUP_CHAT_ID,
-          recipient_name: 'Order Group',
-          message_text: messageText,
-          status: 'sent',
-          related_entity_type: 'order',
-          related_entity_id: orderData.id,
-          metadata: {
-            order_number: orderData.order_number,
-            images_count: firstBatchImages.length,
-            has_remaining_images: hasRemainingImages
-          }
-        });
+        try {
+          await logTelegramNotification(supabaseClient, {
+            function_name: 'send-telegram-notification',
+            notification_type: 'order_created',
+            recipient_type: 'group',
+            recipient_identifier: ORDER_GROUP_CHAT_ID,
+            recipient_name: 'Order Group',
+            message_text: messageText,
+            status: 'sent',
+            telegram_message_id: mediaResult.result?.[0]?.message_id?.toString(),
+            related_entity_type: 'order',
+            related_entity_id: orderData.id,
+            metadata: {
+              order_number: orderData.order_number,
+              images_count: firstBatchImages.length,
+              has_remaining_images: hasRemainingImages,
+              message_type: 'media_group_with_text'
+            }
+          });
+        } catch (logError) {
+          console.error('Error logging media group notification:', logError);
+        }
       }
     } else {
       // If no images, just send text message
@@ -229,22 +261,27 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
       console.log('Order notification text sent successfully');
       
       // Log successful order notification (text only)
-      await logTelegramNotification(supabaseClient, {
-        function_name: 'send-telegram-notification',
-        notification_type: 'order_created',
-        recipient_type: 'group',
-        recipient_identifier: ORDER_GROUP_CHAT_ID,
-        recipient_name: 'Order Group',
-        message_text: messageText,
-        status: 'sent',
-        related_entity_type: 'order',
-        related_entity_id: orderData.id,
-        metadata: {
-          order_number: orderData.order_number,
-          images_count: 0,
-          message_type: 'text_only'
-        }
-      });
+      try {
+        await logTelegramNotification(supabaseClient, {
+          function_name: 'send-telegram-notification',
+          notification_type: 'order_created',
+          recipient_type: 'group',
+          recipient_identifier: ORDER_GROUP_CHAT_ID,
+          recipient_name: 'Order Group',
+          message_text: messageText,
+          status: 'sent',
+          telegram_message_id: textResult.result?.message_id?.toString(),
+          related_entity_type: 'order',
+          related_entity_id: orderData.id,
+          metadata: {
+            order_number: orderData.order_number,
+            images_count: 0,
+            message_type: 'text_only'
+          }
+        });
+      } catch (logError) {
+        console.error('Error logging text-only notification:', logError);
+      }
     }
     
     // If we have remaining images (more than 10), send them in additional groups
@@ -385,6 +422,30 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
           }
         } else {
           console.log(`Successfully sent remaining images chunk ${i+1} with ${chunk.length} images`);
+          
+          // Log successful additional media group
+          try {
+            await logTelegramNotification(supabaseClient, {
+              function_name: 'send-telegram-notification',
+              notification_type: 'order_created_additional',
+              recipient_type: 'group',
+              recipient_identifier: ORDER_GROUP_CHAT_ID,
+              recipient_name: 'Order Group',
+              message_text: remainingCaption,
+              status: 'sent',
+              telegram_message_id: mediaGroupResult?.result?.[0]?.message_id?.toString(),
+              related_entity_type: 'order',
+              related_entity_id: orderData.id,
+              metadata: {
+                order_number: orderData.order_number,
+                images_count: chunk.length,
+                chunk_number: i + 1,
+                message_type: 'additional_media_group'
+              }
+            });
+          } catch (logError) {
+            console.error(`Error logging additional media group ${i+1}:`, logError);
+          }
         }
       }
     }
