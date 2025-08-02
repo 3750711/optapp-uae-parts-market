@@ -12,6 +12,7 @@ interface Product {
   title: string;
   price: number;
   delivery_price?: number;
+  place_number?: number;
   status: string;
   product_images?: Array<{ url: string; is_primary?: boolean }>;
   seller_name: string;
@@ -133,8 +134,8 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           />
         </div>
 
-        {/* Price */}
-        <div className="grid grid-cols-2 gap-4">
+        {/* Price and Details */}
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Цена
@@ -145,6 +146,21 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
               type="number"
               placeholder="0"
               prefix="$"
+              className="mt-1"
+              displayClassName="text-sm font-medium"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Места
+            </label>
+            <InlineEditableField
+              value={product.place_number || 1}
+              onSave={(value) => handleFieldUpdate('place_number', value)}
+              type="number"
+              placeholder="1"
+              min={1}
               className="mt-1"
               displayClassName="text-sm font-medium"
             />
