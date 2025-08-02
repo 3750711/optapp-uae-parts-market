@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
 import SellerLayout from "@/components/layout/SellerLayout";
@@ -24,9 +24,15 @@ import {
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/utils/formatPrice";
 import { ProductOffersCard } from "@/components/offers/ProductOffersCard";
+import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
+import { devLog, prodError } from "@/utils/logger";
+import { PriceOffersErrorBoundary } from "@/components/offers/PriceOffersErrorBoundary";
 
 const SellerPriceOffers = () => {
   const navigate = useNavigate();
+  const mountedRef = useRef(true);
+  const { startTimer } = usePerformanceMonitor();
+  
   const [responseModal, setResponseModal] = useState<{
     isOpen: boolean;
     offer?: PriceOffer;
@@ -40,12 +46,23 @@ const SellerPriceOffers = () => {
   const { data: groupedOffers, isLoading } = useSellerOffersGrouped();
   const updateOffer = useUpdatePriceOffer();
 
-  // Force refetch on component mount and clear cache
+  // Optimized cache refresh with performance monitoring
   useEffect(() => {
-    console.log('🔄 SellerPriceOffers mounted, clearing cache and refetching...');
-    queryClient.removeQueries({ queryKey: ['seller-price-offers'] });
-    queryClient.refetchQueries({ queryKey: ['seller-price-offers'] });
-  }, [queryClient]);
+    const timer = startTimer('seller-offers-mount');
+    devLog('SellerPriceOffers mounted, performing optimized refresh');
+    
+    // More selective invalidation
+    queryClient.invalidateQueries({ 
+      queryKey: ['seller-price-offers'], 
+      exact: true 
+    });
+    
+    timer.end();
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, [queryClient, startTimer]);
 
   const handleGoBack = () => {
     navigate('/seller/dashboard');
@@ -57,20 +74,21 @@ const SellerPriceOffers = () => {
   };
 
   const handleSubmitResponse = async () => {
-    if (!responseModal.offer || !responseModal.action) return;
+    if (!responseModal.offer || !responseModal.action || !mountedRef.current) return;
 
+    const timer = startTimer('offer-response-processing');
     setIsSubmitting(true);
+    
     try {
       const { offer, action } = responseModal;
+      devLog(`Processing offer ${action} for offer ID: ${offer.id}`);
 
-      console.log(`Processing offer ${action} for offer ID: ${offer.id}`);
-
-      // Optimistic update - immediately update the UI
+      // Optimistic update with better type safety
       const newStatus = action === "accept" ? "accepted" : "rejected";
       const response = sellerResponse || undefined;
       
       queryClient.setQueryData(['seller-price-offers'], (oldData: any) => {
-        if (!oldData) return oldData;
+        if (!oldData || !mountedRef.current) return oldData;
         return oldData.map((groupedOffer: any) => ({
           ...groupedOffer,
           offers: groupedOffer.offers.map((offerItem: any) =>
@@ -86,7 +104,6 @@ const SellerPriceOffers = () => {
         }));
       });
 
-      // Simply update the offer status - the trigger will handle order creation
       await updateOffer.mutateAsync({
         offerId: offer.id,
         data: {
@@ -94,6 +111,8 @@ const SellerPriceOffers = () => {
           seller_response: response,
         },
       });
+
+      if (!mountedRef.current) return;
 
       if (action === "accept") {
         toast({
@@ -109,16 +128,29 @@ const SellerPriceOffers = () => {
 
       setResponseModal({ isOpen: false });
     } catch (error) {
-      console.error("Error processing offer:", error);
-      // Revert optimistic update on error
-      queryClient.invalidateQueries({ queryKey: ['seller-price-offers'] });
-      toast({
-        title: "Error",
-        description: "Failed to process offer. Please try again.",
-        variant: "destructive",
+      prodError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'offer-response-processing',
+        offerId: responseModal.offer?.id,
+        action: responseModal.action
       });
+      
+      // Revert optimistic update on error
+      if (mountedRef.current) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['seller-price-offers'], 
+          exact: true 
+        });
+        toast({
+          title: "Error",
+          description: "Failed to process offer. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
-      setIsSubmitting(false);
+      timer.end();
+      if (mountedRef.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -136,37 +168,38 @@ const SellerPriceOffers = () => {
 
 
   return (
-    <SellerLayout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold mb-2">Price Offers</h1>
-          <p className="text-muted-foreground">
-            Manage price offers for your products
-          </p>
-        </div>
-
-        {!groupedOffers || groupedOffers.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Price Offers</h3>
-              <p className="text-muted-foreground">
-                No one has made price offers for your products yet.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            {groupedOffers.map((groupedOffer) => (
-              <ProductOffersCard
-                key={groupedOffer.product.id}
-                groupedOffer={groupedOffer}
-                onAcceptOffer={(offer) => handleOfferAction(offer, "accept")}
-                onRejectOffer={(offer) => handleOfferAction(offer, "reject")}
-              />
-            ))}
+    <PriceOffersErrorBoundary>
+      <SellerLayout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">Price Offers</h1>
+            <p className="text-muted-foreground">
+              Manage price offers for your products
+            </p>
           </div>
-        )}
+
+          {!groupedOffers || groupedOffers.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No Price Offers</h3>
+                <p className="text-muted-foreground">
+                  No one has made price offers for your products yet.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {groupedOffers.map((groupedOffer) => (
+                <ProductOffersCard
+                  key={groupedOffer.product.id}
+                  groupedOffer={groupedOffer}
+                  onAcceptOffer={(offer) => handleOfferAction(offer, "accept")}
+                  onRejectOffer={(offer) => handleOfferAction(offer, "reject")}
+                />
+              ))}
+            </div>
+          )}
 
         {/* Response Modal */}
         <Dialog 
@@ -272,8 +305,9 @@ const SellerPriceOffers = () => {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
-    </SellerLayout>
+        </div>
+      </SellerLayout>
+    </PriceOffersErrorBoundary>
   );
 };
 

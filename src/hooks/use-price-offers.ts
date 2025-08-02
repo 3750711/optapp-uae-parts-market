@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CreatePriceOfferData, PriceOffer, UpdatePriceOfferData } from '@/types/price-offer';
 import { toast } from 'sonner';
 import { useBatchOffersInvalidation } from './use-price-offers-batch';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { devLog, prodError } from '@/utils/logger';
 
 // Hook для проверки существующего предложения пользователя
 export const useCheckPendingOffer = (productId: string, enabled: boolean = true) => {
@@ -48,7 +49,11 @@ export const useCompetitiveOffers = (productId: string, enabled: boolean = true)
       });
       
       if (error) {
-        console.error('Error fetching competitive offers:', error);
+        prodError(error, {
+          context: 'fetch-competitive-offers',
+          productId,
+          userId: user?.id
+        });
         throw error;
       }
       
@@ -115,7 +120,10 @@ export const useCreatePriceOffer = () => {
       toast.success('Offer sent!');
     },
     onError: (error) => {
-      console.error('Error creating offer:', error);
+      prodError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'create-price-offer',
+        userId: user?.id
+      });
       
       // Специальная обработка constraint violation
       if (error.message?.includes('duplicate key value violates unique constraint')) {
@@ -150,7 +158,9 @@ export const useDeletePriceOffer = () => {
       toast.success('Предложение удалено');
     },
     onError: (error) => {
-      console.error('Error deleting price offer:', error);
+      prodError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'delete-price-offer'
+      });
       toast.error('Ошибка при удалении предложения');
     },
   });
@@ -160,12 +170,13 @@ export const useDeletePriceOffer = () => {
 export const useUpdatePriceOffer = () => {
   const queryClient = useQueryClient();
   const { invalidateBatchOffers } = useBatchOffersInvalidation();
+  const mountedRef = useRef(true);
   
   return useMutation({
     mutationFn: async ({ offerId, data }: { offerId: string; data: UpdatePriceOfferData }) => {
-      console.log('🔄 useUpdatePriceOffer: Starting update', {
+      devLog('Starting price offer update', {
         offerId,
-        data,
+        status: data.status,
         timestamp: new Date().toISOString()
       });
 
@@ -177,17 +188,16 @@ export const useUpdatePriceOffer = () => {
         .single();
 
       if (fetchError) {
-        console.error('❌ useUpdatePriceOffer: Error fetching current offer', {
+        prodError(new Error(`Failed to fetch offer: ${fetchError.message}`), {
+          context: 'update-price-offer-fetch',
           offerId,
-          error: fetchError,
-          code: fetchError.code,
-          message: fetchError.message,
-          details: fetchError.details
+          errorCode: fetchError.code,
+          errorDetails: fetchError.details
         });
         throw new Error(`Failed to fetch offer: ${fetchError.message}`);
       }
 
-      console.log('📋 useUpdatePriceOffer: Current offer state', currentOffer);
+      devLog('Current offer state fetched successfully');
 
       const { data: result, error } = await supabase
         .from('price_offers')
@@ -204,54 +214,41 @@ export const useUpdatePriceOffer = () => {
         .single();
       
       if (error) {
-        console.error('❌ useUpdatePriceOffer: Update failed', {
+        prodError(new Error(`Failed to update offer: ${error.message}`), {
+          context: 'update-price-offer-mutation',
           offerId,
-          error,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
+          errorCode: error.code,
+          errorDetails: error.details,
           updateData: data
         });
         throw new Error(`Failed to update offer: ${error.message}`);
       }
 
-      console.log('✅ useUpdatePriceOffer: Update successful', {
-        offerId,
-        before: currentOffer,
-        after: result
-      });
+      devLog('Price offer update successful', { offerId, newStatus: data.status });
       
       return result;
     },
     onSuccess: (data) => {
-      console.log('🔄 Price offer updated successfully, invalidating caches:', data);
+      if (!mountedRef.current) return;
       
-      // Invalidate buyer-related caches
-      queryClient.invalidateQueries({ queryKey: ['user-offer', data.product_id] });
-      queryClient.invalidateQueries({ queryKey: ['competitive-offers', data.product_id] });
-      queryClient.invalidateQueries({ queryKey: ['buyer-price-offers'] });
-      queryClient.invalidateQueries({ queryKey: ['buyer-offers'] });
-      queryClient.invalidateQueries({ queryKey: ['buyer-offer-counts'] });
+      devLog('Price offer updated successfully, invalidating caches');
       
-      // Invalidate seller-related caches
-      queryClient.invalidateQueries({ queryKey: ['seller-price-offers'] });
-      queryClient.invalidateQueries({ queryKey: ['product-offers', data.product_id] });
+      // More targeted invalidation with exact keys
+      queryClient.invalidateQueries({ queryKey: ['user-offer', data.product_id], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['competitive-offers', data.product_id], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['buyer-price-offers', data.buyer_id], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['seller-price-offers', data.seller_id], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['product-offers', data.product_id], exact: true });
       
-      // Invalidate admin-related caches
-      queryClient.invalidateQueries({ queryKey: ['admin-price-offers'] });
-      
-      // Invalidate batch offers
+      // Batch invalidation for performance
       invalidateBatchOffers([data.product_id]);
-      
-      // Force refetch of critical queries for immediate UI updates
-      queryClient.refetchQueries({ queryKey: ['seller-price-offers'] });
-      queryClient.refetchQueries({ queryKey: ['admin-price-offers'] });
       
       toast.success('Offer updated!');
     },
     onError: (error) => {
-      console.error('❌ useUpdatePriceOffer: Final error handler', error);
+      prodError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'update-price-offer-final'
+      });
       toast.error(`Error updating offer: ${error.message}`);
     },
   });
@@ -287,6 +284,7 @@ export const useProductOffers = (productId: string, enabled: boolean = true) => 
 export const useBuyerPriceOffers = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const mountedRef = useRef(true);
   
   const query = useQuery({
     queryKey: ['buyer-price-offers', user?.id],
@@ -326,7 +324,8 @@ export const useBuyerPriceOffers = () => {
   useEffect(() => {
     if (!user?.id) return;
 
-    console.log('Setting up real-time subscription for buyer price offers');
+    mountedRef.current = true;
+    devLog('Setting up real-time subscription for buyer price offers');
 
     const channel = supabase
       .channel('buyer-price-offers-changes')
@@ -339,21 +338,34 @@ export const useBuyerPriceOffers = () => {
           filter: `buyer_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log('Buyer price offer change detected:', payload);
+          if (!mountedRef.current) return;
           
-          // Show notification if offer was cancelled
-          if (payload.eventType === 'UPDATE' && payload.new?.status === 'cancelled') {
-            toast.info('One of your offers was cancelled because the product has been sold to another buyer.');
+          devLog('Buyer price offer change detected:', payload.eventType);
+          
+          try {
+            // Show notification if offer was cancelled
+            if (payload.eventType === 'UPDATE' && payload.new?.status === 'cancelled') {
+              toast.info('One of your offers was cancelled because the product has been sold to another buyer.');
+            }
+            
+            // Targeted invalidation with exact key
+            queryClient.invalidateQueries({ 
+              queryKey: ['buyer-price-offers', user.id], 
+              exact: true 
+            });
+          } catch (error) {
+            prodError(error instanceof Error ? error : new Error(String(error)), {
+              context: 'buyer-realtime-subscription',
+              userId: user.id
+            });
           }
-          
-          // Invalidate and refetch the query
-          queryClient.invalidateQueries({ queryKey: ['buyer-price-offers', user.id] });
         }
       )
       .subscribe();
 
     return () => {
-      console.log('Cleaning up real-time subscription for buyer price offers');
+      mountedRef.current = false;
+      devLog('Cleaning up real-time subscription for buyer price offers');
       supabase.removeChannel(channel);
     };
   }, [user?.id, queryClient]);
@@ -371,7 +383,7 @@ export const useSellerPriceOffers = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      console.log('🔍 Fetching seller price offers for user:', user.id);
+      devLog('Fetching seller price offers for user:', user.id);
       
       const { data, error } = await supabase
         .from('price_offers')
@@ -398,15 +410,18 @@ export const useSellerPriceOffers = () => {
         .order('created_at', { ascending: false });
       
       if (error) {
-        console.error('❌ Error fetching seller price offers:', error);
+        prodError(error, {
+          context: 'fetch-seller-price-offers',
+          userId: user.id
+        });
         throw error;
       }
       
-      console.log('✅ Seller price offers fetched:', data?.length || 0, 'offers');
+      devLog('Seller price offers fetched successfully:', data?.length || 0, 'offers');
       return data as PriceOffer[];
     },
     enabled: !!user?.id,
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 30000, // Cache for 30 seconds for better performance
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
