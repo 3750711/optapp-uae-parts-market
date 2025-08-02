@@ -168,33 +168,55 @@ const NotificationsPage = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6 md:space-y-8">
+        <div className="space-y-4 md:space-y-6">
           {Object.entries(groupedNotifications).map(([groupKey, groupNotifications]) => (
             <div key={groupKey}>
-              <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4 text-foreground flex items-center gap-2">
-                {groupKey}
-                <Badge variant="secondary" className="text-xs">
-                  {groupNotifications.length}
-                </Badge>
-              </h2>
-              
-              <Card className="overflow-hidden">
-                <CardContent className="p-0">
-                  {groupNotifications.map((notification, index) => (
-                    <div key={notification.id}>
-                      <div className="p-3 md:p-4">
-                        <NotificationItem
-                          notification={notification}
-                          onClose={() => {}} // No close needed on full page
-                        />
-                      </div>
-                      {index < groupNotifications.length - 1 && (
-                        <div className="border-b border-border/50 mx-3 md:mx-6" />
-                      )}
-                    </div>
+              {/* Mobile: Simple section header */}
+              <div className="md:hidden">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1 flex items-center gap-2">
+                  {groupKey}
+                  <Badge variant="secondary" className="text-xs font-normal">
+                    {groupNotifications.length}
+                  </Badge>
+                </h2>
+                <div className="space-y-1.5">
+                  {groupNotifications.map((notification) => (
+                    <NotificationItem
+                      key={notification.id}
+                      notification={notification}
+                      onClose={() => {}}
+                    />
                   ))}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+
+              {/* Desktop: Card layout */}
+              <div className="hidden md:block">
+                <h2 className="text-lg font-semibold mb-3 text-foreground flex items-center gap-2">
+                  {groupKey}
+                  <Badge variant="secondary" className="text-xs">
+                    {groupNotifications.length}
+                  </Badge>
+                </h2>
+                
+                <Card className="overflow-hidden">
+                  <CardContent className="p-0">
+                    {groupNotifications.map((notification, index) => (
+                      <div key={notification.id}>
+                        <div className="p-3">
+                          <NotificationItem
+                            notification={notification}
+                            onClose={() => {}}
+                          />
+                        </div>
+                        {index < groupNotifications.length - 1 && (
+                          <div className="border-b border-border/50 mx-3" />
+                        )}
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           ))}
         </div>

@@ -110,35 +110,51 @@ const NotificationItemComponent = ({ notification, onClose }: NotificationItemPr
   return (
     <div
       className={cn(
-        "group flex items-start gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all duration-200 hover:bg-accent/60 hover:shadow-sm touch-manipulation",
-        !notification.read && "bg-gradient-to-r from-primary/5 to-primary/10 border-l-4 border-l-primary shadow-sm"
+        "group cursor-pointer transition-all duration-200 touch-manipulation",
+        // Mobile: compact card design
+        "p-2.5 md:p-3 rounded-lg md:rounded-xl border bg-card hover:bg-accent/40",
+        // Unread styling
+        !notification.read && "bg-gradient-to-r from-primary/5 to-primary/8 border-primary/20 shadow-sm"
       )}
       onClick={handleClick}
     >
-      {/* Icon */}
-      <div className={cn(
-        "p-2 md:p-3 rounded-xl flex-shrink-0 border shadow-sm transition-all duration-200 group-hover:shadow-md", 
-        getNotificationColor(notification.type)
-      )}>
-        {getNotificationIcon(notification.type)}
-      </div>
+      <div className="flex items-start gap-2.5 md:gap-3">
+        {/* Icon */}
+        <div className={cn(
+          "p-1.5 md:p-2 rounded-lg flex-shrink-0 border transition-all duration-200", 
+          getNotificationColor(notification.type)
+        )}>
+          <div className="h-3.5 w-3.5 md:h-4 md:w-4">
+            {getNotificationIcon(notification.type)}
+          </div>
+        </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2 md:gap-3">
-          <div className="flex-1 min-w-0">
-            <h4 className={cn(
-              "text-sm md:text-base font-medium leading-tight text-foreground mb-1",
-              !notification.read && "font-semibold text-primary"
-            )}>
-              {notification.title}
-            </h4>
-            {notification.message && (
-              <p className="text-xs md:text-sm text-muted-foreground mt-1 md:mt-2 line-clamp-3 md:line-clamp-2 leading-relaxed">
-                {notification.message}
-              </p>
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <h4 className={cn(
+                "text-sm font-medium leading-tight text-foreground",
+                !notification.read && "font-semibold"
+              )}>
+                {notification.title}
+              </h4>
+              {notification.message && (
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                  {notification.message}
+                </p>
+              )}
+            </div>
+
+            {/* Unread indicator for mobile */}
+            {!notification.read && (
+              <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1 md:hidden" />
             )}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-2 md:mt-3">
+          </div>
+
+          {/* Bottom row */}
+          <div className="flex items-center justify-between mt-2 gap-2">
+            <div className="flex items-center gap-2">
               <p className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(notification.created_at), { 
                   addSuffix: true, 
@@ -146,35 +162,35 @@ const NotificationItemComponent = ({ notification, onClose }: NotificationItemPr
                 })}
               </p>
               {!notification.read && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary w-fit">
+                <span className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
                   {translations.newLabel}
                 </span>
               )}
             </div>
-          </div>
 
-          {/* Actions - Always visible on mobile, hover on desktop */}
-          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200 flex-shrink-0">
-            {!notification.read && (
+            {/* Actions */}
+            <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+              {!notification.read && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors duration-200"
+                  onClick={handleMarkAsRead}
+                  title={translations.markAsRead}
+                >
+                  <Eye className="h-3 w-3" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors duration-200 touch-manipulation"
-                onClick={handleMarkAsRead}
-                title={translations.markAsRead}
+                className="h-6 w-6 md:h-8 md:w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors duration-200"
+                onClick={handleDelete}
+                title={translations.deleteNotification}
               >
-                <Eye className="h-3 w-3 md:h-4 md:w-4" />
+                <Trash2 className="h-3 w-3" />
               </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-colors duration-200 touch-manipulation"
-              onClick={handleDelete}
-              title={translations.deleteNotification}
-            >
-              <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
-            </Button>
+            </div>
           </div>
         </div>
       </div>
