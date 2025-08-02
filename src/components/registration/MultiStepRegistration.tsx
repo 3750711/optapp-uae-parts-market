@@ -78,26 +78,26 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
 
   const handleAccountType = async (type: UserType) => {
     setUserType(type);
-    if (type === 'buyer') {
-      setCurrentStep('buyer-registration');
-    } else {
-      try {
-        // Generate unique OPT ID for sellers
-        const optId = await generateUniqueOptId();
-        setGeneratedOptId(optId);
-        setCurrentStep('opt-id-generation');
-      } catch (error: any) {
-        toast({
-          title: "Ошибка генерации OPT_ID",
-          description: error.message || "Не удалось создать уникальный идентификатор",
-          variant: "destructive",
-        });
-      }
+    try {
+      // Generate unique OPT ID for both buyers and sellers
+      const optId = await generateUniqueOptId();
+      setGeneratedOptId(optId);
+      setCurrentStep('opt-id-generation');
+    } catch (error: any) {
+      toast({
+        title: "Ошибка генерации OPT_ID",
+        description: error.message || "Не удалось создать уникальный идентификатор",
+        variant: "destructive",
+      });
     }
   };
 
   const handleOptIdComplete = () => {
-    setCurrentStep('store-info');
+    if (userType === 'seller') {
+      setCurrentStep('store-info');
+    } else {
+      setCurrentStep('buyer-registration');
+    }
   };
 
   const handleStoreInfo = (data: StoreData) => {
@@ -203,6 +203,7 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
           data: {
             full_name: data.fullName,
             user_type: 'buyer',
+            opt_id: generatedOptId,
             phone: data.phone
           }
         }
@@ -219,7 +220,9 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
             email: data.email,
             full_name: data.fullName,
             phone: data.phone,
+            opt_id: generatedOptId,
             user_type: 'buyer',
+            verification_status: 'pending',
             auth_method: 'email'
           });
 
@@ -227,12 +230,12 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
 
         toast({
           title: "Регистрация завершена",
-          description: "Добро пожаловать в PartsBay!",
+          description: "Ваш аккаунт создан и ожидает верификации",
         });
 
-        // Redirect to login page
+        // Redirect to pending approval page
         setTimeout(() => {
-          navigate('/');
+          navigate('/pending-approval');
         }, 2000);
       }
     } catch (error: any) {
@@ -269,7 +272,7 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
         setCurrentStep('type-selection');
         break;
       case 'buyer-registration':
-        setCurrentStep('account-type');
+        setCurrentStep('opt-id-generation');
         break;
       case 'opt-id-generation':
         setCurrentStep('account-type');
@@ -360,6 +363,7 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
             onNext={handleBuyerRegistration}
             onBack={goBack}
             translations={translations}
+            optId={generatedOptId}
           />
         );
 

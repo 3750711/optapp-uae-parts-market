@@ -8,6 +8,7 @@ interface BuyerRegistrationStepProps {
   onNext: (buyerData: BuyerData) => void;
   onBack: () => void;
   translations: any;
+  optId?: string;
 }
 
 export interface BuyerData {
@@ -21,7 +22,8 @@ export interface BuyerData {
 export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
   onNext,
   onBack,
-  translations
+  translations,
+  optId
 }) => {
   const [formData, setFormData] = useState<BuyerData>({
     fullName: '',
@@ -84,6 +86,16 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
           {translations.buyerRegistration}
         </h1>
       </div>
+
+      {optId && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-1">Ваш OPT_ID</p>
+            <p className="text-2xl font-mono font-bold text-primary">{optId}</p>
+            <p className="text-xs text-muted-foreground mt-1">Сохраните этот идентификатор</p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-6">
