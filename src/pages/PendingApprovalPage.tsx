@@ -97,13 +97,13 @@ const PendingApprovalPage = () => {
       </Helmet>
 
       <Layout language={language}>
-        <section className="min-h-screen bg-background py-20">
+        <section className="min-h-screen bg-background py-20 animate-fade-in">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto">
               
               {/* Header */}
-              <div className="text-center mb-12">
-                <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-6">
+              <div className="text-center mb-12 animate-scale-in">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-orange-100 rounded-full mb-6 animate-[pulse_2s_ease-in-out_infinite]">
                   <Clock className="w-10 h-10 text-orange-600" />
                 </div>
                 
@@ -117,8 +117,8 @@ const PendingApprovalPage = () => {
               </div>
 
               {/* Main Card */}
-              <Card className="bg-card/90 backdrop-blur-sm border border-border/20 shadow-card-elegant">
-                <CardContent className="p-8">
+              <Card className="bg-card/90 backdrop-blur-sm border border-border/20 shadow-card-elegant animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <CardContent className="p-8 animate-scale-in" style={{ animationDelay: '0.3s' }}>
                   
                   {/* User Info */}
                   {profile && (
