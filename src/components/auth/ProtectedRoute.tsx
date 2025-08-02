@@ -69,7 +69,7 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
   }
 
   // Check if user is pending approval (except for admins)
-  if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
+  if (profile.verification_status === 'pending' && profile.user_type !== 'admin' && location.pathname !== '/pending-approval') {
     devLog("ProtectedRoute: User is pending approval");
     return <Navigate to="/pending-approval" replace />;
   }
