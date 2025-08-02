@@ -346,8 +346,8 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-      <div className="container mx-auto px-4 py-8">
+    <div className="w-full max-w-lg mx-auto">
+      <div className="bg-card/90 backdrop-blur-sm rounded-2xl shadow-card-elegant border border-border/20 p-8">
         {renderStep()}
       </div>
     </div>
