@@ -14,9 +14,11 @@ const LanguageToggle: React.FC<LanguageToggleProps> = ({
   onLanguageChange,
   className
 }) => {
-  const toggleLanguage = () => {
-    const newLanguage = language === 'ru' ? 'en' : 'ru';
-    onLanguageChange(newLanguage);
+  const handleLanguageSelect = (selectedLanguage: 'ru' | 'en') => {
+    if (selectedLanguage !== language) {
+      console.log(`Language changed from ${language} to ${selectedLanguage}`);
+      onLanguageChange(selectedLanguage);
+    }
   };
 
   return (
@@ -26,12 +28,13 @@ const LanguageToggle: React.FC<LanguageToggleProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={toggleLanguage}
+          onClick={() => handleLanguageSelect('ru')}
+          disabled={language === 'ru'}
           className={cn(
             "h-8 px-3 text-xs font-medium transition-all",
             language === 'ru' 
-              ? "bg-background text-foreground shadow-sm" 
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-background text-foreground shadow-sm cursor-default" 
+              : "text-muted-foreground hover:text-foreground cursor-pointer"
           )}
         >
           RU
@@ -39,12 +42,13 @@ const LanguageToggle: React.FC<LanguageToggleProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={toggleLanguage}
+          onClick={() => handleLanguageSelect('en')}
+          disabled={language === 'en'}
           className={cn(
             "h-8 px-3 text-xs font-medium transition-all",
             language === 'en' 
-              ? "bg-background text-foreground shadow-sm" 
-              : "text-muted-foreground hover:text-foreground"
+              ? "bg-background text-foreground shadow-sm cursor-default" 
+              : "text-muted-foreground hover:text-foreground cursor-pointer"
           )}
         >
           EN
