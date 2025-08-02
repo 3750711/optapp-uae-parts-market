@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 const LANGUAGE_STORAGE_KEY = 'login-language';
+const LANGUAGE_CHANGE_EVENT = 'language-change';
 
 export const useLanguage = (defaultLanguage: 'ru' | 'en' = 'ru') => {
   const [language, setLanguage] = useState<'ru' | 'en'>(() => {
@@ -9,9 +10,36 @@ export const useLanguage = (defaultLanguage: 'ru' | 'en' = 'ru') => {
     return (saved as 'ru' | 'en') || defaultLanguage;
   });
 
+  useEffect(() => {
+    // Listen for storage changes (from other tabs/windows)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === LANGUAGE_STORAGE_KEY && e.newValue) {
+        setLanguage(e.newValue as 'ru' | 'en');
+      }
+    };
+
+    // Listen for custom language change events (from same tab)
+    const handleLanguageChange = (e: CustomEvent) => {
+      setLanguage(e.detail.language);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(LANGUAGE_CHANGE_EVENT, handleLanguageChange as EventListener);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(LANGUAGE_CHANGE_EVENT, handleLanguageChange as EventListener);
+    };
+  }, []);
+
   const changeLanguage = (newLanguage: 'ru' | 'en') => {
     setLanguage(newLanguage);
     localStorage.setItem(LANGUAGE_STORAGE_KEY, newLanguage);
+    
+    // Dispatch custom event to sync with other components
+    window.dispatchEvent(new CustomEvent(LANGUAGE_CHANGE_EVENT, {
+      detail: { language: newLanguage }
+    }));
   };
 
   return {
