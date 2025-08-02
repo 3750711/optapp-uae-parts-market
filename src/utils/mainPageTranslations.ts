@@ -52,7 +52,7 @@ const translations: Record<'ru' | 'en', MainPageTranslations> = {
     hero: {
       title: 'PartsBay.ae',
       subtitle: 'B2B/B2C Платформа Автозапчастей',
-      description: 'Закрытое профессиональное сообщество поставщиков и покупателей автозапчастей в ОАЭ',
+      description: 'Присоединяйтесь к крупнейшей платформе автозапчастей в ОАЭ. Проверенные продавцы, честные аукционы и надежная логистика — все в одном месте.',
       accessTitle: 'Доступ только по регистрации',
       accessDescription: 'Для доступа к платформе необходимо пройти авторизацию',
     },
@@ -84,7 +84,7 @@ const translations: Record<'ru' | 'en', MainPageTranslations> = {
     hero: {
       title: 'PartsBay.ae',
       subtitle: 'B2B/B2C Auto Parts Platform',
-      description: 'Closed professional community of auto parts suppliers and buyers in UAE',
+      description: 'Join the largest UAE platform for auto parts. Verified sellers, fair auctions, and trusted logistics — all in one place.',
       accessTitle: 'Access by registration only',
       accessDescription: 'Authorization required to access the platform',
     },
