@@ -11,6 +11,7 @@ import { TelegramLoginWidget } from '@/components/auth/TelegramLoginWidget';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { checkOptIdExists } from '@/utils/authUtils';
 
 type RegistrationStep = 
   | 'type-selection'
@@ -44,11 +45,26 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
   const navigate = useNavigate();
   const translations = registrationTranslations[language];
 
-  // Generate OPT_ID for sellers
-  const generateOptId = () => {
-    const timestamp = Date.now().toString().slice(-6);
-    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
-    return `OPT${timestamp}${randomSuffix}`;
+  // Generate unique 4-letter OPT_ID for sellers
+  const generateUniqueOptId = async (): Promise<string> => {
+    let optId;
+    let attempts = 0;
+    const maxAttempts = 100;
+    
+    do {
+      // Generate 4 random uppercase letters
+      optId = '';
+      for (let i = 0; i < 4; i++) {
+        optId += String.fromCharCode(65 + Math.floor(Math.random() * 26));
+      }
+      attempts++;
+      
+      if (attempts >= maxAttempts) {
+        throw new Error('Не удалось сгенерировать уникальный OPT_ID');
+      }
+    } while (await checkOptIdExists(optId));
+    
+    return optId;
   };
 
   const handleRegistrationType = (type: RegistrationType) => {
@@ -60,15 +76,23 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
     }
   };
 
-  const handleAccountType = (type: UserType) => {
+  const handleAccountType = async (type: UserType) => {
     setUserType(type);
     if (type === 'buyer') {
       setCurrentStep('buyer-registration');
     } else {
-      // Generate OPT ID for sellers
-      const optId = generateOptId();
-      setGeneratedOptId(optId);
-      setCurrentStep('opt-id-generation');
+      try {
+        // Generate unique OPT ID for sellers
+        const optId = await generateUniqueOptId();
+        setGeneratedOptId(optId);
+        setCurrentStep('opt-id-generation');
+      } catch (error: any) {
+        toast({
+          title: "Ошибка генерации OPT_ID",
+          description: error.message || "Не удалось создать уникальный идентификатор",
+          variant: "destructive",
+        });
+      }
     }
   };
 
