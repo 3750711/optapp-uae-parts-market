@@ -10,6 +10,7 @@ interface StoreInfoStepProps {
   onNext: (storeData: StoreData) => void;
   onBack: () => void;
   translations: any;
+  optId?: string;
 }
 
 export interface StoreData {
@@ -21,7 +22,8 @@ export interface StoreData {
 export const StoreInfoStep: React.FC<StoreInfoStepProps> = ({
   onNext,
   onBack,
-  translations
+  translations,
+  optId
 }) => {
   const [formData, setFormData] = useState<StoreData>({
     name: '',
@@ -81,6 +83,16 @@ export const StoreInfoStep: React.FC<StoreInfoStepProps> = ({
         </h1>
       </div>
 
+      {optId && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-1">Ваш OPT_ID</p>
+            <p className="text-2xl font-mono font-bold text-primary">{optId}</p>
+            <p className="text-xs text-muted-foreground mt-1">Сохраните этот идентификатор</p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -134,12 +146,20 @@ export const StoreInfoStep: React.FC<StoreInfoStepProps> = ({
             </div>
 
             <div className="flex space-x-4 pt-4">
-              <Button type="button" variant="outline" onClick={onBack} className="flex-1">
-                {translations.back}
-              </Button>
-              <Button type="submit" className="flex-1">
-                {translations.next}
-              </Button>
+              {optId ? (
+                <Button type="submit" className="w-full">
+                  {translations.next}
+                </Button>
+              ) : (
+                <>
+                  <Button type="button" variant="outline" onClick={onBack} className="flex-1">
+                    {translations.back}
+                  </Button>
+                  <Button type="submit" className="flex-1">
+                    {translations.next}
+                  </Button>
+                </>
+              )}
             </div>
           </form>
         </CardContent>

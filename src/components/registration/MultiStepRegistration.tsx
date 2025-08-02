@@ -271,8 +271,8 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
       case 'buyer-registration':
         setCurrentStep('account-type');
         break;
-      case 'store-info':
-        setCurrentStep('opt-id-generation');
+      case 'opt-id-generation':
+        setCurrentStep('account-type');
         break;
       case 'personal-info':
         setCurrentStep('store-info');
@@ -334,23 +334,25 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
           />
         );
 
-      case 'store-info':
-        return (
-          <StoreInfoStep
-            onNext={handleStoreInfo}
-            onBack={goBack}
-            translations={translations}
-          />
-        );
+        case 'store-info':
+          return (
+            <StoreInfoStep
+              onNext={handleStoreInfo}
+              onBack={() => {}} // Disabled - cannot go back to OPT_ID generation
+              translations={translations}
+              optId={generatedOptId}
+            />
+          );
 
-      case 'personal-info':
-        return (
-          <PersonalInfoStep
-            onNext={handlePersonalInfo}
-            onBack={goBack}
-            translations={translations}
-          />
-        );
+        case 'personal-info':
+          return (
+            <PersonalInfoStep
+              onNext={handlePersonalInfo}
+              onBack={goBack}
+              translations={translations}
+              optId={generatedOptId}
+            />
+          );
 
       case 'buyer-registration':
         return (

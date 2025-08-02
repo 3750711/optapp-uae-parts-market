@@ -8,6 +8,7 @@ interface PersonalInfoStepProps {
   onNext: (personalData: PersonalData) => void;
   onBack: () => void;
   translations: any;
+  optId?: string;
 }
 
 export interface PersonalData {
@@ -21,7 +22,8 @@ export interface PersonalData {
 export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
   onNext,
   onBack,
-  translations
+  translations,
+  optId
 }) => {
   const [formData, setFormData] = useState<PersonalData>({
     fullName: '',
@@ -86,6 +88,16 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
           {translations.personalInformation}
         </h1>
       </div>
+
+      {optId && (
+        <Card className="border-primary bg-primary/5">
+          <CardContent className="p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-1">Ваш OPT_ID</p>
+            <p className="text-2xl font-mono font-bold text-primary">{optId}</p>
+            <p className="text-xs text-muted-foreground mt-1">Сохраните этот идентификатор</p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-6">
