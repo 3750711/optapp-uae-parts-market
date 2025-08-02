@@ -58,17 +58,6 @@ export const ProfessionalAuthBlock: React.FC<ProfessionalAuthBlockProps> = ({
           />
         </div>
 
-        {/* Features highlights */}
-        <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-muted/30 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <Shield className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground">{t.features.secure}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Zap className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground">{t.features.instant}</span>
-          </div>
-        </div>
 
         {/* Alternative login toggle */}
         <div className="border-t border-border/30 pt-6">
