@@ -65,12 +65,33 @@ const SellerPriceOffers = () => {
 
       console.log(`Processing offer ${action} for offer ID: ${offer.id}`);
 
+      // Optimistic update - immediately update the UI
+      const newStatus = action === "accept" ? "accepted" : "rejected";
+      const response = sellerResponse || undefined;
+      
+      queryClient.setQueryData(['seller-price-offers'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((groupedOffer: any) => ({
+          ...groupedOffer,
+          offers: groupedOffer.offers.map((offerItem: any) =>
+            offerItem.id === offer.id 
+              ? { 
+                  ...offerItem, 
+                  status: newStatus,
+                  seller_response: response,
+                  updated_at: new Date().toISOString()
+                }
+              : offerItem
+          )
+        }));
+      });
+
       // Simply update the offer status - the trigger will handle order creation
       await updateOffer.mutateAsync({
         offerId: offer.id,
         data: {
-          status: action === "accept" ? "accepted" : "rejected",
-          seller_response: sellerResponse || undefined,
+          status: newStatus,
+          seller_response: response,
         },
       });
 
@@ -89,6 +110,8 @@ const SellerPriceOffers = () => {
       setResponseModal({ isOpen: false });
     } catch (error) {
       console.error("Error processing offer:", error);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ['seller-price-offers'] });
       toast({
         title: "Error",
         description: "Failed to process offer. Please try again.",

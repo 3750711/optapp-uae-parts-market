@@ -411,50 +411,7 @@ export const useSellerPriceOffers = () => {
     refetchOnWindowFocus: true,
   });
 
-  // Set up real-time subscription for price offers
-  useEffect(() => {
-    if (!user?.id) return;
-
-    console.log('Setting up real-time subscription for seller price offers');
-
-    const channel = supabase
-      .channel('seller-price-offers-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'price_offers',
-          filter: `seller_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log('Price offer change detected:', payload);
-          // Invalidate and refetch the query
-          queryClient.invalidateQueries({ queryKey: ['seller-price-offers', user.id] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'products',
-        },
-        (payload) => {
-          console.log('Product status change detected:', payload);
-          // If product status changed to sold, refresh price offers
-          if (payload.new?.status === 'sold') {
-            queryClient.invalidateQueries({ queryKey: ['seller-price-offers', user.id] });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      console.log('Cleaning up real-time subscription for seller price offers');
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, queryClient]);
+  // Real-time updates are handled by SellerPriceOffersRealtime component
 
   return query;
 };

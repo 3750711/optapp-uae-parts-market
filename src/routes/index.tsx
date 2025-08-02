@@ -58,6 +58,9 @@ const SellerProfile = lazy(() => import('@/pages/SellerProfile'));
 const SellerPriceOffers = lazy(() => import('@/pages/SellerPriceOffers'));
 const SellerProductDetail = lazy(() => import('@/pages/SellerProductDetail'));
 
+// Real-time components
+import { SellerPriceOffersRealtime } from '@/components/offers/SellerPriceOffersRealtime';
+
 // Критически важные админские страницы - загружаются без lazy loading
 import AdminDashboard from '@/pages/AdminDashboard';
 import AdminAddProduct from '@/pages/AdminAddProduct';
@@ -343,7 +346,9 @@ const AppRoutes: React.FC = () => {
             } />
             <Route path="/seller/price-offers" element={
               <ProtectedRoute allowedRoles={['seller']}>
-                <SellerPriceOffers />
+                <SellerPriceOffersRealtime>
+                  <SellerPriceOffers />
+                </SellerPriceOffersRealtime>
               </ProtectedRoute>
             } />
             <Route path="/seller/product/:id" element={
