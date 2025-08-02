@@ -143,22 +143,7 @@ const Header = () => {
           <span className="text-secondary">.ae</span>
         </Link>
 
-        {isMobile ? (
-          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" className="md:hidden p-2">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="bg-white border-r border-gray-200 shadow-2xl w-[82vw]">
-              <div className="flex flex-col space-y-6 py-6">
-                <NavLinks onClick={() => setIsMenuOpen(false)} />
-              </div>
-            </SheetContent>
-          </Sheet>
-        ) : (
-          <NavLinks />
-        )}
+        <NavLinks />
 
         <div className="flex items-center space-x-3">
           {/* Language Toggle - always visible */}
