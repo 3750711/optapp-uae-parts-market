@@ -1,6 +1,6 @@
 import React from "react";
 import ProductGallery from "@/components/product/ProductGallery";
-import ProductInfo from "@/components/product/ProductInfo";
+import SellerProductInfo from "@/components/seller/SellerProductInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import { Product } from "@/types/product";
 
@@ -10,6 +10,9 @@ interface SellerProductContentProps {
   videoUrls: string[];
   selectedImage: string | null;
   onImageClick: (url: string) => void;
+  updatePrice: (value: string | number) => Promise<void>;
+  updatePlaceNumber: (value: string | number) => Promise<void>;
+  updateDeliveryPrice: (value: string | number) => Promise<void>;
 }
 
 const SellerProductContent: React.FC<SellerProductContentProps> = ({
@@ -18,6 +21,9 @@ const SellerProductContent: React.FC<SellerProductContentProps> = ({
   videoUrls,
   selectedImage,
   onImageClick,
+  updatePrice,
+  updatePlaceNumber,
+  updateDeliveryPrice,
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -34,11 +40,11 @@ const SellerProductContent: React.FC<SellerProductContentProps> = ({
       
       {/* Right Column - Product Info */}
       <div className="space-y-6">
-        <ProductInfo
+        <SellerProductInfo
           product={product}
-          sellerProfile={null} // Not needed for seller view
-          deliveryMethod="self_pickup"
-          onDeliveryMethodChange={() => {}} // Not needed for sellers
+          updatePrice={updatePrice}
+          updatePlaceNumber={updatePlaceNumber}
+          updateDeliveryPrice={updateDeliveryPrice}
         />
         
         {/* Specifications */}

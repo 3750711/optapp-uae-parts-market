@@ -165,7 +165,7 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
                 value={product.place_number || 1}
                 onSave={updatePlaceNumber}
                 type="number"
-                displayClassName="text-lg font-bold text-accent"
+                displayClassName="text-lg font-bold text-primary"
                 placeholder="1"
                 min={1}
                 required

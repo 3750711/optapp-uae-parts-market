@@ -252,6 +252,9 @@ const SellerProductDetail = () => {
             videoUrls={videoUrls}
             selectedImage={selectedImage}
             onImageClick={handleImageClick}
+            updatePrice={updatePrice}
+            updatePlaceNumber={updatePlaceNumber}
+            updateDeliveryPrice={updateDeliveryPrice}
           />
         </div>
       </SellerLayout>
