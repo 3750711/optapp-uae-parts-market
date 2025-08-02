@@ -5,6 +5,8 @@ export const CACHE_KEYS = {
   BUYER_OFFER_COUNTS: 'buyer-offer-counts',
   BATCH_OFFERS: 'batch-offers',
   PRODUCT_OFFERS: 'product-offers',
+  ADMIN_PRODUCTS: 'admin-products',
+  PRODUCTS_INFINITE: 'products-infinite',
 } as const;
 
 export const CACHE_FILTERS = {

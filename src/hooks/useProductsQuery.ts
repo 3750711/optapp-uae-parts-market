@@ -105,14 +105,15 @@ export const useProductsQuery = ({
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'products',
-          filter: `status=in.(active,sold)`
+          filter: `status=in.(active,sold,pending)`
         },
         (payload) => {
           // Invalidate products query to refetch updated data
           queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+          queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
         }
       )
       .subscribe();

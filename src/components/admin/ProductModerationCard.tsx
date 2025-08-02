@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Eye, Package } from 'lucide-react';
 
 interface Product {
@@ -35,6 +36,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const [brandId, setBrandId] = useState<string>('');
   const [modelId, setModelId] = useState<string>('');
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const {
     brands,
@@ -71,6 +73,21 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
   const handleFieldUpdate = async (field: string, value: string | number) => {
     try {
+      // Optimistic update
+      queryClient.setQueryData(['admin-products'], (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+        
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            data: page.data.map((p: any) => 
+              p.id === product.id ? { ...p, [field]: value } : p
+            )
+          }))
+        };
+      });
+
       const { error } = await supabase
         .from('products')
         .update({ [field]: value })
@@ -78,15 +95,21 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
       if (error) throw error;
 
+      // Invalidate cache to ensure fresh data
+      await queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+
       toast({
-        title: "Успешно",
-        description: "Товар успешно обновлен",
+        title: "Поле обновлено",
+        description: `${field} успешно обновлено`,
       });
     } catch (error) {
+      // Rollback optimistic update on error
+      await queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      
       console.error('Error updating product:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось обновить товар",
+        description: "Не удалось обновить поле",
         variant: "destructive",
       });
       throw error;
@@ -125,11 +148,14 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
       if (error) throw error;
 
+      // Invalidate cache to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+
       toast({
         title: "Товар опубликован",
         description: "Товар успешно опубликован",
       });
-      
+
       onUpdate();
     } catch (error) {
       console.error('Error publishing product:', error);
