@@ -177,7 +177,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     
     // Validate required fields
     if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId || !formData.brandId) {
-      throw new Error('Пожалуйста, заполните все обязательные поля включая бренд');
+      throw new Error('Please fill in all required fields including brand');
     }
 
     try {

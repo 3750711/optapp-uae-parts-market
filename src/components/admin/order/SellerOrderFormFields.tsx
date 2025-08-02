@@ -46,7 +46,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
       handleInputChange('brandId', brandId);
       handleInputChange('brand', brandName);
       selectBrand(brandId);
-      // Сбрасываем модель при смене бренда
+      // Reset model when brand changes
       handleInputChange('modelId', '');
       handleInputChange('model', '');
     }

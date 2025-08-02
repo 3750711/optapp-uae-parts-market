@@ -34,7 +34,7 @@ export const MobileFormSection: React.FC<MobileFormSectionProps> = ({
       <CardContent className={`${isMobile ? 'pt-0 pb-4' : ''}`}>
         {disabled ? (
           <div className="p-4 text-center text-gray-500">
-            <p>Сначала заполните обязательные поля</p>
+            <p>Please fill in required fields first</p>
           </div>
         ) : (
           children

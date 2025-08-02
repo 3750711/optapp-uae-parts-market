@@ -59,8 +59,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
         
         if (saved) {
           toast({
-            title: "Фото добавлены",
-            description: `Добавлено ${uploadedUrls.length} фото к заказу`,
+            title: "Photos Added",
+            description: `Added ${uploadedUrls.length} photos to order`,
           });
         } else {
           // Откатываем локальное состояние при ошибке сохранения
@@ -70,8 +70,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
     } catch (error) {
       console.error('❌ Error uploading images:', error);
       toast({
-        title: "Ошибка загрузки",
-        description: "Не удалось загрузить фото",
+        title: "Upload Error",
+        description: "Failed to upload photos",
         variant: "destructive",
       });
     } finally {
@@ -101,8 +101,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
         
         if (saved) {
           toast({
-            title: "Видео добавлены",
-            description: `Добавлено ${uploadedUrls.length} видео к заказу`,
+            title: "Videos Added",
+            description: `Added ${uploadedUrls.length} videos to order`,
           });
         } else {
           // Откатываем локальное состояние при ошибке сохранения
@@ -112,8 +112,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
     } catch (error) {
       console.error('❌ Error uploading videos:', error);
       toast({
-        title: "Ошибка загрузки",
-        description: "Не удалось загрузить видео",
+        title: "Upload Error",
+        description: "Failed to upload videos",
         variant: "destructive",
       });
     } finally {
@@ -132,8 +132,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
     
     if (saved) {
       toast({
-        title: "Фото удалено",
-        description: "Фото удалено из заказа",
+        title: "Photo Deleted",
+        description: "Photo removed from order",
       });
     } else {
       // Откатываем локальное состояние при ошибке
@@ -152,8 +152,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
     
     if (saved) {
       toast({
-        title: "Видео удалено",
-        description: "Видео удалено из заказа",
+        title: "Video Deleted",
+        description: "Video removed from order",
       });
     } else {
       // Откатываем локальное состояние при ошибке
@@ -169,7 +169,7 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       {/* Header with media count */}
       <div className="flex items-center justify-between">
         <h3 className={`font-medium ${isMobile ? 'text-base' : 'text-lg'}`}>
-          Медиафайлы заказа ({totalMediaCount})
+          Order Media Files ({totalMediaCount})
         </h3>
         {totalMediaCount > 0 && (
           <div className="text-sm text-gray-500">
@@ -199,12 +199,12 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
             {isImageUploading ? (
               <>
                 <Upload className="mr-2 h-4 w-4 animate-spin" />
-                Загрузка фото...
+                Uploading photos...
               </>
             ) : (
               <>
                 <Camera className="mr-2 h-4 w-4" />
-                Добавить фото к заказу
+                Add Photos to Order
               </>
             )}
           </Button>
@@ -229,12 +229,12 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
             {isVideoUploading ? (
               <>
                 <Upload className="mr-2 h-4 w-4 animate-spin" />
-                Загрузка видео...
+                Uploading videos...
               </>
             ) : (
               <>
                 <Video className="mr-2 h-4 w-4" />
-                Добавить видео к заказу
+                Add Videos to Order
               </>
             )}
           </Button>
@@ -246,7 +246,7 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
         <div className="flex items-center justify-center py-2">
           <div className="flex items-center gap-2 text-sm text-blue-600">
             <Upload className="h-4 w-4 animate-spin" />
-            Сохранение в базу данных...
+            Saving to database...
           </div>
         </div>
       )}
@@ -268,9 +268,9 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
 
       {/* Upload instructions */}
       <div className="text-xs text-gray-500 space-y-1">
-        <p>• Фото автоматически сжимаются до 400KB и конвертируются в WebP</p>
-        <p>• Поддержка JPG, PNG, GIF для фото • MP4, MOV, AVI для видео</p>
-        <p>• Максимум 25 фото и 5 видео на заказ</p>
+        <p>• Photos are automatically compressed to 400KB and converted to WebP</p>
+        <p>• Supports JPG, PNG, GIF for photos • MP4, MOV, AVI for videos</p>
+        <p>• Maximum 25 photos and 5 videos per order</p>
       </div>
     </div>
   );
