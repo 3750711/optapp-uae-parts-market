@@ -1,4 +1,5 @@
 import { RATE_LIMIT, BOT_TOKEN } from './config.ts'
+import { logTelegramNotification } from "../shared/telegram-logger.ts";
 
 export async function sendBulkMessages(
   recipients: string[] | string,
@@ -106,10 +107,30 @@ export async function sendBulkMessages(
     
     // Send messages in parallel within batch
     const batchPromises = batch.map(async (profile) => {
+      const userName = profile.full_name || profile.telegram || 'user';
       try {
+        const messageWithSignature = `${messageText}\n\n📩 Сообщение от администратора partsbay.ae`;
         await sendTelegramMessage(profile.telegram_id, messageText, images)
         
-        // Log successful send
+        // Log to telegram notifications
+        await logTelegramNotification(supabase, {
+          function_name: 'send-bulk-telegram-messages',
+          notification_type: 'bulk_message',
+          recipient_type: 'personal',
+          recipient_identifier: profile.telegram_id.toString(),
+          recipient_name: userName,
+          message_text: messageWithSignature,
+          status: 'sent',
+          metadata: {
+            admin_user_id: adminUser.id,
+            admin_name: adminUser.full_name || adminUser.email,
+            image_count: images.length,
+            batch_index: batchIndex + 1,
+            total_batches: batches.length
+          }
+        });
+        
+        // Log successful send (legacy)
         await logMessageSent(supabase, {
           adminUserId: adminUser.id,
           recipientUserId: profile.id,
@@ -119,11 +140,31 @@ export async function sendBulkMessages(
         })
         
         results.sent++
-        console.log(`Message sent to ${profile.full_name || profile.telegram || 'user'} (${profile.telegram_id})`)
+        console.log(`Message sent to ${userName} (${profile.telegram_id})`)
       } catch (error) {
-        console.error(`Failed to send message to ${profile.full_name || profile.telegram || 'user'}:`, error)
+        console.error(`Failed to send message to ${userName}:`, error)
         
-        // Log failed send
+        // Log to telegram notifications
+        await logTelegramNotification(supabase, {
+          function_name: 'send-bulk-telegram-messages',
+          notification_type: 'bulk_message',
+          recipient_type: 'personal',
+          recipient_identifier: profile.telegram_id.toString(),
+          recipient_name: userName,
+          message_text: `${messageText}\n\n📩 Сообщение от администратора partsbay.ae`,
+          status: 'failed',
+          error_details: {
+            error_message: error.message,
+            batch_index: batchIndex + 1
+          },
+          metadata: {
+            admin_user_id: adminUser.id,
+            admin_name: adminUser.full_name || adminUser.email,
+            image_count: images.length
+          }
+        });
+        
+        // Log failed send (legacy)
         await logMessageSent(supabase, {
           adminUserId: adminUser.id,
           recipientUserId: profile.id,

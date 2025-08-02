@@ -1,6 +1,7 @@
 // Personal message handling logic
 
 import { BOT_TOKEN, MAX_IMAGES_PER_GROUP } from "./config.ts";
+import { logTelegramNotification } from "../shared/telegram-logger.ts";
 
 // Function to wait between API calls to avoid rate limiting
 const waitBetweenBatches = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -89,6 +90,25 @@ export async function sendPersonalMessage(
       
       if (!response.ok) {
         console.error(`Chunk ${i + 1} failed:`, result);
+        
+        // Log failed notification
+        await logTelegramNotification(supabaseClient, {
+          function_name: 'send-personal-telegram-message',
+          notification_type: 'admin_personal_message',
+          recipient_type: 'personal',
+          recipient_identifier: targetUser.telegram_id.toString(),
+          recipient_name: targetUser.full_name || targetUser.email,
+          message_text: messageText,
+          status: 'failed',
+          error_details: result,
+          metadata: {
+            admin_user_id: adminUser.id,
+            admin_name: adminUser.full_name || adminUser.email,
+            chunk_number: i + 1,
+            total_chunks: imageChunks.length
+          }
+        });
+        
         throw new Error(`Failed to send media group: ${result.description}`);
       }
       
@@ -117,13 +137,49 @@ export async function sendPersonalMessage(
 
     if (!telegramResponse.ok) {
       console.error('Telegram API error:', telegramResult);
+      
+      // Log failed notification
+      await logTelegramNotification(supabaseClient, {
+        function_name: 'send-personal-telegram-message',
+        notification_type: 'admin_personal_message',
+        recipient_type: 'personal',
+        recipient_identifier: targetUser.telegram_id.toString(),
+        recipient_name: targetUser.full_name || targetUser.email,
+        message_text: messageText,
+        status: 'failed',
+        error_details: telegramResult,
+        metadata: {
+          admin_user_id: adminUser.id,
+          admin_name: adminUser.full_name || adminUser.email
+        }
+      });
+      
       throw new Error(`Failed to send message via Telegram: ${telegramResult.description}`);
     }
   }
 
   console.log('Message sent successfully via Telegram');
 
-  // Log the action
+  // Log to telegram notifications
+  await logTelegramNotification(supabaseClient, {
+    function_name: 'send-personal-telegram-message',
+    notification_type: 'admin_personal_message',
+    recipient_type: 'personal',
+    recipient_identifier: targetUser.telegram_id.toString(),
+    recipient_name: targetUser.full_name || targetUser.email,
+    message_text: messageText,
+    status: 'sent',
+    telegram_message_id: telegramResult.result?.message_id?.toString() || telegramResult.result?.[0]?.message_id?.toString(),
+    metadata: {
+      admin_user_id: adminUser.id,
+      admin_name: adminUser.full_name || adminUser.email,
+      message_length: messageText.length,
+      images_count: images?.length || 0,
+      chunks_count: images && images.length > 0 ? Math.ceil(images.length / MAX_IMAGES_PER_GROUP) : 0
+    }
+  });
+
+  // Log the action (legacy)
   try {
     await supabaseClient
       .from('event_logs')

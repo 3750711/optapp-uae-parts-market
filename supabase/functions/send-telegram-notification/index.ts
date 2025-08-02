@@ -20,6 +20,7 @@ import { corsHeaders } from "./config.ts";
 import { handleOrderNotification } from "./order-notification.ts";
 import { handleProductNotification } from "./product-notification.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logTelegramNotification } from "../shared/telegram-logger.ts";
 
 console.log('🚀 Edge Function starting up...');
 console.log('Environment variables check:');

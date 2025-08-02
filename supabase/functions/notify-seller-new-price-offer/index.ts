@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { logTelegramNotification } from "../shared/telegram-logger.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -242,12 +243,55 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
 
     if (!telegramResponse.ok) {
       console.error('Telegram API error:', telegramResult);
+      
+      // Log failed notification
+      await logTelegramNotification(supabase, {
+        function_name: 'notify-seller-new-price-offer',
+        notification_type: notificationType === 'price_update' ? 'price_offer_update' : 'price_offer_new',
+        recipient_type: 'personal',
+        recipient_identifier: seller.telegram_id.toString(),
+        recipient_name: seller.full_name,
+        message_text: telegramMessage,
+        status: 'failed',
+        related_entity_type: 'price_offer',
+        related_entity_id: offerId,
+        error_details: telegramResult,
+        metadata: {
+          product_id: productId,
+          offered_price: offeredPrice,
+          original_price: originalPrice,
+          old_price: oldPrice,
+          buyer_name: buyer.full_name
+        }
+      });
+      
       throw new Error(`Failed to send Telegram message: ${telegramResult.description}`);
     }
 
     console.log(`Telegram notification sent successfully to seller ${seller.full_name}`);
 
-    // Log the action
+    // Log successful notification
+    await logTelegramNotification(supabase, {
+      function_name: 'notify-seller-new-price-offer',
+      notification_type: notificationType === 'price_update' ? 'price_offer_update' : 'price_offer_new',
+      recipient_type: 'personal',
+      recipient_identifier: seller.telegram_id.toString(),
+      recipient_name: seller.full_name,
+      message_text: telegramMessage,
+      status: 'sent',
+      telegram_message_id: telegramResult.result?.message_id?.toString(),
+      related_entity_type: 'price_offer',
+      related_entity_id: offerId,
+      metadata: {
+        product_id: productId,
+        offered_price: offeredPrice,
+        original_price: originalPrice,
+        old_price: oldPrice,
+        buyer_name: buyer.full_name
+      }
+    });
+
+    // Log the action for backward compatibility
     try {
       await supabase
         .from('event_logs')
