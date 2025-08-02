@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logTelegramNotification } from '../shared/telegram-logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -146,6 +147,30 @@ serve(async (req) => {
     // Send images with message
     const imageUrls = images.map((image: any) => image.url);
     const success = await sendImageMediaGroups(imageUrls, messageText);
+    
+    // Log telegram notification
+    try {
+      await logTelegramNotification(supabaseClient, {
+        function_name: 'send-product-publish-notification',
+        notification_type: 'product_published',
+        recipient_type: 'group',
+        recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+        recipient_name: 'Product Group',
+        message_text: messageText,
+        status: success ? 'sent' : 'failed',
+        related_entity_type: 'product',
+        related_entity_id: productId,
+        metadata: {
+          product_title: product.title,
+          product_price: product.price,
+          seller_name: product.seller_name,
+          lot_number: product.lot_number,
+          images_count: imageUrls.length
+        }
+      });
+    } catch (logError) {
+      console.error('Failed to log telegram notification:', logError);
+    }
     
     if (success) {
       // Update the notification timestamp

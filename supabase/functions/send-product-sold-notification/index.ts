@@ -9,6 +9,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { logTelegramNotification } from '../shared/telegram-logger.ts';
 
 // Настройки CORS
 const corsHeaders = {
@@ -102,6 +103,30 @@ serve(async (req) => {
     }
 
     console.log('Уведомление о продаже товара успешно отправлено');
+
+    // Log telegram notification
+    try {
+      await logTelegramNotification(supabaseClient, {
+        function_name: 'send-product-sold-notification',
+        notification_type: 'product_sold_group',
+        recipient_type: 'group',
+        recipient_identifier: PRODUCT_GROUP_CHAT_ID,
+        recipient_name: 'Product Group',
+        message_text: messageText,
+        status: 'sent',
+        telegram_message_id: telegramData.result?.message_id?.toString(),
+        related_entity_type: 'product',
+        related_entity_id: reqData.productId,
+        metadata: {
+          product_title: product.title,
+          lot_number: product.lot_number,
+          brand: product.brand,
+          model: product.model
+        }
+      });
+    } catch (logError) {
+      console.error('Failed to log telegram notification:', logError);
+    }
 
     // Возвращаем успешный ответ
     return new Response(

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { logTelegramNotification } from '../shared/telegram-logger.ts';
 
 /**
  * Normalizes a Telegram username by adding @ prefix if missing
@@ -218,6 +219,28 @@ serve(async (req) => {
 
       console.log('New user created:', { userId: newUser.user.id, email })
       isNewUser = true
+      
+      // Log telegram widget auth notification
+      try {
+        await logTelegramNotification(supabase, {
+          function_name: 'telegram-widget-auth',
+          notification_type: 'widget_registration',
+          recipient_type: 'personal',
+          recipient_identifier: authData.id.toString(),
+          recipient_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
+          message_text: 'New user registered via Telegram widget',
+          status: 'sent',
+          related_entity_type: 'user',
+          related_entity_id: newUser.user.id,
+          metadata: {
+            telegram_username: normalizeTelegramUsername(authData.username),
+            auth_method: 'telegram_widget',
+            registration_time: new Date().toISOString()
+          }
+        });
+      } catch (logError) {
+        console.error('Failed to log telegram widget auth notification:', logError);
+      }
     }
 
     console.log('Returning credentials for client login')

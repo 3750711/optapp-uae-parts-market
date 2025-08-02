@@ -1,4 +1,5 @@
 import { BOT_TOKEN, ADMIN_EMAILS } from './config.ts';
+import { logTelegramNotification } from '../shared/telegram-logger.ts';
 
 export async function sendAdminNotifications(productId: string, supabaseClient: any, adminUser: any) {
   console.log(`📢 [AdminNotification] Processing notification for product: ${productId}`);
@@ -66,6 +67,32 @@ export async function sendAdminNotifications(productId: string, supabaseClient: 
       console.log(`📤 [AdminNotification] Sending to admin: ${admin.email} (${admin.full_name})`);
       
       const result = await sendTelegramMessage(admin.telegram_id, messageText, images);
+      
+      // Log telegram notification
+      try {
+        await logTelegramNotification(supabaseClient, {
+          function_name: 'notify-admins-new-product',
+          notification_type: 'new_product_notification',
+          recipient_type: 'personal',
+          recipient_identifier: admin.telegram_id.toString(),
+          recipient_name: admin.full_name,
+          message_text: messageText,
+          status: result.success ? 'sent' : 'failed',
+          telegram_message_id: result.result?.message_id?.toString(),
+          related_entity_type: 'product',
+          related_entity_id: productId,
+          error_details: result.error ? { error: result.error } : null,
+          metadata: {
+            product_title: product.title,
+            product_price: product.price,
+            seller_name: product.seller_name,
+            images_count: images.length
+          }
+        });
+      } catch (logError) {
+        console.error('Failed to log telegram notification:', logError);
+      }
+      
       results.push({
         admin: admin.email,
         success: result.success,
