@@ -146,8 +146,8 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
             variant="default" 
             className="flex-1 flex items-center gap-2"
             onClick={() => handleStatusChange('active')}
-            disabled={isUpdating || product.status === 'active'}
-            style={{ display: (product.status === 'archived' || product.status === 'sold') ? 'flex' : 'none' }}
+            disabled={isUpdating}
+            style={{ display: product.status === 'archived' ? 'flex' : 'none' }}
           >
             <RotateCcw className="h-4 w-4" />
             Restore

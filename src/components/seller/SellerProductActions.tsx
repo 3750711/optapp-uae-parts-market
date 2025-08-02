@@ -218,18 +218,6 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
             </Button>
           )}
 
-          {product.status === 'sold' && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => handleStatusChange('active')}
-              disabled={isUpdating}
-              className="flex items-center gap-2"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Вернуть в продажу
-            </Button>
-          )}
         </div>
       </div>
     </div>
