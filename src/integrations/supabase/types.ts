@@ -1199,6 +1199,57 @@ export type Database = {
           },
         ]
       }
+      telegram_notifications_log: {
+        Row: {
+          created_at: string
+          error_details: Json | null
+          function_name: string
+          id: string
+          message_text: string
+          metadata: Json | null
+          notification_type: string
+          recipient_identifier: string
+          recipient_name: string | null
+          recipient_type: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          status: string
+          telegram_message_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_details?: Json | null
+          function_name: string
+          id?: string
+          message_text: string
+          metadata?: Json | null
+          notification_type: string
+          recipient_identifier: string
+          recipient_name?: string | null
+          recipient_type: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          telegram_message_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_details?: Json | null
+          function_name?: string
+          id?: string
+          message_text?: string
+          metadata?: Json | null
+          notification_type?: string
+          recipient_identifier?: string
+          recipient_name?: string | null
+          recipient_type?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          status?: string
+          telegram_message_id?: string | null
+        }
+        Relationships: []
+      }
       user_favorites: {
         Row: {
           created_at: string

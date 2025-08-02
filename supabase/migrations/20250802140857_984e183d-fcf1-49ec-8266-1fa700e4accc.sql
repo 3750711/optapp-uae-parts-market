@@ -1,0 +1,2 @@
+-- Enable RLS on any tables that might be created for automotive content
+-- This is a preparatory migration for the automotive platform

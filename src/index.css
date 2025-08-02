@@ -6,40 +6,55 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 231 48% 48%;
-    --primary-foreground: 210 40% 98%;
-    --primary-hover: 231 48% 42%;
-    --secondary: 39 100% 55%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    --secondary-hover: 39 100% 50%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 84% 4.9%;
-    --destructive: 0 84.2% 60.2%;
+    /* Automotive-inspired color palette */
+    --background: 220 12% 98%;
+    --foreground: 220 14% 11%;
+    --card: 220 6% 97%;
+    --card-foreground: 220 14% 11%;
+    --popover: 220 6% 97%;
+    --popover-foreground: 220 14% 11%;
+    
+    /* Primary automotive colors - Chrome and Steel */
+    --primary: 220 20% 25%;
+    --primary-foreground: 220 6% 97%;
+    --primary-variant: 220 25% 35%;
+    
+    /* Secondary automotive colors - Carbon and Metal */
+    --secondary: 210 16% 85%;
+    --secondary-foreground: 220 14% 11%;
+    --secondary-dark: 210 20% 20%;
+    
+    /* Muted tones */
+    --muted: 210 12% 92%;
+    --muted-foreground: 215 14% 48%;
+    
+    /* Accent - Premium automotive blue */
+    --accent: 210 40% 92%;
+    --accent-foreground: 220 14% 11%;
+    --accent-automotive: 210 65% 45%;
+    
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 231 48% 48%;
-    --radius: 0.5rem;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 220 20% 25%;
+    --radius: 0.75rem;
     
-    /* Professional gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(231 48% 48%), hsl(258 48% 58%));
-    --gradient-secondary: linear-gradient(135deg, hsl(39 100% 55%), hsl(25 100% 60%));
-    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 46%));
-    --gradient-info: linear-gradient(135deg, hsl(200 100% 45%), hsl(220 100% 55%));
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 40% 98%));
+    /* Automotive professional gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-variant)) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(var(--secondary)) 0%, hsl(var(--accent-automotive)) 100%);
+    --gradient-automotive: linear-gradient(135deg, hsl(220 20% 25%) 0%, hsl(210 65% 45%) 100%);
+    --gradient-metallic: linear-gradient(135deg, hsl(220 8% 85%) 0%, hsl(220 12% 95%) 50%, hsl(220 8% 75%) 100%);
+    --gradient-chrome: linear-gradient(135deg, hsl(220 12% 88%) 0%, hsl(220 8% 95%) 30%, hsl(220 15% 75%) 100%);
+    --gradient-carbon: linear-gradient(135deg, hsl(220 20% 15%) 0%, hsl(220 25% 25%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted) / 0.3) 100%);
     
-    /* Professional shadows */
-    --shadow-elegant: 0 10px 30px -10px hsl(231 48% 48% / 0.3);
-    --shadow-card: 0 4px 24px -4px hsl(222.2 84% 4.9% / 0.08);
-    --shadow-floating: 0 20px 40px -12px hsl(222.2 84% 4.9% / 0.15);
+    /* Professional automotive shadows */
+    --shadow-elegant: 0 10px 30px -10px hsl(var(--primary) / 0.2);
+    --shadow-card: 0 4px 12px -2px hsl(var(--primary) / 0.12);
+    --shadow-floating: 0 20px 40px -10px hsl(var(--primary) / 0.18);
+    --shadow-metallic: 0 8px 25px -8px hsl(220 20% 25% / 0.25);
+    --shadow-glow: 0 0 40px hsl(var(--accent-automotive) / 0.3);
     
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
@@ -49,25 +64,35 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Dark automotive theme */
+    --background: 220 25% 6%;
+    --foreground: 220 6% 95%;
+    --card: 220 20% 8%;
+    --card-foreground: 220 6% 95%;
+    --popover: 220 20% 8%;
+    --popover-foreground: 220 6% 95%;
+    
+    /* Dark primary - Bright chrome/steel */
+    --primary: 220 6% 95%;
+    --primary-foreground: 220 25% 6%;
+    --primary-variant: 210 65% 65%;
+    
+    /* Dark secondary */
+    --secondary: 220 20% 15%;
+    --secondary-foreground: 220 6% 95%;
+    --secondary-dark: 220 25% 10%;
+    
+    --muted: 220 20% 12%;
+    --muted-foreground: 220 8% 65%;
+    --accent: 220 20% 15%;
+    --accent-foreground: 220 6% 95%;
+    --accent-automotive: 210 75% 55%;
+    
+    --destructive: 0 75% 65%;
+    --destructive-foreground: 220 6% 95%;
+    --border: 220 20% 15%;
+    --input: 220 20% 15%;
+    --ring: 220 6% 95%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -236,6 +261,22 @@
     background: var(--gradient-subtle);
   }
 
+  .bg-gradient-automotive {
+    background: var(--gradient-automotive);
+  }
+
+  .bg-gradient-metallic {
+    background: var(--gradient-metallic);
+  }
+
+  .bg-gradient-chrome {
+    background: var(--gradient-chrome);
+  }
+
+  .bg-gradient-carbon {
+    background: var(--gradient-carbon);
+  }
+
   /* Elegant shadow utilities */
   .shadow-elegant {
     box-shadow: var(--shadow-elegant);
@@ -249,7 +290,15 @@
     box-shadow: var(--shadow-floating);
   }
 
-  /* Modern animations */
+  .shadow-metallic {
+    box-shadow: var(--shadow-metallic);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Automotive animations */
   .animate-count-up {
     animation: countUp 0.8s ease-out forwards;
   }
@@ -260,6 +309,18 @@
 
   .animate-slide-in-up {
     animation: slideInUp 0.7s ease-out forwards;
+  }
+
+  .animate-automotive-float {
+    animation: automotiveFloat 3s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-engine-pulse {
+    animation: enginePulse 2s ease-in-out infinite;
   }
 
   /* Hover effects */
@@ -377,6 +438,27 @@ button, a, input, textarea, select {
 @keyframes slideInUp {
   from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Automotive-specific animations */
+@keyframes automotiveFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes enginePulse {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.05); filter: brightness(1.1); }
+}
+
+@keyframes chromeReflection {
+  0%, 100% { background-position: -200% 0; }
+  50% { background-position: 200% 0; }
 }
 
 /* Print styles */
