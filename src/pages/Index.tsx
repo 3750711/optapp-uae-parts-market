@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import StatisticsSection from "@/components/home/StatisticsSection";
 import LoginForm from "@/components/auth/LoginForm";
+import { UsedPartsShowcase } from "@/components/automotive/UsedPartsShowcase";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Car, Settings, Wrench, Cog, Shield, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -147,6 +148,9 @@ const Index = () => {
               </div>
             </div>
           </section>
+
+          {/* Used Parts Showcase Section */}
+          <UsedPartsShowcase />
 
           {/* Premium CTA Section for Non-authenticated */}
           {!user && (

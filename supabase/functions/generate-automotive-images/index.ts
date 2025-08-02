@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { HfInference } from 'https://esm.sh/@huggingface/inference@2.3.2'
 
@@ -13,7 +14,12 @@ const automotivePrompts = {
   brakes: "High-end brake system components, carbon ceramic brake discs, premium calipers, automotive engineering excellence, metallic finish, professional studio photography",
   wheels: "Luxury car wheels and rims, premium alloy wheels, sophisticated automotive design, chrome finish, high-end automotive components, professional photography",
   interior: "Premium automotive interior components, luxury car dashboard, high-end leather and carbon fiber materials, sophisticated automotive craftsmanship",
-  abstract: "Abstract automotive background elements, flowing car silhouettes, metallic gradients, automotive industry aesthetics, modern premium design elements"
+  abstract: "Abstract automotive background elements, flowing car silhouettes, metallic gradients, automotive industry aesthetics, modern premium design elements",
+  used_parts: "Professional used automotive parts photography, high-quality second-hand car components, detailed texture showing realistic wear patterns, clean organized marketplace display, commercial automotive photography, realistic lighting, professional product photography, well-maintained condition",
+  used_engine: "Professional used car engine parts photography, second-hand engine components, realistic wear patterns, clean condition, automotive marketplace display, detailed metallic surfaces, commercial lighting",
+  used_transmission: "Professional used transmission parts photography, gearbox components, second-hand automotive transmission, realistic condition, marketplace product display, professional automotive photography",
+  used_suspension: "Professional used suspension parts photography, shock absorbers and springs, second-hand automotive suspension components, realistic wear, clean display, professional lighting",
+  used_electrical: "Professional used automotive electrical parts photography, alternators, starters, electrical components, second-hand condition, clean marketplace display, professional product photography"
 }
 
 serve(async (req) => {

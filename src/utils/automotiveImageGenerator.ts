@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface AutomotiveImageResult {
@@ -7,7 +8,7 @@ export interface AutomotiveImageResult {
 }
 
 export const generateAutomotiveImage = async (
-  type: 'hero' | 'logo' | 'engine' | 'brakes' | 'wheels' | 'interior' | 'abstract' = 'hero',
+  type: 'hero' | 'logo' | 'engine' | 'brakes' | 'wheels' | 'interior' | 'abstract' | 'used_parts' | 'used_engine' | 'used_transmission' | 'used_suspension' | 'used_electrical' = 'hero',
   customPrompt?: string
 ): Promise<AutomotiveImageResult> => {
   try {
@@ -33,5 +34,10 @@ export const automotiveImageTypes = {
   brakes: 'High-end brake system',
   wheels: 'Premium wheels and rims',
   interior: 'Luxury automotive interior',
-  abstract: 'Abstract automotive elements'
+  abstract: 'Abstract automotive elements',
+  used_parts: 'Professional used car parts',
+  used_engine: 'Used engine components',
+  used_transmission: 'Used transmission parts',
+  used_suspension: 'Used suspension components',
+  used_electrical: 'Used electrical parts'
 } as const;
