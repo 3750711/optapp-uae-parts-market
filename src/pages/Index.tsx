@@ -15,6 +15,9 @@ const Index = () => {
   const { user, profile } = useAuth();
   const { language } = useLanguage();
   const t = getMainPageTranslations(language);
+  
+  console.log('🌐 Index Page Language:', language);
+  console.log('🌐 Current translations:', t.hero.title);
 
   const structuredData = {
     "@context": "https://schema.org",
