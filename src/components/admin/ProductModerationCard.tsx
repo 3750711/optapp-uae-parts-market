@@ -286,15 +286,15 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         </div>
       </CardContent>
 
-      <CardFooter className="p-4 pt-0">
-        <div className="flex gap-2 w-full">
+      <CardFooter className="p-3 pt-0">
+        <div className="flex flex-col sm:flex-row gap-2 w-full">
           <Button
             variant="outline"
             size="sm"
-            className="flex-1"
+            className="w-full sm:flex-1 text-xs py-2"
             onClick={() => window.open(`/product/${product.id}`, '_blank')}
           >
-            <Eye className="h-4 w-4 mr-1" />
+            <Eye className="h-3 w-3 mr-1" />
             Предпросмотр
           </Button>
           
@@ -302,12 +302,12 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             onClick={handlePublish}
             disabled={isPublishing}
             size="sm"
-            className="flex-1"
+            className="w-full sm:flex-1 text-xs py-2"
           >
             {isPublishing ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1" />
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1" />
             ) : (
-              <CheckCircle className="h-4 w-4 mr-1" />
+              <CheckCircle className="h-3 w-3 mr-1" />
             )}
             Опубликовать
           </Button>
