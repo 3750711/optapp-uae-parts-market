@@ -85,13 +85,6 @@ const Header = () => {
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
     <nav className="flex flex-col md:flex-row items-center gap-2 md:gap-5">
-      <Link 
-        to="/" 
-        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        {t.header.home}
-      </Link>
       {/* Show navigation links only for authenticated users */}
       {user && (
         <>
@@ -120,13 +113,6 @@ const Header = () => {
               </Link>
             </>
           )}
-          <Link 
-            to="/about" 
-            className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-            onClick={onClick}
-          >
-            {t.header.about}
-          </Link>
         </>
       )}
     </nav>
