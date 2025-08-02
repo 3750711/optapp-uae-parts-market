@@ -232,10 +232,6 @@ const AdminTelegramMonitoring = () => {
                     </SelectContent>
                   </Select>
 
-                  <Button onClick={clearFilters} variant="outline" size="sm">
-                    <X className="h-4 w-4 mr-1" />
-                    Очистить
-                  </Button>
                   
                   <Button onClick={() => refetch()} variant="outline" size="sm">
                     <RefreshCw className="h-4 w-4 mr-1" />
