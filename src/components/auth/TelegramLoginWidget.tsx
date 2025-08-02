@@ -220,9 +220,6 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
           <p className="text-xs text-muted-foreground">
             {t.instant}
           </p>
-          <p className="text-xs text-primary font-medium">
-            {t.recommended}
-          </p>
         </div>
       </div>
 
