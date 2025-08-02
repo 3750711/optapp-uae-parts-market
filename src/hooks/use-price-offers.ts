@@ -127,6 +127,35 @@ export const useCreatePriceOffer = () => {
   });
 };
 
+// Hook для удаления предложения цены (только для администраторов)
+export const useDeletePriceOffer = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (offerId: string) => {
+      const { error } = await supabase
+        .from('price_offers')
+        .delete()
+        .eq('id', offerId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Invalidate all price offer related queries
+      queryClient.invalidateQueries({ queryKey: ['admin-price-offers'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-price-offers'] });
+      queryClient.invalidateQueries({ queryKey: ['seller-price-offers'] });
+      queryClient.invalidateQueries({ queryKey: ['product-offers'] });
+      
+      toast.success('Предложение удалено');
+    },
+    onError: (error) => {
+      console.error('Error deleting price offer:', error);
+      toast.error('Ошибка при удалении предложения');
+    },
+  });
+};
+
 // Hook для обновления предложения цены
 export const useUpdatePriceOffer = () => {
   const queryClient = useQueryClient();

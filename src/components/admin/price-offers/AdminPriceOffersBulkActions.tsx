@@ -2,8 +2,9 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, X, Check, Clock } from "lucide-react";
-import { useUpdatePriceOffer } from "@/hooks/use-price-offers";
+import { useUpdatePriceOffer, useDeletePriceOffer } from "@/hooks/use-price-offers";
 import { toast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface AdminPriceOffersBulkActionsProps {
   selectedOfferIds: string[];
@@ -17,6 +18,7 @@ export const AdminPriceOffersBulkActions: React.FC<AdminPriceOffersBulkActionsPr
   onBulkUpdate
 }) => {
   const updateOffer = useUpdatePriceOffer();
+  const deleteOffer = useDeletePriceOffer();
 
   const handleBulkAction = async (action: 'cancel' | 'expire') => {
     try {
@@ -42,6 +44,30 @@ export const AdminPriceOffersBulkActions: React.FC<AdminPriceOffersBulkActionsPr
       toast({
         title: "Ошибка",
         description: "Не удалось выполнить операцию",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    try {
+      const promises = selectedOfferIds.map(id => 
+        deleteOffer.mutateAsync(id)
+      );
+      
+      await Promise.all(promises);
+      
+      toast({
+        title: "Успешно",
+        description: `${selectedOfferIds.length} предложений удалено`,
+      });
+      
+      onClearSelection();
+      onBulkUpdate();
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить предложения",
         variant: "destructive",
       });
     }
@@ -85,6 +111,37 @@ export const AdminPriceOffersBulkActions: React.FC<AdminPriceOffersBulkActionsPr
           <Clock className="h-4 w-4 mr-1" />
           Пометить истекшими
         </Button>
+
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
+              disabled={deleteOffer.isPending}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Удалить
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Удалить выбранные предложения?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Это действие нельзя отменить. {selectedOfferIds.length} предложений будет удалено навсегда.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Отмена</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleBulkDelete}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Удалить все
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

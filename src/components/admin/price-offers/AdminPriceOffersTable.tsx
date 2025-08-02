@@ -7,8 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { PriceOffer } from "@/types/price-offer";
-import { ChevronDown, ChevronUp, ExternalLink, MessageSquare, X, Check } from "lucide-react";
-import { useUpdatePriceOffer } from "@/hooks/use-price-offers";
+import { ChevronDown, ChevronUp, ExternalLink, MessageSquare, X, Check, Trash2 } from "lucide-react";
+import { useUpdatePriceOffer, useDeletePriceOffer } from "@/hooks/use-price-offers";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface AdminPriceOffersTableProps {
   offers: PriceOffer[];
@@ -26,6 +27,7 @@ export const AdminPriceOffersTable: React.FC<AdminPriceOffersTableProps> = ({
   sortDirection
 }) => {
   const updateOffer = useUpdatePriceOffer();
+  const deleteOffer = useDeletePriceOffer();
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -92,6 +94,10 @@ export const AdminPriceOffersTable: React.FC<AdminPriceOffersTableProps> = ({
         seller_response: response
       }
     });
+  };
+
+  const handleDeleteOffer = (offerId: string) => {
+    deleteOffer.mutate(offerId);
   };
 
   if (isLoading) {
@@ -264,6 +270,37 @@ export const AdminPriceOffersTable: React.FC<AdminPriceOffersTableProps> = ({
                           <ExternalLink className="h-3 w-3" />
                         </Button>
                       )}
+                      
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive/10"
+                            disabled={deleteOffer.isPending}
+                            title="Удалить предложение"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Удалить предложение?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Это действие нельзя отменить. Предложение цены будет удалено навсегда.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                            <AlertDialogAction 
+                              onClick={() => handleDeleteOffer(offer.id)}
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              Удалить
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
