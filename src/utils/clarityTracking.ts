@@ -74,6 +74,10 @@ class ClarityTracker {
         window.clarity('set', 'maskSelector', '[data-clarity-mask]');
       }
 
+      // Exclude iframe elements and Telegram widgets to prevent CORS issues
+      window.clarity('set', 'maskSelector', 'iframe, [data-telegram-login], .telegram-login, [data-clarity-mask]');
+      window.clarity('set', 'ignoreSelector', 'iframe[src*="oauth.telegram.org"], iframe[src*="telegram.org"]');
+
       // Set custom dimensions for better tracking
       window.clarity('set', 'environment', import.meta.env.MODE);
       window.clarity('set', 'version', '1.0.0');
