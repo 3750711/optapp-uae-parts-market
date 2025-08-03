@@ -177,36 +177,42 @@ const PendingApprovalPage = () => {
                     </div>
                   )}
 
-                  {/* Time Expectation */}
-                  <Card className="border-amber-200 bg-amber-50/50 mb-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                          <Timer className="w-4 h-4 text-amber-600" />
+                  {/* Time & Contact Information */}
+                  <Card className="border-amber-200 bg-gradient-to-br from-amber-50/50 to-blue-50/50 mb-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        {/* Time Expectation */}
+                        <div className="flex items-start space-x-3">
+                          <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Timer className="w-4 h-4 text-amber-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-amber-800 mb-1">{t.timeExpectation}</h3>
+                            <p className="text-sm text-amber-700">{t.timeExpectationDesc}</p>
+                          </div>
                         </div>
-                        <h3 className="font-semibold text-amber-800">{t.timeExpectation}</h3>
+
+                        {/* Divider */}
+                        <div className="border-t border-gray-200/60 my-4"></div>
+
+                        {/* Admin Contact Info */}
+                        {profile?.phone && (
+                          <div className="flex items-start space-x-3">
+                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Phone className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-blue-800 mb-1">{t.adminContact}</h3>
+                              <p className="text-sm text-blue-700 mb-2">{t.adminContactDesc}</p>
+                              <div className="bg-white/60 rounded-lg px-3 py-2 border border-blue-200/60">
+                                <span className="font-mono font-medium text-blue-800">{profile.phone}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-sm text-amber-700 ml-11">{t.timeExpectationDesc}</p>
                     </CardContent>
                   </Card>
-
-                  {/* Admin Contact Info */}
-                  {profile?.phone && (
-                    <Card className="border-blue-200 bg-blue-50/50 mb-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                            <Phone className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <h3 className="font-semibold text-blue-800">{t.adminContact}</h3>
-                        </div>
-                        <p className="text-sm text-blue-700 ml-11 mb-2">{t.adminContactDesc}</p>
-                        <div className="ml-11 bg-white/60 rounded-lg px-3 py-2 border border-blue-200">
-                          <span className="font-mono font-medium text-blue-800">{profile.phone}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
 
                   {/* Description */}
                   <p className="text-muted-foreground mb-8 leading-relaxed">
