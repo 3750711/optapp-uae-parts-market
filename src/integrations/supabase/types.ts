@@ -1336,7 +1336,7 @@ export type Database = {
         Returns: string
       }
       admin_delete_specific_user: {
-        Args: { p_user_id: string }
+        Args: { p_user_email: string } | { p_user_id: string }
         Returns: boolean
       }
       admin_delete_store: {
