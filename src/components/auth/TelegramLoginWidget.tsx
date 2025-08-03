@@ -230,7 +230,12 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
             {t.description}
           </p>
         </div>
-        <div ref={widgetRef} className="telegram-widget-container scale-110" />
+        <div 
+          ref={widgetRef} 
+          className="telegram-widget-container scale-110" 
+          data-clarity-ignore="true"
+          data-telegram-login="true"
+        />
         <div className="text-center space-y-2">
         </div>
       </div>
