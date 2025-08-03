@@ -68,15 +68,23 @@ class ClarityTracker {
     if (!window.clarity || !this.isInitialized) return;
 
     try {
-      // Mask sensitive data if configured
+      // Build mask selector array
+      const maskSelectors = ['iframe', '[data-telegram-login]', '.telegram-login', '[data-clarity-ignore]'];
+      
+      // Add sensitive data selectors if configured
       if (this.config.maskSensitiveData) {
         window.clarity('set', 'maskTextSelector', '.price, .contact-info, .phone, .email');
-        window.clarity('set', 'maskSelector', '[data-clarity-mask]');
+        maskSelectors.push('[data-clarity-mask]');
       }
 
-      // Exclude iframe elements and Telegram widgets to prevent CORS issues
-      window.clarity('set', 'maskSelector', 'iframe, [data-telegram-login], .telegram-login, [data-clarity-mask]');
-      window.clarity('set', 'ignoreSelector', 'iframe[src*="oauth.telegram.org"], iframe[src*="telegram.org"]');
+      // Apply combined mask selector (this fully masks/hides elements)
+      window.clarity('set', 'maskSelector', maskSelectors.join(', '));
+      
+      // Ignore specific Telegram iframe sources completely
+      window.clarity('set', 'ignoreSelector', 'iframe[src*="oauth.telegram.org"], iframe[src*="telegram.org"], [data-clarity-ignore]');
+      
+      // Disable iframe tracking completely
+      window.clarity('set', 'trackIFrames', false);
 
       // Set custom dimensions for better tracking
       window.clarity('set', 'environment', import.meta.env.MODE);
