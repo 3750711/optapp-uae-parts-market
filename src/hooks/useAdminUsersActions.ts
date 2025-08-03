@@ -139,33 +139,58 @@ export const useAdminUsersActions = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      // Вызываем функцию для удаления аккаунта пользователя
-      const { error } = await supabase.rpc('delete_user_account', {
-        user_id: userId
+      // Вызываем правильную функцию для админского удаления пользователя
+      const { data, error } = await supabase.rpc('admin_delete_specific_user', {
+        p_user_id: userId
       });
 
       if (error) {
         console.error('Error deleting user:', error);
+        
+        // Обработка специфических ошибок
+        if (error.message?.includes('Only admins can use this function')) {
+          toast({
+            title: "Доступ запрещен",
+            description: "Только администраторы могут удалять пользователей",
+            variant: "destructive"
+          });
+        } else if (error.message?.includes('not found')) {
+          toast({
+            title: "Пользователь не найден",
+            description: "Пользователь уже был удален или не существует",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Ошибка удаления",
+            description: `Не удалось удалить пользователя: ${error.message}`,
+            variant: "destructive"
+          });
+        }
+        return false;
+      }
+
+      if (data === true) {
+        toast({
+          title: "Пользователь удален",
+          description: "Аккаунт пользователя и все связанные данные успешно удалены. Создана резервная копия данных.",
+        });
+        
+        queryClient.invalidateQueries({ queryKey: ['admin', 'users-optimized'] });
+        return true;
+      } else {
         toast({
           title: "Ошибка",
-          description: `Не удалось удалить аккаунт пользователя: ${error.message}`,
+          description: "Операция удаления не была завершена",
           variant: "destructive"
         });
         return false;
       }
-
-      toast({
-        title: "Успех",
-        description: "Аккаунт пользователя был успешно удален"
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users-optimized'] });
-      return true;
     } catch (error) {
       console.error('Error deleting user:', error);
       toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при удалении аккаунта",
+        title: "Критическая ошибка",
+        description: "Произошла неожиданная ошибка при удалении пользователя",
         variant: "destructive"
       });
       return false;
