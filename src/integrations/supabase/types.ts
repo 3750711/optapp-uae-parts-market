@@ -1335,6 +1335,10 @@ export type Database = {
         }
         Returns: string
       }
+      admin_delete_specific_user: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       admin_delete_store: {
         Args: { p_store_id: string }
         Returns: boolean
