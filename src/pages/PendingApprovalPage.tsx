@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Clock, Building2, LogOut } from 'lucide-react';
+import { Clock, Building2, LogOut, Phone, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import Layout from '@/components/layout/Layout';
@@ -25,6 +25,11 @@ const pendingApprovalTranslations = {
       "При необходимости мы свяжемся с вами для уточнения деталей"
     ],
     note: "Если у вас возникли вопросы, вы можете связаться с нами через Telegram или email.",
+    timeExpectation: "Процесс занимает от 5 минут",
+    timeExpectationDesc: "Обычно верификация происходит в течение 5 минут. В редких случаях может потребоваться до 1 рабочего дня.",
+    adminContact: "Администратор может связаться с вами",
+    adminContactDesc: "Если потребуется дополнительная информация, администратор свяжется с вами по указанному номеру телефона:",
+    loadingVerification: "Инициализация процесса верификации...",
     signOutButton: "Выйти из аккаунта",
     checkingStatus: "Проверяем статус...",
     approved: "Аккаунт одобрен! Перенаправляем..."
@@ -45,6 +50,11 @@ const pendingApprovalTranslations = {
       "If needed, we will contact you for additional details"
     ],
     note: "If you have any questions, you can contact us via Telegram or email.",
+    timeExpectation: "Process takes from 5 minutes",
+    timeExpectationDesc: "Verification usually happens within 5 minutes. In rare cases, it may take up to 1 business day.",
+    adminContact: "Administrator may contact you",
+    adminContactDesc: "If additional information is needed, an administrator will contact you at the provided phone number:",
+    loadingVerification: "Initializing verification process...",
     signOutButton: "Sign Out",
     checkingStatus: "Checking status...",
     approved: "Account approved! Redirecting..."
@@ -55,7 +65,16 @@ const PendingApprovalPage = () => {
   const { signOut, profile } = useAuth();
   const { language } = useLanguage();
   const { isChecking, isApproved } = useApprovalStatus();
+  const [showInitialLoading, setShowInitialLoading] = useState(true);
   const t = pendingApprovalTranslations[language];
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowInitialLoading(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -68,6 +87,29 @@ const PendingApprovalPage = () => {
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-muted-foreground">{t.checkingStatus}</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (showInitialLoading) {
+    return (
+      <Layout language={language}>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20">
+          <div className="text-center animate-fade-in">
+            <div className="relative w-20 h-20 mx-auto mb-8">
+              <div className="absolute inset-0 bg-primary/20 rounded-full animate-[pulse_2s_ease-in-out_infinite]"></div>
+              <div className="absolute inset-2 bg-primary/40 rounded-full animate-[pulse_2s_ease-in-out_infinite] animation-delay-300"></div>
+              <div className="absolute inset-4 bg-primary rounded-full animate-spin"></div>
+              <Clock className="absolute inset-0 w-8 h-8 m-auto text-primary-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">{t.loadingVerification}</h3>
+            <div className="flex items-center justify-center space-x-1">
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce animation-delay-100"></div>
+              <div className="w-2 h-2 bg-primary rounded-full animate-bounce animation-delay-200"></div>
+            </div>
           </div>
         </div>
       </Layout>
@@ -133,6 +175,37 @@ const PendingApprovalPage = () => {
                         </div>
                       </div>
                     </div>
+                  )}
+
+                  {/* Time Expectation */}
+                  <Card className="border-amber-200 bg-amber-50/50 mb-6 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center space-x-3 mb-2">
+                        <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                          <Timer className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <h3 className="font-semibold text-amber-800">{t.timeExpectation}</h3>
+                      </div>
+                      <p className="text-sm text-amber-700 ml-11">{t.timeExpectationDesc}</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Admin Contact Info */}
+                  {profile?.phone && (
+                    <Card className="border-blue-200 bg-blue-50/50 mb-6 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Phone className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <h3 className="font-semibold text-blue-800">{t.adminContact}</h3>
+                        </div>
+                        <p className="text-sm text-blue-700 ml-11 mb-2">{t.adminContactDesc}</p>
+                        <div className="ml-11 bg-white/60 rounded-lg px-3 py-2 border border-blue-200">
+                          <span className="font-mono font-medium text-blue-800">{profile.phone}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
 
                   {/* Description */}
