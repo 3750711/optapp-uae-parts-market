@@ -25,9 +25,16 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
     );
   }
   
-  // If user is authenticated, redirect based on their role
+  // If user is authenticated, check verification status first
   if (user && profile) {
-    devLog("GuestRoute: User authenticated, redirecting based on role");
+    devLog("GuestRoute: User authenticated, checking verification status");
+    
+    // Redirect pending users to approval page (except admins)
+    if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
+      return <Navigate to="/pending-approval" replace />;
+    }
+    
+    devLog("GuestRoute: User verified, redirecting based on role");
     
     switch (profile.user_type) {
       case 'seller':
