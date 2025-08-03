@@ -54,6 +54,10 @@ interface CustomRPCFunctions {
     p_delivery_price_confirm: number | null;
     p_videos?: string[];
   }) => string; // Returns UUID
+
+  admin_delete_specific_user: (args: {
+    p_user_email: string;
+  }) => any; // Returns jsonb object
 }
 
 // Extend the built-in Database type

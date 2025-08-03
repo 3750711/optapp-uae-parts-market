@@ -139,9 +139,26 @@ export const useAdminUsersActions = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
+      // Сначала получаем email пользователя
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', userId)
+        .single();
+
+      if (profileError || !userProfile?.email) {
+        console.error('Failed to get user email:', profileError);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось получить email пользователя",
+          variant: "destructive"
+        });
+        return false;
+      }
+
       // Вызываем правильную функцию для админского удаления пользователя
       const { data, error } = await supabase.rpc('admin_delete_specific_user', {
-        p_user_id: userId
+        p_user_email: userProfile.email
       });
 
       if (error) {
