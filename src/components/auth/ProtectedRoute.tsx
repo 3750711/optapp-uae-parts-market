@@ -39,6 +39,15 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
     devLog("ProtectedRoute: User not authenticated, redirecting to login");
     return <Navigate to={`/login?from=${encodeURIComponent(location.pathname)}`} replace />;
   }
+
+  // Check for incomplete Telegram profiles (after user is authenticated)
+  if (profile && profile.auth_method === 'telegram' && !profile.profile_completed) {
+    // Skip redirect if already on completion page
+    if (location.pathname !== '/complete-telegram-profile') {
+      devLog("ProtectedRoute: Telegram profile incomplete, redirecting to completion");
+      return <Navigate to="/complete-telegram-profile" replace />;
+    }
+  }
   
   // If profile is still loading but user exists, show minimal loading
   if (!profile) {

@@ -208,7 +208,8 @@ serve(async (req) => {
           telegram_id: authData.id,
           telegram: normalizeTelegramUsername(authData.username),
           photo_url: authData.photo_url,
-          full_name: `${authData.first_name} ${authData.last_name || ''}`.trim()
+          full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
+          profile_completed: false // Mark as incomplete for additional data collection
         }
       })
 
@@ -219,6 +220,34 @@ serve(async (req) => {
 
       console.log('New user created:', { userId: newUser.user.id, email })
       isNewUser = true
+      
+      // Create profile with incomplete status for new Telegram users
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: newUser.user.id,
+            email: email,
+            full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
+            auth_method: 'telegram',
+            telegram_id: authData.id,
+            telegram: normalizeTelegramUsername(authData.username),
+            avatar_url: authData.photo_url,
+            profile_completed: false, // Mark as incomplete for additional data collection
+            user_type: 'buyer', // Default type, will be updated during completion
+            verification_status: 'pending'
+          })
+        
+        if (profileError) {
+          console.error('Error creating profile:', profileError)
+          // Continue anyway as profile creation might happen through triggers
+        } else {
+          console.log('✅ Profile created successfully for new Telegram user')
+        }
+      } catch (profileCreationError) {
+        console.error('Error in profile creation:', profileCreationError)
+        // Continue anyway
+      }
       
       // Log telegram widget auth notification
       try {
@@ -245,12 +274,19 @@ serve(async (req) => {
 
     console.log('Returning credentials for client login')
 
+    // Check if profile completion is required for new users
+    let requiresProfileCompletion = false
+    if (isNewUser) {
+      requiresProfileCompletion = true
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
         email,
         password: tempPassword,
-        is_new_user: isNewUser
+        is_new_user: isNewUser,
+        requires_profile_completion: requiresProfileCompletion
       }),
       { 
         status: 200, 

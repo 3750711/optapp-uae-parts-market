@@ -117,6 +117,15 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
       console.log('🔍 Edge Function response:', data);
 
+      // Check if profile completion is required
+      if (data.requires_profile_completion) {
+        toast.dismiss();
+        console.log('🔄 Profile completion required, redirecting to completion flow');
+        // First log in the user, then redirect to profile completion
+        await handleDirectLogin(data.email, data.password, data.is_new_user, true);
+        return;
+      }
+
       // Handle normal login flow
       await handleDirectLogin(data.email, data.password, data.is_new_user);
 
@@ -128,7 +137,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     }
   };
 
-  const handleDirectLogin = async (email: string, password: string, isNewUser: boolean) => {
+  const handleDirectLogin = async (email: string, password: string, isNewUser: boolean, requiresProfileCompletion = false) => {
     try {
 
       if (!isNewUser) {
@@ -151,7 +160,13 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
       toast.dismiss();
       toast.success(t.success);
-      onSuccess?.();
+      
+      if (requiresProfileCompletion) {
+        // Navigate to profile completion page
+        window.location.href = '/complete-telegram-profile';
+      } else {
+        onSuccess?.();
+      }
     } catch (error) {
       toast.dismiss();
       const errorMessage = error instanceof Error ? error.message : t.error;

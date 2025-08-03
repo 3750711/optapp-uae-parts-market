@@ -32,6 +32,7 @@ const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const PendingApprovalPage = lazy(() => import('@/pages/PendingApprovalPage'));
+const CompleteTelegramProfile = lazy(() => import('@/pages/CompleteTelegramProfile'));
 
 // Lazy loaded защищенные страницы
 const Profile = lazy(() => import('@/pages/Profile'));
@@ -162,6 +163,15 @@ const AppRoutes: React.FC = () => {
               <ProtectedRoute>
                 <Suspense fallback={<RouteSuspenseFallback />}>
                   <PendingApprovalPage />
+                </Suspense>
+              </ProtectedRoute>
+            } />
+
+            {/* Complete Telegram Profile - для завершения регистрации через Telegram */}
+            <Route path="/complete-telegram-profile" element={
+              <ProtectedRoute>
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <CompleteTelegramProfile />
                 </Suspense>
               </ProtectedRoute>
             } />
