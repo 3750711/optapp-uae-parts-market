@@ -51,7 +51,7 @@ const StatisticsSection: React.FC<StatisticsSectionProps> = ({ language = 'ru' }
     },
     {
       icon: ShoppingBag,
-      value: stats?.totalOrders || 983,
+      value: stats?.lastOrderNumber || 983,
       label: t.statistics.ordersCreated,
     },
   ];

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface Statistics {
   totalProducts: number;
-  totalOrders: number;
+  lastOrderNumber: number;
   totalSellers: number;
 }
 
@@ -16,10 +16,13 @@ export const useStatistics = () => {
         .from('products')
         .select('*', { count: 'exact', head: true });
 
-      // Get total orders count
-      const { count: totalOrders } = await supabase
+      // Get last order number
+      const { data: lastOrder } = await supabase
         .from('orders')
-        .select('*', { count: 'exact', head: true });
+        .select('order_number')
+        .order('order_number', { ascending: false })
+        .limit(1)
+        .single();
 
       // Get unique sellers count
       const { count: totalSellers } = await supabase
@@ -29,7 +32,7 @@ export const useStatistics = () => {
 
       return {
         totalProducts: totalProducts || 0,
-        totalOrders: totalOrders || 0,
+        lastOrderNumber: lastOrder?.order_number || 0,
         totalSellers: totalSellers || 0,
       };
     },
