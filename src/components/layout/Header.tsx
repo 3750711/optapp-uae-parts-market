@@ -85,8 +85,8 @@ const Header = () => {
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
     <nav className="flex flex-col md:flex-row items-center gap-2 md:gap-5">
-      {/* Show navigation links only for authenticated users */}
-      {user && (
+      {/* Show navigation links only for authenticated and verified users */}
+      {user && profile?.verification_status === 'verified' && (
         <>
           {profile?.user_type !== 'seller' && (
             <>
