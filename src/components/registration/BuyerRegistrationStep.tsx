@@ -90,9 +90,9 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
       {optId && (
         <Card className="border-primary bg-primary/5">
           <CardContent className="p-4 text-center">
-            <p className="text-sm text-muted-foreground mb-1">Ваш OPT_ID</p>
+            <p className="text-sm text-muted-foreground mb-1">{translations.yourOptId}</p>
             <p className="text-2xl font-mono font-bold text-primary">{optId}</p>
-            <p className="text-xs text-muted-foreground mt-1">Сохраните этот идентификатор</p>
+            <p className="text-xs text-muted-foreground mt-1">{translations.saveThisId}</p>
           </CardContent>
         </Card>
       )}
