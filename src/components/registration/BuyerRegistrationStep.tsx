@@ -17,6 +17,7 @@ export interface BuyerData {
   phone: string;
   password: string;
   confirmPassword: string;
+  telegram?: string;
 }
 
 export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({

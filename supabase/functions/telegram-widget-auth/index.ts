@@ -194,7 +194,7 @@ serve(async (req) => {
         }
       )
     } else {
-      // New user - create with temp credentials
+      // New user - create with temp credentials for full registration process
       email = `telegram_${authData.id}@temp.telegram`
       tempPassword = crypto.randomUUID()
       console.log('Creating new user for telegram_id:', authData.id)
@@ -209,7 +209,7 @@ serve(async (req) => {
           telegram: normalizeTelegramUsername(authData.username),
           photo_url: authData.photo_url,
           full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
-          profile_completed: false // Mark as incomplete for additional data collection
+          requires_full_registration: true // Flag for full registration process
         }
       })
 
@@ -218,36 +218,10 @@ serve(async (req) => {
         throw signUpError
       }
 
-      console.log('New user created:', { userId: newUser.user.id, email })
+      console.log('New user created with requires_full_registration flag:', { userId: newUser.user.id, email })
       isNewUser = true
       
-      // Create profile with incomplete status for new Telegram users
-      try {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: newUser.user.id,
-            email: email,
-            full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
-            auth_method: 'telegram',
-            telegram_id: authData.id,
-            telegram: normalizeTelegramUsername(authData.username),
-            avatar_url: authData.photo_url,
-            profile_completed: false, // Mark as incomplete for additional data collection
-            user_type: 'buyer', // Default type, will be updated during completion
-            verification_status: 'pending'
-          })
-        
-        if (profileError) {
-          console.error('Error creating profile:', profileError)
-          // Continue anyway as profile creation might happen through triggers
-        } else {
-          console.log('✅ Profile created successfully for new Telegram user')
-        }
-      } catch (profileCreationError) {
-        console.error('Error in profile creation:', profileCreationError)
-        // Continue anyway
-      }
+      // Do NOT create profile - user will go through full registration process
       
       // Log telegram widget auth notification
       try {
@@ -274,10 +248,10 @@ serve(async (req) => {
 
     console.log('Returning credentials for client login')
 
-    // Check if profile completion is required for new users
-    let requiresProfileCompletion = false
+    // Check if user requires full registration process
+    let requiresFullRegistration = false
     if (isNewUser) {
-      requiresProfileCompletion = true
+      requiresFullRegistration = true
     }
 
     return new Response(
@@ -286,7 +260,14 @@ serve(async (req) => {
         email,
         password: tempPassword,
         is_new_user: isNewUser,
-        requires_profile_completion: requiresProfileCompletion
+        requires_full_registration: requiresFullRegistration,
+        telegram_data: isNewUser ? {
+          id: authData.id,
+          first_name: authData.first_name,
+          last_name: authData.last_name,
+          username: authData.username,
+          photo_url: authData.photo_url
+        } : undefined
       }),
       { 
         status: 200, 

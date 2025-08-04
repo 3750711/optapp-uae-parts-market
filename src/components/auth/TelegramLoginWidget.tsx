@@ -117,12 +117,19 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
       console.log('🔍 Edge Function response:', data);
 
-      // Check if profile completion is required
-      if (data.requires_profile_completion) {
+      // Check if user needs full registration
+      if (data.requires_full_registration && data.telegram_data) {
         toast.dismiss();
-        console.log('🔄 Profile completion required, redirecting to completion flow');
-        // First log in the user, then redirect to profile completion
-        await handleDirectLogin(data.email, data.password, data.is_new_user, true);
+        console.log('🔄 New Telegram user - redirecting to registration');
+        
+        // First log in the user
+        await handleDirectLogin(data.email, data.password, data.is_new_user);
+        
+        // Store Telegram data for registration process
+        sessionStorage.setItem('telegram_registration_data', JSON.stringify(data.telegram_data));
+        
+        // Redirect to registration with telegram flag
+        window.location.href = '/register?telegram=true';
         return;
       }
 
