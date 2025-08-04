@@ -51,8 +51,10 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     
     // Skip profile completion check - handled globally by ProfileCompletionRedirect
     
-    // PRIORITY 2: Check if user is pending approval (except for admins)
-    if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
+    // PRIORITY 2: Check if user is pending approval (except for admins and incomplete Telegram profiles)
+    if (profile.verification_status === 'pending' && 
+        profile.user_type !== 'admin' && 
+        !(profile.auth_method === 'telegram' && !profile.profile_completed)) {
       console.log("🚀 HomeRedirect: Redirecting to pending approval");
       if (redirectProtection.canRedirect(location.pathname, "/pending-approval")) {
         return <Navigate to="/pending-approval" replace />;
