@@ -77,14 +77,7 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
     return <Navigate to="/" replace />;
   }
 
-  // PRIORITY 1: Handle incomplete Telegram profiles FIRST (before pending check)
-  if (profile.auth_method === 'telegram' && !profile.profile_completed) {
-    // Allow access only to completion page
-    if (location.pathname !== '/complete-telegram-profile') {
-      devLog("ProtectedRoute: Telegram profile incomplete, redirecting to completion");
-      return <Navigate to="/complete-telegram-profile" replace />;
-    }
-  }
+  // Skip profile completion check - handled globally by ProfileCompletionRedirect
 
   // PRIORITY 2: Check if user is pending approval (except for admins) - STRICT CHECK
   if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {

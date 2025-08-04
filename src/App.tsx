@@ -11,6 +11,7 @@ import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { performanceMonitor } from "@/utils/performanceMonitor";
+import ProfileCompletionRedirect from "@/components/routing/ProfileCompletionRedirect";
 
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
@@ -66,9 +67,11 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <AuthProvider>
-                <Suspense fallback={<RouteLoader />}>
-                  <AppRoutes />
-                </Suspense>
+                <ProfileCompletionRedirect>
+                  <Suspense fallback={<RouteLoader />}>
+                    <AppRoutes />
+                  </Suspense>
+                </ProfileCompletionRedirect>
               </AuthProvider>
             </BrowserRouter>
           </TooltipProvider>

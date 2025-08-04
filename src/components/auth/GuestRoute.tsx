@@ -49,13 +49,7 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
     
     devLog("GuestRoute: User authenticated, checking verification status");
     
-    // PRIORITY 1: Handle incomplete Telegram profiles FIRST
-    if (profile.auth_method === 'telegram' && !profile.profile_completed) {
-      console.log("🔐 GuestRoute: Telegram user with incomplete profile - redirecting to completion");
-      if (redirectProtection.canRedirect(location.pathname, "/complete-telegram-profile")) {
-        return <Navigate to="/complete-telegram-profile" replace />;
-      }
-    }
+    // Skip profile completion check - handled globally by ProfileCompletionRedirect
     
     // PRIORITY 2: Redirect pending users to approval page (except admins)
     if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {

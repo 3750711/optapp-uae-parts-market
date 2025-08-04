@@ -170,11 +170,9 @@ const AppRoutes: React.FC = () => {
 
             {/* Complete Telegram Profile - для завершения регистрации через Telegram */}
             <Route path="/complete-telegram-profile" element={
-              <ProtectedRoute>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <CompleteTelegramProfile />
-                </Suspense>
-              </ProtectedRoute>
+              <Suspense fallback={<RouteSuspenseFallback />}>
+                <CompleteTelegramProfile />
+              </Suspense>
             } />
 
             {/* Защищенные публичные маршруты - заблокированы для продавцов */}

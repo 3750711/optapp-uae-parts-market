@@ -49,13 +49,7 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     
     devLog("HomeRedirect: User authenticated, redirecting based on role");
     
-    // PRIORITY 1: Handle incomplete Telegram profiles FIRST
-    if (profile.auth_method === 'telegram' && !profile.profile_completed) {
-      console.log("🚀 HomeRedirect: Telegram user with incomplete profile - redirecting to completion");
-      if (redirectProtection.canRedirect(location.pathname, "/complete-telegram-profile")) {
-        return <Navigate to="/complete-telegram-profile" replace />;
-      }
-    }
+    // Skip profile completion check - handled globally by ProfileCompletionRedirect
     
     // PRIORITY 2: Check if user is pending approval (except for admins)
     if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
