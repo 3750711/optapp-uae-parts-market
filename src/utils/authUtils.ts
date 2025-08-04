@@ -57,8 +57,11 @@ export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult
 // Функция для проверки существования OPT ID
 export const checkOptIdExists = async (optId: string): Promise<boolean> => {
   try {
+    console.log('Checking OPT ID existence:', optId);
+    
     const { data, error } = await supabase.rpc('check_opt_id_exists', {
-      p_opt_id: optId
+      p_opt_id: optId,
+      p_ip_address: null
     });
 
     if (error) {
@@ -66,6 +69,7 @@ export const checkOptIdExists = async (optId: string): Promise<boolean> => {
       return false;
     }
 
+    console.log('OPT ID check result:', data);
     return Boolean(data);
   } catch (error) {
     console.error('Unexpected error in checkOptIdExists:', error);

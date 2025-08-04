@@ -65,6 +65,7 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
 
   // Generate unique 4-letter OPT_ID for sellers
   const generateUniqueOptId = async (): Promise<string> => {
+    console.log('Starting OPT ID generation...');
     let optId;
     let attempts = 0;
     const maxAttempts = 100;
@@ -76,20 +77,32 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
         characters.charAt(Math.floor(Math.random() * characters.length))
       ).join('');
       
+      console.log(`Attempt ${attempts}: Generated OPT ID: ${optId}`);
+      
       if (attempts >= maxAttempts) {
+        console.error('Failed to generate unique OPT_ID after maximum attempts');
         throw new Error('Failed to generate unique OPT_ID after maximum attempts');
       }
+      
+      const exists = await checkOptIdExists(optId);
+      console.log(`OPT ID ${optId} exists: ${exists}`);
     } while (await checkOptIdExists(optId));
     
+    console.log(`Successfully generated unique OPT ID: ${optId}`);
     return optId;
   };
 
   const handleAccountType = async (type: UserType) => {
+    console.log('Selected user type:', type);
     setUserType(type);
     
     try {
       // Generate unique OPT ID for BOTH buyers and sellers (unified flow)
       const newOptId = await generateUniqueOptId();
+      if (!newOptId || newOptId.length !== 4) {
+        throw new Error('Invalid OPT ID generated');
+      }
+      console.log('Setting generated OPT ID:', newOptId);
       setGeneratedOptId(newOptId);
       setCurrentStep('opt-id-generation');
     } catch (error) {
@@ -141,7 +154,28 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
       return;
     }
 
+    if (!generatedOptId || generatedOptId.length !== 4) {
+      console.error('Missing or invalid generatedOptId:', generatedOptId);
+      toast({
+        title: "Ошибка",
+        description: "OPT ID не был сгенерирован. Попробуйте еще раз.",
+        variant: "destructive",
+      });
+      setCurrentStep('account-type');
+      return;
+    }
+
     try {
+      console.log('Creating seller account with data:', {
+        opt_id: generatedOptId,
+        user_type: 'seller',
+        company_name: storeData.name,
+        full_name: personalData.fullName,
+        phone: personalData.phone,
+        verification_status: 'pending',
+        profile_completed: true
+      });
+
       // Update the existing user profile with seller data
       const { error: profileError } = await supabase
         .from('profiles')
@@ -168,6 +202,8 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
         return;
       }
 
+      console.log('Seller account created successfully with OPT ID:', generatedOptId);
+      
       // Refresh profile to get updated data
       await refreshProfile();
 
@@ -194,7 +230,27 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
       return;
     }
 
+    if (!generatedOptId || generatedOptId.length !== 4) {
+      console.error('Missing or invalid generatedOptId:', generatedOptId);
+      toast({
+        title: "Ошибка",
+        description: "OPT ID не был сгенерирован. Попробуйте еще раз.",
+        variant: "destructive",
+      });
+      setCurrentStep('account-type');
+      return;
+    }
+
     try {
+      console.log('Creating buyer account with data:', {
+        opt_id: generatedOptId,
+        user_type: 'buyer',
+        full_name: buyerData.fullName,
+        phone: buyerData.phone,
+        verification_status: 'pending',
+        profile_completed: true
+      });
+
       // Update the existing user profile with buyer data (including OPT_ID)
       const { error: profileError } = await supabase
         .from('profiles')
@@ -217,6 +273,8 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
         });
         return;
       }
+
+      console.log('Buyer account created successfully with OPT ID:', generatedOptId);
 
       // Refresh profile to get updated data
       await refreshProfile();
