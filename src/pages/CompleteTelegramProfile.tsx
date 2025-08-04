@@ -20,12 +20,17 @@ const CompleteTelegramProfile: React.FC = () => {
       // Check if profile is already completed
       if (profile.profile_completed) {
         // Profile already completed, check verification status
-        if (profile.verification_status === 'pending') {
-          navigate('/pending-approval');
-        } else if (profile.user_type === 'seller') {
-          navigate('/seller');
-        } else {
-          navigate('/');
+        // Only redirect verified users, let pending users stay and complete any missing steps
+        if (profile.verification_status === 'verified') {
+          if (profile.user_type === 'seller') {
+            navigate('/seller');
+          } else {
+            navigate('/');
+          }
+        } else if (profile.verification_status === 'pending') {
+          // Allow pending users to stay and complete profile if needed
+          // Don't auto-redirect to prevent loops
+          console.log('CompleteTelegramProfile: Profile completed but user is pending, staying on page');
         }
         return;
       }

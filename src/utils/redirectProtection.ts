@@ -1,6 +1,6 @@
 // Redirect protection utility to prevent infinite loops
-const REDIRECT_LIMIT = 5;
-const REDIRECT_WINDOW = 10000; // 10 seconds
+const REDIRECT_LIMIT = 2;
+const REDIRECT_WINDOW = 5000; // 5 seconds
 
 interface RedirectAttempt {
   timestamp: number;
@@ -18,6 +18,17 @@ class RedirectProtection {
     this.attempts = this.attempts.filter(
       attempt => now - attempt.timestamp < REDIRECT_WINDOW
     );
+
+    // Check for same redirect as the last one (prevent immediate loops)
+    const lastAttempt = this.attempts[this.attempts.length - 1];
+    if (lastAttempt && lastAttempt.from === from && lastAttempt.to === to) {
+      console.error('🚨 Same redirect detected! Blocking duplicate redirect', {
+        from,
+        to,
+        lastAttempt
+      });
+      return false;
+    }
 
     // Count recent attempts
     const recentAttempts = this.attempts.length;

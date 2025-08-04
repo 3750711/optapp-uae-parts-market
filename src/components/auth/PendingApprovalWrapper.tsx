@@ -52,7 +52,18 @@ const PendingApprovalWrapper: React.FC<PendingApprovalWrapperProps> = ({ childre
     );
   }
 
-  // Check if user should be redirected from this page
+  // PRIORITY 1: If user has incomplete Telegram profile, redirect to completion FIRST
+  // This must be checked BEFORE any other status checks to prevent loops
+  if (profile.auth_method === 'telegram' && !profile.profile_completed) {
+    devLog("PendingApprovalWrapper: Telegram profile incomplete, redirecting to completion", {
+      authMethod: profile.auth_method,
+      profileCompleted: profile.profile_completed,
+      verificationStatus: profile.verification_status
+    });
+    return <Navigate to="/complete-telegram-profile" replace />;
+  }
+
+  // PRIORITY 2: Check if user should be redirected from this page based on status
   if (profile.verification_status === 'verified') {
     devLog("PendingApprovalWrapper: User is verified, redirecting based on role");
     // Redirect verified users based on their role
@@ -70,13 +81,7 @@ const PendingApprovalWrapper: React.FC<PendingApprovalWrapperProps> = ({ childre
     return <Navigate to="/" replace />;
   }
 
-  // If user has incomplete Telegram profile, redirect to completion
-  if (profile.auth_method === 'telegram' && !profile.profile_completed) {
-    devLog("PendingApprovalWrapper: Telegram profile incomplete, redirecting to completion");
-    return <Navigate to="/complete-telegram-profile" replace />;
-  }
-
-  // Only allow pending users or admins to see this page
+  // PRIORITY 3: Only allow pending users or admins to see this page
   if (profile.verification_status !== 'pending' && profile.user_type !== 'admin') {
     devLog("PendingApprovalWrapper: User not pending approval, redirecting to home");
     return <Navigate to="/" replace />;
