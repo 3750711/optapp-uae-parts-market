@@ -18,8 +18,9 @@ const ProfileCompletionRedirect = ({ children }: ProfileCompletionRedirectProps)
     );
   }
   
-  // Global rule: If user exists and profile is incomplete, redirect to completion page
-  if (user && profile && !profile.profile_completed) {
+  // For Telegram users, let TelegramLoginWidget handle the modal instead of redirecting
+  // For other auth methods, this logic can be extended later if needed
+  if (user && profile && !profile.profile_completed && profile.auth_method !== 'telegram') {
     console.log("🚀 ProfileCompletionRedirect: Incomplete profile detected, redirecting to completion", {
       userId: user.id,
       profileCompleted: profile.profile_completed,
@@ -28,10 +29,7 @@ const ProfileCompletionRedirect = ({ children }: ProfileCompletionRedirectProps)
       timestamp: new Date().toISOString()
     });
     
-    // Only redirect if not already on the completion page
-    if (location.pathname !== '/complete-telegram-profile') {
-      return <Navigate to="/complete-telegram-profile" replace />;
-    }
+    // Handle non-Telegram profile completion here if needed
   }
   
   // Allow normal flow for complete profiles or no profile

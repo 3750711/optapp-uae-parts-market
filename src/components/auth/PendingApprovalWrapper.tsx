@@ -52,16 +52,8 @@ const PendingApprovalWrapper: React.FC<PendingApprovalWrapperProps> = ({ childre
     );
   }
 
-  // PRIORITY 1: If user has incomplete Telegram profile, redirect to completion FIRST
-  // This must be checked BEFORE any other status checks to prevent loops
-  if (profile.auth_method === 'telegram' && !profile.profile_completed) {
-    devLog("PendingApprovalWrapper: Telegram profile incomplete, redirecting to completion", {
-      authMethod: profile.auth_method,
-      profileCompleted: profile.profile_completed,
-      verificationStatus: profile.verification_status
-    });
-    return <Navigate to="/complete-telegram-profile" replace />;
-  }
+  // For Telegram users with incomplete profiles, let TelegramLoginWidget handle the modal
+  // No redirect needed here as the modal will handle profile completion
 
   // PRIORITY 2: Check if user should be redirected from this page based on status
   if (profile.verification_status === 'verified') {
