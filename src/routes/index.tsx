@@ -6,6 +6,7 @@ import { RouteSuspenseFallback } from '@/components/routing/RouteSuspenseFallbac
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import GuestRoute from '@/components/auth/GuestRoute';
+import PendingApprovalWrapper from '@/components/auth/PendingApprovalWrapper';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 
 // Lazy loaded публичные страницы
@@ -160,11 +161,11 @@ const AppRoutes: React.FC = () => {
 
             {/* Pending Approval Page - для пользователей ожидающих одобрения */}
             <Route path="/pending-approval" element={
-              <ProtectedRoute>
+              <PendingApprovalWrapper>
                 <Suspense fallback={<RouteSuspenseFallback />}>
                   <PendingApprovalPage />
                 </Suspense>
-              </ProtectedRoute>
+              </PendingApprovalWrapper>
             } />
 
             {/* Complete Telegram Profile - для завершения регистрации через Telegram */}
