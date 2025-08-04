@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { checkOptIdExists } from '@/utils/authUtils';
 import { ArrowLeft, User, Store, Phone, Building2 } from 'lucide-react';
 import { registrationTranslations } from '@/translations/registration';
 
@@ -59,13 +60,31 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
     { value: 'umm_al_quwain', label: t.locations.umm_al_quwain },
   ];
 
-  const generateOptId = (): string => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 4; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+  const generateUniqueOptId = async (): Promise<string> => {
+    let optId: string;
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    do {
+      // Generate random 4-letter ID using only letters
+      optId = '';
+      for (let i = 0; i < 4; i++) {
+        optId += String.fromCharCode(65 + Math.floor(Math.random() * 26)); // A-Z
+      }
+      
+      // Check if this ID already exists
+      const exists = await checkOptIdExists(optId);
+      isUnique = !exists;
+      attempts++;
+      
+      if (attempts >= maxAttempts) {
+        console.error('Failed to generate unique OPT_ID after', maxAttempts, 'attempts');
+        break;
+      }
+    } while (!isUnique);
+
+    return optId;
   };
 
   const validateBasicInfo = (): boolean => {
@@ -132,8 +151,8 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
-      // Generate OPT_ID for sellers only
-      const optId = userType === 'seller' ? generateOptId() : null;
+      // Generate OPT_ID for all users
+      const optId = await generateUniqueOptId();
 
       // Prepare profile data
       const profileData = {
@@ -170,7 +189,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
         title: "Регистрация завершена!",
         description: userType === 'seller' 
           ? `Ваш OPT_ID: ${optId}. Ожидайте верификации аккаунта.`
-          : "Добро пожаловать на PartsBay!"
+          : `Ваш OPT_ID: ${optId}. Добро пожаловать на PartsBay!`
       });
 
       onComplete?.();
