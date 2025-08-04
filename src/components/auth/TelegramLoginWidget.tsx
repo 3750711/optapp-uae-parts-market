@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AccountMergeDialog } from './AccountMergeDialog';
 import { TelegramRegistrationModal } from './TelegramRegistrationModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TelegramAuthData {
   id: number;
@@ -69,6 +70,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     telegramData: any;
   } | null>(null);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
+  const { user, profile } = useAuth();
 
   // Generate deterministic password based on telegram_id
   const generateDeterministicPassword = async (telegramId: number): Promise<string> => {
@@ -202,6 +204,14 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     // We can optionally implement creating a new account with a different identifier
     toast.info(t.mergeInfo);
   };
+
+  // Auto-open modal for Telegram users with incomplete profiles
+  useEffect(() => {
+    if (user && profile && profile.auth_method === 'telegram' && !profile.profile_completed) {
+      console.log('🔄 Auto-opening registration modal for incomplete Telegram profile');
+      setRegistrationModalOpen(true);
+    }
+  }, [user, profile]);
 
   useEffect(() => {
     // Set up global callback
