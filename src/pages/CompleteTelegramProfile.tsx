@@ -82,14 +82,7 @@ const CompleteTelegramProfile: React.FC = () => {
         return;
       }
 
-      // Check for corrupted profile: has user_type but missing opt_id (indicates incomplete registration)
-      if (profile.user_type && !profile.opt_id && !profile.profile_completed) {
-        console.log('Detected corrupted profile - has user_type but no opt_id');
-        // Don't auto-fix, let user see the issue and choose to fix
-        return;
-      }
-
-      // Check if profile is properly completed
+      // Check if profile is properly completed - main criteria: profile_completed = true AND opt_id exists
       if (profile.profile_completed && profile.opt_id) {
         console.log('Profile is completed, checking verification status');
         // Profile properly completed, check verification status
@@ -106,6 +99,10 @@ const CompleteTelegramProfile: React.FC = () => {
         }
         return;
       }
+
+      // If profile_completed is false or opt_id is missing, show the completion flow
+      // This includes users who have user_type = 'buyer' but haven't completed registration
+      console.log('Profile incomplete, showing completion flow');
     }
   }, [user, profile, isLoading, navigate]);
 
@@ -122,29 +119,8 @@ const CompleteTelegramProfile: React.FC = () => {
     );
   }
 
-  // Handle corrupted profile case
-  if (profile && profile.user_type && !profile.opt_id && !profile.profile_completed) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="max-w-md p-6 bg-background rounded-lg border border-border text-center space-y-4">
-            <h2 className="text-xl font-semibold text-foreground">Проблема с профилем</h2>
-            <p className="text-muted-foreground">
-              Обнаружена проблема с вашим профилем. Нужно сбросить данные регистрации и начать заново.
-            </p>
-            <button
-              onClick={fixCorruptedProfile}
-              disabled={isFixingProfile}
-              className="w-full bg-primary text-primary-foreground py-2 px-4 rounded-md hover:bg-primary/90 disabled:opacity-50"
-            >
-              {isFixingProfile ? 'Исправление...' : 'Начать регистрацию заново'}
-            </button>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
+  // Show completion flow for any Telegram user who hasn't completed their profile
+  // This includes users with user_type = 'buyer' who need to go through account type selection
   if (!user || !profile || profile.auth_method !== 'telegram' || (profile.profile_completed && profile.opt_id)) {
     return null; // Will be redirected by useEffect
   }

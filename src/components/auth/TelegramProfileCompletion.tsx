@@ -29,6 +29,7 @@ interface TelegramProfileCompletionProps {
 export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps> = ({ 
   language = 'ru' 
 }) => {
+  // Always start with account type selection for Telegram users
   const [currentStep, setCurrentStep] = useState<CompletionStep>('account-type');
   const [userType, setUserType] = useState<UserType | null>(null);
   const [storeData, setStoreData] = useState<StoreData | null>(null);
