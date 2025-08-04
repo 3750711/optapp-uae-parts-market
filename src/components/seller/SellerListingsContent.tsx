@@ -100,16 +100,7 @@ const SellerListingsContent = () => {
         }
 
         const { data, error } = await query
-          .order(`
-            CASE status 
-              WHEN 'active' THEN 1 
-              WHEN 'pending' THEN 2 
-              WHEN 'sold' THEN 3 
-              WHEN 'archived' THEN 4 
-              ELSE 5 
-            END ASC,
-            created_at DESC
-          `)
+          .order('created_at', { ascending: false })
           .range(from, to);
 
         if (error) {
@@ -117,8 +108,30 @@ const SellerListingsContent = () => {
           throw new Error(`Error loading products: ${error.message}`);
         }
         
-        devLog(`✅ Successfully fetched ${data?.length || 0} products`);
-        return data as Product[];
+        // Sort by status priority, then by creation date
+        const sortedData = data?.sort((a, b) => {
+          // Define status priority
+          const statusPriority = {
+            'active': 1,
+            'pending': 2,
+            'sold': 3,
+            'archived': 4
+          };
+          
+          const aPriority = statusPriority[a.status as keyof typeof statusPriority] || 5;
+          const bPriority = statusPriority[b.status as keyof typeof statusPriority] || 5;
+          
+          // First sort by status priority
+          if (aPriority !== bPriority) {
+            return aPriority - bPriority;
+          }
+          
+          // Then sort by creation date (newest first)
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        }) || [];
+        
+        devLog(`✅ Successfully fetched ${sortedData?.length || 0} products`);
+        return sortedData as Product[];
       } catch (dbError) {
         prodError('Error in seller products query', { error: dbError });
         throw dbError;
