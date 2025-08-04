@@ -59,21 +59,24 @@ export const checkOptIdExists = async (optId: string): Promise<boolean> => {
   try {
     console.log('Checking OPT ID existence:', optId);
     
+    // Use the rate-limited version with IP address parameter
     const { data, error } = await supabase.rpc('check_opt_id_exists', {
       p_opt_id: optId,
-      p_ip_address: null
+      p_ip_address: null // Pass null since we don't need rate limiting for generation
     });
 
     if (error) {
       console.error('Error checking OPT ID:', error);
-      return false;
+      // Return true to be safe - will try another ID
+      return true;
     }
 
     console.log('OPT ID check result:', data);
     return Boolean(data);
   } catch (error) {
     console.error('Unexpected error in checkOptIdExists:', error);
-    return false;
+    // Return true to be safe - will try another ID
+    return true;
   }
 };
 

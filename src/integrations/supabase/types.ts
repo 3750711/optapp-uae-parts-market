@@ -1360,9 +1360,7 @@ export type Database = {
         Returns: boolean
       }
       check_opt_id_exists: {
-        Args:
-          | { p_opt_id: string }
-          | { p_opt_id: string; p_ip_address?: unknown }
+        Args: { p_opt_id: string; p_ip_address?: unknown }
         Returns: boolean
       }
       check_order_number_unique: {

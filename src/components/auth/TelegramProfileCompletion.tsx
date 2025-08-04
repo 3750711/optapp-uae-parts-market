@@ -63,55 +63,78 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
   };
 
 
-  // Generate unique 4-letter OPT_ID for sellers
+  // Generate unique 4-letter OPT_ID
   const generateUniqueOptId = async (): Promise<string> => {
     console.log('Starting OPT ID generation...');
-    let optId;
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let optId = '';
     let attempts = 0;
-    const maxAttempts = 100;
+    const maxAttempts = 50;
     
-    do {
+    while (attempts < maxAttempts) {
       attempts++;
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      
+      // Generate new 4-character OPT ID
       optId = Array.from({ length: 4 }, () => 
         characters.charAt(Math.floor(Math.random() * characters.length))
       ).join('');
       
       console.log(`Attempt ${attempts}: Generated OPT ID: ${optId}`);
       
-      if (attempts >= maxAttempts) {
-        console.error('Failed to generate unique OPT_ID after maximum attempts');
-        throw new Error('Failed to generate unique OPT_ID after maximum attempts');
+      try {
+        const exists = await checkOptIdExists(optId);
+        console.log(`OPT ID ${optId} exists: ${exists}`);
+        
+        if (!exists) {
+          console.log(`Successfully generated unique OPT ID: ${optId}`);
+          return optId;
+        }
+      } catch (error) {
+        console.error(`Error checking OPT ID ${optId}:`, error);
+        // Continue trying with next ID
       }
-      
-      const exists = await checkOptIdExists(optId);
-      console.log(`OPT ID ${optId} exists: ${exists}`);
-    } while (await checkOptIdExists(optId));
+    }
     
-    console.log(`Successfully generated unique OPT ID: ${optId}`);
-    return optId;
+    console.error('Failed to generate unique OPT_ID after maximum attempts');
+    throw new Error('Не удалось сгенерировать уникальный OPT_ID. Попробуйте еще раз.');
   };
 
   const handleAccountType = async (type: UserType) => {
     console.log('Selected user type:', type);
     setUserType(type);
     
+    // Show loading immediately
+    setCurrentStep('opt-id-generation');
+    
     try {
       // Generate unique OPT ID for BOTH buyers and sellers (unified flow)
+      console.log('Starting OPT ID generation for user type:', type);
       const newOptId = await generateUniqueOptId();
+      
       if (!newOptId || newOptId.length !== 4) {
         throw new Error('Invalid OPT ID generated');
       }
-      console.log('Setting generated OPT ID:', newOptId);
+      
+      console.log('Successfully generated OPT ID:', newOptId);
       setGeneratedOptId(newOptId);
-      setCurrentStep('opt-id-generation');
+      
+      // Auto-progress after a short delay to show the animation
+      setTimeout(() => {
+        handleOptIdComplete();
+      }, 2000);
+      
     } catch (error) {
       console.error('Error generating OPT_ID:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось сгенерировать OPT_ID",
+        description: error instanceof Error ? error.message : "Не удалось сгенерировать OPT_ID. Попробуйте еще раз.",
         variant: "destructive",
       });
+      
+      // Return to account type selection
+      setCurrentStep('account-type');
+      setUserType(null);
+      setGeneratedOptId('');
     }
   };
 
@@ -218,9 +241,12 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
       console.error('Error creating seller account:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось создать аккаунт",
+        description: "Не удалось создать аккаунт. Попробуйте еще раз.",
         variant: "destructive",
       });
+      
+      // Go back to personal info step to try again
+      setCurrentStep('personal-info');
     }
   };
 
@@ -290,9 +316,12 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
       console.error('Error creating buyer account:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось создать аккаунт",
+        description: "Не удалось создать аккаунт. Попробуйте еще раз.",
         variant: "destructive",
       });
+      
+      // Go back to buyer registration step to try again
+      setCurrentStep('buyer-registration');
     }
   };
 
