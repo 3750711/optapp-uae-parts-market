@@ -199,27 +199,35 @@ serve(async (req) => {
       tempPassword = crypto.randomUUID()
       console.log('🆕 Creating new user for telegram_id:', authData.id)
       console.log('📧 Using email format:', email)
+      
+      const userMetadata = {
+        auth_method: 'telegram',
+        telegram_id: String(authData.id), // Ensure string for metadata
+        telegram: normalizeTelegramUsername(authData.username),
+        photo_url: authData.photo_url,
+        full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
+        profile_completed: false // Mark as incomplete for profile completion flow
+      }
+      console.log('🔍 User metadata to be created:', userMetadata)
 
       const { data: newUser, error: signUpError } = await supabase.auth.admin.createUser({
         email,
         password: tempPassword,
         email_confirm: true,
-        user_metadata: {
-          auth_method: 'telegram',
-          telegram_id: String(authData.id), // Ensure string for metadata
-          telegram: normalizeTelegramUsername(authData.username),
-          photo_url: authData.photo_url,
-          full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
-          profile_completed: false // Mark as incomplete for profile completion flow
-        }
+        user_metadata: userMetadata
       })
 
       if (signUpError) {
         console.error('❌ Error creating user:', signUpError)
+        console.error('Error details:', signUpError)
+        console.error('Error message:', signUpError.message)
+        console.error('Error stack:', signUpError.stack)
+        console.error('=== Error in telegram auth ===')
         throw signUpError
       }
 
-      console.log('✅ New user created:', { userId: newUser.user.id, email })
+      console.log('✅ User created successfully with ID:', newUser.user?.id)
+      console.log('📊 Auth user data:', newUser.user)
       isNewUser = true
       
       // Note: Profile creation will be handled by database trigger
