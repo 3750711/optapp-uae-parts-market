@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import StatisticsSection from "@/components/home/StatisticsSection";
 import { ProfessionalAuthBlock } from "@/components/auth/ProfessionalAuthBlock";
+import { TelegramLoginWidget } from "@/components/auth/TelegramLoginWidget";
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -92,37 +93,44 @@ const Index = () => {
                 </p>
               </div>
 
-              {/* Authentication Section */}
-              <div className="max-w-md mx-auto">
-                {user ? (
-                  <div className="bg-card border border-border rounded-lg p-6">
-                    <div className="text-center">
-                      <h3 className="text-lg font-semibold text-foreground mb-3">
-                        {t.welcome.greeting}, {profile?.full_name || 'Участник'}!
-                      </h3>
-                      <p className="text-muted-foreground mb-6">
-                        {profile?.user_type === 'seller' 
-                          ? t.welcome.sellerDescription
-                          : t.welcome.buyerDescription
-                        }
-                      </p>
-                      <Link 
-                        to={profile?.user_type === 'seller' ? '/seller/dashboard' : '/catalog'}
-                        className="inline-block w-full"
-                      >
-                        <Button className="w-full">
-                          {profile?.user_type === 'seller' ? t.welcome.sellerButton : t.welcome.buyerButton}
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="max-w-lg mx-auto">
-                    <ProfessionalAuthBlock language={language} />
-                  </div>
-                )}
-              </div>
+               {/* Authentication Section */}
+               <div className="max-w-md mx-auto">
+                 {user ? (
+                   <div className="bg-card border border-border rounded-lg p-6">
+                     <div className="text-center">
+                       <h3 className="text-lg font-semibold text-foreground mb-3">
+                         {t.welcome.greeting}, {profile?.full_name || 'Участник'}!
+                       </h3>
+                       <p className="text-muted-foreground mb-6">
+                         {profile?.user_type === 'seller' 
+                           ? t.welcome.sellerDescription
+                           : t.welcome.buyerDescription
+                         }
+                       </p>
+                       <Link 
+                         to={profile?.user_type === 'seller' ? '/seller/dashboard' : '/catalog'}
+                         className="inline-block w-full"
+                       >
+                         <Button className="w-full">
+                           {profile?.user_type === 'seller' ? t.welcome.sellerButton : t.welcome.buyerButton}
+                           <ArrowRight className="w-4 h-4 ml-2" />
+                         </Button>
+                       </Link>
+                     </div>
+                   </div>
+                 ) : (
+                   <div className="max-w-lg mx-auto">
+                     <ProfessionalAuthBlock language={language} />
+                   </div>
+                 )}
+               </div>
+
+               {/* Hidden Telegram Login Widget for incomplete profiles */}
+               {user && profile?.auth_method === 'telegram' && !profile?.profile_completed && (
+                 <div className="hidden">
+                   <TelegramLoginWidget language={language} />
+                 </div>
+               )}
             </div>
           </div>
         </section>
