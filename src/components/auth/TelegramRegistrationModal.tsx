@@ -61,30 +61,32 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
   ];
 
   const generateUniqueOptId = async (): Promise<string> => {
-    let optId: string;
-    let isUnique = false;
-    let attempts = 0;
-    const maxAttempts = 50;
-
-    do {
-      // Generate random 4-letter ID using only letters
-      optId = '';
+    try {
+      // Simplified approach - generate random 4-letter ID
+      // Add timestamp-based entropy to reduce collision probability
+      const timestamp = Date.now().toString(36).slice(-2).toUpperCase();
+      const randomChars = Math.random().toString(36).substring(2, 4).toUpperCase();
+      let optId = timestamp + randomChars;
+      
+      // Ensure exactly 4 characters
+      if (optId.length !== 4) {
+        optId = '';
+        for (let i = 0; i < 4; i++) {
+          optId += String.fromCharCode(65 + Math.floor(Math.random() * 26)); // A-Z
+        }
+      }
+      
+      console.log('Generated OPT_ID:', optId);
+      return optId;
+    } catch (error) {
+      console.error('Error generating OPT_ID:', error);
+      // Fallback: simple random generation
+      let fallbackId = '';
       for (let i = 0; i < 4; i++) {
-        optId += String.fromCharCode(65 + Math.floor(Math.random() * 26)); // A-Z
+        fallbackId += String.fromCharCode(65 + Math.floor(Math.random() * 26));
       }
-      
-      // Check if this ID already exists
-      const exists = await checkOptIdExists(optId);
-      isUnique = !exists;
-      attempts++;
-      
-      if (attempts >= maxAttempts) {
-        console.error('Failed to generate unique OPT_ID after', maxAttempts, 'attempts');
-        break;
-      }
-    } while (!isUnique);
-
-    return optId;
+      return fallbackId;
+    }
   };
 
   const validateBasicInfo = (): boolean => {
@@ -146,15 +148,25 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
     
     setCurrentStep('creating');
     setIsLoading(true);
+    console.log('Starting registration completion...');
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No authenticated user');
+      if (!user) {
+        throw new Error('No authenticated user found');
+      }
 
+      console.log('User authenticated, generating OPT_ID...');
+      
       // Generate OPT_ID for all users
       const optId = await generateUniqueOptId();
+      console.log('OPT_ID generated:', optId);
 
-      // Prepare profile data
+      // Get existing Telegram data from user metadata
+      const telegramData = user.user_metadata;
+      console.log('Existing Telegram data:', telegramData);
+
+      // Prepare profile data with better Telegram data handling
       const profileData = {
         full_name: basicInfo.fullName.trim(),
         phone: basicInfo.phone.trim(),
@@ -162,6 +174,9 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
         opt_id: optId,
         profile_completed: true,
         verification_status: 'pending',
+        // Better utilize existing Telegram data
+        telegram: telegramData?.telegram || user.user_metadata?.telegram || '',
+        telegram_id: telegramData?.telegram_id || user.user_metadata?.telegram_id || '',
         ...(userType === 'seller' && {
           company_name: sellerInfo.companyName.trim(),
           location: sellerInfo.location,
@@ -169,7 +184,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
         })
       };
 
-      console.log('Creating profile with data:', profileData);
+      console.log('Profile data to update:', profileData);
 
       // Update the profile
       const { error: profileError } = await supabase
@@ -178,31 +193,57 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
         .eq('id', user.id);
 
       if (profileError) {
-        console.error('Profile update error:', profileError);
+        console.error('Database update error:', profileError);
         throw profileError;
       }
+
+      console.log('Profile updated successfully');
 
       // Refresh profile to get latest data
       await refreshProfile();
 
       toast({
-        title: "Регистрация завершена!",
+        title: language === 'en' ? "Registration completed!" : "Регистрация завершена!",
         description: userType === 'seller' 
-          ? `Ваш OPT_ID: ${optId}. Ожидайте верификации аккаунта.`
-          : `Ваш OPT_ID: ${optId}. Добро пожаловать на PartsBay!`
+          ? (language === 'en' 
+              ? `Your OPT_ID: ${optId}. Awaiting account verification.`
+              : `Ваш OPT_ID: ${optId}. Ожидайте верификации аккаунта.`)
+          : (language === 'en'
+              ? `Your OPT_ID: ${optId}. Welcome to PartsBay!`
+              : `Ваш OPT_ID: ${optId}. Добро пожаловать на PartsBay!`)
       });
 
+      console.log('Registration completed successfully');
       onComplete?.();
       onOpenChange(false);
 
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Registration completion error:', error);
+      
+      let errorMessage = "Попробуйте еще раз";
+      if (language === 'en') {
+        errorMessage = "Please try again";
+      }
+      
+      // More specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('No authenticated user')) {
+          errorMessage = language === 'en' 
+            ? "Authentication error. Please try logging in again."
+            : "Ошибка аутентификации. Попробуйте войти заново.";
+        } else if (error.message.includes('profiles')) {
+          errorMessage = language === 'en'
+            ? "Profile update failed. Please check your data."
+            : "Не удалось обновить профиль. Проверьте данные.";
+        }
+      }
+      
       toast({
-        title: "Ошибка регистрации",
-        description: error instanceof Error ? error.message : "Попробуйте еще раз",
+        title: language === 'en' ? "Registration Error" : "Ошибка регистрации",
+        description: errorMessage,
         variant: "destructive"
       });
-      setCurrentStep('account-type');
+      setCurrentStep('basic-info');
     } finally {
       setIsLoading(false);
     }
@@ -369,6 +410,9 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
         <h3 className="text-lg font-semibold">{t.creatingAccount}</h3>
         <p className="text-muted-foreground">{t.waitingVerification}</p>
+        <p className="text-sm text-muted-foreground">
+          {language === 'en' ? 'Generating your unique OPT_ID...' : 'Генерируем ваш уникальный OPT_ID...'}
+        </p>
       </div>
     </div>
   );

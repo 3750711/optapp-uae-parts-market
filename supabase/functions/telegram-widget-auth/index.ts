@@ -159,11 +159,15 @@ serve(async (req) => {
         throw updateError
       }
       
-      // Update profile with latest Telegram data
+      // Update profile with latest Telegram data and better name handling
+      const fullName = authData.last_name 
+        ? `${authData.first_name} ${authData.last_name}`.trim()
+        : authData.first_name;
+        
       await supabase
         .from('profiles')
         .update({
-          full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
+          full_name: fullName,
           avatar_url: authData.photo_url,
           telegram: normalizeTelegramUsername(authData.username)
         })
@@ -200,12 +204,17 @@ serve(async (req) => {
       console.log('🆕 Creating new user for telegram_id:', authData.id)
       console.log('📧 Using email format:', email)
       
+      // User metadata to be created with better name handling
+      const fullName = authData.last_name 
+        ? `${authData.first_name} ${authData.last_name}`.trim()
+        : authData.first_name;
+        
       const userMetadata = {
         auth_method: 'telegram',
         telegram_id: String(authData.id), // Ensure string for metadata
         telegram: normalizeTelegramUsername(authData.username),
         photo_url: authData.photo_url,
-        full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
+        full_name: fullName,
         profile_completed: false // Mark as incomplete for modal completion flow
       }
       console.log('🔍 User metadata to be created:', userMetadata)
