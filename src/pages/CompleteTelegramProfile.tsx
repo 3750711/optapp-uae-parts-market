@@ -19,8 +19,10 @@ const CompleteTelegramProfile: React.FC = () => {
     if (!isLoading && profile) {
       // Check if profile is already completed
       if (profile.profile_completed) {
-        // Profile already completed, redirect based on user type
-        if (profile.user_type === 'seller') {
+        // Profile already completed, check verification status
+        if (profile.verification_status === 'pending') {
+          navigate('/pending-approval');
+        } else if (profile.user_type === 'seller') {
           navigate('/seller');
         } else {
           navigate('/');
