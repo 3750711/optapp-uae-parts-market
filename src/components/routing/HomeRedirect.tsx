@@ -34,15 +34,21 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
       return <Navigate to="/pending-approval" replace />;
     }
     
-    switch (profile.user_type) {
-      case 'seller':
-        return <Navigate to="/seller/dashboard" replace />;
-      case 'admin':
-        return <Navigate to="/admin" replace />;
-      case 'buyer':
-      default:
-        // Buyers and other users stay on home page
-        break;
+    // For verified users, redirect based on role
+    if (profile.verification_status === 'verified') {
+      switch (profile.user_type) {
+        case 'seller':
+          return <Navigate to="/seller/dashboard" replace />;
+        case 'admin':
+          return <Navigate to="/admin" replace />;
+        case 'buyer':
+        default:
+          // Verified buyers stay on home page
+          break;
+      }
+    } else {
+      // Unverified users (including completed profiles) stay on home page
+      // This allows them to browse while waiting for approval
     }
   }
   

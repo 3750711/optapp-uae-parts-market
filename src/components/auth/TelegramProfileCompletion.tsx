@@ -146,8 +146,8 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
         description: "Аккаунт продавца успешно создан!",
       });
 
-      // Navigate to seller dashboard
-      navigate('/seller');
+      // Navigate to pending approval for moderation
+      navigate('/pending-approval');
     } catch (error) {
       console.error('Error creating seller account:', error);
       toast({
@@ -195,8 +195,8 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
         description: "Аккаунт покупателя успешно создан!",
       });
 
-      // Navigate to home page
-      navigate('/');
+      // Navigate to pending approval for moderation
+      navigate('/pending-approval');
     } catch (error) {
       console.error('Error creating buyer account:', error);
       toast({

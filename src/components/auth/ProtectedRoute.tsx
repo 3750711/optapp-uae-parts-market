@@ -77,16 +77,23 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
     return <Navigate to="/" replace />;
   }
 
-  // Check if user is pending approval (except for admins)
-  if (profile.verification_status === 'pending' && profile.user_type !== 'admin' && location.pathname !== '/pending-approval') {
-    devLog("ProtectedRoute: User is pending approval");
-    return <Navigate to="/pending-approval" replace />;
+  // Check if user is pending approval (except for admins) - STRICT CHECK
+  if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
+    // Allow access only to pending-approval page and logout functionality
+    if (location.pathname !== '/pending-approval' && !location.pathname.includes('/auth')) {
+      devLog("ProtectedRoute: User is pending approval, redirecting to pending approval");
+      return <Navigate to="/pending-approval" replace />;
+    }
   }
   
   // Check for role restrictions if provided
   if (allowedRoles && !allowedRoles.includes(profile.user_type)) {
     devLog("ProtectedRoute: User doesn't have required role");
-    // Redirect sellers to their dashboard, others to home
+    // Always check verification status before redirecting to role-specific pages
+    if (profile.verification_status === 'pending') {
+      return <Navigate to="/pending-approval" replace />;
+    }
+    // Redirect verified sellers to their dashboard, others to home
     if (profile.user_type === 'seller') {
       return <Navigate to="/seller/dashboard" replace />;
     }
@@ -96,7 +103,11 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
   // Check for excluded roles if provided
   if (excludedRoles && excludedRoles.includes(profile.user_type)) {
     devLog("ProtectedRoute: User role is excluded from this page");
-    // Redirect sellers to their dashboard, others to home
+    // Always check verification status before redirecting to role-specific pages
+    if (profile.verification_status === 'pending') {
+      return <Navigate to="/pending-approval" replace />;
+    }
+    // Redirect verified sellers to their dashboard, others to home
     if (profile.user_type === 'seller') {
       return <Navigate to="/seller/dashboard" replace />;
     }
