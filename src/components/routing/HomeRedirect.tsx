@@ -1,6 +1,7 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { devLog } from "@/utils/logger";
+import { redirectProtection } from "@/utils/redirectProtection";
 
 interface HomeRedirectProps {
   children: React.ReactNode;
@@ -8,6 +9,16 @@ interface HomeRedirectProps {
 
 const HomeRedirect = ({ children }: HomeRedirectProps) => {
   const { user, profile, isLoading } = useAuth();
+  const location = useLocation();
+  
+  console.log("🚀 HomeRedirect: Auth state check:", { 
+    user: !!user, 
+    profile: !!profile, 
+    isLoading,
+    userType: profile?.user_type,
+    verificationStatus: profile?.verification_status,
+    timestamp: new Date().toISOString()
+  });
   
   devLog("HomeRedirect: Auth state:", { 
     user: !!user, 
@@ -27,32 +38,53 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
   
   // If user is authenticated, redirect based on their role
   if (user && profile) {
+    console.log("🚀 HomeRedirect: User authenticated, checking redirect logic", {
+      userType: profile.user_type,
+      verificationStatus: profile.verification_status,
+      timestamp: new Date().toISOString()
+    });
+    
     devLog("HomeRedirect: User authenticated, redirecting based on role");
     
     // Check if user is pending approval (except for admins)
     if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
-      return <Navigate to="/pending-approval" replace />;
+      console.log("🚀 HomeRedirect: Redirecting to pending approval");
+      if (redirectProtection.canRedirect(location.pathname, "/pending-approval")) {
+        return <Navigate to="/pending-approval" replace />;
+      }
     }
     
     // For verified users, redirect based on role
     if (profile.verification_status === 'verified') {
+      console.log("🚀 HomeRedirect: User verified, checking role redirect");
       switch (profile.user_type) {
         case 'seller':
-          return <Navigate to="/seller/dashboard" replace />;
+          console.log("🚀 HomeRedirect: Redirecting seller to dashboard");
+          if (redirectProtection.canRedirect(location.pathname, "/seller/dashboard")) {
+            return <Navigate to="/seller/dashboard" replace />;
+          }
+          break;
         case 'admin':
-          return <Navigate to="/admin" replace />;
+          console.log("🚀 HomeRedirect: Redirecting admin to admin panel");
+          if (redirectProtection.canRedirect(location.pathname, "/admin")) {
+            return <Navigate to="/admin" replace />;
+          }
+          break;
         case 'buyer':
         default:
+          console.log("🚀 HomeRedirect: Verified buyer staying on home page");
           // Verified buyers stay on home page
           break;
       }
     } else {
+      console.log("🚀 HomeRedirect: Unverified user staying on home page");
       // Unverified users (including completed profiles) stay on home page
       // This allows them to browse while waiting for approval
     }
   }
   
   // User is not authenticated or is a buyer - show the home page
+  console.log("🚀 HomeRedirect: Showing home page content");
   return <>{children}</>;
 };
 

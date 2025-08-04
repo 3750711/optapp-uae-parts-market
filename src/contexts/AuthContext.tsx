@@ -83,6 +83,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Оптимизированная функция загрузки профиля с кэшированием
   const fetchUserProfile = useCallback(async (userId: string, retryCount = 0) => {
+    console.log('🔧 AuthContext: fetchUserProfile called', { userId, retryCount });
     setIsProfileLoading(true);
     try {
       // Проверяем кэш админских прав
@@ -104,6 +105,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (data) {
+        console.log('🔧 AuthContext: Profile found', { userType: data.user_type, verificationStatus: data.verification_status });
         setProfile(data);
         const adminStatus = data.user_type === 'admin';
         setIsAdmin(adminStatus);
@@ -131,6 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Profile fetch error:', error);
     } finally {
+      console.log('🔧 AuthContext: fetchUserProfile completed');
       setIsProfileLoading(false);
     }
   }, [createBasicProfile]);
@@ -263,17 +266,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
+    console.log('🔧 AuthContext: useEffect triggered');
+    
     // Получаем текущую сессию
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔧 AuthContext: Initial session check', { 
+        hasSession: !!session, 
+        hasUser: !!session?.user,
+        userId: session?.user?.id 
+      });
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('🔧 AuthContext: User found, fetching profile for:', session.user.id);
         // Используем setTimeout для предотвращения блокировки
         setTimeout(() => {
           fetchUserProfile(session.user.id);
         }, 0);
       } else {
+        console.log('🔧 AuthContext: No user found, clearing state');
         setProfile(null);
         setIsAdmin(null);
         setIsLoading(false);
@@ -282,15 +295,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Слушаем изменения авторизации
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔧 AuthContext: Auth state change', { 
+        event, 
+        hasSession: !!session, 
+        hasUser: !!session?.user,
+        userId: session?.user?.id 
+      });
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
+        console.log('🔧 AuthContext: User in auth change, fetching profile for:', session.user.id);
         // Используем setTimeout для предотвращения блокировки
         setTimeout(() => {
           fetchUserProfile(session.user.id);
         }, 0);
       } else {
+        console.log('🔧 AuthContext: No user in auth change, clearing state');
         setProfile(null);
         setIsAdmin(null);
         clearAdminCache();
