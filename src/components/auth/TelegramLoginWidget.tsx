@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AccountMergeDialog } from './AccountMergeDialog';
+import { TelegramRegistrationModal } from './TelegramRegistrationModal';
 
 interface TelegramAuthData {
   id: number;
@@ -67,6 +68,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     existingEmail: string;
     telegramData: any;
   } | null>(null);
+  const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
 
   // Generate deterministic password based on telegram_id
   const generateDeterministicPassword = async (telegramId: number): Promise<string> => {
@@ -120,8 +122,8 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       // Check if profile completion is required
       if (data.requires_profile_completion) {
         toast.dismiss();
-        console.log('🔄 Profile completion required, redirecting to completion flow');
-        // First log in the user, then redirect to profile completion
+        console.log('🔄 Profile completion required, opening registration modal');
+        // First log in the user, then show registration modal
         await handleDirectLogin(data.email, data.password, data.is_new_user, true);
         return;
       }
@@ -172,8 +174,8 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       toast.success(t.success);
       
       if (requiresProfileCompletion) {
-        // Navigate to profile completion page
-        window.location.href = '/complete-telegram-profile';
+        // Show registration modal instead of navigating to separate page
+        setRegistrationModalOpen(true);
       } else {
         onSuccess?.();
       }
@@ -260,6 +262,16 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
           onCancel={handleMergeCancel}
         />
       )}
+
+      <TelegramRegistrationModal
+        open={registrationModalOpen}
+        onOpenChange={setRegistrationModalOpen}
+        language={language}
+        onComplete={() => {
+          setRegistrationModalOpen(false);
+          onSuccess?.();
+        }}
+      />
     </>
   );
 };

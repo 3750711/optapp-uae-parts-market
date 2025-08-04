@@ -206,7 +206,7 @@ serve(async (req) => {
         telegram: normalizeTelegramUsername(authData.username),
         photo_url: authData.photo_url,
         full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
-        profile_completed: false // Mark as incomplete for profile completion flow
+        profile_completed: false // Mark as incomplete for modal completion flow
       }
       console.log('🔍 User metadata to be created:', userMetadata)
 
@@ -230,9 +230,9 @@ serve(async (req) => {
       console.log('📊 Auth user data:', newUser.user)
       isNewUser = true
       
-      // Note: Profile creation will be handled by database trigger
-      // No need to manually create profile here to avoid conflicts
-      console.log('📝 Profile will be created by database trigger')
+      // Note: Profile will be created by database trigger with minimal data
+      // Full profile completion will happen in the registration modal
+      console.log('📝 Basic profile will be created by database trigger, full completion in modal')
       
       // Log telegram widget auth notification (wrapped in try-catch)
       try {
