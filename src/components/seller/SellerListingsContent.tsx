@@ -1,8 +1,8 @@
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useInfiniteQuery, useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import ProductGrid from "@/components/product/ProductGrid";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +10,7 @@ import { Product } from "@/types/product";
 import { ProductProps } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { useIntersection } from "@/hooks/useIntersection";
-import { AlertTriangle, RefreshCw, Search, ArrowLeft } from "lucide-react";
+import { AlertTriangle, RefreshCw, Search, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,35 +21,29 @@ const SellerListingsContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
-  const productsPerPage = 12;
+  const ITEMS_PER_PAGE = 12;
   
   // Search state
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
   
+  // Fetch all seller products at once
   const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
+    data: allProducts,
     isLoading,
     isError,
     error,
     refetch
-  } = useInfiniteQuery({
-    queryKey: ['seller-products-infinite', user?.id, activeSearch],
-    queryFn: async ({ pageParam = 0 }) => {
+  } = useQuery({
+    queryKey: ['seller-products', user?.id, activeSearch],
+    queryFn: async () => {
       if (!user?.id) {
         prodError('User not authenticated in seller listings');
         throw new Error('User not authenticated');
       }
       
-      const from = pageParam * productsPerPage;
-      const to = from + productsPerPage - 1;
-      
-      devLog(`📦 Fetching seller products: ${from} to ${to} for user ${user.id}`);
+      devLog(`📦 Fetching all seller products for user ${user.id}`);
       
       try {
         // Test connection first
@@ -99,18 +92,16 @@ const SellerListingsContent = () => {
           }
         }
 
-        const { data, error } = await query
-          .order('created_at', { ascending: false })
-          .range(from, to);
+        const { data, error } = await query;
 
         if (error) {
           prodError('Database error in seller listings', { error });
           throw new Error(`Error loading products: ${error.message}`);
         }
         
-        // Sort by status priority, then by creation date
+        // Sort by status priority (active first), then by creation date
         const sortedData = data?.sort((a, b) => {
-          // Define status priority
+          // Define status priority  
           const statusPriority = {
             'active': 1,
             'pending': 2,
@@ -130,17 +121,13 @@ const SellerListingsContent = () => {
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         }) || [];
         
-        devLog(`✅ Successfully fetched ${sortedData?.length || 0} products`);
+        devLog(`✅ Successfully fetched and sorted ${sortedData?.length || 0} products`);
         return sortedData as Product[];
       } catch (dbError) {
         prodError('Error in seller products query', { error: dbError });
         throw dbError;
       }
     },
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.length === productsPerPage ? allPages.length : undefined;
-    },
-    initialPageParam: 0,
     staleTime: 10 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
     retry: (failureCount, error) => {
@@ -151,6 +138,11 @@ const SellerListingsContent = () => {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
+  
+  // Reset current page when search changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [activeSearch]);
 
   // Search handlers
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -167,38 +159,15 @@ const SellerListingsContent = () => {
       description: "Changes applied",
     });
     queryClient.invalidateQueries({
-      queryKey: ['seller-products-infinite', user?.id, activeSearch],
+      queryKey: ['seller-products', user?.id, activeSearch],
       refetchType: 'none'
     });
     setTimeout(() => {
       queryClient.refetchQueries({
-        queryKey: ['seller-products-infinite', user?.id, activeSearch],
+        queryKey: ['seller-products', user?.id, activeSearch],
         type: 'active'
       });
     }, 1000);
-  };
-
-  useEffect(() => {
-    if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage && !isError) {
-      devLog("Load more element is visible, fetching next page");
-      fetchNextPage();
-    }
-  }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage, isError]);
-
-  const handleLoadMore = async () => {
-    if (hasNextPage && !isFetchingNextPage) {
-      try {
-        devLog("Manual load more triggered");
-        await fetchNextPage();
-      } catch (error) {
-        prodError('Error loading more products', { error });
-        toast({
-          variant: "destructive",
-          title: "Loading error",
-          description: "Failed to load more products",
-        });
-      }
-    }
   };
 
   const handleRetry = async () => {
@@ -232,12 +201,17 @@ const SellerListingsContent = () => {
     }
   }, [isError, error]);
 
-  const allProducts = data?.pages.flat() || [];
-  throttledDevLog('seller-stats', `📊 Total seller products loaded: ${allProducts.length}`);
+  throttledDevLog('seller-stats', `📊 Total seller products loaded: ${allProducts?.length || 0}`);
+
+  // Get current page products
+  const startIndex = currentPage * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentPageProducts = allProducts?.slice(startIndex, endIndex) || [];
+  const totalPages = Math.ceil((allProducts?.length || 0) / ITEMS_PER_PAGE);
 
   // Get product IDs for offers query
   const productIds = React.useMemo(() => 
-    allProducts.map(product => product.id), 
+    allProducts?.map(product => product.id) || [], 
     [allProducts]
   );
 
@@ -301,9 +275,10 @@ const SellerListingsContent = () => {
     return Object.values(grouped) as BatchOfferData[];
   }, [offersData]);
 
+  // Get mapped products for current page
   const mappedProducts: ProductProps[] = React.useMemo(() => {
     try {
-      return allProducts.map(product => {
+      return currentPageProducts.map(product => {
         const images = product.product_images || [];
         const primaryImage = images.find(img => img.is_primary);
         const fallbackImage = images[0];
@@ -329,7 +304,20 @@ const SellerListingsContent = () => {
       devError('Error mapping seller products:', mappingError);
       return [];
     }
-  }, [allProducts, user?.id]);
+  }, [currentPageProducts, user?.id]);
+  
+  // Pagination handlers
+  const handleNextPage = () => {
+    if (currentPage < totalPages - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+  
+  const handlePrevPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   if (isLoading) {
     return <EnhancedSellerListingsSkeleton />;
@@ -423,33 +411,42 @@ const SellerListingsContent = () => {
             batchOffersData={batchOffersData}
           />
           
-          {(hasNextPage || isFetchingNextPage) && (
-            <div className="mt-8 flex flex-col items-center justify-center">
-              <div 
-                ref={loadMoreRef} 
-                className="h-20 w-full flex items-center justify-center"
-              >
-                {isFetchingNextPage ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-t-link rounded-full animate-spin"></div>
-                    <span className="ml-3 text-muted-foreground">Loading products...</span>
-                  </div>
-                ) : (
-                  <Button 
-                    onClick={handleLoadMore}
-                    className="bg-primary hover:bg-primary/90"
-                    disabled={isError}
-                  >
-                    Load More
-                  </Button>
-                )}
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-8">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1}-{Math.min(endIndex, allProducts?.length || 0)} of {allProducts?.length || 0} products
               </div>
-            </div>
-          )}
-          
-          {!hasNextPage && !isFetchingNextPage && mappedProducts.length > 0 && (
-            <div className="text-center py-6 text-gray-500">
-              You have viewed all your listings
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 0}
+                  className="flex items-center gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-medium">
+                    Page {currentPage + 1} of {totalPages}
+                  </span>
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage >= totalPages - 1}
+                  className="flex items-center gap-1"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </>
