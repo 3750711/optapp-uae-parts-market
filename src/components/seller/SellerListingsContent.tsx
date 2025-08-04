@@ -100,7 +100,16 @@ const SellerListingsContent = () => {
         }
 
         const { data, error } = await query
-          .order('created_at', { ascending: false })
+          .order(`
+            CASE status 
+              WHEN 'active' THEN 1 
+              WHEN 'pending' THEN 2 
+              WHEN 'sold' THEN 3 
+              WHEN 'archived' THEN 4 
+              ELSE 5 
+            END ASC,
+            created_at DESC
+          `)
           .range(from, to);
 
         if (error) {
