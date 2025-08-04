@@ -38,8 +38,29 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
   
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const translations = registrationTranslations[language];
+
+  // Calculate progress
+  const getProgress = () => {
+    const steps = ['account-type', 'opt-id-generation', userType === 'seller' ? 'store-info' : 'buyer-registration'];
+    if (userType === 'seller') steps.push('personal-info');
+    const currentIndex = steps.indexOf(currentStep);
+    return Math.max(0, (currentIndex + 1) / steps.length * 100);
+  };
+
+  const getStepLabel = () => {
+    switch (currentStep) {
+      case 'account-type': return 'Шаг 1: Тип аккаунта';
+      case 'opt-id-generation': return 'Шаг 2: Генерация OPT_ID';
+      case 'store-info': return 'Шаг 3: Информация о магазине';
+      case 'buyer-registration': return 'Шаг 3: Данные покупателя';
+      case 'personal-info': return 'Шаг 4: Личные данные';
+      case 'final-loading': return 'Завершение...';
+      default: return '';
+    }
+  };
+
 
   // Generate unique 4-letter OPT_ID for sellers
   const generateUniqueOptId = async (): Promise<string> => {
@@ -65,27 +86,27 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
   const handleAccountType = async (type: UserType) => {
     setUserType(type);
     
-    if (type === 'seller') {
+    try {
+      // Generate unique OPT ID for BOTH buyers and sellers (unified flow)
+      const newOptId = await generateUniqueOptId();
+      setGeneratedOptId(newOptId);
       setCurrentStep('opt-id-generation');
-      
-      try {
-        const newOptId = await generateUniqueOptId();
-        setGeneratedOptId(newOptId);
-      } catch (error) {
-        console.error('Error generating OPT_ID:', error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось сгенерировать OPT_ID",
-          variant: "destructive",
-        });
-      }
-    } else {
-      setCurrentStep('buyer-registration');
+    } catch (error) {
+      console.error('Error generating OPT_ID:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось сгенерировать OPT_ID",
+        variant: "destructive",
+      });
     }
   };
 
   const handleOptIdComplete = () => {
-    setCurrentStep('store-info');
+    if (userType === 'seller') {
+      setCurrentStep('store-info');
+    } else {
+      setCurrentStep('buyer-registration');
+    }
   };
 
   const handleStoreInfo = (data: StoreData) => {
@@ -165,13 +186,14 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
     }
 
     try {
-      // Update the existing user profile with buyer data
+      // Update the existing user profile with buyer data (including OPT_ID)
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           user_type: 'buyer',
           full_name: buyerData.fullName,
           phone: buyerData.phone,
+          opt_id: generatedOptId, // Add OPT_ID for buyers too
           profile_completed: true,
           verification_status: 'pending'
         })
@@ -231,7 +253,7 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
         return (
           <StoreInfoStep
             onNext={handleStoreInfo}
-            onBack={() => setCurrentStep('account-type')}
+            onBack={() => setCurrentStep('opt-id-generation')}
             translations={translations}
             optId={generatedOptId}
           />
@@ -251,8 +273,9 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
         return (
           <BuyerRegistrationStep
             onNext={handleBuyerRegistration}
-            onBack={() => setCurrentStep('account-type')}
+            onBack={() => setCurrentStep('opt-id-generation')}
             translations={translations}
+            optId={generatedOptId}
           />
         );
 
@@ -284,6 +307,19 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
           <p className="text-muted-foreground">
             Расскажите нам больше о себе для завершения регистрации
           </p>
+          
+          {/* Progress indicator */}
+          {currentStep !== 'final-loading' && (
+            <div className="mt-6 mb-4">
+              <div className="text-sm text-muted-foreground mb-2">{getStepLabel()}</div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div 
+                  className="bg-primary h-2 rounded-full transition-all duration-300 ease-in-out" 
+                  style={{ width: `${getProgress()}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
         </div>
         
         {renderStep()}
