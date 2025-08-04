@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { getCachedAdminRights, setCachedAdminRights, clearAdminCache } from '@/utils/performanceUtils';
 import { normalizeTelegramUsername } from '@/utils/telegramNormalization';
@@ -82,7 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Оптимизированная функция загрузки профиля с кэшированием и debounce
+  // Оптимизированная функция загрузки профиля с кэшированием
   const fetchUserProfile = useCallback(async (userId: string, retryCount = 0) => {
     setIsProfileLoading(true);
     try {
@@ -100,7 +99,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) {
         console.error('Error fetching profile:', error);
-        return { success: false, error };
+        setIsProfileLoading(false);
+        return;
       }
 
       if (data) {
@@ -109,7 +109,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAdmin(adminStatus);
         // Кэшируем результат
         setCachedAdminRights(userId, adminStatus);
-        return { success: true, profile: data };
       } else {
         // Profile doesn't exist yet - for new users (especially Telegram users)
         console.log('Profile not found for user:', userId);
@@ -122,15 +121,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setTimeout(() => {
             fetchUserProfile(userId, retryCount + 1);
           }, 1000);
-          return { success: false, retrying: true };
+          return; // Don't set loading to false yet
         } else {
-          console.log('Profile still not found after retries. User needs to complete registration.');
-          return { success: false, needsRegistration: true };
+          console.log('Profile still not found after retries. Creating basic profile...');
+          // Try to create a basic profile for email users
+          await createBasicProfile(userId);
         }
       }
     } catch (error) {
       console.error('Profile fetch error:', error);
-      return { success: false, error };
     } finally {
       setIsProfileLoading(false);
     }
@@ -264,100 +263,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [user]);
 
   useEffect(() => {
-    let mounted = true;
-    
-    // Initialize auth state
-    const initializeAuth = async () => {
-      try {
-        setIsLoading(true);
-        
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          return;
-        }
-        
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user) {
-            // Check if user requires full registration
-            const requiresFullRegistration = session.user.user_metadata?.requires_full_registration;
-            
-            if (requiresFullRegistration) {
-              console.log('User requires full registration');
-              // Don't redirect here, let the routing handle it
-              setProfile(null);
-              setIsAdmin(null);
-              return;
-            }
-            
-            setTimeout(() => {
-              if (mounted) {
-                fetchUserProfile(session.user.id);
-              }
-            }, 0);
-          } else {
-            setProfile(null);
-            setIsAdmin(null);
-          }
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
+    // Получаем текущую сессию
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Используем setTimeout для предотвращения блокировки
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 0);
+      } else {
+        setProfile(null);
+        setIsAdmin(null);
+        setIsLoading(false);
       }
-    };
+    });
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', { event, userId: session?.user?.id });
-        
-        if (mounted) {
-          setSession(session);
-          setUser(session?.user ?? null);
-          
-          if (session?.user && event !== 'SIGNED_OUT') {
-            // Check if user requires full registration
-            const requiresFullRegistration = session.user.user_metadata?.requires_full_registration;
-            
-            if (requiresFullRegistration) {
-              console.log('User requires full registration');
-              // Don't redirect here, let the routing handle it
-              setProfile(null);
-              setIsAdmin(null);
-              setIsLoading(false);
-              return;
-            }
-            
-            setTimeout(() => {
-              if (mounted) {
-                fetchUserProfile(session.user.id);
-              }
-            }, 0);
-          } else {
-            setProfile(null);
-            setIsAdmin(null);
-            clearAdminCache();
-          }
-          
-          setIsLoading(false);
-        }
+    // Слушаем изменения авторизации
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Используем setTimeout для предотвращения блокировки
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 0);
+      } else {
+        setProfile(null);
+        setIsAdmin(null);
+        clearAdminCache();
       }
-    );
+      
+      setIsLoading(false);
+    });
 
-    initializeAuth();
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [fetchUserProfile]);
+    return () => subscription.unsubscribe();
+  }, [fetchUserProfile, createBasicProfile]);
 
   const signUp = useCallback(async (email: string, password: string, userData?: any) => {
     const redirectUrl = `${window.location.origin}/`;

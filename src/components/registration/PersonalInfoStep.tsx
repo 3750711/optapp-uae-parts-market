@@ -17,7 +17,6 @@ export interface PersonalData {
   email: string;
   password: string;
   confirmPassword: string;
-  telegram?: string;
 }
 
 export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({

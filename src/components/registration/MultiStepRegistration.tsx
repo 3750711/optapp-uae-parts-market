@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { registrationTranslations } from '@/translations/registration';
 import { RegistrationTypeStep } from './RegistrationTypeStep';
 import { AccountTypeStep } from './AccountTypeStep';
@@ -40,28 +40,9 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
   const [personalData, setPersonalData] = useState<PersonalData | null>(null);
   const [buyerData, setBuyerData] = useState<BuyerData | null>(null);
   const [generatedOptId, setGeneratedOptId] = useState<string>('');
-  const [telegramData, setTelegramData] = useState<any>(null);
   
   const { toast } = useToast();
   const navigate = useNavigate();
-  
-  // Check for Telegram registration on mount
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isTelegramRegistration = urlParams.get('telegram') === 'true';
-    
-    if (isTelegramRegistration) {
-      // Get Telegram data from sessionStorage
-      const storedTelegramData = sessionStorage.getItem('telegram_registration_data');
-      if (storedTelegramData) {
-        const parsedData = JSON.parse(storedTelegramData);
-        setTelegramData(parsedData);
-        setRegistrationType('telegram');
-        setCurrentStep('account-type');
-        console.log('Telegram registration initialized with data:', parsedData);
-      }
-    }
-  }, []);
   const translations = registrationTranslations[language];
 
   // Generate unique 4-letter OPT_ID for sellers
@@ -138,147 +119,68 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
 
   const createSellerAccount = async (data: PersonalData) => {
     try {
-      let signUpError = null;
-      
-      if (registrationType === 'telegram' && telegramData) {
-        // For Telegram users, update existing user instead of creating new
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Update user metadata
-          const { error: updateError } = await supabase.auth.updateUser({
-            data: {
-              full_name: data.fullName,
-              phone: data.phone,
-              location: storeData?.location,
-              user_type: 'seller',
-              opt_id: generatedOptId,
-              company_name: storeData?.name,
-              telegram: telegramData.username || '',
-              avatar_url: telegramData.photo_url || '',
-              profile_completed: true,
-              verification_status: 'pending',
-              requires_full_registration: false
-            }
-          });
-
-          if (updateError) {
-            signUpError = updateError;
-          } else {
-            // Create profile for Telegram user
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-                id: user.id,
-                email: data.email,
-                full_name: data.fullName,
-                auth_method: 'telegram',
-                telegram_id: telegramData.id,
-                telegram: telegramData.username || '',
-                avatar_url: telegramData.photo_url || '',
-                phone: data.phone,
-                location: storeData?.location,
-                user_type: 'seller',
-                opt_id: generatedOptId,
-                company_name: storeData?.name,
-                profile_completed: true,
-                verification_status: 'pending'
-              });
-
-            if (profileError) {
-              console.error('Profile creation error:', profileError);
-            }
-
-            // Create store
-            if (storeData) {
-              const { error: storeError } = await supabase
-                .from('stores')
-                .insert({
-                  name: storeData.name,
-                  description: storeData.description,
-                  location: storeData.location,
-                  address: storeData.location,
-                  seller_id: user.id,
-                  owner_name: data.fullName,
-                  phone: data.phone
-                });
-
-              if (storeError) {
-                console.error('Store creation error:', storeError);
-              }
-            }
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: data.fullName,
+            user_type: 'seller',
+            opt_id: generatedOptId,
+            phone: data.phone
           }
         }
-      } else {
-        // Standard email registration
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              full_name: data.fullName,
-              user_type: 'seller',
-              opt_id: generatedOptId,
-              phone: data.phone
-            }
-          }
-        });
-
-        if (authError) {
-          signUpError = authError;
-        } else if (authData.user) {
-          // Create profile
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: authData.user.id,
-              email: data.email,
-              full_name: data.fullName,
-              phone: data.phone,
-              opt_id: generatedOptId,
-              user_type: 'seller',
-              verification_status: 'pending',
-              auth_method: 'email',
-              company_name: storeData?.name
-            });
-
-          if (profileError) throw profileError;
-
-          // Create store
-          if (storeData) {
-            const { error: storeError } = await supabase
-              .from('stores')
-              .insert({
-                name: storeData.name,
-                description: storeData.description,
-                location: storeData.location,
-                address: storeData.location,
-                seller_id: authData.user.id,
-                owner_name: data.fullName,
-                phone: data.phone
-              });
-
-            if (storeError) throw storeError;
-          }
-        }
-      }
-
-      if (signUpError) {
-        throw signUpError;
-      }
-
-      toast({
-        title: "Регистрация завершена",
-        description: "Ваш аккаунт создан и ожидает верификации",
       });
 
-      // Clear sensitive data
-      sessionStorage.removeItem('telegram_registration_data');
+      if (authError) throw authError;
 
-      // Redirect to pending approval page
-      setTimeout(() => {
-        navigate('/pending-approval');
-      }, 2000);
+      if (authData.user) {
+        // Create profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: data.email,
+            full_name: data.fullName,
+            phone: data.phone,
+            opt_id: generatedOptId,
+            user_type: 'seller',
+            verification_status: 'pending',
+            auth_method: 'email',
+            company_name: storeData?.name
+          });
+
+        if (profileError) throw profileError;
+
+        // Create store
+        if (storeData) {
+          const { error: storeError } = await supabase
+            .from('stores')
+            .insert({
+              name: storeData.name,
+              description: storeData.description,
+              location: storeData.location,
+              address: storeData.location,
+              seller_id: authData.user.id,
+              owner_name: data.fullName,
+              phone: data.phone
+            });
+
+          if (storeError) throw storeError;
+        }
+
+        toast({
+          title: "Регистрация завершена",
+          description: "Ваш аккаунт создан и ожидает верификации",
+        });
+
+        // Redirect to login page
+        setTimeout(() => {
+          navigate('/');
+        }, 3000);
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({
@@ -292,106 +194,50 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
 
   const createBuyerAccount = async (data: BuyerData) => {
     try {
-      let signUpError = null;
-      
-      if (registrationType === 'telegram' && telegramData) {
-        // For Telegram users, update existing user instead of creating new
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Update user metadata
-          const { error: updateError } = await supabase.auth.updateUser({
-            data: {
-              full_name: data.fullName,
-              phone: data.phone,
-              user_type: 'buyer',
-              opt_id: generatedOptId,
-              telegram: telegramData.username || '',
-              avatar_url: telegramData.photo_url || '',
-              profile_completed: true,
-              verification_status: 'pending',
-              requires_full_registration: false
-            }
-          });
-
-          if (updateError) {
-            signUpError = updateError;
-          } else {
-            // Create profile for Telegram user
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-                id: user.id,
-                email: data.email,
-                full_name: data.fullName,
-                auth_method: 'telegram',
-                telegram_id: telegramData.id,
-                telegram: telegramData.username || '',
-                avatar_url: telegramData.photo_url || '',
-                phone: data.phone,
-                user_type: 'buyer',
-                opt_id: generatedOptId,
-                profile_completed: true,
-                verification_status: 'pending'
-              });
-
-            if (profileError) {
-              console.error('Profile creation error:', profileError);
-            }
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            full_name: data.fullName,
+            user_type: 'buyer',
+            opt_id: generatedOptId,
+            phone: data.phone
           }
         }
-      } else {
-        // Standard email registration
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              full_name: data.fullName,
-              user_type: 'buyer',
-              opt_id: generatedOptId,
-              phone: data.phone
-            }
-          }
-        });
-
-        if (authError) {
-          signUpError = authError;
-        } else if (authData.user) {
-          // Create profile
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: authData.user.id,
-              email: data.email,
-              full_name: data.fullName,
-              phone: data.phone,
-              opt_id: generatedOptId,
-              user_type: 'buyer',
-              verification_status: 'pending',
-              auth_method: 'email'
-            });
-
-          if (profileError) throw profileError;
-        }
-      }
-
-      if (signUpError) {
-        throw signUpError;
-      }
-
-      toast({
-        title: "Регистрация завершена",
-        description: "Ваш аккаунт создан и ожидает верификации",
       });
 
-      // Clear sensitive data
-      sessionStorage.removeItem('telegram_registration_data');
+      if (authError) throw authError;
 
-      // Redirect to pending approval page
-      setTimeout(() => {
-        navigate('/pending-approval');
-      }, 2000);
+      if (authData.user) {
+        // Create profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: data.email,
+            full_name: data.fullName,
+            phone: data.phone,
+            opt_id: generatedOptId,
+            user_type: 'buyer',
+            verification_status: 'pending',
+            auth_method: 'email'
+          });
+
+        if (profileError) throw profileError;
+
+        toast({
+          title: "Регистрация завершена",
+          description: "Ваш аккаунт создан и ожидает верификации",
+        });
+
+        // Redirect to pending approval page
+        setTimeout(() => {
+          navigate('/pending-approval');
+        }, 2000);
+      }
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({
@@ -442,10 +288,6 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
   const renderStep = () => {
     switch (currentStep) {
       case 'type-selection':
-        // Skip registration type step for Telegram users
-        if (registrationType === 'telegram') {
-          return null; // This step is skipped
-        }
         return (
           <RegistrationTypeStep
             onSelectType={handleRegistrationType}
