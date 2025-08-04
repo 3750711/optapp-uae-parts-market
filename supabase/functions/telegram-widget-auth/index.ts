@@ -195,9 +195,10 @@ serve(async (req) => {
       )
     } else {
       // New user - create with temp credentials
-      email = `telegram_${authData.id}@temp.telegram`
+      email = `telegram${authData.id}@partsbay.temp`
       tempPassword = crypto.randomUUID()
-      console.log('Creating new user for telegram_id:', authData.id)
+      console.log('🆕 Creating new user for telegram_id:', authData.id)
+      console.log('📧 Using email format:', email)
 
       const { data: newUser, error: signUpError } = await supabase.auth.admin.createUser({
         email,
@@ -205,52 +206,29 @@ serve(async (req) => {
         email_confirm: true,
         user_metadata: {
           auth_method: 'telegram',
-          telegram_id: authData.id,
+          telegram_id: String(authData.id), // Ensure string for metadata
           telegram: normalizeTelegramUsername(authData.username),
           photo_url: authData.photo_url,
           full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
-          profile_completed: false // Mark as incomplete for additional data collection
+          profile_completed: false // Mark as incomplete for profile completion flow
         }
       })
 
       if (signUpError) {
-        console.error('Error creating user:', signUpError)
+        console.error('❌ Error creating user:', signUpError)
         throw signUpError
       }
 
-      console.log('New user created:', { userId: newUser.user.id, email })
+      console.log('✅ New user created:', { userId: newUser.user.id, email })
       isNewUser = true
       
-      // Create profile with incomplete status for new Telegram users
-      try {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: newUser.user.id,
-            email: email,
-            full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
-            auth_method: 'telegram',
-            telegram_id: authData.id,
-            telegram: normalizeTelegramUsername(authData.username),
-            avatar_url: authData.photo_url,
-            profile_completed: false, // Mark as incomplete for additional data collection
-            user_type: 'buyer', // Default type, will be updated during completion
-            verification_status: 'pending'
-          })
-        
-        if (profileError) {
-          console.error('Error creating profile:', profileError)
-          // Continue anyway as profile creation might happen through triggers
-        } else {
-          console.log('✅ Profile created successfully for new Telegram user')
-        }
-      } catch (profileCreationError) {
-        console.error('Error in profile creation:', profileCreationError)
-        // Continue anyway
-      }
+      // Note: Profile creation will be handled by database trigger
+      // No need to manually create profile here to avoid conflicts
+      console.log('📝 Profile will be created by database trigger')
       
-      // Log telegram widget auth notification
+      // Log telegram widget auth notification (wrapped in try-catch)
       try {
+        console.log('📤 Attempting to log Telegram notification...')
         await logTelegramNotification(supabase, {
           function_name: 'telegram-widget-auth',
           notification_type: 'widget_registration',
@@ -267,8 +245,10 @@ serve(async (req) => {
             registration_time: new Date().toISOString()
           }
         });
+        console.log('✅ Telegram notification logged successfully')
       } catch (logError) {
-        console.error('Failed to log telegram widget auth notification:', logError);
+        console.error('⚠️ Failed to log telegram notification (non-critical):', logError);
+        // Don't throw - notification logging is not critical for registration
       }
     }
 

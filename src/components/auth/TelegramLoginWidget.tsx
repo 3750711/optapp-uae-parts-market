@@ -154,8 +154,18 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
           throw signInError;
         }
       } else {
-        // New user case is not handled in direct login as it should be processed by Edge Function
-        throw new Error('New user creation should be handled by Edge Function');
+        // New user: use signInWithPassword with credentials from Edge Function
+        console.log('🔄 Using signInWithPassword for new user:', email);
+        
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password,
+        });
+
+        if (signInError) {
+          console.error('signInWithPassword error for new user:', signInError);
+          throw signInError;
+        }
       }
 
       toast.dismiss();
