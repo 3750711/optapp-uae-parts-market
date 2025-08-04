@@ -41,12 +41,23 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     console.log("🚀 HomeRedirect: User authenticated, checking redirect logic", {
       userType: profile.user_type,
       verificationStatus: profile.verification_status,
+      authMethod: profile.auth_method,
+      profileCompleted: profile.profile_completed,
+      optId: profile.opt_id,
       timestamp: new Date().toISOString()
     });
     
     devLog("HomeRedirect: User authenticated, redirecting based on role");
     
-    // Check if user is pending approval (except for admins)
+    // PRIORITY 1: Handle incomplete Telegram profiles FIRST
+    if (profile.auth_method === 'telegram' && !profile.profile_completed) {
+      console.log("🚀 HomeRedirect: Telegram user with incomplete profile - redirecting to completion");
+      if (redirectProtection.canRedirect(location.pathname, "/complete-telegram-profile")) {
+        return <Navigate to="/complete-telegram-profile" replace />;
+      }
+    }
+    
+    // PRIORITY 2: Check if user is pending approval (except for admins)
     if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
       console.log("🚀 HomeRedirect: Redirecting to pending approval");
       if (redirectProtection.canRedirect(location.pathname, "/pending-approval")) {
