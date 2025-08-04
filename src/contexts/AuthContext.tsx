@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { getCachedAdminRights, setCachedAdminRights, clearAdminCache } from '@/utils/performanceUtils';
 import { normalizeTelegramUsername } from '@/utils/telegramNormalization';
@@ -81,7 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Оптимизированная функция загрузки профиля с кэшированием
+  // Оптимизированная функция загрузки профиля с кэшированием и debounce
   const fetchUserProfile = useCallback(async (userId: string, retryCount = 0) => {
     setIsProfileLoading(true);
     try {
@@ -99,8 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) {
         console.error('Error fetching profile:', error);
-        setIsProfileLoading(false);
-        return;
+        return { success: false, error };
       }
 
       if (data) {
@@ -109,6 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAdmin(adminStatus);
         // Кэшируем результат
         setCachedAdminRights(userId, adminStatus);
+        return { success: true, profile: data };
       } else {
         // Profile doesn't exist yet - for new users (especially Telegram users)
         console.log('Profile not found for user:', userId);
@@ -121,15 +122,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setTimeout(() => {
             fetchUserProfile(userId, retryCount + 1);
           }, 1000);
-          return; // Don't set loading to false yet
+          return { success: false, retrying: true };
         } else {
-          console.log('Profile still not found after retries. Creating basic profile...');
-          // Try to create a basic profile for email users
-          await createBasicProfile(userId);
+          console.log('Profile still not found after retries. User needs to complete registration.');
+          return { success: false, needsRegistration: true };
         }
       }
     } catch (error) {
       console.error('Profile fetch error:', error);
+      return { success: false, error };
     } finally {
       setIsProfileLoading(false);
     }
@@ -286,12 +287,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const requiresFullRegistration = session.user.user_metadata?.requires_full_registration;
             
             if (requiresFullRegistration) {
-              console.log('User requires full registration, redirecting...');
-              // Redirect to registration with telegram flag if not already there
-              if (!window.location.pathname.includes('/register')) {
-                window.location.href = '/register?telegram=true';
-                return;
-              }
+              console.log('User requires full registration');
+              // Don't redirect here, let the routing handle it
+              setProfile(null);
+              setIsAdmin(null);
+              return;
             }
             
             setTimeout(() => {
@@ -327,12 +327,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const requiresFullRegistration = session.user.user_metadata?.requires_full_registration;
             
             if (requiresFullRegistration) {
-              console.log('User requires full registration, redirecting...');
-              // Redirect to registration with telegram flag if not already there
-              if (!window.location.pathname.includes('/register')) {
-                window.location.href = '/register?telegram=true';
-                return;
-              }
+              console.log('User requires full registration');
+              // Don't redirect here, let the routing handle it
+              setProfile(null);
+              setIsAdmin(null);
+              setIsLoading(false);
+              return;
             }
             
             setTimeout(() => {

@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import RouteSEO from '@/components/routing/RouteSEO';
 import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary';
 import { RouteSuspenseFallback } from '@/components/routing/RouteSuspenseFallback';
@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import GuestRoute from '@/components/auth/GuestRoute';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
+import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary';
 
 // Lazy loaded публичные страницы
 const Index = lazy(() => import('@/pages/Index'));
@@ -33,6 +34,11 @@ const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
 const PendingApprovalPage = lazy(() => import('@/pages/PendingApprovalPage'));
 const CompleteTelegramProfile = lazy(() => import('@/pages/CompleteTelegramProfile'));
+
+// Fallback component for deprecated routes
+const DeprecatedRouteRedirect = () => {
+  return <Navigate to="/register?telegram=true" replace />;
+};
 
 // Lazy loaded защищенные страницы
 const Profile = lazy(() => import('@/pages/Profile'));
@@ -96,9 +102,10 @@ const AppRoutes: React.FC = () => {
   return (
     <>
       <RouteSEO />
-      <RouteErrorBoundary>
-        <Suspense fallback={<RouteSuspenseFallback />}>
-          <Routes>
+      <AuthErrorBoundary>
+        <RouteErrorBoundary>
+          <Suspense fallback={<RouteSuspenseFallback />}>
+            <Routes>
             {/* Публичные маршруты - доступны всем */}
             <Route path="/" element={
               <HomeRedirect>
@@ -466,11 +473,28 @@ const AppRoutes: React.FC = () => {
               </AdminRoute>
             } />
 
+            {/* Legacy Telegram profile completion route - redirect to new flow */}
+            <Route
+              path="/complete-telegram-profile"
+              element={<DeprecatedRouteRedirect />}
+            />
+            
+            {/* Additional fallback routes for old Telegram paths */}
+            <Route
+              path="/telegram-auth"
+              element={<DeprecatedRouteRedirect />}
+            />
+            <Route
+              path="/telegram-register"
+              element={<DeprecatedRouteRedirect />}
+            />
+
             {/* Catch-all маршрут */}
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </RouteErrorBoundary>
+            </Routes>
+          </Suspense>
+        </RouteErrorBoundary>
+      </AuthErrorBoundary>
     </>
   );
 };
