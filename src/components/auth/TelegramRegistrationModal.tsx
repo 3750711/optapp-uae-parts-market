@@ -158,46 +158,72 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
 
       console.log('User authenticated, generating OPT_ID...');
       
-      // Generate OPT_ID for all users
-      const optId = await generateUniqueOptId();
-      console.log('OPT_ID generated:', optId);
+      // Generate OPT_ID with fallback mechanism
+      let optId;
+      try {
+        optId = await generateUniqueOptId();
+        console.log('OPT_ID generated via RPC:', optId);
+      } catch (optError) {
+        console.error('❌ OPT_ID generation via RPC failed, using fallback:', optError);
+        // Simple fallback - generate based on current timestamp and user ID
+        const timestamp = Date.now().toString();
+        const userIdShort = user.id.replace(/-/g, '').substring(0, 8);
+        optId = `TG${timestamp.slice(-6)}${userIdShort}`.toUpperCase();
+        console.log('✅ Fallback OPT_ID generated:', optId);
+      }
+
+      if (!optId) {
+        throw new Error('Failed to generate OPT_ID');
+      }
 
       // Get existing Telegram data from user metadata
       const telegramData = user.user_metadata;
       console.log('Existing Telegram data:', telegramData);
 
-      // Prepare profile data with better Telegram data handling
+      // Prepare profile data for atomic update
       const profileData = {
         full_name: basicInfo.fullName.trim(),
         phone: basicInfo.phone.trim(),
         user_type: userType,
         opt_id: optId,
         profile_completed: true,
-        verification_status: 'pending',
+        verification_status: 'pending' as const,
         // Better utilize existing Telegram data
         telegram: telegramData?.telegram || user.user_metadata?.telegram || '',
         telegram_id: telegramData?.telegram_id || user.user_metadata?.telegram_id || '',
         ...(userType === 'seller' && {
           company_name: sellerInfo.companyName.trim(),
           location: sellerInfo.location,
-          description: sellerInfo.description.trim()
+          description_user: sellerInfo.description.trim()
         })
       };
 
-      console.log('Profile data to update:', profileData);
+      console.log('Profile data to update:', {
+        ...profileData,
+        opt_id: `${optId.substring(0, 6)}...`,
+        telegram_id: profileData.telegram_id ? `${profileData.telegram_id.toString().substring(0, 4)}...` : 'none'
+      });
 
-      // Update the profile
+      // Update the profile with improved error handling
       const { error: profileError } = await supabase
         .from('profiles')
         .update(profileData)
         .eq('id', user.id);
 
       if (profileError) {
-        console.error('Database update error:', profileError);
-        throw profileError;
+        console.error('❌ Database update error:', profileError);
+        
+        // Provide more specific error messages
+        if (profileError.message?.includes('validate_profile_update')) {
+          throw new Error('Validation failed - profile cannot be updated');
+        } else if (profileError.message?.includes('duplicate')) {
+          throw new Error('OPT_ID already exists');
+        } else {
+          throw profileError;
+        }
       }
 
-      console.log('Profile updated successfully');
+      console.log('✅ Profile updated successfully');
 
       // Refresh profile to get latest data
       await refreshProfile();
@@ -432,11 +458,23 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
     }
   };
 
+  // Prevent closing during registration process
+  const canClose = !isLoading && currentStep !== 'creating';
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog 
+      open={open} 
+      onOpenChange={canClose ? onOpenChange : undefined}
+    >
+      <DialogContent 
+        className="sm:max-w-md" 
+        onPointerDownOutside={canClose ? undefined : (e) => e.preventDefault()}
+        onEscapeKeyDown={canClose ? undefined : (e) => e.preventDefault()}
+      >
         <DialogHeader>
-          <DialogTitle>Завершение регистрации</DialogTitle>
+          <DialogTitle>
+            {language === 'en' ? 'Complete Registration' : 'Завершение регистрации'}
+          </DialogTitle>
         </DialogHeader>
         
         {renderCurrentStep()}
