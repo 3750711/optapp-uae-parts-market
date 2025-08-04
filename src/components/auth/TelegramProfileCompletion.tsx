@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { registrationTranslations } from '@/translations/registration';
 import { AccountTypeStep } from '@/components/registration/AccountTypeStep';
 import { StoreInfoStep, StoreData } from '@/components/registration/StoreInfoStep';
-import { PersonalInfoStep, PersonalData } from '@/components/registration/PersonalInfoStep';
-import { BuyerRegistrationStep, BuyerData } from '@/components/registration/BuyerRegistrationStep';
+import { TelegramPersonalInfoStep } from '@/components/registration/TelegramPersonalInfoStep';
+import { TelegramBuyerRegistrationStep } from '@/components/registration/TelegramBuyerRegistrationStep';
 import { OptIdAnimation } from '@/components/animations/OptIdAnimation';
 import { LoadingAnimation } from '@/components/animations/LoadingAnimation';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,8 +33,8 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
   const [currentStep, setCurrentStep] = useState<CompletionStep>('account-type');
   const [userType, setUserType] = useState<UserType | null>(null);
   const [storeData, setStoreData] = useState<StoreData | null>(null);
-  const [personalData, setPersonalData] = useState<PersonalData | null>(null);
-  const [buyerData, setBuyerData] = useState<BuyerData | null>(null);
+  const [personalData, setPersonalData] = useState<{ fullName: string; phone: string } | null>(null);
+  const [buyerData, setBuyerData] = useState<{ fullName: string; phone: string } | null>(null);
   const [generatedOptId, setGeneratedOptId] = useState<string>('');
   
   const { toast } = useToast();
@@ -115,16 +115,24 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
     setCurrentStep('personal-info');
   };
 
-  const handlePersonalInfo = (data: PersonalData) => {
+  const handlePersonalInfo = (data: { fullName: string; phone: string }) => {
     setPersonalData(data);
     setCurrentStep('final-loading');
     createSellerAccount();
   };
 
-  const handleBuyerRegistration = (data: BuyerData) => {
+  const handleBuyerRegistration = (data: { fullName: string; phone: string }) => {
     setBuyerData(data);
     setCurrentStep('final-loading');
     createBuyerAccount();
+  };
+
+  // Get initial name from user data
+  const getInitialName = () => {
+    if (profile?.full_name) return profile.full_name;
+    if (user?.user_metadata?.full_name) return user.user_metadata.full_name;
+    if (user?.user_metadata?.name) return user.user_metadata.name;
+    return '';
   };
 
   const createSellerAccount = async () => {
@@ -262,21 +270,21 @@ export const TelegramProfileCompletion: React.FC<TelegramProfileCompletionProps>
 
       case 'personal-info':
         return (
-          <PersonalInfoStep
-            onNext={handlePersonalInfo}
+          <TelegramPersonalInfoStep
+            onComplete={handlePersonalInfo}
             onBack={() => setCurrentStep('store-info')}
             translations={translations}
-            optId={generatedOptId}
+            initialName={getInitialName()}
           />
         );
 
       case 'buyer-registration':
         return (
-          <BuyerRegistrationStep
-            onNext={handleBuyerRegistration}
+          <TelegramBuyerRegistrationStep
+            onComplete={handleBuyerRegistration}
             onBack={() => setCurrentStep('opt-id-generation')}
             translations={translations}
-            optId={generatedOptId}
+            initialName={getInitialName()}
           />
         );
 
