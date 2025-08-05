@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { InlineEditableField } from '@/components/ui/InlineEditableField';
+import AdminTitleEditor from '@/components/admin/AdminTitleEditor';
 import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -17,6 +18,7 @@ interface Product {
   delivery_price?: number;
   place_number?: number;
   status: string;
+  description?: string;
   product_images?: Array<{ url: string; is_primary?: boolean }>;
   seller_name: string;
   brand?: string;
@@ -141,9 +143,25 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const handlePublish = async () => {
     setIsPublishing(true);
     try {
+      // Check if original title is already in description
+      const originalTitlePrefix = "Оригинальное название от продавца:";
+      const currentDescription = product.description || "";
+      let updatedDescription = currentDescription;
+      
+      if (!currentDescription.includes(originalTitlePrefix)) {
+        // Add original title to description
+        const originalTitleText = `${originalTitlePrefix} ${product.title}`;
+        updatedDescription = currentDescription 
+          ? `${originalTitleText}\n\n${currentDescription}`
+          : originalTitleText;
+      }
+
       const { error } = await supabase
         .from('products')
-        .update({ status: 'active' })
+        .update({ 
+          status: 'active',
+          description: updatedDescription
+        })
         .eq('id', product.id);
 
       if (error) throw error;
@@ -208,12 +226,11 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Название
           </label>
-          <InlineEditableField
+          <AdminTitleEditor
             value={product.title}
             onSave={(value) => handleFieldUpdate('title', value)}
             placeholder="Название товара"
             className="mt-1"
-            displayClassName="text-sm font-medium"
           />
         </div>
 
