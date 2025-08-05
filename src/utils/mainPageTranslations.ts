@@ -89,7 +89,7 @@ const translations: Record<'ru' | 'en', MainPageTranslations> = {
       accessDescription: 'Authorization required to access the platform',
     },
     statistics: {
-      partsListed: 'Auto parts listed',
+      partsListed: 'Auto parts active lots',
       ordersCreated: 'Orders created',
     },
     welcome: {
