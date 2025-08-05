@@ -69,19 +69,73 @@ const SellerPriceOffers = () => {
   };
 
   const handleOfferAction = (offer: PriceOffer, action: "accept" | "reject") => {
+    console.log('🎯 [OfferAction] Modal opening', {
+      offerId: offer.id,
+      action: action,
+      offerData: offer,
+      timestamp: new Date().toISOString()
+    });
+    
     setResponseModal({ isOpen: true, offer, action });
     setSellerResponse("");
+    
+    console.log('✅ [OfferAction] Modal state set successfully');
   };
 
   const handleSubmitResponse = async () => {
-    if (!responseModal.offer || !responseModal.action || !mountedRef.current) return;
+    // Enhanced debugging logs
+    console.log('🔧 [SubmitResponse] Button clicked', {
+      timestamp: new Date().toISOString(),
+      mountedRef: mountedRef.current,
+      responseModal: responseModal,
+      isSubmitting: isSubmitting,
+      hasOffer: !!responseModal.offer,
+      hasAction: !!responseModal.action,
+      offerId: responseModal.offer?.id,
+      action: responseModal.action
+    });
+
+    // Check early return conditions
+    if (!mountedRef.current) {
+      console.error('❌ [SubmitResponse] Component not mounted, aborting');
+      return;
+    }
+    
+    if (!responseModal.offer) {
+      console.error('❌ [SubmitResponse] No offer in responseModal', responseModal);
+      toast({
+        title: "Error",
+        description: "No offer selected. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!responseModal.action) {
+      console.error('❌ [SubmitResponse] No action in responseModal', responseModal);
+      toast({
+        title: "Error", 
+        description: "No action selected. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isSubmitting) {
+      console.warn('⚠️ [SubmitResponse] Already submitting, ignoring click');
+      return;
+    }
 
     const timer = startTimer('offer-response-processing');
     setIsSubmitting(true);
+    console.log('✅ [SubmitResponse] Starting submission process');
     
     try {
       const { offer, action } = responseModal;
-      devLog(`Processing offer ${action} for offer ID: ${offer.id}`);
+      console.log(`🚀 [SubmitResponse] Processing offer ${action} for offer ID: ${offer.id}`, {
+        offerData: offer,
+        sellerResponse: sellerResponse
+      });
 
       // Optimistic update with better type safety
       const newStatus = action === "accept" ? "accepted" : "rejected";
@@ -104,6 +158,7 @@ const SellerPriceOffers = () => {
         }));
       });
 
+      console.log('🔄 [SubmitResponse] Calling updateOffer.mutateAsync');
       await updateOffer.mutateAsync({
         offerId: offer.id,
         data: {
@@ -112,7 +167,14 @@ const SellerPriceOffers = () => {
         },
       });
 
-      if (!mountedRef.current) return;
+      console.log('✅ [SubmitResponse] updateOffer.mutateAsync completed successfully');
+
+      if (!mountedRef.current) {
+        console.warn('⚠️ [SubmitResponse] Component unmounted after mutation, skipping UI updates');
+        return;
+      }
+
+      console.log('🎉 [SubmitResponse] Showing success toast and closing modal');
 
       if (action === "accept") {
         toast({
@@ -127,24 +189,38 @@ const SellerPriceOffers = () => {
       }
 
       setResponseModal({ isOpen: false });
+      console.log('🔚 [SubmitResponse] Process completed successfully');
     } catch (error) {
-      prodError(error instanceof Error ? error : new Error(String(error)), {
+      console.error('💥 [SubmitResponse] Error occurred:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorDetails = {
         context: 'offer-response-processing',
         offerId: responseModal.offer?.id,
-        action: responseModal.action
-      });
+        action: responseModal.action,
+        error: errorMessage,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.error('💥 [SubmitResponse] Error details:', errorDetails);
+      
+      prodError(error instanceof Error ? error : new Error(String(error)), errorDetails);
       
       // Revert optimistic update on error
       if (mountedRef.current) {
+        console.log('🔄 [SubmitResponse] Reverting optimistic update due to error');
         queryClient.invalidateQueries({ 
           queryKey: ['seller-price-offers'], 
           exact: true 
         });
+        
         toast({
-          title: "Error",
-          description: "Failed to process offer. Please try again.",
+          title: "Error Processing Offer",
+          description: `Failed to ${responseModal.action} offer: ${errorMessage}`,
           variant: "destructive",
         });
+      } else {
+        console.warn('⚠️ [SubmitResponse] Component unmounted, skipping error UI updates');
       }
     } finally {
       timer.end();
