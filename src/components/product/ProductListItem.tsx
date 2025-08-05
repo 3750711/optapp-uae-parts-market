@@ -15,6 +15,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { formatPrice } from '@/utils/formatPrice';
+import { useMobileLayout } from '@/hooks/useMobileLayout';
 
 interface ProductListItemProps {
   product: ProductProps & {
@@ -47,6 +48,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   const [priceChanged, setPriceChanged] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isMobile } = useMobileLayout();
 
   const handleProductClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -157,9 +159,16 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     <Card className={cn(
       "hover:shadow-md transition-all duration-300",
       isRecentUpdate && "border-blue-300 shadow-blue-100 ring-2 ring-blue-200 animate-pulse",
-      isFreshData && "border-green-300 shadow-green-100 ring-1 ring-green-200"
+      isFreshData && "border-green-300 shadow-green-100 ring-1 ring-green-200",
+      isMobile && "active:bg-gray-50"
     )}>
-      <CardContent className="p-4">
+      <CardContent 
+        className={cn(
+          "p-4",
+          isMobile && "cursor-pointer"
+        )}
+        onClick={isMobile ? handleProductClick : undefined}
+      >
         <div className="flex gap-4">
           {/* Recent Update Indicator */}
           {isRecentUpdate && (
@@ -173,7 +182,10 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 
           {/* Product Image */}
           <div className="flex-shrink-0">
-            <div onClick={handleProductClick} className="cursor-pointer">
+            <div 
+              onClick={isMobile ? (e) => e.stopPropagation() : handleProductClick} 
+              className={cn("cursor-pointer", !isMobile && "cursor-pointer")}
+            >
               <OptimizedImage
                 src={product.image || product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg"}
                 alt={product.title}
@@ -191,8 +203,11 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
                 <div 
-                  onClick={handleProductClick}
-                  className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2 cursor-pointer"
+                  onClick={isMobile ? (e) => e.stopPropagation() : handleProductClick}
+                  className={cn(
+                    "text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2",
+                    !isMobile && "cursor-pointer"
+                  )}
                 >
                   {product.title}
                 </div>
@@ -280,7 +295,10 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                     </div>
                     
                     {showSoldButton && product.status === 'active' && onStatusChange && (
-                      <div className="ml-2">
+                      <div 
+                        className="ml-2"
+                        onClick={isMobile ? (e) => e.stopPropagation() : undefined}
+                      >
                         <ProductStatusChangeDialog
                           productId={product.id}
                           productName={product.title}
