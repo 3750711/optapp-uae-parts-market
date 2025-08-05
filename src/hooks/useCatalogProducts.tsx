@@ -178,9 +178,28 @@ export const useCatalogProducts = ({
             // Search by seller OPT-ID
             query = query.ilike('optid_created', `%${searchConditions.optIdSearch}%`);
           } else if (searchConditions.textSearch) {
-            // Text search across title, brand, model, seller name
+            // Dynamic text search - exclude fields that are being filtered separately
             const searchTerm = searchConditions.textSearch;
-            query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`);
+            const searchFields = [];
+            
+            // Always include title and seller_name
+            searchFields.push(`title.ilike.%${searchTerm}%`);
+            searchFields.push(`seller_name.ilike.%${searchTerm}%`);
+            
+            // Only include brand in search if not being filtered separately
+            if (!filters.activeBrandName) {
+              searchFields.push(`brand.ilike.%${searchTerm}%`);
+            }
+            
+            // Only include model in search if not being filtered separately
+            if (!filters.activeModelName) {
+              searchFields.push(`model.ilike.%${searchTerm}%`);
+            }
+            
+            // Apply dynamic OR conditions
+            if (searchFields.length > 0) {
+              query = query.or(searchFields.join(','));
+            }
           }
         }
 
