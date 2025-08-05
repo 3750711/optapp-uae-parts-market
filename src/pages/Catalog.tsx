@@ -23,6 +23,7 @@ const Catalog: React.FC = () => {
     brandModels,
     findBrandNameById,
     findModelNameById,
+    selectBrand,
     shouldLoadCarData
   } = useConditionalCarData();
 
@@ -88,7 +89,10 @@ const Catalog: React.FC = () => {
     
     if (item.brand && brands.length > 0) {
       const brandId = brands.find(b => b.name === item.brand)?.id;
-      if (brandId) setSelectedBrand(brandId);
+      if (brandId) {
+        setSelectedBrand(brandId);
+        selectBrand(brandId);
+      }
     }
     
     if (item.model && brandModels.length > 0) {
@@ -99,7 +103,7 @@ const Catalog: React.FC = () => {
     setTimeout(() => {
       handleSearch();
     }, 100);
-  }, [brands, brandModels, handleSearch, setSelectedBrand]);
+  }, [brands, brandModels, handleSearch, setSelectedBrand, selectBrand]);
 
   const handleEnhancedSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +118,8 @@ const Catalog: React.FC = () => {
   const handleClearBrand = useCallback(() => {
     setSelectedBrand(null);
     setSelectedModel(null);
-  }, [setSelectedBrand, setSelectedModel]);
+    selectBrand(null);
+  }, [setSelectedBrand, setSelectedModel, selectBrand]);
 
   const handleClearModel = useCallback(() => {
     setSelectedModel(null);
@@ -170,7 +175,10 @@ const Catalog: React.FC = () => {
               onClearSearch={handleClearSearch}
               onSearchSubmit={handleEnhancedSearchSubmit}
               selectedBrand={selectedBrand}
-              selectBrand={setSelectedBrand}
+              selectBrand={(brandId) => {
+                setSelectedBrand(brandId);
+                selectBrand(brandId);
+              }}
               selectedModel={selectedModel}
               setSelectedModel={setSelectedModel}
               brands={brands}
