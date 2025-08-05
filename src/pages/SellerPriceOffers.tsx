@@ -46,6 +46,14 @@ const SellerPriceOffers = () => {
   const { data: groupedOffers, isLoading } = useSellerOffersGrouped();
   const updateOffer = useUpdatePriceOffer();
 
+  // Separate useEffect for component mount/unmount tracking
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   // Optimized cache refresh with performance monitoring
   useEffect(() => {
     const timer = startTimer('seller-offers-mount');
@@ -58,10 +66,6 @@ const SellerPriceOffers = () => {
     });
     
     timer.end();
-
-    return () => {
-      mountedRef.current = false;
-    };
   }, [queryClient, startTimer]);
 
   const handleGoBack = () => {
