@@ -87,13 +87,13 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
         {productChunks.length > 0 && hasNextPage && (
           <div
             ref={loadMoreRef}
-            className="h-1 w-full opacity-0 pointer-events-none -mb-32"
+            className="h-1 w-full opacity-0 pointer-events-none"
             aria-hidden="true"
           />
         )}
 
         {(hasNextPage || isFetchingNextPage) && (
-          <div className="mt-8 mb-4 flex flex-col items-center justify-center">
+          <div className="mt-12 mb-8 flex flex-col items-center justify-center">
             <div className="h-16 w-full flex items-center justify-center">
               {isFetchingNextPage ? (
                 <div className="flex items-center justify-center gap-3">
