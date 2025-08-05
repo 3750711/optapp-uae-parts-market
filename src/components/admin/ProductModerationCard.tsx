@@ -37,6 +37,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const [isPublishing, setIsPublishing] = useState(false);
   const [brandId, setBrandId] = useState<string>('');
   const [modelId, setModelId] = useState<string>('');
+  const [originalTitle] = useState<string>(product.title); // Store original title on component mount
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -150,7 +151,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       
       if (!currentDescription.includes(originalTitlePrefix)) {
         // Add original title to description
-        const originalTitleText = `${originalTitlePrefix} ${product.title}`;
+        const originalTitleText = `${originalTitlePrefix} ${originalTitle}`;
         updatedDescription = currentDescription 
           ? `${originalTitleText}\n\n${currentDescription}`
           : originalTitleText;
@@ -227,9 +228,10 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             Название
           </label>
           <AdminTitleEditor
+            originalTitle={originalTitle}
             value={product.title}
             onSave={(value) => handleFieldUpdate('title', value)}
-            placeholder="Название товара"
+            placeholder="Введите новое название товара"
             className="mt-1"
           />
         </div>
