@@ -40,7 +40,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
   const { user } = useAuth();
   const { primaryImage } = useProductImage(product);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'self_pickup' | 'cargo_rf' | 'cargo_kz'>('self_pickup');
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'self_pickup' | 'cargo_rf' | 'cargo_kz'>('cargo_rf');
   
   const createOfferMutation = useCreatePriceOffer();
   const updateOfferMutation = useUpdatePriceOffer();
@@ -57,7 +57,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
     defaultValues: {
       offered_price: Number(existingOffer?.offered_price) || 0,
       message: existingOffer?.message || '',
-      delivery_method: existingOffer?.delivery_method || 'self_pickup',
+      delivery_method: existingOffer?.delivery_method || 'cargo_rf',
     }
   });
 
@@ -66,7 +66,7 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
   // Reset form when modal opens/closes or offer changes
   useEffect(() => {
     if (isOpen) {
-      const deliveryMethod = existingOffer?.delivery_method || 'self_pickup';
+      const deliveryMethod = existingOffer?.delivery_method || 'cargo_rf';
       reset({
         offered_price: Number(existingOffer?.offered_price) || 0,
         message: existingOffer?.message || '',
