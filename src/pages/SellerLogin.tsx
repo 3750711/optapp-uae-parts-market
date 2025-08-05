@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,33 +18,67 @@ const SellerLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signInWithTelegram } = useAuth();
+  const { signIn, signInWithTelegram, user, profile, isProfileLoading } = useAuth();
   const navigate = useNavigate();
   const { language, changeLanguage } = useLanguage('en');
   
   const t = getLoginTranslations(language);
+
+  // Handle redirection after successful authentication
+  useEffect(() => {
+    console.log('🔐 SellerLogin: Auth state changed', {
+      hasUser: !!user,
+      hasProfile: !!profile,
+      isProfileLoading,
+      userType: profile?.user_type,
+      verificationStatus: profile?.verification_status,
+      timestamp: new Date().toISOString()
+    });
+
+    // Only redirect if we have both user and profile loaded, and user is a seller
+    if (user && profile && !isProfileLoading) {
+      if (profile.user_type === 'seller') {
+        console.log('🔐 SellerLogin: Redirecting seller to dashboard');
+        navigate('/seller/dashboard', { replace: true });
+      } else if (profile.verification_status === 'pending') {
+        console.log('🔐 SellerLogin: Redirecting to pending approval');
+        navigate('/pending-approval', { replace: true });
+      } else {
+        console.log('🔐 SellerLogin: User type not seller:', profile.user_type);
+        toast({
+          title: language === 'en' ? 'Access Denied' : 'Доступ запрещен',
+          description: language === 'en' ? 'This login is for sellers only.' : 'Этот вход только для продавцов.',
+          variant: "destructive",
+        });
+      }
+    }
+  }, [user, profile, isProfileLoading, navigate, language]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      console.log('🔐 SellerLogin: Starting login process');
       const { error } = await signIn(email, password);
       
       if (error) {
+        console.log('🔐 SellerLogin: Login error:', error);
         toast({
           title: t.errors.loginFailed,
           description: error.message || t.errors.invalidCredentials,
           variant: "destructive",
         });
       } else {
+        console.log('🔐 SellerLogin: Login successful, waiting for profile to load');
         toast({
           title: t.welcomeBack,
-          description: language === 'en' ? "Successfully logged in to your seller account." : "Успешный вход в аккаунт продавца.",
+          description: language === 'en' ? "Successfully logged in. Loading your profile..." : "Успешный вход. Загрузка профиля...",
         });
-        navigate('/seller/dashboard');
+        // Don't navigate here - let useEffect handle it after profile loads
       }
     } catch (error) {
+      console.error('🔐 SellerLogin: Login exception:', error);
       devLog('Login error:', error);
       toast({
         title: t.errors.loginFailed,
@@ -178,13 +212,15 @@ const SellerLogin: React.FC = () => {
                   <div className="flex justify-center">
                     <TelegramLoginWidget
                       onSuccess={() => {
+                        console.log('🔐 SellerLogin: Telegram login successful, waiting for profile to load');
                         toast({
                           title: t.welcomeBack,
-                          description: t.telegramLoginSuccess,
+                          description: language === 'en' ? "Successfully logged in via Telegram. Loading your profile..." : "Успешный вход через Telegram. Загрузка профиля...",
                         });
-                        navigate('/seller/dashboard');
+                        // Don't navigate here - let useEffect handle it after profile loads
                       }}
                       onError={(error) => {
+                        console.log('🔐 SellerLogin: Telegram login error:', error);
                         toast({
                           title: t.errors.telegramLoginFailed,
                           description: error || (language === 'en' ? "Unable to login with Telegram. Please try again." : "Не удалось войти через Telegram. Попробуйте снова."),

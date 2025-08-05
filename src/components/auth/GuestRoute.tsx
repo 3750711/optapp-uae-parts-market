@@ -8,13 +8,14 @@ interface GuestRouteProps {
 }
 
 const GuestRoute = ({ children }: GuestRouteProps) => {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isLoading, isProfileLoading } = useAuth();
   const location = useLocation();
   
   console.log("🔐 GuestRoute: Auth state check:", { 
     user: !!user, 
     profile: !!profile, 
     isLoading,
+    isProfileLoading,
     userType: profile?.user_type,
     verificationStatus: profile?.verification_status,
     timestamp: new Date().toISOString()
@@ -27,8 +28,9 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
     userType: profile?.user_type
   });
   
-  // Show loading while checking authentication
-  if (isLoading) {
+  // Show loading while checking authentication or profile
+  if (isLoading || (user && isProfileLoading)) {
+    console.log("🔐 GuestRoute: Showing loading state", { isLoading, isProfileLoading, hasUser: !!user });
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>

@@ -387,27 +387,86 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signOut = useCallback(async () => {
+    console.log('🔐 SignOut: Starting logout process');
+    
     try {
+      // Log current state before logout
+      console.log('🔐 SignOut: Current state before logout', {
+        hasUser: !!user,
+        hasProfile: !!profile,
+        hasSession: !!session,
+        timestamp: new Date().toISOString()
+      });
+
+      // Clear admin cache first
       clearAdminCache();
-      // Проверяем есть ли активная сессия перед попыткой выхода
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await supabase.auth.signOut();
+      console.log('🔐 SignOut: Admin cache cleared');
+
+      // Clear localStorage as a safety measure
+      try {
+        localStorage.removeItem('sb-' + supabase.supabaseUrl.split('://')[1].split('.')[0] + '-auth-token');
+        console.log('🔐 SignOut: localStorage auth token cleared');
+      } catch (localStorageError) {
+        console.warn('🔐 SignOut: Could not clear localStorage:', localStorageError);
       }
-      // Принудительно очищаем состояние даже если signOut не сработал
+
+      // Reset redirect protection to prevent issues
+      const { redirectProtection } = await import('@/utils/redirectProtection');
+      redirectProtection.reset();
+      console.log('🔐 SignOut: Redirect protection reset');
+
+      // Check for active session before attempting logout
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      console.log('🔐 SignOut: Current session check', { hasSession: !!currentSession });
+      
+      if (currentSession) {
+        console.log('🔐 SignOut: Calling supabase.auth.signOut()');
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+          console.error('🔐 SignOut: Supabase signOut error:', error);
+          throw error;
+        }
+        console.log('🔐 SignOut: Supabase signOut completed successfully');
+      } else {
+        console.log('🔐 SignOut: No active session found, skipping supabase signOut');
+      }
+
+      // Force clear all states regardless of signOut result
+      console.log('🔐 SignOut: Clearing all auth states');
       setSession(null);
       setUser(null);
       setProfile(null);
       setIsAdmin(null);
+      setIsLoading(false);
+      setIsProfileLoading(false);
+
+      console.log('🔐 SignOut: Logout completed successfully');
+      
     } catch (error) {
-      console.error('Error during sign out:', error);
-      // Очищаем состояние даже в случае ошибки
+      console.error('🔐 SignOut: Error during logout:', error);
+      
+      // Emergency cleanup - clear everything even if there were errors
+      console.log('🔐 SignOut: Performing emergency cleanup');
       setSession(null);
       setUser(null);
       setProfile(null);
       setIsAdmin(null);
+      setIsLoading(false);
+      setIsProfileLoading(false);
+      
+      // Clear localStorage as emergency measure
+      try {
+        localStorage.clear();
+        console.log('🔐 SignOut: Emergency localStorage clear completed');
+      } catch (emergencyError) {
+        console.error('🔐 SignOut: Emergency localStorage clear failed:', emergencyError);
+      }
+      
+      // Still throw the error so calling components can handle it
+      throw error;
     }
-  }, []);
+  }, [user, profile, session]);
 
   // Мемоизируем значение контекста
   const contextValue = useMemo(() => ({
