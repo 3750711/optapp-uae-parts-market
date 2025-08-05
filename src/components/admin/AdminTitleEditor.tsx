@@ -47,7 +47,7 @@ const AdminTitleEditor: React.FC<AdminTitleEditorProps> = ({
         <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
           📝 Оригинальное название от продавца:
         </label>
-        <div className="p-3 bg-muted/50 border rounded-md text-sm leading-relaxed min-h-[60px] whitespace-pre-wrap">
+        <div className="p-3 bg-muted/50 border rounded-md text-sm leading-relaxed min-h-[60px] max-h-[120px] overflow-y-auto whitespace-pre-wrap">
           {originalTitle}
         </div>
       </div>
