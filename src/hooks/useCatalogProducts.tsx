@@ -33,8 +33,8 @@ export type ProductType = {
 export interface CatalogFilters {
   activeSearchTerm: string;
   hideSoldProducts: boolean;
-  selectedBrand?: string | null;
-  selectedModel?: string | null;
+  activeBrand?: string | null;
+  activeModel?: string | null;
 }
 
 interface UseCatalogProductsProps {
@@ -64,14 +64,16 @@ export const useCatalogProducts = ({
   const { startTimer } = usePerformanceMonitor();
   const isInitialRender = useRef(true);
   
-  const [internalSelectedBrand, setInternalSelectedBrand] = useState<string | null>(null);
-  const [internalSelectedModel, setInternalSelectedModel] = useState<string | null>(null);
-
-  const selectedBrand = externalSelectedBrand !== undefined ? externalSelectedBrand : internalSelectedBrand;
-  const selectedModel = externalSelectedModel !== undefined ? externalSelectedModel : internalSelectedModel;
+  // Separate selected (UI) and active (filtering) states for brand/model
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [activeBrand, setActiveBrand] = useState<string | null>(null);
+  const [activeModel, setActiveModel] = useState<string | null>(null);
 
   const selectedBrandName = findBrandNameById ? findBrandNameById(selectedBrand) : selectedBrand;
   const selectedModelName = findModelNameById ? findModelNameById(selectedModel) : selectedModel;
+  const activeBrandName = findBrandNameById ? findBrandNameById(activeBrand) : activeBrand;
+  const activeModelName = findModelNameById ? findModelNameById(activeModel) : activeModel;
 
   // Use unified search for intelligent search parsing
   const { searchConditions, hasActiveSearch } = useUnifiedSearch(activeSearchTerm);
@@ -100,14 +102,14 @@ export const useCatalogProducts = ({
     const filtersObj = {
       activeSearchTerm,
       hideSoldProducts,
-      selectedBrandName,
-      selectedModelName,
+      activeBrandName,
+      activeModelName,
       sortBy,
       isAdmin,
       searchConditions
     };
     return filtersObj;
-  }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin, searchConditions]);
+  }, [activeSearchTerm, hideSoldProducts, activeBrandName, activeModelName, sortBy, isAdmin, searchConditions]);
 
   const {
     data,
@@ -182,12 +184,12 @@ export const useCatalogProducts = ({
           }
         }
 
-        if (filters.selectedBrandName) {
-          query = query.eq('brand', filters.selectedBrandName);
+        if (filters.activeBrandName) {
+          query = query.eq('brand', filters.activeBrandName);
         }
 
-        if (filters.selectedModelName) {
-          query = query.eq('model', filters.selectedModelName);
+        if (filters.activeModelName) {
+          query = query.eq('model', filters.activeModelName);
         }
 
         query = query.range(from, to);
@@ -301,13 +303,17 @@ export const useCatalogProducts = ({
   const handleClearSearch = useCallback(() => {
     setSearchTerm('');
     setActiveSearchTerm('');
-    if (externalSelectedBrand === undefined) setInternalSelectedBrand(null);
-    if (externalSelectedModel === undefined) setInternalSelectedModel(null);
-  }, [externalSelectedBrand, externalSelectedModel]);
+    setSelectedBrand(null);
+    setSelectedModel(null);
+    setActiveBrand(null);
+    setActiveModel(null);
+  }, []);
 
   const handleSearch = useCallback(() => {
     setActiveSearchTerm(searchTerm);
-  }, [searchTerm]);
+    setActiveBrand(selectedBrand);
+    setActiveModel(selectedModel);
+  }, [searchTerm, selectedBrand, selectedModel]);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -321,9 +327,13 @@ export const useCatalogProducts = ({
     hideSoldProducts,
     setHideSoldProducts,
     selectedBrand,
-    setSelectedBrand: externalSelectedBrand === undefined ? setInternalSelectedBrand : () => {},
+    setSelectedBrand,
     selectedModel,
-    setSelectedModel: externalSelectedModel === undefined ? setInternalSelectedModel : () => {},
+    setSelectedModel,
+    activeBrand,
+    activeModel,
+    activeBrandName,
+    activeModelName,
     allProducts: mappedProducts,
     mappedProducts,
     productChunks,
@@ -338,7 +348,7 @@ export const useCatalogProducts = ({
     handleSearch,
     handleSearchSubmit,
     prefetchNextPage, // New method for prefetching
-    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || selectedBrandName || selectedModelName)
+    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || activeBrandName || activeModelName)
   };
 };
 

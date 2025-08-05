@@ -21,14 +21,11 @@ const Catalog: React.FC = () => {
   const {
     brands,
     brandModels,
-    selectedBrand,
-    selectBrand,
     findBrandNameById,
     findModelNameById,
     shouldLoadCarData
   } = useConditionalCarData();
 
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const { addToHistory } = useSearchHistory();
 
   // Убираем batch offers из каталога для оптимизации производительности
@@ -38,6 +35,14 @@ const Catalog: React.FC = () => {
     activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
+    selectedBrand,
+    setSelectedBrand,
+    selectedModel,
+    setSelectedModel,
+    activeBrand,
+    activeModel,
+    activeBrandName,
+    activeModelName,
     mappedProducts,
     productChunks,
     fetchNextPage,
@@ -52,11 +57,8 @@ const Catalog: React.FC = () => {
     prefetchNextPage,
   } = useCatalogProducts({
     productsPerPage: 24,
-    externalSelectedBrand: selectedBrand,
-    externalSelectedModel: selectedModel,
     findBrandNameById,
     findModelNameById,
-    debounceTime: 200
   });
 
   // Auto-load more products when visible
@@ -86,7 +88,7 @@ const Catalog: React.FC = () => {
     
     if (item.brand && brands.length > 0) {
       const brandId = brands.find(b => b.name === item.brand)?.id;
-      if (brandId) selectBrand(brandId);
+      if (brandId) setSelectedBrand(brandId);
     }
     
     if (item.model && brandModels.length > 0) {
@@ -97,7 +99,7 @@ const Catalog: React.FC = () => {
     setTimeout(() => {
       handleSearch();
     }, 100);
-  }, [brands, brandModels, handleSearch, selectBrand]);
+  }, [brands, brandModels, handleSearch, setSelectedBrand]);
 
   const handleEnhancedSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -110,13 +112,13 @@ const Catalog: React.FC = () => {
   }, [searchTerm, selectedBrand, selectedModel, findBrandNameById, findModelNameById, addToHistory, handleSearchSubmit]);
 
   const handleClearBrand = useCallback(() => {
-    selectBrand(null);
+    setSelectedBrand(null);
     setSelectedModel(null);
-  }, [selectBrand]);
+  }, [setSelectedBrand, setSelectedModel]);
 
   const handleClearModel = useCallback(() => {
     setSelectedModel(null);
-  }, []);
+  }, [setSelectedModel]);
 
   const handleClearSoldFilter = useCallback(() => {
     setHideSoldProducts(false);
@@ -124,18 +126,15 @@ const Catalog: React.FC = () => {
 
   const handleClearAll = useCallback(() => {
     handleClearSearch();
-    selectBrand(null);
-    setSelectedModel(null);
-    setHideSoldProducts(false);
-  }, [handleClearSearch, selectBrand, setHideSoldProducts]);
+  }, [handleClearSearch]);
 
   const selectedBrandName = findBrandNameById(selectedBrand);
   const selectedModelName = findModelNameById(selectedModel);
 
   const hasAnyFilters = !!(
     activeSearchTerm || 
-    selectedBrandName || 
-    selectedModelName || 
+    activeBrandName || 
+    activeModelName || 
     hideSoldProducts
   );
 
@@ -157,8 +156,8 @@ const Catalog: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <CatalogBreadcrumb
           searchQuery={activeSearchTerm}
-          selectedBrandName={selectedBrandName}
-          selectedModelName={selectedModelName}
+          selectedBrandName={activeBrandName}
+          selectedModelName={activeModelName}
         />
 
         {shouldLoadCarData && (
@@ -171,7 +170,7 @@ const Catalog: React.FC = () => {
               onClearSearch={handleClearSearch}
               onSearchSubmit={handleEnhancedSearchSubmit}
               selectedBrand={selectedBrand}
-              selectBrand={selectBrand}
+              selectBrand={setSelectedBrand}
               selectedModel={selectedModel}
               setSelectedModel={setSelectedModel}
               brands={brands}
@@ -214,8 +213,8 @@ const Catalog: React.FC = () => {
         {hasAnyFilters && (
           <ActiveFilters
             searchQuery={activeSearchTerm}
-            selectedBrandName={selectedBrandName}
-            selectedModelName={selectedModelName}
+            selectedBrandName={activeBrandName}
+            selectedModelName={activeModelName}
             hideSoldProducts={hideSoldProducts}
             onClearSearch={handleClearSearch}
             onClearBrand={handleClearBrand}
@@ -228,8 +227,8 @@ const Catalog: React.FC = () => {
         <StickyFilters
           searchQuery={searchTerm}
           setSearchQuery={setSearchTerm}
-          selectedBrandName={selectedBrandName}
-          selectedModelName={selectedModelName}
+          selectedBrandName={activeBrandName}
+          selectedModelName={activeModelName}
           onClearSearch={handleClearSearch}
           onOpenFilters={() => {
             const filtersSection = document.querySelector('[data-filters-section]');
