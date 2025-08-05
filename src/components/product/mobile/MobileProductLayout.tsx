@@ -146,7 +146,7 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
           </span>
           {product.delivery_price && (
             <span className="text-primary font-medium">
-              — ${product.delivery_price}, срок 10–14 дней
+              — ${product.delivery_price}
             </span>
           )}
         </div>
