@@ -9,7 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckCircle, Eye, Package } from 'lucide-react';
+import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 
 interface Product {
   id: string;
@@ -38,8 +39,28 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const [brandId, setBrandId] = useState<string>('');
   const [modelId, setModelId] = useState<string>('');
   const [originalTitle] = useState<string>(product.title); // Store original title on component mount
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Image navigation logic
+  const images = product.product_images || [];
+  const hasMultipleImages = images.length > 1;
+  
+  const goToPrevious = () => {
+    setCurrentImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1);
+  };
+  
+  const goToNext = () => {
+    setCurrentImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1);
+  };
+  
+  // Setup swipe navigation
+  const swipeRef = useSwipeNavigation({
+    onSwipeLeft: goToNext,
+    onSwipeRight: goToPrevious,
+    threshold: 50
+  });
   
   const {
     brands,
@@ -201,18 +222,61 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative h-48 bg-muted">
-        {primaryImage ? (
-          <img
-            src={primaryImage.url}
-            alt={product.title}
-            className="w-full h-full object-cover"
-          />
+      <div ref={swipeRef} className="relative h-48 bg-muted overflow-hidden">
+        {images.length > 0 ? (
+          <>
+            <img
+              src={images[currentImageIndex]?.url}
+              alt={product.title}
+              className="w-full h-full object-cover transition-all duration-300"
+            />
+            
+            {/* Navigation Buttons - only show if multiple images */}
+            {hasMultipleImages && (
+              <>
+                <button
+                  onClick={goToPrevious}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
+                  aria-label="Предыдущее фото"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                
+                <button
+                  onClick={goToNext}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
+                  aria-label="Следующее фото"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+                
+                {/* Image Counter */}
+                <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                  {currentImageIndex + 1} / {images.length}
+                </div>
+                
+                {/* Image Indicators */}
+                <div className="absolute bottom-2 right-2 flex gap-1">
+                  {images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setCurrentImageIndex(index)}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        index === currentImageIndex ? 'bg-white' : 'bg-white/40'
+                      }`}
+                      aria-label={`Перейти к фото ${index + 1}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Package className="h-12 w-12 text-muted-foreground" />
           </div>
         )}
+        
         <Badge 
           className={`absolute top-2 right-2 ${getStatusColor(product.status)}`}
           variant="outline"
