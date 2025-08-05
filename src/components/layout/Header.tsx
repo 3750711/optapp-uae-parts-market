@@ -85,36 +85,7 @@ const Header = () => {
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
     <nav className="flex flex-col md:flex-row items-center gap-2 md:gap-5">
-      {/* Show navigation links only for authenticated and verified users */}
-      {user && profile?.verification_status === 'verified' && (
-        <>
-          {profile?.user_type !== 'seller' && (
-            <>
-              <Link 
-                to="/catalog" 
-                className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-                onClick={onClick}
-              >
-                {t.header.catalog}
-              </Link>
-              <Link 
-                to="/stores" 
-                className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-                onClick={onClick}
-              >
-                {t.header.stores}
-              </Link>
-              <Link 
-                to="/requests" 
-                className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-                onClick={onClick}
-              >
-                {t.header.requests}
-              </Link>
-            </>
-          )}
-        </>
-      )}
+      {/* Navigation links removed */}
     </nav>
   );
 
