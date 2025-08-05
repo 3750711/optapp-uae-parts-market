@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/product";
-import ProductCard from "@/components/product/ProductCard";
+import { SimpleProductCard } from "@/components/product/SimpleProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -114,11 +114,9 @@ const SellerProducts: React.FC<SellerProductsProps> = ({
       <div className="p-4">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {sellerProducts.map((product) => (
-            <ProductCard
+            <SimpleProductCard
               key={product.id}
               product={product as Product}
-              disableCarousel={true}
-              hideMakeOfferButton={true}
             />
           ))}
         </div>
