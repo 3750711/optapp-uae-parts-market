@@ -242,7 +242,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               <div className="flex items-center gap-2 text-xs text-gray-600">
                 {product.brand && <span className="font-medium">{product.brand}</span>}
                 {product.model && <span>• {product.model}</span>}
-                {product.condition && <span>• {product.condition}</span>}
               </div>
 
               <div className="flex items-center justify-between">

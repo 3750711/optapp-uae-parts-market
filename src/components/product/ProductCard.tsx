@@ -216,11 +216,6 @@ const ProductCard = memo(({
             <div className="text-lg font-bold text-primary">
               {formatPrice(product.price)}
             </div>
-            {product.condition && (
-              <Badge variant="outline" className="text-xs">
-                {product.condition}
-              </Badge>
-            )}
           </div>
 
           {/* Enhanced Product Details */}
