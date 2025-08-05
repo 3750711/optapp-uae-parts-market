@@ -54,7 +54,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           </span>
           <Input 
             type="text"
-            placeholder="Поиск по названию, бренду, модели..." 
+            placeholder="Поиск по названию, бренду, номеру лота, OPT-ID..." 
             className="pl-11 pr-10 py-2.5 md:py-3 text-base border-gray-200 shadow-none bg-white/70 backdrop-blur-sm rounded-xl focus:border-primary/50"
             value={searchQuery}
             onChange={handleSearchInputChange}
@@ -89,7 +89,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             size="sm" 
             className={`absolute right-2 top-1/2 -translate-y-1/2 ${searchQuery ? 'hidden' : 'md:flex hidden'} items-center rounded-lg px-3 py-1 text-xs bg-gray-50 hover:bg-gray-100 text-gray-500`}
           >
-            <span className="mr-2">Поиск</span>
+            <span className="mr-2">Найти</span>
             <kbd className="bg-white px-1.5 py-0.5 rounded border border-gray-200 text-xs font-medium">↵</kbd>
           </Button>
         </div>

@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Search, HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SearchBar from './SearchBar';
+import SearchTypeIndicator from './SearchTypeIndicator';
 
 interface CatalogSearchAndFiltersProps {
   searchTerm: string;
@@ -53,6 +54,13 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
           selectedBrandName={selectedBrand ? brands.find(b => b.id === selectedBrand)?.name : null}
           selectedModelName={selectedModel ? brandModels.find(m => m.id === selectedModel)?.name : null}
         />
+        
+        {/* Search type indicator */}
+        {activeSearchTerm && (
+          <div className="flex justify-center">
+            <SearchTypeIndicator searchTerm={activeSearchTerm} />
+          </div>
+        )}
         
         {/* Фильтры марки и модели с ссылкой на руководство */}
         <div className="flex flex-col sm:flex-row gap-3">
@@ -110,9 +118,9 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
           </div>
         
           {/* Search button */}
-          <Button type="submit" onClick={onSearchSubmit} className="bg-primary hover:bg-primary/90">
+          <Button type="submit" onClick={onSearchSubmit} className="bg-primary hover:bg-primary/90 px-6">
             <Search className="h-4 w-4 mr-2" />
-            Поиск
+            Найти
           </Button>
         </div>
 

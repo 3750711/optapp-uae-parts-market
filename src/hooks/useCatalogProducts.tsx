@@ -5,8 +5,8 @@ import { useToast } from '@/components/ui/use-toast';
 import { ProductProps } from '@/components/product/ProductCard';
 import { SortOption } from '@/components/catalog/ProductSorting';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
-import { useDebounceValue } from '@/hooks/useDebounceValue';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
+import { useUnifiedSearch } from './useUnifiedSearch';
 
 export type ProductType = {
   id: string;
@@ -57,7 +57,6 @@ export const useCatalogProducts = ({
   debounceTime = 200
 }: UseCatalogProductsProps = {}) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounceValue(searchTerm, debounceTime);
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const { toast } = useToast();
@@ -74,16 +73,9 @@ export const useCatalogProducts = ({
   const selectedBrandName = findBrandNameById ? findBrandNameById(selectedBrand) : selectedBrand;
   const selectedModelName = findModelNameById ? findModelNameById(selectedModel) : selectedModel;
 
-  useEffect(() => {
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
-      return;
-    }
-    
-    if (debouncedSearchTerm !== activeSearchTerm) {
-      setActiveSearchTerm(debouncedSearchTerm);
-    }
-  }, [debouncedSearchTerm, activeSearchTerm]);
+  // Use unified search for intelligent search parsing
+  const { searchConditions, hasActiveSearch } = useUnifiedSearch(activeSearchTerm);
+
 
   const buildSortQuery = (query: any, sortOption: SortOption) => {
     switch (sortOption) {
@@ -111,10 +103,11 @@ export const useCatalogProducts = ({
       selectedBrandName,
       selectedModelName,
       sortBy,
-      isAdmin
+      isAdmin,
+      searchConditions
     };
     return filtersObj;
-  }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
+  }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin, searchConditions]);
 
   const {
     data,
@@ -172,11 +165,21 @@ export const useCatalogProducts = ({
           }
         }
 
-        // Optimized search with composite indexes
-        if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 3) {
-          const searchTerm = filters.activeSearchTerm.trim();
-          // Use composite index for better performance: (brand, model, title)
-          query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
+        // Intelligent search using unified search conditions
+        if (filters.activeSearchTerm && filters.activeSearchTerm.trim()) {
+          const { searchConditions } = filters;
+          
+          if (searchConditions.lotNumber) {
+            // Search by lot number
+            query = query.eq('lot_number', searchConditions.lotNumber);
+          } else if (searchConditions.optIdSearch) {
+            // Search by seller OPT-ID
+            query = query.ilike('optid_created', `%${searchConditions.optIdSearch}%`);
+          } else if (searchConditions.textSearch) {
+            // Text search across title, brand, model, seller name
+            const searchTerm = searchConditions.textSearch;
+            query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`);
+          }
         }
 
         if (filters.selectedBrandName) {
