@@ -27,6 +27,7 @@ export type ProductType = {
   delivery_price?: number | null;
   cloudinary_public_id?: string | null;
   cloudinary_url?: string | null;
+  lot_number?: number | null;
 };
 
 export interface CatalogFilters {
@@ -151,6 +152,7 @@ export const useCatalogProducts = ({
             optid_created,
             cloudinary_public_id, 
             cloudinary_url,
+            lot_number,
             product_images(url, is_primary)
           `);
 
@@ -265,6 +267,7 @@ export const useCatalogProducts = ({
           cloudinary_public_id: typedProduct.cloudinary_public_id,
           cloudinary_url: typedProduct.cloudinary_url,
           rating_seller: typedProduct.rating_seller,
+          lot_number: typedProduct.lot_number,
           product_images: typedProduct.product_images?.map(img => ({
             id: '',
             url: img.url,
