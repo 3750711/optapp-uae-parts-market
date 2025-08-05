@@ -64,7 +64,7 @@ const AdminTitleEditor: React.FC<AdminTitleEditorProps> = ({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isSaving}
-          className="min-h-[80px] resize-none text-sm leading-relaxed"
+          className="min-h-[80px] max-h-[120px] overflow-y-auto resize-none text-sm leading-relaxed"
           rows={3}
         />
         {isSaving && (
