@@ -213,7 +213,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               <div className="flex flex-col items-end gap-1 ml-4">
                 {product.lot_number && (
                   <Badge variant="outline" className="text-xs px-1.5 py-0.5">
-                    Lot #{product.lot_number}
+                    Lot {product.lot_number}
                   </Badge>
                 )}
                 {product.status === 'sold' && (
