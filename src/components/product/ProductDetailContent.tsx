@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductInfo from "@/components/product/ProductInfo";
 import ContactButtons from "@/components/product/ContactButtons";
@@ -7,6 +7,7 @@ import EnhancedSellerInfo from "@/components/product/EnhancedSellerInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import { Product } from "@/types/product";
 import { Database } from "@/integrations/supabase/types";
+import { useResourcePreloader } from "@/hooks/useResourcePreloader";
 
 interface ProductDetailContentProps {
   product: Product;
@@ -33,6 +34,12 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
   deliveryMethod,
   onDeliveryMethodChange,
 }) => {
+  // Preload critical resources
+  useResourcePreloader({
+    images: imageUrls.slice(0, 2), // First 2 images as critical
+    fonts: [], // Add your font URLs if any
+    stylesheets: [] // Add critical CSS if any
+  });
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">

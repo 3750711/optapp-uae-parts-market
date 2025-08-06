@@ -6,8 +6,11 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { X, ZoomIn, Share2, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
+import { useImagePreloader } from "@/hooks/useImagePreloader";
+import { useLazyImage } from "@/hooks/useLazyImage";
 
 interface ProductGalleryProps {
   images: string[];
@@ -33,6 +36,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   const [isZoomed, setIsZoomed] = useState(false);
   const [currentZoomIndex, setCurrentZoomIndex] = useState(0);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: allMedia.length > 1 });
+
+  // Preload priority images (first 2 images)
+  const { preloadImage } = useImagePreloader({ 
+    images: images.slice(0, 2), 
+    priority: 2 
+  });
 
   const handleMainImageClick = () => {
     if (!isVideo(activeMedia)) {
@@ -164,6 +173,14 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                       src={media}
                       alt={title}
                       className="w-full h-full object-contain"
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      decoding={index === 0 ? 'sync' : 'async'}
+                      onLoad={() => {
+                        // Preload next image when current loads
+                        if (index < allMedia.length - 1 && !isVideo(allMedia[index + 1])) {
+                          preloadImage(allMedia[index + 1]);
+                        }
+                      }}
                     />
                   )}
                   
@@ -237,6 +254,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     src={media}
                     alt={`${title} - изображение ${index + 1}`}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 )}
               </div>
@@ -405,8 +424,5 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
     </div>
   );
 };
-
-// Need to import ScrollArea components
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 export default ProductGallery;

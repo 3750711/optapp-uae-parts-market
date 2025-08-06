@@ -41,7 +41,19 @@ const SEOHead: React.FC<SEOHeadProps> = ({
     setMetaTag('robots', 'index, follow');
     setMetaTag('author', 'PartsBay.ae');
     
-    // Получаем полный URL для изображения
+    // Получаем полный URL для изображения с проверкой существования
+    const getValidOgImage = async (imagePath: string) => {
+      if (imagePath.startsWith('http')) return imagePath;
+      
+      const fullUrl = `${window.location.origin}${imagePath}`;
+      try {
+        const response = await fetch(fullUrl, { method: 'HEAD' });
+        return response.ok ? fullUrl : `${window.location.origin}/placeholder.svg`;
+      } catch {
+        return `${window.location.origin}/placeholder.svg`;
+      }
+    };
+
     const fullImageUrl = ogImage.startsWith('http') 
       ? ogImage 
       : `${window.location.origin}${ogImage}`;
