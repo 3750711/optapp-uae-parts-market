@@ -83,7 +83,7 @@ export const SimpleMakeOfferButton: React.FC<SimpleMakeOfferButtonProps> = ({
   const getButtonText = () => {
     if (userOffer) {
       // User has a pending offer
-      return `Изменить предложение ($${userOffer.offered_price})`;
+      return `Вы предложили ($${userOffer.offered_price})`;
     }
     
     if (latestOffer) {
