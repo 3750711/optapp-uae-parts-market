@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ProductProps } from '@/components/product/ProductCard';
 import { formatPrice } from '@/utils/formatPrice';
+import ProductStatusBadge from '@/components/product/ProductStatusBadge';
 
 interface SimpleProductCardProps {
   product: ProductProps;
@@ -23,17 +24,31 @@ export const SimpleProductCard: React.FC<SimpleProductCardProps> = ({ product })
       className="bg-white rounded-lg overflow-hidden cursor-pointer group hover:shadow-md transition-shadow duration-200"
     >
       {/* Product Image */}
-      <div className="aspect-square bg-muted overflow-hidden">
+      <div className="aspect-square bg-muted overflow-hidden relative">
         {primaryImage ? (
           <img 
             src={primaryImage.url} 
             alt={product.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 ${
+              product.status === 'sold' ? 'opacity-60' : ''
+            }`}
           />
         ) : (
           <div className="w-full h-full bg-muted flex items-center justify-center">
             <span className="text-muted-foreground text-sm">Нет фото</span>
           </div>
+        )}
+        
+        {/* Sold Badge */}
+        {product.status === 'sold' && (
+          <div className="absolute top-2 right-2">
+            <ProductStatusBadge status="sold" size="sm" showIcon={false} />
+          </div>
+        )}
+        
+        {/* Sold Overlay */}
+        {product.status === 'sold' && (
+          <div className="absolute inset-0 bg-black/20" />
         )}
       </div>
 
