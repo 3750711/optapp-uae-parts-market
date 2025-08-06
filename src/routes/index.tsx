@@ -36,6 +36,7 @@ const PendingApprovalPage = lazy(() => import('@/pages/PendingApprovalPage'));
 
 // Lazy loaded защищенные страницы
 const Profile = lazy(() => import('@/pages/Profile'));
+const BuyerDashboard = lazy(() => import('@/pages/BuyerDashboard'));
 const CreateStore = lazy(() => import('@/pages/CreateStore'));
 const CreateRequest = lazy(() => import('@/pages/CreateRequest'));
 const BuyerOrders = lazy(() => import('@/pages/BuyerOrders'));
@@ -233,6 +234,11 @@ const AppRoutes: React.FC = () => {
             } />
 
             {/* Защищенные маршруты */}
+            <Route path="/buyer-dashboard" element={
+              <ProtectedRoute allowedRoles={['buyer']}>
+                <BuyerDashboard />
+              </ProtectedRoute>
+            } />
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />

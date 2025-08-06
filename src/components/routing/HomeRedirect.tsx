@@ -82,9 +82,13 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
           }
           break;
         case 'buyer':
+          console.log("🚀 HomeRedirect: Redirecting buyer to dashboard");
+          if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
+            return <Navigate to="/buyer-dashboard" replace />;
+          }
+          break;
         default:
-          console.log("🚀 HomeRedirect: Verified buyer staying on home page");
-          // Verified buyers stay on home page
+          console.log("🚀 HomeRedirect: User staying on home page");
           break;
       }
     } else {
