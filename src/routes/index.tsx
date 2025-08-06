@@ -22,6 +22,7 @@ const RequestDetail = lazy(() => import('@/pages/RequestDetail'));
 const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
 const PublicSellerProfile = lazy(() => import('@/pages/PublicSellerProfile'));
 const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
+const Help = lazy(() => import('@/pages/Help'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 // Lazy loaded страницы аутентификации
@@ -307,6 +308,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/favorites" element={
               <ProtectedRoute allowedRoles={['buyer', 'admin']}>
                 <Favorites />
+              </ProtectedRoute>
+            } />
+            <Route path="/help" element={
+              <ProtectedRoute>
+                <Help />
               </ProtectedRoute>
             } />
 
