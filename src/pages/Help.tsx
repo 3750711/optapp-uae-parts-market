@@ -17,7 +17,11 @@ import {
   Users,
   ShoppingCart,
   Store,
-  Shield
+  Shield,
+  User,
+  Package,
+  CreditCard,
+  Settings
 } from 'lucide-react';
 import {
   Accordion,
@@ -27,6 +31,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { useHelpData } from '@/hooks/useHelpData';
 
 const Help = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,96 +42,30 @@ const Help = () => {
     message: ''
   });
 
-  const faqCategories = [
-    {
-      title: "Общие вопросы",
-      icon: HelpCircle,
-      items: [
-        {
-          question: "Что такое PartsBay.ae?",
-          answer: "PartsBay.ae - это онлайн-платформа для покупки и продажи автозапчастей в ОАЭ. Мы соединяем покупателей с проверенными продавцами автозапчастей."
-        },
-        {
-          question: "Как зарегистрироваться на платформе?",
-          answer: "Нажмите кнопку 'Регистрация' в верхней части сайта, заполните форму с вашими данными и подтвердите email адрес."
-        },
-        {
-          question: "Платная ли регистрация?",
-          answer: "Регистрация на PartsBay.ae абсолютно бесплатная как для покупателей, так и для продавцов."
-        }
-      ]
-    },
-    {
-      title: "Для покупателей",
-      icon: ShoppingCart,
-      items: [
-        {
-          question: "Как найти нужную запчасть?",
-          answer: "Используйте поиск по каталогу, фильтры по марке, модели автомобиля, году выпуска или просто введите название запчасти в строку поиска."
-        },
-        {
-          question: "Как сделать заказ?",
-          answer: "Найдите нужный товар, нажмите 'Купить', заполните форму заказа с контактными данными и подтвердите заказ."
-        },
-        {
-          question: "Как работает система запросов?",
-          answer: "Если вы не нашли нужную запчасть, создайте запрос с описанием. Продавцы смогут предложить вам подходящие варианты."
-        },
-        {
-          question: "Как связаться с продавцом?",
-          answer: "На странице товара указаны контактные данные продавца. Также вы можете отправить сообщение через платформу."
-        }
-      ]
-    },
-    {
-      title: "Для продавцов",
-      icon: Store,
-      items: [
-        {
-          question: "Как стать продавцом?",
-          answer: "При регистрации выберите тип аккаунта 'Продавец', заполните информацию о вашем магазине и дождитесь подтверждения."
-        },
-        {
-          question: "Как добавить товар?",
-          answer: "В панели продавца нажмите 'Добавить товар', заполните описание, добавьте фотографии и укажите цену."
-        },
-        {
-          question: "Какие комиссии берет платформа?",
-          answer: "Размещение товаров бесплатное. Комиссия взимается только с успешных продаж и составляет 3-5% от суммы сделки."
-        },
-        {
-          question: "Как получить статус 'Проверенный продавец'?",
-          answer: "Подайте заявку на верификацию в панели продавца. Мы проверим ваши документы и репутацию."
-        }
-      ]
-    },
-    {
-      title: "Безопасность",
-      icon: Shield,
-      items: [
-        {
-          question: "Как проверить надежность продавца?",
-          answer: "Обращайте внимание на рейтинг продавца, отзывы покупателей и статус 'Проверенный продавец'."
-        },
-        {
-          question: "Что делать при возникновении спора?",
-          answer: "Обратитесь в службу поддержки через форму обратной связи или по телефону. Мы поможем решить конфликт."
-        },
-        {
-          question: "Гарантируете ли вы качество товаров?",
-          answer: "Мы проверяем продавцов, но ответственность за качество товара несет продавец. Всегда проверяйте товар при получении."
-        }
-      ]
-    }
-  ];
+  const { data: helpData, isLoading, error } = useHelpData();
 
-  const filteredFaq = faqCategories.map(category => ({
-    ...category,
-    items: category.items.filter(item =>
+  const getIconComponent = (iconName: string) => {
+    const iconMap: { [key: string]: any } = {
+      HelpCircle,
+      User,
+      ShoppingCart,
+      Package,
+      CreditCard,
+      Settings,
+      Store,
+      Shield
+    };
+    return iconMap[iconName] || HelpCircle;
+  };
+
+  // Filter FAQ categories based on search query
+  const filteredCategories = helpData?.filter(category =>
+    category.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    category.help_items?.some(item =>
       item.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.answer.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  })).filter(category => category.items.length > 0);
+  ) || [];
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,40 +110,58 @@ const Help = () => {
         <div className="lg:col-span-2">
           <h2 className="text-2xl font-semibold mb-4">Часто задаваемые вопросы</h2>
           
-          {filteredFaq.length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-2 text-muted-foreground">Загрузка FAQ...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <p className="text-destructive">
+                  Ошибка при загрузке FAQ. Попробуйте обновить страницу.
+                </p>
+              </CardContent>
+            </Card>
+          ) : filteredCategories.length === 0 ? (
             <Card>
               <CardContent className="text-center py-8">
                 <p className="text-muted-foreground">
-                  {searchQuery ? "По вашему запросу ничего не найдено" : "Вопросы загружаются..."}
+                  {searchQuery ? "По вашему запросу ничего не найдено" : "FAQ пуст"}
                 </p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-6">
-              {filteredFaq.map((category, index) => (
-                <Card key={index}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <category.icon className="h-5 w-5" />
-                      {category.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Accordion type="single" collapsible className="w-full">
-                      {category.items.map((item, itemIndex) => (
-                        <AccordionItem key={itemIndex} value={`item-${index}-${itemIndex}`}>
-                          <AccordionTrigger className="text-left">
-                            {item.question}
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            {item.answer}
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-                  </CardContent>
-                </Card>
-              ))}
+              {filteredCategories.map((category) => {
+                const IconComponent = getIconComponent(category.icon_name);
+                return (
+                  <Card key={category.id}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <IconComponent className="h-5 w-5" />
+                        {category.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Accordion type="single" collapsible className="w-full">
+                        {category.help_items?.map((item) => (
+                          <AccordionItem key={item.id} value={`item-${item.id}`}>
+                            <AccordionTrigger className="text-left">
+                              {item.question}
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              {item.answer}
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>

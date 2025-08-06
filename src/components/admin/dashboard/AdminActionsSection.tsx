@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Store, Activity, Plus, Car, FileText, Package, MessageSquare, DollarSign, CheckSquare, MessageCircle } from 'lucide-react';
+import { Store, Activity, Plus, Car, FileText, Package, MessageSquare, DollarSign, CheckSquare, MessageCircle, HelpCircle } from 'lucide-react';
 import ActionCard from './ActionCard';
 
 const AdminActionsSection: React.FC = () => {
@@ -79,6 +79,14 @@ const AdminActionsSection: React.FC = () => {
       icon: MessageCircle,
       link: "/admin/telegram-monitoring",
       bgColor: "bg-purple-500",
+      textColor: "text-white"
+    },
+    {
+      title: "Редактировать Help",
+      subtitle: "Управление FAQ и страницей помощи",
+      icon: HelpCircle,
+      link: "/admin/help-editor",
+      bgColor: "bg-indigo-500",
       textColor: "text-white"
     }
   ];
