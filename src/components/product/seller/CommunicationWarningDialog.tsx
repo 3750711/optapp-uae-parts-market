@@ -1,12 +1,17 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { ProductCard } from "./communication/ProductCard";
 import { CommunicationRatingSection } from "./communication/CommunicationRatingSection";
 import { WorkingHoursInfo } from "./communication/WorkingHoursInfo";
 import { DialogButtons } from "./communication/DialogButtons";
+import { ContactErrorFallback } from "./communication/ContactErrorFallback";
 import { CommunicationWarningDialogProps } from "./communication/types";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useContactValidation } from "@/hooks/useContactValidation";
+import { useContactAnalytics } from "@/hooks/useContactAnalytics";
+import { CONTACT_CONFIG } from "@/config/contact";
+import { toast } from "sonner";
 
 export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProps> = ({
   open,
@@ -16,9 +21,27 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   productTitle,
   productPrice,
   lotNumber,
-  contactType
+  contactType,
+  sellerContact,
+  productId,
+  sellerId
 }) => {
   const isMobile = useIsMobile();
+  const validation = useContactValidation(sellerContact, contactType);
+  const analytics = useContactAnalytics();
+
+  // Analytics tracking
+  useEffect(() => {
+    if (open) {
+      analytics.trackDialogOpened({
+        productId,
+        sellerId,
+        contactType,
+        communicationRating,
+        lotNumber,
+      });
+    }
+  }, [open, analytics, productId, sellerId, contactType, communicationRating, lotNumber]);
 
   const handleAssistantContact = () => {
     const currentUrl = window.location.href;
@@ -26,13 +49,60 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
       /https:\/\/[^\/]+/,
       'https://partsbay.ae'
     );
-    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(productUrl)}`;
+    
+    const managerUsername = CONTACT_CONFIG.TELEGRAM_MANAGER.username;
+    const telegramUrl = `https://t.me/${managerUsername}?text=${encodeURIComponent(productUrl)}`;
     
     try {
       window.open(telegramUrl, '_blank');
+      
+      // Track analytics
+      analytics.trackManagerContact({
+        productId,
+        sellerId,
+        contactType: 'manager',
+        communicationRating,
+        lotNumber,
+      });
+      
+      toast.success('Переходим в Telegram к менеджеру');
     } catch (error) {
       console.error('Failed to open Telegram:', error);
+      
+      // Fallback to alternative contact
+      const fallbackUrl = CONTACT_CONFIG.TELEGRAM_MANAGER.fallbackUrl;
+      try {
+        window.open(fallbackUrl, '_blank');
+        toast.info('Используем резервную ссылку для связи');
+      } catch (fallbackError) {
+        toast.error('Не удалось открыть Telegram. Попробуйте позже.');
+      }
     }
+    
+    onOpenChange(false);
+  };
+
+  const handleDirectContact = () => {
+    // Track analytics before proceeding
+    analytics.trackDirectContact({
+      productId,
+      sellerId,
+      contactType,
+      communicationRating,
+      lotNumber,
+    });
+    
+    onProceed();
+  };
+
+  const handleCancel = () => {
+    analytics.trackDialogCancelled({
+      productId,
+      sellerId,
+      contactType,
+      communicationRating,
+      lotNumber,
+    });
     
     onOpenChange(false);
   };
@@ -83,32 +153,49 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
                 isMobile={isMobile}
               />
 
-              {/* Рейтинг коммуникации */}
-              <CommunicationRatingSection 
-                communicationRating={communicationRating}
-                isMobile={isMobile}
-              />
+              {/* Показать ошибки валидации если есть */}
+              {validation.validationErrors.length > 0 && validation.fallbackToManager && (
+                <ContactErrorFallback
+                  errors={validation.validationErrors}
+                  onManagerContact={handleAssistantContact}
+                  showRetry={false}
+                />
+              )}
+
+              {/* Рейтинг коммуникации - показываем только если нет критических ошибок */}
+              {validation.validationErrors.length === 0 && (
+                <CommunicationRatingSection 
+                  communicationRating={communicationRating}
+                  isMobile={isMobile}
+                />
+              )}
 
               {/* Информация о времени работы */}
-              <WorkingHoursInfo isMobile={isMobile} />
+              <WorkingHoursInfo 
+                isMobile={isMobile}
+                customHours={sellerContact?.working_hours || null}
+              />
             </div>
           </DialogDescription>
         </div>
         
-        {/* Кнопки */}
-        <div className="border-t bg-gray-50">
-          <DialogButtons 
-            onAssistantContact={handleAssistantContact}
-            onProceed={onProceed}
-            onCancel={() => onOpenChange(false)}
-            communicationRating={communicationRating}
-            contactType={contactType}
-            productTitle={productTitle}
-            productPrice={productPrice}
-            lotNumber={lotNumber}
-            isMobile={isMobile}
-          />
-        </div>
+        {/* Кнопки - показываем только если нет критических ошибок валидации */}
+        {validation.validationErrors.length === 0 && (
+          <div className="border-t bg-gray-50">
+            <DialogButtons 
+              onAssistantContact={handleAssistantContact}
+              onProceed={handleDirectContact}
+              onCancel={handleCancel}
+              communicationRating={communicationRating}
+              contactType={contactType}
+              productTitle={productTitle}
+              productPrice={productPrice}
+              lotNumber={lotNumber}
+              isMobile={isMobile}
+              validation={validation}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -14,6 +14,13 @@ interface DialogButtonsProps {
   productTitle?: string;
   productPrice?: number;
   lotNumber?: number | null;
+  validation?: {
+    canContactDirect: boolean;
+    availableContacts: ('telegram' | 'whatsapp')[];
+    hasValidContacts: boolean;
+    fallbackToManager: boolean;
+    validationErrors: string[];
+  };
 }
 
 export const DialogButtons: React.FC<DialogButtonsProps> = ({
@@ -22,17 +29,21 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   onCancel,
   communicationRating,
   contactType,
-  isMobile = false
+  isMobile = false,
+  validation
 }) => {
   const isProfessional = communicationRating === 5;
   const isVeryDifficult = communicationRating === 1 || communicationRating === 2;
-  const isDirectContactBlocked = communicationRating === 1;
+  const isDirectContactBlocked = communicationRating === 1 || !validation?.canContactDirect;
 
   const getAssistantButtonText = () => {
     return 'Менеджер';
   };
 
   const getDirectContactButtonText = () => {
+    if (!validation?.canContactDirect) {
+      return 'Недоступно';
+    }
     return contactType === 'telegram' ? 'Telegram' : 'WhatsApp';
   };
 
@@ -66,11 +77,12 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
           {!isDirectContactBlocked && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button 
-                  onClick={onProceed} 
-                  className="w-full h-10"
-                  variant="outline"
-                >
+              <Button 
+                onClick={onProceed} 
+                className="w-full h-10"
+                variant="outline"
+                disabled={!validation?.canContactDirect}
+              >
                   {contactType === 'telegram' ? (
                     <MessageSquare className="h-4 w-4 mr-2" />
                   ) : (
@@ -133,11 +145,12 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         {!isDirectContactBlocked && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button 
-                onClick={onProceed} 
-                className="flex-1 h-10"
-                variant="outline"
-              >
+            <Button 
+              onClick={onProceed} 
+              className="flex-1 h-10"
+              variant="outline"
+              disabled={!validation?.canContactDirect}
+            >
                 {contactType === 'telegram' ? (
                   <MessageSquare className="h-4 w-4 mr-2" />
                 ) : (

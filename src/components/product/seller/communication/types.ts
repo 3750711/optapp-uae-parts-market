@@ -19,4 +19,14 @@ export interface CommunicationWarningDialogProps {
   productPrice: number;
   lotNumber?: number | null;
   contactType: 'telegram' | 'whatsapp';
+  sellerContact?: {
+    telegram?: string | null;
+    phone?: string | null;
+    seller_id?: string;
+    working_hours?: {
+      [key: string]: string;
+    } | null;
+  } | null;
+  productId?: string;
+  sellerId?: string;
 }
