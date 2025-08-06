@@ -73,33 +73,21 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
             </TooltipContent>
           </Tooltip>
           
-          {/* Прямая связь с подсказкой */}
+          {/* Прямая связь */}
           {!isDirectContactBlocked && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-              <Button 
-                onClick={onProceed} 
-                className="w-full h-10"
-                variant="outline"
-                disabled={!validation?.canContactDirect}
-              >
-                  {contactType === 'telegram' ? (
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                  ) : (
-                    <Phone className="h-4 w-4 mr-2" />
-                  )}
-                  {getDirectContactButtonText()}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent 
-                side="top" 
-                align="center"
-                className="text-xs max-w-[200px] text-center"
-                sideOffset={8}
-              >
-                <p>Напрямую с продавцем</p>
-              </TooltipContent>
-            </Tooltip>
+            <Button 
+              onClick={onProceed} 
+              className="w-full h-10"
+              variant="outline"
+              disabled={!validation?.canContactDirect}
+            >
+                {contactType === 'telegram' ? (
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                ) : (
+                  <Phone className="h-4 w-4 mr-2" />
+                )}
+                {getDirectContactButtonText()}
+              </Button>
           )}
           
           {/* Кнопка отмены */}
@@ -141,33 +129,21 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
           </TooltipContent>
         </Tooltip>
         
-        {/* Прямая связь с подсказкой */}
+        {/* Прямая связь */}
         {!isDirectContactBlocked && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-            <Button 
-              onClick={onProceed} 
-              className="flex-1 h-10"
-              variant="outline"
-              disabled={!validation?.canContactDirect}
-            >
-                {contactType === 'telegram' ? (
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                ) : (
-                  <Phone className="h-4 w-4 mr-2" />
-                )}
-                {getDirectContactButtonText()}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent 
-              side="top" 
-              align="center"
-              className="text-sm"
-              sideOffset={5}
-            >
-              <p>Напрямую с продавцем</p>
-            </TooltipContent>
-          </Tooltip>
+          <Button 
+            onClick={onProceed} 
+            className="flex-1 h-10"
+            variant="outline"
+            disabled={!validation?.canContactDirect}
+          >
+              {contactType === 'telegram' ? (
+                <MessageSquare className="h-4 w-4 mr-2" />
+              ) : (
+                <Phone className="h-4 w-4 mr-2" />
+              )}
+              {getDirectContactButtonText()}
+            </Button>
         )}
         
         {/* Кнопка отмены */}
