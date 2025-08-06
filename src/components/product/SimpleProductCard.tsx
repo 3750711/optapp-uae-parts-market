@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Product } from '@/types/product';
+import { ProductProps } from '@/components/product/ProductCard';
 import { formatPrice } from '@/utils/formatPrice';
 
 interface SimpleProductCardProps {
-  product: Product;
+  product: ProductProps;
 }
 
 export const SimpleProductCard: React.FC<SimpleProductCardProps> = ({ product }) => {
