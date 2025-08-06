@@ -9,7 +9,8 @@ export const QuickActionsSection: React.FC = () => {
       to: "/create-request",
       icon: Plus,
       label: "Создать запрос",
-      variant: "default" as const
+      variant: "default" as const,
+      disabled: true
     },
     {
       to: "/catalog",
@@ -35,20 +36,37 @@ export const QuickActionsSection: React.FC = () => {
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Быстрые действия</h3>
       <div className="flex flex-wrap gap-3">
-        {quickActions.map((action) => (
-          <Button
-            key={action.to}
-            variant={action.variant}
-            size="sm"
-            asChild
-            className="flex-1 sm:flex-none"
-          >
-            <Link to={action.to} className="flex items-center gap-2">
-              <action.icon className="h-4 w-4" />
-              {action.label}
-            </Link>
-          </Button>
-        ))}
+        {quickActions.map((action) => {
+          if (action.disabled) {
+            return (
+              <Button
+                key={action.to}
+                variant={action.variant}
+                size="sm"
+                disabled={true}
+                className="flex-1 sm:flex-none"
+              >
+                <action.icon className="h-4 w-4" />
+                {action.label}
+              </Button>
+            );
+          }
+          
+          return (
+            <Button
+              key={action.to}
+              variant={action.variant}
+              size="sm"
+              asChild
+              className="flex-1 sm:flex-none"
+            >
+              <Link to={action.to} className="flex items-center gap-2">
+                <action.icon className="h-4 w-4" />
+                {action.label}
+              </Link>
+            </Button>
+          );
+        })}
       </div>
     </div>
   );
