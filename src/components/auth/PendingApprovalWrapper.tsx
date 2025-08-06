@@ -63,6 +63,8 @@ const PendingApprovalWrapper: React.FC<PendingApprovalWrapperProps> = ({ childre
       return <Navigate to="/seller/dashboard" replace />;
     } else if (profile.user_type === 'admin') {
       return <Navigate to="/admin" replace />;
+    } else if (profile.user_type === 'buyer') {
+      return <Navigate to="/buyer-dashboard" replace />;
     } else {
       return <Navigate to="/" replace />;
     }

@@ -51,8 +51,8 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     
     // Skip profile completion check - handled globally by ProfileCompletionRedirect
     
-    // PRIORITY 2: Check if user is pending approval (except for admins and incomplete Telegram profiles)
-    if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
+    // PRIORITY 2: Check if user is pending approval (except for admins, incomplete Telegram profiles, and buyers)
+    if (profile.verification_status === 'pending' && profile.user_type !== 'admin' && profile.user_type !== 'buyer') {
       // Don't redirect Telegram users who haven't completed their profile yet
       if (profile.auth_method === 'telegram' && (!profile.profile_completed || !profile.opt_id)) {
         console.log("🚀 HomeRedirect: Telegram user completing registration, staying on home");
@@ -62,6 +62,14 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
       console.log("🚀 HomeRedirect: Redirecting to pending approval");
       if (redirectProtection.canRedirect(location.pathname, "/pending-approval")) {
         return <Navigate to="/pending-approval" replace />;
+      }
+    }
+    
+    // PRIORITY 2.5: Redirect buyers with completed profiles to dashboard (regardless of verification status)
+    if (profile.user_type === 'buyer' && profile.profile_completed) {
+      console.log("🚀 HomeRedirect: Redirecting buyer to dashboard");
+      if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
+        return <Navigate to="/buyer-dashboard" replace />;
       }
     }
     
