@@ -180,6 +180,71 @@ export type Database = {
         }
         Relationships: []
       }
+      help_categories: {
+        Row: {
+          created_at: string
+          icon_name: string
+          id: string
+          order_index: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          icon_name?: string
+          id?: string
+          order_index?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          icon_name?: string
+          id?: string
+          order_index?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      help_items: {
+        Row: {
+          answer: string
+          category_id: string
+          created_at: string
+          id: string
+          order_index: number
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          category_id: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          category_id?: string
+          created_at?: string
+          id?: string
+          order_index?: number
+          question?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "help_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_attempts: {
         Row: {
           attempt_type: string
