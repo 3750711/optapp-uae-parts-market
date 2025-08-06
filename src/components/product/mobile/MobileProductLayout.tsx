@@ -313,6 +313,9 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
         productPrice={product.price}
         lotNumber={product.lot_number}
         contactType={contactType}
+        sellerContact={sellerProfile}
+        productId={product.id}
+        sellerId={product.seller_id}
       />
     </div>
   );

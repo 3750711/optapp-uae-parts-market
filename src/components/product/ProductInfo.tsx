@@ -289,6 +289,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         productPrice={product.price}
         lotNumber={product.lot_number}
         contactType={contactType}
+        sellerContact={sellerProfile}
+        productId={product.id}
+        sellerId={product.seller_id}
       />
     </div>
   );
