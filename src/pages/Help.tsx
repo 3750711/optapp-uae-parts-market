@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -138,16 +139,17 @@ const Help = () => {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-          <HelpCircle className="h-8 w-8 text-primary" />
-          Помощь и поддержка
-        </h1>
-        <p className="text-muted-foreground">
-          Найдите ответы на часто задаваемые вопросы или свяжитесь с нами
-        </p>
-      </div>
+    <Layout>
+      <div className="container mx-auto py-8 px-4">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+            <HelpCircle className="h-8 w-8 text-primary" />
+            Помощь и поддержка
+          </h1>
+          <p className="text-muted-foreground">
+            Найдите ответы на часто задаваемые вопросы или свяжитесь с нами
+          </p>
+        </div>
 
       {/* Search */}
       <Card className="mb-8">
@@ -286,7 +288,8 @@ const Help = () => {
           </Card>
         </div>
       </div>
-    </div>
+      </div>
+    </Layout>
   );
 };
 
