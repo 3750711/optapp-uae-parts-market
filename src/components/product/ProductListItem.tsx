@@ -183,8 +183,8 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           {/* Product Image */}
           <div className="flex-shrink-0">
             <div 
-              onClick={isMobile ? (e) => e.stopPropagation() : handleProductClick} 
-              className={cn("cursor-pointer", !isMobile && "cursor-pointer")}
+              onClick={!isMobile ? handleProductClick : undefined} 
+              className={cn(!isMobile && "cursor-pointer")}
             >
               <OptimizedImage
                 src={product.image || product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg"}
@@ -203,7 +203,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             <div className="flex items-start justify-between mb-2">
               <div className="flex-1 min-w-0">
                 <div 
-                  onClick={isMobile ? (e) => e.stopPropagation() : handleProductClick}
+                  onClick={!isMobile ? handleProductClick : undefined}
                   className={cn(
                     "text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2",
                     !isMobile && "cursor-pointer"
