@@ -12,6 +12,7 @@ import CompactSellerInfo from "./CompactSellerInfo";
 import MobileActionButtons from "./MobileActionButtons";
 import MobileCharacteristicsTable from "./MobileCharacteristicsTable";
 import MobileStickyBuyButton from "./MobileStickyBuyButton";
+import MobileStickyActions from "./MobileStickyActions";
 import SellerProducts from "@/components/product/SimilarProducts";
 import { Badge } from "@/components/ui/badge";
 import OrderConfirmationDialog from "@/components/product/OrderConfirmationDialog";
@@ -273,6 +274,14 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
       {/* Bottom padding for sticky buy button */}
       <div className="h-20"></div>
 
+      {/* Sticky Actions */}
+      <MobileStickyActions 
+        product={product}
+        sellerProfile={sellerProfile}
+        deliveryMethod={deliveryMethod}
+        onDeliveryMethodChange={onDeliveryMethodChange}
+      />
+      
       {/* Sticky Buy Button */}
       <MobileStickyBuyButton 
         product={product}
