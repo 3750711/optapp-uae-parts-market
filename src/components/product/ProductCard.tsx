@@ -39,9 +39,6 @@ export interface ProductProps {
   product_videos?: Array<{ url: string }>;
   created_at?: string;
   updated_at?: string;
-  has_active_offers?: boolean;
-  max_offer_price?: number | null;
-  offers_count?: number;
 }
 
 interface ProductCardProps {
@@ -130,10 +127,6 @@ const ProductCard = memo(({
     rating_seller: product.rating_seller,
     cloudinary_url: product.cloudinary_url,
     cloudinary_public_id: product.cloudinary_public_id,
-    has_active_offers: product.has_active_offers,
-    // Fix: Add missing offer-related fields that SimpleOfferButton needs
-    max_offer_price: product.max_offer_price,
-    offers_count: product.offers_count || 0,
     product_images: product.product_images?.map(img => ({
       id: img.id || '',
       product_id: img.product_id || product.id,
