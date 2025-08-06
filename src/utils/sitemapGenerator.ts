@@ -14,7 +14,7 @@ export class SitemapGenerator {
   }
 
   addStaticPages() {
-    const baseUrl = window.location.origin;
+    const baseUrl = this.getBaseUrl();
     const staticPages = [
       { path: '/', priority: 1.0, changefreq: 'daily' as const },
       { path: '/catalog', priority: 0.9, changefreq: 'hourly' as const },
@@ -22,6 +22,7 @@ export class SitemapGenerator {
       { path: '/contact', priority: 0.5, changefreq: 'monthly' as const },
       { path: '/buyer-guide', priority: 0.7, changefreq: 'weekly' as const },
       { path: '/stores', priority: 0.8, changefreq: 'daily' as const },
+      { path: '/requests', priority: 0.6, changefreq: 'daily' as const },
     ];
 
     staticPages.forEach(page => {
@@ -34,8 +35,15 @@ export class SitemapGenerator {
     });
   }
 
+  private getBaseUrl(): string {
+    // Use environment variable or default to current origin
+    return typeof window !== 'undefined' 
+      ? window.location.origin 
+      : 'https://uae-auto-parts.lovableproject.com';
+  }
+
   addProducts(products: Array<{ id: string; updated_at?: string }>) {
-    const baseUrl = window.location.origin;
+    const baseUrl = this.getBaseUrl();
     
     products.forEach(product => {
       this.addUrl({
@@ -48,7 +56,7 @@ export class SitemapGenerator {
   }
 
   addStores(stores: Array<{ id: string; updated_at?: string }>) {
-    const baseUrl = window.location.origin;
+    const baseUrl = this.getBaseUrl();
     
     stores.forEach(store => {
       this.addUrl({

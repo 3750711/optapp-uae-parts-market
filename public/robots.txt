@@ -1,14 +1,81 @@
+# Robots.txt for UAE Auto Parts Platform
+
+# Google and Bing - Full access to public content
 User-agent: Googlebot
 Allow: /
+Allow: /catalog
+Allow: /product/
+Allow: /stores
+Allow: /store/
+Allow: /about
+Allow: /contact
+Allow: /buyer-guide
+Allow: /requests
+Allow: /request/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /api/
+Disallow: /pending-approval
+Disallow: /404
+Disallow: /*?auth=
+Disallow: /*?token=
 
 User-agent: Bingbot
 Allow: /
+Allow: /catalog
+Allow: /product/
+Allow: /stores
+Allow: /store/
+Allow: /about
+Allow: /contact
+Allow: /buyer-guide
+Allow: /requests
+Allow: /request/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /api/
+Disallow: /pending-approval
+Disallow: /404
+Disallow: /*?auth=
+Disallow: /*?token=
 
+# Social Media Bots - For Open Graph content
 User-agent: Twitterbot
 Allow: /
+Allow: /product/
+Allow: /store/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /api/
 
 User-agent: facebookexternalhit
 Allow: /
+Allow: /product/
+Allow: /store/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /api/
 
+# All other bots
 User-agent: *
 Allow: /
+Allow: /catalog
+Allow: /product/
+Allow: /stores
+Allow: /store/
+Allow: /about
+Allow: /contact
+Allow: /buyer-guide
+Allow: /requests
+Allow: /request/
+Disallow: /admin/
+Disallow: /seller/
+Disallow: /api/
+Disallow: /pending-approval
+Disallow: /404
+Disallow: /*?auth=
+Disallow: /*?token=
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://uae-auto-parts.lovableproject.com/sitemap.xml
