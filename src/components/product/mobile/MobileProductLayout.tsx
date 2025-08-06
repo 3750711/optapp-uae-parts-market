@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Truck, MapPin } from "lucide-react";
+import { Package, Truck, MapPin, MessageCircle } from "lucide-react";
 import { Product } from "@/types/product";
 import ProductGallery from "@/components/product/ProductGallery";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 import CompactSellerInfo from "./CompactSellerInfo";
 import MobileActionButtons from "./MobileActionButtons";
@@ -10,6 +14,9 @@ import MobileCharacteristicsTable from "./MobileCharacteristicsTable";
 import MobileStickyBuyButton from "./MobileStickyBuyButton";
 import SellerProducts from "@/components/product/SimilarProducts";
 import { Badge } from "@/components/ui/badge";
+import OrderConfirmationDialog from "@/components/product/OrderConfirmationDialog";
+import { CommunicationWarningDialog } from "@/components/product/seller/CommunicationWarningDialog";
+import { SimpleMakeOfferButton } from "@/components/price-offer/SimpleMakeOfferButton";
 
 interface MobileProductLayoutProps {
   product: Product;
@@ -36,6 +43,12 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
   onDeliveryMethodChange,
   onProductUpdate,
 }) => {
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [contactType, setContactType] = useState<'telegram' | 'whatsapp'>('telegram');
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
   const getStatusBadge = () => {
     switch (product.status) {
       case 'pending':
@@ -52,18 +65,95 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
   };
 
   const handleContactSeller = () => {
-    // TODO: Implement contact seller functionality
-    console.log('Contact seller');
+    setContactType('telegram');
+    setShowContactDialog(true);
   };
 
   const handleMakeOffer = () => {
-    // TODO: Implement make offer functionality
+    // This is now handled by SimpleMakeOfferButton
     console.log('Make offer');
   };
 
   const handleBuyNow = () => {
-    // TODO: Implement buy now functionality
-    console.log('Buy now');
+    setShowOrderDialog(true);
+  };
+
+  const handleContactProceed = () => {
+    const phoneNumber = sellerProfile?.phone;
+    const telegramUsername = sellerProfile?.telegram;
+    
+    if (contactType === 'telegram' && telegramUsername) {
+      const telegramUrl = `https://t.me/${telegramUsername.replace('@', '')}`;
+      window.open(telegramUrl, '_blank');
+    } else if (contactType === 'whatsapp' && phoneNumber) {
+      const whatsappUrl = `https://wa.me/${phoneNumber.replace(/\D/g, '')}`;
+      window.open(whatsappUrl, '_blank');
+    }
+    
+    setShowContactDialog(false);
+  };
+
+  const handleOrderConfirm = async (orderData: { text_order?: string }) => {
+    setIsSubmittingOrder(true);
+    try {
+      const productImages = product.product_images?.map(img => img.url) || [];
+      const productVideos = product.product_videos?.map(video => video.url) || [];
+      
+      const shouldIncludeDeliveryPrice = 
+        (deliveryMethod === 'cargo_rf' || deliveryMethod === 'cargo_kz') && 
+        product.delivery_price && 
+        product.delivery_price > 0;
+      
+      const deliveryPriceConfirm = shouldIncludeDeliveryPrice ? product.delivery_price : null;
+
+      const orderParams = {
+        p_title: product.title,
+        p_price: product.price,
+        p_place_number: product.place_number || 1,
+        p_seller_id: product.seller_id,
+        p_order_seller_name: product.seller_name,
+        p_seller_opt_id: null,
+        p_buyer_id: user?.id,
+        p_brand: product.brand || '',
+        p_model: product.model || '',
+        p_status: 'created',
+        p_order_created_type: 'product_order',
+        p_telegram_url_order: null,
+        p_images: productImages,
+        p_product_id: product.id,
+        p_delivery_method: deliveryMethod,
+        p_text_order: orderData.text_order,
+        p_delivery_price_confirm: deliveryPriceConfirm,
+        p_quantity: 1,
+        p_description: product.description,
+        p_buyer_opt_id: profile?.opt_id,
+        p_lot_number_order: product.lot_number,
+        p_telegram_url_buyer: profile?.telegram,
+        p_video_url: productVideos
+      };
+
+      const { data: orderId, error } = await supabase
+        .rpc('create_user_order', orderParams);
+
+      if (error) throw error;
+
+      toast({
+        title: "Заказ создан!",
+        description: "Ваш заказ успешно создан и отправлен продавцу.",
+      });
+
+      setShowOrderDialog(false);
+      navigate('/buyer-orders');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать заказ. Попробуйте еще раз.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingOrder(false);
+    }
   };
 
   return (
@@ -102,12 +192,24 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <MobileActionButtons
-        product={product}
-        onContactSeller={handleContactSeller}
-        onMakeOffer={handleMakeOffer}
-        onBuyNow={handleBuyNow}
-      />
+      <div className="bg-white p-4 border-b border-gray-100">
+        <div className="grid grid-cols-3 gap-2">
+          <button 
+            onClick={handleContactSeller}
+            className="flex items-center gap-1 text-xs px-3 py-2 border border-border rounded-md hover:bg-accent"
+          >
+            <MessageCircle className="h-3 w-3" />
+            Связь
+          </button>
+          
+          <div className="col-span-2">
+            <SimpleMakeOfferButton
+              product={product}
+              compact={true}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Characteristics */}
       {(product.brand || product.model || product.lot_number) && (
@@ -175,6 +277,42 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
       <MobileStickyBuyButton 
         product={product}
         onBuyNow={handleBuyNow}
+      />
+
+      {/* Order Dialog */}
+      <OrderConfirmationDialog
+        open={showOrderDialog}
+        onOpenChange={setShowOrderDialog}
+        onConfirm={handleOrderConfirm}
+        isSubmitting={isSubmittingOrder}
+        product={{
+          id: product.id,
+          title: product.title,
+          brand: product.brand || "",
+          model: product.model || "",
+          price: product.price,
+          description: product.description,
+          optid_created: product.optid_created,
+          seller_id: product.seller_id,
+          seller_name: product.seller_name,
+          lot_number: product.lot_number,
+          delivery_price: product.delivery_price,
+        }}
+        profile={profile}
+        deliveryMethod={deliveryMethod}
+        onDeliveryMethodChange={onDeliveryMethodChange}
+      />
+
+      {/* Contact Dialog */}
+      <CommunicationWarningDialog
+        open={showContactDialog}
+        onOpenChange={setShowContactDialog}
+        onProceed={handleContactProceed}
+        communicationRating={sellerProfile?.communication_ability || 3}
+        productTitle={product.title}
+        productPrice={product.price}
+        lotNumber={product.lot_number}
+        contactType={contactType}
       />
     </div>
   );
