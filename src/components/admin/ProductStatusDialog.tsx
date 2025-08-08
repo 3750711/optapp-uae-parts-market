@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/product';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 
 const formSchema = z.object({
   status: z.enum(['pending', 'active', 'sold', 'archived'])
@@ -45,14 +46,16 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
   const [open, setOpen] = React.useState(false);
   const { isAdmin } = useAdminAccess();
 
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      status: product.status,
-    },
-  });
+const form = useForm({
+  resolver: zodResolver(formSchema),
+  defaultValues: {
+    status: product.status,
+  },
+});
+const { isSubmitting, guardedSubmit } = useSubmissionGuard({ timeout: 3000 });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+const onSubmit = (values: z.infer<typeof formSchema>) =>
+  guardedSubmit(async () => {
     if (!isAdmin) {
       toast({
         title: "Ошибка",
@@ -62,14 +65,28 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
       return;
     }
 
+    // Avoid redundant updates and duplicate notifications
+    if (values.status === product.status) {
+      console.info(
+        `ℹ️ [ProductStatusDialog] No status change detected for product: ${product.id}`
+      );
+      toast({
+        title: "Без изменений",
+        description: "Вы выбрали тот же статус, обновление не требуется",
+      });
+      return;
+    }
+
     try {
-      console.log(`🔄 [ProductStatusDialog] Admin changing product status: ${product.status} -> ${values.status} for product: ${product.id}`);
-      
+      console.log(
+        `🔄 [ProductStatusDialog] Admin changing product status: ${product.status} -> ${values.status} for product: ${product.id}`
+      );
+
       // Get current user for logging
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
-      
-      // Update product status - the database trigger should handle the notification automatically
+
+      // Update product status - DB triggers will handle notifications
       console.log(`💾 [ProductStatusDialog] Updating product status in database...`);
       const { data, error } = await supabase
         .from('products')
@@ -81,30 +98,10 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         console.error("❌ [ProductStatusDialog] Database update failed:", error);
         throw error;
       }
-      
+
       console.log(`✅ [ProductStatusDialog] Database update successful:`, data);
 
-      // Fallback: Direct call to Edge Function for Telegram notification (skip for pending status)
-      if (values.status !== 'pending') {
-        console.log(`📱 [ProductStatusDialog] Sending fallback Telegram notification...`);
-        try {
-          const { data: functionData, error: functionError } = await supabase.functions.invoke('send-telegram-notification', {
-            body: {
-              productId: product.id,
-              notificationType: values.status === 'sold' ? 'sold' : 'status_change'
-            }
-          });
-          
-          if (functionError) {
-            console.error("❌ [ProductStatusDialog] Fallback notification error:", functionError);
-          } else {
-            console.log(`✅ [ProductStatusDialog] Fallback notification sent successfully:`, functionData);
-          }
-        } catch (notificationError) {
-          console.error('❌ [ProductStatusDialog] Fallback notification exception:', notificationError);
-          // Don't throw here - product update was successful
-        }
-      }
+      // Note: Removed fallback Telegram notification to avoid duplicate messages.
 
       // Log the admin action
       if (userId) {
@@ -123,7 +120,7 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
                 source: "admin_panel"
               }
             });
-          
+
           if (logError) {
             console.error("⚠️ [ProductStatusDialog] Error logging admin action:", logError);
           } else {
@@ -138,7 +135,7 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         title: "Успех",
         description: "Статус товара успешно обновлен",
       });
-      
+
       console.log(`🎉 [ProductStatusDialog] Product status change completed successfully`);
       setOpen(false);
       if (onSuccess) onSuccess();
@@ -146,11 +143,13 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
       console.error('❌ [ProductStatusDialog] Error in onSubmit:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось обновить статус товара: " + (error instanceof Error ? error.message : String(error)),
+        description:
+          "Не удалось обновить статус товара: " +
+          (error instanceof Error ? error.message : String(error)),
         variant: "destructive",
       });
     }
-  };
+  });
 
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -206,9 +205,9 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
               >
                 Отмена
               </Button>
-              <Button type="submit">
-                Сохранить
-              </Button>
+<Button type="submit" disabled={isSubmitting}>
+  Сохранить
+</Button>
             </div>
           </form>
         </Form>
