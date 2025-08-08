@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
 import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
 import { Product } from '@/types/product';
@@ -7,6 +7,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Search, Shield, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { devError, prodError } from '@/utils/logger';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface AdminProductsContentProps {
   products: Product[];
@@ -45,6 +47,9 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
   sellerFilter,
   hasActiveFilters = false
 }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Детальная обработка ошибок с диагностической информацией
   if (isError) {
@@ -129,9 +134,40 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
     );
   }
 
-  const stableOnDelete = useCallback((id: string) => {
-    devError(`Single product delete called for ${id}, but not implemented in this component. This callback is stabilized for memoization.`);
-  }, []);
+  const handleSingleDelete = useCallback(async (id: string) => {
+    setIsDeleting(true);
+    setDeleteProductId(id);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        devError('❌ Error deleting product', error);
+        throw error;
+      }
+
+      toast({
+        title: 'Успешно',
+        description: 'Товар удалён',
+      });
+
+      onProductSelect((prev) => prev.filter((pid) => pid !== id));
+      onProductUpdate();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Неизвестная ошибка';
+      prodError('Error deleting single product', { id, message });
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить товар',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteProductId(null);
+    }
+  }, [onProductSelect, onProductUpdate, toast]);
 
   return (
     <div className="space-y-6">
@@ -145,10 +181,10 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
         isError={isError}
         error={error}
         refetch={refetch}
-        onDelete={stableOnDelete}
-        isDeleting={false}
-        deleteProductId={null}
-        onStatusChange={onProductUpdate}
+         onDelete={handleSingleDelete}
+         isDeleting={isDeleting}
+         deleteProductId={deleteProductId}
+         onStatusChange={onProductUpdate}
       />
       
       {/* Load More Trigger */}
