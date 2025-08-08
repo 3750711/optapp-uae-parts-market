@@ -73,6 +73,13 @@ export const useAdminProductsActions = ({
       return;
     }
 
+    const confirmed = window.confirm(
+      `Вы уверены, что хотите удалить ${selectedProducts.length} товаров? Это действие нельзя отменить.`
+    );
+    
+    if (!confirmed) {
+      return;
+    }
 
     setIsDeleting(true);
     try {
