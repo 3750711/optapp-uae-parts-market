@@ -99,12 +99,12 @@ const SellerListingsContent = () => {
           throw new Error(`Error loading products: ${error.message}`);
         }
         
-        // Sort by status priority (active first), then by creation date
+        // Sort by status priority (pending first), then by creation date
         const sortedData = data?.sort((a, b) => {
           // Define status priority  
           const statusPriority = {
-            'active': 1,
-            'pending': 2,
+            'pending': 1,
+            'active': 2,
             'sold': 3,
             'archived': 4
           };

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, Archive, ShoppingCart, AlertCircle } from 'lucide-react';
+import { CheckCircle, Clock, Archive, ShoppingCart, AlertCircle, Loader2 } from 'lucide-react';
 
 interface ProductStatusBadgeProps {
   status: 'active' | 'sold' | 'pending' | 'archived';
@@ -32,10 +32,10 @@ const ProductStatusBadge: React.FC<ProductStatusBadgeProps> = ({
         };
       case 'pending':
         return {
-          label: 'На проверке',
+          label: 'modiration',
           variant: 'secondary' as const,
-          className: 'bg-yellow-100 text-yellow-800 border-yellow-200 animate-pulse',
-          icon: Clock
+          className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+          icon: Loader2
         };
       case 'archived':
         return {
@@ -74,7 +74,7 @@ const ProductStatusBadge: React.FC<ProductStatusBadgeProps> = ({
       variant={config.variant}
       className={`${config.className} ${sizeClasses[size]} flex items-center gap-1.5 font-medium transition-all`}
     >
-      {showIcon && <Icon className={iconSizes[size]} />}
+      {showIcon && <Icon className={`${iconSizes[size]} ${status === 'pending' ? 'animate-spin' : ''}`} />}
       {config.label}
     </Badge>
   );

@@ -2,7 +2,7 @@ import React, { memo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, MapPin, Phone, MessageCircle, ExternalLink, ShoppingCart } from "lucide-react";
+import { Eye, MapPin, Phone, MessageCircle, ExternalLink, ShoppingCart, Loader2 } from "lucide-react";
 import ProductCarousel from "./ProductCarousel";
 import { SimpleMakeOfferButton } from "@/components/price-offer/SimpleMakeOfferButton";
 import { SimpleOfferButton } from "@/components/price-offer/SimpleOfferButton";
@@ -176,9 +176,10 @@ const ProductCard = memo(({
           )}
           
           {/* Status Badge */}
-          <Badge className={`absolute top-2 left-2 ${statusColor} text-xs px-2 py-1`}>
+          <Badge className={`absolute top-2 left-2 ${statusColor} text-xs px-2 py-1 flex items-center gap-1`}>
+            {product.status === 'pending' && <Loader2 className="h-3 w-3 animate-spin" />}
             {product.status === 'active' ? 'Активный' : 
-             product.status === 'pending' ? 'На модерации' : 
+             product.status === 'pending' ? 'modiration' : 
              product.status === 'sold' ? 'Продан' : 'Отклонен'}
           </Badge>
 

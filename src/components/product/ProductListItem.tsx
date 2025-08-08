@@ -2,7 +2,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Eye, Clock, Star, Activity } from 'lucide-react';
+import { MapPin, Eye, Clock, Star, Activity, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
@@ -237,9 +237,9 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   </Badge>
                 )}
                 {product.status === 'pending' && (
-                  <Badge variant="warning" className="text-xs px-1.5 py-0.5 animate-pulse">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Pending
+                  <Badge variant="warning" className="text-xs px-1.5 py-0.5">
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    modiration
                   </Badge>
                 )}
                 {product.status === 'active' && (
