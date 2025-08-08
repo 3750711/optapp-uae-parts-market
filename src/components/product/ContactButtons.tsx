@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { MessageCircle, Phone, Copy, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -236,17 +235,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       {sellerTelegram && (
         <div className="space-y-2">
           <span className="text-sm font-medium text-gray-700">Telegram:</span>
-          <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
-            <span className="font-mono text-sm">{formatTelegram(sellerTelegram)}</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCopyTelegram}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-          </div>
-          
           <Button
             onClick={() => window.open(getTelegramUrl(sellerTelegram), '_blank')}
             className="w-full bg-blue-500 hover:bg-blue-600"
