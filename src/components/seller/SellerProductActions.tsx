@@ -7,7 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
-import { useTelegramNotification } from "@/hooks/useTelegramNotification";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +32,7 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
-  const { sendProductNotification } = useTelegramNotification();
+  
 
   // Status update mutation
   const statusMutation = useMutation({
@@ -49,11 +49,6 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
       queryClient.invalidateQueries({ queryKey: ['seller-product', product.id] });
       queryClient.invalidateQueries({ queryKey: ['seller-products'] });
       
-      // Send fallback Telegram notification (skip for pending status)
-      if (newStatus !== 'pending') {
-        const notificationType = newStatus === 'sold' ? 'sold' : 'status_change';
-        await sendProductNotification(product.id, notificationType);
-      }
       
       toast({
         title: "Статус обновлен",
