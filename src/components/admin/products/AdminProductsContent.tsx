@@ -196,12 +196,7 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
         />
       )}
 
-      {/* Empty State */}
-      {!isLoading && products.length === 0 && (
-        <div className="text-center py-12">
-          <div className="flex flex-col items-center space-y-4">
-            <Search className="h-12 w-12 text-gray-300" />
-            <div className="text-gray-500 text-lg mb-2">
+      {/* Empty State removed - handled by ProductsGrid */}
               {hasActiveFilters ? 'Товары не найдены' : 'Нет товаров'}
             </div>
             <div className="text-gray-400 max-w-md">

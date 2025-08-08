@@ -107,8 +107,7 @@ export const useProductsQuery = ({
         {
           event: '*',
           schema: 'public',
-          table: 'products',
-          filter: `status=in.(active,sold,pending)`
+          table: 'products'
         },
         (payload) => {
           // Invalidate products query to refetch updated data
