@@ -15,7 +15,7 @@ import StoreHeader from '@/components/store/StoreHeader';
 import StoreDetailTabs from '@/components/store/StoreDetailTabs';
 import StoreSidebar from '@/components/store/StoreSidebar';
 import { useStoreData } from '@/hooks/useStoreData';
-import MobileStoreStickyActions from '@/components/store/mobile/MobileStoreStickyActions';
+
 
 const StoreDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -98,7 +98,11 @@ const StoreDetail: React.FC = () => {
     if (user) setIsReviewDialogOpen(true);
     else setShowAuthDialog(true);
   };
-  
+
+  // Normalized contacts for mobile quick actions
+  const normalizedPhone = store?.phone ? store.phone.toString().replace(/[^\d+]/g, "") : null;
+  const normalizedWhatsapp = (store as any)?.whatsapp ? (store as any).whatsapp.toString().replace(/\D/g, "") : null;
+
   if (isStoreLoading) {
     return (
       <Layout>
@@ -141,11 +145,13 @@ const StoreDetail: React.FC = () => {
       />
 
       <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumbs */}
-        <StoreBreadcrumb 
-          storeName={store.name} 
-          storeLocation={store.location || undefined} 
-        />
+        {/* Breadcrumbs - desktop only */}
+        <div className="hidden md:block">
+          <StoreBreadcrumb 
+            storeName={store.name} 
+            storeLocation={store.location || undefined} 
+          />
+        </div>
 
         {/* Back button */}
         <div className="mb-6">
@@ -171,6 +177,32 @@ const StoreDetail: React.FC = () => {
               onShareToTelegram={handleShareToTelegram}
             />
 
+            {/* Mobile quick actions */}
+            {(normalizedPhone || normalizedWhatsapp) && (
+              <div className="md:hidden grid grid-cols-2 gap-3">
+                {normalizedPhone && (
+                  <Button
+                    variant="default"
+                    className="h-11"
+                    onClick={() => (window.location.href = `tel:${normalizedPhone}`)}
+                    aria-label="Позвонить"
+                  >
+                    Позвонить
+                  </Button>
+                )}
+                {normalizedWhatsapp && (
+                  <Button
+                    variant="secondary"
+                    className="h-11"
+                    onClick={() => window.open(`https://wa.me/${normalizedWhatsapp}`, "_blank", "noopener,noreferrer")}
+                    aria-label="Написать в WhatsApp"
+                  >
+                    WhatsApp
+                  </Button>
+                )}
+              </div>
+            )}
+
             {/* Tabs */}
             <StoreDetailTabs 
               store={store}
@@ -191,20 +223,20 @@ const StoreDetail: React.FC = () => {
               storeName={store.name}
             />
 
-            {/* Store sidebar */}
-            <StoreSidebar 
-              store={store}
-              carBrandsData={carBrandsData}
-              productCount={productCount}
-              soldProductCount={soldProductCount}
-              reviewsCount={reviews?.length || 0}
-              isCountLoading={isCountLoading}
-              isSoldCountLoading={isSoldCountLoading}
-            />
+            {/* Store sidebar - desktop only */}
+            <div className="hidden md:block">
+              <StoreSidebar 
+                store={store}
+                carBrandsData={carBrandsData}
+                productCount={productCount}
+                soldProductCount={soldProductCount}
+                reviewsCount={reviews?.length || 0}
+                isCountLoading={isCountLoading}
+                isSoldCountLoading={isSoldCountLoading}
+              />
+            </div>
           </div>
         </div>
-        {/* Mobile bottom spacer for sticky action bar */}
-        <div className="h-16 md:hidden" />
       </div>
 
       <WriteReviewDialog 
@@ -233,15 +265,6 @@ const StoreDetail: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    {/* Mobile sticky actions */}
-    <div className="md:hidden">
-      <MobileStoreStickyActions
-        phone={store.phone || undefined}
-        whatsapp={(store as any)?.whatsapp || undefined}
-        onShare={handleShareStore}
-        onWriteReview={handleWriteReview}
-      />
-    </div>
     </Layout>
   );
 };

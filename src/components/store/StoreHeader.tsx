@@ -53,15 +53,15 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({
               )}
             </div>
             
-            <div className="flex items-center gap-1 text-muted-foreground">
+            <div className="flex items-center gap-1 text-muted-foreground min-w-0">
               <MapPin className="w-4 h-4" />
-              <span>{store.address}</span>
+              <span className="truncate">{store.address}</span>
             </div>
           </div>
 
           {/* Tags */}
           {store.tags && store.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="hidden md:flex flex-wrap gap-2 mb-4">
               {store.tags.map((tag, index) => (
                 <Badge 
                   key={index} 
@@ -74,7 +74,7 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2">
           {onShareStore && (
             <Button variant="outline" size="sm" onClick={onShareStore} className="gap-2">
               <Share2 className="w-4 h-4" /> Поделиться
@@ -83,6 +83,14 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({
           {onShareToTelegram && (
             <Button variant="outline" size="sm" onClick={onShareToTelegram} className="gap-2">
               <Send className="w-4 h-4" /> Telegram
+            </Button>
+          )}
+        </div>
+        {/* Mobile share button */}
+        <div className="flex md:hidden items-center gap-2">
+          {onShareStore && (
+            <Button variant="ghost" size="icon" onClick={onShareStore} aria-label="Поделиться">
+              <Share2 className="w-5 h-5" />
             </Button>
           )}
         </div>

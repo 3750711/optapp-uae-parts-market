@@ -2,6 +2,7 @@
 import React, { memo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 import StoreAboutTab from './StoreAboutTab';
 import { StorePhotosTab } from './StorePhotosTab';
 import StoreProductsTab from './StoreProductsTab';
@@ -41,23 +42,26 @@ const StoreDetailTabs: React.FC<StoreDetailTabsProps> = memo(({
   isReviewsLoading,
   onWriteReview
 }) => {
+  const isMobile = useIsMobile();
   return (
     <div className="animate-fade-in">
       <Tabs defaultValue="about" className="space-y-6">
         {/* Tabs list with enhanced styling */}
-        <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-lg">
+        <TabsList className="grid w-full grid-cols-3 md:grid-cols-4 bg-muted/50 p-1 rounded-lg">
           <TabsTrigger 
             value="about" 
             className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 hover:bg-white/50"
           >
             О магазине
           </TabsTrigger>
-          <TabsTrigger 
-            value="photos"
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 hover:bg-white/50"
-          >
-            Фото {store.store_images?.length ? `(${store.store_images.length})` : ''}
-          </TabsTrigger>
+          {!isMobile && (
+            <TabsTrigger 
+              value="photos"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 hover:bg-white/50"
+            >
+              Фото {store.store_images?.length ? `(${store.store_images.length})` : ''}
+            </TabsTrigger>
+          )}
           <TabsTrigger 
             value="products"
             className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 hover:bg-white/50"
@@ -82,14 +86,16 @@ const StoreDetailTabs: React.FC<StoreDetailTabsProps> = memo(({
           </div>
         </TabsContent>
 
-        <TabsContent value="photos" className="mt-6">
-          <div className="animate-fade-in animation-delay-100">
-            <StorePhotosTab 
-              storeId={store.id}
-              canEdit={false}
-            />
-          </div>
-        </TabsContent>
+        {!isMobile && (
+          <TabsContent value="photos" className="mt-6">
+            <div className="animate-fade-in animation-delay-100">
+              <StorePhotosTab 
+                storeId={store.id}
+                canEdit={false}
+              />
+            </div>
+          </TabsContent>
+        )}
 
         <TabsContent value="products" className="mt-6">
           <div className="animate-fade-in animation-delay-100">
