@@ -861,6 +861,7 @@ export type Database = {
           accepted_privacy_at: string | null
           accepted_terms: boolean
           accepted_terms_at: string | null
+          admin_new_user_notified_at: string | null
           auth_method: string | null
           avatar_url: string | null
           communication_ability: number | null
@@ -893,6 +894,7 @@ export type Database = {
           accepted_privacy_at?: string | null
           accepted_terms?: boolean
           accepted_terms_at?: string | null
+          admin_new_user_notified_at?: string | null
           auth_method?: string | null
           avatar_url?: string | null
           communication_ability?: number | null
@@ -925,6 +927,7 @@ export type Database = {
           accepted_privacy_at?: string | null
           accepted_terms?: boolean
           accepted_terms_at?: string | null
+          admin_new_user_notified_at?: string | null
           auth_method?: string | null
           avatar_url?: string | null
           communication_ability?: number | null
