@@ -93,7 +93,15 @@ const Header = () => {
     <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
       <div className="container flex items-center justify-between py-3 md:py-4 px-4 md:px-8 mx-auto">
         <Link 
-          to="/" 
+          to={(function getHomePath() {
+            if (!user || !profile) return "/";
+            if (isAdmin) return "/admin";
+            const isVerified = profile.verification_status === 'verified';
+            if (!isVerified && !isAdmin) return "/pending-approval";
+            if (profile.user_type === 'buyer') return "/buyer-dashboard";
+            if (profile.user_type === 'seller') return "/seller/dashboard";
+            return "/";
+          })()}
           className="text-2xl font-extrabold tracking-tight"
         >
           <span className="text-primary">partsbay</span>

@@ -49,7 +49,13 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     
     devLog("HomeRedirect: User authenticated, redirecting based on role");
     
-    // Skip profile completion check - handled globally by ProfileCompletionRedirect
+    // PRIORITY: Redirect verified buyers to their dashboard immediately
+    if (profile.user_type === 'buyer' && profile.verification_status === 'verified') {
+      console.log("🚀 HomeRedirect: Redirecting verified buyer to dashboard");
+      if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
+        return <Navigate to="/buyer-dashboard" replace />;
+      }
+    }
     
     // Enforce: any non-admin user who is not verified must go to pending-approval
     if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
@@ -59,9 +65,9 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
       }
     }
     
-    // PRIORITY 2.5: Redirect buyers with completed profiles to dashboard (regardless of verification status)
+    // Secondary: buyers with completed profiles (fallback)
     if (profile.user_type === 'buyer' && profile.profile_completed) {
-      console.log("🚀 HomeRedirect: Redirecting buyer to dashboard");
+      console.log("🚀 HomeRedirect: Redirecting buyer (profile completed) to dashboard");
       if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
         return <Navigate to="/buyer-dashboard" replace />;
       }
