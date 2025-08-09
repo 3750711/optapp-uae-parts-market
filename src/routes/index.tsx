@@ -9,6 +9,8 @@ import { AdminRoute } from '@/components/auth/AdminRoute';
 import GuestRoute from '@/components/auth/GuestRoute';
 import PendingApprovalWrapper from '@/components/auth/PendingApprovalWrapper';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
+import TermsPage from "@/pages/TermsPage";
+import PrivacyPage from "@/pages/PrivacyPage";
 
 // Lazy loaded публичные страницы
 const Index = lazy(() => import('@/pages/Index'));
@@ -170,7 +172,6 @@ const AppRoutes: React.FC = () => {
                 </Suspense>
               </PendingApprovalWrapper>
             } />
-
 
             {/* Защищенные публичные маршруты - заблокированы для продавцов */}
             <Route path="/about" element={
@@ -488,6 +489,8 @@ const AppRoutes: React.FC = () => {
             } />
 
             {/* Catch-all маршрут */}
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

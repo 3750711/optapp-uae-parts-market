@@ -199,11 +199,10 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     }
   };
 
-
   // Auto-open modal for Telegram users with incomplete profiles
   useEffect(() => {
-    if (user && profile && profile.auth_method === 'telegram' && (!profile.profile_completed || (profile as any).accepted_terms === false)) {
-      console.log('🔄 Auto-opening registration modal for incomplete Telegram profile or missing terms acceptance');
+    if (user && profile && profile.auth_method === 'telegram' && (!profile.profile_completed || (profile as any).accepted_terms === false || (profile as any).accepted_privacy === false)) {
+      console.log('🔄 Auto-opening registration modal for incomplete Telegram profile or missing terms/privacy acceptance');
       setRegistrationModalOpen(true);
     }
   }, [user, profile]);

@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { checkOptIdExists } from '@/utils/authUtils';
 import { ArrowLeft, User, Store, Phone, Building2 } from 'lucide-react';
 import { registrationTranslations } from '@/translations/registration';
+import { Link } from 'react-router-dom';
 
 interface TelegramRegistrationModalProps {
   open: boolean;
@@ -50,6 +51,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   const locations = [
     { value: 'dubai', label: t.locations.dubai },
@@ -106,7 +108,10 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
     }
 
     if (!acceptedTerms) {
-      newErrors.acceptedTerms = language === 'en' ? 'You must accept the user agreement' : 'Необходимо принять пользовательское соглашение';
+      newErrors.acceptedTerms = language === 'en' ? 'You must accept the Terms and Conditions' : 'Необходимо принять Terms and Conditions';
+    }
+    if (!acceptedPrivacy) {
+      newErrors.acceptedPrivacy = language === 'en' ? 'You must accept the Privacy Policy' : 'Необходимо принять Privacy Policy';
     }
     
     setErrors(newErrors);
@@ -199,6 +204,8 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
         verification_status: 'pending' as const,
         accepted_terms: true,
         accepted_terms_at: new Date().toISOString(),
+        accepted_privacy: true,
+        accepted_privacy_at: new Date().toISOString(),
         // Better utilize existing Telegram data
         telegram: telegramData?.telegram || user.user_metadata?.telegram || '',
         telegram_id: telegramData?.telegram_id || user.user_metadata?.telegram_id || '',
@@ -235,6 +242,30 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
       }
 
       console.log('✅ Profile updated successfully');
+
+      // Fire-and-forget: notify admins about new pending user (fallback if DB trigger didn't fire)
+      try {
+        console.log('📣 Invoking notify-admins-new-user edge function...');
+        const { error: notifyError } = await supabase.functions.invoke('notify-admins-new-user', {
+          body: {
+            userId: user.id,
+            fullName: profileData.full_name,
+            email: user.email ?? null,
+            userType: userType,
+            phone: profileData.phone,
+            optId: optId,
+            telegram: profileData.telegram,
+            createdAt: new Date().toISOString()
+          }
+        });
+        if (notifyError) {
+          console.warn('⚠️ Admin notification failed (non-blocking):', notifyError);
+        } else {
+          console.log('✅ Admin notification sent (edge function)');
+        }
+      } catch (notifyEx) {
+        console.warn('⚠️ Exception during admin notification (non-blocking):', notifyEx);
+      }
 
       // Refresh profile to get latest data
       await refreshProfile();
@@ -380,11 +411,35 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
               className="mt-1"
             />
             <label htmlFor="terms" className="text-sm text-muted-foreground">
-              {language === 'en' ? 'I accept the user agreement' : 'Я принимаю пользовательское соглашение'}
+              {language === 'en' ? (
+                <>I accept the <Link to="/terms" className="text-primary underline">Terms and Conditions</Link></>
+              ) : (
+                <>Я принимаю <Link to="/terms" className="text-primary underline">Terms and Conditions</Link></>
+              )}
             </label>
           </div>
           {errors.acceptedTerms && (
             <p className="text-xs text-destructive">{errors.acceptedTerms}</p>
+          )}
+
+          <div className="flex items-start gap-2">
+            <input
+              id="privacy"
+              type="checkbox"
+              checked={acceptedPrivacy}
+              onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+              className="mt-1"
+            />
+            <label htmlFor="privacy" className="text-sm text-muted-foreground">
+              {language === 'en' ? (
+                <>I accept the <Link to="/privacy" className="text-primary underline">Privacy Policy</Link></>
+              ) : (
+                <>Я принимаю <Link to="/privacy" className="text-primary underline">Privacy Policy</Link></>
+              )}
+            </label>
+          </div>
+          {errors.acceptedPrivacy && (
+            <p className="text-xs text-destructive">{errors.acceptedPrivacy}</p>
           )}
         </div>
       </div>
