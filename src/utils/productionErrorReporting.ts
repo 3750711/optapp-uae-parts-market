@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 
 // Система мониторинга ошибок для продакшена
 interface ErrorReport {
@@ -171,37 +172,22 @@ class ProductionErrorReporting {
   }
 
   private async sendErrorBatch(errors: ErrorReport[]) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Supabase configuration missing');
-    }
-
-    const endpoint = `${supabaseUrl}${this.config.endpoint}`;
-    
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-      },
-      body: JSON.stringify({
+    const { data, error } = await supabase.functions.invoke('error-reports', {
+      body: {
         errors,
         clientInfo: {
           userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
           timestamp: Date.now(),
           sessionId: this.sessionId
         }
-      }),
+      }
     });
 
-    if (!response.ok) {
-      throw new Error(`Error reporting failed: ${response.status}`);
+    if (error) {
+      throw new Error(`Error reporting failed: ${error.message || 'invoke error'}`);
     }
 
-    const result = await response.json();
-    console.log('📊 Error reports sent:', result);
+    console.log('📊 Error reports sent:', data);
   }
 
   public getSessionStats() {

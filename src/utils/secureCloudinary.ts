@@ -1,3 +1,4 @@
+import { supabase } from "@/integrations/supabase/client";
 
 // Безопасная работа с Cloudinary через Supabase secrets
 interface CloudinaryConfig {
@@ -48,20 +49,10 @@ class SecureCloudinaryService {
         };
       }
 
-      // Определяем endpoint в зависимости от типа ресурса
-      const endpoint = resourceType === 'video' 
-        ? '/functions/v1/cloudinary-video-upload'
-        : '/functions/v1/cloudinary-upload';
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        return { 
-          success: false, 
-          error: 'Конфигурация Supabase отсутствует' 
-        };
-      }
+      // Определяем функцию Edge в зависимости от типа ресурса
+      const functionName = resourceType === 'video' 
+        ? 'cloudinary-video-upload'
+        : 'cloudinary-upload';
 
       // Создаем FormData для отправки файла
       const formData = new FormData();
@@ -77,24 +68,19 @@ class SecureCloudinaryService {
 
       console.log(`📤 Uploading ${resourceType} to Cloudinary via Supabase Edge Function...`);
 
-      const response = await fetch(`${supabaseUrl}${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-        },
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: formData,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Upload failed: ${response.status}`, errorText);
+      if (error) {
+        console.error(`❌ Upload failed:`, error);
         return { 
           success: false, 
-          error: `Ошибка загрузки: ${response.status}` 
+          error: error.message || 'Ошибка вызова функции' 
         };
       }
 
-      const result = await response.json();
+      const result = data as UploadResult;
       
       if (result.success) {
         console.log(`✅ ${resourceType} uploaded successfully:`, result.publicId);
