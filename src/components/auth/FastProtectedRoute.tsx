@@ -34,6 +34,11 @@ const FastProtectedRoute = memo(({ children, allowedRoles }: FastProtectedRouteP
     );
   }
   
+  // Block unverified users (except admins)
+  if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
+    return <Navigate to="/pending-approval" replace />;
+  }
+  
   // Quick role check for seller dashboard
   if (allowedRoles && !allowedRoles.includes(profile.user_type)) {
     if (profile.user_type === 'seller') {

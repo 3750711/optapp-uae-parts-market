@@ -10,6 +10,12 @@ const OrderDetailsRedirect = () => {
 
   useEffect(() => {
     if (!isLoading && profile && id) {
+      // Enforce verification: redirect unverified non-admins to pending-approval
+      if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
+        navigate('/pending-approval', { replace: true });
+        return;
+      }
+
       // Redirect based on user role
       switch (profile.user_type) {
         case 'admin':

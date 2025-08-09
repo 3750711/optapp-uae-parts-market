@@ -51,15 +51,9 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     
     // Skip profile completion check - handled globally by ProfileCompletionRedirect
     
-    // PRIORITY 2: Check if user is pending approval (except for admins, incomplete Telegram profiles, and buyers)
-    if (profile.verification_status === 'pending' && profile.user_type !== 'admin' && profile.user_type !== 'buyer') {
-      // Don't redirect Telegram users who haven't completed their profile yet
-      if (profile.auth_method === 'telegram' && (!profile.profile_completed || !profile.opt_id)) {
-        console.log("🚀 HomeRedirect: Telegram user completing registration, staying on home");
-        return <>{children}</>;
-      }
-      
-      console.log("🚀 HomeRedirect: Redirecting to pending approval");
+    // Enforce: any non-admin user who is not verified must go to pending-approval
+    if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
+      console.log("🚀 HomeRedirect: Redirecting unverified user to pending approval");
       if (redirectProtection.canRedirect(location.pathname, "/pending-approval")) {
         return <Navigate to="/pending-approval" replace />;
       }
@@ -100,9 +94,7 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
           break;
       }
     } else {
-      console.log("🚀 HomeRedirect: Unverified user staying on home page");
-      // Unverified users (including completed profiles) stay on home page
-      // This allows them to browse while waiting for approval
+      // Non-verified users are redirected to pending approval above
     }
   }
   

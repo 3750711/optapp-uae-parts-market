@@ -48,6 +48,11 @@ const OrdersRedirect = () => {
     );
   }
 
+  // Проверка верификации: не верифицированных (кроме админов) отправляем на pending-approval
+  if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
+    return <Navigate to="/pending-approval" replace />;
+  }
+
   // Редиректим в зависимости от типа пользователя
   if (profile.user_type === 'seller') {
     return <Navigate to="/seller/orders" replace />;
