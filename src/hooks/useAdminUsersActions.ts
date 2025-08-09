@@ -139,76 +139,104 @@ export const useAdminUsersActions = () => {
 
   const handleDeleteUser = async (userId: string) => {
     try {
-      // Сначала получаем email пользователя
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🗑️ Starting admin deletion flow for user:', userId);
+      }
+
+      // Fetch email for fallback deletion path
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
         .select('email')
         .eq('id', userId)
         .single();
 
-      if (profileError || !userProfile?.email) {
-        console.error('Failed to get user email:', profileError);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось получить email пользователя",
-          variant: "destructive"
-        });
-        return false;
+      if (profileError) {
+        console.warn('⚠️ Could not fetch profile email for fallback. Proceeding with ID only.', profileError);
       }
 
-      // Вызываем правильную функцию для админского удаления пользователя
-      const { data, error } = await supabase.rpc('admin_delete_specific_user', {
-        p_user_email: userProfile.email
-      });
+      // Helper: interpret various success shapes from RPC
+      const isSuccess = (d: any) => d === true || (d && typeof d === 'object' && (d.success === true || d.status === 'success'));
 
-      if (error) {
-        console.error('Error deleting user:', error);
-        
-        // Обработка специфических ошибок
-        if (error.message?.includes('Only admins can use this function')) {
+      // 1) Try delete by user ID first
+      let rpcData: any | null = null;
+      let rpcError: any | null = null;
+
+      const { data: byIdData, error: byIdError } = await supabase.rpc(
+        'admin_delete_specific_user' as any,
+        { p_user_id: userId } as any
+      );
+
+      if (!byIdError && isSuccess(byIdData)) {
+        rpcData = byIdData;
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ Delete by ID failed or returned non-success:', byIdError?.message, byIdData);
+        }
+        // 2) Fallback by email if available
+        if (userProfile?.email) {
+          const { data: byEmailData, error: byEmailError } = await supabase.rpc(
+            'admin_delete_specific_user' as any,
+            { p_user_email: userProfile.email } as any
+          );
+          if (!byEmailError && isSuccess(byEmailData)) {
+            rpcData = byEmailData;
+          } else {
+            rpcError = byEmailError || byIdError || new Error('Unknown RPC failure');
+          }
+        } else {
+          rpcError = byIdError || new Error('No email available for fallback deletion');
+        }
+      }
+
+      if (rpcError) {
+        console.error('Error deleting user via RPC:', rpcError);
+        // Specific error handling
+        const msg = rpcError.message || String(rpcError);
+        if (msg.includes('Only admins can use this function')) {
           toast({
-            title: "Доступ запрещен",
-            description: "Только администраторы могут удалять пользователей",
-            variant: "destructive"
+            title: 'Доступ запрещен',
+            description: 'Только администраторы могут удалять пользователей',
+            variant: 'destructive',
           });
-        } else if (error.message?.includes('not found')) {
+        } else if (msg.includes('not found')) {
           toast({
-            title: "Пользователь не найден",
-            description: "Пользователь уже был удален или не существует",
-            variant: "destructive"
+            title: 'Пользователь не найден',
+            description: 'Пользователь уже был удален или не существует',
+            variant: 'destructive',
           });
         } else {
           toast({
-            title: "Ошибка удаления",
-            description: `Не удалось удалить пользователя: ${error.message}`,
-            variant: "destructive"
+            title: 'Ошибка удаления',
+            description: `Не удалось удалить пользователя: ${msg}`,
+            variant: 'destructive',
           });
         }
         return false;
       }
 
-      if (data === true) {
+      if (isSuccess(rpcData)) {
         toast({
-          title: "Пользователь удален",
-          description: "Аккаунт пользователя и все связанные данные успешно удалены. Создана резервная копия данных.",
+          title: 'Пользователь удален',
+          description:
+            'Аккаунт пользователя и связанные данные удалены. Создана резервная копия операции (если настроено).',
         });
-        
+        // Refresh users
         queryClient.invalidateQueries({ queryKey: ['admin', 'users-optimized'] });
         return true;
-      } else {
-        toast({
-          title: "Ошибка",
-          description: "Операция удаления не была завершена",
-          variant: "destructive"
-        });
-        return false;
       }
-    } catch (error) {
-      console.error('Error deleting user:', error);
+
       toast({
-        title: "Критическая ошибка",
-        description: "Произошла неожиданная ошибка при удалении пользователя",
-        variant: "destructive"
+        title: 'Ошибка',
+        description: 'Операция удаления не была подтверждена бэкендом',
+        variant: 'destructive',
+      });
+      return false;
+    } catch (error: any) {
+      console.error('Error deleting user (unexpected):', error);
+      toast({
+        title: 'Критическая ошибка',
+        description: 'Произошла неожиданная ошибка при удалении пользователя',
+        variant: 'destructive',
       });
       return false;
     }
