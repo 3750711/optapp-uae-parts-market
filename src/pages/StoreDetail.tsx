@@ -15,6 +15,7 @@ import StoreHeader from '@/components/store/StoreHeader';
 import StoreDetailTabs from '@/components/store/StoreDetailTabs';
 import StoreSidebar from '@/components/store/StoreSidebar';
 import { useStoreData } from '@/hooks/useStoreData';
+import MobileStoreStickyActions from '@/components/store/mobile/MobileStoreStickyActions';
 
 const StoreDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -160,7 +161,7 @@ const StoreDetail: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Left column content */}
-          <div className="md:col-span-2 space-y-6">
+          <div className="md:col-span-2 space-y-6 order-2 md:order-1">
             {/* Store header */}
             <StoreHeader 
               store={store}
@@ -183,7 +184,7 @@ const StoreDetail: React.FC = () => {
           </div>
 
           {/* Right column - Store image gallery and info */}
-          <div className="space-y-6">
+          <div className="space-y-6 order-1 md:order-2">
             {/* Image gallery */}
             <StoreImageGallery 
               images={store.store_images || []}
@@ -202,6 +203,8 @@ const StoreDetail: React.FC = () => {
             />
           </div>
         </div>
+        {/* Mobile bottom spacer for sticky action bar */}
+        <div className="h-16 md:hidden" />
       </div>
 
       <WriteReviewDialog 
@@ -230,6 +233,15 @@ const StoreDetail: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    {/* Mobile sticky actions */}
+    <div className="md:hidden">
+      <MobileStoreStickyActions
+        phone={store.phone || undefined}
+        whatsapp={(store as any)?.whatsapp || undefined}
+        onShare={handleShareStore}
+        onWriteReview={handleWriteReview}
+      />
+    </div>
     </Layout>
   );
 };
