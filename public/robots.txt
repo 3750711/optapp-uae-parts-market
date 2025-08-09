@@ -78,4 +78,4 @@ Disallow: /*?token=
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://uae-auto-parts.lovableproject.com/sitemap.xml
+Sitemap: https://partsbay.ae/sitemap.xml

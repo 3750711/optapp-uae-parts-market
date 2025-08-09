@@ -1,7 +1,7 @@
 import { SitemapGenerator } from './sitemapGenerator';
 
 // Production sitemap configuration
-export const PRODUCTION_DOMAIN = 'https://uae-auto-parts.lovableproject.com';
+export const PRODUCTION_DOMAIN = 'https://partsbay.ae';
 
 // Generate and save sitemap for production
 export const generateProductionSitemap = async () => {
