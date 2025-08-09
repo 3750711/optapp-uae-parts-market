@@ -53,9 +53,9 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
     
     // Skip profile completion check - handled globally by ProfileCompletionRedirect
     
-    // PRIORITY 2: Redirect pending users to approval page (except admins)
-    if (profile.verification_status === 'pending' && profile.user_type !== 'admin') {
-      console.log("🔐 GuestRoute: Redirecting to pending approval");
+    // Enforce: any non-admin user who is not verified must go to pending-approval
+    if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
+      console.log("🔐 GuestRoute: Redirecting unverified user to pending approval");
       if (redirectProtection.canRedirect(location.pathname, "/pending-approval")) {
         return <Navigate to="/pending-approval" replace />;
       }
@@ -64,8 +64,7 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
     console.log("🔐 GuestRoute: User verified, checking role redirect");
     devLog("GuestRoute: User verified, redirecting based on role");
     
-    // Only redirect sellers and admins away from guest routes
-    // Buyers should be allowed to access guest content (like login/register pages)
+    // Redirect authenticated users away from guest routes based on role
     switch (profile.user_type) {
       case 'seller':
         console.log("🔐 GuestRoute: Redirecting seller to dashboard");
@@ -80,9 +79,13 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
         }
         break;
       case 'buyer':
+        console.log("🔐 GuestRoute: Redirecting verified buyer to buyer dashboard");
+        if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
+          return <Navigate to="/buyer-dashboard" replace />;
+        }
+        break;
       default:
-        // Buyers can access guest routes (they might want to logout, etc.)
-        console.log("🔐 GuestRoute: Buyer authenticated but allowing guest access");
+        console.log("🔐 GuestRoute: Unknown role - allowing guest access");
         break;
     }
   }
