@@ -197,6 +197,8 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
         opt_id: optId,
         profile_completed: true,
         verification_status: 'pending' as const,
+        accepted_terms: true,
+        accepted_terms_at: new Date().toISOString(),
         // Better utilize existing Telegram data
         telegram: telegramData?.telegram || user.user_metadata?.telegram || '',
         telegram_id: telegramData?.telegram_id || user.user_metadata?.telegram_id || '',

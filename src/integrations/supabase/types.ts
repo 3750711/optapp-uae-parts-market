@@ -857,6 +857,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          accepted_terms: boolean
+          accepted_terms_at: string | null
           auth_method: string | null
           avatar_url: string | null
           communication_ability: number | null
@@ -885,6 +887,8 @@ export type Database = {
           verification_status: Database["public"]["Enums"]["verification_status"]
         }
         Insert: {
+          accepted_terms?: boolean
+          accepted_terms_at?: string | null
           auth_method?: string | null
           avatar_url?: string | null
           communication_ability?: number | null
@@ -913,6 +917,8 @@ export type Database = {
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }
         Update: {
+          accepted_terms?: boolean
+          accepted_terms_at?: string | null
           auth_method?: string | null
           avatar_url?: string | null
           communication_ability?: number | null

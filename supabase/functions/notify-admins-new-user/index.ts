@@ -5,11 +5,9 @@ import { verifyAuthentication } from "./auth-utils.ts";
 import { logTelegramNotification } from "../shared/telegram-logger.ts";
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
-const ADMIN_EMAILS = ['efg22971@gmail.com', 'ts1@g.com', 'Mironenkonastya1997@mail.ru'];
 
 console.log('Admin New User Notification Environment:', {
-  BOT_TOKEN_EXISTS: !!BOT_TOKEN,
-  ADMIN_EMAILS_COUNT: ADMIN_EMAILS.length
+  BOT_TOKEN_EXISTS: !!BOT_TOKEN
 });
 
 interface NewUserData {
@@ -57,7 +55,6 @@ async function getAdminTelegramIds(supabase: any): Promise<Array<{id: string, na
       .from('profiles')
       .select('id, full_name, telegram_id')
       .eq('user_type', 'admin')
-      .in('email', ADMIN_EMAILS)
       .not('telegram_id', 'is', null);
 
     if (error) {
