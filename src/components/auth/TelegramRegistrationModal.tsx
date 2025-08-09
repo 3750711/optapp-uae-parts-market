@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +49,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
   const [sellerInfo, setSellerInfo] = useState<SellerInfo>({ companyName: '', location: '', description: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const locations = [
     { value: 'dubai', label: t.locations.dubai },
@@ -96,8 +97,16 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
       newErrors.fullName = t.errors.fullNameRequired;
     }
     
-    if (!basicInfo.phone.trim()) {
+    const phoneRaw = basicInfo.phone.trim();
+    const phoneSanitized = phoneRaw.replace(/\s/g, '');
+    if (!phoneRaw) {
       newErrors.phone = t.errors.phoneRequired;
+    } else if (!/^\+971\d{8,9}$/.test(phoneSanitized)) {
+      newErrors.phone = language === 'en' ? 'Enter a valid UAE phone number (+971 XX XXX XXXX)' : 'Введите корректный номер ОАЭ в формате +971 XX XXX XXXX';
+    }
+
+    if (!acceptedTerms) {
+      newErrors.acceptedTerms = language === 'en' ? 'You must accept the user agreement' : 'Необходимо принять пользовательское соглашение';
     }
     
     setErrors(newErrors);
@@ -349,12 +358,32 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
         <div>
           <label className="text-sm font-medium">{t.phone}</label>
           <Input
+            type="tel"
+            inputMode="tel"
             value={basicInfo.phone}
             onChange={(e) => setBasicInfo({ ...basicInfo, phone: e.target.value })}
             placeholder={t.phonePlaceholder}
             className={errors.phone ? 'border-destructive' : ''}
           />
           {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <input
+              id="terms"
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-1"
+            />
+            <label htmlFor="terms" className="text-sm text-muted-foreground">
+              {language === 'en' ? 'I accept the user agreement' : 'Я принимаю пользовательское соглашение'}
+            </label>
+          </div>
+          {errors.acceptedTerms && (
+            <p className="text-xs text-destructive">{errors.acceptedTerms}</p>
+          )}
         </div>
       </div>
 

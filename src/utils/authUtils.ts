@@ -28,8 +28,7 @@ export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult
     
     // Добавляем второй параметр p_ip_address: null для разрешения перегрузки функции
     const { data, error } = await supabase.rpc('get_email_by_opt_id', {
-      p_opt_id: optId,
-      p_ip_address: null
+      p_opt_id: optId
     });
 
     if (error) {
