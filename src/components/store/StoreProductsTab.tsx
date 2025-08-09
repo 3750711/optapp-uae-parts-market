@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Package, ArrowRight, Eye } from 'lucide-react';
+import OptimizedImage from '@/components/ui/OptimizedImage';
+import { Package, ArrowRight } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -14,6 +15,10 @@ interface Product {
   status: string;
   brand?: string;
   model?: string;
+  product_images?: Array<{ url: string; is_primary?: boolean }>;
+  image?: string | null;
+  cloudinary_public_id?: string | null;
+  cloudinary_url?: string | null;
 }
 
 interface StoreProductsTabProps {
@@ -74,56 +79,57 @@ const StoreProductsTab: React.FC<StoreProductsTabProps> = memo(({
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="space-y-3">
-        {sellerProducts.map((product, index) => (
-          <Card 
-            key={product.id} 
-            className="group hover:shadow-md transition-all duration-300 border hover:border-primary/30 animate-slide-in-from-bottom"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <CardContent className="p-5">
-              <div className="flex justify-between items-center">
-                <div className="flex-1 pr-4">
-                  <Link 
-                    to={`/product/${product.id}`} 
-                    className="block"
-                  >
-                    <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 line-clamp-2 mb-2">
-                      {product.title}
-                    </h4>
-                  </Link>
-                  
-                  {/* Brand and model display */}
-                  {(product.brand || product.model) && (
-                    <p className="text-sm text-muted-foreground mb-2 font-medium">
-                      {[product.brand, product.model].filter(Boolean).join(' ')}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center justify-between">
-                    <div className="text-lg font-bold text-primary">
-                      {product.price} $
+        {sellerProducts.map((product, index) => {
+          const primaryImage =
+            product.product_images?.find((img) => img.is_primary)?.url ||
+            product.product_images?.[0]?.url ||
+            product.image ||
+            product.cloudinary_url ||
+            '';
+
+          return (
+            <Link key={product.id} to={`/product/${product.id}`} className="block group">
+              <Card
+                className="hover:shadow-md transition-all duration-300 border hover:border-primary/30 animate-slide-in-from-bottom"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                      <OptimizedImage
+                        src={primaryImage || '/placeholder.svg'}
+                        alt={product.title}
+                        className="w-20 h-20 object-cover"
+                        size="thumbnail"
+                        cloudinaryPublicId={product.cloudinary_public_id || undefined}
+                        cloudinaryUrl={product.cloudinary_url || undefined}
+                      />
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(product.created_at).toLocaleDateString('ru-RU')}
+
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 line-clamp-2 mb-1">
+                        {product.title}
+                      </h4>
+
+                      {(product.brand || product.model) && (
+                        <p className="text-sm text-muted-foreground mb-2 font-medium">
+                          {[product.brand, product.model].filter(Boolean).join(' ')}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="text-lg font-bold text-primary">{product.price} $</div>
+                        <div className="text-sm text-muted-foreground">
+                          {new Date(product.created_at).toLocaleDateString('ru-RU')}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <Button 
-                  asChild 
-                  variant="outline" 
-                  size="sm"
-                  className="ml-4 group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-200"
-                >
-                  <Link to={`/product/${product.id}`} className="flex items-center gap-2">
-                    <Eye className="h-4 w-4" />
-                    Просмотреть
-                    <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
       
       {sellerId && (
