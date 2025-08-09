@@ -7,6 +7,7 @@ import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useApprovalStatus } from '@/hooks/useApprovalStatus';
+import { TelegramLoginWidget } from '@/components/auth/TelegramLoginWidget';
 
 const pendingApprovalTranslations = {
   ru: {
@@ -257,6 +258,12 @@ const PendingApprovalPage = () => {
           </div>
         </section>
       </Layout>
+      {/* Hidden Telegram widget to auto-open registration modal for incomplete Telegram profiles */}
+      {profile?.auth_method === 'telegram' && (!profile?.profile_completed || (profile as any)?.accepted_terms === false) && (
+        <div className="sr-only" aria-hidden="true">
+          <TelegramLoginWidget language={language} />
+        </div>
+      )}
     </>
   );
 };
