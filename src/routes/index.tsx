@@ -204,6 +204,12 @@ const AppRoutes: React.FC = () => {
                 <StoreDetail />
               </ProtectedRoute>
             } />
+            {/* Alias path to support /stores/:id links */}
+            <Route path="/stores/:id" element={
+              <ProtectedRoute excludedRoles={['seller']}>
+                <StoreDetail />
+              </ProtectedRoute>
+            } />
             <Route path="/requests" element={
               <ProtectedRoute excludedRoles={['seller']}>
                 <Requests />

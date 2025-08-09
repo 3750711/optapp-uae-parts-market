@@ -26,6 +26,8 @@ export const PublicRoutes = () => (
     <Route path="/product/:id" element={<ProductDetail />} />
     <Route path="/stores" element={<Stores />} />
     <Route path="/store/:id" element={<StoreDetail />} />
+    {/* Alias path to support /stores/:id links */}
+    <Route path="/stores/:id" element={<StoreDetail />} />
     <Route path="/requests" element={<Requests />} />
     <Route path="/request/:id" element={<RequestDetail />} />
     <Route path="/buyer-guide" element={<BuyerGuide />} />
