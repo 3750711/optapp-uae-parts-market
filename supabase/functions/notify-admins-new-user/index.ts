@@ -124,11 +124,31 @@ serve(async (req) => {
 
     console.log(`📢 [AdminNewUserNotification] Processing new user: ${email} (${userType})`);
 
-    // Create Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // Safety guard: skip if already notified
+    try {
+      const { data: profile, error: profileErr } = await supabase
+        .from('profiles')
+        .select('admin_new_user_notified_at')
+        .eq('id', userId)
+        .single();
+      if (profileErr) {
+        console.warn('⚠️ Failed to fetch profile for deduplication check:', profileErr);
+      }
+      if (profile && profile.admin_new_user_notified_at) {
+        console.log(`⏭️ Already notified admins for user ${userId}, skipping.`);
+        return new Response(
+          JSON.stringify({ success: true, message: 'Already notified admins for this user' }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (guardErr) {
+      console.warn('⚠️ Deduplication guard encountered an error, proceeding anyway:', guardErr);
+    }
 
     const userData: NewUserData = {
       userId,

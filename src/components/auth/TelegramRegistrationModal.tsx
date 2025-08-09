@@ -243,29 +243,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
 
       console.log('✅ Profile updated successfully');
 
-      // Fire-and-forget: notify admins about new pending user (fallback if DB trigger didn't fire)
-      try {
-        console.log('📣 Invoking notify-admins-new-user edge function...');
-        const { error: notifyError } = await supabase.functions.invoke('notify-admins-new-user', {
-          body: {
-            userId: user.id,
-            fullName: profileData.full_name,
-            email: user.email ?? null,
-            userType: userType,
-            phone: profileData.phone,
-            optId: optId,
-            telegram: profileData.telegram,
-            createdAt: new Date().toISOString()
-          }
-        });
-        if (notifyError) {
-          console.warn('⚠️ Admin notification failed (non-blocking):', notifyError);
-        } else {
-          console.log('✅ Admin notification sent (edge function)');
-        }
-      } catch (notifyEx) {
-        console.warn('⚠️ Exception during admin notification (non-blocking):', notifyEx);
-      }
+      // Admin notification is handled by DB trigger; no client-side invoke
 
       // Refresh profile to get latest data
       await refreshProfile();
