@@ -29,13 +29,19 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   cloudinaryUrl,
   size = 'card'
 }) => {
-  const [imageError, setImageError] = useState(false);
+  const [cloudinaryError, setCloudinaryError] = useState(false);
+  const [nativeError, setNativeError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const handleImageError = useCallback(() => {
-    setImageError(true);
+  const handleCloudinaryError = useCallback(() => {
+    setCloudinaryError(true);
     onError?.();
-  }, [src, onError]);
+  }, [onError]);
+
+  const handleNativeError = useCallback(() => {
+    setNativeError(true);
+    onError?.();
+  }, [onError]);
 
   const handleImageLoad = useCallback(() => {
     setIsLoaded(true);
@@ -47,9 +53,8 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     (cloudinaryUrl && cloudinaryUrl.includes('cloudinary.com') ? extractPublicIdFromUrl(cloudinaryUrl) : null) ||
     (src && src.includes('cloudinary.com') ? extractPublicIdFromUrl(src) : null);
 
-
   // Use CloudinaryImage if we have a valid public_id and no errors
-  if (workingPublicId && !imageError) {
+  if (workingPublicId && !cloudinaryError) {
     return (
       <CloudinaryImage
         publicId={workingPublicId}
@@ -58,18 +63,20 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
         className={className}
         priority={priority}
         onLoad={handleImageLoad}
-        onError={handleImageError}
+        onError={handleCloudinaryError}
         fallbackSrc="/placeholder.svg"
       />
     );
   }
 
-  // Fallback to regular image with optimized URL
-  const imageUrl = imageError ? '/placeholder.svg' : (getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl));
+  // Fallback to regular image with optimized URL (try original src unless native failed)
+  const imageUrl = nativeError
+    ? '/placeholder.svg'
+    : getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
 
   return (
     <div className={`relative ${className}`}>
-      {!isLoaded && !priority && !imageError && (
+      {!isLoaded && !priority && !nativeError && (
         <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
       )}
       <img
@@ -77,7 +84,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
         alt={alt}
         className={`${className} object-contain transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={handleImageLoad}
-        onError={handleImageError}
+        onError={handleNativeError}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         sizes={sizes}

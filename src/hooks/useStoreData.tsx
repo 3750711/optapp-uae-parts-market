@@ -78,7 +78,11 @@ export const useStoreData = (storeId: string) => {
       
       const { data, error } = await supabase
         .from('products')
-        .select('id, title, price, created_at, status, brand, model')
+        .select(`
+          id, title, price, created_at, status, brand, model,
+          cloudinary_public_id, cloudinary_url, preview_image_url,
+          product_images(url, is_primary)
+        `)
         .eq('seller_id', store.seller_id)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
