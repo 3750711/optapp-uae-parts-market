@@ -11,6 +11,7 @@ import CatalogContent from "@/components/catalog/CatalogContent";
 import { useConditionalCarData } from "@/hooks/useConditionalCarData";
 import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
+import BackButton from "@/components/navigation/BackButton";
 
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -159,6 +160,7 @@ const Catalog: React.FC = () => {
       />
 
       <div className="container mx-auto px-4 py-8">
+        <BackButton className="mb-4" fallback="/" />
         <CatalogBreadcrumb
           searchQuery={activeSearchTerm}
           selectedBrandName={activeBrandName}

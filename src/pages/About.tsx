@@ -2,6 +2,7 @@ import React from "react";
 import Layout from "@/components/layout/Layout";
 import { Award, ShieldCheck, TrendingUp, Truck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import BackButton from "@/components/navigation/BackButton";
 
 const About = () => {
   const { user } = useAuth();
@@ -9,6 +10,7 @@ const About = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
+        <BackButton className="mb-6" fallback="/" />
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-bold mb-6 text-center">О компании PartsBay.ae</h1>
           <div className="mb-12 text-center">

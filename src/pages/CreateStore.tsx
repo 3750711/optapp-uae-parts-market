@@ -2,6 +2,7 @@
 import React from 'react';
 import Layout from '@/components/layout/Layout';
 import StoreForm from '@/components/store/StoreForm';
+import BackButton from "@/components/navigation/BackButton";
 import { useNavigate } from 'react-router-dom';
 
 const CreateStore: React.FC = () => {
@@ -14,6 +15,7 @@ const CreateStore: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        <BackButton className="mb-4" fallback="/stores" />
         <h1 className="text-3xl font-bold mb-8">Создать магазин</h1>
         <StoreForm onSuccess={handleSuccess} />
       </div>

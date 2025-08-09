@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight, ShoppingCart, Store, Wallet, Package, MessageSquare, HelpCircle, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import BackButton from "@/components/navigation/BackButton";
 
 const BuyerGuide = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 md:py-12">
+        <BackButton className="mb-6" fallback="/" />
         <div className="flex flex-col max-w-4xl mx-auto">
           {/* Header section */}
           <div className="text-center mb-10">

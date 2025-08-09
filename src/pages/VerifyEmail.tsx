@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import EmailVerificationForm from '@/components/auth/EmailVerificationForm';
 import { useAuth } from '@/contexts/AuthContext';
+import BackButton from "@/components/navigation/BackButton";
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
@@ -33,7 +34,8 @@ const VerifyEmail = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+          <BackButton className="mb-4" fallback={returnTo} />
+          <div className="w-full max-w-md">
           <EmailVerificationForm
             initialEmail={email}
             onVerificationSuccess={handleVerificationSuccess}

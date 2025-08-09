@@ -11,6 +11,7 @@ import { CalendarClock, MessageSquare, Sparkles, Send, ShoppingBag, Clock, Award
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import RequestMatchCount from '@/components/request/RequestMatchCount';
+import BackButton from "@/components/navigation/BackButton";
 
 interface Request {
   id: string;
@@ -55,6 +56,7 @@ const Requests: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        <BackButton className="mb-4" fallback="/" />
         {/* Enhanced header with gradient background */}
         <div className="relative overflow-hidden rounded-xl mb-8 p-6 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
           <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>

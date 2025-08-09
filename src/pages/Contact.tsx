@@ -8,10 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
 
+import BackButton from "@/components/navigation/BackButton";
+
 const Contact = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
+        <BackButton className="mb-6" fallback="/" />
         <h1 className="text-3xl font-bold text-center mb-12">Связаться с нами</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
