@@ -1216,6 +1216,7 @@ export type Database = {
           owner_name: string | null
           phone: string | null
           rating: number | null
+          reviews_count: number
           seller_id: string | null
           tags: Database["public"]["Enums"]["store_tag"][] | null
           telegram: string | null
@@ -1232,6 +1233,7 @@ export type Database = {
           owner_name?: string | null
           phone?: string | null
           rating?: number | null
+          reviews_count?: number
           seller_id?: string | null
           tags?: Database["public"]["Enums"]["store_tag"][] | null
           telegram?: string | null
@@ -1248,6 +1250,7 @@ export type Database = {
           owner_name?: string | null
           phone?: string | null
           rating?: number | null
+          reviews_count?: number
           seller_id?: string | null
           tags?: Database["public"]["Enums"]["store_tag"][] | null
           telegram?: string | null
