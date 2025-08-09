@@ -1,6 +1,7 @@
 
 import React, { memo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import StoreAboutTab from './StoreAboutTab';
 import { StorePhotosTab } from './StorePhotosTab';
 import StoreProductsTab from './StoreProductsTab';
@@ -28,15 +29,17 @@ interface StoreDetailTabsProps {
   isProductsLoading: boolean;
   reviews?: StoreReview[];
   isReviewsLoading: boolean;
+  onWriteReview?: () => void;
 }
 
-const StoreDetailTabs: React.FC<StoreDetailTabsProps> = memo(({
+const StoreDetailTabs: React.FC<StoreDetailTabsProps> = memo(({ 
   store,
   carBrandsData,
   sellerProducts,
   isProductsLoading,
   reviews,
-  isReviewsLoading
+  isReviewsLoading,
+  onWriteReview
 }) => {
   return (
     <div className="animate-fade-in">
@@ -100,6 +103,11 @@ const StoreDetailTabs: React.FC<StoreDetailTabsProps> = memo(({
 
         <TabsContent value="reviews" className="mt-6">
           <div className="animate-fade-in animation-delay-100">
+            {onWriteReview && (
+              <div className="mb-4">
+                <Button size="sm" onClick={onWriteReview}>Написать отзыв</Button>
+              </div>
+            )}
             <StoreReviewsTab 
               reviews={reviews}
               isReviewsLoading={isReviewsLoading}

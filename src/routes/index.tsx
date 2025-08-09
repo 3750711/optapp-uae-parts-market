@@ -1,9 +1,10 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import RouteSEO from '@/components/routing/RouteSEO';
 import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary';
 import { RouteSuspenseFallback } from '@/components/routing/RouteSuspenseFallback';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import PublicExceptSellers from '@/components/auth/PublicExceptSellers';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import GuestRoute from '@/components/auth/GuestRoute';
 import PendingApprovalWrapper from '@/components/auth/PendingApprovalWrapper';
@@ -195,20 +196,16 @@ const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/stores" element={
-              <ProtectedRoute excludedRoles={['seller']}>
+              <PublicExceptSellers>
                 <Stores />
-              </ProtectedRoute>
+              </PublicExceptSellers>
             } />
-            <Route path="/store/:id" element={
-              <ProtectedRoute excludedRoles={['seller']}>
-                <StoreDetail />
-              </ProtectedRoute>
-            } />
+            <Route path="/store/:id" element={<Navigate to="/stores/:id" replace />} />
             {/* Alias path to support /stores/:id links */}
             <Route path="/stores/:id" element={
-              <ProtectedRoute excludedRoles={['seller']}>
+              <PublicExceptSellers>
                 <StoreDetail />
-              </ProtectedRoute>
+              </PublicExceptSellers>
             } />
             <Route path="/requests" element={
               <ProtectedRoute excludedRoles={['seller']}>

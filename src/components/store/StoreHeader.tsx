@@ -1,19 +1,29 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Star, MapPin, ShieldCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Star, MapPin, ShieldCheck, Share2, Send } from 'lucide-react';
 import { StoreWithImages } from '@/types/store';
 
 interface StoreHeaderProps {
   store: StoreWithImages;
+  averageRating?: number | null;
+  reviewsCount?: number;
+  onShareStore?: () => void;
+  onShareToTelegram?: () => void;
 }
 
 const StoreHeader: React.FC<StoreHeaderProps> = ({
-  store
+  store,
+  averageRating,
+  reviewsCount,
+  onShareStore,
+  onShareToTelegram
 }) => {
+  const ratingToShow = averageRating ?? store.rating ?? null;
   return (
     <div className="mb-6">
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-4 gap-4">
         <div className="flex-1">
           <h1 className="text-3xl md:text-4xl font-bold mb-3 flex items-center gap-3 flex-wrap">
             {store.name}
@@ -35,9 +45,12 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({
             <div className="flex items-center gap-1">
               <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
               <span className="font-medium text-lg">
-                {store.rating?.toFixed(1) || '-'}
+                {ratingToShow !== null ? ratingToShow.toFixed(1) : '-'}
               </span>
               <span className="text-muted-foreground">/ 5</span>
+              {typeof reviewsCount === 'number' && (
+                <span className="text-muted-foreground ml-2">· {reviewsCount} отзывов</span>
+              )}
             </div>
             
             <div className="flex items-center gap-1 text-muted-foreground">
@@ -59,6 +72,18 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({
                 </Badge>
               ))}
             </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {onShareStore && (
+            <Button variant="outline" size="sm" onClick={onShareStore} className="gap-2">
+              <Share2 className="w-4 h-4" /> Поделиться
+            </Button>
+          )}
+          {onShareToTelegram && (
+            <Button variant="outline" size="sm" onClick={onShareToTelegram} className="gap-2">
+              <Send className="w-4 h-4" /> Telegram
+            </Button>
           )}
         </div>
       </div>

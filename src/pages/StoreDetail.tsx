@@ -88,6 +88,16 @@ const StoreDetail: React.FC = () => {
     window.open(telegramUrl, '_blank');
   };
   
+  const reviewsCount = reviews?.length || 0;
+  const averageRating = reviewsCount > 0 
+    ? reviews!.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewsCount 
+    : null;
+
+  const handleWriteReview = () => {
+    if (user) setIsReviewDialogOpen(true);
+    else setShowAuthDialog(true);
+  };
+  
   if (isStoreLoading) {
     return (
       <Layout>
@@ -125,8 +135,8 @@ const StoreDetail: React.FC = () => {
       {/* SEO component */}
       <StoreSEO 
         store={store} 
-        reviewsCount={reviews?.length} 
-        averageRating={store.rating} 
+        reviewsCount={reviewsCount} 
+        averageRating={averageRating ?? undefined} 
       />
 
       <div className="container mx-auto px-4 py-8">
@@ -154,6 +164,10 @@ const StoreDetail: React.FC = () => {
             {/* Store header */}
             <StoreHeader 
               store={store}
+              averageRating={averageRating ?? undefined}
+              reviewsCount={reviewsCount}
+              onShareStore={handleShareStore}
+              onShareToTelegram={handleShareToTelegram}
             />
 
             {/* Tabs */}
@@ -164,6 +178,7 @@ const StoreDetail: React.FC = () => {
               isProductsLoading={isProductsLoading}
               reviews={reviews}
               isReviewsLoading={isReviewsLoading}
+              onWriteReview={handleWriteReview}
             />
           </div>
 

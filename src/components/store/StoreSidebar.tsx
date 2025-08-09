@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Package, ShieldCheck, MapPin, Phone, Star, TrendingUp } from 'lucide-react';
+import { Package, ShieldCheck, MapPin, Phone, Star, TrendingUp, Copy, MessageCircle } from 'lucide-react';
 import { StoreWithImages } from '@/types/store';
+import { toast } from '@/hooks/use-toast';
 
 interface CarBrand {
   id: string;
@@ -59,11 +60,42 @@ const StoreSidebar: React.FC<StoreSidebarProps> = memo(({
           {store.phone && (
             <div className="flex items-start gap-3">
               <Phone className="w-4 h-4 text-muted-foreground mt-1 flex-shrink-0" />
-              <div>
+              <div className="flex-1">
                 <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide mb-1">
                   Телефон
                 </h3>
-                <p className="text-foreground">{store.phone}</p>
+                <p className="text-foreground mb-2">{store.phone}</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(store.phone as string);
+                        toast({ title: 'Скопировано', description: 'Телефон скопирован в буфер обмена' });
+                      } catch (e) {
+                        console.error(e);
+                      }
+                    }}
+                  >
+                    <Copy className="w-4 h-4" /> Скопировать
+                  </Button>
+                  {store.whatsapp && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => {
+                        const num = (store.whatsapp as string).replace(/[^\d]/g, '');
+                        const waUrl = `https://wa.me/${num}`;
+                        window.open(waUrl, '_blank');
+                      }}
+                    >
+                      <MessageCircle className="w-4 h-4" /> WhatsApp
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           )}

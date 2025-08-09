@@ -18,7 +18,9 @@ export const useStoreData = (storeId: string) => {
       
       if (error) throw error;
       return data as StoreWithImages;
-    }
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000
   });
 
   // Car brands and models query
@@ -63,7 +65,9 @@ export const useStoreData = (storeId: string) => {
       
       return carBrands;
     },
-    enabled: !!storeId
+    enabled: !!storeId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000
   });
 
   // Seller products query
@@ -83,7 +87,9 @@ export const useStoreData = (storeId: string) => {
       if (error) throw error;
       return data;
     },
-    enabled: !!store?.seller_id
+    enabled: !!store?.seller_id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000
   });
 
   // Reviews query
@@ -106,7 +112,9 @@ export const useStoreData = (storeId: string) => {
         user_name: review.profiles?.full_name,
         user_avatar: review.profiles?.avatar_url
       })) as StoreReview[];
-    }
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000
   });
 
   // Seller product count query
@@ -124,7 +132,9 @@ export const useStoreData = (storeId: string) => {
       if (error) throw error;
       return count || 0;
     },
-    enabled: !!store?.seller_id
+    enabled: !!store?.seller_id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000
   });
 
   // Sold product count query
@@ -142,7 +152,9 @@ export const useStoreData = (storeId: string) => {
       if (error) throw error;
       return count || 0;
     },
-    enabled: !!store?.seller_id
+    enabled: !!store?.seller_id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000
   });
 
   return {
