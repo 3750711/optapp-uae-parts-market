@@ -32,7 +32,8 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
     password: '',
     confirmPassword: ''
   });
-  const [errors, setErrors] = useState<Partial<BuyerData>>({});
+  const [errors, setErrors] = useState<Partial<BuyerData & { acceptedTerms: string }>>({});
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const validateForm = () => {
     const newErrors: Partial<BuyerData> = {};
@@ -49,6 +50,8 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
     
     if (!formData.phone.trim()) {
       newErrors.phone = translations.errors.phoneRequired;
+    } else if (!/^\+971\d{8,9}$/.test(formData.phone.replace(/\s/g, ''))) {
+      newErrors.phone = translations.language === 'en' ? 'Enter a valid UAE phone number (+971 XX XXX XXXX)' : 'Введите корректный номер ОАЭ в формате +971 XX XXX XXXX';
     }
     
     if (!formData.password) {
@@ -59,6 +62,10 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
     
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = translations.errors.passwordMismatch;
+    }
+
+    if (!acceptedTerms) {
+      (newErrors as any).acceptedTerms = translations.language === 'en' ? 'You must accept the user agreement' : 'Необходимо принять пользовательское соглашение';
     }
     
     setErrors(newErrors);
@@ -172,6 +179,24 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
               />
               {errors.confirmPassword && (
                 <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+              )}
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="flex items-start gap-2">
+                <input
+                  id="terms"
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-1"
+                />
+                <label htmlFor="terms" className="text-sm text-muted-foreground">
+                  {translations.language === 'en' ? 'I accept the user agreement' : 'Я принимаю пользовательское соглашение'}
+                </label>
+              </div>
+              {errors.acceptedTerms && (
+                <p className="text-sm text-destructive">{errors.acceptedTerms as any}</p>
               )}
             </div>
 

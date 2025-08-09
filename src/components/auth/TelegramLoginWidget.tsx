@@ -67,7 +67,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [mergeData, setMergeData] = useState<{
     existingEmail: string;
-    telegramData: any;
+    telegramData: TelegramAuthData;
   } | null>(null);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
   const { user, profile } = useAuth();
@@ -200,9 +200,35 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   };
 
   const handleMergeCancel = async () => {
-    // User chose to create a new account instead of merging
-    // We can optionally implement creating a new account with a different identifier
-    toast.info(t.mergeInfo);
+    try {
+      // User opted to create a separate account
+      if (!mergeData?.telegramData) {
+        toast.info(t.mergeInfo);
+        return;
+      }
+
+      toast.loading(language === 'en' ? 'Creating a separate account…' : 'Создаем отдельный аккаунт…');
+      const { data, error } = await supabase.functions.invoke('telegram-widget-auth', {
+        body: { authData: mergeData.telegramData, forceNewAccount: true }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Creation failed');
+
+      toast.dismiss();
+
+      if (data.requires_profile_completion) {
+        await handleDirectLogin(data.email, data.password, true, true);
+        return;
+      }
+
+      await handleDirectLogin(data.email, data.password, data.is_new_user);
+    } catch (e) {
+      toast.dismiss();
+      const msg = e instanceof Error ? e.message : t.error;
+      toast.error(msg);
+      onError?.(msg);
+    }
   };
 
   // Auto-open modal for Telegram users with incomplete profiles

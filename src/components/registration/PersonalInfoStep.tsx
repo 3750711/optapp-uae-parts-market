@@ -32,7 +32,8 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
     password: '',
     confirmPassword: ''
   });
-  const [errors, setErrors] = useState<Partial<PersonalData>>({});
+  const [errors, setErrors] = useState<Partial<PersonalData & { acceptedTerms: string }>>({});
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const validateForm = () => {
     const newErrors: Partial<PersonalData> = {};
@@ -61,6 +62,10 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
     
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = translations.errors.passwordMismatch;
+    }
+
+    if (!acceptedTerms) {
+      (newErrors as any).acceptedTerms = translations.language === 'en' ? 'You must accept the user agreement' : 'Необходимо принять пользовательское соглашение';
     }
     
     setErrors(newErrors);
@@ -174,6 +179,24 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
               />
               {errors.confirmPassword && (
                 <p className="text-sm text-destructive">{errors.confirmPassword}</p>
+              )}
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="flex items-start gap-2">
+                <input
+                  id="terms"
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-1"
+                />
+                <label htmlFor="terms" className="text-sm text-muted-foreground">
+                  {translations.language === 'en' ? 'I accept the user agreement' : 'Я принимаю пользовательское соглашение'}
+                </label>
+              </div>
+              {errors.acceptedTerms && (
+                <p className="text-sm text-destructive">{errors.acceptedTerms as any}</p>
               )}
             </div>
 
