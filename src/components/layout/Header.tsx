@@ -160,7 +160,7 @@ const Header = () => {
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 bg-white text-foreground shadow-elevation border border-gray-200 rounded-lg animate-scale-in">
+                  <DropdownMenuContent align="end" className="z-50 w-56 bg-white text-foreground shadow-elevation border border-gray-200 rounded-lg animate-scale-in">
                     <DropdownMenuLabel className="flex flex-col gap-1">
                       <span>{user.user_metadata?.full_name || user.email}</span>
                     </DropdownMenuLabel>
@@ -206,6 +206,12 @@ const Header = () => {
                     {/* Buyer-specific Items */}
                     {profile?.user_type === 'buyer' && (
                       <>
+                        <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                          <Link to="/buyer-dashboard" className="flex w-full items-center">
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            <span>Панель покупателя</span>
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/buyer-orders" className="flex w-full items-center">
                             <ShoppingCart className="mr-2 h-4 w-4" />

@@ -144,6 +144,12 @@ const MobileProfileMenu = () => {
         {/* Buyer-specific Items */}
         {profile?.user_type === 'buyer' && (
           <>
+            <Link to="/buyer-dashboard">
+              <Button variant="ghost" className="w-full justify-start h-12 text-base">
+                <LayoutDashboard className="mr-3 h-5 w-5" />
+                Панель покупателя
+              </Button>
+            </Link>
             <Link to="/buyer-orders">
               <Button variant="ghost" className="w-full justify-start h-12 text-base">
                 <ShoppingCart className="mr-3 h-5 w-5" />
