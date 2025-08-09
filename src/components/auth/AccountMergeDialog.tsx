@@ -127,7 +127,7 @@ export const AccountMergeDialog: React.FC<AccountMergeDialogProps> = ({
             disabled={isLoading}
             className="w-full sm:w-auto"
           >
-            Создать новый аккаунт
+            Отмена
           </Button>
           <Button 
             onClick={handleMerge}

@@ -125,6 +125,7 @@ serve(async (req) => {
         .select('id, email, telegram_id, telegram, auth_method')
         .eq('telegram', normalizedUsername)
         .is('telegram_id', null) // Only accounts without telegram_id (email-based)
+        .limit(1)
         .maybeSingle()
       
       console.log('📊 Search by telegram username result:', {
