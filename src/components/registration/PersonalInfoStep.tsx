@@ -44,7 +44,7 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
     
     if (!formData.phone.trim()) {
       newErrors.phone = translations.errors.phoneRequired;
-    } else if (!/^\+971\s?\d{1,2}\s?\d{3}\s?\d{4}$/.test(formData.phone.replace(/\s/g, ''))) {
+    } else if (!/^\+?[1-9]\d{6,14}$/.test(formData.phone.replace(/\s/g, ''))) {
       newErrors.phone = translations.errors.phoneInvalid;
     }
     

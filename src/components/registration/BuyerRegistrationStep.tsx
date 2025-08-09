@@ -50,8 +50,8 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
     
     if (!formData.phone.trim()) {
       newErrors.phone = translations.errors.phoneRequired;
-    } else if (!/^\+971\d{8,9}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = translations.language === 'en' ? 'Enter a valid UAE phone number (+971 XX XXX XXXX)' : 'Введите корректный номер ОАЭ в формате +971 XX XXX XXXX';
+    } else if (!/^\+?[1-9]\d{6,14}$/.test(formData.phone.replace(/\s/g, ''))) {
+      newErrors.phone = translations.errors.phoneInvalid;
     }
     
     if (!formData.password) {

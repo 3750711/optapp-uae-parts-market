@@ -103,8 +103,8 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
     const phoneSanitized = phoneRaw.replace(/\s/g, '');
     if (!phoneRaw) {
       newErrors.phone = t.errors.phoneRequired;
-    } else if (!/^\+971\d{8,9}$/.test(phoneSanitized)) {
-      newErrors.phone = language === 'en' ? 'Enter a valid UAE phone number (+971 XX XXX XXXX)' : 'Введите корректный номер ОАЭ в формате +971 XX XXX XXXX';
+    } else if (!/^\+?[1-9]\d{6,14}$/.test(phoneSanitized)) {
+      newErrors.phone = language === 'en' ? 'Enter a valid phone number' : 'Введите корректный номер телефона';
     }
 
     if (!acceptedTerms) {
@@ -412,9 +412,9 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
             />
             <label htmlFor="terms" className="text-sm text-muted-foreground">
               {language === 'en' ? (
-                <>I accept the <Link to="/terms" className="text-primary underline">Terms and Conditions</Link></>
+                <>I accept the <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline">Terms and Conditions</Link></>
               ) : (
-                <>Я принимаю <Link to="/terms" className="text-primary underline">Terms and Conditions</Link></>
+                <>Я принимаю <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline">Terms and Conditions</Link></>
               )}
             </label>
           </div>
@@ -432,9 +432,9 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
             />
             <label htmlFor="privacy" className="text-sm text-muted-foreground">
               {language === 'en' ? (
-                <>I accept the <Link to="/privacy" className="text-primary underline">Privacy Policy</Link></>
+                <>I accept the <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
               ) : (
-                <>Я принимаю <Link to="/privacy" className="text-primary underline">Privacy Policy</Link></>
+                <>Я принимаю <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
               )}
             </label>
           </div>
