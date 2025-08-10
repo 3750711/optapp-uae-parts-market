@@ -140,126 +140,126 @@ const handleEmailVerificationSuccess = async (verifiedEmail: string) => {
 
 const createSellerAccount = async (data: PersonalData) => {
     try {
+      const metadata = {
+        full_name: data.fullName,
+        user_type: 'seller',
+        opt_id: generatedOptId,
+        phone: data.phone,
+        company_name: storeData?.name ?? null,
+        location: storeData?.location ?? null,
+        description_user: storeData?.description ?? null,
+        accepted_terms: true,
+        accepted_terms_at: new Date().toISOString(),
+        accepted_privacy: true,
+        accepted_privacy_at: new Date().toISOString(),
+        registration_path: 'standard'
+      } as const;
+
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: data.fullName,
-            user_type: 'seller',
-            opt_id: generatedOptId,
-            phone: data.phone
-          }
-        }
+          data: metadata,
+        },
       });
 
       if (authError) throw authError;
 
-      if (authData.user) {
-        console.log('[Registration] signUp success', { userId: authData.user.id, hasSession: !!authData.session });
-        // Upsert profile to avoid duplicate key if trigger already created it
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert([
-            {
-              id: authData.user.id,
-              email: data.email,
-              full_name: data.fullName,
-              phone: data.phone,
-              opt_id: generatedOptId,
-              user_type: 'seller',
-              verification_status: 'pending',
-              auth_method: 'email',
-              company_name: storeData?.name ?? null,
-              location: storeData?.location ?? null,
-              description_user: storeData?.description ?? null,
-              accepted_terms: true,
-              accepted_terms_at: new Date().toISOString(),
-              accepted_privacy: true,
-              accepted_privacy_at: new Date().toISOString(),
-            },
-          ], { onConflict: 'id' });
-        console.log('[Registration] profile upsert completed', { error: profileError });
-        if (profileError) throw profileError;
-
-        // Store creation is handled by DB trigger sync_profile_to_store when company_name is set
-        // No direct client-side insert to stores is needed here.
-
-toast({
-  title: translations.success.registrationCompletedTitle,
-  description: translations.success.accountCreatedPending,
-});
-
-navigate('/pending-approval', { replace: true });
+      // If no session yet (email confirmation required), guide user to login after confirming
+      if (!authData.session) {
+        toast({
+          title: language === 'en' ? 'Confirm your email' : 'Подтвердите почту',
+          description:
+            language === 'en'
+              ? 'We sent a confirmation link. Please confirm and log in to continue.'
+              : 'Мы отправили ссылку подтверждения. Подтвердите email и войдите, чтобы продолжить.',
+        });
+        navigate(
+          `/login?notice=check-email&email=${encodeURIComponent(data.email)}&returnTo=/pending-approval`,
+          { replace: true }
+        );
+        return;
       }
+
+      // If session exists (email auto-confirm), complete profile immediately
+      await supabase.rpc('complete_profile_after_signup');
+
+      toast({
+        title: translations.success.registrationCompletedTitle,
+        description: translations.success.accountCreatedPending,
+      });
+
+      navigate('/pending-approval', { replace: true });
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({
         title: translations.errors.registrationErrorTitle,
         description: error.message || translations.errors.registrationErrorDescription,
-        variant: "destructive",
+        variant: 'destructive',
       });
       setCurrentStep('personal-info');
     }
   };
 
-  const createBuyerAccount = async (data: BuyerData) => {
+const createBuyerAccount = async (data: BuyerData) => {
     try {
+      const metadata = {
+        full_name: data.fullName,
+        user_type: 'buyer',
+        opt_id: generatedOptId,
+        phone: data.phone,
+        accepted_terms: true,
+        accepted_terms_at: new Date().toISOString(),
+        accepted_privacy: true,
+        accepted_privacy_at: new Date().toISOString(),
+        registration_path: 'standard'
+      } as const;
+
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            full_name: data.fullName,
-            user_type: 'buyer',
-            opt_id: generatedOptId,
-            phone: data.phone
-          }
-        }
+          data: metadata,
+        },
       });
 
       if (authError) throw authError;
 
-      if (authData.user) {
-        console.log('[Registration] buyer signUp success', { userId: authData.user.id, hasSession: !!authData.session });
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert([
-            {
-              id: authData.user.id,
-              email: data.email,
-              full_name: data.fullName,
-              phone: data.phone,
-              opt_id: generatedOptId,
-              user_type: 'buyer',
-              verification_status: 'pending',
-              auth_method: 'email',
-              accepted_terms: true,
-              accepted_terms_at: new Date().toISOString(),
-              accepted_privacy: true,
-              accepted_privacy_at: new Date().toISOString(),
-            },
-          ], { onConflict: 'id' });
-        console.log('[Registration] buyer profile upsert completed', { error: profileError });
-        if (profileError) throw profileError;
-
+      // If no session yet (email confirmation required), guide user to login after confirming
+      if (!authData.session) {
         toast({
-          title: translations.success.registrationCompletedTitle,
-          description: translations.success.accountCreatedPending,
+          title: language === 'en' ? 'Confirm your email' : 'Подтвердите почту',
+          description:
+            language === 'en'
+              ? 'We sent a confirmation link. Please confirm and log in to continue.'
+              : 'Мы отправили ссылку подтверждения. Подтвердите email и войдите, чтобы продолжить.',
         });
-
-        navigate('/pending-approval', { replace: true });
+        navigate(
+          `/login?notice=check-email&email=${encodeURIComponent(data.email)}&returnTo=/pending-approval`,
+          { replace: true }
+        );
+        return;
       }
+
+      // If session exists (email auto-confirm), complete profile immediately
+      await supabase.rpc('complete_profile_after_signup');
+
+      toast({
+        title: translations.success.registrationCompletedTitle,
+        description: translations.success.accountCreatedPending,
+      });
+
+      navigate('/pending-approval', { replace: true });
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({
         title: translations.errors.registrationErrorTitle,
         description: error.message || translations.errors.registrationErrorDescription,
-        variant: "destructive",
+        variant: 'destructive',
       });
       setCurrentStep('buyer-registration');
     }

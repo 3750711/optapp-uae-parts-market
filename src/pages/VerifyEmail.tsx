@@ -15,7 +15,7 @@ const VerifyEmail = () => {
   const returnTo = searchParams.get('returnTo') || '/profile';
 
   const handleVerificationSuccess = async (verifiedEmail: string) => {
-    console.log('Email verified successfully:', verifiedEmail);
+    // Email verified successfully
     
     // Обновляем профиль пользователя
     await refreshProfile();

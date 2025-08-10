@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -8,7 +8,8 @@ import { Helmet } from 'react-helmet-async';
 import ContactAdminCard from '@/components/pending/ContactAdminCard';
 import PendingApprovalChecklist from '@/components/pending/PendingApprovalChecklist';
 import { LoadingState } from '@/components/ui/LoadingState';
-
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 const translations = {
   en: {
     title: 'Pending Approval',
@@ -38,7 +39,25 @@ const PendingApprovalPage: React.FC = () => {
   const { isChecking, isApproved } = useApprovalStatus();
 
   const t = translations[language];
+  const { toast } = useToast();
 
+  // Complete profile on first login after email confirmation (once per session)
+  useEffect(() => {
+    if (!profile) return;
+    const key = `profileCompletedRPC:${profile.id}`;
+    if (sessionStorage.getItem(key)) return;
+
+    supabase
+      .rpc('complete_profile_after_signup')
+      .then(({ error }) => {
+        if (error) {
+          console.error('[PendingApproval] complete_profile_after_signup error', error);
+        } else {
+          sessionStorage.setItem(key, '1');
+        }
+      })
+      .catch((e) => console.error('[PendingApproval] RPC call failed', e));
+  }, [profile?.id]);
   if (isChecking) {
     return (
       <Layout>
