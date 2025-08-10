@@ -71,6 +71,34 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: false, reason: 'profile_not_found' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // Before sending, check if a welcome message was already sent to this user
+    const recipientIdsToCheck = [profile.id];
+    if (profile.telegram_id) {
+      recipientIdsToCheck.push(String(profile.telegram_id));
+    }
+
+    try {
+      const { data: existingSent, error: existingSentError } = await supabase
+        .from('telegram_notifications_log')
+        .select('id')
+        .eq('notification_type', 'welcome_registration')
+        .in('recipient_identifier', recipientIdsToCheck)
+        .eq('status', 'sent')
+        .limit(1)
+        .maybeSingle();
+
+      if (existingSentError) {
+        console.error('Error checking existing welcome logs:', existingSentError.message);
+      }
+      if (existingSent) {
+        console.log('Welcome message already sent, skipping.');
+        return new Response(JSON.stringify({ success: true, sent: false, reason: 'already_sent' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    } catch (e) {
+      console.error('Exception during welcome dedupe check:', e);
+      // Continue and attempt to send
+    }
+
     const isSeller = profile.user_type === 'seller';
 
     const messageText = isSeller
