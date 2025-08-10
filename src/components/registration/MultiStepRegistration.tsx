@@ -8,6 +8,7 @@ import { BuyerRegistrationStep, BuyerData } from './BuyerRegistrationStep';
 import { OptIdAnimation } from '@/components/animations/OptIdAnimation';
 import { LoadingAnimation } from '@/components/animations/LoadingAnimation';
 import { TelegramLoginWidget } from '@/components/auth/TelegramLoginWidget';
+import EmailVerificationForm from '@/components/auth/EmailVerificationForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +22,7 @@ type RegistrationStep =
   | 'store-info'
   | 'personal-info'
   | 'buyer-registration'
+  | 'email-verification'
   | 'final-loading';
 
 type UserType = 'buyer' | 'seller';
@@ -105,19 +107,38 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
     setCurrentStep('personal-info');
   };
 
-  const handlePersonalInfo = async (data: PersonalData) => {
-    setPersonalData(data);
-    setCurrentStep('final-loading');
-    await createSellerAccount(data);
-  };
+const handlePersonalInfo = async (data: PersonalData) => {
+  setPersonalData(data);
+  setCurrentStep('email-verification');
+};
 
-  const handleBuyerRegistration = async (data: BuyerData) => {
-    setBuyerData(data);
-    setCurrentStep('final-loading');
-    await createBuyerAccount(data);
-  };
+const handleBuyerRegistration = async (data: BuyerData) => {
+  setBuyerData(data);
+  setCurrentStep('email-verification');
+};
+const handleEmailVerificationSuccess = async (verifiedEmail: string) => {
+  // After successful email verification, proceed with account creation
+  setCurrentStep('final-loading');
+  try {
+    if (userType === 'seller' && personalData) {
+      await createSellerAccount(personalData);
+    } else if (userType === 'buyer' && buyerData) {
+      await createBuyerAccount(buyerData);
+    } else {
+      toast({
+        title: translations.errors.registrationErrorTitle,
+        description: translations.errors.registrationErrorDescription,
+        variant: 'destructive',
+      });
+      // Fallback to start
+      setCurrentStep('type-selection');
+    }
+  } catch (e) {
+    // Errors are handled inside create* functions
+  }
+};
 
-  const createSellerAccount = async (data: PersonalData) => {
+const createSellerAccount = async (data: PersonalData) => {
     try {
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -166,12 +187,12 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
         // Store creation is handled by DB trigger sync_profile_to_store when company_name is set
         // No direct client-side insert to stores is needed here.
 
-        toast({
-          title: translations.success.registrationCompletedTitle,
-          description: translations.success.accountCreatedPending,
-        });
+toast({
+  title: translations.success.registrationCompletedTitle,
+  description: translations.success.accountCreatedPending,
+});
 
-        navigate(`/verify-email?email=${encodeURIComponent(data.email)}&returnTo=/pending-approval`, { replace: true });
+navigate('/pending-approval', { replace: true });
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -231,7 +252,7 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
           description: translations.success.accountCreatedPending,
         });
 
-        navigate(`/verify-email?email=${encodeURIComponent(data.email)}&returnTo=/pending-approval`, { replace: true });
+        navigate('/pending-approval', { replace: true });
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -260,25 +281,28 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
     });
   };
 
-  const goBack = () => {
-    switch (currentStep) {
-      case 'telegram-auth':
-      case 'account-type':
-        setCurrentStep('type-selection');
-        break;
-      case 'buyer-registration':
-        setCurrentStep('opt-id-generation');
-        break;
-      case 'opt-id-generation':
-        setCurrentStep('account-type');
-        break;
-      case 'personal-info':
-        setCurrentStep('store-info');
-        break;
-      default:
-        break;
-    }
-  };
+const goBack = () => {
+  switch (currentStep) {
+    case 'telegram-auth':
+    case 'account-type':
+      setCurrentStep('type-selection');
+      break;
+    case 'buyer-registration':
+      setCurrentStep('opt-id-generation');
+      break;
+    case 'opt-id-generation':
+      setCurrentStep('account-type');
+      break;
+    case 'personal-info':
+      setCurrentStep('store-info');
+      break;
+    case 'email-verification':
+      setCurrentStep(userType === 'seller' ? 'personal-info' : 'buyer-registration');
+      break;
+    default:
+      break;
+  }
+};
 
   const renderStep = () => {
     switch (currentStep) {
@@ -352,18 +376,29 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
             />
           );
 
-      case 'buyer-registration':
-        return (
-          <BuyerRegistrationStep
-            onNext={handleBuyerRegistration}
-            onBack={goBack}
-            translations={translations}
-            optId={generatedOptId}
-          />
-        );
+case 'buyer-registration':
+  return (
+    <BuyerRegistrationStep
+      onNext={handleBuyerRegistration}
+      onBack={goBack}
+      translations={translations}
+      optId={generatedOptId}
+    />
+  );
 
-      case 'final-loading':
-        return <LoadingAnimation translations={translations} />;
+case 'email-verification':
+  return (
+    <EmailVerificationForm
+      initialEmail={(userType === 'seller' ? personalData?.email : buyerData?.email) || ''}
+      onVerificationSuccess={handleEmailVerificationSuccess}
+      onCancel={() => setCurrentStep(userType === 'seller' ? 'personal-info' : 'buyer-registration')}
+      title={language === 'en' ? 'Verify your email' : 'Подтвердите email'}
+      description={language === 'en' ? 'Введите 6-значный код из письма' : 'Введите 6-значный код, отправленный на вашу почту'}
+    />
+  );
+
+case 'final-loading':
+  return <LoadingAnimation translations={translations} />;
 
       default:
         return null;
