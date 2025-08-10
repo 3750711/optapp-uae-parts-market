@@ -123,21 +123,21 @@ Deno.serve(async (req) => {
         : `Ваш статус верификации изменен на: ${status}`;
     }
 
-    // Deduplication: check the last sent verification notification for this user (any status)
-    const recipientsToCheck = [String(userId), String(telegramId)];
+    // Deduplication: check the last sent verification notification for THIS USER (not by telegramId)
     try {
       const { data: lastSent, error: lastErr } = await supabase
         .from('telegram_notifications_log')
         .select('id, created_at, telegram_message_id, metadata')
         .eq('notification_type', 'verification_status')
-        .in('recipient_identifier', recipientsToCheck)
         .eq('status', 'sent')
+        .eq('related_entity_type', 'user')
+        .eq('related_entity_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (lastErr) {
-        console.error('Error checking verification dedupe (last sent):', lastErr.message);
+        console.error('Error checking verification dedupe (last sent by user):', lastErr.message);
       } else if (lastSent) {
         const lastStatus = (lastSent as any)?.metadata?.status;
         const lastCreatedAt = (lastSent as any)?.created_at;
@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
         }
       }
     } catch (e) {
-      console.error('Exception during verification dedupe (last sent) check:', e);
+      console.error('Exception during verification dedupe (last sent by user) check:', e);
     }
 
     // Send telegram message
