@@ -28,6 +28,7 @@ interface AccountMergeDialogProps {
   telegramData: TelegramData;
   onMergeSuccess: (email: string, password: string) => void;
   onCancel: () => void;
+  language?: 'ru' | 'en';
 }
 
 export const AccountMergeDialog: React.FC<AccountMergeDialogProps> = ({
@@ -36,20 +37,49 @@ export const AccountMergeDialog: React.FC<AccountMergeDialogProps> = ({
   existingEmail,
   telegramData,
   onMergeSuccess,
-  onCancel
+  onCancel,
+  language = 'ru'
 }) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const t = language === 'en' ? {
+    title: 'Merge Accounts',
+    foundExistingPrefix: 'We found an existing account with the same Telegram:',
+    instructions: 'To access your orders and products, enter the password for the existing account. We will merge your accounts and you will be able to login via Telegram.',
+    passwordLabelPrefix: 'Password for account',
+    passwordPlaceholder: 'Enter password',
+    cancel: 'Cancel',
+    merging: 'Checking...',
+    merge: 'Merge accounts',
+    toastEnterPassword: 'Enter a password',
+    toastChecking: 'Verifying password and merging accounts...',
+    success: 'Accounts merged successfully!',
+    genericError: 'Error while merging accounts'
+  } : {
+    title: 'Объединение аккаунтов',
+    foundExistingPrefix: 'Мы нашли существующий аккаунт с таким же Telegram:',
+    instructions: 'Чтобы получить доступ к вашим заказам и товарам, введите пароль от существующего аккаунта. Мы объединим ваши аккаунты и вы сможете входить через Telegram.',
+    passwordLabelPrefix: 'Пароль от аккаунта',
+    passwordPlaceholder: 'Введите пароль',
+    cancel: 'Отмена',
+    merging: 'Проверяем...',
+    merge: 'Объединить аккаунты',
+    toastEnterPassword: 'Введите пароль',
+    toastChecking: 'Проверяем пароль и объединяем аккаунты...',
+    success: 'Аккаунты успешно объединены!',
+    genericError: 'Ошибка при объединении аккаунтов'
+  };
+
   const handleMerge = async () => {
-    if (!password.trim()) {
-      toast.error('Введите пароль');
-      return;
-    }
+  if (!password.trim()) {
+    toast.error(t.toastEnterPassword);
+    return;
+  }
 
     setIsLoading(true);
     try {
-      toast.loading('Проверяем пароль и объединяем аккаунты...');
+      toast.loading(t.toastChecking);
 
       const { data, error } = await supabase.functions.invoke('merge-telegram-account', {
         body: {
@@ -64,11 +94,11 @@ export const AccountMergeDialog: React.FC<AccountMergeDialogProps> = ({
       }
 
       if (!data.success) {
-        throw new Error(data.error || 'Ошибка при объединении аккаунтов');
+        throw new Error(data.error || t.genericError);
       }
 
       toast.dismiss();
-      toast.success(data.message || 'Аккаунты успешно объединены!');
+      toast.success(data.message || t.success);
       
       onMergeSuccess(data.email, data.password);
       onOpenChange(false);
@@ -76,7 +106,7 @@ export const AccountMergeDialog: React.FC<AccountMergeDialogProps> = ({
       
     } catch (error) {
       toast.dismiss();
-      const errorMessage = error instanceof Error ? error.message : 'Ошибка при объединении аккаунтов';
+      const errorMessage = error instanceof Error ? error.message : t.genericError;
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
@@ -93,27 +123,26 @@ export const AccountMergeDialog: React.FC<AccountMergeDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Объединение аккаунтов</DialogTitle>
+          <DialogTitle>{t.title}</DialogTitle>
           <DialogDescription className="space-y-3">
             <p>
-              Мы нашли существующий аккаунт с таким же Telegram: <strong>{existingEmail}</strong>
+              {t.foundExistingPrefix} <strong>{existingEmail}</strong>
             </p>
             <p>
-              Чтобы получить доступ к вашим заказам и товарам, введите пароль от существующего аккаунта.
-              Мы объединим ваши аккаунты и вы сможете входить через Telegram.
+              {t.instructions}
             </p>
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="password">Пароль от аккаунта {existingEmail}</Label>
+            <Label htmlFor="password">{t.passwordLabelPrefix} {existingEmail}</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Введите пароль"
+              placeholder={t.passwordPlaceholder}
               disabled={isLoading}
               onKeyDown={(e) => e.key === 'Enter' && handleMerge()}
             />
@@ -127,14 +156,14 @@ export const AccountMergeDialog: React.FC<AccountMergeDialogProps> = ({
             disabled={isLoading}
             className="w-full sm:w-auto"
           >
-            Отмена
+            {t.cancel}
           </Button>
           <Button 
             onClick={handleMerge}
             disabled={isLoading || !password.trim()}
             className="w-full sm:w-auto"
           >
-            {isLoading ? 'Проверяем...' : 'Объединить аккаунты'}
+            {isLoading ? t.merging : t.merge}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -53,12 +53,30 @@ export const registrationTranslations = {
     // Buyer Simple Registration
     buyerRegistration: "Регистрация покупателя",
     
+    // OPT ID Display
+    yourOptId: "Ваш OPT_ID",
+    saveThisId: "Сохраните этот идентификатор",
+    
+    // Success messages
+    success: {
+      registrationCompletedTitle: "Регистрация завершена",
+      accountCreatedPending: "Ваш аккаунт создан и ожидает верификации"
+    },
+    
+    // Auth messages
+    auth: {
+      authorizationSuccessTitle: "Успешная авторизация",
+      authorizationErrorTitle: "Ошибка авторизации",
+      welcome: "Добро пожаловать!"
+    },
+    
     // Common
     next: "Далее",
     back: "Назад",
     finish: "Завершить",
     loading: "Загрузка...",
-    
+    acceptUserAgreementLabel: "Я принимаю пользовательское соглашение",
+    acceptUserAgreementRequired: "Необходимо принять пользовательское соглашение",
     // Locations
     locations: {
       dubai: "Дубай",
@@ -79,9 +97,14 @@ export const registrationTranslations = {
       phoneRequired: "Номер телефона обязателен",
       emailRequired: "Email обязателен",
       passwordRequired: "Пароль обязателен",
+      passwordTooShort: "Пароль должен быть не менее 6 символов",
       passwordMismatch: "Пароли не совпадают",
       emailInvalid: "Неверный формат email",
-      phoneInvalid: "Неверный формат телефона"
+      phoneInvalid: "Неверный формат телефона",
+      optIdGenerationTitle: "Ошибка генерации OPT_ID",
+      optIdGenerationDescription: "Не удалось создать уникальный идентификатор",
+      registrationErrorTitle: "Ошибка регистрации",
+      registrationErrorDescription: "Произошла ошибка при создании аккаунта"
     }
   },
   
@@ -139,11 +162,30 @@ export const registrationTranslations = {
     // Buyer Simple Registration
     buyerRegistration: "Buyer Registration",
     
+    // OPT ID Display
+    yourOptId: "Your OPT_ID",
+    saveThisId: "Save this identifier",
+    
+    // Success messages
+    success: {
+      registrationCompletedTitle: "Registration completed",
+      accountCreatedPending: "Your account has been created and is awaiting verification"
+    },
+    
+    // Auth messages
+    auth: {
+      authorizationSuccessTitle: "Authorization successful",
+      authorizationErrorTitle: "Authorization error",
+      welcome: "Welcome!"
+    },
+    
     // Common
     next: "Next",
     back: "Back",
     finish: "Complete",
     loading: "Loading...",
+    acceptUserAgreementLabel: "I accept the user agreement",
+    acceptUserAgreementRequired: "You must accept the user agreement",
     
     // Locations
     locations: {
@@ -165,9 +207,14 @@ export const registrationTranslations = {
       phoneRequired: "Phone number is required",
       emailRequired: "Email is required",
       passwordRequired: "Password is required",
+      passwordTooShort: "Password must be at least 6 characters",
       passwordMismatch: "Passwords do not match",
       emailInvalid: "Invalid email format",
-      phoneInvalid: "Invalid phone format"
+      phoneInvalid: "Invalid phone format",
+      optIdGenerationTitle: "OPT_ID generation error",
+      optIdGenerationDescription: "Failed to create a unique identifier",
+      registrationErrorTitle: "Registration error",
+      registrationErrorDescription: "An error occurred while creating the account"
     }
   }
 };

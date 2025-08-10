@@ -264,6 +264,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
           telegramData={mergeData.telegramData}
           onMergeSuccess={handleMergeSuccess}
           onCancel={() => {}}
+          language={language}
         />
       )}
 

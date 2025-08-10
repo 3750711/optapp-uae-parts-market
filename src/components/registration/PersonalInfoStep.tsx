@@ -57,7 +57,7 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
     if (!formData.password) {
       newErrors.password = translations.errors.passwordRequired;
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = translations.errors.passwordTooShort;
     }
     
     if (formData.password !== formData.confirmPassword) {
@@ -65,7 +65,7 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
     }
 
     if (!acceptedTerms) {
-      (newErrors as any).acceptedTerms = translations.language === 'en' ? 'You must accept the user agreement' : 'Необходимо принять пользовательское соглашение';
+      (newErrors as any).acceptedTerms = translations.acceptUserAgreementRequired;
     }
     
     setErrors(newErrors);
@@ -192,7 +192,7 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
                   className="mt-1"
                 />
                 <label htmlFor="terms" className="text-sm text-muted-foreground">
-                  {translations.language === 'en' ? 'I accept the user agreement' : 'Я принимаю пользовательское соглашение'}
+                  {translations.acceptUserAgreementLabel}
                 </label>
               </div>
               {errors.acceptedTerms && (

@@ -85,8 +85,8 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
       setCurrentStep('opt-id-generation');
     } catch (error: any) {
       toast({
-        title: "Ошибка генерации OPT_ID",
-        description: error.message || "Не удалось создать уникальный идентификатор",
+        title: translations.errors.optIdGenerationTitle,
+        description: error.message || translations.errors.optIdGenerationDescription,
         variant: "destructive",
       });
     }
@@ -172,8 +172,8 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
         }
 
         toast({
-          title: "Регистрация завершена",
-          description: "Ваш аккаунт создан и ожидает верификации",
+          title: translations.success.registrationCompletedTitle,
+          description: translations.success.accountCreatedPending,
         });
 
         // Redirect to login page
@@ -184,8 +184,8 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({
-        title: "Ошибка регистрации",
-        description: error.message || "Произошла ошибка при создании аккаунта",
+        title: translations.errors.registrationErrorTitle,
+        description: error.message || translations.errors.registrationErrorDescription,
         variant: "destructive",
       });
       setCurrentStep('personal-info');
@@ -229,8 +229,8 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
         if (profileError) throw profileError;
 
         toast({
-          title: "Регистрация завершена",
-          description: "Ваш аккаунт создан и ожидает верификации",
+          title: translations.success.registrationCompletedTitle,
+          description: translations.success.accountCreatedPending,
         });
 
         // Redirect to pending approval page
@@ -241,8 +241,8 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
     } catch (error: any) {
       console.error('Registration error:', error);
       toast({
-        title: "Ошибка регистрации",
-        description: error.message || "Произошла ошибка при создании аккаунта",
+        title: translations.errors.registrationErrorTitle,
+        description: error.message || translations.errors.registrationErrorDescription,
         variant: "destructive",
       });
       setCurrentStep('buyer-registration');
@@ -251,15 +251,15 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
 
   const handleTelegramSuccess = () => {
     toast({
-      title: "Успешная авторизация",
-      description: "Добро пожаловать!",
+      title: translations.auth.authorizationSuccessTitle,
+      description: translations.auth.welcome,
     });
     navigate('/');
   };
 
   const handleTelegramError = (error: string) => {
     toast({
-      title: "Ошибка авторизации",
+      title: translations.auth.authorizationErrorTitle,
       description: error,
       variant: "destructive",
     });
