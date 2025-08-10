@@ -103,7 +103,7 @@ serve(async (req) => {
     console.log('🔍 Searching for existing user by telegram_id:', authData.id)
     const { data: existingTelegramProfile } = await supabase
       .from('profiles')
-      .select('id, email, telegram_id, telegram, auth_method')
+      .select('id, email, telegram_id, telegram, auth_method, full_name, profile_completed')
       .eq('telegram_id', authData.id)
       .maybeSingle()
 
@@ -165,14 +165,28 @@ serve(async (req) => {
         ? `${authData.first_name} ${authData.last_name}`.trim()
         : authData.first_name;
         
-      await supabase
+      const shouldUpdateName = !existingTelegramProfile.full_name 
+        || String(existingTelegramProfile.full_name).trim() === '' 
+        || existingTelegramProfile.profile_completed === false;
+
+      const updatePayload: any = {
+        avatar_url: authData.photo_url,
+        telegram: normalizeTelegramUsername(authData.username)
+      };
+      if (shouldUpdateName) {
+        updatePayload.full_name = fullName;
+      }
+
+      const { error: profileUpdateError } = await supabase
         .from('profiles')
-        .update({
-          full_name: fullName,
-          avatar_url: authData.photo_url,
-          telegram: normalizeTelegramUsername(authData.username)
-        })
-        .eq('id', existingTelegramProfile.id)
+        .update(updatePayload)
+        .eq('id', existingTelegramProfile.id);
+
+      if (profileUpdateError) {
+        console.error('❌ Error updating profile data:', profileUpdateError)
+      } else {
+        console.log(shouldUpdateName ? '✅ Updated full_name from Telegram data' : 'ℹ️ Preserved existing full_name (profile_completed or already set)')
+      }
         
     } else if (existingUsernameProfile) {
       // Account merge required - existing email account with same telegram username but no telegram_id
