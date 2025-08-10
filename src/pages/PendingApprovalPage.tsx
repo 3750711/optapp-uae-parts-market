@@ -111,7 +111,6 @@ const PendingApprovalPage: React.FC = () => {
             <section className="lg:col-span-2 space-y-6">
               {language === 'ru' && (
                 <>
-                  <p className="text-sm font-medium">Статус: В ожидании подтверждения администратором.</p>
                   <h2 className="text-lg font-semibold">📋 Что мы проверяем:</h2>
                 </>
               )}
