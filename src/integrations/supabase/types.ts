@@ -613,6 +613,27 @@ export type Database = {
         }
         Relationships: []
       }
+      preverified_emails: {
+        Row: {
+          created_at: string
+          email: string
+          ip: unknown | null
+          verified_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          ip?: unknown | null
+          verified_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          ip?: unknown | null
+          verified_at?: string
+        }
+        Relationships: []
+      }
       price_offers: {
         Row: {
           buyer_id: string
@@ -1501,6 +1522,10 @@ export type Database = {
       clear_all_rls_policies: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      complete_profile_after_signup: {
+        Args: { p_email: string; payload: Json }
+        Returns: Json
       }
       create_bilingual_notification: {
         Args: { p_user_id: string; p_type: string; p_data?: Json }
