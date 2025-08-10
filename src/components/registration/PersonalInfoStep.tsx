@@ -73,7 +73,7 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
     }
 
     if (!acceptedPrivacy) {
-      (newErrors as any).acceptedPrivacy = language === 'en' ? 'You must accept the Privacy Policy' : 'Необходимо принять Privacy Policy';
+      (newErrors as any).acceptedPrivacy = language === 'en' ? 'You must accept the Privacy Policy' : 'Необходимо принять Политику конфиденциальности';
     }
     
     setErrors(newErrors);
@@ -219,7 +219,7 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
                   {language === 'en' ? (
                     <>I accept the <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
                   ) : (
-                    <>Я принимаю <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
+                    <>Я принимаю <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Политику конфиденциальности</Link></>
                   )}
                 </label>
               </div>

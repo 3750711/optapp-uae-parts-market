@@ -111,7 +111,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
       newErrors.acceptedTerms = language === 'en' ? 'You must accept the Terms and Conditions' : 'Необходимо принять Terms and Conditions';
     }
     if (!acceptedPrivacy) {
-      newErrors.acceptedPrivacy = language === 'en' ? 'You must accept the Privacy Policy' : 'Необходимо принять Privacy Policy';
+      newErrors.acceptedPrivacy = language === 'en' ? 'You must accept the Privacy Policy' : 'Необходимо принять Политику конфиденциальности';
     }
     
     setErrors(newErrors);
@@ -412,7 +412,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
               {language === 'en' ? (
                 <>I accept the <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
               ) : (
-                <>Я принимаю <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
+                <>Я принимаю <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Политику конфиденциальности</Link></>
               )}
             </label>
           </div>
