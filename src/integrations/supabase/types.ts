@@ -1434,6 +1434,10 @@ export type Database = {
         Args: { p_product_id: string; p_url: string }
         Returns: undefined
       }
+      admin_resend_welcome: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       cancel_price_offers_for_sold_product: {
         Args: { product_id_param: string }
         Returns: number

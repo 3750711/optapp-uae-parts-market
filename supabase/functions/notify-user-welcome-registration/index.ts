@@ -1,3 +1,4 @@
+
 // Edge Function: notify-user-welcome-registration
 // Sends a personal Telegram welcome message to users right after registration
 
@@ -80,10 +81,13 @@ Deno.serve(async (req) => {
     try {
       const { data: existingSent, error: existingSentError } = await supabase
         .from('telegram_notifications_log')
-        .select('id')
+        .select('id, function_name, telegram_message_id, created_at')
         .eq('notification_type', 'welcome_registration')
         .in('recipient_identifier', recipientIdsToCheck)
         .eq('status', 'sent')
+        .eq('function_name', 'notify-user-welcome-registration')
+        .not('telegram_message_id', 'is', null)
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -91,7 +95,7 @@ Deno.serve(async (req) => {
         console.error('Error checking existing welcome logs:', existingSentError.message);
       }
       if (existingSent) {
-        console.log('Welcome message already sent, skipping.');
+        console.log('Welcome message already sent, skipping. Log id:', existingSent.id, 'tg_msg_id:', existingSent.telegram_message_id);
         return new Response(JSON.stringify({ success: true, sent: false, reason: 'already_sent' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
     } catch (e) {
