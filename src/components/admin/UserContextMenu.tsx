@@ -8,7 +8,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { ProfileType } from '@/components/profile/types';
-import { UserCheck, Ban, UserX, ExternalLink, Edit } from 'lucide-react';
+import { UserCheck, Ban, UserX, ExternalLink, Edit, Send } from 'lucide-react';
 
 interface UserContextMenuProps {
   user: ProfileType;
@@ -43,6 +43,10 @@ export const UserContextMenu: React.FC<UserContextMenuProps> = ({
         <ContextMenuItem onClick={handleEdit}>
           <Edit className="mr-2 h-4 w-4" />
           Редактировать
+        </ContextMenuItem>
+        <ContextMenuItem onClick={() => onQuickAction(user.id, 'resend_welcome')}>
+          <Send className="mr-2 h-4 w-4" />
+          Отправить приветствие
         </ContextMenuItem>
         <ContextMenuSeparator />
         {user.verification_status !== 'verified' && (

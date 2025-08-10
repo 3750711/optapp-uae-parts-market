@@ -257,6 +257,8 @@ export const useAdminUsersActions = () => {
       if (confirm('Вы уверены, что хотите удалить этот аккаунт? Это действие нельзя отменить.')) {
         handleDeleteUser(userId);
       }
+    } else if (action === 'resend_welcome') {
+      resendWelcome(userId);
     }
   };
 
@@ -315,6 +317,24 @@ export const useAdminUsersActions = () => {
     }
   };
 
+  const resendWelcome = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('admin_resend_welcome' as any, { p_user_id: userId } as any);
+      if (error) throw error;
+      toast({
+        title: 'Готово',
+        description: 'Приветственное сообщение отправлено'
+      });
+    } catch (e: any) {
+      console.error('Failed to resend welcome:', e);
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось отправить приветствие',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return {
     handleQuickStatusChange,
     handleOptStatusChange,
@@ -322,6 +342,7 @@ export const useAdminUsersActions = () => {
     handleExportUsers,
     handleContextAction,
     handleDeleteUser,
-    sendPersonalTelegramMessage
+    sendPersonalTelegramMessage,
+    resendWelcome
   };
 };

@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const userId = body?.userId as string | undefined;
+    const force = Boolean(body?.force);
     if (!userId) {
       return new Response(JSON.stringify({ error: 'userId is required' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -72,35 +73,33 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: false, reason: 'profile_not_found' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Before sending, check if a welcome message was already sent to this user
-    const recipientIdsToCheck = [profile.id];
-    if (profile.telegram_id) {
-      recipientIdsToCheck.push(String(profile.telegram_id));
-    }
+    // Before sending, check if a welcome message was already sent to this user (by related_entity_id)
+    if (!force) {
+      try {
+        const { data: existingSent, error: existingSentError } = await supabase
+          .from('telegram_notifications_log')
+          .select('id, function_name, telegram_message_id, created_at')
+          .eq('notification_type', 'welcome_registration')
+          .eq('related_entity_type', 'user')
+          .eq('related_entity_id', profile.id)
+          .eq('status', 'sent')
+          .eq('function_name', 'notify-user-welcome-registration')
+          .not('telegram_message_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-    try {
-      const { data: existingSent, error: existingSentError } = await supabase
-        .from('telegram_notifications_log')
-        .select('id, function_name, telegram_message_id, created_at')
-        .eq('notification_type', 'welcome_registration')
-        .in('recipient_identifier', recipientIdsToCheck)
-        .eq('status', 'sent')
-        .eq('function_name', 'notify-user-welcome-registration')
-        .not('telegram_message_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (existingSentError) {
-        console.error('Error checking existing welcome logs:', existingSentError.message);
+        if (existingSentError) {
+          console.error('Error checking existing welcome logs:', existingSentError.message);
+        }
+        if (existingSent) {
+          console.log('Welcome message already sent, skipping. Log id:', existingSent.id, 'tg_msg_id:', existingSent.telegram_message_id);
+          return new Response(JSON.stringify({ success: true, sent: false, reason: 'already_sent' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+      } catch (e) {
+        console.error('Exception during welcome dedupe check:', e);
+        // Continue and attempt to send
       }
-      if (existingSent) {
-        console.log('Welcome message already sent, skipping. Log id:', existingSent.id, 'tg_msg_id:', existingSent.telegram_message_id);
-        return new Response(JSON.stringify({ success: true, sent: false, reason: 'already_sent' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-      }
-    } catch (e) {
-      console.error('Exception during welcome dedupe check:', e);
-      // Continue and attempt to send
     }
 
     const isSeller = profile.user_type === 'seller';
