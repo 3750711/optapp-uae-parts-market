@@ -123,28 +123,32 @@ Deno.serve(async (req) => {
         : `Ваш статус верификации изменен на: ${status}`;
     }
 
-    // Deduplicate per status for this recipient
+    // Deduplication: check the last sent verification notification for this user (any status)
     const recipientsToCheck = [String(userId), String(telegramId)];
     try {
-      const { data: existingSent, error: existingError } = await supabase
+      const { data: lastSent, error: lastErr } = await supabase
         .from('telegram_notifications_log')
-        .select('id, created_at, telegram_message_id')
+        .select('id, created_at, telegram_message_id, metadata')
         .eq('notification_type', 'verification_status')
         .in('recipient_identifier', recipientsToCheck)
         .eq('status', 'sent')
-        .contains('metadata', { status })
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      if (existingError) {
-        console.error('Error checking verification dedupe:', existingError.message);
-      } else if (existingSent) {
-        console.log('Verification message already sent for this status. Log id:', existingSent.id);
-        return new Response(JSON.stringify({ success: true, sent: false, reason: 'already_sent_for_status' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      if (lastErr) {
+        console.error('Error checking verification dedupe (last sent):', lastErr.message);
+      } else if (lastSent) {
+        const lastStatus = (lastSent as any)?.metadata?.status;
+        const lastCreatedAt = (lastSent as any)?.created_at;
+        const shouldSkip = lastStatus === status;
+        console.log('[VerificationStatus][Dedupe] lastId:', lastSent.id, 'lastStatus:', lastStatus, 'lastCreatedAt:', lastCreatedAt, 'current:', status, 'decision:', shouldSkip ? 'skip' : 'send');
+        if (shouldSkip) {
+          return new Response(JSON.stringify({ success: true, sent: false, reason: 'already_sent_for_status' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
       }
     } catch (e) {
-      console.error('Exception during verification dedupe check:', e);
+      console.error('Exception during verification dedupe (last sent) check:', e);
     }
 
     // Send telegram message

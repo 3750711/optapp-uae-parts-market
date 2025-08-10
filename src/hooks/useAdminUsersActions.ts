@@ -22,25 +22,7 @@ export const useAdminUsersActions = () => {
         variant: "destructive"
       });
     } else {
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('telegram')
-        .eq('id', userId)
-        .single();
-
-      if (userData?.telegram) {
-        try {
-          await supabase.functions.invoke('send-telegram-notification', {
-            body: JSON.stringify({
-              userId,
-              status: newStatus,
-              telegram: userData.telegram
-            })
-          });
-        } catch (notificationError) {
-          console.error('Failed to send Telegram notification:', notificationError);
-        }
-      }
+      // Telegram notification is handled by DB trigger (notify_user_verification_status_change)
 
       toast({
         title: "Успех",
