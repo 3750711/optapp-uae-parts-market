@@ -21,7 +21,8 @@ const AdminTelegramMonitoring = () => {
   const [page, setPage] = useState(1);
   const [selectedNotification, setSelectedNotification] = useState<TelegramNotificationLog | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-
+  const [isTesting, setIsTesting] = useState(false);
+ 
   const { data: notifications, isLoading, refetch } = useTelegramNotifications(filters, page, 50);
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useTelegramNotificationStats();
 
@@ -66,7 +67,22 @@ const AdminTelegramMonitoring = () => {
     setSearchTerm('');
     setPage(1);
   };
-
+ 
+  const handleSendTest = async () => {
+    try {
+      setIsTesting(true);
+      const { error } = await supabase.functions.invoke('test-telegram-monitoring');
+      if (error) throw error;
+      toast.success('Тестовые уведомления отправлены');
+      await Promise.all([refetch(), refetchStats()]);
+    } catch (err) {
+      console.error('Test send error:', err);
+      toast.error('Ошибка при отправке тестовых уведомлений');
+    } finally {
+      setIsTesting(false);
+    }
+  };
+ 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'sent':
@@ -206,6 +222,11 @@ const AdminTelegramMonitoring = () => {
                       <SelectItem value="notify-seller-new-price-offer">notify-seller-new-price-offer</SelectItem>
                       <SelectItem value="notify-admins-new-product">notify-admins-new-product</SelectItem>
                       <SelectItem value="send-bulk-telegram-messages">send-bulk-telegram-messages</SelectItem>
+                      <SelectItem value="notify-user-verification-status">notify-user-verification-status</SelectItem>
+                      <SelectItem value="notify-user-welcome-registration">notify-user-welcome-registration</SelectItem>
+                      <SelectItem value="notify-admins-new-user">notify-admins-new-user</SelectItem>
+                      <SelectItem value="telegram-widget-auth">telegram-widget-auth</SelectItem>
+                      <SelectItem value="test-telegram-monitoring">test-telegram-monitoring</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -236,6 +257,14 @@ const AdminTelegramMonitoring = () => {
                   <Button onClick={() => refetch()} variant="outline" size="sm">
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Обновить
+                  </Button>
+                  <Button onClick={handleSendTest} size="sm" disabled={isTesting}>
+                    {isTesting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                    )}
+                    Отправить тест
                   </Button>
                 </div>
               </CardContent>

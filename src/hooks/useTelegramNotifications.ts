@@ -104,58 +104,63 @@ export const useTelegramNotificationStats = () => {
     queryKey: ['telegram-notification-stats'],
     queryFn: async () => {
       const today = format(new Date(), 'yyyy-MM-dd');
-      
-      // Get total stats
-      const { data: totalData, error: totalError } = await supabase
-        .from('telegram_notifications_log')
-        .select('status', { count: 'exact' });
 
+      // Efficient total counts using head:true
+      const { count: totalCount, error: totalError } = await supabase
+        .from('telegram_notifications_log')
+        .select('*', { count: 'exact', head: true });
       if (totalError) throw totalError;
 
-      // Get today's count
+      const { count: sentCount, error: sentError } = await supabase
+        .from('telegram_notifications_log')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'sent');
+      if (sentError) throw sentError;
+
+      const { count: failedCount, error: failedError } = await supabase
+        .from('telegram_notifications_log')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'failed');
+      if (failedError) throw failedError;
+
+      // Today's count
       const { count: todayCount, error: todayError } = await supabase
         .from('telegram_notifications_log')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', `${today}T00:00:00Z`);
-
       if (todayError) throw todayError;
 
-      // Get function stats
+      // Function stats (last 7 days)
       const { data: functionData, error: functionError } = await supabase
         .from('telegram_notifications_log')
-        .select('function_name')
+        .select('function_name, created_at')
         .gte('created_at', format(subDays(new Date(), 7), 'yyyy-MM-dd'));
-
       if (functionError) throw functionError;
 
-      // Get notification type stats
+      // Notification type stats (last 7 days)
       const { data: typeData, error: typeError } = await supabase
         .from('telegram_notifications_log')
-        .select('notification_type')
+        .select('notification_type, created_at')
         .gte('created_at', format(subDays(new Date(), 7), 'yyyy-MM-dd'));
-
       if (typeError) throw typeError;
 
-      const total = totalData?.length || 0;
-      const sent = totalData?.filter(item => item.status === 'sent').length || 0;
-      const failed = totalData?.filter(item => item.status === 'failed').length || 0;
-
-      // Count functions
+      // Build counts
       const functionCounts: Record<string, number> = {};
       functionData?.forEach(item => {
-        functionCounts[item.function_name] = (functionCounts[item.function_name] || 0) + 1;
+        const key = (item as any).function_name || 'unknown';
+        functionCounts[key] = (functionCounts[key] || 0) + 1;
       });
 
-      // Count types
       const typeCounts: Record<string, number> = {};
       typeData?.forEach(item => {
-        typeCounts[item.notification_type] = (typeCounts[item.notification_type] || 0) + 1;
+        const key = (item as any).notification_type || 'unknown';
+        typeCounts[key] = (typeCounts[key] || 0) + 1;
       });
 
       const stats: TelegramNotificationStats = {
-        total,
-        sent,
-        failed,
+        total: totalCount || 0,
+        sent: sentCount || 0,
+        failed: failedCount || 0,
         today: todayCount || 0,
         functions: Object.entries(functionCounts)
           .map(([name, count]) => ({ name, count }))
