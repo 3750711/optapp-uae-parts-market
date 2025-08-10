@@ -129,25 +129,25 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Safety guard: skip if already notified
-    try {
-      const { data: profile, error: profileErr } = await supabase
-        .from('profiles')
-        .select('admin_new_user_notified_at')
-        .eq('id', userId)
-        .single();
-      if (profileErr) {
-        console.warn('⚠️ Failed to fetch profile for deduplication check:', profileErr);
-      }
-      if (profile && profile.admin_new_user_notified_at) {
-        console.log(`⏭️ Already notified admins for user ${userId}, skipping.`);
-        return new Response(
-          JSON.stringify({ success: true, message: 'Already notified admins for this user' }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-    } catch (guardErr) {
-      console.warn('⚠️ Deduplication guard encountered an error, proceeding anyway:', guardErr);
+    // Atomic claim: set admin_new_user_notified_at only if currently NULL to prevent duplicates
+    const claimTimestamp = new Date().toISOString();
+    const { data: claimRows, error: claimError } = await supabase
+      .from('profiles')
+      .update({ admin_new_user_notified_at: claimTimestamp })
+      .eq('id', userId)
+      .is('admin_new_user_notified_at', null)
+      .select('id');
+
+    if (claimError) {
+      console.warn('⚠️ Claim attempt failed:', claimError);
+    }
+
+    if (!claimRows || claimRows.length === 0) {
+      console.log(`⏭️ Notification already claimed/processed for user ${userId}, skipping.`);
+      return new Response(
+        JSON.stringify({ success: true, message: 'Already processed for this user' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const userData: NewUserData = {
@@ -163,9 +163,14 @@ serve(async (req) => {
 
     // Get admin Telegram IDs
     const adminTelegramIds = await getAdminTelegramIds(supabase);
-    
+    console.log(`👥 Admin Telegram recipients: ${adminTelegramIds.length}`);
+
     if (adminTelegramIds.length === 0) {
-      console.warn('❌ No admin Telegram IDs found');
+      console.warn('❌ No admin Telegram IDs found. Reverting claim to allow retry later.');
+      await supabase
+        .from('profiles')
+        .update({ admin_new_user_notified_at: null })
+        .eq('id', userId);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -228,6 +233,14 @@ serve(async (req) => {
     const totalCount = results.length;
 
     console.log(`✅ [AdminNewUserNotification] Sent ${successCount}/${totalCount} notifications for user ${userId}`);
+
+    if (successCount === 0) {
+      console.warn('↩️ No notifications were sent, reverting claim flag to NULL for user', userId);
+      await supabase
+        .from('profiles')
+        .update({ admin_new_user_notified_at: null })
+        .eq('id', userId);
+    }
 
     return new Response(
       JSON.stringify({ 
