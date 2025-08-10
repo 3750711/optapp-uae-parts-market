@@ -3,12 +3,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Link } from 'react-router-dom';
 
 interface BuyerRegistrationStepProps {
   onNext: (buyerData: BuyerData) => void;
   onBack: () => void;
   translations: any;
   optId?: string;
+  language?: 'ru' | 'en';
 }
 
 export interface BuyerData {
@@ -23,7 +25,8 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
   onNext,
   onBack,
   translations,
-  optId
+  optId,
+  language = 'ru'
 }) => {
   const [formData, setFormData] = useState<BuyerData>({
     fullName: '',

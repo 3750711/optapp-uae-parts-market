@@ -152,29 +152,19 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
               verification_status: 'pending',
               auth_method: 'email',
               company_name: storeData?.name ?? null,
+              location: storeData?.location ?? null,
+              description_user: storeData?.description ?? null,
+              accepted_terms: true,
+              accepted_terms_at: new Date().toISOString(),
+              accepted_privacy: true,
+              accepted_privacy_at: new Date().toISOString(),
             },
           ], { onConflict: 'id' });
         console.log('[Registration] profile upsert completed', { error: profileError });
         if (profileError) throw profileError;
 
-        // Create store only if session exists (RLS requires authenticated user)
-        if (storeData && authData.session) {
-          console.log('[Registration] creating store');
-          const { error: storeError } = await supabase
-            .from('stores')
-            .insert({
-              name: storeData.name,
-              description: storeData.description,
-              location: storeData.location,
-              address: storeData.location,
-              seller_id: authData.user.id,
-              owner_name: data.fullName,
-              phone: data.phone,
-            });
-          if (storeError) throw storeError;
-        } else if (storeData && !authData.session) {
-          console.log('[Registration] skipping store creation due to missing session (email confirmation likely)');
-        }
+        // Store creation is handled by DB trigger sync_profile_to_store when company_name is set
+        // No direct client-side insert to stores is needed here.
 
         toast({
           title: translations.success.registrationCompletedTitle,
@@ -182,8 +172,8 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
         });
 
         setTimeout(() => {
-          navigate('/');
-        }, 3000);
+          navigate('/pending-approval');
+        }, 2000);
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -229,6 +219,10 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
               user_type: 'buyer',
               verification_status: 'pending',
               auth_method: 'email',
+              accepted_terms: true,
+              accepted_terms_at: new Date().toISOString(),
+              accepted_privacy: true,
+              accepted_privacy_at: new Date().toISOString(),
             },
           ], { onConflict: 'id' });
         console.log('[Registration] buyer profile upsert completed', { error: profileError });

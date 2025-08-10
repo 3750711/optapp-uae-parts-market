@@ -3,12 +3,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Link } from 'react-router-dom';
 
 interface PersonalInfoStepProps {
   onNext: (personalData: PersonalData) => void;
   onBack: () => void;
   translations: any;
   optId?: string;
+  language?: 'ru' | 'en';
 }
 
 export interface PersonalData {
@@ -23,7 +25,8 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
   onNext,
   onBack,
   translations,
-  optId
+  optId,
+  language = 'ru'
 }) => {
   const [formData, setFormData] = useState<PersonalData>({
     fullName: '',
@@ -32,8 +35,9 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
     password: '',
     confirmPassword: ''
   });
-  const [errors, setErrors] = useState<Partial<PersonalData & { acceptedTerms: string }>>({});
+  const [errors, setErrors] = useState<Partial<PersonalData & { acceptedTerms: string; acceptedPrivacy: string }>>({});
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   const validateForm = () => {
     const newErrors: Partial<PersonalData> = {};
@@ -66,6 +70,10 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
 
     if (!acceptedTerms) {
       (newErrors as any).acceptedTerms = translations.acceptUserAgreementRequired;
+    }
+
+    if (!acceptedPrivacy) {
+      (newErrors as any).acceptedPrivacy = language === 'en' ? 'You must accept the Privacy Policy' : 'Необходимо принять Privacy Policy';
     }
     
     setErrors(newErrors);
@@ -197,6 +205,26 @@ export const PersonalInfoStep: React.FC<PersonalInfoStepProps> = ({
               </div>
               {errors.acceptedTerms && (
                 <p className="text-sm text-destructive">{errors.acceptedTerms as any}</p>
+              )}
+
+              <div className="flex items-start gap-2">
+                <input
+                  id="privacy"
+                  type="checkbox"
+                  checked={acceptedPrivacy}
+                  onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                  className="mt-1"
+                />
+                <label htmlFor="privacy" className="text-sm text-muted-foreground">
+                  {language === 'en' ? (
+                    <>I accept the <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
+                  ) : (
+                    <>Я принимаю <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
+                  )}
+                </label>
+              </div>
+              {(errors as any).acceptedPrivacy && (
+                <p className="text-sm text-destructive">{(errors as any).acceptedPrivacy}</p>
               )}
             </div>
 
