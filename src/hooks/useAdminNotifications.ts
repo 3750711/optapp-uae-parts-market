@@ -21,7 +21,43 @@ export const useAdminNotifications = () => {
     }
   };
 
+  const notifyAdminsNewUser = async (params: {
+    userId: string;
+    fullName?: string | null;
+    email: string;
+    userType: 'buyer' | 'seller';
+    phone?: string | null;
+    optId?: string | null;
+    telegram?: string | null;
+    createdAt?: string;
+  }) => {
+    try {
+      console.log(`📢 [AdminNotification] Sending new user notification: ${params.email} (${params.userType})`);
+      const { error } = await supabase.functions.invoke('notify-admins-new-user', {
+        body: {
+          userId: params.userId,
+          fullName: params.fullName || 'User',
+          email: params.email,
+          userType: params.userType,
+          phone: params.phone || undefined,
+          optId: params.optId || undefined,
+          telegram: params.telegram || undefined,
+          createdAt: params.createdAt || new Date().toISOString(),
+        }
+      });
+
+      if (error) {
+        console.error(`❌ [AdminNotification] Failed to notify admins about new user:`, error);
+      } else {
+        console.log(`✅ [AdminNotification] Admins notified about new user: ${params.email}`);
+      }
+    } catch (error) {
+      console.error(`💥 [AdminNotification] Exception while notifying admins about new user:`, error);
+    }
+  };
+
   return {
-    notifyAdminsNewProduct
+    notifyAdminsNewProduct,
+    notifyAdminsNewUser,
   };
 };

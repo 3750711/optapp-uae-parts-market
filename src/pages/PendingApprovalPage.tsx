@@ -10,6 +10,7 @@ import PendingApprovalChecklist from '@/components/pending/PendingApprovalCheckl
 import { LoadingState } from '@/components/ui/LoadingState';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAdminNotifications } from '@/hooks/useAdminNotifications';
 const translations = {
   en: {
     title: 'Pending Approval',
@@ -35,11 +36,12 @@ const translations = {
 
 const PendingApprovalPage: React.FC = () => {
   const { language } = useLanguage();
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const { isChecking, isApproved } = useApprovalStatus();
 
   const t = translations[language];
   const { toast } = useToast();
+  const { notifyAdminsNewUser } = useAdminNotifications();
 
   // Complete profile on first login after email confirmation (once per session)
   useEffect(() => {
@@ -47,16 +49,45 @@ const PendingApprovalPage: React.FC = () => {
     const key = `profileCompletedRPC:${profile.id}`;
     if (sessionStorage.getItem(key)) return;
 
-    supabase
-      .rpc('complete_profile_after_signup')
-      .then(({ error }) => {
+    (async () => {
+      try {
+        const { data: userData, error: userErr } = await supabase.auth.getUser();
+        if (userErr) {
+          console.warn('[PendingApproval] getUser error', userErr);
+        }
+        const user = userData?.user;
+        const p_email = user?.email || (profile as any)?.email;
+        const payload = (user as any)?.user_metadata || {};
+
+        const { error } = await supabase.rpc('complete_profile_after_signup', {
+          p_email,
+          payload,
+        });
+
         if (error) {
           console.error('[PendingApproval] complete_profile_after_signup error', error);
         } else {
           sessionStorage.setItem(key, '1');
+          // Refresh local profile to update checklist flags
+          await refreshProfile();
+
+          // Notify admins about new user (edge fn dedupes)
+          if (user?.id && p_email) {
+            notifyAdminsNewUser({
+              userId: user.id,
+              fullName: (payload as any)?.full_name || profile.full_name || null,
+              email: p_email,
+              userType: ((payload as any)?.user_type || profile.user_type) as 'buyer' | 'seller',
+              phone: (payload as any)?.phone || (profile as any)?.phone || null,
+              optId: (payload as any)?.opt_id || (profile as any)?.opt_id || null,
+              telegram: (profile as any)?.telegram || null,
+            });
+          }
         }
-      })
-      .catch((e) => console.error('[PendingApproval] RPC call failed', e));
+      } catch (e) {
+        console.error('[PendingApproval] RPC call failed', e);
+      }
+    })();
   }, [profile?.id]);
   if (isChecking) {
     return (

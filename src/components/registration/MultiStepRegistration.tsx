@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { checkOptIdExists } from '@/utils/authUtils';
+import { useAdminNotifications } from '@/hooks/useAdminNotifications';
 
 type RegistrationStep = 
   | 'type-selection'
@@ -45,6 +46,7 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
   
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { notifyAdminsNewUser } = useAdminNotifications();
   const translations = registrationTranslations[language];
 
   // Generate unique 4-letter OPT_ID for sellers
@@ -184,7 +186,25 @@ const createSellerAccount = async (data: PersonalData) => {
       }
 
       // If session exists (email auto-confirm), complete profile immediately
-      await supabase.rpc('complete_profile_after_signup');
+      await supabase.rpc('complete_profile_after_signup', {
+        p_email: data.email,
+        payload: metadata,
+      });
+
+      // Notify admins about new user (deduped on server)
+      const newUserId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
+      if (newUserId) {
+        notifyAdminsNewUser({
+          userId: newUserId,
+          fullName: metadata.full_name,
+          email: data.email,
+          userType: metadata.user_type,
+          phone: metadata.phone,
+          optId: metadata.opt_id,
+          telegram: null,
+          createdAt: new Date().toISOString(),
+        });
+      }
 
       toast({
         title: translations.success.registrationCompletedTitle,
@@ -246,7 +266,25 @@ const createBuyerAccount = async (data: BuyerData) => {
       }
 
       // If session exists (email auto-confirm), complete profile immediately
-      await supabase.rpc('complete_profile_after_signup');
+      await supabase.rpc('complete_profile_after_signup', {
+        p_email: data.email,
+        payload: metadata,
+      });
+
+      // Notify admins about new user (deduped on server)
+      const newUserId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
+      if (newUserId) {
+        notifyAdminsNewUser({
+          userId: newUserId,
+          fullName: metadata.full_name,
+          email: data.email,
+          userType: metadata.user_type,
+          phone: metadata.phone,
+          optId: metadata.opt_id,
+          telegram: null,
+          createdAt: new Date().toISOString(),
+        });
+      }
 
       toast({
         title: translations.success.registrationCompletedTitle,
