@@ -21,7 +21,13 @@ interface NewUserData {
   createdAt: string;
 }
 
-function formatUserMessage(userData: NewUserData): string {
+interface SellerStoreInfo {
+  storeName?: string;
+  storeLocation?: string;
+  storeDescription?: string;
+}
+
+function formatUserMessage(userData: NewUserData, storeInfo?: SellerStoreInfo): string {
   const userTypeRu = userData.userType === 'buyer' ? 'Покупатель' : 'Продавец';
   const userTypeIcon = userData.userType === 'buyer' ? '🛒' : '🏪';
   
@@ -40,6 +46,19 @@ function formatUserMessage(userData: NewUserData): string {
   
   if (userData.telegram) {
     message += `📱 Telegram: @${userData.telegram}\n`;
+  }
+
+  // For sellers, include store details when available
+  if (userData.userType === 'seller' && storeInfo) {
+    if (storeInfo.storeName && String(storeInfo.storeName).trim().length > 0) {
+      message += `🏬 Магазин: ${storeInfo.storeName}\n`;
+    }
+    if (storeInfo.storeLocation && String(storeInfo.storeLocation).trim().length > 0) {
+      message += `📍 Локация: ${storeInfo.storeLocation}\n`;
+    }
+    if (storeInfo.storeDescription && String(storeInfo.storeDescription).trim().length > 0) {
+      message += `📝 Описание: ${storeInfo.storeDescription}\n`;
+    }
   }
   
   message += `📅 Дата регистрации: ${new Date(userData.createdAt).toLocaleString('ru-RU')}\n\n`;
@@ -104,6 +123,62 @@ async function sendAdminNotification(adminTelegramId: string, message: string): 
   } catch (error) {
     console.error(`Failed to send admin notification to ${adminTelegramId}:`, error);
     throw error;
+  }
+}
+
+async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getSellerStoreInfo(supabase: any, userId: string): Promise<SellerStoreInfo> {
+  try {
+    // Read profile fields as fallback
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('company_name, location, description_user')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileError) {
+      console.warn('⚠️ Failed to fetch profile for store info (will use empty fallback):', profileError);
+    }
+
+    // Try to get a store record with short retries to avoid race conditions
+    let store: any = null;
+    const maxAttempts = 3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const { data: storeRow, error: storeError } = await supabase
+        .from('stores')
+        .select('name, location, description')
+        .eq('seller_id', userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (storeError) {
+        console.warn(`⚠️ Attempt ${attempt}: fetch store error (will retry if attempts remain):`, storeError?.message || storeError);
+      }
+
+      if (storeRow && (storeRow.name || storeRow.location || storeRow.description)) {
+        store = storeRow;
+        break;
+      }
+
+      if (attempt < maxAttempts) {
+        await delay(400);
+      }
+    }
+
+    const storeInfo: SellerStoreInfo = {
+      storeName: store?.name ?? profile?.company_name ?? undefined,
+      storeLocation: store?.location ?? profile?.location ?? undefined,
+      storeDescription: store?.description ?? profile?.description_user ?? undefined,
+    };
+
+    console.log('🧾 Resolved seller store info:', storeInfo);
+    return storeInfo;
+  } catch (err) {
+    console.error('💥 Exception while building seller store info:', err);
+    return {};
   }
 }
 
@@ -180,8 +255,13 @@ serve(async (req) => {
       );
     }
 
-    const message = formatUserMessage(userData);
-    const results = [];
+let storeInfo: SellerStoreInfo | undefined = undefined;
+if (userData.userType === 'seller') {
+  storeInfo = await getSellerStoreInfo(supabase, userId);
+}
+
+const message = formatUserMessage(userData, storeInfo);
+const results = [];
 
     // Send notifications to all admins
     for (const admin of adminTelegramIds) {
@@ -201,7 +281,7 @@ serve(async (req) => {
           telegram_message_id: result.result?.message_id?.toString(),
           related_entity_type: 'user',
           related_entity_id: userId,
-          metadata: { userType, adminId: admin.id }
+metadata: { userType, adminId: admin.id, storeName: storeInfo?.storeName, storeLocation: storeInfo?.storeLocation, storeDescription: storeInfo?.storeDescription }
         });
 
         results.push({ adminId: admin.id, success: true });
@@ -222,7 +302,7 @@ serve(async (req) => {
           related_entity_type: 'user',
           related_entity_id: userId,
           error_details: { error: error.message },
-          metadata: { userType, adminId: admin.id }
+          metadata: { userType, adminId: admin.id, storeName: storeInfo?.storeName, storeLocation: storeInfo?.storeLocation, storeDescription: storeInfo?.storeDescription }
         });
 
         results.push({ adminId: admin.id, success: false, error: error.message });
