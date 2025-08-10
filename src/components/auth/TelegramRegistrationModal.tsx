@@ -522,19 +522,19 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
     }
   };
 
-  // Prevent closing during registration process
-  const canClose = !isLoading && currentStep !== 'creating';
+// Disable manual closing entirely during registration
+// The modal will only be closed programmatically after successful completion.
 
-  return (
-    <Dialog 
-      open={open} 
-      onOpenChange={canClose ? onOpenChange : undefined}
+return (
+  <Dialog 
+    open={open}
+  >
+    <DialogContent 
+      className="sm:max-w-md" 
+      onPointerDownOutside={(e) => e.preventDefault()}
+      onEscapeKeyDown={(e) => e.preventDefault()}
+      hideCloseButton
     >
-      <DialogContent 
-        className="sm:max-w-md" 
-        onPointerDownOutside={canClose ? undefined : (e) => e.preventDefault()}
-        onEscapeKeyDown={canClose ? undefined : (e) => e.preventDefault()}
-      >
         <DialogHeader>
           <DialogTitle>
             {language === 'en' ? 'Complete Registration' : 'Завершение регистрации'}
