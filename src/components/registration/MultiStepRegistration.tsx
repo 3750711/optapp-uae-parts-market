@@ -137,25 +137,29 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
       if (authError) throw authError;
 
       if (authData.user) {
-        // Create profile
+        console.log('[Registration] signUp success', { userId: authData.user.id, hasSession: !!authData.session });
+        // Upsert profile to avoid duplicate key if trigger already created it
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
-            id: authData.user.id,
-            email: data.email,
-            full_name: data.fullName,
-            phone: data.phone,
-            opt_id: generatedOptId,
-            user_type: 'seller',
-            verification_status: 'pending',
-            auth_method: 'email',
-            company_name: storeData?.name
-          });
-
+          .upsert([
+            {
+              id: authData.user.id,
+              email: data.email,
+              full_name: data.fullName,
+              phone: data.phone,
+              opt_id: generatedOptId,
+              user_type: 'seller',
+              verification_status: 'pending',
+              auth_method: 'email',
+              company_name: storeData?.name ?? null,
+            },
+          ], { onConflict: 'id' });
+        console.log('[Registration] profile upsert completed', { error: profileError });
         if (profileError) throw profileError;
 
-        // Create store
-        if (storeData) {
+        // Create store only if session exists (RLS requires authenticated user)
+        if (storeData && authData.session) {
+          console.log('[Registration] creating store');
           const { error: storeError } = await supabase
             .from('stores')
             .insert({
@@ -165,10 +169,11 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
               address: storeData.location,
               seller_id: authData.user.id,
               owner_name: data.fullName,
-              phone: data.phone
+              phone: data.phone,
             });
-
           if (storeError) throw storeError;
+        } else if (storeData && !authData.session) {
+          console.log('[Registration] skipping store creation due to missing session (email confirmation likely)');
         }
 
         toast({
@@ -176,7 +181,6 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
           description: translations.success.accountCreatedPending,
         });
 
-        // Redirect to login page
         setTimeout(() => {
           navigate('/');
         }, 3000);
@@ -212,20 +216,22 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
       if (authError) throw authError;
 
       if (authData.user) {
-        // Create profile
+        console.log('[Registration] buyer signUp success', { userId: authData.user.id, hasSession: !!authData.session });
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
-            id: authData.user.id,
-            email: data.email,
-            full_name: data.fullName,
-            phone: data.phone,
-            opt_id: generatedOptId,
-            user_type: 'buyer',
-            verification_status: 'pending',
-            auth_method: 'email'
-          });
-
+          .upsert([
+            {
+              id: authData.user.id,
+              email: data.email,
+              full_name: data.fullName,
+              phone: data.phone,
+              opt_id: generatedOptId,
+              user_type: 'buyer',
+              verification_status: 'pending',
+              auth_method: 'email',
+            },
+          ], { onConflict: 'id' });
+        console.log('[Registration] buyer profile upsert completed', { error: profileError });
         if (profileError) throw profileError;
 
         toast({
@@ -233,7 +239,6 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
           description: translations.success.accountCreatedPending,
         });
 
-        // Redirect to pending approval page
         setTimeout(() => {
           navigate('/pending-approval');
         }, 2000);
