@@ -157,11 +157,9 @@ const AppRoutes: React.FC = () => {
               </GuestRoute>
             } />
             <Route path="/verify-email" element={
-              <GuestRoute>
                 <Suspense fallback={<RouteSuspenseFallback />}>
                   <VerifyEmail />
                 </Suspense>
-              </GuestRoute>
             } />
 
             {/* Pending Approval Page - для пользователей ожидающих одобрения */}

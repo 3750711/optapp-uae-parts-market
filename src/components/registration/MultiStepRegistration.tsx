@@ -171,9 +171,7 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
           description: translations.success.accountCreatedPending,
         });
 
-        setTimeout(() => {
-          navigate('/pending-approval');
-        }, 2000);
+        navigate(`/verify-email?email=${encodeURIComponent(data.email)}&returnTo=/pending-approval`, { replace: true });
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -233,9 +231,7 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
           description: translations.success.accountCreatedPending,
         });
 
-        setTimeout(() => {
-          navigate('/pending-approval');
-        }, 2000);
+        navigate(`/verify-email?email=${encodeURIComponent(data.email)}&returnTo=/pending-approval`, { replace: true });
       }
     } catch (error: any) {
       console.error('Registration error:', error);

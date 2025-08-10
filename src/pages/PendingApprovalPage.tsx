@@ -130,6 +130,20 @@ const PendingApprovalPage: React.FC = () => {
                   <p className="mt-3 text-sm">{t.telegramHint}</p>
                 )}
               </section>
+
+              {profile?.auth_method === 'email' && !profile?.telegram && (
+                <section className="rounded-lg border bg-card p-5 shadow-sm">
+                  <h2 className="text-lg font-semibold mb-2">
+                    {language === 'en' ? 'Link your Telegram (recommended)' : 'Привяжите Telegram (рекомендуется)'}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {language === 'en'
+                      ? 'It speeds up communication, enables instant notifications, and allows passwordless login.'
+                      : 'Это ускорит связь, включит мгновенные уведомления и позволит входить без пароля.'}
+                  </p>
+                  <TelegramLoginWidget language={language} />
+                </section>
+              )}
             </section>
 
             <aside className="lg:col-span-1">

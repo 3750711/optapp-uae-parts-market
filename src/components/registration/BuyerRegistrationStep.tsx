@@ -35,8 +35,9 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
     password: '',
     confirmPassword: ''
   });
-  const [errors, setErrors] = useState<Partial<BuyerData & { acceptedTerms: string }>>({});
+  const [errors, setErrors] = useState<Partial<BuyerData & { acceptedTerms: string; acceptedPrivacy: string }>>({});
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
   const validateForm = () => {
     const newErrors: Partial<BuyerData> = {};
@@ -69,6 +70,9 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
 
     if (!acceptedTerms) {
       (newErrors as any).acceptedTerms = translations.acceptUserAgreementRequired;
+    }
+    if (!acceptedPrivacy) {
+      (newErrors as any).acceptedPrivacy = language === 'en' ? 'You must accept the Privacy Policy' : 'Необходимо принять Privacy Policy';
     }
     
     setErrors(newErrors);
@@ -200,6 +204,26 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
               </div>
               {errors.acceptedTerms && (
                 <p className="text-sm text-destructive">{errors.acceptedTerms as any}</p>
+              )}
+
+              <div className="flex items-start gap-2">
+                <input
+                  id="privacy"
+                  type="checkbox"
+                  checked={acceptedPrivacy}
+                  onChange={(e) => setAcceptedPrivacy(e.target.checked)}
+                  className="mt-1"
+                />
+                <label htmlFor="privacy" className="text-sm text-muted-foreground">
+                  {language === 'en' ? (
+                    <>I accept the <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
+                  ) : (
+                    <>Я принимаю <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
+                  )}
+                </label>
+              </div>
+              {(errors as any).acceptedPrivacy && (
+                <p className="text-sm text-destructive">{(errors as any).acceptedPrivacy}</p>
               )}
             </div>
 
