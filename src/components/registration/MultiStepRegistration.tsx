@@ -411,6 +411,7 @@ const goBack = () => {
               onBack={goBack}
               translations={translations}
               optId={generatedOptId}
+              language={language}
             />
           );
 
@@ -421,6 +422,7 @@ case 'buyer-registration':
       onBack={goBack}
       translations={translations}
       optId={generatedOptId}
+      language={language}
     />
   );
 
