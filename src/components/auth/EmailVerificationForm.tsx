@@ -24,35 +24,41 @@ const EmailVerificationForm = ({
   description = "Введите код, отправленный на вашу почту"
 }: EmailVerificationFormProps) => {
   const [code, setCode] = useState('');
-  const [timeLeft, setTimeLeft] = useState(0);
+  const CODE_VALIDITY_SECONDS = 300; // 5 минут
+  const RESEND_COOLDOWN_SECONDS = 60; // повторная отправка через 60 секунд
+  const [codeTimeLeft, setCodeTimeLeft] = useState(0);
+  const [resendTimeLeft, setResendTimeLeft] = useState(0);
   const [canResend, setCanResend] = useState(true);
   const [codeSent, setCodeSent] = useState(false);
   
   const { sendVerificationCode, verifyEmailCode, isLoading } = useEmailVerification();
   const sendingRef = useRef(false);
 
-  // Таймер обратного отсчета
+  // Таймеры: срок действия кода и кулдаун на повторную отправку
   useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setCanResend(true);
-    }
-  }, [timeLeft]);
+    const id = setInterval(() => {
+      setCodeTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+      setResendTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    setCanResend(resendTimeLeft <= 0);
+  }, [resendTimeLeft]);
 
   const handleSendCode = useCallback(async () => {
     if (!initialEmail || isLoading || sendingRef.current) return;
-    
     sendingRef.current = true;
-    
+
     const result = await sendVerificationCode(initialEmail);
 
     if (result.success) {
       setCodeSent(true);
-      setTimeLeft(300); // 5 минут
+      setCodeTimeLeft(CODE_VALIDITY_SECONDS);
+      setResendTimeLeft(RESEND_COOLDOWN_SECONDS);
       setCanResend(false);
-      
+
       toast({
         title: "Код отправлен",
         description: result.message,
@@ -63,17 +69,18 @@ const EmailVerificationForm = ({
         console.log('🔐 DEBUG: Код верификации:', result.code);
       }
     } else {
+      const msg = (result.message || '').toLowerCase();
+      const isRate = msg.includes('лимит') || msg.includes('слишком') || msg.includes('часто') || msg.includes('rate') || msg.includes('too many');
       toast({
-        title: "Ошибка отправки",
-        description: result.message,
+        title: isRate ? "Слишком много попыток" : "Ошибка отправки",
+        description: isRate ? "Превышен лимит отправок. Попробуйте позже (до 1 часа)." : result.message,
         variant: "destructive",
       });
     }
-    
+
     sendingRef.current = false;
   }, [initialEmail, isLoading, sendVerificationCode]);
 
-  // Автоматически отправляем код при монтировании компонента
   useEffect(() => {
     if (initialEmail && !codeSent && !isLoading && !sendingRef.current) {
       handleSendCode();
@@ -178,13 +185,13 @@ const EmailVerificationForm = ({
             />
           </div>
 
-          {timeLeft > 0 && (
+          {codeTimeLeft > 0 && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>Код действителен: {formatTime(timeLeft)}</span>
+              <span>Код действителен: {formatTime(codeTimeLeft)}</span>
             </div>
           )}
-
+          
           <div className="space-y-2">
             <Button 
               onClick={() => handleVerifyCode()}
@@ -200,7 +207,7 @@ const EmailVerificationForm = ({
               disabled={!canResend || isLoading}
               className="w-full"
             >
-              {canResend ? "Отправить код повторно" : `Повтор через ${formatTime(timeLeft)}`}
+              {canResend ? "Отправить код повторно" : `Повтор через ${formatTime(resendTimeLeft)}`}
             </Button>
 
             {onCancel && (
