@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { CheckCircle2, XCircle, Info } from 'lucide-react';
-import { Link } from 'react-router-dom';
+
 import { useAuth } from '@/contexts/AuthContext';
 
 interface PendingApprovalChecklistProps {
@@ -118,16 +118,11 @@ export const PendingApprovalChecklist: React.FC<PendingApprovalChecklistProps> =
               <Item ok={flags.hasLocation} label={t.items.location} />
               <Item ok={flags.hasDescription} label={t.items.description} />
             </ul>
-            <div className="mt-3">
-              <Link to="/profile" className="text-sm underline hover:no-underline">
-                {t.actions.createStore}
-              </Link>
-            </div>
           </div>
         )}
       </div>
 
-      <p className="mt-4 text-sm text-muted-foreground">{t.hint}</p>
+      
     </section>
   );
 };
