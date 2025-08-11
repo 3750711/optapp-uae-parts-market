@@ -16,7 +16,7 @@ export const registrationTranslations = {
     sellerDescription: "Продажа автозапчастей и товаров",
     
     // Step 3: OPT ID Generation
-    generatingOptId: "Генерируем OPT_ID для продаж",
+    generatingOptId: "Генерируем OPT_ID для заказов",
     optIdGenerated: "Ваш OPT_ID сгенерирован",
     optIdNote: "Сохраните этот ID - он понадобится для работы",
     pendingApproval: "⏳ Ожидание одобрения",
@@ -75,8 +75,8 @@ export const registrationTranslations = {
     back: "Назад",
     finish: "Завершить",
     loading: "Загрузка...",
-    acceptUserAgreementLabel: "Я принимаю пользовательское соглашение",
-    acceptUserAgreementRequired: "Необходимо принять пользовательское соглашение",
+    acceptUserAgreementLabel: "Я принимаю Условия использования",
+    acceptUserAgreementRequired: "Необходимо принять Условия использования",
     // Locations
     locations: {
       dubai: "Дубай",
@@ -125,7 +125,7 @@ export const registrationTranslations = {
     sellerDescription: "Sell auto parts and goods",
     
     // Step 3: OPT ID Generation
-    generatingOptId: "Generating OPT_ID for sales",
+    generatingOptId: "Generating OPT_ID for orders",
     optIdGenerated: "Your OPT_ID has been generated",
     optIdNote: "Save this ID - you'll need it for work",
     pendingApproval: "⏳ Pending Approval",

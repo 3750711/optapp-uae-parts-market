@@ -199,7 +199,11 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
                   className="mt-1"
                 />
                 <label htmlFor="terms" className="text-sm text-muted-foreground">
-                  {translations.acceptUserAgreementLabel}
+                  {language === 'en' ? (
+                    <>I accept the <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline">Terms and Conditions</Link></>
+                  ) : (
+                    <>Я принимаю <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline">Условия использования</Link></>
+                  )}
                 </label>
               </div>
               {errors.acceptedTerms && (
