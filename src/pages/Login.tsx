@@ -269,6 +269,7 @@ const Login = () => {
             {/* Telegram Login */}
             <div className="space-y-4">
               <TelegramLoginWidget 
+                language={language}
                 onSuccess={() => navigate(from, { replace: true })}
                 onError={(error) => setAuthError(createAuthError(AuthErrorType.GENERIC_ERROR, error))}
               />

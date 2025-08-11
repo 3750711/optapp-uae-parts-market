@@ -211,6 +211,7 @@ const SellerLogin: React.FC = () => {
 
                   <div className="flex justify-center">
                     <TelegramLoginWidget
+                      language={language}
                       onSuccess={() => {
                         console.log('🔐 SellerLogin: Telegram login successful, waiting for profile to load');
                         toast({

@@ -71,13 +71,36 @@ export const PendingApprovalChecklist: React.FC<PendingApprovalChecklistProps> =
     const isTelegramLinked = Boolean(profile?.telegram || profile?.telegram_id);
     const hasTerms = Boolean(profile?.accepted_terms);
     const hasPrivacy = Boolean(profile?.accepted_privacy);
-    const isProfileCompleted = Boolean(profile?.profile_completed);
     const isEmailConfirmed = Boolean(profile?.email_confirmed);
+
+    const fullNameOk = Boolean(profile?.full_name && profile.full_name.trim().length > 0);
+    const phoneOk = Boolean(profile?.phone && profile.phone.trim().length > 0);
 
     const isSeller = profile?.user_type === 'seller';
     const hasCompany = Boolean(profile?.company_name && profile.company_name.trim().length > 0);
     const hasLocation = Boolean(profile?.location && profile.location.trim().length > 0);
     const hasDescription = Boolean(profile?.description_user && profile.description_user.trim().length > 0);
+
+    const derivedBuyerComplete = fullNameOk && phoneOk && hasTerms && hasPrivacy && isEmailConfirmed;
+    const derivedSellerComplete = derivedBuyerComplete && hasCompany && hasLocation && hasDescription;
+
+    const isProfileCompleted = Boolean(profile?.profile_completed) || (isSeller ? derivedSellerComplete : derivedBuyerComplete);
+
+    if (process.env.NODE_ENV === 'development') {
+      // Helpful for debugging checklist states in development
+      console.debug('[PendingApprovalChecklist] flags', {
+        fullNameOk,
+        phoneOk,
+        hasTerms,
+        hasPrivacy,
+        isEmailConfirmed,
+        isSeller,
+        hasCompany,
+        hasLocation,
+        hasDescription,
+        isProfileCompleted,
+      });
+    }
 
     return {
       isTelegramLinked,
