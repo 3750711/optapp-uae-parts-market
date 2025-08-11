@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, UserX, Wifi, Shield, Clock, AlertCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AuthErrorType, AuthError } from '@/types/auth';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface AuthErrorAlertProps {
   error: AuthError;
@@ -11,6 +12,8 @@ interface AuthErrorAlertProps {
 }
 
 export const AuthErrorAlert: React.FC<AuthErrorAlertProps> = ({ error, onClose }) => {
+  const { language } = useLanguage();
+  const closeText = language === 'en' ? 'Got it' : 'Понятно';
   const getErrorIcon = () => {
     switch (error.type) {
       case AuthErrorType.INVALID_CREDENTIALS:
@@ -68,7 +71,7 @@ export const AuthErrorAlert: React.FC<AuthErrorAlertProps> = ({ error, onClose }
             onClick={onClose}
             className="w-full sm:w-auto"
           >
-            Понятно
+            {closeText}
           </Button>
         </div>
       </AlertDescription>

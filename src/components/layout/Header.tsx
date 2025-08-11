@@ -55,7 +55,45 @@ const Header = () => {
   const navigate = useNavigate();
   const { language, changeLanguage } = useLanguage();
   const t = getMainPageTranslations(language);
-
+  const l = language === 'en' ? {
+    logoutSuccessTitle: 'Signed out',
+    logoutSuccessDesc: 'You have successfully signed out',
+    logoutErrorTitle: 'Error',
+    logoutErrorDesc: 'Failed to sign out',
+    profileSettings: 'Profile settings',
+    notifications: 'Notifications',
+    favorites: 'Favorites',
+    buyerDashboard: 'Buyer dashboard',
+    myOrders: 'My orders',
+    auctions: 'Auctions',
+    sellerDashboard: 'Seller dashboard',
+    myListings: 'My listings',
+    addProduct: 'Add product',
+    sellerOrders: 'My orders',
+    productOffers: 'Price offers',
+    adminPanel: 'Admin panel',
+    help: 'Help',
+    logout: 'Sign out',
+  } : {
+    logoutSuccessTitle: 'Выход выполнен',
+    logoutSuccessDesc: 'Вы успешно вышли из системы',
+    logoutErrorTitle: 'Ошибка',
+    logoutErrorDesc: 'Не удалось выйти из системы',
+    profileSettings: 'Настройки профиля',
+    notifications: 'Уведомления',
+    favorites: 'Избранное',
+    buyerDashboard: 'Панель покупателя',
+    myOrders: 'Мои заказы',
+    auctions: 'Торги',
+    sellerDashboard: 'Панель продавца',
+    myListings: 'Мои товары',
+    addProduct: 'Добавить товар',
+    sellerOrders: 'Мои заказы',
+    productOffers: 'Предложения по товарам',
+    adminPanel: 'Админ панель',
+    help: 'Помощь',
+    logout: 'Выйти',
+  };
   // Отладочная информация для Header
   console.log('🏠 Header Debug:', {
     user_email: user?.email,
@@ -69,15 +107,15 @@ const Header = () => {
     try {
       await signOut();
       toast({
-        title: "Выход выполнен",
-        description: "Вы успешно вышли из системы"
+        title: l.logoutSuccessTitle,
+        description: l.logoutSuccessDesc
       });
       navigate('/login');
     } catch (error) {
       console.error('Ошибка при выходе из системы:', error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось выйти из системы",
+        title: l.logoutErrorTitle,
+        description: l.logoutErrorDesc,
         variant: "destructive"
       });
     }
@@ -170,7 +208,7 @@ const Header = () => {
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                       <Link to="/profile" className="flex w-full items-center">
                         <Settings className="mr-2 h-4 w-4" />
-                        <span>Настройки профиля</span>
+                        <span>{l.profileSettings}</span>
                       </Link>
                     </DropdownMenuItem>
 
@@ -180,7 +218,7 @@ const Header = () => {
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                       <Link to="/notifications" className="flex w-full items-center">
                         <Bell className="mr-2 h-4 w-4" />
-                        <span>Уведомления</span>
+                        <span>{l.notifications}</span>
                         {unreadCount > 0 && (
                           <Badge variant="destructive" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
                             {unreadCount > 99 ? '99+' : unreadCount}
@@ -192,7 +230,7 @@ const Header = () => {
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                       <Link to="/favorites" className="flex w-full items-center">
                         <Heart className="mr-2 h-4 w-4" />
-                        <span>Избранное</span>
+                        <span>{l.favorites}</span>
                         {favorites.length > 0 && (
                           <Badge variant="secondary" className="ml-auto h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
                             {favorites.length > 99 ? '99+' : favorites.length}
@@ -209,19 +247,19 @@ const Header = () => {
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/buyer-dashboard" className="flex w-full items-center">
                             <LayoutDashboard className="mr-2 h-4 w-4" />
-                            <span>Панель покупателя</span>
+                            <span>{l.buyerDashboard}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/buyer-orders" className="flex w-full items-center">
                             <ShoppingCart className="mr-2 h-4 w-4" />
-                            <span>Мои заказы</span>
+                            <span>{l.myOrders}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/buyer-price-offers" className="flex w-full items-center">
                             <Gavel className="mr-2 h-4 w-4" />
-                            <span>Торги</span>
+                            <span>{l.auctions}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -234,31 +272,31 @@ const Header = () => {
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/seller/dashboard" className="flex w-full items-center">
                             <Store className="mr-2 h-4 w-4" />
-                            <span>Панель продавца</span>
+                            <span>{l.sellerDashboard}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/seller/listings" className="flex w-full items-center">
                             <Package className="mr-2 h-4 w-4" />
-                            <span>Мои товары</span>
+                            <span>{l.myListings}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/seller/add-product" className="flex w-full items-center">
                             <Plus className="mr-2 h-4 w-4" />
-                            <span>Добавить товар</span>
+                            <span>{l.addProduct}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/seller/orders" className="flex w-full items-center">
                             <ClipboardList className="mr-2 h-4 w-4" />
-                            <span>Мои заказы</span>
+                            <span>{l.sellerOrders}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/seller/price-offers" className="flex w-full items-center">
                             <MessageSquare className="mr-2 h-4 w-4" />
-                            <span>Предложения по товарам</span>
+                            <span>{l.productOffers}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -271,7 +309,7 @@ const Header = () => {
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/admin" className="flex w-full items-center">
                             <LayoutDashboard className="mr-2 h-4 w-4" />
-                            <span>Админ панель</span>
+                            <span>{l.adminPanel}</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -282,7 +320,7 @@ const Header = () => {
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                       <Link to="/help" className="flex w-full items-center">
                         <HelpCircle className="mr-2 h-4 w-4" />
-                        <span>Помощь</span>
+                        <span>{l.help}</span>
                       </Link>
                     </DropdownMenuItem>
 
@@ -294,7 +332,7 @@ const Header = () => {
                       className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                     >
                       <LogOut className="mr-2 h-4 w-4" />
-                      <span>Выйти</span>
+                      <span>{l.logout}</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
