@@ -27,6 +27,7 @@ interface Product {
   product_images?: { url: string; is_primary?: boolean }[];
   delivery_price?: number;
   lot_number: number;
+  place_number?: number;
 }
 
 export const useAdminOrderCreation = () => {
@@ -181,7 +182,7 @@ export const useAdminOrderCreation = () => {
       const orderPayload = {
         p_title: selectedProduct.title,
         p_price: orderData.price,
-        p_place_number: 1,
+        p_place_number: selectedProduct.place_number || 1,
         p_seller_id: selectedSeller.id,
         p_order_seller_name: selectedSeller.full_name,
         p_seller_opt_id: selectedSeller.opt_id,
