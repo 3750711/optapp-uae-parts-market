@@ -128,11 +128,9 @@ serve(async (req) => {
       .from('profiles')
       .update({
         telegram_id: telegram_data.id,
-        auth_method: 'telegram',
-        full_name: `${telegram_data.first_name} ${telegram_data.last_name || ''}`.trim(),
         avatar_url: telegram_data.photo_url,
         telegram: normalizeTelegramUsername(telegram_data.username),
-        email_confirmed: true // Will be handled by our trigger
+        email_confirmed: true
       })
       .eq('id', authData.user.id)
 
