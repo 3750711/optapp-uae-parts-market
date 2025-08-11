@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { UploadProgressCard } from "@/components/ui/image-upload/UploadProgressCard";
 import { shouldCompressFile, formatFileSize } from "@/utils/smartImageCompression";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;

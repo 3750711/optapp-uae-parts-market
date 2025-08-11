@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Check, Loader2 } from "lucide-react";
 
 interface ProductImagesGalleryProps {
@@ -20,7 +21,9 @@ export const ProductImagesGallery: React.FC<ProductImagesGalleryProps> = ({
   deletingImage,
   settingPrimary
 }) => {
-  return (
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  return (<>
     <div className="mb-3 grid grid-cols-3 gap-2">
       {images.map((url, index) => (
         <div 
@@ -30,7 +33,8 @@ export const ProductImagesGallery: React.FC<ProductImagesGalleryProps> = ({
           <img 
             src={url} 
             alt={`Фото ${index + 1}`} 
-            className="w-full h-full object-cover" 
+            className="w-full h-full object-cover cursor-zoom-in" 
+            onClick={() => { setViewerIndex(index); setViewerOpen(true); }}
           />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
             {onSetPrimaryImage && (
@@ -39,7 +43,7 @@ export const ProductImagesGallery: React.FC<ProductImagesGalleryProps> = ({
                 size="sm"
                 variant="secondary"
                 className="h-7 w-7 rounded-full p-0"
-                onClick={() => onSetPrimaryImage(url)}
+                onClick={(e) => { e.stopPropagation(); onSetPrimaryImage(url); }}
                 disabled={settingPrimary === url || primaryImage === url}
               >
                 {settingPrimary === url ? (
@@ -54,7 +58,7 @@ export const ProductImagesGallery: React.FC<ProductImagesGalleryProps> = ({
               size="sm"
               variant="destructive"
               className="h-7 w-7 rounded-full p-0"
-              onClick={() => onImageDelete(url)}
+              onClick={(e) => { e.stopPropagation(); onImageDelete(url); }}
               disabled={deletingImage === url || images.length <= 1}
             >
               <span className="sr-only">Удалить</span>
@@ -73,5 +77,16 @@ export const ProductImagesGallery: React.FC<ProductImagesGalleryProps> = ({
         </div>
       ))}
     </div>
-  );
+    <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+      <DialogContent className="max-w-4xl p-0">
+        {viewerIndex !== null && (
+          <img
+            src={images[viewerIndex]}
+            alt={`Фото ${(viewerIndex ?? 0) + 1}`}
+            className="w-full h-auto max-h-[80vh] object-contain rounded-md"
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  </>);
 };
