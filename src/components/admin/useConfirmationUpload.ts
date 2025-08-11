@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const useConfirmationUpload = (open: boolean, orderId: string, onComplete: () => void) => {
@@ -45,6 +45,54 @@ export const useConfirmationUpload = (open: boolean, orderId: string, onComplete
       setUploadError(null);
     }
   }, [open, user?.id, isAdmin, orderId]);
+
+  // Load existing confirmation media when dialog opens and component is ready
+  useEffect(() => {
+    const loadExistingMedia = async () => {
+      if (!open || !isComponentReady || !orderId) return;
+      console.log('🔍 [ConfirmationUpload] Loading existing media for order:', orderId);
+      try {
+        const { data: imgData, error: imgError } = await supabase
+          .from('confirm_images')
+          .select('url')
+          .eq('order_id', orderId);
+        if (imgError) {
+          console.error('❌ [ConfirmationUpload] Error loading confirm images:', imgError);
+          toast({
+            title: 'Ошибка загрузки фотографий',
+            description: imgError.message,
+            variant: 'destructive',
+          });
+        } else {
+          const urls = (imgData || []).map((i) => i.url);
+          setConfirmImages((prev) => Array.from(new Set([...(prev || []), ...urls])));
+          console.log('✅ [ConfirmationUpload] Loaded confirm images:', urls.length);
+        }
+
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select('video_url')
+          .eq('id', orderId)
+          .maybeSingle();
+        if (orderError) {
+          console.error('❌ [ConfirmationUpload] Error loading order videos:', orderError);
+          toast({
+            title: 'Ошибка загрузки видео',
+            description: orderError.message,
+            variant: 'destructive',
+          });
+        } else {
+          const vids = orderData?.video_url || [];
+          setConfirmVideos((prev) => Array.from(new Set([...(prev || []), ...vids])));
+          console.log('✅ [ConfirmationUpload] Loaded confirm videos:', vids.length);
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Неизвестная ошибка при загрузке медиа';
+        console.error('❌ [ConfirmationUpload] Unexpected load error:', msg);
+      }
+    };
+    loadExistingMedia();
+  }, [open, isComponentReady, orderId]);
 
   const handleSessionRecovery = async () => {
     console.log("🔄 [ConfirmationUpload] Attempting session recovery");
@@ -96,7 +144,7 @@ export const useConfirmationUpload = (open: boolean, orderId: string, onComplete
       isAdmin,
       authStatus: !!user
     });
-    setConfirmImages(prev => [...prev, ...urls]);
+    setConfirmImages(prev => Array.from(new Set([...(prev || []), ...urls])));
     setUploadError(null);
   };
 
@@ -113,7 +161,7 @@ export const useConfirmationUpload = (open: boolean, orderId: string, onComplete
       isAdmin,
       authStatus: !!user
     });
-    setConfirmVideos(prev => [...prev, ...urls]);
+    setConfirmVideos(prev => Array.from(new Set([...(prev || []), ...urls])));
     setUploadError(null);
   };
 

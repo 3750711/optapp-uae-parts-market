@@ -242,7 +242,15 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             <img
               src={url}
               alt={`Uploaded ${index + 1}`}
-              className="w-full h-full object-cover rounded-lg border"
+              className="w-full h-full object-cover rounded-lg border cursor-zoom-in"
+              onClick={() => {
+                if (!disabled) {
+                  const img = new Image();
+                  img.src = url;
+                  // simple browser viewer via new tab for now
+                  window.open(url, '_blank');
+                }
+              }}
             />
             
             <div className="absolute top-2 right-2 flex gap-1">
@@ -354,7 +362,12 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
               <img
                 src={url}
                 alt={`Uploaded ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg border"
+                className="w-full h-full object-cover rounded-lg border cursor-zoom-in"
+                onClick={() => {
+                  if (!disabled) {
+                    window.open(url, '_blank');
+                  }
+                }}
               />
               
               <div className="absolute top-2 right-2 flex gap-1">
