@@ -21,6 +21,7 @@ interface Product {
   lot_number: number;
   seller_id: string;
   seller_name: string;
+  place_number?: number;
 }
 
 interface GlobalProductSelectionStepProps {

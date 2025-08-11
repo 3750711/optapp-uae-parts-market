@@ -47,6 +47,7 @@ interface Product {
   product_images?: { url: string; is_primary?: boolean }[];
   delivery_price?: number;
   lot_number: number;
+  place_number?: number;
 }
 
 interface SellerProfile {
@@ -234,7 +235,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
     id: product?.id || '',
     created_at: new Date().toISOString(),
     deliveryMethod: savedEditedData?.deliveryMethod || 'self_pickup',
-    place_number: savedEditedData?.placeNumber || 1,
+    place_number: savedEditedData?.placeNumber ?? product?.place_number ?? 1,
     total_sum: savedEditedData?.price || product?.price || 0,
     text_order: savedEditedData?.title || product?.title || '',
     images: product?.product_images?.map(img => img.url) || [],

@@ -18,6 +18,7 @@ interface EditableOrderFormProps {
     brand?: string;
     model?: string;
     delivery_price?: number;
+    place_number?: number;
     product_images?: { url: string; is_primary?: boolean }[];
   };
   seller: {
@@ -258,7 +259,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
     price: savedData?.price || product.price,
     deliveryPrice: savedData?.deliveryPrice || product.delivery_price || 0,
     deliveryMethod: savedData?.deliveryMethod || 'cargo_rf',
-    placeNumber: savedData?.placeNumber || 1,
+    placeNumber: savedData?.placeNumber ?? product.place_number ?? 1,
     textOrder: savedData?.textOrder || ''
   });
 
