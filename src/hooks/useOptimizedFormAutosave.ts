@@ -52,7 +52,24 @@ export const useOptimizedFormAutosave = ({
       }
     }, delay),
     [key, delay, filterDataForSave]
+
   );
+
+  // Immediate save method (no debounce) for visibility/pagehide events
+  const saveNow = useCallback((overrideData?: any) => {
+    try {
+      const dataToSave = overrideData ?? data;
+      const filteredData = filterDataForSave(dataToSave);
+      const serializedData = JSON.stringify(filteredData);
+      localStorage.setItem(`autosave_${key}`, serializedData);
+      localStorage.setItem(`autosave_${key}_timestamp`, Date.now().toString());
+      hasUnsavedChanges.current = false;
+      lastSavedData.current = serializedData;
+      console.log(`💾 Form saved immediately for key: ${key}`);
+    } catch (error) {
+      console.error('Error performing immediate form save:', error);
+    }
+  }, [key, data, filterDataForSave]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -124,6 +141,7 @@ export const useOptimizedFormAutosave = ({
     clearSavedData,
     hasUnsavedChanges: hasUnsavedChanges.current,
     draftExists,
-    checkDraftExists
+    checkDraftExists,
+    saveNow
   };
 };

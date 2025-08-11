@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
 import AdvancedImageUpload from './AdvancedImageUpload';
@@ -18,6 +18,7 @@ import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
 import { useLazyProfiles } from '@/hooks/useLazyProfiles';
+import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 
 export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
@@ -87,16 +88,70 @@ export const AdminFreeOrderForm = () => {
     setAllImages(newImages);
   };
 
-  const onVideoUpload = (urls: string[]) => {
-    console.log('📹 AdminFreeOrderForm: New videos uploaded:', urls);
-    setVideos(prev => [...prev, ...urls]);
-  };
+const onVideoUpload = (urls: string[]) => {
+  console.log('📹 AdminFreeOrderForm: New videos uploaded:', urls);
+  setVideos(prev => [...prev, ...urls]);
+};
 
-  const onVideoDelete = (url: string) => {
-    console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
-    setVideos(prev => prev.filter(video => video !== url));
-  };
+const onVideoDelete = (url: string) => {
+  console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
+  setVideos(prev => prev.filter(video => video !== url));
+};
 
+// Автосохранение черновика для iOS (только для этой страницы)
+const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
+  key: 'admin_free_order',
+  data: { formData, images, videos },
+  delay: 1000,
+  enabled: true,
+  excludeFields: []
+});
+
+// Восстановление черновика при монтировании (до 24 часов)
+useEffect(() => {
+  try {
+    const saved = loadSavedData();
+    if (saved) {
+      const savedForm = saved.formData || {};
+      Object.entries(savedForm).forEach(([k, v]) => {
+        if (typeof v === 'string') {
+          handleInputChange(k, v);
+        }
+      });
+      if (Array.isArray(saved.images)) setAllImages(saved.images);
+      if (Array.isArray(saved.videos)) setVideos(saved.videos);
+      console.log('✅ Черновик формы восстановлен');
+    }
+  } catch (e) {
+    console.error('❌ Ошибка восстановления черновика:', e);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
+// Мгновенное сохранение при скрытии/уходе со страницы (важно для iOS)
+useEffect(() => {
+  const onVisibility = () => {
+    if (document.visibilityState === 'hidden') {
+      saveNow();
+    }
+  };
+  const onPageHide = () => {
+    saveNow();
+  };
+  document.addEventListener('visibilitychange', onVisibility);
+  window.addEventListener('pagehide', onPageHide);
+  return () => {
+    document.removeEventListener('visibilitychange', onVisibility);
+    window.removeEventListener('pagehide', onPageHide);
+  };
+}, [saveNow]);
+
+// Очистка черновика после успешного создания
+useEffect(() => {
+  if (createdOrder) {
+    clearSavedData();
+  }
+}, [createdOrder, clearSavedData]);
   // Обработчик данных из Telegram парсера (теперь асинхронный)
   const handleTelegramDataParsed = async (data: ParsedTelegramOrder) => {
     console.log('📝 Применение данных из Telegram:', data);

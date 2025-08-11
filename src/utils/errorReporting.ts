@@ -222,9 +222,20 @@ export const reportCriticalError = (error: Error | string, context?: Record<stri
   });
 };
 
-// Очистка при выгрузке страницы
+// Очистка при скрытии/уходе со страницы (не блокируем bfcache)
 if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
-    errorReporting.destroy();
+  const onHide = () => {
+    try {
+      errorReporting.destroy();
+    } catch (e) {
+      // no-op
+    }
+  };
+  // pagehide срабатывает при навигации/свертывании и сохраняет bfcache
+  window.addEventListener('pagehide', onHide);
+  // дублируем на visibilitychange для iOS случаев
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') onHide();
   });
 }
+

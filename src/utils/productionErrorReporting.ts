@@ -235,9 +235,18 @@ export const reportCriticalError = (error: Error | string, context?: Record<stri
   });
 };
 
-// Очистка при выгрузке страницы
+// Очистка при скрытии/уходе со страницы (не блокируем bfcache)
 if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
-    productionErrorReporting.destroy();
+  const onHide = () => {
+    try {
+      productionErrorReporting.destroy();
+    } catch (e) {
+      // no-op
+    }
+  };
+  window.addEventListener('pagehide', onHide);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') onHide();
   });
 }
+
