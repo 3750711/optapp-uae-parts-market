@@ -19,6 +19,7 @@ interface TelegramLoginWidgetProps {
   onSuccess?: () => void;
   onError?: (error: string) => void;
   language?: 'ru' | 'en';
+  compact?: boolean;
 }
 
 declare global {
@@ -60,7 +61,8 @@ const getTelegramTranslations = (language: 'ru' | 'en') => {
 export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   onSuccess,
   onError,
-  language = 'ru'
+  language = 'ru',
+  compact = false
 }) => {
   const widgetRef = useRef<HTMLDivElement>(null);
   const scriptLoadedRef = useRef(false);
@@ -89,6 +91,8 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   };
 
   const t = getTelegramTranslations(language);
+  const isCompact = !!compact;
+  const widgetSize = isCompact ? 'medium' : 'large';
 
   const handleTelegramAuth = async (authData: TelegramAuthData) => {
     try {
@@ -226,7 +230,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
       script.setAttribute('data-telegram-login', 'Optnewads_bot'); // Configured bot username
-      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-size', widgetSize);
       script.setAttribute('data-onauth', 'TelegramLoginWidget.dataOnauth(user)');
       script.setAttribute('data-request-access', 'write');
       script.async = true;
@@ -245,23 +249,24 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
   return (
     <>
-      <div className="flex flex-col items-center space-y-6">
-        <div className="text-center mb-4">
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            {t.title}
-          </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {t.description}
-          </p>
-        </div>
+      <div className={`flex flex-col items-center ${isCompact ? 'space-y-4' : 'space-y-6'}`}>
+        {!isCompact && (
+          <div className="text-center mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              {t.title}
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {t.description}
+            </p>
+          </div>
+        )}
         <div 
           ref={widgetRef} 
-          className="telegram-widget-container scale-110" 
+          className={isCompact ? 'telegram-widget-container' : 'telegram-widget-container scale-110'} 
           data-clarity-ignore="true"
           data-telegram-login="true"
         />
-        <div className="text-center space-y-2">
-        </div>
+        <div className="text-center space-y-2"></div>
       </div>
 
       {mergeData && (

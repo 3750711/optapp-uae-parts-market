@@ -1,7 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Shield, Zap, Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { TelegramLoginWidget } from './TelegramLoginWidget';
 import LoginForm from './LoginForm';
 
@@ -17,6 +15,7 @@ const authTranslations = {
     },
     alternativeLogin: "Классический вход",
     alternativeDescription: "Альтернативный способ входа",
+    orText: "или",
     registerPrompt: "Нет аккаунта?",
     registerLink: "Зарегистрироваться"
   },
@@ -27,6 +26,7 @@ const authTranslations = {
     },
     alternativeLogin: "Traditional login",
     alternativeDescription: "Alternative login method",
+    orText: "or",
     registerPrompt: "No account?",
     registerLink: "Register"
   }
@@ -35,7 +35,7 @@ const authTranslations = {
 export const ProfessionalAuthBlock: React.FC<ProfessionalAuthBlockProps> = ({ 
   language = 'ru' 
 }) => {
-  const [showEmailLogin, setShowEmailLogin] = useState(false);
+  
   const t = authTranslations[language];
 
   const handleTelegramSuccess = () => {
@@ -49,41 +49,30 @@ export const ProfessionalAuthBlock: React.FC<ProfessionalAuthBlockProps> = ({
   return (
     <div className="w-full max-w-lg mx-auto">
       <div className="bg-card/90 backdrop-blur-sm rounded-2xl shadow-card-elegant border border-border/20 p-8">
-        {/* Primary Telegram Auth */}
-        <div className="mb-8">
+        {/* Unified compact auth block */}
+        <div className="mb-6">
           <TelegramLoginWidget 
             onSuccess={handleTelegramSuccess}
             onError={handleTelegramError}
             language={language}
+            compact
           />
         </div>
 
+        {/* OR divider */}
+        <div className="relative my-4">
+          <div className="flex items-center">
+            <div className="flex-1 border-t border-border/30" />
+            <span className="mx-3 text-xs text-muted-foreground select-none uppercase tracking-wide">
+              {t.orText}
+            </span>
+            <div className="flex-1 border-t border-border/30" />
+          </div>
+        </div>
 
-        {/* Alternative login toggle */}
-        <div className="border-t border-border/30 pt-6">
-          <Button
-            variant="ghost"
-            onClick={() => setShowEmailLogin(!showEmailLogin)}
-            className="w-full flex items-center justify-center space-x-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <span>{t.alternativeLogin}</span>
-            {showEmailLogin ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
-          </Button>
-
-          {showEmailLogin && (
-            <div className="mt-4 p-4 bg-muted/20 rounded-lg">
-              <div className="text-center mb-4">
-                <p className="text-sm text-muted-foreground">
-                  {t.alternativeDescription}
-                </p>
-              </div>
-              <LoginForm language={language} />
-            </div>
-          )}
+        {/* Compact email login */}
+        <div className="mt-4">
+          <LoginForm language={language} compact hideHeader hideLinks />
         </div>
 
         {/* Bottom links */}
