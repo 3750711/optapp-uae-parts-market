@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star, Trash2, MessageSquare } from "lucide-react";
+import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star, Trash2, MessageSquare, Send } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -76,8 +76,29 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
               size={isCompactMode ? 'sm' : 'md'} 
             />
             <div className="min-w-0">
-              <div className="font-medium text-sm">
-                {user.full_name || 'Без имени'}
+              <div className="font-medium text-sm flex items-center gap-1">
+                <span className="truncate">{user.full_name || 'Без имени'}</span>
+                {user.telegram_id && (
+                  user.telegram ? (
+                    <a
+                      href={`https://t.me/${user.telegram.replace('@','')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:opacity-80"
+                      title={`Открыть Telegram ${user.telegram.replace('@','@')}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Send className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                  ) : (
+                    <span
+                      className="text-primary/80"
+                      title="Привязан Telegram"
+                    >
+                      <Send className="h-3.5 w-3.5" aria-hidden="true" />
+                    </span>
+                  )
+                )}
               </div>
               {user.company_name && (
                 <div className="text-xs text-muted-foreground truncate">

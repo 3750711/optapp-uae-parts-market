@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProfileType } from '@/components/profile/types';
 import { UserAvatar } from './UserAvatar';
 import { EnhancedStatusBadge } from './EnhancedStatusBadge';
-import { Star, ExternalLink, MoreVertical } from 'lucide-react';
+import { Star, ExternalLink, MoreVertical, Send } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,8 +77,26 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between">
               <div className="min-w-0 flex-1">
-                <h3 className="font-bold text-base truncate">
-                  {user.full_name || 'Без имени'}
+                <h3 className="font-bold text-base truncate flex items-center gap-1">
+                  <span className="truncate">{user.full_name || 'Без имени'}</span>
+                  {user.telegram_id && (
+                    user.telegram ? (
+                      <a
+                        href={`https://t.me/${user.telegram.replace('@','')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:opacity-80"
+                        title={`Открыть Telegram ${user.telegram.replace('@','@')}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Send className="h-3.5 w-3.5" aria-hidden="true" />
+                      </a>
+                    ) : (
+                      <span className="text-primary/80" title="Привязан Telegram">
+                        <Send className="h-3.5 w-3.5" aria-hidden="true" />
+                      </span>
+                    )
+                  )}
                 </h3>
                 <p className="text-xs text-muted-foreground truncate">
                   {user.email}
