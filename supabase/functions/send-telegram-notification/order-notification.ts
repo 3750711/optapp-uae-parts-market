@@ -50,38 +50,55 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
     // Create order link - only for internal use in the code, not shown in message
     const orderLink = `${ORDER_BASE_URL}${orderData.id}`;
     
-    // List of users who should have their Telegram shown as-is
-    const showTelegramAsIsUsers = [
-      '@OptSeller_Anton',
-      '@OptSeller_Georgii', 
-      '@IgorD_OptSeller',
-      '@OptSeller_IgorK',
-      '@Pavel_optuae',
-      '@SanSanichUAE',
-      '@dmotrii_st',
-      '@OptSeller_Vlad'
-    ];
+    // Helper: normalize telegram username (supports raw username or t.me links)
+    const normalizeTelegramUsername = (username: string | null | undefined): string => {
+      if (!username) return '';
+      let u = String(username).trim();
+      // Strip t.me URL forms
+      u = u.replace(/^https?:\/\/t\.me\//i, '').replace(/^@+/, '');
+      // Basic validation: letters, numbers, underscore, 5-32 chars (keep simple here)
+      if (!u) return '';
+      return `@${u}`;
+    };
     
-    // Check if the current seller's telegram should be shown as-is
-    const telegramUrl = orderData.telegram_url_order || '';
-    const shouldShowAsIs = showTelegramAsIsUsers.includes(telegramUrl);
+    // Fetch recipient (buyer) telegram from profiles
+    let buyerTelegram: string = '';
+    try {
+      if (orderData.buyer_id) {
+        const { data: buyerProfile, error: buyerErr } = await supabaseClient
+          .from('profiles')
+          .select('telegram')
+          .eq('id', orderData.buyer_id)
+          .single();
+        if (buyerErr) {
+          console.warn('Could not fetch buyer telegram from profiles:', buyerErr);
+        }
+        buyerTelegram = normalizeTelegramUsername(buyerProfile?.telegram);
+      }
+    } catch (e) {
+      console.warn('Exception fetching buyer telegram:', e);
+    }
+    
+    // Fallbacks
+    const fallbackBuyerTelegram = normalizeTelegramUsername(orderData.telegram_url_buyer);
+    const displayTelegram = buyerTelegram || fallbackBuyerTelegram || '';
     
     // Format order number with leading zero
     const formattedOrderNumber = orderData.order_number.toString().padStart(5, '0');
     
-    // Updated format with requested changes:
-    // 1. Order number with leading zero
-    // 2. "Описание товара" changed to "Наименование"
-    // 3. Show seller's telegram after "Подтвержден продавцом"
+    // Compose name: title + brand + model in one line
+    const nameParts = [orderData.title, orderData.brand, orderData.model].filter((v: string | null | undefined) => !!v && String(v).trim());
+    const composedName = nameParts.join(' ').trim();
+    
+    // Updated message format per requirements:
     const messageText = [
       `Номер заказа: ${formattedOrderNumber}`,
       `Статус: ${statusText}`,
-      shouldShowAsIs ? telegramUrl : (telegramUrl || ''),
+      displayTelegram,
       ``,
       `🟰🟰🟰🟰🟰🟰`,
-      `Наименование: ${orderData.title}`,
-      `Бренд: ${orderData.brand || ''}`,
-      `Модель: ${orderData.model || ''}`,
+      `Наименование: ${composedName}`,
+      ``,
       `Количество мест для отправки: ${orderData.place_number || 1}`,
       `Доставка: ${deliveryMethodText}`,
       ``,
