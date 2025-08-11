@@ -107,6 +107,14 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         throw new Error(data.error || 'Authentication failed');
       }
 
+      // If Telegram is already linked to the current account, just notify and exit
+      if (data.already_linked) {
+        toast.dismiss();
+        toast.success(t.success);
+        onSuccess?.();
+        return;
+      }
+
       // Check if account merge is required
       if (data.requires_merge) {
         toast.dismiss();

@@ -139,6 +139,77 @@ serve(async (req) => {
       existingUsernameProfile = usernameProfile
     }
 
+    // If the request comes from an already authenticated user, we should trigger the merge (linking) flow
+    const authHeader = req.headers.get('Authorization') || ''
+    const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+
+    let currentUserId: string | null = null
+    let currentUserEmail: string | null = null
+
+    if (accessToken) {
+      try {
+        const { data: userData, error: getUserErr } = await supabase.auth.getUser(accessToken)
+        if (!getUserErr && userData?.user) {
+          currentUserId = userData.user.id
+          currentUserEmail = userData.user.email ?? null
+        }
+      } catch (e) {
+        console.warn('⚠️ Failed to extract current user from Authorization header:', e)
+      }
+    }
+
+    if (currentUserId) {
+      // Fetch current user's profile
+      const { data: currentProfile } = await supabase
+        .from('profiles')
+        .select('id, email, telegram_id')
+        .eq('id', currentUserId)
+        .maybeSingle()
+
+      // If this Telegram is already linked to another account, block linking
+      if (existingTelegramProfile && existingTelegramProfile.id !== currentUserId) {
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: 'Этот Telegram уже привязан к другому аккаунту',
+            code: 'telegram_in_use'
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // If the current user already has telegram linked, no need to proceed
+      if (currentProfile?.telegram_id) {
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            already_linked: true,
+            message: 'Telegram уже привязан к вашему аккаунту'
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Trigger account merge (linking) flow for the current authenticated user
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          requires_merge: true,
+          existing_email: currentProfile?.email || currentUserEmail,
+          telegram_data: {
+            id: authData.id,
+            first_name: authData.first_name,
+            last_name: authData.last_name,
+            username: normalizeTelegramUsername(authData.username),
+            photo_url: authData.photo_url
+          },
+          merge_reason: 'linking_current_user',
+          message: 'Подтвердите пароль текущего аккаунта, чтобы привязать Telegram'
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     let email: string
     let tempPassword: string
     let isNewUser = false
