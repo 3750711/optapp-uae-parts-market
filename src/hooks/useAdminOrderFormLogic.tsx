@@ -151,7 +151,9 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   // Enhanced input change handler with car data integration
   const handleInputChange = useCallback((field: string, value: string) => {
     if (field === 'brandId') {
-      // Always persist brandId immediately and trigger models loading for that brand
+      const previousBrandId = formData?.brandId || '';
+
+      // Persist brandId immediately and trigger models loading for that brand
       baseHandleInputChange('brandId', value);
       selectBrand(value);
 
@@ -160,11 +162,13 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
         baseHandleInputChange('brand', selectedBrand.name);
       }
 
-      // Reset model when brand changes to avoid inconsistent state
-      baseHandleInputChange('modelId', '');
-      baseHandleInputChange('model', '');
+      // Reset model ONLY if brand actually changed
+      if (value !== previousBrandId) {
+        baseHandleInputChange('modelId', '');
+        baseHandleInputChange('model', '');
+      }
     } else if (field === 'modelId') {
-      // Always persist modelId even if models are not loaded yet (important for draft restore/iOS)
+      // Persist modelId even if models are not loaded yet (important for draft restore/iOS)
       baseHandleInputChange('modelId', value);
 
       const selectedModel = models.find(m => m.id === value);
@@ -174,7 +178,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     } else {
       baseHandleInputChange(field, value);
     }
-  }, [brands, models, baseHandleInputChange, selectBrand]);
+  }, [brands, models, baseHandleInputChange, selectBrand, formData?.brandId]);
 
   // Enhanced submit handler with error handling
   const handleSubmit = useCallback(async (e: React.FormEvent) => {

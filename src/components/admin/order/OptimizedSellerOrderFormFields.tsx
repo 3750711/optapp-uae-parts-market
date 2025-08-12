@@ -50,10 +50,8 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
     if (brandName) {
       handleInputChange('brandId', brandId);
       handleInputChange('brand', brandName);
+      // Подгружаем модели для выбранного бренда (сброс модели выполняется централизованно при фактической смене бренда)
       selectBrand(brandId);
-      // Сбрасываем модель при смене бренда
-      handleInputChange('modelId', '');
-      handleInputChange('model', '');
     }
   };
 
@@ -122,17 +120,19 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
 
             <div className="space-y-2">
               <Label htmlFor="modelId">Модель</Label>
-              {isLoadingModels ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Select
-                  value={formData.modelId || ''}
-                  onValueChange={handleModelChange}
-                  disabled={disabled || !formData.brandId}
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder={formData.brandId ? "Выберите модель..." : "Сначала выберите бренд"} />
-                  </SelectTrigger>
+              <Select
+                value={formData.modelId || ''}
+                onValueChange={handleModelChange}
+                disabled={disabled || !formData.brandId || isLoadingModels}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder={
+                    formData.brandId
+                      ? (formData.model || (isLoadingModels ? 'Загрузка моделей...' : 'Выберите модель...'))
+                      : 'Сначала выберите бренд'
+                  } />
+                </SelectTrigger>
+                {!isLoadingModels && models.length > 0 && (
                   <SelectContent>
                     {models.map((model) => (
                       <SelectItem key={model.id} value={model.id}>
@@ -140,8 +140,8 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                       </SelectItem>
                     ))}
                   </SelectContent>
-                </Select>
-              )}
+                )}
+              </Select>
             </div>
           </div>
 

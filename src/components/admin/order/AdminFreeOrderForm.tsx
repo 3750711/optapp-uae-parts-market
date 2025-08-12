@@ -62,7 +62,8 @@ export const AdminFreeOrderForm = () => {
     findBrandIdByName,
     findModelIdByName,
     findModelIdByNameDirect,
-    enableBrandsLoading
+    enableBrandsLoading,
+    selectBrand
   } = useAdminOrderFormLogic();
 
   // Add submission guard
@@ -170,6 +171,28 @@ useEffect(() => {
     window.removeEventListener('pagehide', onPageHide);
   };
 }, [saveNow]);
+
+// Восстановление бренда/моделей при возврате на страницу (bfcache/pageshow)
+useEffect(() => {
+  const onPageShow = () => {
+    try {
+      enableBrandsLoading();
+      if (formData.brandId) {
+        // Подгружаем модели для сохраненного бренда без сброса выбранной модели
+        selectBrand(formData.brandId);
+        if (formData.modelId) {
+          // Восстанавливаем отображение названия модели
+          handleInputChange('modelId', formData.modelId);
+        }
+      }
+    } catch (e) {
+      console.error('Ошибка восстановления бренда/модели при pageshow:', e);
+    }
+  };
+  window.addEventListener('pageshow', onPageShow);
+  return () => window.removeEventListener('pageshow', onPageShow);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [enableBrandsLoading, selectBrand, formData.brandId, formData.modelId, handleInputChange]);
 
 // Очистка черновика после успешного создания
 useEffect(() => {
