@@ -1,45 +1,57 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useLazyCarData } from '@/hooks/useLazyCarData';
-import { useLazyProfiles } from '@/hooks/useLazyProfiles';
-import { BuyerProfile, SellerProfile } from '@/types/order';
+import type { CarBrand, CarModel } from '@/hooks/useLazyCarData';
+import type { BuyerProfile, SellerProfile } from '@/types/order';
 
 interface OptimizedSellerOrderFormFieldsProps {
   formData: any;
   handleInputChange: (field: string, value: string) => void;
   disabled?: boolean;
+  // Car data (from parent)
+  brands: CarBrand[];
+  models: CarModel[];
+  isLoadingBrands: boolean;
+  isLoadingModels: boolean;
+  enableBrandsLoading: () => void;
+  selectBrand: (brandId: string) => void;
+  findBrandNameById: (brandId: string | null) => string | null;
+  findModelNameById: (modelId: string | null) => string | null;
+  // Profiles (from parent)
+  buyerProfiles: BuyerProfile[];
+  sellerProfiles: SellerProfile[];
+  isLoadingBuyers: boolean;
+  isLoadingSellers: boolean;
+  enableBuyersLoading: () => void;
+  enableSellersLoading: () => void;
 }
 
 const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsProps> = ({
   formData,
   handleInputChange,
-  disabled = false
+  disabled = false,
+  // car data
+  brands,
+  models,
+  isLoadingBrands,
+  isLoadingModels,
+  enableBrandsLoading,
+  selectBrand,
+  findBrandNameById,
+  findModelNameById,
+  // profiles
+  buyerProfiles,
+  sellerProfiles,
+  isLoadingBuyers,
+  isLoadingSellers,
+  enableBuyersLoading,
+  enableSellersLoading,
 }) => {
-  const {
-    brands,
-    models,
-    isLoadingBrands,
-    isLoadingModels,
-    enableBrandsLoading,
-    selectBrand,
-    findBrandNameById,
-    findModelNameById
-  } = useLazyCarData();
-
-  const {
-    buyerProfiles,
-    sellerProfiles,
-    isLoadingBuyers,
-    isLoadingSellers,
-    enableBuyersLoading,
-    enableSellersLoading
-  } = useLazyProfiles();
 
   const handleBrandFocus = () => {
     enableBrandsLoading();
@@ -70,6 +82,11 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
   const handleSellerFocus = () => {
     enableSellersLoading();
   };
+  useEffect(() => {
+    if (formData?.brandId) {
+      selectBrand(formData.brandId);
+    }
+  }, [formData?.brandId, selectBrand]);
 
   return (
     <div className="space-y-6">
@@ -123,7 +140,7 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
               <Select
                 value={formData.modelId || ''}
                 onValueChange={handleModelChange}
-                disabled={disabled || !formData.brandId || isLoadingModels}
+                disabled={disabled || !formData.brandId}
               >
                 <SelectTrigger className="bg-white">
                   <SelectValue placeholder={
@@ -132,15 +149,19 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                       : 'Сначала выберите бренд'
                   } />
                 </SelectTrigger>
-                {!isLoadingModels && models.length > 0 && (
                   <SelectContent>
-                    {models.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
+                    {isLoadingModels ? (
+                      <SelectItem disabled value="loading">Загрузка моделей...</SelectItem>
+                    ) : models.length === 0 ? (
+                      <SelectItem disabled value="empty">Модели не найдены</SelectItem>
+                    ) : (
+                      models.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
-                )}
               </Select>
             </div>
           </div>

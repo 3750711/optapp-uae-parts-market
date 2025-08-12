@@ -17,7 +17,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
-import { useLazyProfiles } from '@/hooks/useLazyProfiles';
+
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 
 export const AdminFreeOrderForm = () => {
@@ -51,6 +51,8 @@ export const AdminFreeOrderForm = () => {
     selectedSeller,
     buyerProfiles,
     sellerProfiles,
+    enableBuyersLoading,
+    enableSellersLoading,
     
     // Loading states
     isInitializing,
@@ -58,7 +60,13 @@ export const AdminFreeOrderForm = () => {
     isLoadingSellers,
     isLoadingBrands,
     
+    // Car data
+    brands,
+    models,
+    isLoadingModels,
     // Brand/Model lookup functions
+    findBrandNameById,
+    findModelNameById,
     findBrandIdByName,
     findModelIdByName,
     findModelIdByNameDirect,
@@ -467,6 +475,22 @@ useEffect(() => {
         formData={formData}
         handleInputChange={handleInputChange}
         disabled={isFormDisabled}
+        // car data
+        brands={brands}
+        models={models}
+        isLoadingBrands={isLoadingBrands}
+        isLoadingModels={isLoadingModels}
+        enableBrandsLoading={enableBrandsLoading}
+        selectBrand={selectBrand}
+        findBrandNameById={findBrandNameById}
+        findModelNameById={findModelNameById}
+        // profiles
+        buyerProfiles={buyerProfiles}
+        sellerProfiles={sellerProfiles}
+        isLoadingBuyers={isLoadingBuyers}
+        isLoadingSellers={isLoadingSellers}
+        enableBuyersLoading={enableBuyersLoading}
+        enableSellersLoading={enableSellersLoading}
       />
       
       {/* Media Upload Section */}
