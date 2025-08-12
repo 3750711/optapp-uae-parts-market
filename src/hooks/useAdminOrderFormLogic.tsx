@@ -151,19 +151,24 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   // Enhanced input change handler with car data integration
   const handleInputChange = useCallback((field: string, value: string) => {
     if (field === 'brandId') {
+      // Always persist brandId immediately and trigger models loading for that brand
+      baseHandleInputChange('brandId', value);
+      selectBrand(value);
+
       const selectedBrand = brands.find(b => b.id === value);
       if (selectedBrand) {
-        baseHandleInputChange('brandId', value);
         baseHandleInputChange('brand', selectedBrand.name);
-        selectBrand(value);
-        // Reset model when brand changes
-        baseHandleInputChange('modelId', '');
-        baseHandleInputChange('model', '');
       }
+
+      // Reset model when brand changes to avoid inconsistent state
+      baseHandleInputChange('modelId', '');
+      baseHandleInputChange('model', '');
     } else if (field === 'modelId') {
+      // Always persist modelId even if models are not loaded yet (important for draft restore/iOS)
+      baseHandleInputChange('modelId', value);
+
       const selectedModel = models.find(m => m.id === value);
       if (selectedModel) {
-        baseHandleInputChange('modelId', value);
         baseHandleInputChange('model', selectedModel.name);
       }
     } else {

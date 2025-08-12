@@ -107,20 +107,45 @@ const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
   excludeFields: []
 });
 
-// Восстановление черновика при монтировании (до 24 часов)
+// Восстановление черновика при монтировании (до 24 часов) — сначала бренд, потом модель
 useEffect(() => {
   try {
     const saved = loadSavedData();
     if (saved) {
-      const savedForm = saved.formData || {};
+      const savedForm = saved.formData || {} as Record<string, string>;
+
+      // Включаем загрузку брендов и моделей
+      enableBrandsLoading();
+
+      // 1) Применяем простые поля, кроме brand/model
+      const skipKeys = new Set(['brandId', 'brand', 'modelId', 'model']);
       Object.entries(savedForm).forEach(([k, v]) => {
-        if (typeof v === 'string') {
+        if (typeof v === 'string' && !skipKeys.has(k)) {
           handleInputChange(k, v);
         }
       });
+
+      // 2) Бренд — ID и название
+      if (typeof savedForm.brandId === 'string' && savedForm.brandId) {
+        handleInputChange('brandId', savedForm.brandId);
+      }
+      if (typeof savedForm.brand === 'string' && savedForm.brand) {
+        handleInputChange('brand', savedForm.brand);
+      }
+
+      // 3) Модель — ID и название (после установки бренда)
+      if (typeof savedForm.modelId === 'string' && savedForm.modelId) {
+        handleInputChange('modelId', savedForm.modelId);
+      }
+      if (typeof savedForm.model === 'string' && savedForm.model) {
+        handleInputChange('model', savedForm.model);
+      }
+
+      // 4) Медиа
       if (Array.isArray(saved.images)) setAllImages(saved.images);
       if (Array.isArray(saved.videos)) setVideos(saved.videos);
-      console.log('✅ Черновик формы восстановлен');
+
+      console.log('✅ Черновик формы восстановлен (упорядоченное применение brand/model)');
     }
   } catch (e) {
     console.error('❌ Ошибка восстановления черновика:', e);
