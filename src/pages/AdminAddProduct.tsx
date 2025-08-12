@@ -5,7 +5,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import AddProductForm from "@/components/product/AddProductForm";
 import { useOptimizedAdminAddProduct } from "@/hooks/useOptimizedAdminAddProduct";
 import ProductPreviewDialog from "@/components/admin/ProductPreviewDialog";
-import DraftManagementAlert from "@/components/admin/DraftManagementAlert";
+
 
 const AdminAddProduct = () => {
   const {
@@ -23,11 +23,6 @@ const AdminAddProduct = () => {
     isLoadingCarData,
     handleMobileOptimizedImageUpload,
     handleImageDelete,
-    showDraftAlert,
-    setShowDraftAlert,
-    draftExists,
-    handleLoadDraft,
-    clearSavedData,
     isPreviewOpen,
     closePreview,
     richPreviewData,
@@ -41,12 +36,6 @@ const AdminAddProduct = () => {
           <div className="max-w-3xl mx-auto">
             <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
 
-            <DraftManagementAlert
-              draftExists={showDraftAlert && draftExists}
-              onLoadDraft={handleLoadDraft}
-              onClearDraft={clearSavedData}
-              onDismiss={() => setShowDraftAlert(false)}
-            />
             
             <AddProductForm
               form={form}

@@ -19,8 +19,6 @@ export const useOptimizedAdminAddProduct = () => {
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const { guardedSubmit, isSubmitting } = useSubmissionGuard();
   const [primaryImage, setPrimaryImage] = useState<string>("");
-  const [showDraftAlert, setShowDraftAlert] = useState(false);
-  const [draftLoaded, setDraftLoaded] = useState(false);
   const [selectedBrandId, setSelectedBrandId] = useState<string>("");
 
   // Preview dialog state
@@ -59,14 +57,15 @@ export const useOptimizedAdminAddProduct = () => {
 
   // Enhanced autosave
   const getFormDataForAutosave = useCallback(() => {
-    return form.getValues();
-  }, [form]);
+    return { ...form.getValues(), imageUrls, videoUrls, primaryImage };
+  }, [form, imageUrls, videoUrls, primaryImage]);
 
-  const { loadSavedData, clearSavedData, draftExists } = useOptimizedFormAutosave({
-    key: 'admin_add_product_draft',
+  const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
+    key: 'admin_add_product',
     data: getFormDataForAutosave(),
+    delay: 1000,
     enabled: !isSubmitting && !isCreating,
-    excludeFields: ['imageUrls', 'videoUrls', 'primaryImage']
+    excludeFields: []
   });
 
   // Title parser
@@ -90,13 +89,35 @@ export const useOptimizedAdminAddProduct = () => {
     findModelIdByName
   );
 
-  // Load draft on component mount
+  // Silent restore on mount: restore fields in order and media
   useEffect(() => {
-    if (!draftLoaded && !isSubmitting && !isCreating && draftExists) {
-      setShowDraftAlert(true);
-      setDraftLoaded(true);
+    const saved = loadSavedData();
+    if (saved && typeof saved === 'object') {
+      const { brandId, modelId, imageUrls: savedImages, videoUrls: savedVideos, primaryImage: savedPrimary, ...rest } = saved as any;
+
+      // Apply basic fields first
+      Object.entries(rest).forEach(([key, value]) => {
+        if (key in form.getValues()) {
+          form.setValue(key as keyof AdminProductFormValues, value as any, { shouldValidate: false });
+        }
+      });
+
+      // Then brand and model (validate model by allModels)
+      if (brandId) {
+        form.setValue('brandId', brandId as string, { shouldValidate: true });
+        setSelectedBrandId(brandId as string);
+        if (modelId) {
+          const valid = allModels.some(m => m.id === modelId && m.brand_id === brandId);
+          form.setValue('modelId', valid ? (modelId as string) : '', { shouldValidate: true });
+        }
+      }
+
+      // Media
+      if (Array.isArray(savedImages)) setImageUrls(savedImages);
+      if (Array.isArray(savedVideos)) setVideoUrls(savedVideos);
+      if (typeof savedPrimary === 'string') setPrimaryImage(savedPrimary);
     }
-  }, [draftExists, isSubmitting, isCreating, draftLoaded]);
+  }, [loadSavedData, allModels, form]);
 
   // Auto-parse title with debounce
   useEffect(() => {
@@ -129,7 +150,7 @@ export const useOptimizedAdminAddProduct = () => {
       
       // Reset model when brand changes
       if (watchModelId) {
-        const modelBelongsToBrand = brandModels.some(model => 
+        const modelBelongsToBrand = allModels.some(model => 
           model.id === watchModelId && model.brand_id === watchBrandId
         );
         if (!modelBelongsToBrand) {
@@ -139,21 +160,35 @@ export const useOptimizedAdminAddProduct = () => {
     }
   }, [watchBrandId, selectedBrandId, watchModelId, brandModels, form]);
 
-  const handleLoadDraft = useCallback(() => {
-    const savedData = loadSavedData();
-    if (savedData && Object.keys(savedData).length > 0) {
-      Object.entries(savedData).forEach(([key, value]) => {
-        if (value && key in form.getValues()) {
-          form.setValue(key as keyof AdminProductFormValues, value as any, { shouldValidate: true });
-        }
-      });
-      
-      toast({
-        title: "Черновик загружен",
-        description: "Форма заполнена данными из сохраненного черновика",
-      });
-    }
-  }, [loadSavedData, form, toast]);
+  // Persist on mobile lifecycle and sync on return (bfcache)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        saveNow(getFormDataForAutosave());
+      }
+    };
+    const handlePageHide = () => {
+      saveNow(getFormDataForAutosave());
+    };
+    const handlePageShow = () => {
+      const currentBrand = form.getValues('brandId');
+      const currentModel = form.getValues('modelId');
+      if (currentBrand) setSelectedBrandId(currentBrand);
+      if (currentModel) {
+        form.setValue('modelId', currentModel, { shouldValidate: true });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [saveNow, getFormDataForAutosave, form]);
 
   const handleImageUpload = useCallback((urls: string[]) => {
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
@@ -206,7 +241,7 @@ export const useOptimizedAdminAddProduct = () => {
     if (!previewData) return null;
 
     const selectedBrand = brands.find(b => b.id === previewData.brandId);
-    const selectedModel = brandModels.find(m => m.id === previewData.modelId);
+    const selectedModel = brandModels.find(m => m.id === previewData.modelId) || allModels.find(m => m.id === previewData.modelId);
     const selectedSeller = sellers.find(s => s.id === previewData.sellerId);
 
     return {
@@ -236,14 +271,9 @@ export const useOptimizedAdminAddProduct = () => {
     sellers,
     brands,
     brandModels,
-    isLoadingCarData: isLoadingBrands || isLoadingModels || isLoadingSellers,
+    isLoadingCarData: isLoadingBrands || isLoadingModels,
     handleMobileOptimizedImageUpload: handleImageUpload,
     handleImageDelete,
-    showDraftAlert,
-    setShowDraftAlert,
-    draftExists,
-    handleLoadDraft,
-    clearSavedData,
     // Preview dialog
     isPreviewOpen,
     closePreview: () => {
