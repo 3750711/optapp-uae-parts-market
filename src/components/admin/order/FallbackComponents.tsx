@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
-import BrandedLoader from '@/components/loading/BrandedLoader';
+import { AlertCircle, Loader2 } from 'lucide-react';
+
 export const ComponentFallback: React.FC<{ componentName: string }> = ({ componentName }) => (
   <Card className="border-dashed border-2 border-muted">
     <CardContent className="flex items-center justify-center p-8">
@@ -44,6 +44,13 @@ export const EmptyState: React.FC<{ message: string; description?: string }> = (
   </Card>
 );
 
-export const LoadingIndicator: React.FC<{ message?: string }> = () => (
-  <BrandedLoader variant="section" />
+export const LoadingIndicator: React.FC<{ message?: string }> = ({ 
+  message = "Загрузка..." 
+}) => (
+  <div className="flex items-center justify-center py-8">
+    <div className="text-center">
+      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+      <p className="text-muted-foreground">{message}</p>
+    </div>
+  </div>
 );

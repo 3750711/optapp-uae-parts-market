@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import BrandedLoader from '@/components/loading/BrandedLoader';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ProductLoadingStateProps {
   type?: 'skeleton' | 'spinner';
@@ -14,7 +14,10 @@ const ProductLoadingState: React.FC<ProductLoadingStateProps> = ({
 }) => {
   if (type === 'spinner') {
     return (
-      <BrandedLoader variant="section" />
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+        <LoadingSpinner size="lg" />
+        <p className="text-muted-foreground">{message}</p>
+      </div>
     );
   }
 
