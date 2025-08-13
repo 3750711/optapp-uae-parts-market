@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { AuthErrorType, AuthError } from '@/types/auth';
 import { getLoginTranslations } from '@/utils/loginTranslations';
 import { useLanguage } from '@/hooks/useLanguage';
-import LanguageToggle from '@/components/auth/LanguageToggle';
+
 
 
 
@@ -35,7 +35,7 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const { checkRateLimit } = useRateLimit();
   const { signIn } = useAuth();
-  const { language, changeLanguage } = useLanguage('ru');
+  const { language } = useLanguage('ru');
   
   const from = searchParams.get('from') || '/';
   const t = getLoginTranslations(language);
@@ -167,19 +167,10 @@ const Login = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <CardTitle className="text-2xl font-bold text-center">{t.loginTitle}</CardTitle>
-                <CardDescription className="text-center">
-                  {t.loginDescription}
-                </CardDescription>
-              </div>
-              <LanguageToggle
-                language={language}
-                onLanguageChange={changeLanguage}
-                className="mt-1"
-              />
-            </div>
+            <CardTitle className="text-2xl font-bold text-center">{t.loginTitle}</CardTitle>
+            <CardDescription className="text-center">
+              {t.loginDescription}
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Email/Password Form */}

@@ -11,7 +11,7 @@ import { TelegramLoginWidget } from "@/components/auth/TelegramLoginWidget";
 import { devLog } from "@/utils/logger";
 import { getLoginTranslations } from '@/utils/loginTranslations';
 import { useLanguage } from '@/hooks/useLanguage';
-import LanguageToggle from '@/components/auth/LanguageToggle';
+
 
 const SellerLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -20,7 +20,7 @@ const SellerLogin: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, signInWithTelegram, user, profile, isProfileLoading } = useAuth();
   const navigate = useNavigate();
-  const { language, changeLanguage } = useLanguage('en');
+  const { language } = useLanguage('en');
   
   const t = getLoginTranslations(language);
 
@@ -138,16 +138,9 @@ const SellerLogin: React.FC = () => {
             <div className="flex justify-center">
               <Card className="w-full max-w-md bg-white shadow-elevation border-0">
                 <CardHeader className="space-y-1">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1 text-center">
-                      <CardTitle className="text-2xl font-bold">{t.sellerLoginTitle}</CardTitle>
-                      <p className="text-gray-600">{t.sellerLoginDescription}</p>
-                    </div>
-                    <LanguageToggle
-                      language={language}
-                      onLanguageChange={changeLanguage}
-                      className="mt-1"
-                    />
+                  <div className="flex-1 text-center">
+                    <CardTitle className="text-2xl font-bold">{t.sellerLoginTitle}</CardTitle>
+                    <p className="text-gray-600">{t.sellerLoginDescription}</p>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
