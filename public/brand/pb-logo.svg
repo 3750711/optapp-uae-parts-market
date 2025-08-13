@@ -1,4 +1,45 @@
 <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <rect width="200" height="200" rx="24" fill="#1D2D44"/>
-  <text x="100" y="120" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="white" text-anchor="middle" dominant-baseline="central">PB</text>
+  <defs>
+    <style>
+      .logo-bg { fill: #1D2D44; }
+      .logo-text { fill: white; font-family: system-ui, -apple-system, sans-serif; font-weight: 700; }
+      .arrow { fill: none; stroke: white; stroke-width: 3; stroke-linecap: round; }
+      .arrow-head { fill: white; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="200" height="200" rx="24" class="logo-bg"/>
+  
+  <!-- Main letters PB -->
+  <text x="100" y="115" font-size="58" class="logo-text" text-anchor="middle" dominant-baseline="central">PB</text>
+  
+  <!-- Circulation arrows around the logo -->
+  <g class="circulation-arrows">
+    <!-- Top circular arrow -->
+    <path d="M 60 40 A 40 40 0 0 1 140 40" class="arrow"/>
+    <polygon points="140,40 135,35 135,45" class="arrow-head"/>
+    
+    <!-- Bottom circular arrow -->
+    <path d="M 140 160 A 40 40 0 0 1 60 160" class="arrow"/>
+    <polygon points="60,160 65,165 65,155" class="arrow-head"/>
+    
+    <!-- Exchange arrows between P and B -->
+    <path d="M 85 95 L 105 95" class="arrow"/>
+    <polygon points="105,95 100,90 100,100" class="arrow-head"/>
+    
+    <path d="M 115 125 L 95 125" class="arrow"/>
+    <polygon points="95,125 100,130 100,120" class="arrow-head"/>
+  </g>
+  
+  <!-- Side circulation indicators -->
+  <g class="side-arrows">
+    <!-- Left side -->
+    <path d="M 25 80 A 20 20 0 0 1 25 120" class="arrow"/>
+    <polygon points="25,120 20,115 30,115" class="arrow-head"/>
+    
+    <!-- Right side -->
+    <path d="M 175 120 A 20 20 0 0 1 175 80" class="arrow"/>
+    <polygon points="175,80 180,85 170,85" class="arrow-head"/>
+  </g>
 </svg>
