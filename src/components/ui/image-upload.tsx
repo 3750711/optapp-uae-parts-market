@@ -90,20 +90,20 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             0.8   // quality
           );
 
-          const fileExt = file.name.split(".").pop();
+          const rawExt = file.name.includes(".") ? file.name.split(".").pop() : "";
+          const mimeExt = (compressedFile.type && compressedFile.type.split("/")[1]) || "";
+          const safeExt = (rawExt || mimeExt || "jpg").toLowerCase();
           // Use prefix if provided
-          const fileName = filePrefix ? `${filePrefix}_${uuidv4()}.${fileExt}` : `${uuidv4()}.${fileExt}`;
+          const fileName = filePrefix ? `${filePrefix}_${uuidv4()}.${safeExt}` : `${uuidv4()}.${safeExt}`;
           const filePath = `${fileName}`;
 
           const { data, error } = await supabase.storage
             .from(storageBucket)
-            .upload(filePath, compressedFile);
+            .upload(filePath, compressedFile, { contentType: compressedFile.type || "image/jpeg" });
 
           if (error) {
             throw error;
           }
-
-          // Calculate progress for UI feedback
           setProgress(Math.round(((index + 1) / files.length) * 100));
 
           // Get the public URL
@@ -122,12 +122,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       const validUrls = uploadedUrls.filter((url): url is string => url !== null);
 
       if (validUrls.length > 0) {
-        // Changed: Add new URLs to existing images instead of replacing them
-        const updatedImages = [...images, ...validUrls];
-        onUpload(updatedImages);
+        // Pass only new URLs; parent handles merging and DB insert
+        onUpload(validUrls);
         toast({
           title: t.success,
           description: t.uploadedText.replace('{count}', validUrls.length.toString()).replace('{total}', files.length.toString()),
+        });
+      } else {
+        toast({
+          title: t.error,
+          description: t.uploadFailed,
+          variant: "destructive",
         });
       }
     } catch (error) {
