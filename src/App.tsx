@@ -8,7 +8,7 @@ import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AppRoutes from "@/routes";
-import { Loader2 } from "lucide-react";
+import BrandedLoader from "@/components/loading/BrandedLoader";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { performanceMonitor } from "@/utils/performanceMonitor";
 import ProfileCompletionRedirect from "@/components/routing/ProfileCompletionRedirect";
@@ -37,12 +37,7 @@ const queryClient = new QueryClient({
 
 // Компонент загрузки для lazy-loaded маршрутов
 const RouteLoader = React.memo(() => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center space-y-4">
-      <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow mx-auto" />
-      <p className="text-sm text-gray-600">Загрузка...</p>
-    </div>
-  </div>
+  <BrandedLoader variant="fullscreen" message="Загружаем приложение..." />
 ));
 
 const App = () => {
