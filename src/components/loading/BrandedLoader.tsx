@@ -9,7 +9,6 @@ interface BrandedLoaderProps {
 
 const BrandedLoader: React.FC<BrandedLoaderProps> = ({
   variant = 'section',
-  message = 'Загрузка... ',
   logoSrc = '/logo.svg',
 }) => {
   const isFullscreen = variant === 'fullscreen';
@@ -42,18 +41,12 @@ const BrandedLoader: React.FC<BrandedLoaderProps> = ({
               }}
               loading="eager"
             />
-            <div className="logo-fallback hidden h-full w-full items-center justify-center text-primary font-semibold select-none">
-              PB
-            </div>
+            <div className="logo-fallback hidden h-full w-full items-center justify-center" />
           </div>
         </div>
 
-        {message && (
-          <p className="text-sm text-muted-foreground text-center px-4">{message}</p>
-        )}
-
-        {/* Visually hidden text for screen readers */}
-        <span className="sr-only">{message || 'Загрузка'}</span>
+        {/* Visually hidden text for screen readers (no visible labels) */}
+        <span className="sr-only">Загрузка</span>
       </div>
     </div>
   );

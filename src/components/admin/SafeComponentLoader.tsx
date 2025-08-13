@@ -2,6 +2,7 @@
 import React, { Suspense } from 'react';
 import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
 import { Skeleton } from '@/components/ui/skeleton';
+import BrandedLoader from '@/components/loading/BrandedLoader';
 
 interface SafeComponentLoaderProps {
   children: React.ReactNode;
@@ -11,11 +12,7 @@ interface SafeComponentLoaderProps {
 }
 
 const DefaultLoadingSkeleton = () => (
-  <div className="space-y-3">
-    <Skeleton className="h-12 w-full" />
-    <Skeleton className="h-8 w-3/4" />
-    <Skeleton className="h-8 w-1/2" />
-  </div>
+  <BrandedLoader variant="section" />
 );
 
 export const SafeComponentLoader: React.FC<SafeComponentLoaderProps> = ({

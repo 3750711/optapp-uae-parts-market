@@ -1,9 +1,9 @@
 
 import React from 'react';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-
+import BrandedLoader from '@/components/loading/BrandedLoader';
 interface LoadingStateProps {
   isLoading?: boolean;
   error?: Error | string | null;
@@ -24,14 +24,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
   className = "",
 }) => {
   if (isLoading) {
-    return (
-      <div className={`flex items-center justify-center p-8 ${className}`}>
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">{loadingText}</p>
-        </div>
-      </div>
-    );
+    return <BrandedLoader variant="section" />;
   }
 
   if (error) {
