@@ -1,0 +1,22 @@
+{
+  "name": "PartsBay.ae - Оптовый рынок автозапчастей",
+  "short_name": "PartsBay.ae",
+  "description": "B2B маркетплейс автозапчастей. Покупайте оптом у проверенных поставщиков из ОАЭ.",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512", 
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#1D2D44",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "orientation": "portrait"
+}
