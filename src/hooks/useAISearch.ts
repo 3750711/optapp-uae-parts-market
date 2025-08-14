@@ -101,9 +101,35 @@ export const useAISearch = () => {
     }
   }, []);
 
+  const generateEmbeddingForProduct = useCallback(async (productId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-embeddings', {
+        body: {
+          productIds: [productId],
+          batchSize: 1
+        }
+      });
+
+      if (error) {
+        console.error('Single product embedding generation error:', error);
+        return { success: false, error: error.message };
+      }
+
+      return data;
+
+    } catch (error) {
+      console.error('Single product embedding generation failed:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Generation failed' 
+      };
+    }
+  }, []);
+
   return {
     performAISearch,
     generateEmbeddings,
+    generateEmbeddingForProduct,
     isSearching,
     lastQuery
   };

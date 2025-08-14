@@ -6,6 +6,7 @@ import { AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useTelegramNotification } from "@/hooks/useTelegramNotification";
+import { useAISearch } from "@/hooks/useAISearch";
 
 interface CreateProductParams {
   values: AdminProductFormValues;
@@ -23,6 +24,7 @@ export const useAdminProductCreation = () => {
   const [isCreating, setIsCreating] = useState(false);
   const { notifyAdminsNewProduct } = useAdminNotifications();
   const { sendProductNotification } = useTelegramNotification();
+  const { generateEmbeddingForProduct } = useAISearch();
 
   const createProductWithTransaction = async ({
     values,
@@ -149,7 +151,20 @@ export const useAdminProductCreation = () => {
         console.log(`✅ ${videoUrls.length} videos inserted for product ${productId}`);
       }
 
-      // 6. Отправляем уведомления администраторам о новом товаре на модерацию
+      // 6. Генерируем embedding для нового товара (некритично)
+      try {
+        console.log(`🔍 Generating embedding for new product ${productId}`);
+        const embeddingResult = await generateEmbeddingForProduct(productId);
+        if (embeddingResult.success) {
+          console.log(`✅ Embedding generated successfully for product ${productId}`);
+        } else {
+          console.warn(`⚠️ Embedding generation failed for product ${productId}:`, embeddingResult.error);
+        }
+      } catch (embeddingError) {
+        console.error("⚠️ Embedding generation failed (non-critical):", embeddingError);
+      }
+
+      // 7. Отправляем уведомления администраторам о новом товаре на модерацию
       try {
         await notifyAdminsNewProduct(product.id);
       } catch (adminNotificationError) {
