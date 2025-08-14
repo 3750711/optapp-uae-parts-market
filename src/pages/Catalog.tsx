@@ -42,7 +42,6 @@ const Catalog: React.FC = () => {
     handleSearchSubmit,
     prefetchNextPage,
     isAISearching,
-    shouldUseAISearch,
   } = useCatalogProducts({
     productsPerPage: 24,
   });

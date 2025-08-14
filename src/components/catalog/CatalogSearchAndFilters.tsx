@@ -1,7 +1,6 @@
 
 import React from 'react';
 import SimplifiedSearchBar from './SimplifiedSearchBar';
-import SearchTypeIndicator from './SearchTypeIndicator';
 
 interface CatalogSearchAndFiltersProps {
   searchTerm: string;
@@ -33,12 +32,6 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
         isAISearching={isAISearching}
       />
       
-      {/* Search type indicator */}
-      {activeSearchTerm && (
-        <div className="flex justify-center mb-4">
-          <SearchTypeIndicator searchTerm={activeSearchTerm} />
-        </div>
-      )}
     </div>
   );
 };

@@ -9,20 +9,14 @@ interface SearchBarProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   handleSearchSubmit: (e: React.FormEvent) => void;
-  selectedBrandName?: string | null;
-  selectedModelName?: string | null;
   isAISearching?: boolean;
-  shouldUseAISearch?: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   searchQuery, 
   setSearchQuery, 
   handleSearchSubmit,
-  selectedBrandName,
-  selectedModelName,
-  isAISearching = false,
-  shouldUseAISearch = false
+  isAISearching = false
 }) => {
   const isMobile = useIsMobile();
   const [isFocused, setIsFocused] = useState(false);

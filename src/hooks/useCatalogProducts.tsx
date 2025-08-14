@@ -6,8 +6,8 @@ import { ProductProps } from '@/components/product/ProductCard';
 import { SortOption } from '@/components/catalog/ProductSorting';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
-import { useUnifiedSearch } from './useUnifiedSearch';
 import { useAISearch, AISearchResult } from './useAISearch';
+import { useDebounceSearch } from './useDebounceSearch';
 
 export type ProductType = {
   id: string;
@@ -67,14 +67,8 @@ export const useCatalogProducts = ({
   
   // Simplified - no brand/model selection needed
 
-  // Use unified search for intelligent search parsing
-  const {
-    searchTerm: unifiedSearchTerm,
-    searchConditions,
-    hasActiveSearch,
-    shouldUseAISearch
-  } = useUnifiedSearch(activeSearchTerm);
-
+  // Simplified: debounce search and always use AI
+  const debouncedSearchTerm = useDebounceSearch(activeSearchTerm, 300);
   const { performAISearch, isSearching: isAISearching } = useAISearch();
 
 
@@ -98,16 +92,13 @@ export const useCatalogProducts = ({
   };
 
   const filters = useMemo(() => {
-    const filtersObj = {
-      activeSearchTerm,
+    return {
+      debouncedSearchTerm,
       hideSoldProducts,
       sortBy,
-      isAdmin,
-      searchConditions,
-      shouldUseAISearch: true // Always use AI search
+      isAdmin
     };
-    return filtersObj;
-  }, [activeSearchTerm, hideSoldProducts, sortBy, isAdmin, searchConditions]);
+  }, [debouncedSearchTerm, hideSoldProducts, sortBy, isAdmin]);
 
   const {
     data,
@@ -165,50 +156,30 @@ export const useCatalogProducts = ({
           }
         }
 
-        // Hybrid search: AI search for natural language queries, traditional for exact matches
-        if (filters.activeSearchTerm && filters.activeSearchTerm.trim()) {
-          const { searchConditions } = filters;
+        // AI-only search: all queries go through AI search
+        if (filters.debouncedSearchTerm && filters.debouncedSearchTerm.trim()) {
+          const searchQuery = filters.debouncedSearchTerm.trim();
           
-          if (searchConditions.lotNumber) {
-            // Search by lot number
-            query = query.eq('lot_number', searchConditions.lotNumber);
-          } else if (searchConditions.optIdSearch) {
-            // Search by seller OPT-ID
-            query = query.ilike('optid_created', `%${searchConditions.optIdSearch}%`);
-          } else if (searchConditions.textSearch) {
-            // Use pure AI semantic search for all text queries
-            if (shouldUseAISearch) {
-              try {
-                console.log('🔍 Performing AI semantic search for:', searchConditions.textSearch);
-                const aiSearchResult = await performAISearch(searchConditions.textSearch, {
-                  similarityThreshold: 0.3, // Cosine distance threshold for similarity > 0.7
-                  matchCount: 50 // Optimized for better relevance
-                });
-                
-                if (aiSearchResult.success && aiSearchResult.results.length > 0) {
-                  const productIds = aiSearchResult.results.map(r => r.id);
-                  console.log('🎯 AI semantic search found products in relevance order:', productIds);
-                  
-                  // Only get products found by AI search - no fallback
-                  query = query.in('id', productIds);
-                  
-                  // Store the AI order for frontend sorting to preserve semantic relevance
-                  (query as any)._aiOrder = productIds;
-                } else {
-                  console.log('❌ AI search returned no results');
-                  // Return empty results for pure AI search - no fallback
-                  query = query.in('id', []);
-                }
-              } catch (error) {
-                console.error('❌ AI search failed:', error);
-                // Return empty results for pure AI search - no fallback
-                query = query.in('id', []);
-              }
+          try {
+            console.log('🔍 AI search for:', searchQuery);
+            const aiSearchResult = await performAISearch(searchQuery, {
+              similarityThreshold: 0.2, // Lower threshold for broader results
+              matchCount: 100 // Higher count for better coverage
+            });
+            
+            if (aiSearchResult.success && aiSearchResult.results.length > 0) {
+              const productIds = aiSearchResult.results.map(r => r.id);
+              console.log('🎯 AI found products:', productIds.length);
+              
+              query = query.in('id', productIds);
+              (query as any)._aiOrder = productIds;
             } else {
-              // For queries too short for AI search (< 3 chars), use basic text search
-              console.log('⚡ Using basic text search for short query');
-              query = query.ilike('title', `%${searchConditions.textSearch}%`);
+              console.log('❌ No AI results');
+              query = query.in('id', []); // No results
             }
+          } catch (error) {
+            console.error('❌ AI search failed:', error);
+            query = query.in('id', []); // No results on error
           }
         }
 
@@ -224,16 +195,14 @@ export const useCatalogProducts = ({
         
         let products = data || [];
         
-        // Sort by AI semantic relevance order if available
-        if ((query as any)._aiOrder && shouldUseAISearch) {
+        // Sort by AI relevance order if available
+        if ((query as any)._aiOrder) {
           const aiOrder = (query as any)._aiOrder;
-          console.log('🔄 Sorting products by AI semantic relevance order');
           products = products.sort((a, b) => {
             const indexA = aiOrder.indexOf(a.id);
             const indexB = aiOrder.indexOf(b.id);
             return indexA - indexB;
           });
-          console.log('✅ Products sorted by AI semantic relevance:', products.slice(0, 5).map(p => p.id));
         }
         
         const dataWithSortedImages = products.map(product => ({
@@ -371,8 +340,7 @@ export const useCatalogProducts = ({
     handleSearchSubmit,
     prefetchNextPage,
     isActiveFilters: !!(activeSearchTerm || hideSoldProducts),
-    isAISearching,
-    shouldUseAISearch: true // Always true for simplified search
+    isAISearching
   };
 };
 
