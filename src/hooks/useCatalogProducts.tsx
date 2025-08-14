@@ -191,6 +191,7 @@ export const useCatalogProducts = ({
             if (shouldUseAISearch && pageParam === 0) {
               // Use AI search for first page of natural language queries
               try {
+                console.log('🔍 Performing AI search for:', searchConditions.textSearch);
                 const aiSearchResult = await performAISearch(searchConditions.textSearch, {
                   similarityThreshold: 0.7,
                   matchCount: productsPerPage * 2 // Get more results to filter by brand/model
@@ -198,10 +199,13 @@ export const useCatalogProducts = ({
                 
                 if (aiSearchResult.success && aiSearchResult.results.length > 0) {
                   const productIds = aiSearchResult.results.map(r => r.product_id);
+                  console.log('🎯 AI search found products in relevance order:', productIds);
+                  
                   query = query.in('id', productIds);
                   
-                  // Sort by AI similarity instead of default sort for AI search
-                  query = query.order('created_at', { ascending: false }); // Fallback sort
+                  // Sort by AI relevance using array_position to preserve AI search order
+                  const orderByClause = `array_position(ARRAY[${productIds.map(id => `'${id}'`).join(',')}]::uuid[], id)`;
+                  query = query.order(orderByClause, { ascending: true });
                 } else {
                   // Fallback to traditional search if AI search fails
                   const searchTerm = searchConditions.textSearch;
