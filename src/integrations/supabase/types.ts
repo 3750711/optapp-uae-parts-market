@@ -1712,35 +1712,42 @@ export type Database = {
         Returns: unknown
       }
       hybrid_search_products: {
-        Args:
-          | {
-              match_count?: number
-              query_embedding: string
-              query_length?: number
-              search_keywords: string
-              similarity_threshold?: number
-            }
-          | {
-              match_count?: number
-              query_embedding: string
-              query_length?: number
-              search_keywords: string
-              similarity_threshold?: number
-            }
+        Args: {
+          match_count?: number
+          query_embedding: string
+          query_length?: number
+          search_keywords: string
+          similarity_threshold?: number
+        }
         Returns: {
           brand: string
+          cloudinary_url: string
+          condition: string
           created_at: string
+          delivery_price: number
+          description: string
           exact_match_score: number
           hybrid_score: number
+          id: string
+          location: string
           lot_number: number
           model: string
+          optid_created: string
+          phone_url: string
+          place_number: number
+          preview_image_url: string
           price: number
-          product_id: string
+          product_location: string
+          product_url: string
+          rating_seller: number
           seller_id: string
           seller_name: string
           similarity: number
           status: Database["public"]["Enums"]["product_status"]
+          telegram_url: string
           title: string
+          updated_at: string
+          view_count: number
         }[]
       }
       increment_product_view_count: {
