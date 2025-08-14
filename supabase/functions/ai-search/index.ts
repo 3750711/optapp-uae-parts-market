@@ -64,21 +64,22 @@ serve(async (req) => {
 
     console.log('Generated query embedding, searching for similar products...');
 
-    // Perform semantic search using the RPC function
+    // Perform hybrid search using the new RPC function
     const { data: searchResults, error: searchError } = await supabase
-      .rpc('semantic_search_products', {
+      .rpc('hybrid_search_products', {
         query_embedding: queryEmbedding,
+        search_keywords: query,
         similarity_threshold: similarityThreshold,
         match_count: matchCount
       });
 
     if (searchError) {
-      console.error('Error performing semantic search:', searchError);
+      console.error('Error performing hybrid search:', searchError);
       throw searchError;
     }
 
     console.log(`Found ${searchResults?.length || 0} similar products`);
-    console.log('Search results sample:', searchResults?.slice(0, 3));
+    console.log('Hybrid search results sample:', searchResults?.slice(0, 3));
 
     // Return the results with similarity scores
     const result = {

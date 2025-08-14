@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 interface AISearchResult {
   product_id: string;
   similarity: number;
+  exact_match_score?: number;
+  hybrid_score?: number;
 }
 
 interface AISearchResponse {
@@ -42,8 +44,8 @@ export const useAISearch = () => {
       const { data, error } = await supabase.functions.invoke('ai-search', {
         body: {
           query: query.trim(),
-          similarityThreshold: options.similarityThreshold || 0.3,
-          matchCount: options.matchCount || 20
+          similarityThreshold: options.similarityThreshold || 0.2,
+          matchCount: options.matchCount || 50
         }
       });
 

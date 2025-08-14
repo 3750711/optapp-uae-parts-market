@@ -1711,6 +1711,24 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      hybrid_search_products: {
+        Args: {
+          match_count?: number
+          query_embedding: string
+          search_keywords: string
+          similarity_threshold?: number
+        }
+        Returns: {
+          brand: string
+          exact_match_score: number
+          hybrid_score: number
+          model: string
+          price: number
+          product_id: string
+          similarity: number
+          title: string
+        }[]
+      }
       increment_product_view_count: {
         Args: { product_id: string }
         Returns: undefined
