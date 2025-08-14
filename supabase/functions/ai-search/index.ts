@@ -33,7 +33,7 @@ serve(async (req) => {
       }
     });
 
-    const { query, similarityThreshold = 0.3, matchCount = 20 } = await req.json();
+    const { query, similarityThreshold = 0.2, matchCount = 50 } = await req.json();
     
     if (!query || typeof query !== 'string') {
       throw new Error('Query parameter is required and must be a string');
@@ -78,6 +78,7 @@ serve(async (req) => {
     }
 
     console.log(`Found ${searchResults?.length || 0} similar products`);
+    console.log('Search results sample:', searchResults?.slice(0, 3));
 
     // Return the results with similarity scores
     const result = {
