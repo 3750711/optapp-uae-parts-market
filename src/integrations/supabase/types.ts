@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -714,6 +714,41 @@ export type Database = {
           },
         ]
       }
+      product_embeddings: {
+        Row: {
+          content_hash: string
+          created_at: string
+          embedding: string
+          id: string
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          embedding: string
+          id?: string
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          embedding?: string
+          id?: string
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_embeddings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           created_at: string
@@ -1383,59 +1418,59 @@ export type Database = {
       admin_create_order: {
         Args:
           | {
-              p_title: string
-              p_price: number
-              p_place_number: number
-              p_seller_id: string
-              p_order_seller_name: string
-              p_seller_opt_id: string
-              p_buyer_id: string
               p_brand: string
-              p_model: string
-              p_status: Database["public"]["Enums"]["order_status"]
-              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
-              p_telegram_url_order: string
-              p_images: string[]
-              p_product_id: string
+              p_buyer_id: string
               p_delivery_method: Database["public"]["Enums"]["delivery_method"]
-              p_text_order: string
               p_delivery_price_confirm: number
+              p_images: string[]
+              p_model: string
+              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
+              p_order_seller_name: string
+              p_place_number: number
+              p_price: number
+              p_product_id: string
+              p_seller_id: string
+              p_seller_opt_id: string
+              p_status: Database["public"]["Enums"]["order_status"]
+              p_telegram_url_order: string
+              p_text_order: string
+              p_title: string
             }
           | {
-              p_title: string
-              p_price: number
-              p_place_number: number
-              p_seller_id: string
-              p_order_seller_name: string
-              p_seller_opt_id: string
-              p_buyer_id: string
               p_brand: string
-              p_model: string
-              p_status: Database["public"]["Enums"]["order_status"]
-              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
-              p_telegram_url_order: string
-              p_images: string[]
-              p_product_id: string
+              p_buyer_id: string
               p_delivery_method: Database["public"]["Enums"]["delivery_method"]
-              p_text_order: string
               p_delivery_price_confirm: number
+              p_images: string[]
+              p_model: string
+              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
+              p_order_seller_name: string
+              p_place_number: number
+              p_price: number
+              p_product_id: string
+              p_seller_id: string
+              p_seller_opt_id: string
+              p_status: Database["public"]["Enums"]["order_status"]
+              p_telegram_url_order: string
+              p_text_order: string
+              p_title: string
               p_videos?: string[]
             }
         Returns: string
       }
       admin_create_product: {
         Args: {
-          p_title: string
-          p_price: number
-          p_condition: string
           p_brand: string
-          p_model: string
+          p_condition: string
+          p_delivery_price: number
           p_description: string
+          p_model: string
+          p_place_number: number
+          p_price: number
           p_seller_id: string
           p_seller_name: string
           p_status: Database["public"]["Enums"]["product_status"]
-          p_place_number: number
-          p_delivery_price: number
+          p_title: string
         }
         Returns: string
       }
@@ -1448,7 +1483,7 @@ export type Database = {
         Returns: boolean
       }
       admin_insert_product_image: {
-        Args: { p_product_id: string; p_url: string; p_is_primary?: boolean }
+        Args: { p_is_primary?: boolean; p_product_id: string; p_url: string }
         Returns: undefined
       }
       admin_insert_product_video: {
@@ -1459,6 +1494,14 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Json
       }
+      binary_quantize: {
+        Args: { "": string } | { "": unknown }
+        Returns: unknown
+      }
+      calculate_content_hash: {
+        Args: { content: string }
+        Returns: string
+      }
       cancel_price_offers_for_sold_product: {
         Args: { product_id_param: string }
         Returns: number
@@ -1468,11 +1511,11 @@ export type Database = {
         Returns: boolean
       }
       check_opt_id_exists: {
-        Args: { p_opt_id: string; p_ip_address?: unknown }
+        Args: { p_ip_address?: unknown; p_opt_id: string }
         Returns: boolean
       }
       check_order_number_unique: {
-        Args: { p_order_number: number; p_order_id?: string }
+        Args: { p_order_id?: string; p_order_number: number }
         Returns: boolean
       }
       check_rate_limit: {
@@ -1484,7 +1527,7 @@ export type Database = {
         Returns: boolean
       }
       check_search_rate_limit: {
-        Args: { p_user_id: string; p_search_type?: string }
+        Args: { p_search_type?: string; p_user_id: string }
         Returns: boolean
       }
       check_user_auth_method: {
@@ -1495,8 +1538,8 @@ export type Database = {
         Args: { p_product_id: string; p_user_id: string }
         Returns: {
           has_offer: boolean
-          offer_price: number
           offer_id: string
+          offer_price: number
         }[]
       }
       cleanup_expired_email_verification_codes: {
@@ -1528,7 +1571,7 @@ export type Database = {
         Returns: Json
       }
       create_bilingual_notification: {
-        Args: { p_user_id: string; p_type: string; p_data?: Json }
+        Args: { p_data?: Json; p_type: string; p_user_id: string }
         Returns: string
       }
       create_order_reminder_notifications: {
@@ -1541,28 +1584,28 @@ export type Database = {
       }
       create_user_order: {
         Args: {
-          p_title: string
-          p_price: number
-          p_place_number: number
-          p_seller_id: string
-          p_order_seller_name: string
-          p_seller_opt_id: string
-          p_buyer_id: string
           p_brand: string
-          p_model: string
-          p_status: Database["public"]["Enums"]["order_status"]
-          p_order_created_type: Database["public"]["Enums"]["order_created_type"]
-          p_telegram_url_order: string
-          p_images: string[]
-          p_product_id: string
-          p_delivery_method: Database["public"]["Enums"]["delivery_method"]
-          p_text_order: string
-          p_delivery_price_confirm: number
-          p_quantity?: number
-          p_description?: string
+          p_buyer_id: string
           p_buyer_opt_id?: string
+          p_delivery_method: Database["public"]["Enums"]["delivery_method"]
+          p_delivery_price_confirm: number
+          p_description?: string
+          p_images: string[]
           p_lot_number_order?: number
+          p_model: string
+          p_order_created_type: Database["public"]["Enums"]["order_created_type"]
+          p_order_seller_name: string
+          p_place_number: number
+          p_price: number
+          p_product_id: string
+          p_quantity?: number
+          p_seller_id: string
+          p_seller_opt_id: string
+          p_status: Database["public"]["Enums"]["order_status"]
           p_telegram_url_buyer?: string
+          p_telegram_url_order: string
+          p_text_order: string
+          p_title: string
           p_video_url?: string[]
         }
         Returns: string
@@ -1593,23 +1636,27 @@ export type Database = {
       }
       get_email_by_opt_id: {
         Args:
+          | { p_ip_address?: unknown; p_opt_id: string }
           | { p_opt_id: string }
-          | { p_opt_id: string; p_ip_address?: unknown }
         Returns: string
       }
       get_next_order_number: {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_product_content_for_embedding: {
+        Args: { product_id: string }
+        Returns: string
+      }
       get_rls_policies_status: {
         Args: Record<PropertyKey, never>
         Returns: {
+          policy_cmd: string
+          policy_name: string
+          policy_qual: string
+          policy_roles: string[]
           schema_name: string
           table_name: string
-          policy_name: string
-          policy_roles: string[]
-          policy_cmd: string
-          policy_qual: string
         }[]
       }
       gtrgm_compress: {
@@ -1629,6 +1676,38 @@ export type Database = {
         Returns: undefined
       }
       gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      halfvec_avg: {
+        Args: { "": number[] }
+        Returns: unknown
+      }
+      halfvec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      halfvec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      halfvec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
+      hnsw_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnsw_sparsevec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      hnswhandler: {
         Args: { "": unknown }
         Returns: unknown
       }
@@ -1656,12 +1735,32 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      ivfflat_bit_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflat_halfvec_support: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      ivfflathandler: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      l2_norm: {
+        Args: { "": unknown } | { "": unknown }
+        Returns: number
+      }
+      l2_normalize: {
+        Args: { "": string } | { "": unknown } | { "": unknown }
+        Returns: string
+      }
       log_password_reset_event: {
-        Args: { p_user_id: string; p_email: string; p_opt_id?: string }
+        Args: { p_email: string; p_opt_id?: string; p_user_id: string }
         Returns: undefined
       }
       log_telegram_auth_debug: {
-        Args: { user_id: string; debug_info: Json }
+        Args: { debug_info: Json; user_id: string }
         Returns: undefined
       }
       resend_order_notification: {
@@ -1690,7 +1789,7 @@ export type Database = {
         Returns: boolean
       }
       secure_check_rate_limit: {
-        Args: { p_user_id: string; p_action: string; p_limit_per_hour: number }
+        Args: { p_action: string; p_limit_per_hour: number; p_user_id: string }
         Returns: boolean
       }
       secure_check_search_rate_limit: {
@@ -1706,7 +1805,7 @@ export type Database = {
         Returns: boolean
       }
       secure_check_user_pending_offer: {
-        Args: { p_user_id: string; p_product_id: string }
+        Args: { p_product_id: string; p_user_id: string }
         Returns: boolean
       }
       secure_force_user_logout: {
@@ -1714,59 +1813,70 @@ export type Database = {
         Returns: boolean
       }
       secure_update_profile: {
-        Args: { p_user_id: string; p_updates: Json }
+        Args: { p_updates: Json; p_user_id: string }
         Returns: Json
       }
       secure_validate_profile_update: {
         Args: {
+          p_is_trusted_seller: boolean
           p_user_id: string
           p_user_type: Database["public"]["Enums"]["user_type"]
           p_verification_status: Database["public"]["Enums"]["verification_status"]
-          p_is_trusted_seller: boolean
         }
         Returns: boolean
       }
       seller_create_order: {
         Args:
           | {
-              p_title: string
-              p_price: number
-              p_place_number: number
-              p_order_seller_name: string
-              p_buyer_id: string
               p_brand: string
-              p_model: string
-              p_status: Database["public"]["Enums"]["order_status"]
-              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
-              p_telegram_url_order: string
-              p_images: string[]
-              p_product_id: string
+              p_buyer_id: string
               p_delivery_method: Database["public"]["Enums"]["delivery_method"]
-              p_text_order: string
               p_delivery_price_confirm: number
+              p_images: string[]
+              p_model: string
+              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
+              p_order_seller_name: string
+              p_place_number: number
+              p_price: number
+              p_product_id: string
+              p_seller_id: string
+              p_seller_opt_id: string
+              p_status: Database["public"]["Enums"]["order_status"]
+              p_telegram_url_order: string
+              p_text_order: string
+              p_title: string
               p_videos?: string[]
             }
           | {
-              p_title: string
-              p_price: number
-              p_place_number: number
-              p_seller_id: string
-              p_order_seller_name: string
-              p_seller_opt_id: string
-              p_buyer_id: string
               p_brand: string
-              p_model: string
-              p_status: Database["public"]["Enums"]["order_status"]
-              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
-              p_telegram_url_order: string
-              p_images: string[]
-              p_product_id: string
+              p_buyer_id: string
               p_delivery_method: Database["public"]["Enums"]["delivery_method"]
-              p_text_order: string
               p_delivery_price_confirm: number
+              p_images: string[]
+              p_model: string
+              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
+              p_order_seller_name: string
+              p_place_number: number
+              p_price: number
+              p_product_id: string
+              p_status: Database["public"]["Enums"]["order_status"]
+              p_telegram_url_order: string
+              p_text_order: string
+              p_title: string
               p_videos?: string[]
             }
         Returns: string
+      }
+      semantic_search_products: {
+        Args: {
+          match_count?: number
+          query_embedding: string
+          similarity_threshold?: number
+        }
+        Returns: {
+          product_id: string
+          similarity: number
+        }[]
       }
       send_email_verification_code: {
         Args: { p_email: string; p_ip_address?: unknown }
@@ -1792,41 +1902,77 @@ export type Database = {
         Args: { "": string }
         Returns: string[]
       }
+      sparsevec_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      sparsevec_send: {
+        Args: { "": unknown }
+        Returns: string
+      }
+      sparsevec_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
       sync_orphaned_telegram_users_safe: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
       translate_notification: {
-        Args: { p_type: string; p_data: Json; p_user_id?: string }
+        Args: { p_data: Json; p_type: string; p_user_id?: string }
         Returns: Json
       }
       update_order_media: {
         Args: {
-          p_order_id: string
           p_images?: string[]
+          p_order_id: string
           p_video_url?: string[]
         }
         Returns: boolean
       }
       validate_profile_update: {
         Args: {
-          p_user_id: string
+          p_new_is_trusted_seller: boolean
           p_new_user_type: Database["public"]["Enums"]["user_type"]
           p_new_verification_status: Database["public"]["Enums"]["verification_status"]
-          p_new_is_trusted_seller: boolean
+          p_user_id: string
         }
         Returns: boolean
       }
+      vector_avg: {
+        Args: { "": number[] }
+        Returns: string
+      }
+      vector_dims: {
+        Args: { "": string } | { "": unknown }
+        Returns: number
+      }
+      vector_norm: {
+        Args: { "": string }
+        Returns: number
+      }
+      vector_out: {
+        Args: { "": string }
+        Returns: unknown
+      }
+      vector_send: {
+        Args: { "": string }
+        Returns: string
+      }
+      vector_typmod_in: {
+        Args: { "": unknown[] }
+        Returns: number
+      }
       verify_and_reset_password_v2: {
-        Args: { p_email: string; p_code: string; p_new_password: string }
+        Args: { p_code: string; p_email: string; p_new_password: string }
         Returns: Json
       }
       verify_email_verification_code: {
-        Args: { p_email: string; p_code: string }
+        Args: { p_code: string; p_email: string }
         Returns: Json
       }
       verify_reset_code: {
-        Args: { p_email: string; p_code: string }
+        Args: { p_code: string; p_email: string }
         Returns: Json
       }
     }

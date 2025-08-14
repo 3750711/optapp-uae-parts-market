@@ -57,6 +57,8 @@ const Catalog: React.FC = () => {
     handleSearch,
     handleSearchSubmit,
     prefetchNextPage,
+    isAISearching,
+    shouldUseAISearch,
   } = useCatalogProducts({
     productsPerPage: 24,
     findBrandNameById,
@@ -188,6 +190,8 @@ const Catalog: React.FC = () => {
               hideSoldProducts={hideSoldProducts}
               setHideSoldProducts={setHideSoldProducts}
               onSelectFromHistory={handleSelectFromHistory}
+              isAISearching={isAISearching}
+              shouldUseAISearch={shouldUseAISearch}
             />
           </div>
         )}

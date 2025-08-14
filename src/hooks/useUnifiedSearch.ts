@@ -11,6 +11,7 @@ interface UnifiedSearchResult {
     optIdSearch: string | null;
   };
   hasActiveSearch: boolean;
+  shouldUseAISearch: boolean;
 }
 
 export const useUnifiedSearch = (searchInput: string): UnifiedSearchResult => {
@@ -69,11 +70,22 @@ export const useUnifiedSearch = (searchInput: string): UnifiedSearchResult => {
                                   searchConditions.lotNumber || 
                                   searchConditions.placeNumber || 
                                   searchConditions.optIdSearch);
+
+  // Determine if we should use AI search for text queries
+  const shouldUseAISearch = Boolean(
+    searchConditions.textSearch && 
+    searchConditions.textSearch.length >= 3 &&
+    // Use AI search for natural language queries (multiple words, questions, etc.)
+    (searchConditions.textSearch.includes(' ') || 
+     searchConditions.textSearch.includes('?') ||
+     searchConditions.textSearch.length > 15)
+  );
   
   return {
     searchTerm: searchInput,
     debouncedSearchTerm,
     searchConditions,
     hasActiveSearch,
+    shouldUseAISearch,
   };
 };

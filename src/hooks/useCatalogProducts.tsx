@@ -7,6 +7,7 @@ import { SortOption } from '@/components/catalog/ProductSorting';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 import { useUnifiedSearch } from './useUnifiedSearch';
+import { useAISearch } from './useAISearch';
 
 export type ProductType = {
   id: string;
@@ -76,7 +77,14 @@ export const useCatalogProducts = ({
   const activeModelName = findModelNameById ? findModelNameById(activeModel) : activeModel;
 
   // Use unified search for intelligent search parsing
-  const { searchConditions, hasActiveSearch } = useUnifiedSearch(activeSearchTerm);
+  const {
+    searchTerm: unifiedSearchTerm,
+    searchConditions,
+    hasActiveSearch,
+    shouldUseAISearch
+  } = useUnifiedSearch(activeSearchTerm);
+
+  const { performAISearch, isSearching: isAISearching } = useAISearch();
 
 
   const buildSortQuery = (query: any, sortOption: SortOption) => {
@@ -106,10 +114,11 @@ export const useCatalogProducts = ({
       activeModelName,
       sortBy,
       isAdmin,
-      searchConditions
+      searchConditions,
+      shouldUseAISearch
     };
     return filtersObj;
-  }, [activeSearchTerm, hideSoldProducts, activeBrandName, activeModelName, sortBy, isAdmin, searchConditions]);
+  }, [activeSearchTerm, hideSoldProducts, activeBrandName, activeModelName, sortBy, isAdmin, searchConditions, shouldUseAISearch]);
 
   const {
     data,
@@ -167,7 +176,7 @@ export const useCatalogProducts = ({
           }
         }
 
-        // Intelligent search using unified search conditions
+        // Hybrid search: AI search for natural language queries, traditional for exact matches
         if (filters.activeSearchTerm && filters.activeSearchTerm.trim()) {
           const { searchConditions } = filters;
           
@@ -178,27 +187,78 @@ export const useCatalogProducts = ({
             // Search by seller OPT-ID
             query = query.ilike('optid_created', `%${searchConditions.optIdSearch}%`);
           } else if (searchConditions.textSearch) {
-            // Dynamic text search - exclude fields that are being filtered separately
-            const searchTerm = searchConditions.textSearch;
-            const searchFields = [];
-            
-            // Always include title and seller_name
-            searchFields.push(`title.ilike.%${searchTerm}%`);
-            searchFields.push(`seller_name.ilike.%${searchTerm}%`);
-            
-            // Only include brand in search if not being filtered separately
-            if (!filters.activeBrandName) {
-              searchFields.push(`brand.ilike.%${searchTerm}%`);
-            }
-            
-            // Only include model in search if not being filtered separately
-            if (!filters.activeModelName) {
-              searchFields.push(`model.ilike.%${searchTerm}%`);
-            }
-            
-            // Apply dynamic OR conditions
-            if (searchFields.length > 0) {
-              query = query.or(searchFields.join(','));
+            // Check if we should use AI search for this query
+            if (shouldUseAISearch && pageParam === 0) {
+              // Use AI search for first page of natural language queries
+              try {
+                const aiSearchResult = await performAISearch(searchConditions.textSearch, {
+                  similarityThreshold: 0.7,
+                  matchCount: productsPerPage * 2 // Get more results to filter by brand/model
+                });
+                
+                if (aiSearchResult.success && aiSearchResult.results.length > 0) {
+                  const productIds = aiSearchResult.results.map(r => r.product_id);
+                  query = query.in('id', productIds);
+                  
+                  // Sort by AI similarity instead of default sort for AI search
+                  query = query.order('created_at', { ascending: false }); // Fallback sort
+                } else {
+                  // Fallback to traditional search if AI search fails
+                  const searchTerm = searchConditions.textSearch;
+                  const searchFields = [];
+                  
+                  searchFields.push(`title.ilike.%${searchTerm}%`);
+                  searchFields.push(`seller_name.ilike.%${searchTerm}%`);
+                  
+                  if (!filters.activeBrandName) {
+                    searchFields.push(`brand.ilike.%${searchTerm}%`);
+                  }
+                  if (!filters.activeModelName) {
+                    searchFields.push(`model.ilike.%${searchTerm}%`);
+                  }
+                  
+                  if (searchFields.length > 0) {
+                    query = query.or(searchFields.join(','));
+                  }
+                }
+              } catch (aiError) {
+                console.warn('AI search failed, using traditional search:', aiError);
+                // Fallback to traditional search
+                const searchTerm = searchConditions.textSearch;
+                const searchFields = [];
+                
+                searchFields.push(`title.ilike.%${searchTerm}%`);
+                searchFields.push(`seller_name.ilike.%${searchTerm}%`);
+                
+                if (!filters.activeBrandName) {
+                  searchFields.push(`brand.ilike.%${searchTerm}%`);
+                }
+                if (!filters.activeModelName) {
+                  searchFields.push(`model.ilike.%${searchTerm}%`);
+                }
+                
+                if (searchFields.length > 0) {
+                  query = query.or(searchFields.join(','));
+                }
+              }
+            } else {
+              // Use traditional text search for exact matches and subsequent pages
+              const searchTerm = searchConditions.textSearch;
+              const searchFields = [];
+              
+              searchFields.push(`title.ilike.%${searchTerm}%`);
+              searchFields.push(`seller_name.ilike.%${searchTerm}%`);
+              
+              if (!filters.activeBrandName) {
+                searchFields.push(`brand.ilike.%${searchTerm}%`);
+              }
+              if (!filters.activeModelName) {
+                searchFields.push(`model.ilike.%${searchTerm}%`);
+              }
+              
+              if (searchFields.length > 0) {
+                query = query.or(searchFields.join(','));
+              }
             }
           }
         }
@@ -367,7 +427,9 @@ export const useCatalogProducts = ({
     handleSearch,
     handleSearchSubmit,
     prefetchNextPage, // New method for prefetching
-    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || activeBrandName || activeModelName)
+    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || activeBrandName || activeModelName),
+    isAISearching,
+    shouldUseAISearch
   };
 };
 

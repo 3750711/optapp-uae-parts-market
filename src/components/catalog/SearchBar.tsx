@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Brain, Loader2 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -11,12 +11,18 @@ interface SearchBarProps {
   handleSearchSubmit: (e: React.FormEvent) => void;
   selectedBrandName?: string | null;
   selectedModelName?: string | null;
+  isAISearching?: boolean;
+  shouldUseAISearch?: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   searchQuery, 
   setSearchQuery, 
-  handleSearchSubmit
+  handleSearchSubmit,
+  selectedBrandName,
+  selectedModelName,
+  isAISearching = false,
+  shouldUseAISearch = false
 }) => {
   const isMobile = useIsMobile();
   const [isFocused, setIsFocused] = useState(false);
@@ -50,11 +56,17 @@ const SearchBar: React.FC<SearchBarProps> = ({
       >
         <div className={`relative flex-1 group transition-all duration-300 rounded-xl ${isFocused ? 'shadow-lg ring-2 ring-primary/20' : 'shadow-md hover:shadow-lg'}`}>
           <span className={`absolute left-3.5 top-1/2 -translate-y-1/2 z-10 transition-all duration-300 ${isFocused ? 'text-primary' : 'text-gray-400'}`}>
-            <Search className={`h-5 w-5 transition-opacity ${searchQuery ? 'opacity-100' : 'group-hover:opacity-70'}`} />
+            {isAISearching ? (
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            ) : shouldUseAISearch ? (
+              <Brain className={`h-5 w-5 text-primary transition-opacity ${searchQuery ? 'opacity-100' : 'group-hover:opacity-70'}`} />
+            ) : (
+              <Search className={`h-5 w-5 transition-opacity ${searchQuery ? 'opacity-100' : 'group-hover:opacity-70'}`} />
+            )}
           </span>
           <Input 
             type="text"
-            placeholder="Поиск по названию, бренду, номеру лота, OPT-ID..." 
+            placeholder={shouldUseAISearch ? "AI поиск: задайте вопрос на любом языке..." : "Поиск по названию, бренду, номеру лота, OPT-ID..."} 
             className="pl-11 pr-10 py-2.5 md:py-3 text-base border-gray-200 shadow-none bg-white/70 backdrop-blur-sm rounded-xl focus:border-primary/50"
             value={searchQuery}
             onChange={handleSearchInputChange}

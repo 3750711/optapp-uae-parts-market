@@ -25,6 +25,8 @@ interface CatalogSearchAndFiltersProps {
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
   onSelectFromHistory?: (item: any) => void;
+  isAISearching?: boolean;
+  shouldUseAISearch?: boolean;
 }
 
 const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
@@ -41,7 +43,9 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
   brands,
   brandModels,
   hideSoldProducts,
-  setHideSoldProducts
+  setHideSoldProducts,
+  isAISearching = false,
+  shouldUseAISearch = false
 }) => {
   return (
     <Card className="mb-4">
@@ -53,6 +57,8 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
           handleSearchSubmit={onSearchSubmit}
           selectedBrandName={selectedBrand ? brands.find(b => b.id === selectedBrand)?.name : null}
           selectedModelName={selectedModel ? brandModels.find(m => m.id === selectedModel)?.name : null}
+          isAISearching={isAISearching}
+          shouldUseAISearch={shouldUseAISearch}
         />
         
         {/* Search type indicator */}
