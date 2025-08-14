@@ -125,11 +125,6 @@ serve(async (req) => {
     
     const searchResults = finalResults;
 
-    if (searchError) {
-      console.error('Error performing hybrid search:', searchError);
-      throw searchError;
-    }
-
     console.log(`Found ${searchResults?.length || 0} similar products`);
     console.log('Hybrid search results sample:', searchResults?.slice(0, 3));
 
