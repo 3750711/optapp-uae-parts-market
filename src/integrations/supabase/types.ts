@@ -1712,27 +1712,24 @@ export type Database = {
         Returns: unknown
       }
       hybrid_search_products: {
-        Args:
-          | {
-              match_count?: number
-              query_embedding: string
-              query_length?: number
-              search_keywords: string
-              similarity_threshold?: number
-            }
-          | {
-              match_count?: number
-              query_embedding: string
-              search_keywords: string
-              similarity_threshold?: number
-            }
+        Args: {
+          match_count?: number
+          query_embedding: string
+          query_length?: number
+          search_keywords: string
+          similarity_threshold?: number
+        }
         Returns: {
           brand: string
+          created_at: string
           exact_match_score: number
           hybrid_score: number
+          lot_number: number
           model: string
           price: number
           product_id: string
+          seller_id: string
+          seller_name: string
           similarity: number
           status: Database["public"]["Enums"]["product_status"]
           title: string
