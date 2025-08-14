@@ -186,7 +186,7 @@ export const useCatalogProducts = ({
                 });
                 
                 if (aiSearchResult.success && aiSearchResult.results.length > 0) {
-                  const productIds = aiSearchResult.results.map(r => r.product_id);
+                  const productIds = aiSearchResult.results.map(r => r.id);
                   console.log('🎯 AI semantic search found products in relevance order:', productIds);
                   
                   // Only get products found by AI search - no fallback
