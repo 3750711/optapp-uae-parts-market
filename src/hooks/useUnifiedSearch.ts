@@ -71,14 +71,10 @@ export const useUnifiedSearch = (searchInput: string): UnifiedSearchResult => {
                                   searchConditions.placeNumber || 
                                   searchConditions.optIdSearch);
 
-  // Determine if we should use AI search for text queries
+  // Use AI search for all text queries (simplified conditions)
   const shouldUseAISearch = Boolean(
     searchConditions.textSearch && 
-    searchConditions.textSearch.length >= 3 &&
-    // Use AI search for natural language queries (multiple words, questions, etc.)
-    (searchConditions.textSearch.includes(' ') || 
-     searchConditions.textSearch.includes('?') ||
-     searchConditions.textSearch.length > 15)
+    searchConditions.textSearch.length >= 3
   );
   
   return {

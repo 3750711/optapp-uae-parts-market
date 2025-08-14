@@ -189,23 +189,24 @@ export const useCatalogProducts = ({
           } else if (searchConditions.textSearch) {
             // Check if we should use AI search for this query
             if (shouldUseAISearch && pageParam === 0) {
-              // Use AI search for first page of natural language queries
+              // Use AI search for text queries
               try {
                 console.log('🔍 Performing AI search for:', searchConditions.textSearch);
                 const aiSearchResult = await performAISearch(searchConditions.textSearch, {
-                  similarityThreshold: 0.7,
-                  matchCount: productsPerPage * 2 // Get more results to filter by brand/model
+                  similarityThreshold: 0.6, // Lower threshold for more results
+                  matchCount: 50 // Increase results for better coverage
                 });
                 
                 if (aiSearchResult.success && aiSearchResult.results.length > 0) {
                   const productIds = aiSearchResult.results.map(r => r.product_id);
                   console.log('🎯 AI search found products in relevance order:', productIds);
                   
+                  // Get products matching AI search results
                   query = query.in('id', productIds);
                   
-                  // Sort by AI relevance using array_position to preserve AI search order
-                  const orderByClause = `array_position(ARRAY[${productIds.map(id => `'${id}'`).join(',')}]::uuid[], id)`;
-                  query = query.order(orderByClause, { ascending: true });
+                  // Don't sort in database - we'll sort on frontend to preserve AI order
+                  // Store the AI order for frontend sorting
+                  (query as any)._aiOrder = productIds;
                 } else {
                   // Fallback to traditional search if AI search fails
                   const searchTerm = searchConditions.textSearch;
@@ -283,7 +284,21 @@ export const useCatalogProducts = ({
           throw new Error(`Database query failed: ${error.message}`);
         }
         
-        const dataWithSortedImages = data?.map(product => ({
+        let products = data || [];
+        
+        // Sort by AI relevance order if available
+        if ((query as any)._aiOrder && shouldUseAISearch && pageParam === 0) {
+          const aiOrder = (query as any)._aiOrder;
+          console.log('🔄 Sorting products by AI relevance order');
+          products = products.sort((a, b) => {
+            const indexA = aiOrder.indexOf(a.id);
+            const indexB = aiOrder.indexOf(b.id);
+            return indexA - indexB;
+          });
+          console.log('✅ Products sorted by AI relevance:', products.slice(0, 5).map(p => p.id));
+        }
+        
+        const dataWithSortedImages = products.map(product => ({
           ...product,
           product_images: product.product_images?.sort((a: any, b: any) => {
             if (a.is_primary && !b.is_primary) return -1;
@@ -293,7 +308,7 @@ export const useCatalogProducts = ({
         }));
         
         timer.end();
-        return dataWithSortedImages || [];
+        return dataWithSortedImages;
       } catch (error) {
         timer.end();
         if (error instanceof Error) {
