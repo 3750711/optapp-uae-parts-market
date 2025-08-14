@@ -23,6 +23,8 @@ export class SitemapGenerator {
       { path: '/buyer-guide', priority: 0.7, changefreq: 'weekly' as const },
       { path: '/stores', priority: 0.8, changefreq: 'daily' as const },
       { path: '/requests', priority: 0.6, changefreq: 'daily' as const },
+      { path: '/terms', priority: 0.3, changefreq: 'yearly' as const },
+      { path: '/privacy', priority: 0.3, changefreq: 'yearly' as const },
     ];
 
     staticPages.forEach(page => {
@@ -36,10 +38,10 @@ export class SitemapGenerator {
   }
 
   private getBaseUrl(): string {
-    // Use environment variable or default to current origin
+    // Use environment variable or default to production domain
     return typeof window !== 'undefined' 
       ? window.location.origin 
-      : 'https://uae-auto-parts.lovableproject.com';
+      : 'https://partsbay.ae';
   }
 
   addProducts(products: Array<{ id: string; updated_at?: string }>) {

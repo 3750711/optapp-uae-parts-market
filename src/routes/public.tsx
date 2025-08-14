@@ -15,6 +15,8 @@ const RequestDetail = lazy(() => import('@/pages/RequestDetail'));
 const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
 const PublicSellerProfile = lazy(() => import('@/pages/PublicSellerProfile'));
 const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
+const TermsPage = lazy(() => import('@/pages/TermsPage'));
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 export const PublicRoutes = () => (
@@ -33,6 +35,8 @@ export const PublicRoutes = () => (
     <Route path="/buyer-guide" element={<BuyerGuide />} />
     <Route path="/public-seller-profile/:id" element={<PublicSellerProfile />} />
     <Route path="/generate-og-image" element={<GenerateOGImage />} />
+    <Route path="/terms" element={<TermsPage />} />
+    <Route path="/privacy" element={<PrivacyPage />} />
     <Route path="/404" element={<NotFound />} />
     <Route path="*" element={<NotFound />} />
   </>
