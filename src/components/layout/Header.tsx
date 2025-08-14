@@ -44,7 +44,6 @@ import {
 import LanguageToggle from '@/components/auth/LanguageToggle';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getMainPageTranslations } from '@/utils/mainPageTranslations';
-import partsbaLogo from '@/assets/partsbay-logo.png';
 
 const Header = () => {
   const { user, signOut, profile, isLoading } = useAuth();
@@ -141,17 +140,10 @@ const Header = () => {
             if (profile.user_type === 'seller') return "/seller/dashboard";
             return "/";
           })()}
-          className="flex items-center gap-3 text-2xl font-extrabold tracking-tight"
+          className="text-2xl font-extrabold tracking-tight"
         >
-          <img 
-            src={partsbaLogo} 
-            alt="PartsBay Logo" 
-            className="h-8 w-8 md:h-10 md:w-10 object-contain"
-          />
-          <div>
-            <span className="text-primary">partsbay</span>
-            <span className="text-secondary">.ae</span>
-          </div>
+          <span className="text-primary">partsbay</span>
+          <span className="text-secondary">.ae</span>
         </Link>
 
         <NavLinks />
