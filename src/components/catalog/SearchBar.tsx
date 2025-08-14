@@ -58,15 +58,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
           <span className={`absolute left-3.5 top-1/2 -translate-y-1/2 z-10 transition-all duration-300 ${isFocused ? 'text-primary' : 'text-gray-400'}`}>
             {isAISearching ? (
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            ) : shouldUseAISearch ? (
-              <Brain className={`h-5 w-5 text-primary transition-opacity ${searchQuery ? 'opacity-100' : 'group-hover:opacity-70'}`} />
             ) : (
-              <Search className={`h-5 w-5 transition-opacity ${searchQuery ? 'opacity-100' : 'group-hover:opacity-70'}`} />
+              <Brain className={`h-5 w-5 text-primary transition-opacity ${searchQuery ? 'opacity-100' : 'group-hover:opacity-70'}`} />
             )}
           </span>
           <Input 
             type="text"
-            placeholder={shouldUseAISearch ? "AI поиск: задайте вопрос на любом языке..." : "Поиск по названию, бренду, номеру лота, OPT-ID..."} 
+            placeholder="🤖 AI семантический поиск - найдет что угодно на любом языке..."
             className="pl-11 pr-10 py-2.5 md:py-3 text-base border-gray-200 shadow-none bg-white/70 backdrop-blur-sm rounded-xl focus:border-primary/50"
             value={searchQuery}
             onChange={handleSearchInputChange}

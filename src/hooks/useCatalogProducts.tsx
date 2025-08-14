@@ -187,83 +187,38 @@ export const useCatalogProducts = ({
             // Search by seller OPT-ID
             query = query.ilike('optid_created', `%${searchConditions.optIdSearch}%`);
           } else if (searchConditions.textSearch) {
-            // Check if we should use AI search for this query
-            if (shouldUseAISearch && pageParam === 0) {
-              // Use AI search for text queries
+            // Use pure AI semantic search for all text queries
+            if (shouldUseAISearch) {
               try {
-                console.log('🔍 Performing AI search for:', searchConditions.textSearch);
+                console.log('🔍 Performing AI semantic search for:', searchConditions.textSearch);
                 const aiSearchResult = await performAISearch(searchConditions.textSearch, {
-                  similarityThreshold: 0.6, // Lower threshold for more results
-                  matchCount: 50 // Increase results for better coverage
+                  similarityThreshold: 0.3, // Cosine distance threshold for similarity > 0.7
+                  matchCount: 20 // Limit to exactly 20 results as requested
                 });
                 
                 if (aiSearchResult.success && aiSearchResult.results.length > 0) {
                   const productIds = aiSearchResult.results.map(r => r.product_id);
-                  console.log('🎯 AI search found products in relevance order:', productIds);
+                  console.log('🎯 AI semantic search found products in relevance order:', productIds);
                   
-                  // Get products matching AI search results
+                  // Only get products found by AI search - no fallback
                   query = query.in('id', productIds);
                   
-                  // Don't sort in database - we'll sort on frontend to preserve AI order
-                  // Store the AI order for frontend sorting
+                  // Store the AI order for frontend sorting to preserve semantic relevance
                   (query as any)._aiOrder = productIds;
                 } else {
-                  // Fallback to traditional search if AI search fails
-                  const searchTerm = searchConditions.textSearch;
-                  const searchFields = [];
-                  
-                  searchFields.push(`title.ilike.%${searchTerm}%`);
-                  searchFields.push(`seller_name.ilike.%${searchTerm}%`);
-                  
-                  if (!filters.activeBrandName) {
-                    searchFields.push(`brand.ilike.%${searchTerm}%`);
-                  }
-                  if (!filters.activeModelName) {
-                    searchFields.push(`model.ilike.%${searchTerm}%`);
-                  }
-                  
-                  if (searchFields.length > 0) {
-                    query = query.or(searchFields.join(','));
-                  }
+                  console.log('❌ AI search returned no results');
+                  // Return empty results for pure AI search - no fallback
+                  query = query.in('id', []);
                 }
-              } catch (aiError) {
-                console.warn('AI search failed, using traditional search:', aiError);
-                // Fallback to traditional search
-                const searchTerm = searchConditions.textSearch;
-                const searchFields = [];
-                
-                searchFields.push(`title.ilike.%${searchTerm}%`);
-                searchFields.push(`seller_name.ilike.%${searchTerm}%`);
-                
-                if (!filters.activeBrandName) {
-                  searchFields.push(`brand.ilike.%${searchTerm}%`);
-                }
-                if (!filters.activeModelName) {
-                  searchFields.push(`model.ilike.%${searchTerm}%`);
-                }
-                
-                if (searchFields.length > 0) {
-                  query = query.or(searchFields.join(','));
-                }
+              } catch (error) {
+                console.error('❌ AI search failed:', error);
+                // Return empty results for pure AI search - no fallback
+                query = query.in('id', []);
               }
             } else {
-              // Use traditional text search for exact matches and subsequent pages
-              const searchTerm = searchConditions.textSearch;
-              const searchFields = [];
-              
-              searchFields.push(`title.ilike.%${searchTerm}%`);
-              searchFields.push(`seller_name.ilike.%${searchTerm}%`);
-              
-              if (!filters.activeBrandName) {
-                searchFields.push(`brand.ilike.%${searchTerm}%`);
-              }
-              if (!filters.activeModelName) {
-                searchFields.push(`model.ilike.%${searchTerm}%`);
-              }
-              
-              if (searchFields.length > 0) {
-                query = query.or(searchFields.join(','));
-              }
+              // For queries too short for AI search (< 3 chars), return empty results
+              console.log('❌ Query too short for AI search');
+              query = query.in('id', []);
             }
           }
         }
@@ -286,16 +241,16 @@ export const useCatalogProducts = ({
         
         let products = data || [];
         
-        // Sort by AI relevance order if available
-        if ((query as any)._aiOrder && shouldUseAISearch && pageParam === 0) {
+        // Sort by AI semantic relevance order if available
+        if ((query as any)._aiOrder && shouldUseAISearch) {
           const aiOrder = (query as any)._aiOrder;
-          console.log('🔄 Sorting products by AI relevance order');
+          console.log('🔄 Sorting products by AI semantic relevance order');
           products = products.sort((a, b) => {
             const indexA = aiOrder.indexOf(a.id);
             const indexB = aiOrder.indexOf(b.id);
             return indexA - indexB;
           });
-          console.log('✅ Products sorted by AI relevance:', products.slice(0, 5).map(p => p.id));
+          console.log('✅ Products sorted by AI semantic relevance:', products.slice(0, 5).map(p => p.id));
         }
         
         const dataWithSortedImages = products.map(product => ({
