@@ -28,20 +28,27 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { productIds, batchSize = 50 } = await req.json();
+    const { productIds, batchSize = 200, statuses = ['active', 'sold'], offset = 0 } = await req.json();
     
-    console.log('Starting embedding generation for products:', productIds?.length || 'all');
+    console.log('Starting embedding generation for products:', productIds?.length || 'all', 'with statuses:', statuses);
 
     let query = supabase
       .from('products')
-      .select('id, title, description, brand, model, condition, price, product_location')
-      .eq('status', 'active');
+      .select('id, title, description, brand, model, condition, price, product_location, status')
+      .in('status', statuses);
 
     if (productIds && productIds.length > 0) {
       query = query.in('id', productIds);
     }
 
-    const { data: products, error: fetchError } = await query.limit(batchSize);
+    // Add pagination support
+    if (offset > 0) {
+      query = query.range(offset, offset + batchSize - 1);
+    } else if (batchSize < 1000) {
+      query = query.limit(batchSize);
+    }
+
+    const { data: products, error: fetchError } = await query;
 
     if (fetchError) {
       console.error('Error fetching products:', fetchError);
