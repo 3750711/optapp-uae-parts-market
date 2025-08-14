@@ -39,7 +39,11 @@ serve(async (req) => {
       throw new Error('Query parameter is required and must be a string');
     }
 
+    // Calculate query length for hybrid scoring
+    const queryLength = query.trim().split(/\s+/).length;
+    
     console.log('AI search query:', query);
+    console.log('Query length:', queryLength);
 
     // Generate embedding for the search query
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
@@ -70,7 +74,8 @@ serve(async (req) => {
         query_embedding: queryEmbedding,
         search_keywords: query,
         similarity_threshold: similarityThreshold,
-        match_count: matchCount
+        match_count: matchCount,
+        query_length: queryLength
       });
 
     if (searchError) {

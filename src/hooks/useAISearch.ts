@@ -126,10 +126,38 @@ export const useAISearch = () => {
     }
   }, []);
 
+  const regenerateMissingEmbeddings = useCallback(async () => {
+    try {
+      console.log('Regenerating missing embeddings...');
+      
+      const { data, error } = await supabase.functions.invoke('generate-embeddings', {
+        body: { 
+          batchSize: 10,
+          statuses: ['active', 'sold']
+        }
+      });
+
+      if (error) {
+        console.error('Error regenerating embeddings:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log('Missing embeddings regeneration result:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in regenerateMissingEmbeddings:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Regeneration failed' 
+      };
+    }
+  }, []);
+
   return {
     performAISearch,
     generateEmbeddings,
     generateEmbeddingForProduct,
+    regenerateMissingEmbeddings,
     isSearching,
     lastQuery
   };

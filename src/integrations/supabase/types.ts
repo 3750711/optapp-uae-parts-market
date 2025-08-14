@@ -1712,12 +1712,20 @@ export type Database = {
         Returns: unknown
       }
       hybrid_search_products: {
-        Args: {
-          match_count?: number
-          query_embedding: string
-          search_keywords: string
-          similarity_threshold?: number
-        }
+        Args:
+          | {
+              match_count?: number
+              query_embedding: string
+              query_length?: number
+              search_keywords: string
+              similarity_threshold?: number
+            }
+          | {
+              match_count?: number
+              query_embedding: string
+              search_keywords: string
+              similarity_threshold?: number
+            }
         Returns: {
           brand: string
           exact_match_score: number
