@@ -33,7 +33,7 @@ serve(async (req) => {
       }
     });
 
-    const { query, similarityThreshold = 0.2, matchCount = 50 } = await req.json();
+    const { query, similarityThreshold = 0.3, matchCount = 50 } = await req.json();
     
     if (!query || typeof query !== 'string') {
       throw new Error('Query parameter is required and must be a string');

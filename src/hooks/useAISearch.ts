@@ -42,7 +42,7 @@ export const useAISearch = () => {
       const { data, error } = await supabase.functions.invoke('ai-search', {
         body: {
           query: query.trim(),
-          similarityThreshold: options.similarityThreshold || 0.7,
+          similarityThreshold: options.similarityThreshold || 0.3,
           matchCount: options.matchCount || 20
         }
       });
