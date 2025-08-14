@@ -2,7 +2,10 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AISearchResult {
-  product_id: string;
+  id: string;
+  title?: string;
+  brand?: string;
+  model?: string;
   similarity: number;
   exact_match_score?: number;
   hybrid_score?: number;
