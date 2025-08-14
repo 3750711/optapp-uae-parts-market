@@ -13,14 +13,10 @@ import { Home } from 'lucide-react';
 
 interface CatalogBreadcrumbProps {
   searchQuery?: string;
-  selectedBrandName?: string | null;
-  selectedModelName?: string | null;
 }
 
 const CatalogBreadcrumb: React.FC<CatalogBreadcrumbProps> = ({
-  searchQuery,
-  selectedBrandName,
-  selectedModelName
+  searchQuery
 }) => {
   return (
     <Breadcrumb className="mb-4">
@@ -36,7 +32,7 @@ const CatalogBreadcrumb: React.FC<CatalogBreadcrumbProps> = ({
         
         <BreadcrumbSeparator />
         
-        {!selectedBrandName && !searchQuery ? (
+        {!searchQuery ? (
           <BreadcrumbPage>Каталог</BreadcrumbPage>
         ) : (
           <BreadcrumbItem>
@@ -46,34 +42,10 @@ const CatalogBreadcrumb: React.FC<CatalogBreadcrumbProps> = ({
           </BreadcrumbItem>
         )}
         
-        {selectedBrandName && (
+        {searchQuery && (
           <>
             <BreadcrumbSeparator />
-            {!selectedModelName ? (
-              <BreadcrumbPage>{selectedBrandName}</BreadcrumbPage>
-            ) : (
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to={`/catalog?brand=${selectedBrandName}`}>
-                    {selectedBrandName}
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            )}
-          </>
-        )}
-        
-        {selectedModelName && (
-          <>
-            <BreadcrumbSeparator />
-            <BreadcrumbPage>{selectedModelName}</BreadcrumbPage>
-          </>
-        )}
-        
-        {searchQuery && !selectedBrandName && (
-          <>
-            <BreadcrumbSeparator />
-            <BreadcrumbPage>Поиск: "{searchQuery}"</BreadcrumbPage>
+            <BreadcrumbPage>AI Поиск: "{searchQuery}"</BreadcrumbPage>
           </>
         )}
       </BreadcrumbList>

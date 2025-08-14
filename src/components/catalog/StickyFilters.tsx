@@ -9,8 +9,6 @@ import { Badge } from '@/components/ui/badge';
 interface StickyFiltersProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  selectedBrandName?: string | null;
-  selectedModelName?: string | null;
   onClearSearch: () => void;
   onOpenFilters: () => void;
   hasActiveFilters: boolean;
@@ -20,8 +18,6 @@ interface StickyFiltersProps {
 const StickyFilters: React.FC<StickyFiltersProps> = ({
   searchQuery,
   setSearchQuery,
-  selectedBrandName,
-  selectedModelName,
   onClearSearch,
   onOpenFilters,
   hasActiveFilters,
@@ -56,7 +52,7 @@ const StickyFilters: React.FC<StickyFiltersProps> = ({
           </span>
           <Input
             type="text"
-            placeholder="Поиск..."
+            placeholder="AI поиск..."
             className="pl-10 pr-8 bg-white/80 border-gray-200 rounded-lg"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -90,21 +86,7 @@ const StickyFilters: React.FC<StickyFiltersProps> = ({
         </Button>
       </form>
       
-      {/* Показываем активные фильтры */}
-      {(selectedBrandName || selectedModelName) && (
-        <div className="flex gap-1 mt-2">
-          {selectedBrandName && (
-            <Badge variant="secondary" className="text-xs">
-              {selectedBrandName}
-            </Badge>
-          )}
-          {selectedModelName && (
-            <Badge variant="secondary" className="text-xs">
-              {selectedModelName}
-            </Badge>
-          )}
-        </div>
-      )}
+      {/* Simplified - no brand/model filters to show */}
     </div>
   );
 };

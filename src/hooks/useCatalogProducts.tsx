@@ -65,16 +65,7 @@ export const useCatalogProducts = ({
   const { startTimer } = usePerformanceMonitor();
   const isInitialRender = useRef(true);
   
-  // Separate selected (UI) and active (filtering) states for brand/model
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [activeBrand, setActiveBrand] = useState<string | null>(null);
-  const [activeModel, setActiveModel] = useState<string | null>(null);
-
-  const selectedBrandName = findBrandNameById ? findBrandNameById(selectedBrand) : selectedBrand;
-  const selectedModelName = findModelNameById ? findModelNameById(selectedModel) : selectedModel;
-  const activeBrandName = findBrandNameById ? findBrandNameById(activeBrand) : activeBrand;
-  const activeModelName = findModelNameById ? findModelNameById(activeModel) : activeModel;
+  // Simplified - no brand/model selection needed
 
   // Use unified search for intelligent search parsing
   const {
@@ -110,15 +101,13 @@ export const useCatalogProducts = ({
     const filtersObj = {
       activeSearchTerm,
       hideSoldProducts,
-      activeBrandName,
-      activeModelName,
       sortBy,
       isAdmin,
       searchConditions,
-      shouldUseAISearch
+      shouldUseAISearch: true // Always use AI search
     };
     return filtersObj;
-  }, [activeSearchTerm, hideSoldProducts, activeBrandName, activeModelName, sortBy, isAdmin, searchConditions, shouldUseAISearch]);
+  }, [activeSearchTerm, hideSoldProducts, sortBy, isAdmin, searchConditions]);
 
   const {
     data,
@@ -216,20 +205,14 @@ export const useCatalogProducts = ({
                 query = query.in('id', []);
               }
             } else {
-              // For queries too short for AI search (< 3 chars), return empty results
-              console.log('❌ Query too short for AI search');
-              query = query.in('id', []);
+              // For queries too short for AI search (< 3 chars), use basic text search
+              console.log('⚡ Using basic text search for short query');
+              query = query.ilike('title', `%${searchConditions.textSearch}%`);
             }
           }
         }
 
-        if (filters.activeBrandName) {
-          query = query.eq('brand', filters.activeBrandName);
-        }
-
-        if (filters.activeModelName) {
-          query = query.eq('model', filters.activeModelName);
-        }
+        // Brand/model filtering removed - AI search handles all filtering
 
         query = query.range(from, to);
 
@@ -356,17 +339,11 @@ export const useCatalogProducts = ({
   const handleClearSearch = useCallback(() => {
     setSearchTerm('');
     setActiveSearchTerm('');
-    setSelectedBrand(null);
-    setSelectedModel(null);
-    setActiveBrand(null);
-    setActiveModel(null);
   }, []);
 
   const handleSearch = useCallback(() => {
     setActiveSearchTerm(searchTerm);
-    setActiveBrand(selectedBrand);
-    setActiveModel(selectedModel);
-  }, [searchTerm, selectedBrand, selectedModel]);
+  }, [searchTerm]);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -379,14 +356,6 @@ export const useCatalogProducts = ({
     activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
-    selectedBrand,
-    setSelectedBrand,
-    selectedModel,
-    setSelectedModel,
-    activeBrand,
-    activeModel,
-    activeBrandName,
-    activeModelName,
     allProducts: mappedProducts,
     mappedProducts,
     productChunks,
@@ -400,10 +369,10 @@ export const useCatalogProducts = ({
     handleClearSearch,
     handleSearch,
     handleSearchSubmit,
-    prefetchNextPage, // New method for prefetching
-    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || activeBrandName || activeModelName),
+    prefetchNextPage,
+    isActiveFilters: !!(activeSearchTerm || hideSoldProducts),
     isAISearching,
-    shouldUseAISearch
+    shouldUseAISearch: true // Always true for simplified search
   };
 };
 

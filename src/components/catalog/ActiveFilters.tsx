@@ -6,28 +6,20 @@ import { X, Filter } from 'lucide-react';
 
 interface ActiveFiltersProps {
   searchQuery?: string;
-  selectedBrandName?: string | null;
-  selectedModelName?: string | null;
   hideSoldProducts?: boolean;
   onClearSearch?: () => void;
-  onClearBrand?: () => void;
-  onClearModel?: () => void;
   onClearSoldFilter?: () => void;
   onClearAll?: () => void;
 }
 
 const ActiveFilters: React.FC<ActiveFiltersProps> = ({
   searchQuery,
-  selectedBrandName,
-  selectedModelName,
   hideSoldProducts,
   onClearSearch,
-  onClearBrand,
-  onClearModel,
   onClearSoldFilter,
   onClearAll
 }) => {
-  const hasActiveFilters = !!(searchQuery || selectedBrandName || selectedModelName || hideSoldProducts);
+  const hasActiveFilters = !!(searchQuery || hideSoldProducts);
 
   if (!hasActiveFilters) {
     return null;
@@ -42,34 +34,10 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({
       
       {searchQuery && (
         <Badge variant="secondary" className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-          Поиск: "{searchQuery}"
+          AI Поиск: "{searchQuery}"
           <button
             onClick={onClearSearch}
             className="ml-1 hover:bg-blue-300 rounded-full p-0.5"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      )}
-      
-      {selectedBrandName && (
-        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
-          Марка: {selectedBrandName}
-          <button
-            onClick={onClearBrand}
-            className="ml-1 hover:bg-green-300 rounded-full p-0.5"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-      )}
-      
-      {selectedModelName && (
-        <Badge variant="secondary" className="bg-purple-100 text-purple-800 hover:bg-purple-200">
-          Модель: {selectedModelName}
-          <button
-            onClick={onClearModel}
-            className="ml-1 hover:bg-purple-300 rounded-full p-0.5"
           >
             <X className="h-3 w-3" />
           </button>

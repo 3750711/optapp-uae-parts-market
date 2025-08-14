@@ -8,7 +8,6 @@ import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import CatalogSearchAndFilters from "@/components/catalog/CatalogSearchAndFilters";
 import CatalogContent from "@/components/catalog/CatalogContent";
-import { useConditionalCarData } from "@/hooks/useConditionalCarData";
 import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
 import BackButton from "@/components/navigation/BackButton";
@@ -19,32 +18,17 @@ const Catalog: React.FC = () => {
   const isLoadMoreVisible = useIntersection(loadMoreRef, "100px");
   const isPrefetchTriggerVisible = useIntersection(prefetchTriggerRef, "300px");
 
-  const {
-    brands,
-    brandModels,
-    findBrandNameById,
-    findModelNameById,
-    selectBrand,
-    shouldLoadCarData
-  } = useConditionalCarData();
+  // Simplified - no car data needed
 
   const { addToHistory } = useSearchHistory();
 
-  // Убираем batch offers из каталога для оптимизации производительности
+  // Simplified catalog products
   const {
     searchTerm,
     setSearchTerm,
     activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
-    selectedBrand,
-    setSelectedBrand,
-    selectedModel,
-    setSelectedModel,
-    activeBrand,
-    activeModel,
-    activeBrandName,
-    activeModelName,
     mappedProducts,
     productChunks,
     fetchNextPage,
@@ -61,8 +45,6 @@ const Catalog: React.FC = () => {
     shouldUseAISearch,
   } = useCatalogProducts({
     productsPerPage: 24,
-    findBrandNameById,
-    findModelNameById,
   });
 
   // Auto-load more products when visible
@@ -89,44 +71,20 @@ const Catalog: React.FC = () => {
 
   const handleSelectFromHistory = useCallback((item: SearchHistoryItem) => {
     setSearchTerm(item.query);
-    
-    if (item.brand && brands.length > 0) {
-      const brandId = brands.find(b => b.name === item.brand)?.id;
-      if (brandId) {
-        setSelectedBrand(brandId);
-        selectBrand(brandId);
-      }
-    }
-    
-    if (item.model && brandModels.length > 0) {
-      const modelId = brandModels.find(m => m.name === item.model)?.id;
-      if (modelId) setSelectedModel(modelId);
-    }
-    
     setTimeout(() => {
       handleSearch();
     }, 100);
-  }, [brands, brandModels, handleSearch, setSelectedBrand, selectBrand]);
+  }, [handleSearch, setSearchTerm]);
 
   const handleEnhancedSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      const selectedBrandName = findBrandNameById(selectedBrand);
-      const selectedModelName = findModelNameById(selectedModel);
-      addToHistory(searchTerm, selectedBrandName || undefined, selectedModelName || undefined);
+      addToHistory(searchTerm);
     }
     handleSearchSubmit(e);
-  }, [searchTerm, selectedBrand, selectedModel, findBrandNameById, findModelNameById, addToHistory, handleSearchSubmit]);
+  }, [searchTerm, addToHistory, handleSearchSubmit]);
 
-  const handleClearBrand = useCallback(() => {
-    setSelectedBrand(null);
-    setSelectedModel(null);
-    selectBrand(null);
-  }, [setSelectedBrand, setSelectedModel, selectBrand]);
-
-  const handleClearModel = useCallback(() => {
-    setSelectedModel(null);
-  }, [setSelectedModel]);
+  // Simplified - no brand/model clearing needed
 
   const handleClearSoldFilter = useCallback(() => {
     setHideSoldProducts(false);
@@ -136,13 +94,8 @@ const Catalog: React.FC = () => {
     handleClearSearch();
   }, [handleClearSearch]);
 
-  const selectedBrandName = findBrandNameById(selectedBrand);
-  const selectedModelName = findModelNameById(selectedModel);
-
   const hasAnyFilters = !!(
     activeSearchTerm || 
-    activeBrandName || 
-    activeModelName || 
     hideSoldProducts
   );
 
@@ -165,74 +118,25 @@ const Catalog: React.FC = () => {
         <BackButton className="mb-4" fallback="/" />
         <CatalogBreadcrumb
           searchQuery={activeSearchTerm}
-          selectedBrandName={activeBrandName}
-          selectedModelName={activeModelName}
         />
 
-        {shouldLoadCarData && (
-          <div data-filters-section>
-            <CatalogSearchAndFilters 
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              activeSearchTerm={activeSearchTerm}
-              onSearch={handleSearch}
-              onClearSearch={handleClearSearch}
-              onSearchSubmit={handleEnhancedSearchSubmit}
-              selectedBrand={selectedBrand}
-              selectBrand={(brandId) => {
-                setSelectedBrand(brandId);
-                selectBrand(brandId);
-              }}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              brands={brands}
-              brandModels={brandModels}
-              hideSoldProducts={hideSoldProducts}
-              setHideSoldProducts={setHideSoldProducts}
-              onSelectFromHistory={handleSelectFromHistory}
-              isAISearching={isAISearching}
-              shouldUseAISearch={shouldUseAISearch}
-            />
-          </div>
-        )}
-
-        {!shouldLoadCarData && (
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <form onSubmit={handleEnhancedSearchSubmit} className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Поиск товаров..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <Button type="submit">
-                  Поиск
-                </Button>
-                {searchTerm && (
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={handleClearSearch}
-                  >
-                    Очистить
-                  </Button>
-                )}
-              </form>
-            </div>
-          </div>
-        )}
+        <div data-filters-section>
+          <CatalogSearchAndFilters 
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            activeSearchTerm={activeSearchTerm}
+            onSearchSubmit={handleEnhancedSearchSubmit}
+            hideSoldProducts={hideSoldProducts}
+            setHideSoldProducts={setHideSoldProducts}
+            isAISearching={isAISearching}
+          />
+        </div>
 
         {hasAnyFilters && (
           <ActiveFilters
             searchQuery={activeSearchTerm}
-            selectedBrandName={activeBrandName}
-            selectedModelName={activeModelName}
             hideSoldProducts={hideSoldProducts}
             onClearSearch={handleClearSearch}
-            onClearBrand={handleClearBrand}
-            onClearModel={handleClearModel}
             onClearSoldFilter={handleClearSoldFilter}
             onClearAll={handleClearAll}
           />
@@ -241,8 +145,6 @@ const Catalog: React.FC = () => {
         <StickyFilters
           searchQuery={searchTerm}
           setSearchQuery={setSearchTerm}
-          selectedBrandName={activeBrandName}
-          selectedModelName={activeModelName}
           onClearSearch={handleClearSearch}
           onOpenFilters={() => {
             const filtersSection = document.querySelector('[data-filters-section]');
