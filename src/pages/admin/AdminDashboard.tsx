@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { OrderVideoFixer } from "@/components/admin/OrderVideoFixer";
+import { EmbeddingsGenerator } from "@/components/admin/EmbeddingsGenerator";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -126,10 +127,13 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      {/* Order Video Fixer */}
+      {/* Admin Tools */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold mb-4">Исправление ошибок</h2>
-        <OrderVideoFixer />
+        <h2 className="text-xl font-semibold mb-4">Инструменты администратора</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <OrderVideoFixer />
+          <EmbeddingsGenerator />
+        </div>
       </div>
     </div>
   );
