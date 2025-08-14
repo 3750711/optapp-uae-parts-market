@@ -182,7 +182,7 @@ export const useCatalogProducts = ({
                 console.log('🔍 Performing AI semantic search for:', searchConditions.textSearch);
                 const aiSearchResult = await performAISearch(searchConditions.textSearch, {
                   similarityThreshold: 0.3, // Cosine distance threshold for similarity > 0.7
-                  matchCount: 20 // Limit to exactly 20 results as requested
+                  matchCount: 100 // Increased for better search coverage
                 });
                 
                 if (aiSearchResult.success && aiSearchResult.results.length > 0) {
