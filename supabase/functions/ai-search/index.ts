@@ -33,7 +33,7 @@ serve(async (req) => {
       }
     });
 
-    const { query, similarityThreshold = 0.3, matchCount = 50 } = await req.json();
+    const { query, similarityThreshold = 0.3, matchCount = 20 } = await req.json();
     
     if (!query || typeof query !== 'string') {
       throw new Error('Query parameter is required and must be a string');
@@ -68,15 +68,62 @@ serve(async (req) => {
 
     console.log('Generated query embedding, searching for similar products...');
 
-    // Perform hybrid search using the new RPC function
-    const { data: searchResults, error: searchError } = await supabase
+    // Perform two-stage filtered search for optimal results
+    console.log('Performing two-stage filtered search...');
+    
+    // Stage 1: Get products with high exact match scores
+    const { data: exactMatches, error: exactError } = await supabase
       .rpc('hybrid_search_products', {
         query_embedding: queryEmbedding,
         search_keywords: query,
-        similarity_threshold: similarityThreshold,
-        match_count: matchCount,
+        similarity_threshold: 0.0, // Get all matches for filtering
+        match_count: 50, // Higher limit for filtering
         query_length: queryLength
       });
+
+    if (exactError) {
+      console.error('Error in exact match search:', exactError);
+      throw exactError;
+    }
+
+    console.log(`Stage 1: Found ${exactMatches?.length || 0} total matches`);
+    
+    // Filter and prioritize results
+    let finalResults = [];
+    
+    if (exactMatches && exactMatches.length > 0) {
+      // Stage 1: Get high exact match score products (≥ 0.8)
+      const highExactMatches = exactMatches.filter(item => item.exact_match_score >= 0.8);
+      console.log(`High exact matches (≥0.8): ${highExactMatches.length}`);
+      
+      // Add high exact matches first
+      finalResults = [...highExactMatches];
+      
+      // Stage 2: If we have less than 10 high exact matches, add products with good hybrid scores
+      if (finalResults.length < 10) {
+        const remainingSlots = Math.min(20 - finalResults.length, 15);
+        const additionalMatches = exactMatches
+          .filter(item => item.exact_match_score < 0.8 && item.hybrid_score >= 0.4)
+          .slice(0, remainingSlots);
+        
+        console.log(`Adding ${additionalMatches.length} additional matches with good hybrid scores`);
+        finalResults = [...finalResults, ...additionalMatches];
+      }
+      
+      // Limit to maximum 20 results
+      finalResults = finalResults.slice(0, 20);
+      
+      // Log score distribution for debugging
+      console.log('Score distribution:', {
+        highExact: finalResults.filter(r => r.exact_match_score >= 0.8).length,
+        mediumExact: finalResults.filter(r => r.exact_match_score >= 0.5 && r.exact_match_score < 0.8).length,
+        lowExact: finalResults.filter(r => r.exact_match_score < 0.5).length,
+        avgExactScore: finalResults.reduce((sum, r) => sum + r.exact_match_score, 0) / finalResults.length,
+        avgHybridScore: finalResults.reduce((sum, r) => sum + r.hybrid_score, 0) / finalResults.length
+      });
+    }
+    
+    const searchResults = finalResults;
 
     if (searchError) {
       console.error('Error performing hybrid search:', searchError);
