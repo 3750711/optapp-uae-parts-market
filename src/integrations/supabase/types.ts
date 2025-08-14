@@ -1726,6 +1726,7 @@ export type Database = {
           price: number
           product_id: string
           similarity: number
+          status: Database["public"]["Enums"]["product_status"]
           title: string
         }[]
       }
