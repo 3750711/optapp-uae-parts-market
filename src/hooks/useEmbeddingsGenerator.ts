@@ -89,9 +89,10 @@ export const useEmbeddingsGenerator = () => {
     try {
       console.log('🚀 Starting embeddings generation for statuses:', selectedStatuses);
       
-      const batchSize = 200;
+      const batchSize = 50; // Smaller batch size for reliability
       let totalProcessed = 0;
       let totalUpdated = 0;
+      let offset = 0;
       
       // Calculate total products to process based on selected statuses
       const totalToProcess = selectedStatuses.reduce((total, status) => {
@@ -106,32 +107,57 @@ export const useEmbeddingsGenerator = () => {
         total: totalToProcess
       });
 
-      // Process all products without pagination limit
-      const { data, error } = await supabase.functions.invoke('generate-embeddings', {
-        body: {
-          statuses: selectedStatuses,
-          batchSize: 2000, // Large batch to process all at once
-          offset: 0
-        }
-      });
+      console.log(`🎯 Target: ${totalToProcess} products with statuses:`, selectedStatuses);
 
-      if (error) {
-        throw error;
-      }
-
-      console.log('✅ Embeddings generation completed:', data);
-      
-      if (data) {
-        setProgress({
-          processed: data.processed || 0,
-          updated: data.updated || 0,
-          total: totalToProcess
+      // Process in batches with pagination
+      while (offset < totalToProcess) {
+        console.log(`📦 Processing batch: offset ${offset}, batchSize ${batchSize}`);
+        
+        const { data, error } = await supabase.functions.invoke('generate-embeddings', {
+          body: {
+            statuses: selectedStatuses,
+            batchSize,
+            offset
+          }
         });
+
+        if (error) {
+          console.error('❌ Batch error:', error);
+          throw error;
+        }
+
+        if (data) {
+          totalProcessed += data.processed || 0;
+          totalUpdated += data.updated || 0;
+          
+          // Update progress
+          setProgress({
+            processed: totalProcessed,
+            updated: totalUpdated,
+            total: totalToProcess
+          });
+
+          console.log(`✅ Batch completed: processed ${data.processed}, updated ${data.updated}. Total: ${totalProcessed}/${totalToProcess}`);
+          
+          // If we processed fewer items than batch size, we're done
+          if ((data.processed || 0) < batchSize) {
+            console.log('🏁 Reached end of data, stopping');
+            break;
+          }
+          
+          offset += batchSize;
+          
+          // Small delay between batches to avoid overwhelming the system
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } else {
+          console.log('⚠️ No data returned, stopping');
+          break;
+        }
       }
 
       toast({
         title: 'Успешно!',
-        description: `Embeddings сгенерированы. Обработано: ${data?.processed || 0}, обновлено: ${data?.updated || 0}`,
+        description: `Embeddings сгенерированы. Обработано: ${totalProcessed}, обновлено: ${totalUpdated}`,
       });
 
       // Refresh stats after generation

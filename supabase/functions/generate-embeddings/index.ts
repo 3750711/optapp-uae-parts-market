@@ -28,25 +28,22 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { productIds, batchSize = 200, statuses = ['active', 'sold'], offset = 0 } = await req.json();
+    const { productIds, batchSize = 50, statuses = ['active', 'sold'], offset = 0 } = await req.json();
     
-    console.log('Starting embedding generation for products:', productIds?.length || 'all', 'with statuses:', statuses);
+    console.log(`🔧 Starting embedding generation: batch=${batchSize}, offset=${offset}, statuses=${statuses.join(',')}, productIds=${productIds?.length || 'all'}`);
 
     let query = supabase
       .from('products')
       .select('id, title, description, brand, model, condition, price, product_location, status')
-      .in('status', statuses);
+      .in('status', statuses)
+      .order('id'); // Consistent ordering for pagination
 
     if (productIds && productIds.length > 0) {
       query = query.in('id', productIds);
     }
 
-    // Add pagination support
-    if (offset > 0) {
-      query = query.range(offset, offset + batchSize - 1);
-    } else if (batchSize < 1000) {
-      query = query.limit(batchSize);
-    }
+    // Always use range for consistent pagination
+    query = query.range(offset, offset + batchSize - 1);
 
     const { data: products, error: fetchError } = await query;
 
@@ -137,7 +134,7 @@ serve(async (req) => {
         processed++;
 
         // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 200));
 
       } catch (error) {
         console.error(`Error processing product ${product.id}:`, error);
