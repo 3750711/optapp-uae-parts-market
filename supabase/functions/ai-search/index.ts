@@ -33,7 +33,7 @@ serve(async (req) => {
       }
     });
 
-    const { query, similarityThreshold = 0.3, matchCount = 20 } = await req.json();
+    const { query, similarityThreshold = 0.2, matchCount = 100 } = await req.json();
     
     if (!query || typeof query !== 'string') {
       throw new Error('Query parameter is required and must be a string');
@@ -71,18 +71,35 @@ serve(async (req) => {
     // Perform two-stage filtered search for optimal results
     console.log('Performing two-stage filtered search...');
     
-    // Stage 1: Get products with high exact match scores
+    // Perform hybrid search with improved parameters
+    console.log('Calling hybrid_search_products with:', {
+      similarity_threshold: similarityThreshold,
+      match_count: matchCount,
+      query_length: queryLength
+    });
+
     const { data: exactMatches, error: exactError } = await supabase
       .rpc('hybrid_search_products', {
         query_embedding: queryEmbedding,
         search_keywords: query,
-        similarity_threshold: 0.0, // Get all matches for filtering
-        match_count: 50, // Higher limit for filtering
+        similarity_threshold: similarityThreshold,
+        match_count: matchCount,
         query_length: queryLength
       });
 
+    console.log('Search result status:', { 
+      hasError: !!exactError, 
+      dataLength: exactMatches?.length 
+    });
+
     if (exactError) {
-      console.error('Error in exact match search:', exactError);
+      console.error('Error in hybrid search:', {
+        error: exactError,
+        code: exactError.code,
+        message: exactError.message,
+        details: exactError.details,
+        hint: exactError.hint
+      });
       throw exactError;
     }
 
