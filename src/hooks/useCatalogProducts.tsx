@@ -7,7 +7,7 @@ import { SortOption } from '@/components/catalog/ProductSorting';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 import { useUnifiedSearch } from './useUnifiedSearch';
-import { useAISearch } from './useAISearch';
+import { useAISearch, AISearchResult } from './useAISearch';
 
 export type ProductType = {
   id: string;

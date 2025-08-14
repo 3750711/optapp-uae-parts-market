@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-interface AISearchResult {
+export interface AISearchResult {
   id: string;
   title?: string;
   brand?: string;
@@ -11,7 +11,7 @@ interface AISearchResult {
   hybrid_score?: number;
 }
 
-interface AISearchResponse {
+export interface AISearchResponse {
   success: boolean;
   query: string;
   results: AISearchResult[];
