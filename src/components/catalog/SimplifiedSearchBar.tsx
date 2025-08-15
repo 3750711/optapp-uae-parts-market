@@ -16,15 +16,6 @@ interface SimplifiedSearchBarProps {
   setHideSoldProducts: (hide: boolean) => void;
   isAISearching?: boolean;
   searchType?: 'ai' | 'fallback' | null;
-  selectedBrand?: string;
-  selectedModel?: string;
-  brands?: { id: string; name: string }[];
-  brandModels?: { id: string; name: string }[];
-  onBrandChange?: (brandId: string, brandName: string) => void;
-  onModelChange?: (modelId: string, modelName: string) => void;
-  onClearBrandModel?: () => void;
-  findBrandNameById?: (brandId: string | null) => string | null;
-  findModelNameById?: (modelId: string | null) => string | null;
 }
 
 const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
@@ -34,16 +25,7 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
   hideSoldProducts,
   setHideSoldProducts,
   isAISearching = false,
-  searchType = null,
-  selectedBrand = '',
-  selectedModel = '',
-  brands = [],
-  brandModels = [],
-  onBrandChange,
-  onModelChange,
-  onClearBrandModel,
-  findBrandNameById,
-  findModelNameById
+  searchType = null
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -63,34 +45,19 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
     setSearchQuery('');
   };
 
-  // Determine search strategy for UI indication
-  const getSearchStrategy = () => {
-    const hasSearch = searchQuery.trim().length >= 2;
-    const hasBrand = selectedBrand;
-    const hasModel = selectedModel;
-    
-    if (hasSearch && (hasBrand || hasModel)) return 'hybrid';
-    if (hasSearch) return 'ai';
-    if (hasBrand || hasModel) return 'filter';
-    return 'all';
-  };
 
   const getSearchTypeLabel = () => {
-    const strategy = getSearchStrategy();
+    if (isAISearching) {
+      return '🧠 AI анализирует...';
+    }
     
-    if (isAISearching) return '⚡ Поиск...';
-    
-    switch (strategy) {
-      case 'hybrid':
-        return searchType === 'fallback' ? '🔍 Текстовый + фильтры' : 
-               searchType === 'ai' ? '🧠 Умный поиск + фильтры' : '🔄 Гибридный поиск';
+    switch (searchType) {
       case 'ai':
-        return searchType === 'fallback' ? '🔍 Текстовый поиск' : 
-               searchType === 'ai' ? '🧠 Умный поиск' : '🤖 ИИ поиск';
-      case 'filter':
-        return '🔧 Фильтры активны';
+        return '🧠 AI поиск';
+      case 'fallback':
+        return '🔍 Текстовый поиск';
       default:
-        return '📋 Все товары';
+        return '';
     }
   };
 
@@ -145,31 +112,6 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
           </div>
         </form>
 
-        {/* Brand and Model Selection */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-foreground">Фильтр по марке и модели</h3>
-            {(selectedBrand || selectedModel) && onClearBrandModel && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearBrandModel}
-                className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
-              >
-                Очистить
-              </Button>
-            )}
-          </div>
-          
-          <SimpleCarSelector
-            brandId={selectedBrand}
-            modelId={selectedModel}
-            onBrandChange={onBrandChange || (() => {})}
-            onModelChange={onModelChange || (() => {})}
-            isMobile={false}
-          />
-        </div>
-
         {/* Controls row */}
         <div className="flex items-center justify-between">
           {/* Hide sold products checkbox */}
@@ -192,11 +134,7 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
           <div className="flex items-center gap-4">
             <div className="flex items-center text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
-                {getSearchStrategy() === 'ai' || getSearchStrategy() === 'hybrid' ? (
-                  <Brain className="h-3 w-3 text-primary" />
-                ) : (
-                  <Search className="h-3 w-3" />
-                )}
+                <Brain className="h-3 w-3 text-primary" />
                 <span>{getSearchTypeLabel()}</span>
               </div>
             </div>

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useDebounceSearch } from '@/hooks/useDebounceSearch';
 import { useAISearch } from '@/hooks/useAISearch';
-import { useAllCarBrands } from '@/hooks/useAllCarBrands';
+
 import type { ProductProps } from '@/components/product/ProductCard';
 
 // ProductType definition
@@ -55,20 +55,6 @@ export const useCatalogProducts = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState<string>('');
-  const [selectedModel, setSelectedModel] = useState<string>('');
-
-  // Get car brands and models data
-  const {
-    brands,
-    brandModels,
-    allModels,
-    isLoading: isLoadingCarData,
-    findBrandNameById,
-    findModelNameById,
-    findBrandIdByName,
-    findModelIdByName
-  } = useAllCarBrands();
 
   // Debounce search and AI search (increased debounce for better performance)
   const debouncedSearchTerm = useDebounceSearch(activeSearchTerm, 800);
@@ -92,8 +78,6 @@ export const useCatalogProducts = ({
     queryKey: ['products-infinite', {
       debouncedSearchTerm,
       hideSoldProducts,
-      selectedBrand,
-      selectedModel,
       sortBy
     }],
     queryFn: async ({ pageParam = 0 }) => {
@@ -103,8 +87,6 @@ export const useCatalogProducts = ({
           debouncedSearchTerm,
           activeSearchTerm,
           hideSoldProducts,
-          selectedBrand,
-          selectedModel,
           productsPerPage
         });
 
@@ -136,106 +118,57 @@ export const useCatalogProducts = ({
             )
           `);
 
-        // Apply brand/model filters (standard SQL filtering for exact matches)
-        if (selectedBrand) {
-          const brandName = findBrandNameById(selectedBrand);
-          if (brandName) {
-            query = query.eq('brand', brandName);
-          }
-        }
-
-        if (selectedModel) {
-          const modelName = findModelNameById(selectedModel);
-          if (modelName) {
-            query = query.eq('model', modelName);
-          }
-        }
-
         // Hide sold products filter
         if (hideSoldProducts) {
           query = query.neq('status', 'sold');
         }
 
-        // Implement new search priority logic
-        let searchStrategy = 'none';
-        let isAISearch = false;
-        let productIds: string[] = [];
-
+        // Simplified AI-only search logic
         const hasSearchTerm = debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2;
-        const hasBrandFilter = selectedBrand;
-        const hasModelFilter = selectedModel;
 
-        if (hasSearchTerm && (hasBrandFilter || hasModelFilter)) {
-          // HYBRID SEARCH: AI search + brand/model filtering
-          searchStrategy = 'hybrid';
-          console.log('🔄 Using HYBRID search strategy (AI + brand/model filters)');
+        if (hasSearchTerm) {
+          // AI SEARCH: Use AI for all searches with exact match prioritization
+          console.log('🧠 Using AI search with exact match prioritization');
           
           try {
             const aiSearchResult = await performAISearch(debouncedSearchTerm.trim(), {
-              similarityThreshold: 0.15,
-              matchCount: 200,
+              similarityThreshold: 0.1, // Lower threshold for better coverage
+              matchCount: 500, // Higher count for better results
               enableFallback: true
             });
             
             if (aiSearchResult.success && aiSearchResult.results.length > 0) {
-              productIds = aiSearchResult.results.map(r => r.id);
-              isAISearch = true;
-              console.log('🎯 Hybrid AI search found products:', productIds.length);
-              
-              // Apply AI results filter first
-              query = query.in('id', productIds);
-              (query as any)._aiOrder = productIds;
-              (query as any)._searchType = aiSearchResult.searchType || 'ai';
-            } else {
-              console.log('❌ AI search failed in hybrid mode, falling back to text + filters');
-              // Fallback: text search
-              query = query.ilike('title', `%${debouncedSearchTerm.trim()}%`);
-              (query as any)._searchType = 'fallback';
-            }
-          } catch (error) {
-            console.error('❌ Hybrid search error, falling back to text + filters:', error);
-            query = query.ilike('title', `%${debouncedSearchTerm.trim()}%`);
-            (query as any)._searchType = 'fallback';
-          }
-        } else if (hasSearchTerm) {
-          // PURE AI SEARCH: Only search term, no brand/model
-          searchStrategy = 'ai';
-          console.log('🧠 Using PURE AI search strategy');
-          
-          try {
-            const aiSearchResult = await performAISearch(debouncedSearchTerm.trim(), {
-              similarityThreshold: 0.15,
-              matchCount: 100,
-              enableFallback: true
-            });
-            
-            if (aiSearchResult.success && aiSearchResult.results.length > 0) {
-              productIds = aiSearchResult.results.map(r => r.id);
-              isAISearch = true;
-              console.log('🎯 Pure AI search found products:', productIds.length);
+              const productIds = aiSearchResult.results.map(r => r.id);
+              console.log('🎯 AI search found products:', productIds.length);
               
               query = query.in('id', productIds);
               (query as any)._aiOrder = productIds;
               (query as any)._searchType = aiSearchResult.searchType || 'ai';
             } else {
-              console.log('❌ AI search failed, falling back to text search');
-              query = query.ilike('title', `%${debouncedSearchTerm.trim()}%`);
+              console.log('❌ AI search failed, falling back to enhanced text search');
+              // Enhanced fallback with multiple search strategies
+              const searchWords = debouncedSearchTerm.trim().split(/\s+/);
+              if (searchWords.length === 1) {
+                // Single word: exact match first, then partial
+                query = query.or(`title.ilike.%${debouncedSearchTerm.trim()}%,brand.ilike.%${debouncedSearchTerm.trim()}%,model.ilike.%${debouncedSearchTerm.trim()}%`);
+              } else {
+                // Multiple words: try full phrase first, then individual words
+                const fullPhrase = debouncedSearchTerm.trim();
+                const wordFilters = searchWords.map(word => 
+                  `title.ilike.%${word}%,brand.ilike.%${word}%,model.ilike.%${word}%`
+                ).join(',');
+                query = query.or(`title.ilike.%${fullPhrase}%,${wordFilters}`);
+              }
               (query as any)._searchType = 'fallback';
             }
           } catch (error) {
-            console.error('❌ Pure AI search error, falling back to text search:', error);
+            console.error('❌ AI search error, falling back to text search:', error);
             query = query.ilike('title', `%${debouncedSearchTerm.trim()}%`);
             (query as any)._searchType = 'fallback';
           }
-        } else if (hasBrandFilter || hasModelFilter) {
-          // STANDARD FILTERING: Only brand/model, no search term
-          searchStrategy = 'filter';
-          console.log('🔧 Using STANDARD filtering strategy (brand/model only)');
-          (query as any)._searchType = 'filter';
         } else {
-          // SHOW ALL: No filters or search terms
-          searchStrategy = 'all';
-          console.log('📋 Showing ALL products (no filters)');
+          // SHOW ALL: No search terms
+          console.log('📋 Showing ALL products (no search)');
           (query as any)._searchType = 'all';
         }
 
@@ -383,19 +316,6 @@ export const useCatalogProducts = ({
     setActiveSearchTerm('');
   }, []);
 
-  const handleBrandChange = useCallback((brandId: string, brandName: string) => {
-    setSelectedBrand(brandId);
-    setSelectedModel(''); // Reset model when brand changes
-  }, []);
-
-  const handleModelChange = useCallback((modelId: string, modelName: string) => {
-    setSelectedModel(modelId);
-  }, []);
-
-  const handleClearBrandModel = useCallback(() => {
-    setSelectedBrand('');
-    setSelectedModel('');
-  }, []);
 
   const handleSearch = useCallback(() => {
     setActiveSearchTerm(searchTerm);
@@ -412,32 +332,23 @@ export const useCatalogProducts = ({
     activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
-    selectedBrand,
-    selectedModel,
-    brands,
-    brandModels,
     allProducts: mappedProducts,
     mappedProducts,
     productChunks,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading: isLoading || isLoadingCarData,
+    isLoading: isLoading,
     isError,
     error,
     refetch,
     handleClearSearch,
     handleSearch,
     handleSearchSubmit,
-    handleBrandChange,
-    handleModelChange,
-    handleClearBrandModel,
     prefetchNextPage,
-    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || selectedBrand || selectedModel),
+    isActiveFilters: !!(activeSearchTerm || hideSoldProducts),
     isAISearching,
-    searchType,
-    findBrandNameById,
-    findModelNameById
+    searchType
   };
 };
 
