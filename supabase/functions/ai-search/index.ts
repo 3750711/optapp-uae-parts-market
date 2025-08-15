@@ -39,8 +39,8 @@ serve(async (req) => {
       throw new Error('Query parameter is required and must be a string');
     }
     
-    // Fixed threshold for consistent results
-    const adaptiveThreshold = similarityThreshold || 0.12;
+    // Higher threshold for exact query matching (not individual words)
+    const adaptiveThreshold = similarityThreshold || 0.3;
     
     console.log('AI semantic search query:', query);
     console.log('Query analysis:', { 
@@ -57,7 +57,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'text-embedding-3-small',
-        input: `Автозапчасть: ${query}`,
+        input: `Поиск автозапчасти по точному названию: ${query}`,
         encoding_format: 'float',
       }),
     });
