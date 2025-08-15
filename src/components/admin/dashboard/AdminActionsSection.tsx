@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Store, Activity, Plus, Car, FileText, Package, MessageSquare, DollarSign, CheckSquare, MessageCircle, HelpCircle } from 'lucide-react';
+import { Store, Activity, Plus, Car, FileText, Package, MessageSquare, DollarSign, CheckSquare, MessageCircle, HelpCircle, Languages } from 'lucide-react';
 import ActionCard from './ActionCard';
 
 const AdminActionsSection: React.FC = () => {
@@ -87,6 +87,14 @@ const AdminActionsSection: React.FC = () => {
       icon: HelpCircle,
       link: "/admin/help-editor",
       bgColor: "bg-indigo-500",
+      textColor: "text-white"
+    },
+    {
+      title: "Управление синонимами поиска",
+      subtitle: "Генерация и управление синонимами",
+      icon: Languages,
+      link: "/admin/synonyms",
+      bgColor: "bg-violet-500",
       textColor: "text-white"
     }
   ];

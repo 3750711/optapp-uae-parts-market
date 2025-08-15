@@ -25,6 +25,7 @@ const AdminPriceOffers = lazy(() => import('@/pages/admin/AdminPriceOffers'));
 const AdminProductModeration = lazy(() => import('@/pages/AdminProductModeration'));
 const AdminTelegramMonitoring = lazy(() => import('@/pages/AdminTelegramMonitoring'));
 const AdminHelpEditor = lazy(() => import('@/pages/AdminHelpEditor'));
+const AdminSynonyms = lazy(() => import('@/pages/AdminSynonyms'));
 
 export const AdminRoutes = () => (
   <>
@@ -126,6 +127,11 @@ export const AdminRoutes = () => (
     <Route path="/admin/help-editor" element={
       <AdminRoute>
         <AdminHelpEditor />
+      </AdminRoute>
+    } />
+    <Route path="/admin/synonyms" element={
+      <AdminRoute>
+        <AdminSynonyms />
       </AdminRoute>
     } />
   </>

@@ -1,7 +1,4 @@
 import React from 'react';
-import { OrderVideoFixer } from '@/components/admin/OrderVideoFixer';
-import { EmbeddingsGenerator } from '@/components/admin/EmbeddingsGenerator';
-import { SynonymManager } from '@/components/admin/synonyms/SynonymManager';
 
 const AdminToolsSection: React.FC = () => {
   return (
@@ -13,12 +10,8 @@ const AdminToolsSection: React.FC = () => {
         </p>
       </div>
       
-      <div className="grid grid-cols-1 gap-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <OrderVideoFixer />
-          <EmbeddingsGenerator />
-        </div>
-        <SynonymManager />
+      <div className="text-center text-muted-foreground py-8">
+        <p>Специализированные инструменты будут добавлены здесь по мере необходимости</p>
       </div>
     </div>
   );
