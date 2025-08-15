@@ -30,8 +30,8 @@ export const useAISearch = () => {
   const [searchType, setSearchType] = useState<'ai' | 'fallback' | null>(null);
   const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
   
-  // Cache duration: 8 minutes
-  const CACHE_DURATION = 8 * 60 * 1000;
+  // Cache duration: 10 minutes
+  const CACHE_DURATION = 10 * 60 * 1000;
 
   const performAISearch = useCallback(async (
     query: string,

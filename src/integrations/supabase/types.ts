@@ -1901,6 +1901,7 @@ export type Database = {
           model: string
           preview_image_url: string
           price: number
+          seller_id: string
           seller_name: string
           similarity_score: number
           status: Database["public"]["Enums"]["product_status"]

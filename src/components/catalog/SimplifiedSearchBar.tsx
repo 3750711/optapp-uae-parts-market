@@ -78,17 +78,19 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
   const getSearchTypeLabel = () => {
     const strategy = getSearchStrategy();
     
-    if (isAISearching) return 'AI поиск...';
+    if (isAISearching) return '⚡ Поиск...';
     
     switch (strategy) {
       case 'hybrid':
-        return searchType === 'fallback' ? 'Текстовый + фильтры' : 'AI + фильтры';
+        return searchType === 'fallback' ? '🔍 Текстовый + фильтры' : 
+               searchType === 'ai' ? '🧠 Умный поиск + фильтры' : '🔄 Гибридный поиск';
       case 'ai':
-        return searchType === 'fallback' ? 'Текстовый поиск' : 'AI поиск';
+        return searchType === 'fallback' ? '🔍 Текстовый поиск' : 
+               searchType === 'ai' ? '🧠 Умный поиск' : '🤖 ИИ поиск';
       case 'filter':
-        return 'Фильтр';
+        return '🔧 Фильтры активны';
       default:
-        return 'Все товары';
+        return '📋 Все товары';
     }
   };
 

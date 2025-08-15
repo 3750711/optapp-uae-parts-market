@@ -172,7 +172,7 @@ export const useCatalogProducts = ({
           
           try {
             const aiSearchResult = await performAISearch(debouncedSearchTerm.trim(), {
-              similarityThreshold: 0.12,
+              similarityThreshold: 0.15,
               matchCount: 200,
               enableFallback: true
             });

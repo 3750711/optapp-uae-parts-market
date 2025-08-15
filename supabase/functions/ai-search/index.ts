@@ -33,15 +33,15 @@ serve(async (req) => {
       }
     });
 
-    const { query, similarityThreshold, matchCount = 100 } = await req.json();
+    const { query, similarityThreshold, matchCount = 200 } = await req.json();
     
     if (!query || typeof query !== 'string') {
       throw new Error('Query parameter is required and must be a string');
     }
     
-    // Smart threshold adaptation based on query length
+    // Optimized threshold for better Russian language results
     const queryWords = query.trim().split(/\s+/).length;
-    const adaptiveThreshold = similarityThreshold || (queryWords <= 2 ? 0.5 : 0.4);
+    const adaptiveThreshold = similarityThreshold || (queryWords <= 2 ? 0.25 : 0.15);
     
     console.log('AI semantic search query:', query);
     console.log('Query analysis:', { 
