@@ -77,6 +77,7 @@ serve(async (req) => {
     console.log('Performing semantic search...');
     
     console.log('Calling semantic_search_products with:', {
+      search_query: query,
       similarity_threshold: adaptiveThreshold,
       match_count: matchCount
     });
@@ -84,6 +85,7 @@ serve(async (req) => {
     const { data: searchResults, error: searchError } = await supabase
       .rpc('semantic_search_products', {
         query_embedding: queryEmbedding,
+        search_query: query,
         similarity_threshold: adaptiveThreshold,
         match_count: matchCount
       });
@@ -123,14 +125,27 @@ serve(async (req) => {
       });
       
       // Log top 3 results with detailed scoring for debugging
-      console.log('Top 3 results with scores:', finalResults.slice(0, 3).map(r => ({
-        id: r.id,
-        title: r.title?.substring(0, 50) + '...',
-        brand: r.brand,
-        model: r.model,
-        similarity_score: r.similarity_score,
-        combined_score: r.combined_score
-      })));
+      console.log('Top 3 results with detailed scores:', finalResults.slice(0, 3).map(r => {
+        const similarity = r.similarity_score || 0;
+        const combined = r.combined_score || 0;
+        const boost = combined - similarity;
+        
+        return {
+          id: r.id,
+          title: r.title?.substring(0, 50) + '...',
+          brand: r.brand,
+          model: r.model,
+          similarity_score: similarity,
+          combined_score: combined,
+          boost_applied: boost,
+          ranking_factors: {
+            base_similarity: similarity,
+            brand_bonus: r.brand ? 'possible' : 'none',
+            model_bonus: r.model ? 'possible' : 'none',
+            title_bonus: 'possible'
+          }
+        };
+      }));
     }
 
     console.log(`Returning ${finalResults?.length || 0} similar products`);

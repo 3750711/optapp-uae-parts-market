@@ -1890,6 +1890,7 @@ export type Database = {
         Args: {
           match_count?: number
           query_embedding: string
+          search_query: string
           similarity_threshold?: number
         }
         Returns: {
