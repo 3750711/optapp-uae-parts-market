@@ -49,6 +49,7 @@ const Catalog: React.FC = () => {
     handleClearBrandModel,
     prefetchNextPage,
     isAISearching,
+    searchType,
     findBrandNameById,
     findModelNameById
   } = useCatalogProducts({
@@ -139,6 +140,7 @@ const Catalog: React.FC = () => {
             hideSoldProducts={hideSoldProducts}
             setHideSoldProducts={setHideSoldProducts}
             isAISearching={isAISearching}
+            searchType={searchType}
             selectedBrand={selectedBrand}
             selectedModel={selectedModel}
             brands={brands}

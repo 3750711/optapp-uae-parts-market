@@ -15,6 +15,7 @@ interface SimplifiedSearchBarProps {
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
   isAISearching?: boolean;
+  searchType?: 'ai' | 'fallback' | null;
   selectedBrand?: string;
   selectedModel?: string;
   brands?: { id: string; name: string }[];
@@ -33,6 +34,7 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
   hideSoldProducts,
   setHideSoldProducts,
   isAISearching = false,
+  searchType = null,
   selectedBrand = '',
   selectedModel = '',
   brands = [],
@@ -59,6 +61,35 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
 
   const clearSearch = () => {
     setSearchQuery('');
+  };
+
+  // Determine search strategy for UI indication
+  const getSearchStrategy = () => {
+    const hasSearch = searchQuery.trim().length >= 2;
+    const hasBrand = selectedBrand;
+    const hasModel = selectedModel;
+    
+    if (hasSearch && (hasBrand || hasModel)) return 'hybrid';
+    if (hasSearch) return 'ai';
+    if (hasBrand || hasModel) return 'filter';
+    return 'all';
+  };
+
+  const getSearchTypeLabel = () => {
+    const strategy = getSearchStrategy();
+    
+    if (isAISearching) return 'AI поиск...';
+    
+    switch (strategy) {
+      case 'hybrid':
+        return searchType === 'fallback' ? 'Текстовый + фильтры' : 'AI + фильтры';
+      case 'ai':
+        return searchType === 'fallback' ? 'Текстовый поиск' : 'AI поиск';
+      case 'filter':
+        return 'Фильтр';
+      default:
+        return 'Все товары';
+    }
   };
 
   return (
@@ -155,16 +186,29 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
             </label>
           </div>
 
-          {/* Buyer guide link */}
-          <Link 
-            to="/buyer-guide" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
-          >
-            <HelpCircle className="h-4 w-4 mr-1" />
-            Как покупать товар?
-          </Link>
+          {/* Search type indicator and buyer guide link */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                {getSearchStrategy() === 'ai' || getSearchStrategy() === 'hybrid' ? (
+                  <Brain className="h-3 w-3 text-primary" />
+                ) : (
+                  <Search className="h-3 w-3" />
+                )}
+                <span>{getSearchTypeLabel()}</span>
+              </div>
+            </div>
+            
+            <Link 
+              to="/buyer-guide" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
+            >
+              <HelpCircle className="h-4 w-4 mr-1" />
+              Как покупать товар?
+            </Link>
+          </div>
         </div>
       </div>
     </Card>

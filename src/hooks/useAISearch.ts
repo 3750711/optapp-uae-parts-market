@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AISearchResult {
@@ -15,17 +15,30 @@ export interface AISearchResponse {
   results: AISearchResult[];
   count: number;
   error?: string;
+  searchType?: 'ai' | 'fallback';
+  cached?: boolean;
+}
+
+interface CacheEntry {
+  data: AISearchResponse;
+  timestamp: number;
 }
 
 export const useAISearch = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [lastQuery, setLastQuery] = useState('');
+  const [searchType, setSearchType] = useState<'ai' | 'fallback' | null>(null);
+  const cacheRef = useRef<Map<string, CacheEntry>>(new Map());
+  
+  // Cache duration: 8 minutes
+  const CACHE_DURATION = 8 * 60 * 1000;
 
   const performAISearch = useCallback(async (
     query: string,
     options: {
       similarityThreshold?: number;
       matchCount?: number;
+      enableFallback?: boolean;
     } = {}
   ): Promise<AISearchResponse> => {
     if (!query.trim()) {
@@ -38,8 +51,20 @@ export const useAISearch = () => {
       };
     }
 
+    // Check cache first
+    const cacheKey = `${query.trim().toLowerCase()}_${options.similarityThreshold || 0.2}_${options.matchCount || 50}`;
+    const cached = cacheRef.current.get(cacheKey);
+    const now = Date.now();
+    
+    if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+      console.log('Returning cached AI search result for:', query);
+      setSearchType('ai');
+      return { ...cached.data, cached: true };
+    }
+
     setIsSearching(true);
     setLastQuery(query);
+    setSearchType('ai');
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-search', {
@@ -52,6 +77,21 @@ export const useAISearch = () => {
 
       if (error) {
         console.error('AI search error:', error);
+        
+        // Try fallback to standard search if enabled
+        if (options.enableFallback) {
+          console.log('Falling back to standard search...');
+          setSearchType('fallback');
+          return {
+            success: true,
+            query,
+            results: [],
+            count: 0,
+            searchType: 'fallback',
+            error: `AI search failed, using standard search: ${error.message}`
+          };
+        }
+        
         return {
           success: false,
           query,
@@ -61,10 +101,42 @@ export const useAISearch = () => {
         };
       }
 
-      return data as AISearchResponse;
+      const response = { ...data as AISearchResponse, searchType: 'ai' as const };
+      
+      // Cache successful results
+      if (response.success) {
+        cacheRef.current.set(cacheKey, {
+          data: response,
+          timestamp: now
+        });
+        
+        // Clean old cache entries
+        for (const [key, entry] of cacheRef.current.entries()) {
+          if ((now - entry.timestamp) > CACHE_DURATION) {
+            cacheRef.current.delete(key);
+          }
+        }
+      }
+
+      return response;
 
     } catch (error) {
       console.error('AI search failed:', error);
+      
+      // Try fallback to standard search if enabled
+      if (options.enableFallback) {
+        console.log('Falling back to standard search after exception...');
+        setSearchType('fallback');
+        return {
+          success: true,
+          query,
+          results: [],
+          count: 0,
+          searchType: 'fallback',
+          error: `AI search failed, using standard search: ${error instanceof Error ? error.message : 'Search failed'}`
+        };
+      }
+      
       return {
         success: false,
         query,
@@ -75,6 +147,11 @@ export const useAISearch = () => {
     } finally {
       setIsSearching(false);
     }
+  }, []);
+
+  const clearCache = useCallback(() => {
+    cacheRef.current.clear();
+    console.log('AI search cache cleared');
   }, []);
 
   const generateEmbeddings = useCallback(async (productIds?: string[]) => {
@@ -160,6 +237,8 @@ export const useAISearch = () => {
     generateEmbeddingForProduct,
     regenerateMissingEmbeddings,
     isSearching,
-    lastQuery
+    lastQuery,
+    searchType,
+    clearCache
   };
 };

@@ -10,6 +10,7 @@ interface CatalogSearchAndFiltersProps {
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
   isAISearching?: boolean;
+  searchType?: 'ai' | 'fallback' | null;
   selectedBrand?: string;
   selectedModel?: string;
   brands?: { id: string; name: string }[];
@@ -29,6 +30,7 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
   hideSoldProducts,
   setHideSoldProducts,
   isAISearching = false,
+  searchType = null,
   selectedBrand,
   selectedModel,
   brands,
@@ -48,6 +50,7 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
         hideSoldProducts={hideSoldProducts}
         setHideSoldProducts={setHideSoldProducts}
         isAISearching={isAISearching}
+        searchType={searchType}
         selectedBrand={selectedBrand}
         selectedModel={selectedModel}
         brands={brands}
