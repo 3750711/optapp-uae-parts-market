@@ -59,11 +59,9 @@ export const useCatalogProducts = ({
   // Debounce search and AI search (increased debounce for better performance)
   const debouncedSearchTerm = useDebounceSearch(activeSearchTerm, 800);
   const { performAISearch, isSearching: isAISearching, searchType } = useAISearch();
-
-  // Get AI results when search term changes
-  const aiResults = useMemo(() => {
-    return null; // Will be populated by the query function
-  }, [debouncedSearchTerm]);
+  
+  // Store AI similarity scores for product highlighting
+  const [aiSimilarityScores, setAiSimilarityScores] = useState<{ [productId: string]: number }>({});
 
   const {
     data,
@@ -140,6 +138,11 @@ export const useCatalogProducts = ({
             if (aiSearchResult.success && aiSearchResult.results.length > 0) {
               const productIds = aiSearchResult.results.map(r => r.id);
               console.log('🎯 AI search found products:', productIds.length);
+              
+              // Store similarity scores for highlighting
+              if (aiSearchResult.similarityScores) {
+                setAiSimilarityScores(aiSearchResult.similarityScores);
+              }
               
               query = query.in('id', productIds);
               (query as any)._aiOrder = productIds;
@@ -284,6 +287,7 @@ export const useCatalogProducts = ({
           cloudinary_url: typedProduct.cloudinary_url,
           rating_seller: typedProduct.rating_seller,
           lot_number: typedProduct.lot_number,
+          similarity_score: aiSimilarityScores[typedProduct.id] || undefined, // Add similarity score
           product_images: typedProduct.product_images?.map(img => ({
             id: '',
             url: img.url,
@@ -309,11 +313,12 @@ export const useCatalogProducts = ({
     }
     
     return chunks;
-  }, [mappedProducts]);
+  }, [mappedProducts, aiSimilarityScores]);
 
   const handleClearSearch = useCallback(() => {
     setSearchTerm('');
     setActiveSearchTerm('');
+    setAiSimilarityScores({}); // Clear similarity scores when clearing search
   }, []);
 
 

@@ -7,6 +7,7 @@ export interface AISearchResult {
   brand?: string;
   model?: string;
   similarity: number;
+  similarity_score?: number; // Add similarity_score for consistency
 }
 
 export interface AISearchResponse {
@@ -17,6 +18,7 @@ export interface AISearchResponse {
   error?: string;
   searchType?: 'ai' | 'fallback';
   cached?: boolean;
+  similarityScores?: { [productId: string]: number }; // Add similarity scores map
 }
 
 interface CacheEntry {
@@ -102,6 +104,14 @@ export const useAISearch = () => {
       }
 
       const response = { ...data as AISearchResponse, searchType: 'ai' as const };
+      
+      // Create similarity scores map for easy access
+      if (response.success && response.results) {
+        response.similarityScores = response.results.reduce((acc, result) => {
+          acc[result.id] = result.similarity || result.similarity_score || 0;
+          return acc;
+        }, {} as { [productId: string]: number });
+      }
       
       // Cache successful results
       if (response.success) {

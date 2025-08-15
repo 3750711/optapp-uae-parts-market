@@ -2,7 +2,7 @@ import React, { memo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, MapPin, Phone, MessageCircle, ExternalLink, ShoppingCart, Loader2 } from "lucide-react";
+import { Eye, MapPin, Phone, MessageCircle, ExternalLink, ShoppingCart, Loader2, Target } from "lucide-react";
 import ProductCarousel from "./ProductCarousel";
 import { SimpleMakeOfferButton } from "@/components/price-offer/SimpleMakeOfferButton";
 import { SimpleOfferButton } from "@/components/price-offer/SimpleOfferButton";
@@ -35,6 +35,7 @@ export interface ProductProps {
   cloudinary_url?: string;
   cloudinary_public_id?: string;
   image?: string;
+  similarity_score?: number; // Add similarity score for AI search highlighting
   product_images?: Array<{ id?: string; url: string; is_primary?: boolean; product_id?: string }>;
   product_videos?: Array<{ url: string }>;
   created_at?: string;
@@ -104,6 +105,9 @@ const ProductCard = memo(({
   }[product.status] || "bg-gray-100 text-gray-800";
 
   const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
+  
+  // Determine if this product has high similarity score (threshold: 0.45 for current 0.3 search threshold)
+  const isHighRelevance = product.similarity_score !== undefined && product.similarity_score > 0.45;
 
   // Convert ProductProps to Product type for MakeOfferButton
   const productForOfferButton = {
@@ -143,7 +147,12 @@ const ProductCard = memo(({
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group">
+    <Card className={`overflow-hidden hover:shadow-lg transition-all duration-200 cursor-pointer group relative ${isHighRelevance ? 'ring-2 ring-primary/20' : ''}`}>
+      {/* High Relevance Indicator */}
+      {isHighRelevance && (
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary/60 z-10"></div>
+      )}
+      
       <div onClick={handleCardClick}>
         {/* Image Section */}
         <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
@@ -188,6 +197,14 @@ const ProductCard = memo(({
             <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
               <Eye className="h-3 w-3" />
               {product.view_count}
+            </div>
+          )}
+          
+          {/* High Relevance Badge */}
+          {isHighRelevance && (
+            <div className="absolute bottom-2 right-2 bg-primary/90 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 shadow-lg">
+              <Target className="h-3 w-3" />
+              <span className="font-medium">Точное соответствие</span>
             </div>
           )}
         </div>
