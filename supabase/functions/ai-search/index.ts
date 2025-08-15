@@ -38,12 +38,8 @@ serve(async (req) => {
     if (!query || typeof query !== 'string') {
       throw new Error('Query parameter is required and must be a string');
     }
-
-    // Calculate query length for hybrid scoring
-    const queryLength = query.trim().split(/\s+/).length;
     
     console.log('AI search query:', query);
-    console.log('Query length:', queryLength);
 
     // Generate embedding for the search query
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
@@ -68,89 +64,62 @@ serve(async (req) => {
 
     console.log('Generated query embedding, searching for similar products...');
 
-    // Perform two-stage filtered search for optimal results
-    console.log('Performing two-stage filtered search...');
+    // Perform semantic search
+    console.log('Performing semantic search...');
     
-    // Perform hybrid search with improved parameters
     console.log('Calling hybrid_search_products with:', {
       similarity_threshold: similarityThreshold,
-      match_count: matchCount,
-      query_length: queryLength
+      match_count: matchCount
     });
 
-    const { data: exactMatches, error: exactError } = await supabase
+    const { data: searchResults, error: searchError } = await supabase
       .rpc('hybrid_search_products', {
         query_embedding: queryEmbedding,
-        search_keywords: query,
         similarity_threshold: similarityThreshold,
-        match_count: matchCount,
-        query_length: queryLength
+        match_count: matchCount
       });
 
     console.log('Search result status:', { 
-      hasError: !!exactError, 
-      dataLength: exactMatches?.length 
+      hasError: !!searchError, 
+      dataLength: searchResults?.length 
     });
 
-    if (exactError) {
-      console.error('Error in hybrid search:', {
-        error: exactError,
-        code: exactError.code,
-        message: exactError.message,
-        details: exactError.details,
-        hint: exactError.hint
+    if (searchError) {
+      console.error('Error in semantic search:', {
+        error: searchError,
+        code: searchError.code,
+        message: searchError.message,
+        details: searchError.details,
+        hint: searchError.hint
       });
-      throw exactError;
+      throw searchError;
     }
 
-    console.log(`Stage 1: Found ${exactMatches?.length || 0} total matches`);
+    console.log(`Found ${searchResults?.length || 0} total matches`);
     
-    // Filter and prioritize results
-    let finalResults = [];
+    // Results are already sorted by semantic similarity (best first)
+    // Just limit to maximum 20 results
+    const finalResults = searchResults ? searchResults.slice(0, 20) : [];
     
-    if (exactMatches && exactMatches.length > 0) {
-      // Stage 1: Get high exact match score products (≥ 0.8)
-      const highExactMatches = exactMatches.filter(item => item.exact_match_score >= 0.8);
-      console.log(`High exact matches (≥0.8): ${highExactMatches.length}`);
-      
-      // Add high exact matches first
-      finalResults = [...highExactMatches];
-      
-      // Stage 2: If we have less than 10 high exact matches, add products with good hybrid scores
-      if (finalResults.length < 10) {
-        const remainingSlots = Math.min(20 - finalResults.length, 15);
-        const additionalMatches = exactMatches
-          .filter(item => item.exact_match_score < 0.8 && item.hybrid_score >= 0.4)
-          .slice(0, remainingSlots);
-        
-        console.log(`Adding ${additionalMatches.length} additional matches with good hybrid scores`);
-        finalResults = [...finalResults, ...additionalMatches];
-      }
-      
-      // Limit to maximum 20 results
-      finalResults = finalResults.slice(0, 20);
-      
+    if (finalResults.length > 0) {
       // Log score distribution for debugging
       console.log('Score distribution:', {
-        highExact: finalResults.filter(r => r.exact_match_score >= 0.8).length,
-        mediumExact: finalResults.filter(r => r.exact_match_score >= 0.5 && r.exact_match_score < 0.8).length,
-        lowExact: finalResults.filter(r => r.exact_match_score < 0.5).length,
-        avgExactScore: finalResults.reduce((sum, r) => sum + r.exact_match_score, 0) / finalResults.length,
-        avgHybridScore: finalResults.reduce((sum, r) => sum + r.hybrid_score, 0) / finalResults.length
+        totalResults: finalResults.length,
+        avgSemanticScore: finalResults.reduce((sum, r) => sum + r.semantic_score, 0) / finalResults.length,
+        bestScore: finalResults[0]?.semantic_score || 0,
+        worstScore: finalResults[finalResults.length - 1]?.semantic_score || 0
       });
     }
-    
-    const searchResults = finalResults;
 
-    console.log(`Found ${searchResults?.length || 0} similar products`);
-    console.log('Hybrid search results sample:', searchResults?.slice(0, 3));
+    console.log(`Returning ${finalResults?.length || 0} similar products`);
+    console.log('Semantic search results sample:', finalResults?.slice(0, 3));
 
     // Return the results with similarity scores
     const result = {
       success: true,
       query,
-      results: searchResults || [],
-      count: searchResults?.length || 0
+      results: finalResults || [],
+      count: finalResults?.length || 0
     };
 
     return new Response(JSON.stringify(result), {
