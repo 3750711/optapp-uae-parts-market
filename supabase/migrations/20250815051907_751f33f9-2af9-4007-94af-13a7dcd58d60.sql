@@ -1,0 +1,44 @@
+-- Drop unused search functions
+DROP FUNCTION IF EXISTS public.hybrid_search_products(text, numeric, integer);
+DROP FUNCTION IF EXISTS public.secure_check_search_rate_limit(uuid);
+
+-- The current semantic_search_products function that we're using:
+-- CREATE OR REPLACE FUNCTION public.semantic_search_products(
+--   query_embedding vector(1536),
+--   similarity_threshold float DEFAULT 0.2,
+--   match_count int DEFAULT 20
+-- )
+-- RETURNS TABLE (
+--   id uuid,
+--   title text,
+--   brand text,
+--   model text,
+--   price numeric,
+--   seller_name text,
+--   preview_image_url text,
+--   status product_status,
+--   created_at timestamp with time zone,
+--   similarity_score float
+-- )
+-- LANGUAGE plpgsql
+-- AS $$
+-- BEGIN
+--   RETURN QUERY
+--   SELECT
+--     p.id,
+--     p.title,
+--     p.brand,
+--     p.model,
+--     p.price,
+--     p.seller_name,
+--     p.preview_image_url,
+--     p.status,
+--     p.created_at,
+--     (1 - (pe.embedding <=> query_embedding))::float as similarity_score
+--   FROM products p
+--   JOIN product_embeddings pe ON p.id = pe.product_id
+--   WHERE (1 - (pe.embedding <=> query_embedding)) >= similarity_threshold
+--   ORDER BY pe.embedding <=> query_embedding
+--   LIMIT match_count;
+-- END;
+-- $$;

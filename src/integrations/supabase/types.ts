@@ -1815,10 +1815,6 @@ export type Database = {
         Args: { p_action: string; p_limit_per_hour: number; p_user_id: string }
         Returns: boolean
       }
-      secure_check_search_rate_limit: {
-        Args: { p_user_id: string }
-        Returns: boolean
-      }
       secure_check_user_auth_method: {
         Args: { p_user_id: string }
         Returns: string

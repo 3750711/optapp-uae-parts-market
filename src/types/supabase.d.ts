@@ -2,7 +2,7 @@
 import { Database } from '@/integrations/supabase/types';
 import { SupabaseClient } from '@supabase/supabase-js';
 
-// Extend the RPCFunctionsDatabase interface to include our new admin functions
+// Extend the RPCFunctionsDatabase interface to include our admin functions
 interface CustomRPCFunctions {
   admin_create_product: (args: {
     p_title: string;
@@ -58,6 +58,20 @@ interface CustomRPCFunctions {
   admin_delete_specific_user: (args: {
     p_user_email: string;
   }) => any; // Returns jsonb object
+
+  semantic_search_products: (args: {
+    query_embedding: number[];
+    similarity_threshold?: number;
+    match_count?: number;
+  }) => any[];
+
+  check_search_rate_limit: (args: {
+    user_id: string;
+  }) => boolean;
+
+  search_car_brands_and_models: (args: {
+    search_term: string;
+  }) => any[];
 }
 
 // Extend the built-in Database type
