@@ -7,74 +7,176 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Text filtering function to improve relevance
-function applyTextFiltering(results: any[], query: string): any[] {
-  const queryLower = query.toLowerCase();
+// Brand/Model recognition patterns
+const brandPatterns = {
+  'toyota': ['toyota', 'тойота'],
+  'mazda': ['mazda', 'мазда'], 
+  'honda': ['honda', 'хонда'],
+  'nissan': ['nissan', 'ниссан'],
+  'mitsubishi': ['mitsubishi', 'митсубиси'],
+  'subaru': ['subaru', 'субару'],
+  'mercedes': ['mercedes', 'мерседес', 'benz'],
+  'bmw': ['bmw', 'бмв'],
+  'audi': ['audi', 'ауди'],
+  'volkswagen': ['volkswagen', 'вольксваген', 'vw'],
+  'ford': ['ford', 'форд'],
+  'chevrolet': ['chevrolet', 'шевроле'],
+  'hyundai': ['hyundai', 'хендай'],
+  'kia': ['kia', 'киа'],
+  'lexus': ['lexus', 'лексус'],
+  'infiniti': ['infiniti', 'инфинити'],
+  'acura': ['acura', 'акура']
+};
+
+const modelPatterns = {
+  'camry': ['camry', 'камри'],
+  'corolla': ['corolla', 'корролла'],
+  'prius': ['prius', 'приус'],
+  'rav4': ['rav4', 'рав4'],
+  'highlander': ['highlander', 'хайлендер'],
+  'land cruiser': ['land cruiser', 'ланд крузер', 'landcruiser'],
+  'cx-5': ['cx-5', 'сх-5'],
+  'mazda6': ['mazda6', 'мазда6', '6'],
+  'mazda3': ['mazda3', 'мазда3', '3'],
+  'civic': ['civic', 'цивик'],
+  'accord': ['accord', 'аккорд'],
+  'cr-v': ['cr-v', 'цр-в'],
+  'pilot': ['pilot', 'пилот'],
+  'x-trail': ['x-trail', 'икс-трейл'],
+  'qashqai': ['qashqai', 'кашкай'],
+  'teana': ['teana', 'теана'],
+  'altima': ['altima', 'альтима'],
+  'sprinter': ['sprinter', 'спринтер'],
+  'vito': ['vito', 'вито'],
+  'e-class': ['e-class', 'е-класс', 'e class'],
+  'c-class': ['c-class', 'с-класс', 'c class']
+};
+
+// Auto parts synonyms and translations
+const partSynonyms = {
+  'ноускат': ['nose cut', 'передняя часть', 'морда', 'front end', 'передок'],
+  'двигатель': ['engine', 'мотор', 'motor', 'движок'],
+  'коробка': ['transmission', 'трансмиссия', 'gearbox', 'кпп'],
+  'ходовая': ['suspension', 'подвеска', 'chassis'],
+  'бампер': ['bumper', 'передний бампер', 'задний бампер'],
+  'фара': ['headlight', 'фонарь', 'light'],
+  'крыло': ['fender', 'wing', 'панель']
+};
+
+// Function to extract brand/model from query
+function extractBrandModel(query: string): { brand?: string, model?: string } {
+  const lowerQuery = query.toLowerCase();
+  let detectedBrand = '';
+  let detectedModel = '';
   
-  // Define irrelevant keywords that should be filtered out for specific queries
-  const irrelevantKeywords: { [key: string]: string[] } = {
-    'двигатель': ['крышка', 'ноускат', 'капот', 'крыло', 'бампер', 'фара', 'багажник', 'дверь', 'стекло'],
-    'мотор': ['крышка', 'ноускат', 'капот', 'крыло', 'бампер', 'фара', 'багажник', 'дверь', 'стекло'],
-    'двс': ['крышка', 'ноускат', 'капот', 'крыло', 'бампер', 'фара', 'багажник', 'дверь', 'стекло']
-  };
-  
-  // Relevant keywords that should be prioritized for specific queries
-  const relevantKeywords: { [key: string]: string[] } = {
-    'двигатель': ['двс', 'двигатель', 'мотор', 'engine', 'блок'],
-    'мотор': ['двс', 'двигатель', 'мотор', 'engine', 'блок'],
-    'двс': ['двс', 'двигатель', 'мотор', 'engine', 'блок']
-  };
-  
-  // Find the most relevant query category
-  let applicableIrrelevant: string[] = [];
-  let applicableRelevant: string[] = [];
-  
-  for (const [category, keywords] of Object.entries(irrelevantKeywords)) {
-    if (queryLower.includes(category)) {
-      applicableIrrelevant = keywords;
-      applicableRelevant = relevantKeywords[category] || [];
+  // Find brand
+  for (const [brand, patterns] of Object.entries(brandPatterns)) {
+    if (patterns.some(pattern => lowerQuery.includes(pattern))) {
+      detectedBrand = brand;
       break;
     }
   }
   
-  // If no specific category found, return original results
-  if (applicableIrrelevant.length === 0) {
-    return results;
+  // Find model
+  for (const [model, patterns] of Object.entries(modelPatterns)) {
+    if (patterns.some(pattern => lowerQuery.includes(pattern))) {
+      detectedModel = model;
+      break;
+    }
   }
   
-  // Filter out irrelevant results and boost relevant ones
-  const filtered = results.filter(result => {
-    const title = (result.title || '').toLowerCase();
-    const brand = (result.brand || '').toLowerCase();
-    
-    // Check if title contains irrelevant keywords
-    const hasIrrelevantKeywords = applicableIrrelevant.some(keyword => 
-      title.includes(keyword)
-    );
-    
-    // Exclude items with irrelevant keywords
-    return !hasIrrelevantKeywords;
-  });
+  return { 
+    brand: detectedBrand || undefined, 
+    model: detectedModel || undefined 
+  };
+}
+
+// Function to enhance query with synonyms
+function enhanceQuery(query: string): string {
+  let enhancedQuery = query;
+  const lowerQuery = query.toLowerCase();
   
-  // Sort by relevance - prioritize items with relevant keywords
-  return filtered.sort((a, b) => {
-    const titleA = (a.title || '').toLowerCase();
-    const titleB = (b.title || '').toLowerCase();
+  // Add synonyms for detected parts
+  for (const [part, synonyms] of Object.entries(partSynonyms)) {
+    if (lowerQuery.includes(part)) {
+      enhancedQuery += ' ' + synonyms.join(' ');
+    }
+  }
+  
+  // Add brand/model context
+  const { brand, model } = extractBrandModel(query);
+  if (brand) {
+    enhancedQuery += ` ${brand}`;
+    if (brandPatterns[brand]) {
+      enhancedQuery += ' ' + brandPatterns[brand].join(' ');
+    }
+  }
+  if (model) {
+    enhancedQuery += ` ${model}`;
+    if (modelPatterns[model]) {
+      enhancedQuery += ' ' + modelPatterns[model].join(' ');
+    }
+  }
+  
+  return enhancedQuery;
+}
+
+// Function to apply post-processing filtering
+function applyPostProcessingFilter(results: any[], query: string): any[] {
+  const { brand, model } = extractBrandModel(query);
+  
+  if (!brand && !model) {
+    return results; // No specific brand/model, return all results
+  }
+  
+  // Separate exact matches from partial matches
+  const exactMatches = [];
+  const partialMatches = [];
+  const otherMatches = [];
+  
+  for (const result of results) {
+    const resultBrand = result.brand?.toLowerCase() || '';
+    const resultModel = result.model?.toLowerCase() || '';
     
-    const relevanceA = applicableRelevant.reduce((score, keyword) => 
-      score + (titleA.includes(keyword) ? 1 : 0), 0
-    );
-    const relevanceB = applicableRelevant.reduce((score, keyword) => 
-      score + (titleB.includes(keyword) ? 1 : 0), 0
-    );
+    let brandMatch = false;
+    let modelMatch = false;
     
-    // First sort by relevance keywords, then by similarity score
-    if (relevanceA !== relevanceB) {
-      return relevanceB - relevanceA;
+    // Check brand match
+    if (brand && brandPatterns[brand]) {
+      brandMatch = brandPatterns[brand].some(pattern => 
+        resultBrand.includes(pattern) || pattern.includes(resultBrand)
+      );
     }
     
-    return (b.similarity_score || 0) - (a.similarity_score || 0);
-  });
+    // Check model match  
+    if (model && modelPatterns[model]) {
+      modelMatch = modelPatterns[model].some(pattern => 
+        resultModel.includes(pattern) || pattern.includes(resultModel)
+      );
+    }
+    
+    // Categorize results
+    if (brandMatch && modelMatch) {
+      exactMatches.push({ ...result, boost_score: 0.2 });
+    } else if (brandMatch || modelMatch) {
+      partialMatches.push({ ...result, boost_score: 0.1 });
+    } else {
+      otherMatches.push(result);
+    }
+  }
+  
+  // Apply boost to similarity scores
+  const applyBoost = (items: any[]) => items.map(item => ({
+    ...item,
+    combined_score: Math.min(1.0, (item.similarity_score || 0) + (item.boost_score || 0))
+  }));
+  
+  // Combine results with exact matches first
+  const boostedExact = applyBoost(exactMatches);
+  const boostedPartial = applyBoost(partialMatches);
+  const boostedOther = applyBoost(otherMatches);
+  
+  return [...boostedExact, ...boostedPartial, ...boostedOther];
 }
 
 serve(async (req) => {
@@ -109,16 +211,24 @@ serve(async (req) => {
       throw new Error('Query parameter is required and must be a string');
     }
     
-    // Reduced threshold for better coverage (decreased from 0.8 to 0.6)
-    const adaptiveThreshold = similarityThreshold || 0.6;
+    // Extract brand/model and enhance query
+    const { brand, model } = extractBrandModel(query);
+    const enhancedQuery = enhanceQuery(query);
+    
+    // Reduced threshold for better coverage with fallback mechanism
+    const primaryThreshold = similarityThreshold || 0.52;
+    const fallbackThreshold = 0.45;
     
     console.log('AI semantic search query:', query);
+    console.log('Enhanced query:', enhancedQuery);
+    console.log('Brand/Model detected:', { brand, model });
     console.log('Query analysis:', { 
-      adaptiveThreshold,
+      primaryThreshold,
+      fallbackThreshold,
       originalThreshold: similarityThreshold 
     });
 
-    // Generate embedding for the search query
+    // Generate embedding for the enhanced search query
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
@@ -144,19 +254,39 @@ serve(async (req) => {
     // Perform semantic search using simplified function
     console.log('Performing semantic search...');
     
+    // Try primary search first
     console.log('Calling semantic_search_products with:', {
       search_query: query,
-      similarity_threshold: adaptiveThreshold,
+      similarity_threshold: primaryThreshold,
       match_count: matchCount
     });
 
-    const { data: searchResults, error: searchError } = await supabase
+    let { data: searchResults, error: searchError } = await supabase
       .rpc('semantic_search_products', {
         query_embedding: queryEmbedding,
         search_query: query,
-        similarity_threshold: adaptiveThreshold,
+        similarity_threshold: primaryThreshold,
         match_count: matchCount
       });
+
+    // Fallback mechanism if not enough results
+    if (!searchError && (!searchResults || searchResults.length < 3) && brand) {
+      console.log('Primary search returned few results, trying fallback with lower threshold...');
+      
+      const { data: fallbackResults, error: fallbackError } = await supabase
+        .rpc('semantic_search_products', {
+          query_embedding: queryEmbedding,
+          search_query: query,
+          similarity_threshold: fallbackThreshold,
+          match_count: matchCount
+        });
+      
+      if (!fallbackError && fallbackResults) {
+        searchResults = fallbackResults;
+        searchError = fallbackError;
+        console.log(`Fallback search found ${fallbackResults.length} results`);
+      }
+    }
 
     console.log('Search result status:', { 
       hasError: !!searchError, 
@@ -176,10 +306,10 @@ serve(async (req) => {
 
     console.log(`Found ${searchResults?.length || 0} total matches`);
     
-    // Apply text filtering for better relevance
-    const filteredResults = searchResults ? applyTextFiltering(searchResults, query) : [];
+    // Apply post-processing filtering with brand/model recognition
+    const filteredResults = searchResults ? applyPostProcessingFilter(searchResults, query) : [];
     
-    console.log(`After text filtering: ${filteredResults.length} matches`);
+    console.log(`After post-processing filtering: ${filteredResults.length} matches`);
     
     // Return all filtered results without pagination (pagination handled in frontend)
     const totalCount = filteredResults.length;
