@@ -41,6 +41,15 @@ serve(async (req) => {
     
     console.log('AI search query:', query);
 
+    // Normalize and split query into words for keyword matching
+    const queryWords = query
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
+      .split(/\s+/)
+      .filter(word => word.length > 1); // Filter out single characters
+    
+    console.log('Query words for matching:', queryWords);
+
     // Generate embedding for the search query
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
@@ -76,7 +85,8 @@ serve(async (req) => {
       .rpc('hybrid_search_products', {
         query_embedding: queryEmbedding,
         similarity_threshold: similarityThreshold,
-        match_count: matchCount
+        match_count: matchCount,
+        query_words: queryWords
       });
 
     console.log('Search result status:', { 
@@ -106,8 +116,10 @@ serve(async (req) => {
       console.log('Score distribution:', {
         totalResults: finalResults.length,
         avgSemanticScore: finalResults.reduce((sum, r) => sum + r.semantic_score, 0) / finalResults.length,
-        bestScore: finalResults[0]?.semantic_score || 0,
-        worstScore: finalResults[finalResults.length - 1]?.semantic_score || 0
+        avgMatchScore: finalResults.reduce((sum, r) => sum + (r.match_score || 0), 0) / finalResults.length,
+        avgFinalScore: finalResults.reduce((sum, r) => sum + (r.final_score || 0), 0) / finalResults.length,
+        bestFinalScore: finalResults[0]?.final_score || 0,
+        worstFinalScore: finalResults[finalResults.length - 1]?.final_score || 0
       });
     }
 

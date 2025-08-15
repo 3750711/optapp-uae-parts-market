@@ -1723,6 +1723,12 @@ export type Database = {
           | {
               match_count?: number
               query_embedding: string
+              query_words?: string[]
+              similarity_threshold?: number
+            }
+          | {
+              match_count?: number
+              query_embedding: string
               similarity_threshold?: number
             }
         Returns: {
