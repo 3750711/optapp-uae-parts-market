@@ -116,30 +116,53 @@ export const useCatalogProducts = ({
           query = query.neq('status', 'sold');
         }
 
-        // Traditional text search across multiple fields
+        // Text search with synonyms across multiple fields
         const hasSearchTerm = debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2;
 
         if (hasSearchTerm) {
-          console.log('🔍 Using traditional text search');
+          console.log('🔍 Using text search with synonyms');
           
           const searchWords = debouncedSearchTerm.trim().toLowerCase().split(/\s+/);
+          const expandedSearchTerms = new Set(searchWords);
           
-          if (searchWords.length === 1) {
-            // Single word: search in title, brand, and model
-            const searchTerm = searchWords[0];
+          // Get synonyms for each word
+          for (const word of searchWords) {
+            if (word.length > 1) {
+              try {
+                const { data: synonymsData } = await supabase.rpc('get_search_synonyms', {
+                  search_term: word,
+                  search_language: 'ru'
+                });
+                
+                if (synonymsData && Array.isArray(synonymsData)) {
+                  synonymsData.forEach((synonym: string) => {
+                    if (synonym && synonym.trim()) {
+                      expandedSearchTerms.add(synonym.trim().toLowerCase());
+                    }
+                  });
+                }
+              } catch (synonymError) {
+                console.log('Could not fetch synonyms for:', word, synonymError);
+                // Continue without synonyms if there's an error
+              }
+            }
+          }
+          
+          const allSearchTerms = Array.from(expandedSearchTerms);
+          console.log('Expanded search terms with synonyms:', allSearchTerms);
+          
+          if (allSearchTerms.length === 1) {
+            // Single term: search in title, brand, and model
+            const searchTerm = allSearchTerms[0];
             query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
           } else {
-            // Multiple words: each word must be found in at least one field
-            const conditions = searchWords.map(word => 
-              `title.ilike.%${word}%,brand.ilike.%${word}%,model.ilike.%${word}%`
+            // Multiple terms: build OR condition for all terms across all fields
+            const conditions = allSearchTerms.map(term => 
+              `title.ilike.%${term}%,brand.ilike.%${term}%,model.ilike.%${term}%`
             );
             
-            // Build AND condition for all words
-            let baseQuery = query;
-            for (const condition of conditions) {
-              baseQuery = baseQuery.or(condition);
-            }
-            query = baseQuery;
+            const combinedCondition = conditions.join(',');
+            query = query.or(combinedCondition);
           }
         } else {
           // SHOW ALL: No search terms

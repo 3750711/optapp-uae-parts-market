@@ -1130,6 +1130,47 @@ export type Database = {
         }
         Relationships: []
       }
+      search_synonyms: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          language: string
+          original_term: string
+          synonym: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language?: string
+          original_term: string
+          synonym: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          language?: string
+          original_term?: string
+          synonym?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "search_synonyms_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_car_brands: {
         Row: {
           car_brand_id: string
@@ -1658,6 +1699,10 @@ export type Database = {
           schema_name: string
           table_name: string
         }[]
+      }
+      get_search_synonyms: {
+        Args: { search_language?: string; search_term: string }
+        Returns: string[]
       }
       gtrgm_compress: {
         Args: { "": unknown }
