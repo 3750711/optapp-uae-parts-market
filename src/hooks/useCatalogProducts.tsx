@@ -134,8 +134,7 @@ export const useCatalogProducts = ({
               url,
               is_primary
             )
-          `)
-          .eq('status', 'available');
+          `);
 
         // Apply brand/model filters (standard SQL filtering for exact matches)
         if (selectedBrand) {
