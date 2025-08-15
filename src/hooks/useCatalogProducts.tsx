@@ -130,8 +130,10 @@ export const useCatalogProducts = ({
           
           try {
             const aiSearchResult = await performAISearch(debouncedSearchTerm.trim(), {
-              similarityThreshold: 0.1, // Lower threshold for better coverage
-              matchCount: 500, // Higher count for better results
+              similarityThreshold: 0.6, // Updated threshold
+              matchCount: 1000, // Increased for better coverage
+              offset: pageParam * productsPerPage, // Add pagination
+              limit: productsPerPage, // Page size
               enableFallback: true
             });
             

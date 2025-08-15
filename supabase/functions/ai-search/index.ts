@@ -103,14 +103,14 @@ serve(async (req) => {
       }
     });
 
-    const { query, similarityThreshold, matchCount = 500 } = await req.json();
+    const { query, similarityThreshold, matchCount = 1000, offset = 0, limit = 20 } = await req.json();
     
     if (!query || typeof query !== 'string') {
       throw new Error('Query parameter is required and must be a string');
     }
     
-    // Higher threshold for better relevance (increased to 0.8 for very precise results)
-    const adaptiveThreshold = similarityThreshold || 0.8;
+    // Reduced threshold for better coverage (decreased from 0.8 to 0.6)
+    const adaptiveThreshold = similarityThreshold || 0.6;
     
     console.log('AI semantic search query:', query);
     console.log('Query analysis:', { 
@@ -181,24 +181,27 @@ serve(async (req) => {
     
     console.log(`After text filtering: ${filteredResults.length} matches`);
     
-    // Results are already sorted by semantic similarity (best first)
-    // Just limit to maximum 20 results
-    const finalResults = filteredResults.slice(0, 20);
+    // Apply pagination to filtered results
+    const totalCount = filteredResults.length;
+    const paginatedResults = filteredResults.slice(offset, offset + limit);
+    const hasNextPage = (offset + limit) < totalCount;
     
-    if (finalResults.length > 0) {
+    console.log(`Pagination: offset=${offset}, limit=${limit}, total=${totalCount}, hasNext=${hasNextPage}`);
+    
+    if (paginatedResults.length > 0) {
       // Log score distribution for debugging
       console.log('Score distribution:', {
-        totalResults: finalResults.length,
-        avgSemanticScore: finalResults.reduce((sum, r) => sum + (r.similarity_score || 0), 0) / finalResults.length,
-        avgCombinedScore: finalResults.reduce((sum, r) => sum + (r.combined_score || 0), 0) / finalResults.length,
-        bestSemanticScore: finalResults[0]?.similarity_score || 0,
-        bestCombinedScore: finalResults[0]?.combined_score || 0,
-        worstSemanticScore: finalResults[finalResults.length - 1]?.similarity_score || 0,
-        worstCombinedScore: finalResults[finalResults.length - 1]?.combined_score || 0
+        totalResults: paginatedResults.length,
+        avgSemanticScore: paginatedResults.reduce((sum, r) => sum + (r.similarity_score || 0), 0) / paginatedResults.length,
+        avgCombinedScore: paginatedResults.reduce((sum, r) => sum + (r.combined_score || 0), 0) / paginatedResults.length,
+        bestSemanticScore: paginatedResults[0]?.similarity_score || 0,
+        bestCombinedScore: paginatedResults[0]?.combined_score || 0,
+        worstSemanticScore: paginatedResults[paginatedResults.length - 1]?.similarity_score || 0,
+        worstCombinedScore: paginatedResults[paginatedResults.length - 1]?.combined_score || 0
       });
       
       // Log top 3 results with detailed scoring for debugging
-      console.log('Top 3 results with detailed scores:', finalResults.slice(0, 3).map(r => {
+      console.log('Top 3 results with detailed scores:', paginatedResults.slice(0, 3).map(r => {
         const similarity = r.similarity_score || 0;
         const combined = r.combined_score || 0;
         const boost = combined - similarity;
@@ -221,15 +224,19 @@ serve(async (req) => {
       }));
     }
 
-    console.log(`Returning ${finalResults?.length || 0} similar products`);
-    console.log('Semantic search results sample:', finalResults?.slice(0, 3));
+    console.log(`Returning ${paginatedResults?.length || 0} similar products (page ${Math.floor(offset/limit) + 1})`);
+    console.log('Semantic search results sample:', paginatedResults?.slice(0, 3));
 
-    // Return the results with similarity scores
+    // Return the results with pagination info
     const result = {
       success: true,
       query,
-      results: finalResults || [],
-      count: finalResults?.length || 0
+      results: paginatedResults || [],
+      count: paginatedResults?.length || 0,
+      totalCount,
+      hasNextPage,
+      currentPage: Math.floor(offset/limit) + 1,
+      totalPages: Math.ceil(totalCount/limit)
     };
 
     return new Response(JSON.stringify(result), {

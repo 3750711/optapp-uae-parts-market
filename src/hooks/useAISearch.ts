@@ -15,6 +15,10 @@ export interface AISearchResponse {
   query: string;
   results: AISearchResult[];
   count: number;
+  totalCount?: number;
+  hasNextPage?: boolean;
+  currentPage?: number;
+  totalPages?: number;
   error?: string;
   searchType?: 'ai' | 'fallback';
   cached?: boolean;
@@ -40,6 +44,8 @@ export const useAISearch = () => {
     options: {
       similarityThreshold?: number;
       matchCount?: number;
+      offset?: number;
+      limit?: number;
       enableFallback?: boolean;
     } = {}
   ): Promise<AISearchResponse> => {
@@ -53,8 +59,8 @@ export const useAISearch = () => {
       };
     }
 
-    // Check cache first
-    const cacheKey = `${query.trim().toLowerCase()}_${options.similarityThreshold || 0.2}_${options.matchCount || 50}`;
+    // Check cache first (include pagination in cache key)
+    const cacheKey = `${query.trim().toLowerCase()}_${options.similarityThreshold || 0.6}_${options.matchCount || 1000}_${options.offset || 0}_${options.limit || 20}`;
     const cached = cacheRef.current.get(cacheKey);
     const now = Date.now();
     
@@ -72,8 +78,10 @@ export const useAISearch = () => {
       const { data, error } = await supabase.functions.invoke('ai-search', {
         body: {
           query: query.trim(),
-          similarityThreshold: options.similarityThreshold || 0.2,
-          matchCount: options.matchCount || 50
+          similarityThreshold: options.similarityThreshold || 0.6,
+          matchCount: options.matchCount || 1000,
+          offset: options.offset || 0,
+          limit: options.limit || 20
         }
       });
 
