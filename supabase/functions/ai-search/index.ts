@@ -33,13 +33,22 @@ serve(async (req) => {
       }
     });
 
-    const { query, similarityThreshold = 0.2, matchCount = 100 } = await req.json();
+    const { query, similarityThreshold, matchCount = 100 } = await req.json();
     
     if (!query || typeof query !== 'string') {
       throw new Error('Query parameter is required and must be a string');
     }
     
+    // Smart threshold adaptation based on query length
+    const queryWords = query.trim().split(/\s+/).length;
+    const adaptiveThreshold = similarityThreshold || (queryWords <= 2 ? 0.5 : 0.4);
+    
     console.log('AI semantic search query:', query);
+    console.log('Query analysis:', { 
+      words: queryWords, 
+      adaptiveThreshold,
+      originalThreshold: similarityThreshold 
+    });
 
     // Generate embedding for the search query
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
@@ -68,14 +77,14 @@ serve(async (req) => {
     console.log('Performing semantic search...');
     
     console.log('Calling semantic_search_products with:', {
-      similarity_threshold: similarityThreshold,
+      similarity_threshold: adaptiveThreshold,
       match_count: matchCount
     });
 
     const { data: searchResults, error: searchError } = await supabase
       .rpc('semantic_search_products', {
         query_embedding: queryEmbedding,
-        similarity_threshold: similarityThreshold,
+        similarity_threshold: adaptiveThreshold,
         match_count: matchCount
       });
 
@@ -105,10 +114,23 @@ serve(async (req) => {
       // Log score distribution for debugging
       console.log('Score distribution:', {
         totalResults: finalResults.length,
-        avgSemanticScore: finalResults.reduce((sum, r) => sum + r.similarity_score, 0) / finalResults.length,
+        avgSemanticScore: finalResults.reduce((sum, r) => sum + (r.similarity_score || 0), 0) / finalResults.length,
+        avgCombinedScore: finalResults.reduce((sum, r) => sum + (r.combined_score || 0), 0) / finalResults.length,
         bestSemanticScore: finalResults[0]?.similarity_score || 0,
-        worstSemanticScore: finalResults[finalResults.length - 1]?.similarity_score || 0
+        bestCombinedScore: finalResults[0]?.combined_score || 0,
+        worstSemanticScore: finalResults[finalResults.length - 1]?.similarity_score || 0,
+        worstCombinedScore: finalResults[finalResults.length - 1]?.combined_score || 0
       });
+      
+      // Log top 3 results with detailed scoring for debugging
+      console.log('Top 3 results with scores:', finalResults.slice(0, 3).map(r => ({
+        id: r.id,
+        title: r.title?.substring(0, 50) + '...',
+        brand: r.brand,
+        model: r.model,
+        similarity_score: r.similarity_score,
+        combined_score: r.combined_score
+      })));
     }
 
     console.log(`Returning ${finalResults?.length || 0} similar products`);

@@ -1894,6 +1894,7 @@ export type Database = {
         }
         Returns: {
           brand: string
+          combined_score: number
           created_at: string
           id: string
           model: string
