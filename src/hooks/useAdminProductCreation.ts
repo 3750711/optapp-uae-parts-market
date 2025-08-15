@@ -164,7 +164,28 @@ export const useAdminProductCreation = () => {
         console.error("⚠️ Embedding generation failed (non-critical):", embeddingError);
       }
 
-      // 7. Отправляем уведомления администраторам о новом товаре на модерацию
+      // 7. Генерируем синонимы для нового товара (некритично)
+      try {
+        console.log(`🔤 Generating synonyms for new product ${productId}`);
+        const { error: synonymError } = await supabase.functions.invoke('generate-product-synonyms', {
+          body: {
+            productId: product.id,
+            title: values.title,
+            brand: selectedBrand.name,
+            model: modelName
+          }
+        });
+        
+        if (synonymError) {
+          console.warn(`⚠️ Synonym generation failed for product ${productId}:`, synonymError);
+        } else {
+          console.log(`✅ Synonyms generated successfully for product ${productId}`);
+        }
+      } catch (synonymError) {
+        console.error("⚠️ Synonym generation failed (non-critical):", synonymError);
+      }
+
+      // 8. Отправляем уведомления администраторам о новом товаре на модерацию
       try {
         await notifyAdminsNewProduct(product.id);
       } catch (adminNotificationError) {

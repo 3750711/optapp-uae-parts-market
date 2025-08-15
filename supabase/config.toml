@@ -96,6 +96,9 @@ verify_jwt = false
 [functions.ai-search]
 verify_jwt = false
 
+[functions.generate-product-synonyms]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
