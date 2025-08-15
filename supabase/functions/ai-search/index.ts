@@ -7,6 +7,76 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Text filtering function to improve relevance
+function applyTextFiltering(results: any[], query: string): any[] {
+  const queryLower = query.toLowerCase();
+  
+  // Define irrelevant keywords that should be filtered out for specific queries
+  const irrelevantKeywords: { [key: string]: string[] } = {
+    'двигатель': ['крышка', 'ноускат', 'капот', 'крыло', 'бампер', 'фара', 'багажник', 'дверь', 'стекло'],
+    'мотор': ['крышка', 'ноускат', 'капот', 'крыло', 'бампер', 'фара', 'багажник', 'дверь', 'стекло'],
+    'двс': ['крышка', 'ноускат', 'капот', 'крыло', 'бампер', 'фара', 'багажник', 'дверь', 'стекло']
+  };
+  
+  // Relevant keywords that should be prioritized for specific queries
+  const relevantKeywords: { [key: string]: string[] } = {
+    'двигатель': ['двс', 'двигатель', 'мотор', 'engine', 'блок'],
+    'мотор': ['двс', 'двигатель', 'мотор', 'engine', 'блок'],
+    'двс': ['двс', 'двигатель', 'мотор', 'engine', 'блок']
+  };
+  
+  // Find the most relevant query category
+  let applicableIrrelevant: string[] = [];
+  let applicableRelevant: string[] = [];
+  
+  for (const [category, keywords] of Object.entries(irrelevantKeywords)) {
+    if (queryLower.includes(category)) {
+      applicableIrrelevant = keywords;
+      applicableRelevant = relevantKeywords[category] || [];
+      break;
+    }
+  }
+  
+  // If no specific category found, return original results
+  if (applicableIrrelevant.length === 0) {
+    return results;
+  }
+  
+  // Filter out irrelevant results and boost relevant ones
+  const filtered = results.filter(result => {
+    const title = (result.title || '').toLowerCase();
+    const brand = (result.brand || '').toLowerCase();
+    
+    // Check if title contains irrelevant keywords
+    const hasIrrelevantKeywords = applicableIrrelevant.some(keyword => 
+      title.includes(keyword)
+    );
+    
+    // Exclude items with irrelevant keywords
+    return !hasIrrelevantKeywords;
+  });
+  
+  // Sort by relevance - prioritize items with relevant keywords
+  return filtered.sort((a, b) => {
+    const titleA = (a.title || '').toLowerCase();
+    const titleB = (b.title || '').toLowerCase();
+    
+    const relevanceA = applicableRelevant.reduce((score, keyword) => 
+      score + (titleA.includes(keyword) ? 1 : 0), 0
+    );
+    const relevanceB = applicableRelevant.reduce((score, keyword) => 
+      score + (titleB.includes(keyword) ? 1 : 0), 0
+    );
+    
+    // First sort by relevance keywords, then by similarity score
+    if (relevanceA !== relevanceB) {
+      return relevanceB - relevanceA;
+    }
+    
+    return (b.similarity_score || 0) - (a.similarity_score || 0);
+  });
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -39,8 +109,8 @@ serve(async (req) => {
       throw new Error('Query parameter is required and must be a string');
     }
     
-    // Higher threshold for exact query matching (not individual words)
-    const adaptiveThreshold = similarityThreshold || 0.3;
+    // Higher threshold for better relevance (increased from 0.3 to 0.45)
+    const adaptiveThreshold = similarityThreshold || 0.45;
     
     console.log('AI semantic search query:', query);
     console.log('Query analysis:', { 
@@ -57,7 +127,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'text-embedding-3-small',
-        input: `Поиск автозапчасти по точному названию: ${query}`,
+        input: `Найти конкретную автозапчасть: ${query} (исключить кузовные детали, аксессуары, салонные элементы)`,
         encoding_format: 'float',
       }),
     });
@@ -106,9 +176,14 @@ serve(async (req) => {
 
     console.log(`Found ${searchResults?.length || 0} total matches`);
     
+    // Apply text filtering for better relevance
+    const filteredResults = searchResults ? applyTextFiltering(searchResults, query) : [];
+    
+    console.log(`After text filtering: ${filteredResults.length} matches`);
+    
     // Results are already sorted by semantic similarity (best first)
     // Just limit to maximum 20 results
-    const finalResults = searchResults ? searchResults.slice(0, 20) : [];
+    const finalResults = filteredResults.slice(0, 20);
     
     if (finalResults.length > 0) {
       // Log score distribution for debugging
