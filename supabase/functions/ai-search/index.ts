@@ -39,13 +39,11 @@ serve(async (req) => {
       throw new Error('Query parameter is required and must be a string');
     }
     
-    // Optimized threshold for exact match prioritization
-    const queryWords = query.trim().split(/\s+/).length;
-    const adaptiveThreshold = similarityThreshold || (queryWords <= 2 ? 0.15 : 0.1);
+    // Fixed threshold for consistent results
+    const adaptiveThreshold = similarityThreshold || 0.12;
     
     console.log('AI semantic search query:', query);
     console.log('Query analysis:', { 
-      words: queryWords, 
       adaptiveThreshold,
       originalThreshold: similarityThreshold 
     });
@@ -59,7 +57,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'text-embedding-3-small',
-        input: query,
+        input: `Автозапчасть: ${query}`,
         encoding_format: 'float',
       }),
     });
