@@ -1712,34 +1712,23 @@ export type Database = {
         Returns: unknown
       }
       hybrid_search_products: {
-        Args:
-          | {
-              match_count?: number
-              query_embedding: string
-              query_length?: number
-              search_keywords: string
-              similarity_threshold?: number
-            }
-          | {
-              match_count?: number
-              query_embedding: string
-              query_words?: string[]
-              similarity_threshold?: number
-            }
-          | {
-              match_count?: number
-              query_embedding: string
-              similarity_threshold?: number
-            }
+        Args: {
+          match_count?: number
+          query_embedding: string
+          query_length?: number
+          search_keywords: string
+          similarity_threshold?: number
+        }
         Returns: {
           brand: string
           created_at: string
+          exact_match_score: number
+          hybrid_score: number
           id: string
           model: string
           preview_image_url: string
           price: number
           seller_name: string
-          semantic_score: number
           similarity_score: number
           status: Database["public"]["Enums"]["product_status"]
           title: string
@@ -1908,8 +1897,16 @@ export type Database = {
           similarity_threshold?: number
         }
         Returns: {
-          product_id: string
-          similarity: number
+          brand: string
+          created_at: string
+          id: string
+          model: string
+          preview_image_url: string
+          price: number
+          seller_name: string
+          similarity_score: number
+          status: Database["public"]["Enums"]["product_status"]
+          title: string
         }[]
       }
       send_email_verification_code: {

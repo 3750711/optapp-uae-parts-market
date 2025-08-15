@@ -7,8 +7,6 @@ export interface AISearchResult {
   brand?: string;
   model?: string;
   similarity: number;
-  exact_match_score?: number;
-  hybrid_score?: number;
 }
 
 export interface AISearchResponse {

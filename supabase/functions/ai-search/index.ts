@@ -39,16 +39,7 @@ serve(async (req) => {
       throw new Error('Query parameter is required and must be a string');
     }
     
-    console.log('AI search query:', query);
-
-    // Normalize and split query into words for keyword matching
-    const queryWords = query
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ') // Replace punctuation with spaces
-      .split(/\s+/)
-      .filter(word => word.length > 1); // Filter out single characters
-    
-    console.log('Query words for matching:', queryWords);
+    console.log('AI semantic search query:', query);
 
     // Generate embedding for the search query
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
@@ -73,20 +64,19 @@ serve(async (req) => {
 
     console.log('Generated query embedding, searching for similar products...');
 
-    // Perform semantic search
+    // Perform semantic search using simplified function
     console.log('Performing semantic search...');
     
-    console.log('Calling hybrid_search_products with:', {
+    console.log('Calling semantic_search_products with:', {
       similarity_threshold: similarityThreshold,
       match_count: matchCount
     });
 
     const { data: searchResults, error: searchError } = await supabase
-      .rpc('hybrid_search_products', {
+      .rpc('semantic_search_products', {
         query_embedding: queryEmbedding,
         similarity_threshold: similarityThreshold,
-        match_count: matchCount,
-        query_words: queryWords
+        match_count: matchCount
       });
 
     console.log('Search result status:', { 
@@ -115,11 +105,9 @@ serve(async (req) => {
       // Log score distribution for debugging
       console.log('Score distribution:', {
         totalResults: finalResults.length,
-        avgSemanticScore: finalResults.reduce((sum, r) => sum + r.semantic_score, 0) / finalResults.length,
-        avgMatchScore: finalResults.reduce((sum, r) => sum + (r.match_score || 0), 0) / finalResults.length,
-        avgFinalScore: finalResults.reduce((sum, r) => sum + (r.final_score || 0), 0) / finalResults.length,
-        bestFinalScore: finalResults[0]?.final_score || 0,
-        worstFinalScore: finalResults[finalResults.length - 1]?.final_score || 0
+        avgSemanticScore: finalResults.reduce((sum, r) => sum + r.similarity_score, 0) / finalResults.length,
+        bestSemanticScore: finalResults[0]?.similarity_score || 0,
+        worstSemanticScore: finalResults[finalResults.length - 1]?.similarity_score || 0
       });
     }
 
