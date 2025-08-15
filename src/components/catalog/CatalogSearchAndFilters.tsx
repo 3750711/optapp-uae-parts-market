@@ -9,8 +9,6 @@ interface CatalogSearchAndFiltersProps {
   onSearchSubmit: (e: React.FormEvent) => void;
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
-  isAISearching?: boolean;
-  searchType?: 'ai' | 'fallback' | null;
 }
 
 const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
@@ -19,9 +17,7 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
   activeSearchTerm,
   onSearchSubmit,
   hideSoldProducts,
-  setHideSoldProducts,
-  isAISearching = false,
-  searchType = null
+  setHideSoldProducts
 }) => {
   return (
     <div>
@@ -31,8 +27,6 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
         handleSearchSubmit={onSearchSubmit}
         hideSoldProducts={hideSoldProducts}
         setHideSoldProducts={setHideSoldProducts}
-        isAISearching={isAISearching}
-        searchType={searchType}
       />
       
     </div>

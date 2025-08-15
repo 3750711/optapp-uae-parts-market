@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Search, X, Brain, Loader2 } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
-import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
 
 interface SimplifiedSearchBarProps {
   searchQuery: string;
@@ -14,8 +13,6 @@ interface SimplifiedSearchBarProps {
   handleSearchSubmit: (e: React.FormEvent) => void;
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
-  isAISearching?: boolean;
-  searchType?: 'ai' | 'fallback' | null;
 }
 
 const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
@@ -23,9 +20,7 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
   setSearchQuery,
   handleSearchSubmit,
   hideSoldProducts,
-  setHideSoldProducts,
-  isAISearching = false,
-  searchType = null
+  setHideSoldProducts
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -46,29 +41,14 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
   };
 
 
-  const getSearchTypeLabel = () => {
-    if (isAISearching) {
-      return '🧠 AI анализирует...';
-    }
-    
-    switch (searchType) {
-      case 'ai':
-        return '🧠 AI поиск';
-      case 'fallback':
-        return '🔍 Текстовый поиск';
-      default:
-        return '';
-    }
-  };
 
   return (
     <Card className="mb-4">
       <div className="p-4 space-y-4">
-        {/* AI Search Bar */}
+        {/* Search Bar */}
         <form onSubmit={handleFormSubmit} className="relative">
           <div className="relative flex items-center">
-            <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center">
-              <Brain className="h-4 w-4 text-primary mr-2" />
+            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
               <Search className="h-4 w-4 text-muted-foreground" />
             </div>
             
@@ -78,8 +58,8 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
               onChange={handleSearchInputChange}
               onFocus={handleFocus}
               onBlur={handleBlur}
-              placeholder="Поиск товаров с помощью AI..."
-              className="pl-16 pr-20 h-12 text-base bg-background border-input"
+              placeholder="Поиск по названию, бренду, модели..."
+              className="pl-10 pr-20 h-12 text-base bg-background border-input"
             />
             
             {/* Clear and Search buttons */}
@@ -99,14 +79,9 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
               <Button
                 type="submit"
                 size="sm"
-                disabled={isAISearching}
                 className="h-8 px-3 bg-primary hover:bg-primary/90"
               >
-                {isAISearching ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
+                <Search className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -130,25 +105,16 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
             </label>
           </div>
 
-          {/* Search type indicator and buyer guide link */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Brain className="h-3 w-3 text-primary" />
-                <span>{getSearchTypeLabel()}</span>
-              </div>
-            </div>
-            
-            <Link 
-              to="/buyer-guide" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
-            >
-              <HelpCircle className="h-4 w-4 mr-1" />
-              Как покупать товар?
-            </Link>
-          </div>
+          {/* Buyer guide link */}
+          <Link 
+            to="/buyer-guide" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            <HelpCircle className="h-4 w-4 mr-1" />
+            Как покупать товар?
+          </Link>
         </div>
       </div>
     </Card>

@@ -40,9 +40,7 @@ const Catalog: React.FC = () => {
     handleClearSearch,
     handleSearch,
     handleSearchSubmit,
-    prefetchNextPage,
-    isAISearching,
-    searchType
+    prefetchNextPage
   } = useCatalogProducts({
     productsPerPage: 24,
   });
@@ -127,8 +125,6 @@ const Catalog: React.FC = () => {
             onSearchSubmit={handleEnhancedSearchSubmit}
             hideSoldProducts={hideSoldProducts}
             setHideSoldProducts={setHideSoldProducts}
-            isAISearching={isAISearching}
-            searchType={searchType}
           />
         </div>
 

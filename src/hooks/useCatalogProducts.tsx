@@ -3,7 +3,6 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useDebounceSearch } from '@/hooks/useDebounceSearch';
-import { useAISearch } from '@/hooks/useAISearch';
 
 import type { ProductProps } from '@/components/product/ProductCard';
 
@@ -56,12 +55,8 @@ export const useCatalogProducts = ({
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
 
-  // Debounce search and AI search (increased debounce for better performance)
-  const debouncedSearchTerm = useDebounceSearch(activeSearchTerm, 800);
-  const { performAISearch, isSearching: isAISearching, searchType } = useAISearch();
-  
-  // Store AI similarity scores for product highlighting
-  const [aiSimilarityScores, setAiSimilarityScores] = useState<{ [productId: string]: number }>({});
+  // Debounce search for better performance
+  const debouncedSearchTerm = useDebounceSearch(activeSearchTerm, 500);
 
   const {
     data,
@@ -121,58 +116,34 @@ export const useCatalogProducts = ({
           query = query.neq('status', 'sold');
         }
 
-        // Simplified AI-only search logic
+        // Traditional text search across multiple fields
         const hasSearchTerm = debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2;
 
         if (hasSearchTerm) {
-          // AI SEARCH: Use AI for all searches with exact match prioritization
-          console.log('🧠 Using AI search with exact match prioritization');
+          console.log('🔍 Using traditional text search');
           
-          try {
-            const aiSearchResult = await performAISearch(debouncedSearchTerm.trim(), {
-              similarityThreshold: 0.6, // Updated threshold
-              matchCount: 1000, // Increased for better coverage
-              enableFallback: true
-            });
+          const searchWords = debouncedSearchTerm.trim().toLowerCase().split(/\s+/);
+          
+          if (searchWords.length === 1) {
+            // Single word: search in title, brand, and model
+            const searchTerm = searchWords[0];
+            query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
+          } else {
+            // Multiple words: each word must be found in at least one field
+            const conditions = searchWords.map(word => 
+              `title.ilike.%${word}%,brand.ilike.%${word}%,model.ilike.%${word}%`
+            );
             
-            if (aiSearchResult.success && aiSearchResult.results.length > 0) {
-              const productIds = aiSearchResult.results.map(r => r.id);
-              console.log('🎯 AI search found products:', productIds.length);
-              
-              // Store similarity scores for highlighting
-              if (aiSearchResult.similarityScores) {
-                setAiSimilarityScores(aiSearchResult.similarityScores);
-              }
-              
-              query = query.in('id', productIds);
-              (query as any)._aiOrder = productIds;
-              (query as any)._searchType = aiSearchResult.searchType || 'ai';
-            } else {
-              console.log('❌ AI search failed, falling back to enhanced text search');
-              // Enhanced fallback with multiple search strategies
-              const searchWords = debouncedSearchTerm.trim().split(/\s+/);
-              if (searchWords.length === 1) {
-                // Single word: exact match first, then partial
-                query = query.or(`title.ilike.%${debouncedSearchTerm.trim()}%,brand.ilike.%${debouncedSearchTerm.trim()}%,model.ilike.%${debouncedSearchTerm.trim()}%`);
-              } else {
-                // Multiple words: try full phrase first, then individual words
-                const fullPhrase = debouncedSearchTerm.trim();
-                const wordFilters = searchWords.map(word => 
-                  `title.ilike.%${word}%,brand.ilike.%${word}%,model.ilike.%${word}%`
-                ).join(',');
-                query = query.or(`title.ilike.%${fullPhrase}%,${wordFilters}`);
-              }
-              (query as any)._searchType = 'fallback';
+            // Build AND condition for all words
+            let baseQuery = query;
+            for (const condition of conditions) {
+              baseQuery = baseQuery.or(condition);
             }
-          } catch (error) {
-            console.error('❌ AI search error, falling back to text search:', error);
-            query = query.ilike('title', `%${debouncedSearchTerm.trim()}%`);
-            (query as any)._searchType = 'fallback';
+            query = baseQuery;
           }
         } else {
           // SHOW ALL: No search terms
           console.log('📋 Showing ALL products (no search)');
-          (query as any)._searchType = 'all';
         }
 
         // Sorting
@@ -205,16 +176,6 @@ export const useCatalogProducts = ({
         }
         
         let products = data || [];
-        
-        // Sort by AI relevance order if available
-        if ((query as any)._aiOrder) {
-          const aiOrder = (query as any)._aiOrder;
-          products = products.sort((a, b) => {
-            const indexA = aiOrder.indexOf(a.id);
-            const indexB = aiOrder.indexOf(b.id);
-            return indexA - indexB;
-          });
-        }
         
         const dataWithSortedImages = products.map(product => ({
           ...product,
@@ -287,7 +248,7 @@ export const useCatalogProducts = ({
           cloudinary_url: typedProduct.cloudinary_url,
           rating_seller: typedProduct.rating_seller,
           lot_number: typedProduct.lot_number,
-          similarity_score: aiSimilarityScores[typedProduct.id] || undefined, // Add similarity score
+          // No similarity score for traditional search
           product_images: typedProduct.product_images?.map(img => ({
             id: '',
             url: img.url,
@@ -313,12 +274,11 @@ export const useCatalogProducts = ({
     }
     
     return chunks;
-  }, [mappedProducts, aiSimilarityScores]);
+  }, [mappedProducts]);
 
   const handleClearSearch = useCallback(() => {
     setSearchTerm('');
     setActiveSearchTerm('');
-    setAiSimilarityScores({}); // Clear similarity scores when clearing search
   }, []);
 
 
@@ -351,9 +311,7 @@ export const useCatalogProducts = ({
     handleSearch,
     handleSearchSubmit,
     prefetchNextPage,
-    isActiveFilters: !!(activeSearchTerm || hideSoldProducts),
-    isAISearching,
-    searchType
+    isActiveFilters: !!(activeSearchTerm || hideSoldProducts)
   };
 };
 
