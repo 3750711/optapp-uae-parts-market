@@ -22,13 +22,17 @@ const Catalog: React.FC = () => {
 
   const { addToHistory } = useSearchHistory();
 
-  // Simplified catalog products
+  // Enhanced catalog products with brand/model filtering
   const {
     searchTerm,
     setSearchTerm,
     activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
+    selectedBrand,
+    selectedModel,
+    brands,
+    brandModels,
     mappedProducts,
     productChunks,
     fetchNextPage,
@@ -40,8 +44,13 @@ const Catalog: React.FC = () => {
     handleClearSearch,
     handleSearch,
     handleSearchSubmit,
+    handleBrandChange,
+    handleModelChange,
+    handleClearBrandModel,
     prefetchNextPage,
     isAISearching,
+    findBrandNameById,
+    findModelNameById
   } = useCatalogProducts({
     productsPerPage: 24,
   });
@@ -83,19 +92,21 @@ const Catalog: React.FC = () => {
     handleSearchSubmit(e);
   }, [searchTerm, addToHistory, handleSearchSubmit]);
 
-  // Simplified - no brand/model clearing needed
-
   const handleClearSoldFilter = useCallback(() => {
     setHideSoldProducts(false);
   }, [setHideSoldProducts]);
 
   const handleClearAll = useCallback(() => {
     handleClearSearch();
-  }, [handleClearSearch]);
+    handleClearBrandModel();
+    setHideSoldProducts(false);
+  }, [handleClearSearch, handleClearBrandModel, setHideSoldProducts]);
 
   const hasAnyFilters = !!(
     activeSearchTerm || 
-    hideSoldProducts
+    hideSoldProducts ||
+    selectedBrand ||
+    selectedModel
   );
 
   const allProductsLoaded = mappedProducts.length > 0 && !hasNextPage && !isFetchingNextPage;
@@ -128,6 +139,15 @@ const Catalog: React.FC = () => {
             hideSoldProducts={hideSoldProducts}
             setHideSoldProducts={setHideSoldProducts}
             isAISearching={isAISearching}
+            selectedBrand={selectedBrand}
+            selectedModel={selectedModel}
+            brands={brands}
+            brandModels={brandModels}
+            onBrandChange={handleBrandChange}
+            onModelChange={handleModelChange}
+            onClearBrandModel={handleClearBrandModel}
+            findBrandNameById={findBrandNameById}
+            findModelNameById={findModelNameById}
           />
         </div>
 
@@ -135,9 +155,14 @@ const Catalog: React.FC = () => {
           <ActiveFilters
             searchQuery={activeSearchTerm}
             hideSoldProducts={hideSoldProducts}
+            selectedBrand={selectedBrand}
+            selectedModel={selectedModel}
             onClearSearch={handleClearSearch}
             onClearSoldFilter={handleClearSoldFilter}
+            onClearBrandModel={handleClearBrandModel}
             onClearAll={handleClearAll}
+            findBrandNameById={findBrandNameById}
+            findModelNameById={findModelNameById}
           />
         )}
 

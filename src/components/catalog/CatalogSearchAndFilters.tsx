@@ -10,6 +10,15 @@ interface CatalogSearchAndFiltersProps {
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
   isAISearching?: boolean;
+  selectedBrand?: string;
+  selectedModel?: string;
+  brands?: { id: string; name: string }[];
+  brandModels?: { id: string; name: string }[];
+  onBrandChange?: (brandId: string, brandName: string) => void;
+  onModelChange?: (modelId: string, modelName: string) => void;
+  onClearBrandModel?: () => void;
+  findBrandNameById?: (brandId: string | null) => string | null;
+  findModelNameById?: (modelId: string | null) => string | null;
 }
 
 const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
@@ -19,7 +28,16 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
   onSearchSubmit,
   hideSoldProducts,
   setHideSoldProducts,
-  isAISearching = false
+  isAISearching = false,
+  selectedBrand,
+  selectedModel,
+  brands,
+  brandModels,
+  onBrandChange,
+  onModelChange,
+  onClearBrandModel,
+  findBrandNameById,
+  findModelNameById
 }) => {
   return (
     <div>
@@ -30,6 +48,15 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
         hideSoldProducts={hideSoldProducts}
         setHideSoldProducts={setHideSoldProducts}
         isAISearching={isAISearching}
+        selectedBrand={selectedBrand}
+        selectedModel={selectedModel}
+        brands={brands}
+        brandModels={brandModels}
+        onBrandChange={onBrandChange}
+        onModelChange={onModelChange}
+        onClearBrandModel={onClearBrandModel}
+        findBrandNameById={findBrandNameById}
+        findModelNameById={findModelNameById}
       />
       
     </div>

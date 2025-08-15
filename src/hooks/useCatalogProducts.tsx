@@ -1,34 +1,36 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
-import { ProductProps } from '@/components/product/ProductCard';
-import { SortOption } from '@/components/catalog/ProductSorting';
-import { useAdminAccess } from '@/hooks/useAdminAccess';
-import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
-import { useAISearch, AISearchResult } from './useAISearch';
-import { useDebounceSearch } from './useDebounceSearch';
+import { useToast } from '@/hooks/use-toast';
+import { useDebounceSearch } from '@/hooks/useDebounceSearch';
+import { useAISearch } from '@/hooks/useAISearch';
+import { useAllCarBrands } from '@/hooks/useAllCarBrands';
+import type { ProductProps } from '@/components/product/ProductCard';
 
+// ProductType definition
 export type ProductType = {
   id: string;
   title: string;
   price: number | string;
   product_images?: { url: string; is_primary?: boolean }[];
-  profiles?: { location?: string; opt_id?: string; rating?: number; opt_status?: string; verification_status?: string };
+  profiles?: { 
+    full_name?: string;
+    opt_id?: string; 
+    rating?: number; 
+  };
   condition?: string;
-  location?: string;
-  optid_created?: string | null;
-  rating_seller?: number | null;
   brand?: string;
   model?: string;
   seller_name: string;
-  status: 'pending' | 'active' | 'sold' | 'archived';
+  status: string;
   seller_id: string;
-  created_at: string;
   delivery_price?: number | null;
+  optid_created?: string | null;
   cloudinary_public_id?: string | null;
   cloudinary_url?: string | null;
+  rating_seller?: number | null;
   lot_number?: number | null;
+  created_at: string;
 };
 
 export interface CatalogFilters {
@@ -40,65 +42,42 @@ export interface CatalogFilters {
 
 interface UseCatalogProductsProps {
   productsPerPage?: number;
-  sortBy?: SortOption;
-  externalSelectedBrand?: string | null;
-  externalSelectedModel?: string | null;
+  sortBy?: string;
   findBrandNameById?: (brandId: string | null) => string | null;
   findModelNameById?: (modelId: string | null) => string | null;
-  debounceTime?: number;
 }
 
 export const useCatalogProducts = ({ 
-  productsPerPage = 24, // Increased from 8 to 24 for better pagination
-  sortBy = 'newest',
-  externalSelectedBrand = null,
-  externalSelectedModel = null,
-  findBrandNameById,
-  findModelNameById,
-  debounceTime = 200
+  productsPerPage = 24,
+  sortBy = 'newest'
 }: UseCatalogProductsProps = {}) => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
-  const { toast } = useToast();
-  const { isAdmin } = useAdminAccess();
-  const { startTimer } = usePerformanceMonitor();
-  const isInitialRender = useRef(true);
-  
-  // Simplified - no brand/model selection needed
+  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<string>('');
 
-  // Simplified: debounce search and always use AI
+  // Get car brands and models data
+  const {
+    brands,
+    brandModels,
+    allModels,
+    isLoading: isLoadingCarData,
+    findBrandNameById,
+    findModelNameById,
+    findBrandIdByName,
+    findModelIdByName
+  } = useAllCarBrands();
+
+  // Debounce search and AI search
   const debouncedSearchTerm = useDebounceSearch(activeSearchTerm, 300);
   const { performAISearch, isSearching: isAISearching } = useAISearch();
 
-
-  const buildSortQuery = (query: any, sortOption: SortOption) => {
-    switch (sortOption) {
-      case 'newest':
-        return query.order('created_at', { ascending: false });
-      case 'oldest':
-        return query.order('created_at', { ascending: true });
-      case 'price_asc':
-        return query.order('price', { ascending: true });
-      case 'price_desc':
-        return query.order('price', { ascending: false });
-      case 'name_asc':
-        return query.order('title', { ascending: true });
-      case 'name_desc':
-        return query.order('title', { ascending: false });
-      default:
-        return query.order('created_at', { ascending: false });
-    }
-  };
-
-  const filters = useMemo(() => {
-    return {
-      debouncedSearchTerm,
-      hideSoldProducts,
-      sortBy,
-      isAdmin
-    };
-  }, [debouncedSearchTerm, hideSoldProducts, sortBy, isAdmin]);
+  // Get AI results when search term changes
+  const aiResults = useMemo(() => {
+    return null; // Will be populated by the query function
+  }, [debouncedSearchTerm]);
 
   const {
     data,
@@ -110,61 +89,81 @@ export const useCatalogProducts = ({
     error,
     refetch
   } = useInfiniteQuery({
-    queryKey: ['products-infinite', filters],
+    queryKey: ['products-infinite', {
+      debouncedSearchTerm,
+      hideSoldProducts,
+      selectedBrand,
+      selectedModel,
+      sortBy
+    }],
     queryFn: async ({ pageParam = 0 }) => {
-      const timer = startTimer(`products-query-page-${pageParam}`);
       try {
-        const from = pageParam * productsPerPage;
-        const to = from + productsPerPage - 1;
-        
-        // Optimized query with composite indexes for search performance
+        const timer = performance.mark('catalog-query-start');
+        console.log('[Catalog] Starting query for page:', pageParam, {
+          debouncedSearchTerm,
+          activeSearchTerm,
+          hideSoldProducts,
+          selectedBrand,
+          selectedModel,
+          productsPerPage
+        });
+
         let query = supabase
           .from('products')
           .select(`
-            id, 
-            title, 
-            price, 
-            condition,
-            brand, 
+            id,
+            title,
+            price,
+            brand,
             model,
-            seller_name,
-            seller_id,
+            condition,
             status,
-            created_at,
-            rating_seller,
+            seller_id,
             delivery_price,
             optid_created,
-            cloudinary_public_id, 
+            cloudinary_public_id,
             cloudinary_url,
             lot_number,
-            product_images(url, is_primary)
-          `);
+            created_at,
+            profiles!products_seller_id_fkey (
+              full_name,
+              opt_id,
+              rating
+            ),
+            product_images (
+              url,
+              is_primary
+            )
+          `)
+          .eq('status', 'available');
 
-        // Limit images per product for performance
-        query.limit(2, { foreignTable: 'product_images' });
-
-        query = buildSortQuery(query, sortBy);
-
-        // Apply status filters with optimized index usage
-        if (filters.hideSoldProducts) {
-          query = query.eq('status', 'active');
-        } else {
-          if (filters.isAdmin) {
-            query = query.in('status', ['active', 'sold', 'pending', 'archived']);
-          } else {
-            query = query.in('status', ['active', 'sold']);
+        // Apply brand/model filters (standard SQL filtering for exact matches)
+        if (selectedBrand) {
+          const brandName = findBrandNameById(selectedBrand);
+          if (brandName) {
+            query = query.eq('brand', brandName);
           }
         }
 
-        // AI-only search: all queries go through AI search
-        if (filters.debouncedSearchTerm && filters.debouncedSearchTerm.trim()) {
-          const searchQuery = filters.debouncedSearchTerm.trim();
-          
+        if (selectedModel) {
+          const modelName = findModelNameById(selectedModel);
+          if (modelName) {
+            query = query.eq('model', modelName);
+          }
+        }
+
+        // Hide sold products filter
+        if (hideSoldProducts) {
+          query = query.neq('status', 'sold');
+        }
+
+        // Apply AI filtering if we have AI results and search term (but no brand/model selected)
+        if (debouncedSearchTerm && debouncedSearchTerm.trim() && !selectedBrand && !selectedModel) {
           try {
-            console.log('🔍 AI search for:', searchQuery);
-            const aiSearchResult = await performAISearch(searchQuery, {
-              similarityThreshold: 0.2, // Lower threshold for broader results
-              matchCount: 100 // Higher count for better coverage
+            console.log('🔍 AI search for:', debouncedSearchTerm);
+            const aiSearchResult = await performAISearch(debouncedSearchTerm.trim(), {
+              similarityThreshold: 0.2,
+              matchCount: 100
             });
             
             if (aiSearchResult.success && aiSearchResult.results.length > 0) {
@@ -179,12 +178,42 @@ export const useCatalogProducts = ({
             }
           } catch (error) {
             console.error('❌ AI search failed:', error);
-            query = query.in('id', []); // No results on error
+            // Continue with regular search on AI failure
           }
         }
 
-        // Brand/model filtering removed - AI search handles all filtering
+        // Apply basic text search when brand/model is selected but we still have a search term
+        if (debouncedSearchTerm && debouncedSearchTerm.trim() && (selectedBrand || selectedModel)) {
+          const searchTerms = debouncedSearchTerm.trim().split(' ').filter(term => term.length > 0);
+          
+          if (searchTerms.length > 0) {
+            // Use ilike for partial matching on title
+            const titleQuery = searchTerms.map(term => `title.ilike.%${term}%`).join(',');
+            query = query.or(titleQuery);
+          }
+        }
 
+        // Sorting
+        switch (sortBy) {
+          case 'newest':
+            query = query.order('created_at', { ascending: false });
+            break;
+          case 'oldest':
+            query = query.order('created_at', { ascending: true });
+            break;
+          case 'price_asc':
+            query = query.order('price', { ascending: true });
+            break;
+          case 'price_desc':
+            query = query.order('price', { ascending: false });
+            break;
+          default:
+            query = query.order('created_at', { ascending: false });
+        }
+
+        // Pagination
+        const from = pageParam * productsPerPage;
+        const to = from + productsPerPage - 1;
         query = query.range(from, to);
 
         const { data, error } = await query;
@@ -214,10 +243,8 @@ export const useCatalogProducts = ({
           })
         }));
         
-        timer.end();
         return dataWithSortedImages;
       } catch (error) {
-        timer.end();
         if (error instanceof Error) {
           throw new Error(error.message);
         } else {
@@ -310,6 +337,20 @@ export const useCatalogProducts = ({
     setActiveSearchTerm('');
   }, []);
 
+  const handleBrandChange = useCallback((brandId: string, brandName: string) => {
+    setSelectedBrand(brandId);
+    setSelectedModel(''); // Reset model when brand changes
+  }, []);
+
+  const handleModelChange = useCallback((modelId: string, modelName: string) => {
+    setSelectedModel(modelId);
+  }, []);
+
+  const handleClearBrandModel = useCallback(() => {
+    setSelectedBrand('');
+    setSelectedModel('');
+  }, []);
+
   const handleSearch = useCallback(() => {
     setActiveSearchTerm(searchTerm);
   }, [searchTerm]);
@@ -325,22 +366,31 @@ export const useCatalogProducts = ({
     activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
+    selectedBrand,
+    selectedModel,
+    brands,
+    brandModels,
     allProducts: mappedProducts,
     mappedProducts,
     productChunks,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading,
+    isLoading: isLoading || isLoadingCarData,
     isError,
     error,
     refetch,
     handleClearSearch,
     handleSearch,
     handleSearchSubmit,
+    handleBrandChange,
+    handleModelChange,
+    handleClearBrandModel,
     prefetchNextPage,
-    isActiveFilters: !!(activeSearchTerm || hideSoldProducts),
-    isAISearching
+    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || selectedBrand || selectedModel),
+    isAISearching,
+    findBrandNameById,
+    findModelNameById
   };
 };
 

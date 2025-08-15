@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
+import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
 
 interface SimplifiedSearchBarProps {
   searchQuery: string;
@@ -14,6 +15,15 @@ interface SimplifiedSearchBarProps {
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
   isAISearching?: boolean;
+  selectedBrand?: string;
+  selectedModel?: string;
+  brands?: { id: string; name: string }[];
+  brandModels?: { id: string; name: string }[];
+  onBrandChange?: (brandId: string, brandName: string) => void;
+  onModelChange?: (modelId: string, modelName: string) => void;
+  onClearBrandModel?: () => void;
+  findBrandNameById?: (brandId: string | null) => string | null;
+  findModelNameById?: (modelId: string | null) => string | null;
 }
 
 const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
@@ -22,7 +32,16 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
   handleSearchSubmit,
   hideSoldProducts,
   setHideSoldProducts,
-  isAISearching = false
+  isAISearching = false,
+  selectedBrand = '',
+  selectedModel = '',
+  brands = [],
+  brandModels = [],
+  onBrandChange,
+  onModelChange,
+  onClearBrandModel,
+  findBrandNameById,
+  findModelNameById
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
@@ -92,6 +111,31 @@ const SimplifiedSearchBar: React.FC<SimplifiedSearchBarProps> = ({
             </div>
           </div>
         </form>
+
+        {/* Brand and Model Selection */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-foreground">Фильтр по марке и модели</h3>
+            {(selectedBrand || selectedModel) && onClearBrandModel && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearBrandModel}
+                className="h-auto p-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                Очистить
+              </Button>
+            )}
+          </div>
+          
+          <SimpleCarSelector
+            brandId={selectedBrand}
+            modelId={selectedModel}
+            onBrandChange={onBrandChange || (() => {})}
+            onModelChange={onModelChange || (() => {})}
+            isMobile={false}
+          />
+        </div>
 
         {/* Controls row */}
         <div className="flex items-center justify-between">

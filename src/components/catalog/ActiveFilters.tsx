@@ -7,19 +7,32 @@ import { X, Filter } from 'lucide-react';
 interface ActiveFiltersProps {
   searchQuery?: string;
   hideSoldProducts?: boolean;
+  selectedBrand?: string;
+  selectedModel?: string;
   onClearSearch?: () => void;
   onClearSoldFilter?: () => void;
+  onClearBrandModel?: () => void;
   onClearAll?: () => void;
+  findBrandNameById?: (brandId: string | null) => string | null;
+  findModelNameById?: (modelId: string | null) => string | null;
 }
 
 const ActiveFilters: React.FC<ActiveFiltersProps> = ({
   searchQuery,
   hideSoldProducts,
+  selectedBrand,
+  selectedModel,
   onClearSearch,
   onClearSoldFilter,
-  onClearAll
+  onClearBrandModel,
+  onClearAll,
+  findBrandNameById,
+  findModelNameById
 }) => {
-  const hasActiveFilters = !!(searchQuery || hideSoldProducts);
+  const hasActiveFilters = !!(searchQuery || hideSoldProducts || selectedBrand || selectedModel);
+  
+  const brandName = selectedBrand ? findBrandNameById?.(selectedBrand) : null;
+  const modelName = selectedModel ? findModelNameById?.(selectedModel) : null;
 
   if (!hasActiveFilters) {
     return null;
@@ -38,6 +51,30 @@ const ActiveFilters: React.FC<ActiveFiltersProps> = ({
           <button
             onClick={onClearSearch}
             className="ml-1 hover:bg-blue-300 rounded-full p-0.5"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </Badge>
+      )}
+      
+      {brandName && (
+        <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-200">
+          Марка: {brandName}
+          <button
+            onClick={onClearBrandModel}
+            className="ml-1 hover:bg-green-300 rounded-full p-0.5"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </Badge>
+      )}
+      
+      {modelName && (
+        <Badge variant="secondary" className="bg-purple-100 text-purple-800 hover:bg-purple-200">
+          Модель: {modelName}
+          <button
+            onClick={onClearBrandModel}
+            className="ml-1 hover:bg-purple-300 rounded-full p-0.5"
           >
             <X className="h-3 w-3" />
           </button>
