@@ -109,8 +109,8 @@ serve(async (req) => {
       throw new Error('Query parameter is required and must be a string');
     }
     
-    // Higher threshold for better relevance (increased from 0.3 to 0.45)
-    const adaptiveThreshold = similarityThreshold || 0.45;
+    // Higher threshold for better relevance (increased to 0.8 for very precise results)
+    const adaptiveThreshold = similarityThreshold || 0.8;
     
     console.log('AI semantic search query:', query);
     console.log('Query analysis:', { 
