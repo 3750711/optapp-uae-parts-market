@@ -181,27 +181,25 @@ serve(async (req) => {
     
     console.log(`After text filtering: ${filteredResults.length} matches`);
     
-    // Apply pagination to filtered results
+    // Return all filtered results without pagination (pagination handled in frontend)
     const totalCount = filteredResults.length;
-    const paginatedResults = filteredResults.slice(offset, offset + limit);
-    const hasNextPage = (offset + limit) < totalCount;
     
-    console.log(`Pagination: offset=${offset}, limit=${limit}, total=${totalCount}, hasNext=${hasNextPage}`);
+    console.log(`Returning all ${totalCount} results without pagination`);
     
-    if (paginatedResults.length > 0) {
+    if (filteredResults.length > 0) {
       // Log score distribution for debugging
       console.log('Score distribution:', {
-        totalResults: paginatedResults.length,
-        avgSemanticScore: paginatedResults.reduce((sum, r) => sum + (r.similarity_score || 0), 0) / paginatedResults.length,
-        avgCombinedScore: paginatedResults.reduce((sum, r) => sum + (r.combined_score || 0), 0) / paginatedResults.length,
-        bestSemanticScore: paginatedResults[0]?.similarity_score || 0,
-        bestCombinedScore: paginatedResults[0]?.combined_score || 0,
-        worstSemanticScore: paginatedResults[paginatedResults.length - 1]?.similarity_score || 0,
-        worstCombinedScore: paginatedResults[paginatedResults.length - 1]?.combined_score || 0
+        totalResults: filteredResults.length,
+        avgSemanticScore: filteredResults.reduce((sum, r) => sum + (r.similarity_score || 0), 0) / filteredResults.length,
+        avgCombinedScore: filteredResults.reduce((sum, r) => sum + (r.combined_score || 0), 0) / filteredResults.length,
+        bestSemanticScore: filteredResults[0]?.similarity_score || 0,
+        bestCombinedScore: filteredResults[0]?.combined_score || 0,
+        worstSemanticScore: filteredResults[filteredResults.length - 1]?.similarity_score || 0,
+        worstCombinedScore: filteredResults[filteredResults.length - 1]?.combined_score || 0
       });
       
       // Log top 3 results with detailed scoring for debugging
-      console.log('Top 3 results with detailed scores:', paginatedResults.slice(0, 3).map(r => {
+      console.log('Top 3 results with detailed scores:', filteredResults.slice(0, 3).map(r => {
         const similarity = r.similarity_score || 0;
         const combined = r.combined_score || 0;
         const boost = combined - similarity;
@@ -224,19 +222,19 @@ serve(async (req) => {
       }));
     }
 
-    console.log(`Returning ${paginatedResults?.length || 0} similar products (page ${Math.floor(offset/limit) + 1})`);
-    console.log('Semantic search results sample:', paginatedResults?.slice(0, 3));
+    console.log(`Returning all ${filteredResults.length} similar products`);
+    console.log('Semantic search results sample:', filteredResults?.slice(0, 3));
 
-    // Return the results with pagination info
+    // Return all results without pagination (pagination handled in frontend)
     const result = {
       success: true,
       query,
-      results: paginatedResults || [],
-      count: paginatedResults?.length || 0,
+      results: filteredResults || [],
+      count: filteredResults?.length || 0,
       totalCount,
-      hasNextPage,
-      currentPage: Math.floor(offset/limit) + 1,
-      totalPages: Math.ceil(totalCount/limit)
+      hasNextPage: false, // Always false since we return all results
+      currentPage: 1,
+      totalPages: 1
     };
 
     return new Response(JSON.stringify(result), {
