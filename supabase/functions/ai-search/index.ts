@@ -127,7 +127,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'text-embedding-3-small',
-        input: `Найти конкретную автозапчасть: ${query} (исключить кузовные детали, аксессуары, салонные элементы)`,
+        input: query,
         encoding_format: 'float',
       }),
     });
