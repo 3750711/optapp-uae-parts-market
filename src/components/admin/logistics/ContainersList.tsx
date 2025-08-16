@@ -26,8 +26,8 @@ export const ContainersList: React.FC<ContainersListProps> = ({
     return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
   }
 
-  // If not partially shipped or no container info, show fallback
-  if (!isPartiallyShipped || !summary?.containerInfo || summary.containerInfo.length === 0) {
+  // If no container info, show fallback
+  if (!summary?.containerInfo || summary.containerInfo.length === 0) {
     return (
       <div className="flex items-center space-x-2">
         <span className="truncate max-w-[120px]">
