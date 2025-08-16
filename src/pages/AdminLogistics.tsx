@@ -50,6 +50,8 @@ import { Database } from "@/integrations/supabase/types";
 import { OrderPlacesManager } from "@/components/admin/logistics/OrderPlacesManager";
 import { useOrderShipmentSummary } from "@/hooks/useOrderShipmentSummary";
 import { Package } from "lucide-react";
+import { CompactShipmentInfo } from "@/components/admin/logistics/CompactShipmentInfo";
+import { DynamicShipmentStatus } from "@/components/admin/logistics/DynamicShipmentStatus";
 import { OrderShipmentStatusChecker } from "@/components/admin/logistics/OrderShipmentStatusChecker";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {

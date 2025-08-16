@@ -1600,6 +1600,10 @@ export type Database = {
         Args: { content: string }
         Returns: string
       }
+      calculate_order_shipment_status: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       cancel_price_offers_for_sold_product: {
         Args: { product_id_param: string }
         Returns: number
