@@ -12,6 +12,7 @@ import { useContainers } from '@/hooks/useContainers';
 interface OrderPlacesManagerProps {
   orderId: string;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
 const getContainerStatusLabel = (status: string) => {
@@ -43,7 +44,7 @@ const getShipmentStatusColor = (status: string) => {
   }
 };
 
-export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId, onClose }) => {
+export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId, onClose, readOnly = false }) => {
   const { shipments, isLoading, updateMultipleShipments, isUpdating } = useOrderShipments(orderId);
   const { containers, isLoading: containersLoading } = useContainers();
   const [editedShipments, setEditedShipments] = useState<Record<string, Partial<OrderShipment>>>({});
@@ -95,7 +96,7 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2">
           <Package className="h-5 w-5" />
-          Управление местами заказа
+          {readOnly ? 'Просмотр мест заказа' : 'Управление местами заказа'}
         </CardTitle>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="h-4 w-4" />
@@ -103,7 +104,7 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-sm text-muted-foreground mb-4">
-          Управляйте каждым местом отдельно, указывая контейнер и статус для каждого места.
+          {readOnly ? 'Просмотр информации о местах заказа.' : 'Управляйте каждым местом отдельно, указывая контейнер и статус для каждого места.'}
         </div>
         
         <div className="grid gap-4">
@@ -125,7 +126,8 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                     <label className="text-sm font-medium">Номер контейнера</label>
                     <Select
                       value={getEditedValue(shipment.id, 'container_number', shipment.container_number) || 'none'}
-                      onValueChange={(value) => handleFieldChange(shipment.id, 'container_number', value === 'none' ? null : value)}
+                      onValueChange={readOnly ? undefined : (value) => handleFieldChange(shipment.id, 'container_number', value === 'none' ? null : value)}
+                      disabled={readOnly}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Выберите контейнер" />
@@ -150,7 +152,8 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                     <label className="text-sm font-medium">Статус отгрузки</label>
                     <Select
                       value={getEditedValue(shipment.id, 'shipment_status', shipment.shipment_status)}
-                      onValueChange={(value) => handleFieldChange(shipment.id, 'shipment_status', value)}
+                      onValueChange={readOnly ? undefined : (value) => handleFieldChange(shipment.id, 'shipment_status', value)}
+                      disabled={readOnly}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -166,9 +169,11 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                 <div className="mt-4 space-y-2">
                   <label className="text-sm font-medium">Описание товара в этом месте</label>
                   <Textarea
-                    placeholder="Опишите что находится в этом месте..."
+                    placeholder={readOnly ? "Нет описания" : "Опишите что находится в этом месте..."}
                     value={getEditedValue(shipment.id, 'description', shipment.description) || ''}
-                    onChange={(e) => handleFieldChange(shipment.id, 'description', e.target.value || null)}
+                    onChange={readOnly ? undefined : (e) => handleFieldChange(shipment.id, 'description', e.target.value || null)}
+                    readOnly={readOnly}
+                    disabled={readOnly}
                     rows={2}
                   />
                 </div>
@@ -179,12 +184,14 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
         
         <div className="flex justify-end gap-2 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>
-            Отмена
+            {readOnly ? 'Закрыть' : 'Отмена'}
           </Button>
-          <Button onClick={handleSave} disabled={isUpdating}>
-            <Save className="h-4 w-4 mr-2" />
-            {isUpdating ? 'Сохранение...' : 'Сохранить изменения'}
-          </Button>
+          {!readOnly && (
+            <Button onClick={handleSave} disabled={isUpdating}>
+              <Save className="h-4 w-4 mr-2" />
+              {isUpdating ? 'Сохранение...' : 'Сохранить изменения'}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

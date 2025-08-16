@@ -942,17 +942,17 @@ const AdminLogistics = () => {
                              >
                                <Eye className="h-4 w-4" />
                              </Button>
-                               {order.shipment_status === 'partially_shipped' && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => setManagingPlacesOrderId(order.id)}
-                                  title="Управлять местами"
-                                >
-                                  <Package className="h-4 w-4" />
-                                </Button>
-                              )}
+                                {(order.shipment_status === 'partially_shipped' || order.shipment_status === 'not_shipped' || order.shipment_status === 'in_transit') && (
+                                 <Button
+                                   variant="ghost"
+                                   size="icon"
+                                   className="h-8 w-8"
+                                   onClick={() => setManagingPlacesOrderId(order.id)}
+                                   title={order.shipment_status === 'partially_shipped' ? "Управлять местами" : "Просмотр мест"}
+                                 >
+                                   <Package className="h-4 w-4" />
+                                 </Button>
+                               )}
                            </div>
                          </TableCell>
                       </TableRow>
@@ -986,6 +986,7 @@ const AdminLogistics = () => {
               <OrderPlacesManager
                 orderId={managingPlacesOrderId}
                 onClose={() => setManagingPlacesOrderId(null)}
+                readOnly={orders.find(o => o.id === managingPlacesOrderId)?.shipment_status !== 'partially_shipped'}
               />
             </div>
           </div>
