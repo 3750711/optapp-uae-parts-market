@@ -2,6 +2,7 @@ import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useOrderShipmentSummary } from "@/hooks/useOrderShipmentSummary";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Loader2 } from "lucide-react";
 
 type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
@@ -50,9 +51,12 @@ export const SmartShipmentStatus: React.FC<SmartShipmentStatusProps> = ({
   onStatusChange
 }) => {
   const { data: summary, isLoading } = useOrderShipmentSummary(orderId);
+  const { isAdmin } = useAdminAccess();
 
-  // Use calculated status if order has shipments, otherwise use fallback from order table
-  const displayStatus = summary && summary.totalPlaces > 0 ? summary.calculatedStatus : fallbackStatus;
+  // Prioritize partially_shipped from orders table, otherwise use calculated status
+  const displayStatus = fallbackStatus === 'partially_shipped' 
+    ? fallbackStatus 
+    : (summary && summary.totalPlaces > 0 ? summary.calculatedStatus : fallbackStatus);
 
   const renderCompactInfo = () => {
     if (isLoading) {
@@ -88,7 +92,7 @@ export const SmartShipmentStatus: React.FC<SmartShipmentStatusProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="not_shipped">Не отправлен</SelectItem>
-          {summary && summary.totalPlaces > 1 && (
+          {(isAdmin || (summary && summary.totalPlaces > 1)) && (
             <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
           )}
           <SelectItem value="in_transit">Отправлен</SelectItem>

@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Package, Container, Save, X } from 'lucide-react';
 import { useOrderShipments, OrderShipment } from '@/hooks/useOrderShipments';
 import { useContainers } from '@/hooks/useContainers';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface OrderPlacesManagerProps {
   orderId: string;
@@ -53,10 +54,11 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
 }) => {
   const { shipments, isLoading, updateMultipleShipments, isUpdating } = useOrderShipments(orderId);
   const { containers, isLoading: containersLoading } = useContainers();
+  const { isAdmin } = useAdminAccess();
   const [editedShipments, setEditedShipments] = useState<Record<string, Partial<OrderShipment>>>({});
 
-  // Check if container and description fields should be disabled
-  const isFieldsDisabled = orderShipmentStatus !== 'partially_shipped';
+  // Admins can edit all fields, others only when status is partially_shipped
+  const isFieldsDisabled = !isAdmin && (orderShipmentStatus !== 'partially_shipped');
 
   const handleFieldChange = (shipmentId: string, field: keyof OrderShipment, value: any) => {
     setEditedShipments(prev => ({
@@ -114,7 +116,7 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
       <CardContent className="space-y-4">
         <div className="text-sm text-muted-foreground mb-4">
           {readOnly ? 'Просмотр информации о местах заказа.' : 'Управляйте каждым местом отдельно, указывая контейнер и статус для каждого места.'}
-          {!readOnly && isFieldsDisabled && (
+          {!readOnly && !isAdmin && isFieldsDisabled && (
             <div className="text-xs text-orange-600 mt-1">
               Для редактирования контейнеров, статусов отгрузки и описаний установите общий статус заказа "Частично отправлен"
             </div>
