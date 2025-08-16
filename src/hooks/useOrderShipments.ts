@@ -8,7 +8,7 @@ export interface OrderShipment {
   order_id: string;
   place_number: number;
   container_number: string | null;
-  shipment_status: 'not_shipped' | 'shipped';
+  shipment_status: 'not_shipped' | 'partially_shipped' | 'in_transit';
   container_status: 'waiting' | 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
   description: string | null;
   created_at: string;

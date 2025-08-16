@@ -29,7 +29,6 @@ const getContainerStatusLabel = (status: string) => {
 const getShipmentStatusLabel = (status: string) => {
   switch (status) {
     case 'not_shipped': return 'Не отправлен';
-    case 'partially_shipped': return 'Частично отправлен';
     case 'in_transit': return 'Отправлен';
     default: return status;
   }
@@ -38,7 +37,6 @@ const getShipmentStatusLabel = (status: string) => {
 const getShipmentStatusColor = (status: string) => {
   switch (status) {
     case 'not_shipped': return 'bg-red-50 text-red-700 border-red-200';
-    case 'partially_shipped': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
     case 'in_transit': return 'bg-green-50 text-green-700 border-green-200';
     default: return 'bg-gray-50 text-gray-700 border-gray-200';
   }
@@ -141,7 +139,6 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="not_shipped">Не отправлен</SelectItem>
-                        <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
                         <SelectItem value="in_transit">Отправлен</SelectItem>
                       </SelectContent>
                     </Select>

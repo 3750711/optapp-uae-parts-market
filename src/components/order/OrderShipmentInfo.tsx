@@ -37,7 +37,8 @@ const getContainerStatusColor = (status: string) => {
 const getShipmentStatusLabel = (status: string) => {
   switch (status) {
     case 'not_shipped': return 'Не отправлен';
-    case 'shipped': return 'Отправлен';
+    case 'partially_shipped': return 'Частично отправлен';
+    case 'in_transit': return 'Отправлен';
     default: return status;
   }
 };
@@ -45,7 +46,8 @@ const getShipmentStatusLabel = (status: string) => {
 const getShipmentStatusColor = (status: string) => {
   switch (status) {
     case 'not_shipped': return 'bg-red-50 text-red-700 border-red-200';
-    case 'shipped': return 'bg-green-50 text-green-700 border-green-200';
+    case 'partially_shipped': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+    case 'in_transit': return 'bg-green-50 text-green-700 border-green-200';
     default: return 'bg-gray-50 text-gray-700 border-gray-200';
   }
 };
@@ -78,8 +80,18 @@ export const OrderShipmentInfo: React.FC<OrderShipmentInfoProps> = ({ orderId })
     return acc;
   }, {} as Record<string, typeof shipments>);
 
-  const shippedCount = shipments.filter(s => s.shipment_status === 'shipped').length;
+  // Calculate overall progress and status
+  const shippedCount = shipments.filter(s => s.shipment_status === 'in_transit').length;
   const totalCount = shipments.length;
+  
+  // Determine overall order status
+  const getOverallOrderStatus = (): 'not_shipped' | 'partially_shipped' | 'in_transit' => {
+    if (shippedCount === 0) return 'not_shipped';
+    if (shippedCount === totalCount) return 'in_transit';
+    return 'partially_shipped';
+  };
+  
+  const overallStatus = getOverallOrderStatus();
 
   return (
     <Card>
@@ -87,6 +99,9 @@ export const OrderShipmentInfo: React.FC<OrderShipmentInfoProps> = ({ orderId })
         <CardTitle className="flex items-center gap-2">
           <Truck className="h-5 w-5" />
           Информация о доставке
+          <Badge className={getShipmentStatusColor(overallStatus)}>
+            {getShipmentStatusLabel(overallStatus)}
+          </Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
