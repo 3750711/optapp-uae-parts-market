@@ -54,6 +54,7 @@ import { SmartShipmentStatus } from "@/components/admin/logistics/SmartShipmentS
 import { ContainerManagement } from "@/components/admin/logistics/ContainerManagement";
 import { useContainers } from '@/hooks/useContainers';
 import { useOrderPlacesSync } from '@/hooks/useOrderPlacesSync';
+import { ContainersList } from "@/components/admin/logistics/ContainersList";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -874,53 +875,54 @@ const AdminLogistics = () => {
                           <OrderStatusBadge status={order.status} />
                         </TableCell>
                         <TableCell>
-                          {editingContainer === order.id ? (
-                            <div className="flex items-center space-x-2">
-                              <Select
-                value={tempContainerNumber || order.container_number || 'none'}
-                onValueChange={(value) => setTempContainerNumber(value === 'none' ? '' : value)}
-                              >
-                                <SelectTrigger className="w-32 h-8 text-sm">
-                                  <SelectValue placeholder="Контейнер" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">Не указан</SelectItem>
-                                  {containers?.map((container) => (
-                                    <SelectItem key={container.id} value={container.container_number}>
-                                      <div className="flex items-center justify-between w-full">
-                                        <span>{container.container_number}</span>
-                                        <span className="text-xs text-muted-foreground ml-2">
-                                          ({getStatusLabel(container.status as any)})
-                                        </span>
-                                      </div>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => initiateContainerNumberChange(order.id, tempContainerNumber)}
-                              >
-                                <Save className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div 
-                              className="flex items-center space-x-2 cursor-pointer hover:text-primary"
-                              onClick={() => {
-                                setEditingContainer(order.id);
-                                setTempContainerNumber(order.container_number || '');
-                              }}
-                            >
-                              <span className="truncate max-w-[120px]">
-                                {order.container_number || 'Не указан'}
-                              </span>
-                              <Container className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
-                        </TableCell>
+                           {editingContainer === order.id ? (
+                             <div className="flex items-center space-x-2">
+                               <Select
+                 value={tempContainerNumber || order.container_number || 'none'}
+                 onValueChange={(value) => setTempContainerNumber(value === 'none' ? '' : value)}
+                               >
+                                 <SelectTrigger className="w-32 h-8 text-sm">
+                                   <SelectValue placeholder="Контейнер" />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                   <SelectItem value="none">Не указан</SelectItem>
+                                   {containers?.map((container) => (
+                                     <SelectItem key={container.id} value={container.container_number}>
+                                       <div className="flex items-center justify-between w-full">
+                                         <span>{container.container_number}</span>
+                                         <span className="text-xs text-muted-foreground ml-2">
+                                           ({getStatusLabel(container.status as any)})
+                                         </span>
+                                       </div>
+                                     </SelectItem>
+                                   ))}
+                                 </SelectContent>
+                               </Select>
+                               <Button 
+                                 variant="ghost" 
+                                 size="icon"
+                                 className="h-8 w-8"
+                                 onClick={() => initiateContainerNumberChange(order.id, tempContainerNumber)}
+                               >
+                                 <Save className="h-4 w-4" />
+                               </Button>
+                             </div>
+                           ) : (
+                             <div 
+                               className="cursor-pointer hover:text-primary"
+                               onClick={() => {
+                                 setEditingContainer(order.id);
+                                 setTempContainerNumber(order.container_number || '');
+                               }}
+                             >
+                               <ContainersList 
+                                 orderId={order.id}
+                                 fallbackContainerNumber={order.container_number}
+                                 isPartiallyShipped={order.shipment_status === 'partially_shipped'}
+                               />
+                             </div>
+                           )}
+                         </TableCell>
                          <TableCell>
                            <div className={`text-sm ${getStatusColor(order.containers?.status as ContainerStatus)}`}>
                              {getStatusLabel(order.containers?.status as ContainerStatus)}
