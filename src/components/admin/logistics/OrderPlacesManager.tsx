@@ -13,6 +13,7 @@ interface OrderPlacesManagerProps {
   orderId: string;
   onClose: () => void;
   readOnly?: boolean;
+  orderShipmentStatus?: 'not_shipped' | 'partially_shipped' | 'in_transit';
 }
 
 const getContainerStatusLabel = (status: string) => {
@@ -44,10 +45,18 @@ const getShipmentStatusColor = (status: string) => {
   }
 };
 
-export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId, onClose, readOnly = false }) => {
+export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ 
+  orderId, 
+  onClose, 
+  readOnly = false, 
+  orderShipmentStatus 
+}) => {
   const { shipments, isLoading, updateMultipleShipments, isUpdating } = useOrderShipments(orderId);
   const { containers, isLoading: containersLoading } = useContainers();
   const [editedShipments, setEditedShipments] = useState<Record<string, Partial<OrderShipment>>>({});
+
+  // Check if container and description fields should be disabled
+  const isFieldsDisabled = orderShipmentStatus !== 'partially_shipped';
 
   const handleFieldChange = (shipmentId: string, field: keyof OrderShipment, value: any) => {
     setEditedShipments(prev => ({
@@ -105,6 +114,11 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
       <CardContent className="space-y-4">
         <div className="text-sm text-muted-foreground mb-4">
           {readOnly ? 'Просмотр информации о местах заказа.' : 'Управляйте каждым местом отдельно, указывая контейнер и статус для каждого места.'}
+          {!readOnly && isFieldsDisabled && (
+            <div className="text-xs text-orange-600 mt-1">
+              Для редактирования контейнеров и описаний установите общий статус заказа "Частично отправлен"
+            </div>
+          )}
         </div>
         
         <div className="grid gap-4">
@@ -126,8 +140,8 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                     <label className="text-sm font-medium">Номер контейнера</label>
                     <Select
                       value={getEditedValue(shipment.id, 'container_number', shipment.container_number) || 'none'}
-                      onValueChange={readOnly ? undefined : (value) => handleFieldChange(shipment.id, 'container_number', value === 'none' ? null : value)}
-                      disabled={readOnly}
+                      onValueChange={readOnly || isFieldsDisabled ? undefined : (value) => handleFieldChange(shipment.id, 'container_number', value === 'none' ? null : value)}
+                      disabled={readOnly || isFieldsDisabled}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Выберите контейнер" />
@@ -169,11 +183,11 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                 <div className="mt-4 space-y-2">
                   <label className="text-sm font-medium">Описание товара в этом месте</label>
                   <Textarea
-                    placeholder={readOnly ? "Нет описания" : "Опишите что находится в этом месте..."}
+                    placeholder={readOnly || isFieldsDisabled ? "Нет описания" : "Опишите что находится в этом месте..."}
                     value={getEditedValue(shipment.id, 'description', shipment.description) || ''}
-                    onChange={readOnly ? undefined : (e) => handleFieldChange(shipment.id, 'description', e.target.value || null)}
-                    readOnly={readOnly}
-                    disabled={readOnly}
+                    onChange={readOnly || isFieldsDisabled ? undefined : (e) => handleFieldChange(shipment.id, 'description', e.target.value || null)}
+                    readOnly={readOnly || isFieldsDisabled}
+                    disabled={readOnly || isFieldsDisabled}
                     rows={2}
                   />
                 </div>

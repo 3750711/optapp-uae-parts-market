@@ -61,6 +61,11 @@ export const SmartShipmentStatus: React.FC<SmartShipmentStatusProps> = ({
 
     const totalPlaces = summary && summary.totalPlaces > 0 ? summary.totalPlaces : placeNumber;
     
+    // Only show the message if there are more than 1 places
+    if (totalPlaces <= 1) {
+      return null;
+    }
+    
     return (
       <div className="flex flex-col gap-1 mt-1">
         <div className="text-xs text-muted-foreground">
