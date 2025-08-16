@@ -55,6 +55,7 @@ import { ContainerManagement } from "@/components/admin/logistics/ContainerManag
 import { useContainers } from '@/hooks/useContainers';
 import { useOrderPlacesSync } from '@/hooks/useOrderPlacesSync';
 import { ContainersList } from "@/components/admin/logistics/ContainersList";
+import { ContainerEditableWrapper } from "@/components/admin/logistics/ContainerEditableWrapper";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -907,21 +908,17 @@ const AdminLogistics = () => {
                                  <Save className="h-4 w-4" />
                                </Button>
                              </div>
-                           ) : (
-                              <div 
-                                className={order.shipment_status === 'partially_shipped' ? '' : 'cursor-pointer hover:text-primary'}
-                                onClick={order.shipment_status === 'partially_shipped' ? undefined : () => {
-                                  setEditingContainer(order.id);
-                                  setTempContainerNumber(order.container_number || '');
-                                }}
-                              >
-                               <ContainersList 
+                            ) : (
+                               <ContainerEditableWrapper
                                  orderId={order.id}
                                  fallbackContainerNumber={order.container_number}
-                                 isPartiallyShipped={order.shipment_status === 'partially_shipped'}
+                                 shipmentStatus={order.shipment_status}
+                                 onEdit={() => {
+                                   setEditingContainer(order.id);
+                                   setTempContainerNumber(order.container_number || '');
+                                 }}
                                />
-                             </div>
-                           )}
+                            )}
                          </TableCell>
                          <TableCell>
                            <div className={`text-sm ${getStatusColor(order.containers?.status as ContainerStatus)}`}>
