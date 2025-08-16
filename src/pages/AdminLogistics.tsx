@@ -62,6 +62,7 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
 };
 
 type ContainerStatus = 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
+type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -80,6 +81,8 @@ const AdminLogistics = () => {
   const [bulkContainerNumber, setBulkContainerNumber] = useState('');
   const [bulkEditingContainerStatus, setBulkEditingContainerStatus] = useState(false);
   const [bulkContainerStatus, setBulkContainerStatus] = useState<ContainerStatus>('sent_from_uae');
+  const [bulkEditingShipmentStatus, setBulkEditingShipmentStatus] = useState(false);
+  const [bulkShipmentStatus, setBulkShipmentStatus] = useState<ShipmentStatus>('not_shipped');
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -375,6 +378,87 @@ const AdminLogistics = () => {
     }
   };
 
+  const getShipmentStatusLabel = (status: ShipmentStatus | null) => {
+    switch (status) {
+      case 'not_shipped':
+        return 'Не отправлен';
+      case 'partially_shipped':
+        return 'Частично отправлен';
+      case 'in_transit':
+        return 'В пути';
+      default:
+        return 'Не указан';
+    }
+  };
+
+  const getShipmentStatusColor = (status: ShipmentStatus | null) => {
+    switch (status) {
+      case 'not_shipped':
+        return 'text-red-600';
+      case 'partially_shipped':
+        return 'text-yellow-600';
+      case 'in_transit':
+        return 'text-green-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
+  const handleBulkUpdateShipmentStatus = async () => {
+    if (!selectedOrders.length) return;
+
+    let hasError = false;
+    
+    for (const orderId of selectedOrders) {
+      const { error } = await supabase
+        .from('orders')
+        .update({ shipment_status: bulkShipmentStatus })
+        .eq('id', orderId);
+
+      if (error) {
+        console.error('Error updating shipment status:', error);
+        hasError = true;
+      }
+    }
+
+    if (hasError) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить статусы отгрузки для некоторых заказов",
+      });
+    } else {
+      toast({
+        title: "Успешно",
+        description: `Статус отгрузки обновлен для ${selectedOrders.length} заказов`,
+      });
+    }
+
+    setBulkEditingShipmentStatus(false);
+    setSelectedOrders([]);
+  };
+
+  const handleUpdateShipmentStatus = async (orderId: string, status: ShipmentStatus) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ shipment_status: status })
+      .eq('id', orderId);
+
+    if (error) {
+      console.error('Error updating shipment status:', error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить статус отгрузки",
+      });
+    } else {
+      toast({
+        title: "Успешно",
+        description: "Статус отгрузки обновлен",
+      });
+    }
+  };
+
   const handleExportToXLSX = async () => {
     if (selectedOrders.length === 0) {
       toast({
@@ -389,15 +473,14 @@ const AdminLogistics = () => {
       .filter(order => selectedOrders.includes(order.id))
       .map(order => ({
         'Номер заказа': order.order_number,
-        'Продавец': order.seller?.full_name || 'Не указано',
-        'ID продавца': order.seller?.opt_id || 'Не указано',
-        'Покупатель': order.buyer?.full_name || 'Не указано',
-        'ID покупателя': order.buyer?.opt_id || 'Не указано',
-        'Количество мест': order.place_number,
-        'Цена доставки': order.delivery_price_confirm || '-',
-        'Статус': order.status,
+        'Наименование': `${order.title} ${order.brand} ${order.model}`.trim(),
+        'Количество мест для отправки': order.place_number,
+        'Стоимость товара': order.price,
+        'Стоимость доставки': order.delivery_price_confirm || 0,
+        'OPT ID продавца': order.seller?.opt_id || 'Не указано',
+        'OPT ID покупателя': order.buyer?.opt_id || 'Не указано',
         'Номер контейнера': order.container_number || 'Не указан',
-        'Статус контейнера': getStatusLabel(order.container_status as ContainerStatus),
+        'Статус отгрузки': getShipmentStatusLabel(order.shipment_status as ShipmentStatus),
       }));
 
     const ws = XLSX.utils.json_to_sheet(selectedOrdersData);
@@ -610,7 +693,7 @@ const AdminLogistics = () => {
                 <span className="font-medium">
                   Сумма доставки: {selectedOrdersDeliverySum?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                 </span>
-                {!bulkEditingContainer && !bulkEditingContainerStatus ? (
+                {!bulkEditingContainer && !bulkEditingContainerStatus && !bulkEditingShipmentStatus ? (
                   <div className="flex gap-2">
                     <Button
                       variant="secondary"
@@ -630,11 +713,50 @@ const AdminLogistics = () => {
                     </Button>
                     <Button
                       variant="secondary"
+                      onClick={() => setBulkEditingShipmentStatus(true)}
+                      size="sm"
+                    >
+                      <Container className="h-4 w-4 mr-2" />
+                      Изменить статус отгрузки
+                    </Button>
+                    <Button
+                      variant="secondary"
                       onClick={handleExportToXLSX}
                       size="sm"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Экспорт в Excel
+                    </Button>
+                  </div>
+                ) : bulkEditingShipmentStatus ? (
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={bulkShipmentStatus}
+                      onValueChange={(value) => setBulkShipmentStatus(value as ShipmentStatus)}
+                    >
+                      <SelectTrigger className="w-[200px] h-8 text-sm">
+                        <SelectValue>{getShipmentStatusLabel(bulkShipmentStatus)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="not_shipped">Не отправлен</SelectItem>
+                        <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
+                        <SelectItem value="in_transit">В пути</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleBulkUpdateShipmentStatus}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Сохранить
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setBulkEditingShipmentStatus(false)}
+                    >
+                      Отмена
                     </Button>
                   </div>
                 ) : bulkEditingContainerStatus ? (
@@ -782,6 +904,14 @@ const AdminLogistics = () => {
                     >
                       Статус контейнера
                     </TableHead>
+                    <TableHead 
+                      className="min-w-[150px]"
+                      sortable
+                      sorted={sortConfig.field === 'shipment_status' ? sortConfig.direction : null}
+                      onSort={() => handleSort('shipment_status')}
+                    >
+                      Статус отгрузки
+                    </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -870,6 +1000,23 @@ const AdminLogistics = () => {
                               <SelectItem value="customs">Таможня</SelectItem>
                               <SelectItem value="cleared_customs">Вышел с таможни</SelectItem>
                               <SelectItem value="received">Получен</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
+                            onValueChange={(value) => handleUpdateShipmentStatus(order.id, value as ShipmentStatus)}
+                          >
+                            <SelectTrigger className={`w-[140px] h-8 text-sm ${getShipmentStatusColor(order.shipment_status as ShipmentStatus)}`}>
+                              <SelectValue>
+                                {getShipmentStatusLabel(order.shipment_status as ShipmentStatus)}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="not_shipped">Не отправлен</SelectItem>
+                              <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
+                              <SelectItem value="in_transit">В пути</SelectItem>
                             </SelectContent>
                           </Select>
                         </TableCell>

@@ -32,6 +32,7 @@ export interface CarModel {
 export type DeliveryMethod = 'self_pickup' | 'cargo_rf' | 'cargo_kz';
 export type OrderStatus = 'created' | 'seller_confirmed' | 'admin_confirmed' | 'processed' | 'shipped' | 'delivered' | 'cancelled';
 export type OrderCreatedType = 'free_order' | 'product_order';
+export type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
 
 export interface OrderFormData {
   title: string;
@@ -73,6 +74,7 @@ export interface CreatedOrder {
   images?: string[];
   video_url?: string[];
   order_created_type: OrderCreatedType;
+  shipment_status: ShipmentStatus;
 }
 
 export interface ValidationError {

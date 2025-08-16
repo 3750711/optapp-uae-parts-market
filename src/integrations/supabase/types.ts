@@ -482,6 +482,7 @@ export type Database = {
           quantity: number
           seller_id: string
           seller_opt_id: string | null
+          shipment_status: Database["public"]["Enums"]["shipment_status"] | null
           status: Database["public"]["Enums"]["order_status"]
           telegram_url_buyer: string | null
           telegram_url_order: string | null
@@ -517,6 +518,9 @@ export type Database = {
           quantity?: number
           seller_id: string
           seller_opt_id?: string | null
+          shipment_status?:
+            | Database["public"]["Enums"]["shipment_status"]
+            | null
           status?: Database["public"]["Enums"]["order_status"]
           telegram_url_buyer?: string | null
           telegram_url_order?: string | null
@@ -552,6 +556,9 @@ export type Database = {
           quantity?: number
           seller_id?: string
           seller_opt_id?: string | null
+          shipment_status?:
+            | Database["public"]["Enums"]["shipment_status"]
+            | null
           status?: Database["public"]["Enums"]["order_status"]
           telegram_url_buyer?: string | null
           telegram_url_order?: string | null
@@ -2079,6 +2086,7 @@ export type Database = {
         | "delivered"
         | "cancelled"
       product_status: "active" | "sold" | "pending" | "archived"
+      shipment_status: "not_shipped" | "partially_shipped" | "in_transit"
       store_tag:
         | "electronics"
         | "auto_parts"
@@ -2244,6 +2252,7 @@ export const Constants = {
         "cancelled",
       ],
       product_status: ["active", "sold", "pending", "archived"],
+      shipment_status: ["not_shipped", "partially_shipped", "in_transit"],
       store_tag: [
         "electronics",
         "auto_parts",

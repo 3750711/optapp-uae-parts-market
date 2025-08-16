@@ -140,6 +140,58 @@ ${order?.description || 'Нет дополнительной информаци�
     }
   };
 
+  const exportLogisticsReport = () => {
+    const reportText = `
+ОТЧЕТ ПО ЗАКАЗУ № ${order?.order_number} - ЛОГИСТИКА
+======================================================
+
+ОСНОВНАЯ ИНФОРМАЦИЯ:
+Номер заказа: ${order?.order_number}
+Наименование: ${order?.title} ${order?.brand} ${order?.model}
+Количество мест для отправки: ${order?.place_number}
+Стоимость товара: $${order?.price}
+Стоимость доставки: $${order?.delivery_price_confirm || 0}
+
+УЧАСТНИКИ:
+OPT ID продавца: ${order?.seller?.opt_id || 'Не указано'}
+OPT ID покупателя: ${order?.buyer?.opt_id || 'Не указано'}
+
+ЛОГИСТИКА:
+Номер контейнера: ${order?.container_number || 'Не указан'}
+Статус отгрузки: ${order?.shipment_status ? getShipmentStatusLabel(order.shipment_status) : 'Не указан'}
+
+Дата создания отчета: ${new Date().toLocaleString('ru-RU')}
+`;
+
+    const reportBlob = new Blob([reportText], { type: 'text/plain; charset=utf-8' });
+    const url = URL.createObjectURL(reportBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `order-${order?.order_number}-logistics.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Успешно",
+      description: "Логистический отчет создан",
+    });
+  };
+
+  const getShipmentStatusLabel = (status: string) => {
+    switch (status) {
+      case 'not_shipped':
+        return 'Не отправлен';
+      case 'partially_shipped':
+        return 'Частично отправлен';
+      case 'in_transit':
+        return 'В пути';
+      default:
+        return 'Не указан';
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -174,6 +226,15 @@ ${order?.description || 'Нет дополнительной информаци�
             >
               <Image className="h-4 w-4" />
               Скачать все изображения
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={exportLogisticsReport}
+              className="flex items-center gap-2"
+            >
+              <Package className="h-4 w-4" />
+              Логистический отчет (TXT)
             </Button>
 
             <Button
