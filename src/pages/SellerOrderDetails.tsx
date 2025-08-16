@@ -66,7 +66,10 @@ const SellerOrderDetails = () => {
         .select(`
           *,
           buyer:buyer_id(telegram, full_name, opt_id, email, phone),
-          seller:seller_id(telegram, full_name, opt_id, email, phone)
+          seller:seller_id(telegram, full_name, opt_id, email, phone),
+          container:containers!container_number (
+            status
+          )
         `)
         .eq('id', id)
         .single();
@@ -573,12 +576,12 @@ const SellerOrderDetails = () => {
                           </div>
                         </div>
                         
-                        {order.container_status && (
+                        {order.container?.status && (
                           <div>
                             <div className="text-sm text-muted-foreground mb-1">{t.containerStatus}</div>
-                            <Badge className={`${getContainerStatusColor(order.container_status)} border`}>
+                            <Badge className={`${getContainerStatusColor(order.container.status)} border`}>
                               <Clock className="h-3 w-3 mr-1" />
-                              {getContainerStatusLabel(order.container_status)}
+                              {getContainerStatusLabel(order.container.status)}
                             </Badge>
                           </div>
                         )}

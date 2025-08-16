@@ -159,7 +159,7 @@ export const OrderShipmentInfo: React.FC<OrderShipmentInfoProps> = ({ orderId })
                         <Badge className={getShipmentStatusColor(shipment.shipment_status)}>
                           {getShipmentStatusLabel(shipment.shipment_status)}
                         </Badge>
-                        <Badge className={getContainerStatusColor(shipment.container_status)} variant="outline">
+                        <Badge className={getContainerStatusColor(shipment.container_status)}>
                           {getContainerStatusLabel(shipment.container_status)}
                         </Badge>
                       </div>

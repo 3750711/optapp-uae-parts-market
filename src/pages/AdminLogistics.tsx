@@ -65,9 +65,12 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
     location: string | null;
     opt_id: string | null;
   } | null;
+  container: {
+    status: ContainerStatus | null;
+  } | null;
 };
 
-type ContainerStatus = 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
+type ContainerStatus = 'waiting' | 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
 type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
 
 const ITEMS_PER_PAGE = 20;
@@ -159,6 +162,9 @@ const AdminLogistics = () => {
             full_name,
             location,
             opt_id
+          ),
+          container:containers!container_number (
+            status
           )
         `);
 
@@ -298,6 +304,8 @@ const AdminLogistics = () => {
 
   const getStatusColor = (status: ContainerStatus | null) => {
     switch (status) {
+      case 'waiting':
+        return 'text-yellow-600';
       case 'sent_from_uae':
         return 'text-blue-600';
       case 'transit_iran':
@@ -317,6 +325,8 @@ const AdminLogistics = () => {
 
   const getStatusLabel = (status: ContainerStatus | null) => {
     switch (status) {
+      case 'waiting':
+        return 'Ожидание';
       case 'sent_from_uae':
         return 'Отправлен из ОАЭ';
       case 'transit_iran':
@@ -839,14 +849,11 @@ const AdminLogistics = () => {
                     >
                       Контейнер
                     </TableHead>
-                    <TableHead 
-                      className="min-w-[180px]"
-                      sortable
-                      sorted={sortConfig.field === 'container_status' ? sortConfig.direction : null}
-                      onSort={() => handleSort('container_status')}
-                    >
-                      Статус контейнера
-                    </TableHead>
+                     <TableHead 
+                       className="min-w-[180px]"
+                     >
+                       Статус контейнера
+                     </TableHead>
                     <TableHead 
                       className="min-w-[150px]"
                       sortable
@@ -939,12 +946,9 @@ const AdminLogistics = () => {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <div className={`text-sm ${getStatusColor(order.container_status as ContainerStatus)}`}>
-                            {getStatusLabel(order.container_status as ContainerStatus)}
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Управляется централизованно
-                            </div>
+                         <TableCell>
+                          <div className={`text-sm ${getStatusColor(order.container?.status as ContainerStatus)}`}>
+                            {getStatusLabel(order.container?.status as ContainerStatus)}
                           </div>
                         </TableCell>
                          <TableCell>

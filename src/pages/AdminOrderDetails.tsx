@@ -28,32 +28,35 @@ const AdminOrderDetails = () => {
   }, [user, profile, isAuthLoading]);
 
   // Main order query - independent of profile loading
-  const { data: order, isLoading: isOrderLoading, error: orderError } = useQuery({
-    queryKey: ['admin-order', id],
-    queryFn: async () => {
-      console.log('Fetching order data for ID:', id);
-      if (!id) throw new Error('Order ID is required');
-      
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          buyer:buyer_id(telegram, full_name, opt_id, email, phone),
-          seller:seller_id(telegram, full_name, opt_id, email, phone)
-        `)
-        .eq('id', id)
-        .single();
+      const { data: order, isLoading: isOrderLoading, error: orderError } = useQuery({
+        queryKey: ['admin-order', id],
+        queryFn: async () => {
+          console.log('Fetching order data for ID:', id);
+          if (!id) throw new Error('Order ID is required');
+          
+          const { data, error } = await supabase
+            .from('orders')
+            .select(`
+              *,
+              buyer:buyer_id(telegram, full_name, opt_id, email, phone),
+              seller:seller_id(telegram, full_name, opt_id, email, phone),
+              container:containers!container_number (
+                status
+              )
+            `)
+            .eq('id', id)
+            .single();
 
-      if (error) {
-        console.error('Order fetch error:', error);
-        throw error;
-      }
-      
-      console.log('Order data fetched:', data);
-      return data;
-    },
-    enabled: !!id
-  });
+          if (error) {
+            console.error('Order fetch error:', error);
+            throw error;
+          }
+          
+          console.log('Order data fetched:', data);
+          return data;
+        },
+        enabled: !!id
+      });
 
   // Images query - independent of profile
   const { data: images = [] } = useQuery({
@@ -522,12 +525,12 @@ const AdminOrderDetails = () => {
                           </div>
                         </div>
                         
-                        {order.container_status && (
+                        {order.container_number && (
                           <div>
                             <div className="text-sm text-muted-foreground mb-1">Статус контейнера</div>
-                            <Badge className={`${getContainerStatusColor(order.container_status)} border`}>
+                            <Badge className={`${getContainerStatusColor(order.container?.status)} border`}>
                               <Clock className="h-3 w-3 mr-1" />
-                              {getContainerStatusLabel(order.container_status)}
+                              {getContainerStatusLabel(order.container?.status)}
                             </Badge>
                           </div>
                         )}

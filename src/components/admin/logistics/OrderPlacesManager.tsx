@@ -167,7 +167,7 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                     <div className="p-2 bg-muted rounded-md text-sm">
                       <span className="text-muted-foreground">Статус управляется централизованно</span>
                       <div className="font-medium">
-                        {getContainerStatusLabel(getEditedValue(shipment.id, 'container_status', shipment.container_status))}
+                         {getContainerStatusLabel(getEditedValue(shipment.id, 'container_status', shipment.container_status))}
                       </div>
                     </div>
                   </div>

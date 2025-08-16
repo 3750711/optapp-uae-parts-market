@@ -539,9 +539,6 @@ export type Database = {
           buyer_id: string
           buyer_opt_id: string | null
           container_number: string | null
-          container_status:
-            | Database["public"]["Enums"]["container_status"]
-            | null
           created_at: string
           delivery_method: Database["public"]["Enums"]["delivery_method"]
           delivery_price_confirm: number | null
@@ -575,9 +572,6 @@ export type Database = {
           buyer_id: string
           buyer_opt_id?: string | null
           container_number?: string | null
-          container_status?:
-            | Database["public"]["Enums"]["container_status"]
-            | null
           created_at?: string
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
           delivery_price_confirm?: number | null
@@ -613,9 +607,6 @@ export type Database = {
           buyer_id?: string
           buyer_opt_id?: string | null
           container_number?: string | null
-          container_status?:
-            | Database["public"]["Enums"]["container_status"]
-            | null
           created_at?: string
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
           delivery_price_confirm?: number | null

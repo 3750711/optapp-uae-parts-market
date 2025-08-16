@@ -25,6 +25,9 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
     email: string | null;
     phone: string | null;
   } | null;
+  container?: {
+    status: string | null;
+  } | null;
 };
 
 interface OrderDetailsProps {
@@ -224,12 +227,12 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
               <p className="text-lg font-medium text-yellow-800">{order.container_number}</p>
             </div>
             
-            {order.container_status && (
+            {order.container_number && (
               <div>
                 <Label className="text-sm text-gray-500">Статус контейнера</Label>
                 <div className="mt-1">
-                  <Badge className={`${getContainerStatusColor(order.container_status)} text-sm px-3 py-1`}>
-                    {getContainerStatusLabel(order.container_status)}
+                  <Badge className={`${getContainerStatusColor(order.container?.status)} text-sm px-3 py-1`}>
+                    {getContainerStatusLabel(order.container?.status)}
                   </Badge>
                 </div>
               </div>
