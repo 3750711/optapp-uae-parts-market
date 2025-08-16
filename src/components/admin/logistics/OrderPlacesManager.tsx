@@ -146,23 +146,12 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                   
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Статус контейнера</label>
-                    <Select
-                      value={getEditedValue(shipment.id, 'container_status', shipment.container_status)}
-                      onValueChange={(value) => handleFieldChange(shipment.id, 'container_status', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="waiting">Ожидание</SelectItem>
-                        <SelectItem value="sent_from_uae">Отправлен из ОАЭ</SelectItem>
-                        <SelectItem value="transit_iran">Транзит Иран</SelectItem>
-                        <SelectItem value="to_kazakhstan">Следует в Казахстан</SelectItem>
-                        <SelectItem value="customs">Таможня</SelectItem>
-                        <SelectItem value="cleared_customs">Вышел с таможни</SelectItem>
-                        <SelectItem value="received">Получен</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="p-2 bg-muted rounded-md text-sm">
+                      <span className="text-muted-foreground">Статус управляется централизованно</span>
+                      <div className="font-medium">
+                        {getContainerStatusLabel(getEditedValue(shipment.id, 'container_status', shipment.container_status))}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 

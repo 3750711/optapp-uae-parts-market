@@ -120,6 +120,36 @@ export type Database = {
           },
         ]
       }
+      containers: {
+        Row: {
+          container_number: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          status: Database["public"]["Enums"]["container_status"]
+          updated_at: string
+        }
+        Insert: {
+          container_number: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["container_status"]
+          updated_at?: string
+        }
+        Update: {
+          container_number?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["container_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_verification_codes: {
         Row: {
           code: string
@@ -2057,6 +2087,13 @@ export type Database = {
       translate_notification: {
         Args: { p_data: Json; p_type: string; p_user_id?: string }
         Returns: Json
+      }
+      update_container_status_and_sync: {
+        Args: {
+          p_container_number: string
+          p_new_status: Database["public"]["Enums"]["container_status"]
+        }
+        Returns: undefined
       }
       update_order_media: {
         Args: {

@@ -51,6 +51,7 @@ import { OrderPlacesManager } from "@/components/admin/logistics/OrderPlacesMana
 import { useOrderShipmentSummary } from "@/hooks/useOrderShipmentSummary";
 import { Package } from "lucide-react";
 import { SmartShipmentStatus } from "@/components/admin/logistics/SmartShipmentStatus";
+import { ContainerManagement } from "@/components/admin/logistics/ContainerManagement";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -114,6 +115,7 @@ const AdminLogistics = () => {
 
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [managingPlacesOrderId, setManagingPlacesOrderId] = useState<string | null>(null);
+  const [showContainerManagement, setShowContainerManagement] = useState(false);
 
   useEffect(() => {
     const channel = supabase
@@ -721,12 +723,21 @@ const AdminLogistics = () => {
         <Card>
           <CardHeader className="py-4 flex flex-row justify-between items-center">
             <CardTitle>Управление логистикой</CardTitle>
-            <Button
-              variant="secondary"
-              onClick={() => setShowExportHistory(true)}
-            >
-              История экспорта
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowContainerManagement(true)}
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Статусы контейнеров
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setShowExportHistory(true)}
+              >
+                История экспорта
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {selectedOrders.length > 0 && (
@@ -1111,6 +1122,13 @@ const AdminLogistics = () => {
                 onClose={() => setManagingPlacesOrderId(null)}
               />
             </div>
+          </div>
+        )}
+
+        {/* Container Management Modal */}
+        {showContainerManagement && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <ContainerManagement onClose={() => setShowContainerManagement(false)} />
           </div>
         )}
       </div>
