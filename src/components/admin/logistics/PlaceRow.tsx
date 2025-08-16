@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { InlineEditableTextarea } from '@/components/ui/InlineEditableTextarea';
 import { Container, Package } from 'lucide-react';
 import { OrderShipment } from '@/hooks/useOrderShipments';
+import { useToast } from '@/hooks/use-toast';
 
 interface PlaceRowProps {
   shipment: OrderShipment;
@@ -51,6 +52,8 @@ export const PlaceRow: React.FC<PlaceRowProps> = ({
   readOnly,
   isFieldsDisabled
 }) => {
+  const { toast } = useToast();
+  
   const getEditedValue = (field: keyof OrderShipment, defaultValue: any) => {
     return editedShipments[shipment.id]?.[field] ?? defaultValue;
   };
@@ -58,6 +61,25 @@ export const PlaceRow: React.FC<PlaceRowProps> = ({
   const currentStatus = getEditedValue('shipment_status', shipment.shipment_status);
   const currentContainer = getEditedValue('container_number', shipment.container_number);
   const currentDescription = getEditedValue('description', shipment.description);
+
+  const handleContainerChange = (value: string) => {
+    const containerValue = value === 'none' ? null : value;
+    onFieldChange(shipment.id, 'container_number', containerValue);
+    
+    // Auto-change status to 'in_transit' if a real container is selected
+    if (containerValue && currentStatus === 'not_shipped') {
+      onFieldChange(shipment.id, 'shipment_status', 'in_transit');
+      toast({
+        title: "Статус изменен",
+        description: "Статус автоматически изменен на 'Отправлен' при выборе контейнера",
+      });
+    }
+  };
+
+  const handleStatusChange = (value: string) => {
+    onFieldChange(shipment.id, 'shipment_status', value);
+    // Note: Container reset for 'not_shipped' is handled in OrderPlacesManager
+  };
 
   const handleDescriptionSave = async (value: string) => {
     onFieldChange(shipment.id, 'description', value || null);
@@ -77,9 +99,7 @@ export const PlaceRow: React.FC<PlaceRowProps> = ({
           <Select
             key={`${shipment.id}-${currentStatus}`}
             value={currentContainer || 'none'}
-            onValueChange={readOnly || isFieldsDisabled ? undefined : (value) => 
-              onFieldChange(shipment.id, 'container_number', value === 'none' ? null : value)
-            }
+            onValueChange={readOnly || isFieldsDisabled ? undefined : handleContainerChange}
             disabled={readOnly || isFieldsDisabled}
           >
             <SelectTrigger className="h-8">
@@ -113,9 +133,7 @@ export const PlaceRow: React.FC<PlaceRowProps> = ({
         <div className="lg:col-span-2">
           <Select
             value={currentStatus}
-            onValueChange={readOnly || isFieldsDisabled ? undefined : (value) => 
-              onFieldChange(shipment.id, 'shipment_status', value)
-            }
+            onValueChange={readOnly || isFieldsDisabled ? undefined : handleStatusChange}
             disabled={readOnly || isFieldsDisabled}
           >
             <SelectTrigger className="h-8">
