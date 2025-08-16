@@ -196,16 +196,16 @@ const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/stores" element={
-              <PublicExceptSellers>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <Stores />
-              </PublicExceptSellers>
+              </ProtectedRoute>
             } />
             <Route path="/store/:id" element={<Navigate to="/stores/:id" replace />} />
             {/* Alias path to support /stores/:id links */}
             <Route path="/stores/:id" element={
-              <PublicExceptSellers>
+              <ProtectedRoute excludedRoles={['seller']}>
                 <StoreDetail />
-              </PublicExceptSellers>
+              </ProtectedRoute>
             } />
             <Route path="/requests" element={
               <ProtectedRoute excludedRoles={['seller']}>
