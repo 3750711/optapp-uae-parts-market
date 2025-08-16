@@ -685,7 +685,9 @@ const AdminLogistics = () => {
                       </SelectTrigger>
                       <SelectContent>
                          <SelectItem value="not_shipped">Не отправлен</SelectItem>
-                         <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
+                         {!orders.some(order => selectedOrders.includes(order.id) && order.place_number === 1) && (
+                           <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
+                         )}
                          <SelectItem value="in_transit">Отправлен</SelectItem>
                       </SelectContent>
                     </Select>

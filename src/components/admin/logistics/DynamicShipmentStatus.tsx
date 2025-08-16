@@ -58,7 +58,9 @@ export const DynamicShipmentStatus: React.FC<DynamicShipmentStatusProps> = ({
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="not_shipped">Не отправлен</SelectItem>
-        <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
+        {summary && summary.totalPlaces > 1 && (
+          <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
+        )}
         <SelectItem value="in_transit">Отправлен</SelectItem>
       </SelectContent>
     </Select>

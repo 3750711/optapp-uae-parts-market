@@ -83,6 +83,20 @@ export const useOrderPlacesSync = () => {
     newContainerNumber?: string | null
   ) => {
     try {
+      // Get order details to check place_number
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('place_number')
+        .eq('id', orderId)
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Prevent setting partially_shipped for single-place orders
+      if (newStatus === 'partially_shipped' && order.place_number === 1) {
+        throw new Error('Cannot set partially shipped status for orders with only one place');
+      }
+
       // First, ensure all shipments exist
       await ensureOrderShipments(orderId);
 
