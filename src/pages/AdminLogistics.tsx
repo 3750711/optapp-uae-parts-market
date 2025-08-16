@@ -53,6 +53,7 @@ import { Package } from "lucide-react";
 import { SmartShipmentStatus } from "@/components/admin/logistics/SmartShipmentStatus";
 import { ContainerManagement } from "@/components/admin/logistics/ContainerManagement";
 import { useContainers } from '@/hooks/useContainers';
+import { useOrderPlacesSync } from '@/hooks/useOrderPlacesSync';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -94,6 +95,7 @@ const AdminLogistics = () => {
   const { toast } = useToast();
   const { profile } = useAuth();
   const { containers, isLoading: containersLoading } = useContainers();
+  const { syncShipmentsWithOrder } = useOrderPlacesSync();
 
   
   const [confirmContainerDialog, setConfirmContainerDialog] = useState(false);
@@ -221,23 +223,19 @@ const AdminLogistics = () => {
     setTempContainerNumber('');
     setUpdatingOrderId(orderId);
     
-    const { error } = await supabase
-      .from('orders')
-      .update({ container_number: containerNumber })
-      .eq('id', orderId);
-
-    if (error) {
-      console.error('Error updating container number:', error);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось обновить номер контейнера",
-      });
-    } else {
+    try {
+      await syncShipmentsWithOrder(orderId, undefined, containerNumber);
       queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
       toast({
         title: "Успешно",
         description: "Номер контейнера обновлен",
+      });
+    } catch (error) {
+      console.error('Error updating container:', error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить номер контейнера",
       });
     }
     
@@ -249,13 +247,11 @@ const AdminLogistics = () => {
 
     let hasError = false;
     
+    // Use the sync function to update orders and their shipments
     for (const orderId of selectedOrders) {
-      const { error } = await supabase
-        .from('orders')
-        .update({ container_number: bulkContainerNumber })
-        .eq('id', orderId);
-
-      if (error) {
+      try {
+        await syncShipmentsWithOrder(orderId, undefined, bulkContainerNumber);
+      } catch (error) {
         console.error('Error updating container number:', error);
         hasError = true;
       }
@@ -373,26 +369,13 @@ const AdminLogistics = () => {
   const handleBulkUpdateShipmentStatus = async () => {
     if (!selectedOrders.length) return;
 
-    // If status is partially_shipped, we need to handle multiple orders differently
-    if (bulkShipmentStatus === 'partially_shipped') {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Статус 'Частично отправлен' можно установить только для отдельных заказов",
-      });
-      setBulkEditingShipmentStatus(false);
-      return;
-    }
-
     let hasError = false;
     
+    // Use the sync function to update orders and their shipments
     for (const orderId of selectedOrders) {
-      const { error } = await supabase
-        .from('orders')
-        .update({ shipment_status: bulkShipmentStatus })
-        .eq('id', orderId);
-
-      if (error) {
+      try {
+        await syncShipmentsWithOrder(orderId, bulkShipmentStatus);
+      } catch (error) {
         console.error('Error updating shipment status:', error);
         hasError = true;
       }
@@ -419,30 +402,20 @@ const AdminLogistics = () => {
   const handleUpdateShipmentStatus = async (orderId: string, status: ShipmentStatus) => {
     setUpdatingOrderId(orderId);
     
-    // If status is partially_shipped, open the places manager instead
-    if (status === 'partially_shipped') {
-      setManagingPlacesOrderId(orderId);
-      setUpdatingOrderId(null);
-      return;
-    }
-    
-    const { error } = await supabase
-      .from('orders')
-      .update({ shipment_status: status })
-      .eq('id', orderId);
-
-    if (error) {
+    // Use sync function to update shipments
+    try {
+      await syncShipmentsWithOrder(orderId, status);
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
+      toast({
+        title: "Успешно",
+        description: "Статус отгрузки обновлен",
+      });
+    } catch (error) {
       console.error('Error updating shipment status:', error);
       toast({
         variant: "destructive",
         title: "Ошибка",
         description: "Не удалось обновить статус отгрузки",
-      });
-    } else {
-      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
-      toast({
-        title: "Успешно",
-        description: "Статус отгрузки обновлен",
       });
     }
     
