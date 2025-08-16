@@ -61,27 +61,27 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
       return `@${u}`;
     };
     
-    // Fetch recipient (buyer) telegram from profiles
-    let buyerTelegram: string = '';
+    // Fetch seller telegram from profiles
+    let sellerTelegram: string = '';
     try {
-      if (orderData.buyer_id) {
-        const { data: buyerProfile, error: buyerErr } = await supabaseClient
+      if (orderData.seller_id) {
+        const { data: sellerProfile, error: sellerErr } = await supabaseClient
           .from('profiles')
           .select('telegram')
-          .eq('id', orderData.buyer_id)
+          .eq('id', orderData.seller_id)
           .single();
-        if (buyerErr) {
-          console.warn('Could not fetch buyer telegram from profiles:', buyerErr);
+        if (sellerErr) {
+          console.warn('Could not fetch seller telegram from profiles:', sellerErr);
         }
-        buyerTelegram = normalizeTelegramUsername(buyerProfile?.telegram);
+        sellerTelegram = normalizeTelegramUsername(sellerProfile?.telegram);
       }
     } catch (e) {
-      console.warn('Exception fetching buyer telegram:', e);
+      console.warn('Exception fetching seller telegram:', e);
     }
     
     // Fallbacks
-    const fallbackBuyerTelegram = normalizeTelegramUsername(orderData.telegram_url_buyer);
-    const displayTelegram = buyerTelegram || fallbackBuyerTelegram || '';
+    const fallbackSellerTelegram = normalizeTelegramUsername(orderData.telegram_url_order);
+    const displayTelegram = sellerTelegram || fallbackSellerTelegram || '';
     
     // Format order number with leading zero
     const formattedOrderNumber = orderData.order_number.toString().padStart(5, '0');
