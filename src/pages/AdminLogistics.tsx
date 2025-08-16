@@ -108,6 +108,8 @@ const AdminLogistics = () => {
     direction: null
   });
 
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+
   useEffect(() => {
     const channel = supabase
       .channel('orders-changes')
@@ -209,6 +211,7 @@ const AdminLogistics = () => {
   const handleUpdateContainerNumber = async (orderId: string, containerNumber: string) => {
     setEditingContainer(null);
     setTempContainerNumber('');
+    setUpdatingOrderId(orderId);
     
     const { error } = await supabase
       .from('orders')
@@ -223,11 +226,14 @@ const AdminLogistics = () => {
         description: "Не удалось обновить номер контейнера",
       });
     } else {
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
       toast({
         title: "Успешно",
         description: "Номер контейнера обновлен",
       });
     }
+    
+    setUpdatingOrderId(null);
   };
 
   const handleBulkUpdateContainerNumber = async () => {
@@ -254,6 +260,7 @@ const AdminLogistics = () => {
         description: "Не удалось обновить номера контейнеров для некоторых заказов",
       });
     } else {
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
       toast({
         title: "Успешно",
         description: `Номер контейнера обновлен для ${selectedOrders.length} заказов`,
@@ -309,6 +316,7 @@ const AdminLogistics = () => {
         description: "Не удалось обновить статусы контейнеров для некоторых заказов",
       });
     } else {
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
       toast({
         title: "Успешно",
         description: `Статус контейнера обновлен для ${selectedOrders.length} заказов`,
@@ -320,6 +328,8 @@ const AdminLogistics = () => {
   };
 
   const handleUpdateContainerStatus = async (orderId: string, status: ContainerStatus) => {
+    setUpdatingOrderId(orderId);
+    
     const { error } = await supabase
       .from('orders')
       .update({ container_status: status })
@@ -333,11 +343,14 @@ const AdminLogistics = () => {
         description: "Не удалось обновить статус контейнера",
       });
     } else {
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
       toast({
         title: "Успешно",
         description: "Статус контейнера обновлен",
       });
     }
+    
+    setUpdatingOrderId(null);
   };
 
   const getStatusColor = (status: ContainerStatus | null) => {
@@ -428,6 +441,7 @@ const AdminLogistics = () => {
         description: "Не удалось обновить статусы отгрузки для некоторых заказов",
       });
     } else {
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
       toast({
         title: "Успешно",
         description: `Статус отгрузки обновлен для ${selectedOrders.length} заказов`,
@@ -439,6 +453,8 @@ const AdminLogistics = () => {
   };
 
   const handleUpdateShipmentStatus = async (orderId: string, status: ShipmentStatus) => {
+    setUpdatingOrderId(orderId);
+    
     const { error } = await supabase
       .from('orders')
       .update({ shipment_status: status })
@@ -452,11 +468,14 @@ const AdminLogistics = () => {
         description: "Не удалось обновить статус отгрузки",
       });
     } else {
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
       toast({
         title: "Успешно",
         description: "Статус отгрузки обновлен",
       });
     }
+    
+    setUpdatingOrderId(null);
   };
 
   const handleExportToXLSX = async () => {
