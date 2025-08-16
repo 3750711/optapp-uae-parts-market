@@ -38,11 +38,11 @@ const getShipmentStatusLabel = (status: string) => {
   }
 };
 
-const getShipmentStatusColor = (status: string) => {
+const getShipmentStatusVariant = (status: string) => {
   switch (status) {
-    case 'not_shipped': return 'bg-red-50 text-red-700 border-red-200';
-    case 'in_transit': return 'bg-green-50 text-green-700 border-green-200';
-    default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    case 'not_shipped': return 'destructive';
+    case 'in_transit': return 'success';
+    default: return 'secondary';
   }
 };
 
@@ -61,6 +61,7 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
   const isFieldsDisabled = !isAdmin && (orderShipmentStatus !== 'partially_shipped');
 
   const handleFieldChange = (shipmentId: string, field: keyof OrderShipment, value: any) => {
+    console.log('handleFieldChange:', shipmentId, field, value); // Debug log
     setEditedShipments(prev => ({
       ...prev,
       [shipmentId]: {
@@ -132,7 +133,10 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
                     <Container className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">Место {shipment.place_number}</span>
                   </div>
-                  <Badge className={getShipmentStatusColor(getEditedValue(shipment.id, 'shipment_status', shipment.shipment_status))}>
+                  <Badge 
+                    key={`${shipment.id}-${getEditedValue(shipment.id, 'shipment_status', shipment.shipment_status)}`}
+                    variant={getShipmentStatusVariant(getEditedValue(shipment.id, 'shipment_status', shipment.shipment_status))}
+                  >
                     {getShipmentStatusLabel(getEditedValue(shipment.id, 'shipment_status', shipment.shipment_status))}
                   </Badge>
                 </div>
