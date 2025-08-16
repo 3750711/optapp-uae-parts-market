@@ -145,6 +145,7 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Номер контейнера</label>
                     <Select
+                      key={`${shipment.id}-${getEditedValue(shipment.id, 'shipment_status', shipment.shipment_status)}`}
                       value={getEditedValue(shipment.id, 'container_number', shipment.container_number) || 'none'}
                       onValueChange={readOnly || isFieldsDisabled ? undefined : (value) => handleFieldChange(shipment.id, 'container_number', value === 'none' ? null : value)}
                       disabled={readOnly || isFieldsDisabled}
