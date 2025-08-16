@@ -269,6 +269,15 @@ const SellerSellProduct = () => {
     deliveryPrice?: number;
     deliveryMethod: string;
     orderImages: string[];
+    editedData?: {
+      title?: string;
+      brand?: string;
+      model?: string;
+      price?: number;
+      deliveryPrice?: number;
+      placeNumber?: number;
+      textOrder?: string;
+    };
   }) => {
     if (!selectedProduct || !selectedBuyer || !profile) {
       toast({
