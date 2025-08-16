@@ -116,7 +116,7 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
           {readOnly ? 'Просмотр информации о местах заказа.' : 'Управляйте каждым местом отдельно, указывая контейнер и статус для каждого места.'}
           {!readOnly && isFieldsDisabled && (
             <div className="text-xs text-orange-600 mt-1">
-              Для редактирования контейнеров и описаний установите общий статус заказа "Частично отправлен"
+              Для редактирования контейнеров, статусов отгрузки и описаний установите общий статус заказа "Частично отправлен"
             </div>
           )}
         </div>
@@ -166,8 +166,8 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
                     <label className="text-sm font-medium">Статус отгрузки</label>
                     <Select
                       value={getEditedValue(shipment.id, 'shipment_status', shipment.shipment_status)}
-                      onValueChange={readOnly ? undefined : (value) => handleFieldChange(shipment.id, 'shipment_status', value)}
-                      disabled={readOnly}
+                      onValueChange={readOnly || isFieldsDisabled ? undefined : (value) => handleFieldChange(shipment.id, 'shipment_status', value)}
+                      disabled={readOnly || isFieldsDisabled}
                     >
                       <SelectTrigger>
                         <SelectValue />
