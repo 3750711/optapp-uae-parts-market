@@ -462,7 +462,7 @@ export type Database = {
           id: string
           order_id: string
           place_number: number
-          shipment_status: Database["public"]["Enums"]["shipment_status"]
+          shipment_status: Database["public"]["Enums"]["shipment_status_individual"]
           updated_at: string
         }
         Insert: {
@@ -472,7 +472,7 @@ export type Database = {
           id?: string
           order_id: string
           place_number: number
-          shipment_status?: Database["public"]["Enums"]["shipment_status"]
+          shipment_status?: Database["public"]["Enums"]["shipment_status_individual"]
           updated_at?: string
         }
         Update: {
@@ -482,7 +482,7 @@ export type Database = {
           id?: string
           order_id?: string
           place_number?: number
-          shipment_status?: Database["public"]["Enums"]["shipment_status"]
+          shipment_status?: Database["public"]["Enums"]["shipment_status_individual"]
           updated_at?: string
         }
         Relationships: [
@@ -2167,6 +2167,7 @@ export type Database = {
         | "cancelled"
       product_status: "active" | "sold" | "pending" | "archived"
       shipment_status: "not_shipped" | "partially_shipped" | "in_transit"
+      shipment_status_individual: "not_shipped" | "in_transit"
       store_tag:
         | "electronics"
         | "auto_parts"
@@ -2333,6 +2334,7 @@ export const Constants = {
       ],
       product_status: ["active", "sold", "pending", "archived"],
       shipment_status: ["not_shipped", "partially_shipped", "in_transit"],
+      shipment_status_individual: ["not_shipped", "in_transit"],
       store_tag: [
         "electronics",
         "auto_parts",

@@ -8,7 +8,7 @@ export interface OrderShipment {
   order_id: string;
   place_number: number;
   container_number: string | null;
-  shipment_status: 'not_shipped' | 'partially_shipped' | 'in_transit';
+  shipment_status: 'not_shipped' | 'in_transit';
   description: string | null;
   created_at: string;
   updated_at: string;
@@ -116,6 +116,12 @@ export const useOrderShipments = (orderId: string) => {
     setIsUpdating(true);
     try {
       for (const { id, updates: shipmentUpdates } of updates) {
+        // Ensure individual shipments can only have valid statuses
+        if (shipmentUpdates.shipment_status && 
+            !['not_shipped', 'in_transit'].includes(shipmentUpdates.shipment_status)) {
+          throw new Error(`Invalid shipment status for individual place: ${shipmentUpdates.shipment_status}`);
+        }
+        
         const { error } = await supabase
           .from('order_shipments')
           .update(shipmentUpdates)

@@ -32,7 +32,10 @@ export interface CarModel {
 export type DeliveryMethod = 'self_pickup' | 'cargo_rf' | 'cargo_kz';
 export type OrderStatus = 'created' | 'seller_confirmed' | 'admin_confirmed' | 'processed' | 'shipped' | 'delivered' | 'cancelled';
 export type OrderCreatedType = 'free_order' | 'product_order';
+// Order-level status can be calculated as partially_shipped
+// Individual shipment status can only be not_shipped or in_transit  
 export type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
+export type IndividualShipmentStatus = 'not_shipped' | 'in_transit';
 
 export interface OrderFormData {
   title: string;

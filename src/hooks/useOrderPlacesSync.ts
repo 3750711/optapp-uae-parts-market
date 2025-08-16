@@ -2,7 +2,10 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Individual shipments can only be 'not_shipped' or 'in_transit'
+// The 'partially_shipped' status is calculated at the order level
 export type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
+export type IndividualShipmentStatus = 'not_shipped' | 'in_transit';
 
 export const useOrderPlacesSync = () => {
   const { toast } = useToast();
@@ -36,7 +39,7 @@ export const useOrderPlacesSync = () => {
           shipmentsToCreate.push({
             order_id: orderId,
             place_number: i,
-            shipment_status: 'not_shipped' as const,
+            shipment_status: 'not_shipped' as IndividualShipmentStatus,
             container_number: null,
             description: null
           });
@@ -83,17 +86,18 @@ export const useOrderPlacesSync = () => {
       // First, ensure all shipments exist
       await ensureOrderShipments(orderId);
 
-      // If status is "partially_shipped", don't sync - allow individual management
-      if (newStatus === 'partially_shipped') {
-        // Only update the order status, don't touch individual shipments
-        const { error } = await supabase
-          .from('orders')
-          .update({ shipment_status: newStatus })
-          .eq('id', orderId);
+    // If the newStatus is 'partially_shipped', it only updates the order status
+    // Individual shipments can only be 'not_shipped' or 'in_transit'
+    if (newStatus === 'partially_shipped') {
+      // Only update the order status, don't touch individual shipments
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({ shipment_status: newStatus })
+        .eq('id', orderId);
 
-        if (error) throw error;
-        return;
-      }
+      if (orderError) throw orderError;
+      return;
+    }
 
       // For other statuses, sync all places
       const updates: any = {};
