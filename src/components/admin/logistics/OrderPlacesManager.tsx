@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Package, Container, Save, X } from 'lucide-react';
 import { useOrderShipments, OrderShipment } from '@/hooks/useOrderShipments';
+import { useContainers } from '@/hooks/useContainers';
 
 interface OrderPlacesManagerProps {
   orderId: string;
@@ -44,6 +45,7 @@ const getShipmentStatusColor = (status: string) => {
 
 export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId, onClose }) => {
   const { shipments, isLoading, updateMultipleShipments, isUpdating } = useOrderShipments(orderId);
+  const { containers, isLoading: containersLoading } = useContainers();
   const [editedShipments, setEditedShipments] = useState<Record<string, Partial<OrderShipment>>>({});
 
   const handleFieldChange = (shipmentId: string, field: keyof OrderShipment, value: any) => {
@@ -121,11 +123,24 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Номер контейнера</label>
-                    <Input
-                      placeholder="Не указан"
+                    <Select
                       value={getEditedValue(shipment.id, 'container_number', shipment.container_number) || ''}
-                      onChange={(e) => handleFieldChange(shipment.id, 'container_number', e.target.value || null)}
-                    />
+                      onValueChange={(value) => handleFieldChange(shipment.id, 'container_number', value || null)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите контейнер" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Не указан</SelectItem>
+                        {containers?.map((container) => (
+                          <SelectItem key={container.id} value={container.container_number}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{container.container_number}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="space-y-2">

@@ -52,6 +52,7 @@ import { useOrderShipmentSummary } from "@/hooks/useOrderShipmentSummary";
 import { Package } from "lucide-react";
 import { SmartShipmentStatus } from "@/components/admin/logistics/SmartShipmentStatus";
 import { ContainerManagement } from "@/components/admin/logistics/ContainerManagement";
+import { useContainers } from '@/hooks/useContainers';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -89,6 +90,7 @@ const AdminLogistics = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { profile } = useAuth();
+  const { containers, isLoading: containersLoading } = useContainers();
 
   
   const [confirmContainerDialog, setConfirmContainerDialog] = useState(false);
@@ -722,13 +724,22 @@ const AdminLogistics = () => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Введите номер контейнера"
+                    <Select
                       value={bulkContainerNumber}
-                      onChange={(e) => setBulkContainerNumber(e.target.value)}
-                      className="w-48 h-8 text-sm"
-                    />
+                      onValueChange={(value) => setBulkContainerNumber(value)}
+                    >
+                      <SelectTrigger className="w-48 h-8 text-sm">
+                        <SelectValue placeholder="Выберите контейнер" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Не указан</SelectItem>
+                        {containers?.map((container) => (
+                          <SelectItem key={container.id} value={container.container_number}>
+                            {container.container_number}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -878,14 +889,22 @@ const AdminLogistics = () => {
                         <TableCell>
                           {editingContainer === order.id ? (
                             <div className="flex items-center space-x-2">
-                              <Input
-                                type="text"
-                                placeholder="№ контейнера"
-                                defaultValue={order.container_number || ''}
-                                autoFocus
-                                onChange={(e) => setTempContainerNumber(e.target.value)}
-                                className="w-28 h-8 text-sm"
-                              />
+                              <Select
+                                value={tempContainerNumber || order.container_number || ''}
+                                onValueChange={(value) => setTempContainerNumber(value)}
+                              >
+                                <SelectTrigger className="w-32 h-8 text-sm">
+                                  <SelectValue placeholder="Контейнер" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="">Не указан</SelectItem>
+                                  {containers?.map((container) => (
+                                    <SelectItem key={container.id} value={container.container_number}>
+                                      {container.container_number}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                               <Button 
                                 variant="ghost" 
                                 size="icon"
