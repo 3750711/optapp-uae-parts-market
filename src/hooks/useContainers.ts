@@ -79,8 +79,7 @@ export const useContainers = () => {
 
       // Convert container status to shipment status
       const shipmentStatus = status === 'waiting' ? 'not_shipped' :
-                           (status === 'in_transit' || status === 'sent_from_uae' || status === 'transit_iran' || status === 'to_kazakhstan') ? 'in_transit' :
-                           (status === 'delivered' || status === 'received' || status === 'cleared_customs') ? 'delivered' : 'not_shipped';
+                           (status === 'in_transit' || status === 'sent_from_uae' || status === 'transit_iran' || status === 'to_kazakhstan' || status === 'customs' || status === 'cleared_customs' || status === 'delivered' || status === 'received') ? 'in_transit' : 'not_shipped';
 
       // Update all order_shipments for these orders
       if (orders && orders.length > 0) {
