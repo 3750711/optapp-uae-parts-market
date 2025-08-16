@@ -65,7 +65,7 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
     location: string | null;
     opt_id: string | null;
   } | null;
-  container: {
+  containers: {
     status: ContainerStatus | null;
   } | null;
 };
@@ -163,9 +163,9 @@ const AdminLogistics = () => {
             location,
             opt_id
           ),
-          container:containers!container_number (
-            status
-          )
+           containers(
+             status
+           )
         `);
 
       if (sortConfig.field && sortConfig.direction) {
@@ -947,8 +947,8 @@ const AdminLogistics = () => {
                           )}
                         </TableCell>
                          <TableCell>
-                          <div className={`text-sm ${getStatusColor(order.container?.status as ContainerStatus)}`}>
-                            {getStatusLabel(order.container?.status as ContainerStatus)}
+                           <div className={`text-sm ${getStatusColor(order.containers?.status as ContainerStatus)}`}>
+                             {getStatusLabel(order.containers?.status as ContainerStatus)}
                           </div>
                         </TableCell>
                          <TableCell>
