@@ -908,13 +908,13 @@ const AdminLogistics = () => {
                                </Button>
                              </div>
                            ) : (
-                             <div 
-                               className="cursor-pointer hover:text-primary"
-                               onClick={() => {
-                                 setEditingContainer(order.id);
-                                 setTempContainerNumber(order.container_number || '');
-                               }}
-                             >
+                              <div 
+                                className={order.shipment_status === 'partially_shipped' ? '' : 'cursor-pointer hover:text-primary'}
+                                onClick={order.shipment_status === 'partially_shipped' ? undefined : () => {
+                                  setEditingContainer(order.id);
+                                  setTempContainerNumber(order.container_number || '');
+                                }}
+                              >
                                <ContainersList 
                                  orderId={order.id}
                                  fallbackContainerNumber={order.container_number}

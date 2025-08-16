@@ -14,9 +14,6 @@ const getStatusBadgeVariant = (status: 'not_shipped' | 'in_transit') => {
   return status === 'in_transit' ? 'success' : 'secondary';
 };
 
-const getStatusLabel = (status: 'not_shipped' | 'in_transit') => {
-  return status === 'in_transit' ? 'Отправлен' : 'Не отправлен';
-};
 
 export const ContainersList: React.FC<ContainersListProps> = ({ 
   orderId, 
@@ -54,15 +51,12 @@ export const ContainersList: React.FC<ContainersListProps> = ({
               variant={getStatusBadgeVariant(container.status)}
               className="text-xs px-2 py-1"
             >
-              {container.containerNumber || 'Без №'}
+              {container.containerNumber || 'НО'}
             </Badge>
             <div className="flex items-center gap-1 text-muted-foreground">
               <Package className="h-3 w-3" />
               <span>{container.placesCount}</span>
             </div>
-            <span className="text-muted-foreground">
-              ({getStatusLabel(container.status)})
-            </span>
           </div>
         ))}
       </div>
@@ -77,15 +71,12 @@ export const ContainersList: React.FC<ContainersListProps> = ({
         variant={getStatusBadgeVariant(container.status)}
         className="text-xs"
       >
-        {container.containerNumber || 'Без №'}
+        {container.containerNumber || 'НО'}
       </Badge>
       <div className="flex items-center gap-1 text-xs text-muted-foreground">
         <Package className="h-3 w-3" />
         <span>{container.placesCount}</span>
       </div>
-      <span className="text-xs text-muted-foreground">
-        ({getStatusLabel(container.status)})
-      </span>
     </div>
   );
 };
