@@ -942,19 +942,17 @@ const AdminLogistics = () => {
                              >
                                <Eye className="h-4 w-4" />
                              </Button>
-                              {/* Show package button for partially shipped orders or multi-place orders */}
-                              {((order.shipment_status === 'partially_shipped') || 
-                                (order.place_number && order.place_number > 1)) && (
-                               <Button
-                                 variant="ghost"
-                                 size="icon"
-                                 className="h-8 w-8"
-                                 onClick={() => setManagingPlacesOrderId(order.id)}
-                                 title="Управлять местами"
-                               >
-                                 <Package className="h-4 w-4" />
-                               </Button>
-                             )}
+                               {order.shipment_status === 'partially_shipped' && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => setManagingPlacesOrderId(order.id)}
+                                  title="Управлять местами"
+                                >
+                                  <Package className="h-4 w-4" />
+                                </Button>
+                              )}
                            </div>
                          </TableCell>
                       </TableRow>

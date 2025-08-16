@@ -457,9 +457,6 @@ export type Database = {
       order_shipments: {
         Row: {
           container_number: string | null
-          container_status:
-            | Database["public"]["Enums"]["container_status"]
-            | null
           created_at: string
           description: string | null
           id: string
@@ -470,9 +467,6 @@ export type Database = {
         }
         Insert: {
           container_number?: string | null
-          container_status?:
-            | Database["public"]["Enums"]["container_status"]
-            | null
           created_at?: string
           description?: string | null
           id?: string
@@ -483,9 +477,6 @@ export type Database = {
         }
         Update: {
           container_number?: string | null
-          container_status?:
-            | Database["public"]["Enums"]["container_status"]
-            | null
           created_at?: string
           description?: string | null
           id?: string

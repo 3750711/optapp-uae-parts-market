@@ -3,36 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Package, Container, Truck, Clock } from 'lucide-react';
 import { useOrderShipments } from '@/hooks/useOrderShipments';
-
 interface OrderShipmentInfoProps {
   orderId: string;
 }
-
-const getContainerStatusLabel = (status: string) => {
-  switch (status) {
-    case 'waiting': return 'Ожидание';
-    case 'sent_from_uae': return 'Отправлен из ОАЭ';
-    case 'transit_iran': return 'Транзит Иран';
-    case 'to_kazakhstan': return 'Следует в Казахстан';
-    case 'customs': return 'Таможня';
-    case 'cleared_customs': return 'Вышел с таможни';
-    case 'received': return 'Получен';
-    default: return status;
-  }
-};
-
-const getContainerStatusColor = (status: string) => {
-  switch (status) {
-    case 'waiting': return 'bg-yellow-50 text-yellow-700 border-yellow-200';
-    case 'sent_from_uae': return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'transit_iran': return 'bg-orange-50 text-orange-700 border-orange-200';
-    case 'to_kazakhstan': return 'bg-purple-50 text-purple-700 border-purple-200';
-    case 'customs': return 'bg-red-50 text-red-700 border-red-200';
-    case 'cleared_customs': return 'bg-indigo-50 text-indigo-700 border-indigo-200';
-    case 'received': return 'bg-green-50 text-green-700 border-green-200';
-    default: return 'bg-gray-50 text-gray-700 border-gray-200';
-  }
-};
 
 const getShipmentStatusLabel = (status: string) => {
   switch (status) {
@@ -158,9 +131,6 @@ export const OrderShipmentInfo: React.FC<OrderShipmentInfoProps> = ({ orderId })
                       <div className="flex flex-col gap-1 items-end">
                         <Badge className={getShipmentStatusColor(shipment.shipment_status)}>
                           {getShipmentStatusLabel(shipment.shipment_status)}
-                        </Badge>
-                        <Badge className={getContainerStatusColor(shipment.container_status)}>
-                          {getContainerStatusLabel(shipment.container_status)}
                         </Badge>
                       </div>
                     </div>

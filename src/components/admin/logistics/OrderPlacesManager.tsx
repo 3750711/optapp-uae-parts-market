@@ -161,16 +161,6 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Статус контейнера</label>
-                    <div className="p-2 bg-muted rounded-md text-sm">
-                      <span className="text-muted-foreground">Статус управляется централизованно</span>
-                      <div className="font-medium">
-                         {getContainerStatusLabel(getEditedValue(shipment.id, 'container_status', shipment.container_status))}
-                      </div>
-                    </div>
-                  </div>
                 </div>
                 
                 <div className="mt-4 space-y-2">
