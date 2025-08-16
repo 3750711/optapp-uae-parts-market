@@ -73,12 +73,26 @@ export const useOrderShipments = (orderId: string) => {
       // Get all shipments for this order
       const { data: allShipments, error: shipmentsError } = await supabase
         .from('order_shipments')
-        .select('shipment_status')
+        .select('shipment_status, container_number')
         .eq('order_id', orderId);
 
       if (shipmentsError) throw shipmentsError;
 
       if (!allShipments || allShipments.length === 0) return;
+
+      // Data integrity check: fix shipments with in_transit status but no container
+      const inconsistentShipments = allShipments.filter(s => 
+        s.shipment_status === 'in_transit' && !s.container_number
+      );
+
+      if (inconsistentShipments.length > 0) {
+        console.warn(`Found ${inconsistentShipments.length} shipments with in_transit status but no container. This indicates data inconsistency.`);
+        // Could optionally auto-fix by setting status to not_shipped:
+        // await supabase
+        //   .from('order_shipments')
+        //   .update({ shipment_status: 'not_shipped' })
+        //   .in('id', inconsistentShipments.map(s => s.id));
+      }
 
       // Calculate the correct order status
       const shippedCount = allShipments.filter(s => s.shipment_status === 'in_transit').length;

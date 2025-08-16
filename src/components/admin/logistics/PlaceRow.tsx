@@ -2,8 +2,9 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InlineEditableTextarea } from '@/components/ui/InlineEditableTextarea';
-import { Container, Package } from 'lucide-react';
+import { Container, Package, AlertTriangle } from 'lucide-react';
 import { OrderShipment } from '@/hooks/useOrderShipments';
+import { useToast } from '@/hooks/use-toast';
 
 interface PlaceRowProps {
   shipment: OrderShipment;
@@ -51,6 +52,8 @@ export const PlaceRow: React.FC<PlaceRowProps> = ({
   readOnly,
   isFieldsDisabled
 }) => {
+  const { toast } = useToast();
+  
   const getEditedValue = (field: keyof OrderShipment, defaultValue: any) => {
     return editedShipments[shipment.id]?.[field] ?? defaultValue;
   };
@@ -59,13 +62,53 @@ export const PlaceRow: React.FC<PlaceRowProps> = ({
   const currentContainer = getEditedValue('container_number', shipment.container_number);
   const currentDescription = getEditedValue('description', shipment.description);
 
+  // Check for inconsistent state
+  const hasInconsistentState = currentStatus === 'in_transit' && !currentContainer;
+
+  const handleContainerChange = (value: string) => {
+    const containerNumber = value === 'none' ? null : value;
+    onFieldChange(shipment.id, 'container_number', containerNumber);
+    
+    // Auto-set status to in_transit if container is selected
+    if (containerNumber && currentStatus === 'not_shipped') {
+      onFieldChange(shipment.id, 'shipment_status', 'in_transit');
+      toast({
+        title: "Статус обновлен",
+        description: "При выборе контейнера статус автоматически изменен на 'Отправлен'",
+      });
+    }
+  };
+
+  const handleStatusChange = (value: string) => {
+    // Prevent setting in_transit without container
+    if (value === 'in_transit' && !currentContainer) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Невозможно установить статус 'Отправлен' без указания контейнера. Сначала выберите контейнер.",
+      });
+      return;
+    }
+    
+    onFieldChange(shipment.id, 'shipment_status', value);
+  };
+
   const handleDescriptionSave = async (value: string) => {
     onFieldChange(shipment.id, 'description', value || null);
   };
 
   return (
-    <div className="group border rounded-lg p-4 transition-all hover:border-primary/30 hover:shadow-sm">
+    <div className={`group border rounded-lg p-4 transition-all hover:border-primary/30 hover:shadow-sm ${hasInconsistentState ? 'border-destructive/30 bg-destructive/5' : ''}`}>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+        {/* Inconsistent State Warning */}
+        {hasInconsistentState && (
+          <div className="lg:col-span-12 flex items-center gap-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="font-medium">Внимание:</span>
+            <span>Товар отмечен как отправленный, но не указан контейнер</span>
+          </div>
+        )}
+        
         {/* Place Number */}
         <div className="lg:col-span-2 flex items-center gap-2">
           <Package className="h-4 w-4 text-muted-foreground" />
@@ -77,9 +120,7 @@ export const PlaceRow: React.FC<PlaceRowProps> = ({
           <Select
             key={`${shipment.id}-${currentStatus}`}
             value={currentContainer || 'none'}
-            onValueChange={readOnly || isFieldsDisabled ? undefined : (value) => 
-              onFieldChange(shipment.id, 'container_number', value === 'none' ? null : value)
-            }
+            onValueChange={readOnly || isFieldsDisabled ? undefined : handleContainerChange}
             disabled={readOnly || isFieldsDisabled}
           >
             <SelectTrigger className="h-8">
@@ -113,9 +154,7 @@ export const PlaceRow: React.FC<PlaceRowProps> = ({
         <div className="lg:col-span-2">
           <Select
             value={currentStatus}
-            onValueChange={readOnly || isFieldsDisabled ? undefined : (value) => 
-              onFieldChange(shipment.id, 'shipment_status', value)
-            }
+            onValueChange={readOnly || isFieldsDisabled ? undefined : handleStatusChange}
             disabled={readOnly || isFieldsDisabled}
           >
             <SelectTrigger className="h-8">
