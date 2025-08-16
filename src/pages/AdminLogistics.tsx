@@ -725,17 +725,22 @@ const AdminLogistics = () => {
                 ) : (
                   <div className="flex items-center gap-2">
                     <Select
-                      value={bulkContainerNumber}
-                      onValueChange={(value) => setBulkContainerNumber(value)}
+                      value={bulkContainerNumber || 'none'}
+                      onValueChange={(value) => setBulkContainerNumber(value === 'none' ? '' : value)}
                     >
                       <SelectTrigger className="w-48 h-8 text-sm">
                         <SelectValue placeholder="Выберите контейнер" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Не указан</SelectItem>
+                        <SelectItem value="none">Не указан</SelectItem>
                         {containers?.map((container) => (
                           <SelectItem key={container.id} value={container.container_number}>
-                            {container.container_number}
+                            <div className="flex items-center justify-between w-full">
+                              <span>{container.container_number}</span>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                 ({getStatusLabel(container.status as any)})
+                              </span>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -890,17 +895,22 @@ const AdminLogistics = () => {
                           {editingContainer === order.id ? (
                             <div className="flex items-center space-x-2">
                               <Select
-                                value={tempContainerNumber || order.container_number || ''}
-                                onValueChange={(value) => setTempContainerNumber(value)}
+                value={tempContainerNumber || order.container_number || 'none'}
+                onValueChange={(value) => setTempContainerNumber(value === 'none' ? '' : value)}
                               >
                                 <SelectTrigger className="w-32 h-8 text-sm">
                                   <SelectValue placeholder="Контейнер" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">Не указан</SelectItem>
+                                  <SelectItem value="none">Не указан</SelectItem>
                                   {containers?.map((container) => (
                                     <SelectItem key={container.id} value={container.container_number}>
-                                      {container.container_number}
+                                      <div className="flex items-center justify-between w-full">
+                                        <span>{container.container_number}</span>
+                                        <span className="text-xs text-muted-foreground ml-2">
+                                          ({getStatusLabel(container.status as any)})
+                                        </span>
+                                      </div>
                                     </SelectItem>
                                   ))}
                                 </SelectContent>

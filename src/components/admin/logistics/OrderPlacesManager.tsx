@@ -124,18 +124,21 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({ orderId,
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Номер контейнера</label>
                     <Select
-                      value={getEditedValue(shipment.id, 'container_number', shipment.container_number) || ''}
-                      onValueChange={(value) => handleFieldChange(shipment.id, 'container_number', value || null)}
+                      value={getEditedValue(shipment.id, 'container_number', shipment.container_number) || 'none'}
+                      onValueChange={(value) => handleFieldChange(shipment.id, 'container_number', value === 'none' ? null : value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Выберите контейнер" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Не указан</SelectItem>
+                        <SelectItem value="none">Не указан</SelectItem>
                         {containers?.map((container) => (
                           <SelectItem key={container.id} value={container.container_number}>
                             <div className="flex items-center justify-between w-full">
                               <span>{container.container_number}</span>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                ({getContainerStatusLabel(container.status)})
+                              </span>
                             </div>
                           </SelectItem>
                         ))}
