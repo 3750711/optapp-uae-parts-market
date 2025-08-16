@@ -299,7 +299,7 @@ const SellerSellProduct = () => {
       const orderPayload = {
         p_title: selectedProduct.title,
         p_price: orderData.price,
-        p_place_number: selectedProduct.place_number || 1,
+        p_place_number: orderData.editedData?.placeNumber || selectedProduct.place_number || 1,
         p_order_seller_name: profile.full_name || '',
         p_buyer_id: selectedBuyer.id,
         p_brand: selectedProduct.brand || '',
