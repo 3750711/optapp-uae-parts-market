@@ -50,7 +50,7 @@ import { Database } from "@/integrations/supabase/types";
 import { OrderPlacesManager } from "@/components/admin/logistics/OrderPlacesManager";
 import { useOrderShipmentSummary } from "@/hooks/useOrderShipmentSummary";
 import { Package } from "lucide-react";
-import { CompactShipmentInfo } from "@/components/admin/logistics/CompactShipmentInfo";
+import { OrderShipmentStatusChecker } from "@/components/admin/logistics/OrderShipmentStatusChecker";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -1047,21 +1047,11 @@ const AdminLogistics = () => {
                         </TableCell>
                          <TableCell>
                            <div className="space-y-1">
-                             <Select
-                               value={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
-                               onValueChange={(value) => handleUpdateShipmentStatus(order.id, value as ShipmentStatus)}
-                             >
-                               <SelectTrigger className={`w-[140px] h-8 text-sm ${getShipmentStatusColor(order.shipment_status as ShipmentStatus)}`}>
-                                 <SelectValue>
-                                   {getShipmentStatusLabel(order.shipment_status as ShipmentStatus)}
-                                 </SelectValue>
-                               </SelectTrigger>
-                               <SelectContent>
-                            <SelectItem value="not_shipped">Не отправлен</SelectItem>
-                            <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
-                            <SelectItem value="in_transit">Отправлен</SelectItem>
-                               </SelectContent>
-                             </Select>
+                             <DynamicShipmentStatus
+                               orderId={order.id}
+                               fallbackStatus={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
+                               onStatusChange={(status) => handleUpdateShipmentStatus(order.id, status)}
+                             />
                              <CompactShipmentInfo orderId={order.id} placeNumber={order.place_number || 1} />
                            </div>
                          </TableCell>
@@ -1075,17 +1065,24 @@ const AdminLogistics = () => {
                              >
                                <Eye className="h-4 w-4" />
                              </Button>
-                             {(order.shipment_status === 'partially_shipped' || (order.place_number && order.place_number > 1)) && (
-                               <Button
-                                 variant="ghost"
-                                 size="icon"
-                                 className="h-8 w-8"
-                                 onClick={() => setManagingPlacesOrderId(order.id)}
-                                 title="Управлять местами"
-                               >
-                                 <Package className="h-4 w-4" />
-                               </Button>
-                             )}
+                             <OrderShipmentStatusChecker
+                               orderId={order.id}
+                               fallbackStatus={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
+                             >
+                               {(calculatedStatus, hasShipments) => (
+                                 (calculatedStatus === 'partially_shipped' || (order.place_number && order.place_number > 1) || hasShipments) && (
+                                   <Button
+                                     variant="ghost"
+                                     size="icon"
+                                     className="h-8 w-8"
+                                     onClick={() => setManagingPlacesOrderId(order.id)}
+                                     title="Управлять местами"
+                                   >
+                                     <Package className="h-4 w-4" />
+                                   </Button>
+                                 )
+                               )}
+                             </OrderShipmentStatusChecker>
                            </div>
                          </TableCell>
                       </TableRow>

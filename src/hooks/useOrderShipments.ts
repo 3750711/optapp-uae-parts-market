@@ -68,6 +68,49 @@ export const useOrderShipments = (orderId: string) => {
     }
   }, [orderId, queryClient, toast]);
 
+  // Function to sync order shipment status based on individual shipments
+  const syncOrderStatus = useCallback(async () => {
+    try {
+      // Get all shipments for this order
+      const { data: allShipments, error: shipmentsError } = await supabase
+        .from('order_shipments')
+        .select('shipment_status')
+        .eq('order_id', orderId);
+
+      if (shipmentsError) throw shipmentsError;
+
+      if (!allShipments || allShipments.length === 0) return;
+
+      // Calculate the correct order status
+      const shippedCount = allShipments.filter(s => s.shipment_status === 'in_transit').length;
+      const totalCount = allShipments.length;
+
+      let newOrderStatus: 'not_shipped' | 'partially_shipped' | 'in_transit';
+      if (shippedCount === 0) {
+        newOrderStatus = 'not_shipped';
+      } else if (shippedCount === totalCount) {
+        newOrderStatus = 'in_transit';
+      } else {
+        newOrderStatus = 'partially_shipped';
+      }
+
+      // Update the order status
+      const { error: orderError } = await supabase
+        .from('orders')
+        .update({ shipment_status: newOrderStatus })
+        .eq('id', orderId);
+
+      if (orderError) throw orderError;
+
+      // Invalidate logistics orders to refresh the display
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order-shipment-summary', orderId] });
+
+    } catch (error) {
+      console.error('Error syncing order status:', error);
+    }
+  }, [orderId, queryClient]);
+
   const updateMultipleShipments = useCallback(async (
     updates: Array<{ id: string; updates: Partial<Omit<OrderShipment, 'id' | 'order_id' | 'created_at' | 'updated_at'>> }>
   ) => {
@@ -81,6 +124,9 @@ export const useOrderShipments = (orderId: string) => {
 
         if (error) throw error;
       }
+
+      // Sync the order status after updating shipments
+      await syncOrderStatus();
 
       queryClient.invalidateQueries({ queryKey: ['order-shipments', orderId] });
       queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
@@ -100,7 +146,7 @@ export const useOrderShipments = (orderId: string) => {
     } finally {
       setIsUpdating(false);
     }
-  }, [orderId, queryClient, toast]);
+  }, [orderId, queryClient, toast, syncOrderStatus]);
 
   return {
     shipments,
@@ -109,5 +155,6 @@ export const useOrderShipments = (orderId: string) => {
     isUpdating,
     updateShipment,
     updateMultipleShipments,
+    syncOrderStatus,
   };
 };

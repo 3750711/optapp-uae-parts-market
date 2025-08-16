@@ -5,6 +5,7 @@ export interface OrderShipmentSummary {
   totalPlaces: number;
   shippedPlaces: number;
   notShippedPlaces: number;
+  calculatedStatus: 'not_shipped' | 'partially_shipped' | 'in_transit';
   containerInfo: Array<{
     containerNumber: string | null;
     placesCount: number;
@@ -29,6 +30,7 @@ export const useOrderShipmentSummary = (orderId: string) => {
           totalPlaces: 0,
           shippedPlaces: 0,
           notShippedPlaces: 0,
+          calculatedStatus: 'not_shipped' as const,
           containerInfo: []
         };
       }
@@ -61,10 +63,21 @@ export const useOrderShipmentSummary = (orderId: string) => {
         status: info.allShipped ? 'in_transit' as const : 'not_shipped' as const
       }));
 
+      // Calculate the real order status based on individual shipment statuses
+      let calculatedStatus: 'not_shipped' | 'partially_shipped' | 'in_transit';
+      if (shippedPlaces === 0) {
+        calculatedStatus = 'not_shipped';
+      } else if (shippedPlaces === totalPlaces) {
+        calculatedStatus = 'in_transit';
+      } else {
+        calculatedStatus = 'partially_shipped';
+      }
+
       return {
         totalPlaces,
         shippedPlaces,
         notShippedPlaces,
+        calculatedStatus,
         containerInfo
       };
     },
