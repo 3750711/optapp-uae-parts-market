@@ -61,16 +61,54 @@ export const useContainers = () => {
   // Update container status and sync all related orders
   const updateContainerStatus = useMutation({
     mutationFn: async ({ containerNumber, status }: { containerNumber: string; status: ContainerStatus }) => {
-      const { error } = await supabase.rpc('update_container_status_and_sync', {
-        p_container_number: containerNumber,
-        p_new_status: status
-      });
+      // First, update the container status
+      const { error: containerError } = await supabase
+        .from('containers')
+        .update({ status })
+        .eq('container_number', containerNumber);
 
-      if (error) throw error;
+      if (containerError) throw containerError;
+
+      // Then, get all orders that use this container
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('container_number', containerNumber);
+
+      if (ordersError) throw ordersError;
+
+      // Convert container status to shipment status
+      const shipmentStatus = status === 'waiting' ? 'not_shipped' :
+                           (status === 'in_transit' || status === 'sent_from_uae' || status === 'transit_iran' || status === 'to_kazakhstan') ? 'in_transit' :
+                           (status === 'delivered' || status === 'received' || status === 'cleared_customs') ? 'delivered' : 'not_shipped';
+
+      // Update all order_shipments for these orders
+      if (orders && orders.length > 0) {
+        const orderIds = orders.map(order => order.id);
+        
+        const { error: shipmentsError } = await supabase
+          .from('order_shipments')
+          .update({ 
+            shipment_status: shipmentStatus,
+            container_number: containerNumber
+          })
+          .in('order_id', orderIds);
+
+        if (shipmentsError) throw shipmentsError;
+
+        // Update the main orders table shipment_status as well
+        const { error: orderUpdateError } = await supabase
+          .from('orders')
+          .update({ shipment_status: shipmentStatus })
+          .in('id', orderIds);
+
+        if (orderUpdateError) throw orderUpdateError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['containers'] });
       queryClient.invalidateQueries({ queryKey: ['order-shipments'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
       toast({
         title: "Статус обновлен",
         description: "Статус контейнера и всех связанных заказов обновлен",
