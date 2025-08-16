@@ -59,34 +59,12 @@ export const SmartShipmentStatus: React.FC<SmartShipmentStatusProps> = ({
       return <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />;
     }
 
-    if (!summary || summary.totalPlaces === 0 || placeNumber === 1) {
-      return null;
-    }
-
+    const totalPlaces = summary && summary.totalPlaces > 0 ? summary.totalPlaces : placeNumber;
+    
     return (
       <div className="flex flex-col gap-1 mt-1">
         <div className="text-xs text-muted-foreground">
-          {summary.shippedPlaces > 0 && summary.notShippedPlaces > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {summary.containerInfo.map((container, index) => (
-                <div key={index} className="flex items-center gap-1">
-                  <Badge 
-                    variant={getStatusBadgeVariant(container.status)}
-                    className="text-xs px-1 py-0"
-                  >
-                    {container.containerNumber || 'Без №'}: {container.placesCount}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <span>
-              {summary.shippedPlaces === summary.totalPlaces ? 
-                'Все места отправлены' : 
-                'Ни одно место не отправлено'
-              }
-            </span>
-          )}
+          Количество мест - {totalPlaces} мест в заказе
         </div>
       </div>
     );
