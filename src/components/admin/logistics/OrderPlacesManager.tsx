@@ -62,24 +62,13 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
 
   const handleFieldChange = (shipmentId: string, field: keyof OrderShipment, value: any) => {
     console.log('handleFieldChange:', shipmentId, field, value); // Debug log
-    
-    setEditedShipments(prev => {
-      const updates: Partial<OrderShipment> = {
+    setEditedShipments(prev => ({
+      ...prev,
+      [shipmentId]: {
         ...prev[shipmentId],
         [field]: value
-      };
-      
-      // Auto-clear container when status changes to 'not_shipped'
-      if (field === 'shipment_status' && value === 'not_shipped') {
-        updates.container_number = null;
-        console.log('Auto-clearing container for shipment:', shipmentId);
       }
-      
-      return {
-        ...prev,
-        [shipmentId]: updates
-      };
-    });
+    }));
   };
 
   const handleSave = async () => {
