@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Database } from "@/integrations/supabase/types";
+import { OrderPlacesManager } from "@/components/admin/logistics/OrderPlacesManager";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -109,6 +110,7 @@ const AdminLogistics = () => {
   });
 
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  const [managingPlacesOrderId, setManagingPlacesOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     const channel = supabase
@@ -420,6 +422,17 @@ const AdminLogistics = () => {
   const handleBulkUpdateShipmentStatus = async () => {
     if (!selectedOrders.length) return;
 
+    // If status is partially_shipped, we need to handle multiple orders differently
+    if (bulkShipmentStatus === 'partially_shipped') {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Статус 'Частично отправлен' можно установить только для отдельных заказов",
+      });
+      setBulkEditingShipmentStatus(false);
+      return;
+    }
+
     let hasError = false;
     
     for (const orderId of selectedOrders) {
@@ -454,6 +467,13 @@ const AdminLogistics = () => {
 
   const handleUpdateShipmentStatus = async (orderId: string, status: ShipmentStatus) => {
     setUpdatingOrderId(orderId);
+    
+    // If status is partially_shipped, open the places manager instead
+    if (status === 'partially_shipped') {
+      setManagingPlacesOrderId(orderId);
+      setUpdatingOrderId(null);
+      return;
+    }
     
     const { error } = await supabase
       .from('orders')
@@ -1072,6 +1092,18 @@ const AdminLogistics = () => {
             </div>
           </CardContent>
         </Card>
+        
+        {/* Order Places Manager Modal */}
+        {managingPlacesOrderId && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="max-w-4xl w-full max-h-[90vh] overflow-auto">
+              <OrderPlacesManager
+                orderId={managingPlacesOrderId}
+                onClose={() => setManagingPlacesOrderId(null)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={showExportHistory} onOpenChange={setShowExportHistory}>

@@ -424,6 +424,56 @@ export type Database = {
           },
         ]
       }
+      order_shipments: {
+        Row: {
+          container_number: string | null
+          container_status:
+            | Database["public"]["Enums"]["container_status"]
+            | null
+          created_at: string
+          description: string | null
+          id: string
+          order_id: string
+          place_number: number
+          shipment_status: Database["public"]["Enums"]["shipment_status"]
+          updated_at: string
+        }
+        Insert: {
+          container_number?: string | null
+          container_status?:
+            | Database["public"]["Enums"]["container_status"]
+            | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id: string
+          place_number: number
+          shipment_status?: Database["public"]["Enums"]["shipment_status"]
+          updated_at?: string
+        }
+        Update: {
+          container_number?: string | null
+          container_status?:
+            | Database["public"]["Enums"]["container_status"]
+            | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          order_id?: string
+          place_number?: number
+          shipment_status?: Database["public"]["Enums"]["shipment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_videos: {
         Row: {
           created_at: string | null

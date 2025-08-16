@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle } from 'lucide-react';
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { OrderShipmentInfo } from '@/components/order/OrderShipmentInfo';
 
 const OrderDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -375,6 +376,9 @@ const OrderDetails = () => {
                 </CardContent>
               </Card>
             )}
+            
+            {/* Shipment Information */}
+            <OrderShipmentInfo orderId={order.id} />
           </div>
 
           <div className="space-y-6">
