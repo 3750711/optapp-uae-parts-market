@@ -50,9 +50,7 @@ import { Database } from "@/integrations/supabase/types";
 import { OrderPlacesManager } from "@/components/admin/logistics/OrderPlacesManager";
 import { useOrderShipmentSummary } from "@/hooks/useOrderShipmentSummary";
 import { Package } from "lucide-react";
-import { CompactShipmentInfo } from "@/components/admin/logistics/CompactShipmentInfo";
-import { DynamicShipmentStatus } from "@/components/admin/logistics/DynamicShipmentStatus";
-import { OrderShipmentStatusChecker } from "@/components/admin/logistics/OrderShipmentStatusChecker";
+import { SmartShipmentStatus } from "@/components/admin/logistics/SmartShipmentStatus";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -1048,14 +1046,12 @@ const AdminLogistics = () => {
                           </Select>
                         </TableCell>
                          <TableCell>
-                           <div className="space-y-1">
-                             <DynamicShipmentStatus
-                               orderId={order.id}
-                               fallbackStatus={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
-                               onStatusChange={(status) => handleUpdateShipmentStatus(order.id, status)}
-                             />
-                             <CompactShipmentInfo orderId={order.id} placeNumber={order.place_number || 1} />
-                           </div>
+                           <SmartShipmentStatus
+                             orderId={order.id}
+                             fallbackStatus={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
+                             placeNumber={order.place_number || 1}
+                             onStatusChange={(status) => handleUpdateShipmentStatus(order.id, status)}
+                           />
                          </TableCell>
                          <TableCell>
                            <div className="flex items-center gap-1">
@@ -1067,24 +1063,19 @@ const AdminLogistics = () => {
                              >
                                <Eye className="h-4 w-4" />
                              </Button>
-                             <OrderShipmentStatusChecker
-                               orderId={order.id}
-                               fallbackStatus={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
-                             >
-                               {(calculatedStatus, hasShipments) => (
-                                 (calculatedStatus === 'partially_shipped' || (order.place_number && order.place_number > 1) || hasShipments) && (
-                                   <Button
-                                     variant="ghost"
-                                     size="icon"
-                                     className="h-8 w-8"
-                                     onClick={() => setManagingPlacesOrderId(order.id)}
-                                     title="Управлять местами"
-                                   >
-                                     <Package className="h-4 w-4" />
-                                   </Button>
-                                 )
-                               )}
-                             </OrderShipmentStatusChecker>
+                              {/* Show package button for partially shipped orders or multi-place orders */}
+                              {((order.shipment_status === 'partially_shipped') || 
+                                (order.place_number && order.place_number > 1)) && (
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 className="h-8 w-8"
+                                 onClick={() => setManagingPlacesOrderId(order.id)}
+                                 title="Управлять местами"
+                               >
+                                 <Package className="h-4 w-4" />
+                               </Button>
+                             )}
                            </div>
                          </TableCell>
                       </TableRow>
