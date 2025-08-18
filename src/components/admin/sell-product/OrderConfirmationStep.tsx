@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Edit3, Save, X, ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import OptimizedImage from '@/components/ui/OptimizedImage';
-import { Separator } from '@/components/ui/separator';
+import { InlineEditableField } from '@/components/ui/InlineEditableField';
+import { InlineEditableTextarea } from '@/components/ui/InlineEditableTextarea';
+import { InlineEditableSelect } from '@/components/ui/InlineEditableSelect';
 
 interface Product {
   id: string;
@@ -69,6 +68,12 @@ interface EditableData {
   textOrder: string;
 }
 
+const DELIVERY_OPTIONS = [
+  { value: 'cargo_rf', label: '🚛 Доставка Cargo РФ' },
+  { value: 'self_pickup', label: '📦 Самовывоз' },
+  { value: 'cargo_kz', label: '🚚 Доставка Cargo KZ' }
+];
+
 const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
   product,
   seller,
@@ -78,7 +83,6 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
   isSubmitting
 }) => {
   const { toast } = useToast();
-  const [isEditing, setIsEditing] = useState(false);
   const [editableData, setEditableData] = useState<EditableData>({
     title: product.title,
     brand: product.brand || '',
@@ -90,16 +94,15 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
     textOrder: ''
   });
 
-  const [originalData, setOriginalData] = useState<EditableData>(editableData);
-
-  const handleEdit = () => {
-    setOriginalData({ ...editableData });
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setEditableData({ ...originalData });
-    setIsEditing(false);
+  // Field update handlers
+  const handleFieldUpdate = async (field: keyof EditableData, value: string | number) => {
+    setEditableData(prev => ({ ...prev, [field]: value }));
+    
+    // Show success toast for field updates
+    toast({
+      title: "Поле обновлено",
+      description: "Изменения сохранены",
+    });
   };
 
   const validateForm = (): boolean => {
@@ -133,11 +136,6 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
     return true;
   };
 
-  const handleSave = () => {
-    if (!validateForm()) return;
-    setIsEditing(false);
-  };
-
   const handleConfirmOrder = async () => {
     if (!validateForm()) return;
 
@@ -166,11 +164,6 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
     }
   };
 
-  const updateField = (field: keyof EditableData, value: string | number) => {
-    const newData = { ...editableData, [field]: value };
-    setEditableData(newData);
-  };
-
   const shouldShowDeliveryPrice = () => {
     return editableData.deliveryMethod === 'cargo_rf' && editableData.deliveryPrice > 0;
   };
@@ -180,194 +173,14 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
   };
 
   const getDeliveryMethodLabel = (method: string) => {
-    switch (method) {
-      case 'cargo_rf': return '🚛 Доставка Cargo РФ';
-      case 'self_pickup': return '📦 Самовывоз';
-      case 'cargo_kz': return '🚚 Доставка Cargo KZ';
-      default: return method;
-    }
+    const option = DELIVERY_OPTIONS.find(opt => opt.value === method);
+    return option?.label || method;
   };
-
-  if (isEditing) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Редактирование заказа</h3>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCancel}
-              disabled={isSubmitting}
-            >
-              <X className="h-4 w-4 mr-1" />
-              Отменить
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleSave}
-              disabled={isSubmitting}
-            >
-              <Save className="h-4 w-4 mr-1" />
-              Сохранить
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Название товара */}
-          <div className="md:col-span-2">
-            <Label htmlFor="title">Название товара *</Label>
-            <Input
-              id="title"
-              value={editableData.title}
-              onChange={(e) => updateField('title', e.target.value)}
-              placeholder="Введите название товара"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Бренд */}
-          <div>
-            <Label htmlFor="brand">Бренд</Label>
-            <Input
-              id="brand"
-              value={editableData.brand}
-              onChange={(e) => updateField('brand', e.target.value)}
-              placeholder="Введите бренд"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Модель */}
-          <div>
-            <Label htmlFor="model">Модель</Label>
-            <Input
-              id="model"
-              value={editableData.model}
-              onChange={(e) => updateField('model', e.target.value)}
-              placeholder="Введите модель"
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Цена */}
-          <div>
-            <Label htmlFor="price">Цена ($) *</Label>
-            <Input
-              id="price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={editableData.price}
-              onChange={(e) => updateField('price', parseFloat(e.target.value) || 0)}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Способ доставки */}
-          <div>
-            <Label>Способ доставки</Label>
-            <Select
-              value={editableData.deliveryMethod}
-              onValueChange={(value) => updateField('deliveryMethod', value)}
-              disabled={isSubmitting}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Выберите способ доставки" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cargo_rf">🚛 Доставка Cargo РФ</SelectItem>
-                <SelectItem value="self_pickup">📦 Самовывоз</SelectItem>
-                <SelectItem value="cargo_kz">🚚 Доставка Cargo KZ</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Цена доставки */}
-          {editableData.deliveryMethod === 'cargo_rf' && (
-            <div>
-              <Label htmlFor="deliveryPrice">Цена доставки ($)</Label>
-              <Input
-                id="deliveryPrice"
-                type="number"
-                min="0"
-                step="0.01"
-                value={editableData.deliveryPrice}
-                onChange={(e) => updateField('deliveryPrice', parseFloat(e.target.value) || 0)}
-                disabled={isSubmitting}
-              />
-            </div>
-          )}
-
-          {/* Количество мест */}
-          <div>
-            <Label htmlFor="placeNumber">Количество мест *</Label>
-            <Input
-              id="placeNumber"
-              type="number"
-              min="1"
-              value={editableData.placeNumber}
-              onChange={(e) => updateField('placeNumber', parseInt(e.target.value) || 1)}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Дополнительная информация */}
-          <div className="md:col-span-2">
-            <Label htmlFor="textOrder">Дополнительная информация</Label>
-            <Textarea
-              id="textOrder"
-              value={editableData.textOrder}
-              onChange={(e) => updateField('textOrder', e.target.value)}
-              placeholder="Укажите дополнительную информацию по заказу"
-              disabled={isSubmitting}
-              rows={3}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Назад к покупателям
-          </Button>
-          
-          <Button 
-            onClick={handleConfirmOrder} 
-            disabled={isSubmitting}
-            className="min-w-[200px]"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Создание заказа...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Создать заказ
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Подтверждение заказа</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleEdit}
-          disabled={isSubmitting}
-        >
-          <Edit3 className="h-4 w-4 mr-1" />
-          Редактировать
-        </Button>
+      <div className="flex items-center">
+        <h3 className="text-lg font-semibold">Информация о заказе</h3>
       </div>
 
       {/* Информация о товаре */}
@@ -379,19 +192,42 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Название:</Label>
-              <p className="text-base">{editableData.title}</p>
+              <InlineEditableField
+                value={editableData.title}
+                onSave={(value) => handleFieldUpdate('title', value)}
+                required
+                placeholder="Введите название товара"
+                className="text-base font-medium"
+              />
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Цена:</Label>
-              <p className="text-base font-semibold">${editableData.price}</p>
+              <InlineEditableField
+                value={editableData.price}
+                onSave={(value) => handleFieldUpdate('price', value)}
+                type="price"
+                min={0.01}
+                step="0.01"
+                className="text-base font-semibold"
+              />
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Бренд:</Label>
-              <p className="text-base">{editableData.brand || 'Не указан'}</p>
+              <InlineEditableField
+                value={editableData.brand || 'Не указан'}
+                onSave={(value) => handleFieldUpdate('brand', value)}
+                placeholder="Введите бренд"
+                className="text-base"
+              />
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Модель:</Label>
-              <p className="text-base">{editableData.model || 'Не указана'}</p>
+              <InlineEditableField
+                value={editableData.model || 'Не указана'}
+                onSave={(value) => handleFieldUpdate('model', value)}
+                placeholder="Введите модель"
+                className="text-base"
+              />
             </div>
           </div>
 
@@ -424,17 +260,36 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Доставка:</Label>
-              <p className="text-base">{getDeliveryMethodLabel(editableData.deliveryMethod)}</p>
+              <InlineEditableSelect
+                value={editableData.deliveryMethod}
+                onSave={(value) => handleFieldUpdate('deliveryMethod', value)}
+                options={DELIVERY_OPTIONS}
+                placeholder="Выберите способ доставки"
+                className="text-base"
+              />
             </div>
-            {shouldShowDeliveryPrice() && (
+            {editableData.deliveryMethod === 'cargo_rf' && (
               <div>
                 <Label className="text-sm font-medium text-muted-foreground">Стоимость доставки:</Label>
-                <p className="text-base">${editableData.deliveryPrice}</p>
+                <InlineEditableField
+                  value={editableData.deliveryPrice}
+                  onSave={(value) => handleFieldUpdate('deliveryPrice', value)}
+                  type="price"
+                  min={0}
+                  step="0.01"
+                  className="text-base"
+                />
               </div>
             )}
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Количество мест:</Label>
-              <p className="text-base">{editableData.placeNumber}</p>
+              <InlineEditableField
+                value={editableData.placeNumber}
+                onSave={(value) => handleFieldUpdate('placeNumber', value)}
+                type="number"
+                min={1}
+                className="text-base"
+              />
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Итого:</Label>
@@ -442,12 +297,16 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
             </div>
           </div>
           
-          {editableData.textOrder && (
-            <div>
-              <Label className="text-sm font-medium text-muted-foreground">Дополнительная информация:</Label>
-              <p className="text-base mt-1 p-3 bg-muted rounded-md">{editableData.textOrder}</p>
-            </div>
-          )}
+          <div>
+            <Label className="text-sm font-medium text-muted-foreground">Дополнительная информация:</Label>
+            <InlineEditableTextarea
+              value={editableData.textOrder}
+              onSave={(value) => handleFieldUpdate('textOrder', value)}
+              placeholder="Укажите дополнительную информацию по заказу"
+              emptyText="Нажмите, чтобы добавить дополнительную информацию"
+              className="mt-1"
+            />
+          </div>
         </CardContent>
       </Card>
 
