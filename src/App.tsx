@@ -1,5 +1,5 @@
 
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,7 +10,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
-import { performanceMonitor } from "@/utils/performanceMonitor";
 import ProfileCompletionRedirect from "@/components/routing/ProfileCompletionRedirect";
 
 // Оптимизированная конфигурация QueryClient для production
@@ -45,21 +44,23 @@ const RouteLoader = React.memo(() => (
   </div>
 ));
 
-const App = () => {
-  // Safe useEffect with error boundary
+// Create a separate component for the app content to ensure proper hook context
+const AppContent: React.FC = () => {
+  // Now useEffect is safely inside a React component
   React.useEffect(() => {
     try {
       // Initialize performance monitoring in development
       if (import.meta.env.DEV) {
-        // Performance monitoring initialized
+        console.log('App initialized in development mode');
       }
 
-      // Cleanup on unmount
+      // Cleanup function
       return () => {
         try {
-          performanceMonitor.destroy();
+          // Any cleanup logic here
+          console.log('App cleanup completed');
         } catch (error) {
-          console.warn('Failed to destroy performance monitor:', error);
+          console.warn('Failed to cleanup App:', error);
         }
       };
     } catch (error) {
@@ -68,24 +69,30 @@ const App = () => {
   }, []);
 
   return (
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <ProfileCompletionRedirect>
+                <Suspense fallback={<RouteLoader />}>
+                  <AppRoutes />
+                </Suspense>
+              </ProfileCompletionRedirect>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  );
+};
+
+const App: React.FC = () => {
+  return (
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
-                <ProfileCompletionRedirect>
-                  <Suspense fallback={<RouteLoader />}>
-                    <AppRoutes />
-                  </Suspense>
-                </ProfileCompletionRedirect>
-              </AuthProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
+      <AppContent />
     </GlobalErrorBoundary>
   );
 };
