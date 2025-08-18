@@ -110,10 +110,15 @@ class PWAServiceWorkerManager implements ServiceWorkerManager {
     // Send message to waiting SW to skip waiting
     this.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
     
-    // Reload page when new SW takes control
+    // Show update notification instead of forced reload for PWA optimization
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('🚀 SW: New version activated, reloading...');
-      window.location.reload();
+      console.log('🚀 SW: New version activated');
+      
+      // Dispatch event instead of forced reload to prevent PWA interruption
+      const event = new CustomEvent('sw-controller-updated', {
+        detail: { timestamp: Date.now() }
+      });
+      window.dispatchEvent(event);
     });
   }
 

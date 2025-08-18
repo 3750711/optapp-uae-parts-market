@@ -60,7 +60,7 @@ class PWAOptimizer {
     // Remove problematic beforeunload listeners for PWA
     const originalAddEventListener = window.addEventListener;
     window.addEventListener = function(type, listener, options) {
-      if (type === 'beforeunload' && pwaOptimizer.isPWA) {
+      if (type === 'beforeunload' && pwaOptimizer.isPWAMode()) {
         console.log('🏠 PWA: Blocking beforeunload listener for bfcache optimization');
         return;
       }
