@@ -68,11 +68,8 @@ const SellerProductDetail = lazy(() => import('@/pages/SellerProductDetail'));
 // Real-time components
 import { SellerPriceOffersRealtime } from '@/components/offers/SellerPriceOffersRealtime';
 
-// Критически важные админские страницы - загружаются без lazy loading
-import AdminDashboard from '@/pages/AdminDashboard';
-import AdminAddProduct from '@/pages/AdminAddProduct';
-
-// Admin routes are now handled in src/routes/admin.tsx to eliminate duplication
+// Admin routes
+import { AdminRoutes } from '@/routes/admin';
 
 // Mobile specific pages
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
@@ -349,7 +346,8 @@ const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             } />
 
-            {/* Admin routes are handled in src/routes/admin.tsx */}
+            {/* Admin routes */}
+            <AdminRoutes />
 
             {/* Catch-all маршрут */}
             <Route path="/terms" element={<TermsPage />} />
