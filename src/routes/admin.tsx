@@ -1,6 +1,5 @@
 
-import React, { lazy } from 'react';
-import { Route } from 'react-router-dom';
+import React, { lazy, Suspense } from 'react';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 
 // Критически важные админские страницы - загружаются без lazy loading
@@ -27,112 +26,89 @@ const AdminTelegramMonitoring = lazy(() => import('@/pages/AdminTelegramMonitori
 const AdminHelpEditor = lazy(() => import('@/pages/AdminHelpEditor'));
 const AdminSynonyms = lazy(() => import('@/pages/AdminSynonyms'));
 
-export const AdminRoutes = () => (
-  <>
-    <Route path="/admin" element={
-      <AdminRoute>
-        <AdminDashboard />
-      </AdminRoute>
-    } />
-    <Route path="/admin/add-product" element={
-      <AdminRoute>
-        <AdminAddProduct />
-      </AdminRoute>
-    } />
-    <Route path="/admin/users" element={
-      <AdminRoute>
-        <AdminUsers />
-      </AdminRoute>
-    } />
-    <Route path="/admin/products" element={
-      <AdminRoute>
-        <AdminProducts />
-      </AdminRoute>
-    } />
-    <Route path="/admin/orders" element={
-      <AdminRoute>
-        <AdminOrders />
-      </AdminRoute>
-    } />
-    <Route path="/admin/orders/:id" element={
-      <AdminRoute>
-        <AdminOrderDetails />
-      </AdminRoute>
-    } />
-    <Route path="/admin/free-order" element={
-      <AdminRoute>
-        <AdminFreeOrder />
-      </AdminRoute>
-    } />
-    <Route path="/admin/create-order-from-product" element={
-      <AdminRoute>
-        <AdminCreateOrderFromProduct />
-      </AdminRoute>
-    } />
-    <Route path="/admin/create-order-from-product/:id" element={
-      <AdminRoute>
-        <AdminCreateOrderFromProduct />
-      </AdminRoute>
-    } />
-    <Route path="/admin/sell-product" element={
-      <AdminRoute>
-        <AdminSellProduct />
-      </AdminRoute>
-    } />
-    <Route path="/admin/stores" element={
-      <AdminRoute>
-        <AdminStores />
-      </AdminRoute>
-    } />
-    <Route path="/admin/optimized-stores" element={
-      <AdminRoute>
-        <OptimizedAdminStores />
-      </AdminRoute>
-    } />
-    <Route path="/admin/events" element={
-      <AdminRoute>
-        <AdminEvents />
-      </AdminRoute>
-    } />
-    <Route path="/admin/logistics" element={
-      <AdminRoute>
-        <AdminLogistics />
-      </AdminRoute>
-    } />
-    <Route path="/admin/car-catalog" element={
-      <AdminRoute>
-        <AdminCarCatalog />
-      </AdminRoute>
-    } />
-    <Route path="/admin/messages" element={
-      <AdminRoute>
-        <AdminMessages />
-      </AdminRoute>
-    } />
-    <Route path="/admin/price-offers" element={
-      <AdminRoute>
-        <AdminPriceOffers />
-      </AdminRoute>
-    } />
-    <Route path="/admin/product-moderation" element={
-      <AdminRoute>
-        <AdminProductModeration />
-      </AdminRoute>
-    } />
-    <Route path="/admin/telegram-monitoring" element={
-      <AdminRoute>
-        <AdminTelegramMonitoring />
-      </AdminRoute>
-    } />
-    <Route path="/admin/help-editor" element={
-      <AdminRoute>
-        <AdminHelpEditor />
-      </AdminRoute>
-    } />
-    <Route path="/admin/synonyms" element={
-      <AdminRoute>
-        <AdminSynonyms />
-      </AdminRoute>
-    } />
-  </>
-);
+export const getAdminRoutes = () => [
+  {
+    path: "/admin",
+    element: <AdminRoute><AdminDashboard /></AdminRoute>
+  },
+  {
+    path: "/admin/add-product", 
+    element: <AdminRoute><AdminAddProduct /></AdminRoute>
+  },
+  {
+    path: "/admin/users",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminUsers /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/products",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminProducts /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/orders",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminOrders /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/orders/:id",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminOrderDetails /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/free-order",
+    element: <AdminRoute><AdminFreeOrder /></AdminRoute>
+  },
+  {
+    path: "/admin/create-order-from-product",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminCreateOrderFromProduct /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/create-order-from-product/:id", 
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminCreateOrderFromProduct /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/sell-product",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminSellProduct /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/stores",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminStores /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/optimized-stores",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><OptimizedAdminStores /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/events",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminEvents /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/logistics",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminLogistics /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/car-catalog",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminCarCatalog /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/messages",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminMessages /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/price-offers",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminPriceOffers /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/product-moderation",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminProductModeration /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/telegram-monitoring",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminTelegramMonitoring /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/help-editor",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminHelpEditor /></Suspense></AdminRoute>
+  },
+  {
+    path: "/admin/synonyms",
+    element: <AdminRoute><Suspense fallback={<div>Loading...</div>}><AdminSynonyms /></Suspense></AdminRoute>
+  }
+];

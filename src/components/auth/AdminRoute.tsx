@@ -19,6 +19,21 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   const { user, profile, isLoading, isAdmin, refreshAdminStatus, isProfileLoading } = useAuth();
   const location = useLocation();
 
+  // Таймаут для проверки админских прав (8 секунд)
+  const [adminCheckTimeout, setAdminCheckTimeout] = React.useState(false);
+  
+  React.useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isAdmin === null && !!user && !!profile) {
+      timer = setTimeout(() => {
+        setAdminCheckTimeout(true);
+      }, 8000);
+    } else {
+      setAdminCheckTimeout(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isAdmin, user, profile]);
+
   // Мемоизируем состояние для избежания лишних ре-рендеров
   const authState = useMemo(() => ({
     hasUser: !!user,
@@ -28,8 +43,9 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     isProfileLoading,
     userType: profile?.user_type,
     userId: user?.id,
-    userEmail: user?.email
-  }), [user, profile, isLoading, isAdmin, isProfileLoading]);
+    userEmail: user?.email,
+    adminCheckTimeout
+  }), [user, profile, isLoading, isAdmin, isProfileLoading, adminCheckTimeout]);
 
   devLog('🔍 AdminRoute state:', authState);
 
@@ -153,6 +169,42 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   // isAdmin === null - ждем проверки прав
   if (authState.isAdmin === null) {
     devLog('⏳ Waiting for admin rights check...');
+    
+    // Если проверка длится слишком долго - показываем опцию принудительного обновления
+    if (authState.adminCheckTimeout) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="max-w-md w-full space-y-4 text-center">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Проверка прав доступа заняла больше времени, чем ожидалось.
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => {
+                  setAdminCheckTimeout(false);
+                  refreshAdminStatus();
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Попробовать снова
+              </Button>
+              <Button 
+                onClick={() => window.location.href = '/profile'}
+                className="flex-1"
+              >
+                В профиль
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -163,6 +215,16 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
             <br />
             Тип: {authState.userType}
           </p>
+          {adminCheckTimeout && (
+            <Button 
+              onClick={() => refreshAdminStatus()}
+              variant="ghost"
+              size="sm"
+              className="mt-4"
+            >
+              Принудительно обновить
+            </Button>
+          )}
         </div>
       </div>
     );

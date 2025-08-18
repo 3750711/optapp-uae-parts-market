@@ -69,7 +69,7 @@ const SellerProductDetail = lazy(() => import('@/pages/SellerProductDetail'));
 import { SellerPriceOffersRealtime } from '@/components/offers/SellerPriceOffersRealtime';
 
 // Admin routes
-import { AdminRoutes } from '@/routes/admin';
+import { getAdminRoutes } from '@/routes/admin';
 
 // Mobile specific pages
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
@@ -347,7 +347,9 @@ const AppRoutes: React.FC = () => {
             } />
 
             {/* Admin routes */}
-            <AdminRoutes />
+            {getAdminRoutes().map((route, index) => (
+              <Route key={`admin-${index}`} path={route.path} element={route.element} />
+            ))}
 
             {/* Catch-all маршрут */}
             <Route path="/terms" element={<TermsPage />} />
