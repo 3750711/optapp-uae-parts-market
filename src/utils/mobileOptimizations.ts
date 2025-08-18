@@ -29,6 +29,13 @@ export const preloadCriticalAssets = () => {
 };
 
 export const optimizeForMobile = () => {
+  // Detect PWA mode to optimize accordingly
+  const isPWA = 
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+    // @ts-ignore
+    window.navigator.standalone === true;
+
   // Add viewport meta for optimal mobile rendering
   let viewport = document.querySelector('meta[name=viewport]');
   if (!viewport) {
@@ -36,9 +43,14 @@ export const optimizeForMobile = () => {
     viewport.setAttribute('name', 'viewport');
     document.head.appendChild(viewport);
   }
-  viewport.setAttribute('content', 'width=device-width,initial-scale=1,viewport-fit=cover');
+  
+  // PWA-optimized viewport settings
+  const viewportContent = isPWA 
+    ? 'width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no'
+    : 'width=device-width,initial-scale=1,viewport-fit=cover';
+  viewport.setAttribute('content', viewportContent);
 
-  // Prevent zoom on input focus (iOS Safari)
+  // Prevent zoom on input focus (iOS Safari) with PWA considerations
   const style = document.createElement('style');
   style.textContent = `
     @media screen and (max-width: 767px) {
@@ -52,17 +64,82 @@ export const optimizeForMobile = () => {
         font-size: 16px !important;
       }
     }
+    
+    ${isPWA ? `
+      /* PWA-specific optimizations */
+      * {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      
+      input, textarea, [contenteditable] {
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      
+      /* Prevent pull-to-refresh in PWA */
+      html {
+        overscroll-behavior: contain;
+      }
+    ` : ''}
   `;
   document.head.appendChild(style);
 
   // Add passive event listeners for better scroll performance
+  // Minimize for PWA to reduce bfcache blocking
   document.addEventListener('touchstart', () => {}, { passive: true });
   document.addEventListener('touchmove', () => {}, { passive: true });
+
+  // PWA-specific optimizations
+  if (isPWA) {
+    // Prevent context menu in PWA
+    document.addEventListener('contextmenu', (e) => e.preventDefault(), { passive: false });
+    
+    // Optimize memory for PWA
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // Pause non-essential animations
+        document.querySelectorAll('video, audio').forEach((media: any) => {
+          if (!media.paused) {
+            media.pause();
+            media.dataset.pwaAutoPaused = 'true';
+          }
+        });
+      } else {
+        // Resume animations
+        document.querySelectorAll('[data-pwa-auto-paused]').forEach((media: any) => {
+          if (media.dataset.pwaAutoPaused === 'true') {
+            media.play().catch(() => {});
+            delete media.dataset.pwaAutoPaused;
+          }
+        });
+      }
+    }, { passive: true });
+  }
 };
 
 export const initMobileOptimizations = () => {
   if (typeof window !== 'undefined') {
     preloadCriticalAssets();
     optimizeForMobile();
+    
+    // Initialize PWA-specific optimizations
+    const isPWA = 
+      window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: window-controls-overlay)').matches ||
+      // @ts-ignore
+      window.navigator.standalone === true;
+      
+    if (isPWA) {
+      console.log('🏠 PWA mode detected - applying PWA optimizations');
+      
+      // Import and initialize PWA optimizations dynamically
+      import('./pwaOptimizations').then(({ pwaOptimizer }) => {
+        console.log('🏠 PWA optimizations loaded:', pwaOptimizer.getOptimizationStatus());
+      }).catch(error => {
+        console.warn('🏠 Failed to load PWA optimizations:', error);
+      });
+    }
   }
 };

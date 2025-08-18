@@ -110,7 +110,7 @@ const onVideoDelete = (url: string) => {
 };
 
 // Автосохранение черновика для iOS (только для этой страницы)
-const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
+const { loadSavedData, clearSavedData, saveNow, hasUnsavedChanges } = useOptimizedFormAutosave({
   key: 'admin_free_order',
   data: { formData, images, videos },
   delay: 1000,
@@ -164,25 +164,52 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
-// Мгновенное сохранение при скрытии/уходе со страницы (важно для iOS)
+// Мгновенное сохранение при скрытии/уходе со страницы (оптимизировано для PWA)
 useEffect(() => {
-  const onVisibility = () => {
-    if (document.visibilityState === 'hidden' && !isCreating && !isOrderCreated && !createdOrder) {
-      saveNow();
+  // Use centralized PWA lifecycle management
+  const { usePWALifecycle } = require('@/utils/pwaLifecycleManager');
+  
+  const { isPWA, forceSave } = usePWALifecycle('admin-free-order-autosave', {
+    onVisibilityChange: (isHidden) => {
+      if (isHidden && !isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
+        console.log('🏠 PWA: Auto-saving form on visibility change');
+        saveNow();
+      }
+    },
+    onPageHide: () => {
+      if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
+        console.log('🏠 PWA: Auto-saving form on page hide');
+        saveNow();
+      }
+    },
+    onFreeze: () => {
+      if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
+        console.log('🏠 PWA: Auto-saving form on freeze');
+        saveNow();
+      }
     }
-  };
-  const onPageHide = () => {
-    if (!isCreating && !isOrderCreated && !createdOrder) {
-      saveNow();
-    }
-  };
-  document.addEventListener('visibilitychange', onVisibility);
-  window.addEventListener('pagehide', onPageHide);
-  return () => {
-    document.removeEventListener('visibilitychange', onVisibility);
-    window.removeEventListener('pagehide', onPageHide);
-  };
-}, [saveNow, isCreating, isOrderCreated, createdOrder]);
+  });
+
+  // Fallback for older browsers without PWA lifecycle support
+  if (!isPWA) {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden' && !isCreating && !isOrderCreated && !createdOrder) {
+        saveNow();
+      }
+    };
+    const onPageHide = () => {
+      if (!isCreating && !isOrderCreated && !createdOrder) {
+        saveNow();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility, { passive: true });
+    window.addEventListener('pagehide', onPageHide, { passive: true });
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }
+}, [saveNow, isCreating, isOrderCreated, createdOrder, hasUnsavedChanges]);
 
 // Восстановление бренда/моделей при возврате на страницу (bfcache/pageshow)
 useEffect(() => {

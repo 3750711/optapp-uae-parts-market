@@ -2,6 +2,7 @@
 import React, { useEffect } from "react";
 import Header from "./Header";
 import Footer from "./Footer";
+import { PWAStatus } from '@/components/PWAStatus';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -20,6 +21,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className, language }) => {
       <Header />
       <main className={className || ""}>{children}</main>
       <Footer language={language} />
+      <PWAStatus />
     </div>
   );
 };
