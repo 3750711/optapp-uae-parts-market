@@ -6,13 +6,13 @@ import { AdminRoute } from '@/components/auth/AdminRoute';
 // Критически важные админские страницы - загружаются без lazy loading
 import AdminDashboard from '@/pages/AdminDashboard';
 import AdminAddProduct from '@/pages/AdminAddProduct';
+import AdminFreeOrder from '@/pages/AdminFreeOrder';
 
 // Lazy loaded админские страницы
 const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
 const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
 const AdminOrderDetails = lazy(() => import('@/pages/AdminOrderDetails'));
-const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
 const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
 const AdminSellProduct = lazy(() => import('@/pages/AdminSellProduct'));
 const AdminStores = lazy(() => import('@/pages/AdminStores'));
