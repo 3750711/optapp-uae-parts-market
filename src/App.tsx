@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -44,56 +44,6 @@ const RouteLoader = React.memo(() => (
   </div>
 ));
 
-// Safe wrapper for toast components that only render when React is ready
-const SafeToastProviders = ({ children }: { children: React.ReactNode }) => {
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    // Ensure React is fully initialized before rendering toast components
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <>
-      {isReady && (
-        <>
-          <Toaster />
-          <Sonner />
-        </>
-      )}
-      {children}
-    </>
-  );
-};
-
-// Safe TooltipProvider wrapper that only renders when React is ready
-const SafeTooltipProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isReady, setIsReady] = useState(false);
-
-  useEffect(() => {
-    // Ensure React is fully initialized before rendering TooltipProvider
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!isReady) {
-    return <>{children}</>;
-  }
-
-  try {
-    return <TooltipProvider>{children}</TooltipProvider>;
-  } catch (error) {
-    console.warn('TooltipProvider failed to initialize, falling back without tooltips:', error);
-    return <>{children}</>;
-  }
-};
 
 const App = () => {
   useEffect(() => {
@@ -112,19 +62,19 @@ const App = () => {
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
-          <SafeTooltipProvider>
-            <SafeToastProviders>
-              <BrowserRouter>
-                <AuthProvider>
-                  <ProfileCompletionRedirect>
-                    <Suspense fallback={<RouteLoader />}>
-                      <AppRoutes />
-                    </Suspense>
-                  </ProfileCompletionRedirect>
-                </AuthProvider>
-              </BrowserRouter>
-            </SafeToastProviders>
-          </SafeTooltipProvider>
+          <TooltipProvider>
+            <BrowserRouter>
+              <AuthProvider>
+                <ProfileCompletionRedirect>
+                  <Suspense fallback={<RouteLoader />}>
+                    <AppRoutes />
+                  </Suspense>
+                </ProfileCompletionRedirect>
+              </AuthProvider>
+            </BrowserRouter>
+            <Toaster />
+            <Sonner />
+          </TooltipProvider>
         </QueryClientProvider>
       </HelmetProvider>
     </GlobalErrorBoundary>
