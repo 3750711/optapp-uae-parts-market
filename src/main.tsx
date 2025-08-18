@@ -7,6 +7,13 @@ import "./index.css";
 // Безопасная загрузка утилит после инициализации React
 const initializeUtilities = async () => {
   try {
+    // Wait for React to be fully initialized
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(resolve);
+      });
+    });
+    
     // Lazy load utilities to avoid early hook calls
     if (typeof window !== 'undefined') {
       const { initMobileOptimizations } = await import("@/utils/mobileOptimizations");
@@ -49,8 +56,8 @@ const initApp = async () => {
     </StrictMode>
   );
 
-  // Initialize utilities after React is mounted
-  await initializeUtilities();
+  // Initialize utilities after React is fully mounted and settled
+  setTimeout(initializeUtilities, 0);
 };
 
 // Проверка готовности к продакшену

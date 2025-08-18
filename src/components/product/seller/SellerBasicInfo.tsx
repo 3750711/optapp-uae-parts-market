@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Star, Copy, CheckCheck } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SellerBasicInfoProps {
   sellerProfile?: SellerProfile | null;

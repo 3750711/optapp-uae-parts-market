@@ -54,6 +54,8 @@ const RouteLoader = React.memo(() => (
 ));
 
 const App = () => {
+  const [isReady, setIsReady] = React.useState(false);
+
   useEffect(() => {
     // Initialize performance monitoring safely after component mount
     const initPerformanceMonitoring = async () => {
@@ -67,7 +69,16 @@ const App = () => {
       }
     };
 
-    initPerformanceMonitoring();
+    // Ensure React is fully initialized before setting ready state
+    const initializeApp = async () => {
+      await initPerformanceMonitoring();
+      // Small delay to ensure React dispatcher is ready
+      requestAnimationFrame(() => {
+        setIsReady(true);
+      });
+    };
+
+    initializeApp();
 
     // Cleanup on unmount
     return () => {
@@ -75,15 +86,19 @@ const App = () => {
     };
   }, []);
 
+  if (!isReady) {
+    return <RouteLoader />;
+  }
+
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Suspense fallback={<RouteLoader />}>
-              <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
+        <BrowserRouter>
+          <Suspense fallback={<RouteLoader />}>
+            <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
                 <AuthProvider>
                   <ProfileCompletionRedirect>
                     <Suspense fallback={<RouteLoader />}>
@@ -91,10 +106,10 @@ const App = () => {
                     </Suspense>
                   </ProfileCompletionRedirect>
                 </AuthProvider>
-              </GlobalErrorBoundary>
-            </Suspense>
-          </BrowserRouter>
-        </TooltipProvider>
+              </TooltipProvider>
+            </GlobalErrorBoundary>
+          </Suspense>
+        </BrowserRouter>
       </QueryClientProvider>
     </HelmetProvider>
   );
