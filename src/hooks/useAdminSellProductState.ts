@@ -37,7 +37,6 @@ interface SellProductState {
   createdOrderImages: string[];
 }
 
-// Remove unused LOCAL_STORAGE_KEY as we now use unified autosave
 const BUYERS_CACHE_KEY = 'adminSellProduct_buyers';
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
@@ -56,7 +55,6 @@ export const useAdminSellProductState = () => {
     createdOrderImages: []
   });
 
-  // Простое обновление состояния без автосохранения (используется внешнее автосохранение)
   const updateState = useCallback((updates: Partial<SellProductState>) => {
     setState(prevState => ({ ...prevState, ...updates }));
   }, []);
@@ -139,7 +137,6 @@ export const useAdminSellProductState = () => {
     }
   }, [updateState, toast]);
 
-  // Сброс состояния без очистки кэша (используется внешняя система автосохранения)
   const resetState = useCallback(() => {
     setState({
       step: 1,

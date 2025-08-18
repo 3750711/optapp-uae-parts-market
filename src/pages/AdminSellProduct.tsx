@@ -5,7 +5,7 @@ import { useAdminOrderCreation } from "@/hooks/useAdminOrderCreation";
 import { useAdminSellProductState } from "@/hooks/useAdminSellProductState";
 import { useRetryMechanism } from "@/hooks/useRetryMechanism";
 import { useRateLimit } from "@/hooks/useRateLimit";
-import { useEnhancedMobileAutosave } from "@/hooks/useEnhancedMobileAutosave";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import SellProductProgress from "@/components/admin/sell-product/SellProductProgress";
@@ -40,95 +40,20 @@ interface Product {
 const AdminSellProduct = () => {
   const { state, updateState, loadBuyers, resetState } = useAdminSellProductState();
   
-  // Extended state for edited data and additional images
-  const [currentEditedData, setCurrentEditedData] = React.useState<any>(null);
-  const [savedEditedData, setSavedEditedData] = React.useState<any>(null);
-  const [orderImages, setOrderImages] = React.useState<string[]>([]);
-
-  // Enhanced mobile autosave for comprehensive state management
-  const { loadSavedData, clearSavedData, saveNow } = useEnhancedMobileAutosave({
-    key: 'admin_sell_product_v2',
-    data: {
-      step: state.step,
-      selectedProduct: state.selectedProduct,
-      selectedBuyer: state.selectedBuyer,
-      showConfirmDialog: state.showConfirmDialog,
-      showConfirmImagesDialog: state.showConfirmImagesDialog,
-      currentEditedData,
-      savedEditedData,
-      orderImages,
-      // Mobile-specific metadata
-      lastActivity: Date.now(),
-      scrollPosition: typeof window !== 'undefined' ? window.scrollY : 0,
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
-      timestamp: Date.now()
-    },
-    delay: 1500,
-    enabled: true,
-    excludeFields: [],
-    mobileOptimized: true
-  });
-
-  // Comprehensive state restoration on component mount
+  // Simple page refresh protection
   useEffect(() => {
-    try {
-      const saved = loadSavedData();
-      if (saved) {
-        console.log('✅ Comprehensive restoration of sell product state:', saved);
-        
-        // Restore main state
-        const restoredState = { ...state };
-        if (saved.step && saved.step !== 1) {
-          restoredState.step = saved.step;
-        }
-        if (saved.selectedProduct) {
-          restoredState.selectedProduct = saved.selectedProduct;
-        }
-        if (saved.selectedBuyer) {
-          restoredState.selectedBuyer = saved.selectedBuyer;
-        }
-        if (saved.showConfirmDialog !== undefined) {
-          restoredState.showConfirmDialog = saved.showConfirmDialog;
-        }
-        if (saved.showConfirmImagesDialog !== undefined) {
-          restoredState.showConfirmImagesDialog = saved.showConfirmImagesDialog;
-        }
-        
-        // Restore extended state
-        if (saved.currentEditedData) {
-          setCurrentEditedData(saved.currentEditedData);
-        }
-        if (saved.savedEditedData) {
-          setSavedEditedData(saved.savedEditedData);
-        }
-        if (saved.orderImages && Array.isArray(saved.orderImages)) {
-          setOrderImages(saved.orderImages);
-        }
-        
-        updateState(restoredState);
-        
-        // Restore scroll position for mobile
-        if (saved.scrollPosition && typeof window !== 'undefined') {
-          setTimeout(() => {
-            window.scrollTo(0, saved.scrollPosition);
-          }, 100);
-        }
-        
-        console.log('✅ Comprehensive state restoration completed');
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Show warning if user has selected a product or is in progress
+      if (state.selectedProduct && !state.createdOrder) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
       }
-    } catch (error) {
-      console.error('❌ Error during state restoration:', error);
-    }
-  }, []);
+    };
 
-  // Enhanced mobile compatibility - removed redundant handlers since useEnhancedMobileAutosave handles all mobile events
-
-  // Clear autosave on successful order creation
-  useEffect(() => {
-    if (state.createdOrder) {
-      clearSavedData();
-    }
-  }, [state.createdOrder, clearSavedData]);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [state.selectedProduct, state.createdOrder]);
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
   const { executeWithRetry, isRetrying } = useRetryMechanism();
   const { toast } = useToast();
@@ -178,18 +103,6 @@ const AdminSellProduct = () => {
   }) => {
     if (!state.selectedProduct || !state.selectedBuyer) return;
     
-    // Store edited data for autosave persistence
-    if (orderData.editedData) {
-      console.log("💾 Storing edited data for autosave:", orderData.editedData);
-      setCurrentEditedData(orderData.editedData);
-      setSavedEditedData(orderData.editedData);
-    }
-    
-    // Store order images for autosave
-    if (orderData.orderImages && orderData.orderImages.length > 0) {
-      console.log("📸 Storing order images for autosave:", orderData.orderImages);
-      setOrderImages(orderData.orderImages);
-    }
     
     // Проверяем rate limit
     if (!checkRateLimit('создание заказа')) {
@@ -376,12 +289,7 @@ const AdminSellProduct = () => {
   };
 
   const handleNewOrder = () => {
-    // Clear all edited data and order images
-    setCurrentEditedData(null);
-    setSavedEditedData(null);
-    setOrderImages([]);
     resetState();
-    clearSavedData(); // Clear autosave when starting new order
   };
 
   const handleCancel = () => {
