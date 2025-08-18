@@ -1,4 +1,3 @@
-
 import React, { Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -45,6 +44,32 @@ const RouteLoader = React.memo(() => (
   </div>
 ));
 
+// Safe wrapper for toast components that only render when React is ready
+const SafeToastProviders = ({ children }: { children: React.ReactNode }) => {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Ensure React is fully initialized before rendering toast components
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <>
+      {isReady && (
+        <>
+          <Toaster />
+          <Sonner />
+        </>
+      )}
+      {children}
+    </>
+  );
+};
+
 // Safe TooltipProvider wrapper that only renders when React is ready
 const SafeTooltipProvider = ({ children }: { children: React.ReactNode }) => {
   const [isReady, setIsReady] = useState(false);
@@ -88,17 +113,17 @@ const App = () => {
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
           <SafeTooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
-                <ProfileCompletionRedirect>
-                  <Suspense fallback={<RouteLoader />}>
-                    <AppRoutes />
-                  </Suspense>
-                </ProfileCompletionRedirect>
-              </AuthProvider>
-            </BrowserRouter>
+            <SafeToastProviders>
+              <BrowserRouter>
+                <AuthProvider>
+                  <ProfileCompletionRedirect>
+                    <Suspense fallback={<RouteLoader />}>
+                      <AppRoutes />
+                    </Suspense>
+                  </ProfileCompletionRedirect>
+                </AuthProvider>
+              </BrowserRouter>
+            </SafeToastProviders>
           </SafeTooltipProvider>
         </QueryClientProvider>
       </HelmetProvider>
