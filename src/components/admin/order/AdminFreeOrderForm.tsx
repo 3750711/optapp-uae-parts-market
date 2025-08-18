@@ -17,7 +17,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
-import { usePWALifecycle } from '@/utils/pwaLifecycleManager';
 
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 
@@ -119,28 +118,6 @@ const { loadSavedData, clearSavedData, saveNow, hasUnsavedChanges } = useOptimiz
   excludeFields: []
 });
 
-// PWA lifecycle management for auto-saving
-const { isPWA, forceSave } = usePWALifecycle('admin-free-order-autosave', {
-  onVisibilityChange: (isHidden) => {
-    if (isHidden && !isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
-      console.log('🏠 PWA: Auto-saving form on visibility change');
-      saveNow();
-    }
-  },
-  onPageHide: () => {
-    if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
-      console.log('🏠 PWA: Auto-saving form on page hide');
-      saveNow();
-    }
-  },
-  onFreeze: () => {
-    if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
-      console.log('🏠 PWA: Auto-saving form on freeze');
-      saveNow();
-    }
-  }
-});
-
 // Восстановление черновика при монтировании (до 24 часов) — сначала бренд, потом модель
 useEffect(() => {
   try {
@@ -187,8 +164,32 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
-// Мгновенное сохранение при скрытии/уходе со страницы (fallback для старых браузеров)
+// Мгновенное сохранение при скрытии/уходе со страницы (оптимизировано для PWA)
 useEffect(() => {
+  // Use centralized PWA lifecycle management
+  const { usePWALifecycle } = require('@/utils/pwaLifecycleManager');
+  
+  const { isPWA, forceSave } = usePWALifecycle('admin-free-order-autosave', {
+    onVisibilityChange: (isHidden) => {
+      if (isHidden && !isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
+        console.log('🏠 PWA: Auto-saving form on visibility change');
+        saveNow();
+      }
+    },
+    onPageHide: () => {
+      if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
+        console.log('🏠 PWA: Auto-saving form on page hide');
+        saveNow();
+      }
+    },
+    onFreeze: () => {
+      if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
+        console.log('🏠 PWA: Auto-saving form on freeze');
+        saveNow();
+      }
+    }
+  });
+
   // Fallback for older browsers without PWA lifecycle support
   if (!isPWA) {
     const onVisibility = () => {
@@ -208,7 +209,7 @@ useEffect(() => {
       window.removeEventListener('pagehide', onPageHide);
     };
   }
-}, [saveNow, isCreating, isOrderCreated, createdOrder, isPWA]);
+}, [saveNow, isCreating, isOrderCreated, createdOrder, hasUnsavedChanges]);
 
 // Восстановление бренда/моделей при возврате на страницу (bfcache/pageshow)
 useEffect(() => {

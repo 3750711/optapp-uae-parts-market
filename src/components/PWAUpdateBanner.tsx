@@ -12,19 +12,10 @@ export const PWAUpdateBanner: React.FC = () => {
       setUpdateAvailable(true);
     };
 
-    // Handle controller updated event (no forced reload)
-    const handleControllerUpdated = () => {
-      setIsUpdating(false);
-      setUpdateAvailable(false);
-      console.log('🚀 PWA: Service Worker updated without reload');
-    };
-
     window.addEventListener('sw-update-available', handleUpdateAvailable);
-    window.addEventListener('sw-controller-updated', handleControllerUpdated);
 
     return () => {
       window.removeEventListener('sw-update-available', handleUpdateAvailable);
-      window.removeEventListener('sw-controller-updated', handleControllerUpdated);
     };
   }, []);
 

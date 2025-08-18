@@ -77,45 +77,30 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle navigation requests - Stale-while-revalidate for PWA optimization
+  // Handle navigation requests - Network first with cache fallback
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match(request)
-        .then(cachedResponse => {
-          // Start network request in parallel
-          const fetchPromise = fetch(request)
-            .then(networkResponse => {
-              // Cache successful responses for next time
-              if (networkResponse && networkResponse.ok) {
-                const responseClone = networkResponse.clone();
-                caches.open(CACHE_NAME).then(cache => {
-                  cache.put(request, responseClone);
-                });
-              }
-              return networkResponse;
-            })
-            .catch(() => {
-              // Network failed, will use cache or offline page
-              console.log('📡 SW: Network failed for navigation');
-              return null;
+      fetch(request)
+        .then(response => {
+          // Cache successful navigation responses
+          if (response.ok) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(request, responseClone);
             });
-
-          // Return cached version immediately if available (PWA optimization)
-          if (cachedResponse) {
-            console.log('⚡ SW: Serving from cache for instant PWA load');
-            // Update cache in background
-            fetchPromise;
-            return cachedResponse;
           }
-
-          // No cache, wait for network or show offline page
-          return fetchPromise.then(networkResponse => {
-            if (networkResponse) {
-              return networkResponse;
-            }
-            // Network failed and no cache - show offline page
-            return caches.match('/offline.html');
-          });
+          return response;
+        })
+        .catch(() => {
+          // Try cache first, then offline page
+          return caches.match(request)
+            .then(cachedResponse => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              // Return offline page
+              return caches.match('/offline.html');
+            });
         })
     );
     return;

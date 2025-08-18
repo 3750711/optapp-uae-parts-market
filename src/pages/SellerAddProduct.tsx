@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useLazyCarBrands } from "@/hooks/useLazyCarBrands";
-import { parseProductTitle } from "@/utils/productTitleParser";
+import { useProductTitleParser } from "@/utils/productTitleParser";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import {
@@ -101,7 +101,13 @@ const SellerAddProduct = () => {
     enableBrandsLoading();
   }, [enableBrandsLoading]);
 
-  // Используем обычную функцию parseProductTitle без хуков
+  // Initialize our title parser (only when needed)
+  const { parseProductTitle } = useProductTitleParser(
+    brands,
+    allModels,
+    findBrandIdByName,
+    findModelIdByName
+  );
 
   // Get form data for autosave - use getValues instead of watch to avoid reactivity
   const getFormDataForAutosave = useCallback(() => form.getValues(), [form]);
@@ -148,7 +154,7 @@ const SellerAddProduct = () => {
       }
       
       console.log("Parsing title for auto-detection:", title);
-      const { brandId, modelId } = parseProductTitle(title, brands, allModels);
+      const { brandId, modelId } = parseProductTitle(title);
       
       if (brandId) {
         form.setValue("brandId", brandId, { shouldValidate: false });
@@ -163,7 +169,7 @@ const SellerAddProduct = () => {
         });
       }
     }
-  }, [brands, form, watchBrandId, toast, shouldLoadAllModels, enableAllModelsLoading]);
+  }, [brands, parseProductTitle, form, watchBrandId, toast, shouldLoadAllModels, enableAllModelsLoading]);
 
   // Debounced title processing - increased delay for mobile
   useEffect(() => {

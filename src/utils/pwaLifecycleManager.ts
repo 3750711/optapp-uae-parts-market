@@ -1,6 +1,5 @@
 // PWA-optimized lifecycle management to prevent constant refreshes
 import { debounce } from '@/utils/debounce';
-import { useEffect } from 'react';
 
 interface LifecycleOptions {
   onVisibilityChange?: (isHidden: boolean) => void;
@@ -258,13 +257,15 @@ export const pwaLifecycleManager = new PWALifecycleManager();
 
 // Hook for React components
 export const usePWALifecycle = (id: string, options: LifecycleOptions) => {
+  const { useEffect } = require('react');
+  
   useEffect(() => {
     return pwaLifecycleManager.register(id, options);
-  }, [id, options]);
+  }, [id]);
 
   return {
     isPWA: pwaLifecycleManager.shouldOptimizeForPWA(),
-    forceSave: pwaLifecycleManager.forceSave.bind(pwaLifecycleManager),
+    forceSave: pwaLifecycleManager.forceSave,
     status: pwaLifecycleManager.getPWAStatus()
   };
 };
