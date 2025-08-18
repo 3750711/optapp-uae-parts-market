@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
-import { useProductTitleParser } from "@/utils/productTitleParser";
+import { parseProductTitle } from "@/utils/productTitleParser";
 import { adminProductSchema, AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useAdminProductCreation } from "@/hooks/useAdminProductCreation";
@@ -84,12 +84,7 @@ export const useOptimizedAdminAddProduct = () => {
     )?.id;
   }, [allModels]);
 
-  const { parseProductTitle } = useProductTitleParser(
-    brands,
-    allModels,
-    findBrandIdByName,
-    findModelIdByName
-  );
+  // Используем обычную функцию parseProductTitle без хуков
 
   // Silent restore on mount: restore fields in order and media
   useEffect(() => {
@@ -124,7 +119,7 @@ export const useOptimizedAdminAddProduct = () => {
   // Auto-parse title with debounce
   useEffect(() => {
     if (debouncedTitle && brands.length > 0 && allModels.length > 0 && !watchBrandId) {
-      const { brandId, modelId } = parseProductTitle(debouncedTitle);
+      const { brandId, modelId } = parseProductTitle(debouncedTitle, brands, allModels);
       
       if (brandId) {
         form.setValue("brandId", brandId, { shouldValidate: true });
@@ -143,7 +138,7 @@ export const useOptimizedAdminAddProduct = () => {
         });
       }
     }
-  }, [debouncedTitle, brands, allModels, parseProductTitle, form, watchBrandId, toast]);
+  }, [debouncedTitle, brands, allModels, form, watchBrandId, toast]);
 
   // Handle brand changes
   useEffect(() => {

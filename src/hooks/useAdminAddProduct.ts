@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useProductTitleParser } from "@/utils/productTitleParser";
+import { parseProductTitle } from "@/utils/productTitleParser";
 import { adminProductSchema, AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useAllCarBrands } from "@/hooks/useAllCarBrands";
@@ -39,13 +39,7 @@ export const useAdminAddProduct = () => {
 
   const { createProductWithTransaction, isCreating } = useAdminProductCreation();
 
-  // Исправляем передачу функций в parseProductTitle - передаем только необходимые функции
-  const { parseProductTitle } = useProductTitleParser(
-    brands,
-    allModels,
-    findBrandIdByName,
-    findModelIdByName
-  );
+  // Используем обычную функцию parseProductTitle без хуков
 
   const form = useForm<AdminProductFormValues>({
     resolver: zodResolver(adminProductSchema),
@@ -103,7 +97,7 @@ export const useAdminAddProduct = () => {
 
   useEffect(() => {
     if (watchTitle && brands.length > 0 && allModels.length > 0 && !watchBrandId) {
-      const { brandId, modelId } = parseProductTitle(watchTitle);
+      const { brandId, modelId } = parseProductTitle(watchTitle, brands, allModels);
       
       if (brandId) {
         form.setValue("brandId", brandId);
@@ -118,7 +112,7 @@ export const useAdminAddProduct = () => {
         });
       }
     }
-  }, [watchTitle, brands, allModels, parseProductTitle, form, watchBrandId, toast]);
+  }, [watchTitle, brands, allModels, form, watchBrandId, toast]);
 
   useEffect(() => {
     const fetchSellers = async () => {
