@@ -2,6 +2,7 @@
   "name": "PartsBay.ae - Оптовый рынок автозапчастей",
   "short_name": "PartsBay.ae",
   "description": "B2B маркетплейс автозапчастей. Покупайте оптом у проверенных поставщиков из ОАЭ.",
+  "id": "partsbay-pwa-app",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -48,5 +49,18 @@
   },
   "launch_handler": {
     "client_mode": "navigate-existing"
-  }
+  },
+  "protocol_handlers": [],
+  "file_handlers": [],
+  "handle_links": "preferred",
+  "related_applications": [],
+  "screenshots": [
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Главный экран PartsBay.ae"
+    }
+  ]
 }

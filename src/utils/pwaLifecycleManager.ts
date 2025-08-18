@@ -7,8 +7,11 @@ interface LifecycleOptions {
   onPageShow?: (event: PageTransitionEvent) => void;
   onFreeze?: () => void;
   onResume?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   enableBfcacheOptimization?: boolean;
   debounceDelay?: number;
+  skipFastSwitching?: boolean;
 }
 
 class PWALifecycleManager {
@@ -16,7 +19,11 @@ class PWALifecycleManager {
   private isInitialized = false;
   private isPWA = false;
   private lastVisibilityChange = 0;
+  private lastFocusChange = 0;
   private isPageFrozen = false;
+  private isFastSwitching = false;
+  private rapidChangeCount = 0;
+  private bfcacheBlocked = false;
   
   constructor() {
     this.detectPWA();
@@ -42,20 +49,38 @@ class PWALifecycleManager {
     
     this.isInitialized = true;
     
-    // Debounced visibility handler to prevent rapid firing
+    // Optimized visibility handler with PWA-specific logic
     const debouncedVisibilityHandler = debounce((isHidden: boolean) => {
-      // Skip fake visibility changes (rapid toggles within 100ms)
       const now = Date.now();
-      if (now - this.lastVisibilityChange < 100) {
-        console.log('🔄 Skipping rapid visibility change');
-        return;
+      
+      // Detect rapid switching (PWA background/foreground cycles)
+      if (now - this.lastVisibilityChange < 150) {
+        this.rapidChangeCount++;
+        if (this.rapidChangeCount > 3) {
+          this.isFastSwitching = true;
+          console.log('🏠 PWA: Fast app switching detected - throttling events');
+          setTimeout(() => {
+            this.isFastSwitching = false;
+            this.rapidChangeCount = 0;
+          }, 2000);
+          return;
+        }
+      } else {
+        this.rapidChangeCount = 0;
+        this.isFastSwitching = false;
       }
+      
       this.lastVisibilityChange = now;
       
-      this.listeners.forEach((options) => {
-        options.onVisibilityChange?.(isHidden);
-      });
-    }, this.isPWA ? 300 : 150);
+      // Only trigger if not in fast switching mode
+      if (!this.isFastSwitching) {
+        this.listeners.forEach((options) => {
+          if (!options.skipFastSwitching || !this.isFastSwitching) {
+            options.onVisibilityChange?.(isHidden);
+          }
+        });
+      }
+    }, this.isPWA ? 400 : 200);
 
     // Centralized visibility change handler
     document.addEventListener('visibilitychange', () => {
@@ -63,23 +88,62 @@ class PWALifecycleManager {
       debouncedVisibilityHandler(isHidden);
     }, { passive: true });
 
+    // Focus/blur handlers for additional PWA lifecycle detection
+    let focusDebounceTimer: NodeJS.Timeout;
+    window.addEventListener('focus', () => {
+      clearTimeout(focusDebounceTimer);
+      focusDebounceTimer = setTimeout(() => {
+        if (!this.isFastSwitching) {
+          const now = Date.now();
+          this.lastFocusChange = now;
+          this.listeners.forEach((options) => {
+            options.onFocus?.();
+          });
+        }
+      }, this.isPWA ? 200 : 100);
+    }, { passive: true });
+
+    window.addEventListener('blur', () => {
+      clearTimeout(focusDebounceTimer);
+      focusDebounceTimer = setTimeout(() => {
+        if (!this.isFastSwitching) {
+          this.listeners.forEach((options) => {
+            options.onBlur?.();
+          });
+        }
+      }, this.isPWA ? 200 : 100);
+    }, { passive: true });
+
     // PWA-optimized page hide handler
     window.addEventListener('pagehide', (event) => {
-      // For PWA, only save if it's not a bfcache restore
+      // For PWA with bfcache, minimize operations to avoid blocking
       if (this.isPWA && event.persisted) {
-        console.log('🏠 PWA: Page cached for fast restore');
+        console.log('🏠 PWA: Page cached for bfcache - minimal operations');
+        // Only execute critical save operations
+        this.listeners.forEach((options) => {
+          if (options.enableBfcacheOptimization) {
+            options.onPageHide?.();
+          }
+        });
         return;
       }
       
-      this.listeners.forEach((options) => {
-        options.onPageHide?.();
-      });
+      // Regular page hide for non-bfcache scenarios
+      if (!this.isFastSwitching) {
+        this.listeners.forEach((options) => {
+          options.onPageHide?.();
+        });
+      }
     }, { passive: true });
 
     // Bfcache restoration handler
     window.addEventListener('pageshow', (event) => {
       if (event.persisted) {
-        console.log('🏠 PWA: Page restored from bfcache');
+        console.log('🏠 PWA: Page restored from bfcache - rehydrating state');
+        // Reset rapid change detection on bfcache restore
+        this.rapidChangeCount = 0;
+        this.isFastSwitching = false;
+        
         this.listeners.forEach((options) => {
           options.onPageShow?.(event);
         });
@@ -170,8 +234,21 @@ class PWALifecycleManager {
     return {
       isPWA: this.isPWA,
       isFrozen: this.isPageFrozen,
-      listenerCount: this.listeners.size
+      listenerCount: this.listeners.size,
+      isFastSwitching: this.isFastSwitching,
+      rapidChangeCount: this.rapidChangeCount,
+      bfcacheBlocked: this.bfcacheBlocked
     };
+  }
+
+  // Check if currently in fast switching mode
+  isFastSwitchingMode(): boolean {
+    return this.isFastSwitching;
+  }
+
+  // Get time since last visibility change
+  getTimeSinceLastChange(): number {
+    return Date.now() - this.lastVisibilityChange;
   }
 }
 
