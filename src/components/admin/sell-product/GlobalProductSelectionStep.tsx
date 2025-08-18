@@ -3,9 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Search, Filter, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { useProductsQuery } from '@/hooks/useProductsQuery';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -32,35 +31,17 @@ const GlobalProductSelectionStep: React.FC<GlobalProductSelectionStepProps> = ({
   onProductSelect
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('active');
-  const [priceFilter, setPriceFilter] = useState('all');
-  const [sellerFilter, setSellerFilter] = useState('all');
   
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   
   const { products, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useProductsQuery({
     debouncedSearchTerm,
-    statusFilter,
-    sellerFilter,
+    statusFilter: 'active',
+    sellerFilter: 'all',
     pageSize: 20
   });
 
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
-    
-    // Фильтр по цене
-    if (priceFilter !== 'all') {
-      if (priceFilter === 'low') {
-        filtered = filtered.filter(p => p.price < 1000);
-      } else if (priceFilter === 'medium') {
-        filtered = filtered.filter(p => p.price >= 1000 && p.price < 5000);
-      } else if (priceFilter === 'high') {
-        filtered = filtered.filter(p => p.price >= 5000);
-      }
-    }
-    
-    return filtered;
-  }, [products, priceFilter]);
+  const filteredProducts = products;
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
@@ -68,9 +49,6 @@ const GlobalProductSelectionStep: React.FC<GlobalProductSelectionStepProps> = ({
 
   const clearFilters = () => {
     setSearchTerm('');
-    setStatusFilter('active');
-    setPriceFilter('all');
-    setSellerFilter('all');
   };
 
   const getPrimaryImage = (product: Product) => {
@@ -102,40 +80,9 @@ const GlobalProductSelectionStep: React.FC<GlobalProductSelectionStepProps> = ({
                 className="pl-10"
               />
             </div>
-            <Button variant="outline" onClick={clearFilters} size="sm">
-              <X className="h-4 w-4 mr-1" />
-              Очистить
+            <Button variant="outline" onClick={clearFilters} size="icon" className="h-8 w-8">
+              <X className="h-3 w-3" />
             </Button>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium">Фильтры:</span>
-            </div>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все статусы</SelectItem>
-                <SelectItem value="active">Активные</SelectItem>
-                <SelectItem value="sold">Проданные</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={priceFilter} onValueChange={setPriceFilter}>
-              <SelectTrigger className="w-40">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Любая цена</SelectItem>
-                <SelectItem value="low">До $1,000</SelectItem>
-                <SelectItem value="medium">$1,000 - $5,000</SelectItem>
-                <SelectItem value="high">От $5,000</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
 

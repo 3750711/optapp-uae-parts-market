@@ -17,11 +17,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
+import { usePWALifecycle } from '@/hooks/usePWALifecycle';
 
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 
 export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isOrderCreated, setIsOrderCreated] = useState(false);
   const isMobile = useIsMobile();
 
   const {
@@ -108,11 +111,11 @@ const onVideoDelete = (url: string) => {
 };
 
 // Автосохранение черновика для iOS (только для этой страницы)
-const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
+const { loadSavedData, clearSavedData, saveNow, hasUnsavedChanges } = useOptimizedFormAutosave({
   key: 'admin_free_order',
   data: { formData, images, videos },
   delay: 1000,
-  enabled: true,
+  enabled: !isCreating && !isOrderCreated && !createdOrder,
   excludeFields: []
 });
 
@@ -162,23 +165,50 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
-// Мгновенное сохранение при скрытии/уходе со страницы (важно для iOS)
-useEffect(() => {
-  const onVisibility = () => {
-    if (document.visibilityState === 'hidden') {
-      saveNow();
+// Мгновенное сохранение при скрытии/уходе со страницы (оптимизировано для PWA)
+const { isPWA, forceSave } = usePWALifecycle('admin-free-order-autosave', {
+    onVisibilityChange: (isHidden) => {
+      if (isHidden && !isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
+        console.log('🏠 PWA: Auto-saving form on visibility change');
+        saveNow();
+      }
+    },
+    onPageHide: () => {
+      if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
+        console.log('🏠 PWA: Auto-saving form on page hide');
+        saveNow();
+      }
+    },
+    onFreeze: () => {
+      if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
+        console.log('🏠 PWA: Auto-saving form on freeze');
+        saveNow();
+      }
     }
-  };
-  const onPageHide = () => {
-    saveNow();
-  };
-  document.addEventListener('visibilitychange', onVisibility);
-  window.addEventListener('pagehide', onPageHide);
-  return () => {
-    document.removeEventListener('visibilitychange', onVisibility);
-    window.removeEventListener('pagehide', onPageHide);
-  };
-}, [saveNow]);
+});
+
+// Мгновенное сохранение при скрытии/уходе со страницы (fallback для браузеров без PWA)
+useEffect(() => {
+  // Fallback for older browsers without PWA lifecycle support
+  if (!isPWA) {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden' && !isCreating && !isOrderCreated && !createdOrder) {
+        saveNow();
+      }
+    };
+    const onPageHide = () => {
+      if (!isCreating && !isOrderCreated && !createdOrder) {
+        saveNow();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility, { passive: true });
+    window.addEventListener('pagehide', onPageHide, { passive: true });
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }
+}, [saveNow, isCreating, isOrderCreated, createdOrder, hasUnsavedChanges, isPWA]);
 
 // Восстановление бренда/моделей при возврате на страницу (bfcache/pageshow)
 useEffect(() => {
@@ -205,9 +235,15 @@ useEffect(() => {
 // Очистка черновика после успешного создания
 useEffect(() => {
   if (createdOrder) {
+    setIsOrderCreated(true);
     clearSavedData();
   }
 }, [createdOrder, clearSavedData]);
+
+// Отслеживание состояния загрузки
+useEffect(() => {
+  setIsCreating(isLoading);
+}, [isLoading]);
   // Обработчик данных из Telegram парсера (теперь асинхронный)
   const handleTelegramDataParsed = async (data: ParsedTelegramOrder) => {
     console.log('📝 Применение данных из Telegram:', data);
@@ -325,9 +361,23 @@ useEffect(() => {
   const handleConfirmOrder = (e: React.FormEvent) => {
     e.preventDefault();
     setShowPreview(false);
+    setIsCreating(true);
     guardedSubmit(async () => {
-      await originalHandleSubmit(e);
+      try {
+        await originalHandleSubmit(e);
+      } catch (error) {
+        setIsCreating(false);
+        throw error;
+      }
     });
+  };
+
+  // Расширенный сброс формы с очисткой состояния
+  const resetFormAndClearAutosave = () => {
+    setIsCreating(false);
+    setIsOrderCreated(false);
+    clearSavedData();
+    resetForm();
   };
 
   const handleBackToEdit = () => {
@@ -429,7 +479,7 @@ useEffect(() => {
         order={createdOrder}
         images={images}
         videos={videos}
-        onNewOrder={resetForm}
+        onNewOrder={resetFormAndClearAutosave}
         onOrderUpdate={handleOrderUpdate}
         buyerProfile={getBuyerProfile()}
       />

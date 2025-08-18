@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useProductTitleParser } from "@/utils/productTitleParser";
+import { useProductTitleParser } from "@/hooks/useProductTitleParser";
 import { adminProductSchema, AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useAllCarBrands } from "@/hooks/useAllCarBrands";

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/product";
 import { ProductProps } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { AlertTriangle, RefreshCw, Search, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";

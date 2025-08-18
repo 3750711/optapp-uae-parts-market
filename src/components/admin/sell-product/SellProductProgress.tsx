@@ -2,7 +2,8 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Circle, ArrowRight, Package, Users } from 'lucide-react';
+import { CheckCircle, Circle, ArrowRight, Package, Users, FileCheck } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SellProductProgressProps {
   currentStep: number;
@@ -15,6 +16,7 @@ const SellProductProgress: React.FC<SellProductProgressProps> = ({
   onStepClick,
   canNavigateBack = false
 }) => {
+  const isMobile = useIsMobile();
   const steps = [
     {
       number: 1,
@@ -27,6 +29,12 @@ const SellProductProgress: React.FC<SellProductProgressProps> = ({
       title: "Выбор покупателя",
       icon: Users,
       description: "Выберите покупателя"
+    },
+    {
+      number: 3,
+      title: "Подтверждение заказа",
+      icon: FileCheck,
+      description: "Проверьте и подтвердите детали заказа"
     }
   ];
 
@@ -38,14 +46,50 @@ const SellProductProgress: React.FC<SellProductProgressProps> = ({
 
   return (
     <Card className="mb-6">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
+      <CardContent className={isMobile ? "p-3" : "p-4"}>
+        <div className={isMobile ? "flex items-center justify-center space-x-2" : "flex items-center justify-between"}>
           {steps.map((step, index) => {
             const isCompleted = currentStep > step.number;
             const isCurrent = currentStep === step.number;
             const isClickable = canNavigateBack && step.number < currentStep;
             const StepIcon = step.icon;
 
+            if (isMobile) {
+              // Mobile: show only step numbers/icons horizontally
+              return (
+                <div key={step.number} className="flex items-center">
+                  <Button
+                    variant={isClickable ? "outline" : "ghost"}
+                    size="sm"
+                    className={`
+                      w-8 h-8 rounded-full p-0 transition-all duration-200
+                      ${isCompleted ? 'bg-green-100 text-green-600 border-green-300' : ''}
+                      ${isCurrent ? 'bg-primary text-primary-foreground' : ''}
+                      ${isClickable ? 'hover:bg-primary/10 cursor-pointer' : 'cursor-default'}
+                      ${!isCompleted && !isCurrent ? 'bg-gray-100 text-gray-400' : ''}
+                    `}
+                    onClick={() => handleStepClick(step.number)}
+                    disabled={!isClickable}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle className="w-4 h-4" />
+                    ) : isCurrent ? (
+                      <StepIcon className="w-4 h-4" />
+                    ) : (
+                      <Circle className="w-4 h-4" />
+                    )}
+                  </Button>
+                  {index < steps.length - 1 && (
+                    <ArrowRight className={`
+                      w-3 h-3 mx-1
+                      ${currentStep > step.number ? 'text-green-600' : 'text-gray-300'}
+                    `} />
+                  )}
+                </div>
+              );
+            }
+
+            // Desktop: show full layout
             return (
               <div key={step.number} className="flex items-center flex-1">
                 <div className="flex flex-col items-center flex-1">
@@ -98,6 +142,15 @@ const SellProductProgress: React.FC<SellProductProgressProps> = ({
             );
           })}
         </div>
+        
+        {/* Mobile: show current step name below */}
+        {isMobile && (
+          <div className="text-center mt-2">
+            <div className="text-sm font-medium text-gray-900">
+              {steps.find(s => s.number === currentStep)?.title}
+            </div>
+          </div>
+        )}
         
         {canNavigateBack && currentStep > 1 && (
           <div className="mt-4 text-center">

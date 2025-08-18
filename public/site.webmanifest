@@ -2,21 +2,65 @@
   "name": "PartsBay.ae - Оптовый рынок автозапчастей",
   "short_name": "PartsBay.ae",
   "description": "B2B маркетплейс автозапчастей. Покупайте оптом у проверенных поставщиков из ОАЭ.",
+  "id": "partsbay-pwa-app",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/android-chrome-512x512.png",
       "sizes": "512x512", 
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ],
   "theme_color": "#1D2D44",
-  "background_color": "#ffffff",
+  "background_color": "#0f1419",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui", "browser"],
   "start_url": "/",
-  "orientation": "portrait"
+  "scope": "/",
+  "orientation": "portrait-primary",
+  "categories": ["business", "shopping", "automotive"],
+  "shortcuts": [
+    {
+      "name": "Добавить заказ",
+      "short_name": "Заказ",
+      "description": "Создать новый заказ",
+      "url": "/admin/free-order",
+      "icons": [{"src": "/android-chrome-192x192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Продажи",
+      "short_name": "Продажи", 
+      "description": "Управление продажами",
+      "url": "/admin/add-product",
+      "icons": [{"src": "/android-chrome-192x192.png", "sizes": "192x192"}]
+    }
+  ],
+  "lang": "ru",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "protocol_handlers": [],
+  "file_handlers": [],
+  "handle_links": "preferred",
+  "related_applications": [],
+  "screenshots": [
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Главный экран PartsBay.ae"
+    }
+  ]
 }

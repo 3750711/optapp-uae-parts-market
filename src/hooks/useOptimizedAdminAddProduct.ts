@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
-import { useProductTitleParser } from "@/utils/productTitleParser";
+import { useProductTitleParser } from "@/hooks/useProductTitleParser";
 import { adminProductSchema, AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useAdminProductCreation } from "@/hooks/useAdminProductCreation";
@@ -20,6 +20,8 @@ export const useOptimizedAdminAddProduct = () => {
   const { guardedSubmit, isSubmitting } = useSubmissionGuard();
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [selectedBrandId, setSelectedBrandId] = useState<string>("");
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
 
   // Preview dialog state
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -64,7 +66,7 @@ export const useOptimizedAdminAddProduct = () => {
     key: 'admin_add_product',
     data: getFormDataForAutosave(),
     delay: 1000,
-    enabled: !isSubmitting && !isCreating,
+    enabled: !isSubmitting && !isCreating && !isPublishing && !isPublished,
     excludeFields: []
   });
 
@@ -160,22 +162,51 @@ export const useOptimizedAdminAddProduct = () => {
     }
   }, [watchBrandId, selectedBrandId, watchModelId, brandModels, form]);
 
+  // Reset all form and state data
+  const resetFormAndState = useCallback(() => {
+    // Clear saved data first
+    clearSavedData();
+    
+    // Reset form
+    form.reset();
+    
+    // Reset all state
+    setImageUrls([]);
+    setVideoUrls([]);
+    setPrimaryImage("");
+    setSelectedBrandId("");
+    setIsPreviewOpen(false);
+    setPreviewData(null);
+    
+    // Mark as published to prevent further autosaving
+    setIsPublished(true);
+    
+    toast({
+      title: "Данные очищены",
+      description: "Форма готова для создания нового товара",
+    });
+  }, [clearSavedData, form, toast]);
+
   // Persist on mobile lifecycle and sync on return (bfcache)
   useEffect(() => {
     const handleVisibility = () => {
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === 'hidden' && !isPublishing && !isPublished) {
         saveNow(getFormDataForAutosave());
       }
     };
     const handlePageHide = () => {
-      saveNow(getFormDataForAutosave());
+      if (!isPublishing && !isPublished) {
+        saveNow(getFormDataForAutosave());
+      }
     };
     const handlePageShow = () => {
-      const currentBrand = form.getValues('brandId');
-      const currentModel = form.getValues('modelId');
-      if (currentBrand) setSelectedBrandId(currentBrand);
-      if (currentModel) {
-        form.setValue('modelId', currentModel, { shouldValidate: true });
+      if (!isPublished) {
+        const currentBrand = form.getValues('brandId');
+        const currentModel = form.getValues('modelId');
+        if (currentBrand) setSelectedBrandId(currentBrand);
+        if (currentModel) {
+          form.setValue('modelId', currentModel, { shouldValidate: true });
+        }
       }
     };
 
@@ -188,7 +219,7 @@ export const useOptimizedAdminAddProduct = () => {
       window.removeEventListener('pagehide', handlePageHide);
       window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [saveNow, getFormDataForAutosave, form]);
+  }, [saveNow, getFormDataForAutosave, form, isPublishing, isPublished]);
 
   const handleImageUpload = useCallback((urls: string[]) => {
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
@@ -207,6 +238,9 @@ export const useOptimizedAdminAddProduct = () => {
 
   const handleCreateProduct = async (values: AdminProductFormValues) => {
     try {
+      // Set publishing flag to disable autosave
+      setIsPublishing(true);
+      
       const product = await createProductWithTransaction({
         values,
         imageUrls,
@@ -218,11 +252,27 @@ export const useOptimizedAdminAddProduct = () => {
       });
 
       if (product) {
-        clearSavedData();
+        // Reset all form and state data
+        resetFormAndState();
+        
+        // Navigate after successful creation
         navigate(`/product/${product.id}`);
+        
+        toast({
+          title: "Товар успешно создан",
+          description: "Перенаправление на страницу товара...",
+        });
       }
     } catch (error) {
+      // Re-enable autosave on error
+      setIsPublishing(false);
       console.error("Product creation failed:", error);
+      
+      toast({
+        title: "Ошибка создания товара",
+        description: "Попробуйте еще раз. Данные формы сохранены.",
+        variant: "destructive",
+      });
     }
   };
   
@@ -262,7 +312,7 @@ export const useOptimizedAdminAddProduct = () => {
   return {
     form,
     onSubmit,
-    isSubmitting: isSubmitting || isCreating,
+    isSubmitting: isSubmitting || isCreating || isPublishing,
     imageUrls,
     videoUrls,
     setVideoUrls,
@@ -282,5 +332,8 @@ export const useOptimizedAdminAddProduct = () => {
     },
     richPreviewData: getRichPreviewData(),
     handleConfirmPublish,
+    // State management
+    isPublished,
+    resetFormAndState,
   };
 };

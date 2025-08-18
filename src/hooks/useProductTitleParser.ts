@@ -1,10 +1,9 @@
-
 import { useCallback } from 'react';
 
 type Brand = { id: string; name: string };
 type Model = { id: string; name: string; brand_id: string };
 
-// Обновленная сигнатура: любые функции поиска (универсально для seller/admin)
+// React hook for product title parsing
 export const useProductTitleParser = (
   brands: Brand[],
   brandModels: Model[],
@@ -12,7 +11,7 @@ export const useProductTitleParser = (
   findModelIdByName: (modelName: string | null, brandId: string) => string | null
 ) => {
   /**
-   * Дополнительно: проверки на наличие данных
+   * Parse product title to extract brand and model IDs
    */
   const parseProductTitle = useCallback((title: string) => {
     if (!title || brands.length === 0) {
@@ -38,5 +37,6 @@ export const useProductTitleParser = (
     }
     return { brandId: null, modelId: null };
   }, [brands, brandModels]);
+  
   return { parseProductTitle };
 };

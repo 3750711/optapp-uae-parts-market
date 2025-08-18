@@ -5,6 +5,11 @@ import App from "./App.tsx";
 import "./index.css";
 import { initPerformanceOptimizations } from "@/utils/performanceUtils";
 import { initializeClarity } from "@/utils/clarityTracking";
+import { initMobileOptimizations } from "@/utils/mobileOptimizations";
+import { registerServiceWorker } from "@/utils/serviceWorkerManager";
+
+// Import PWA optimizations early for better bfcache handling
+import "@/utils/pwaOptimizations";
 
 // Импортируем системы мониторинга для продакшена
 import "@/utils/productionErrorReporting";
@@ -83,6 +88,13 @@ if (typeof window !== 'undefined') {
 // Запускаем приложение
 try {
   performProductionChecks();
+  
+  // Initialize PWA and mobile optimizations first
+  initMobileOptimizations();
+  
+  // Register service worker for PWA functionality
+  registerServiceWorker();
+  
   initApp();
   
   // Инициализируем мониторинг производительности

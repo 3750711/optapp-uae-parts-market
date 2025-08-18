@@ -1,4 +1,3 @@
-
 import React, { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -45,6 +44,7 @@ const RouteLoader = React.memo(() => (
   </div>
 ));
 
+
 const App = () => {
   useEffect(() => {
     // Initialize performance monitoring in development
@@ -63,8 +63,6 @@ const App = () => {
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
-            <Toaster />
-            <Sonner />
             <BrowserRouter>
               <AuthProvider>
                 <ProfileCompletionRedirect>
@@ -74,6 +72,8 @@ const App = () => {
                 </ProfileCompletionRedirect>
               </AuthProvider>
             </BrowserRouter>
+            <Toaster />
+            <Sonner />
           </TooltipProvider>
         </QueryClientProvider>
       </HelmetProvider>
