@@ -93,12 +93,12 @@ const App = () => {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <Suspense fallback={<RouteLoader />}>
-            <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<RouteLoader />}>
+              <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
                 <AuthProvider>
                   <ProfileCompletionRedirect>
                     <Suspense fallback={<RouteLoader />}>
@@ -106,10 +106,10 @@ const App = () => {
                     </Suspense>
                   </ProfileCompletionRedirect>
                 </AuthProvider>
-              </TooltipProvider>
-            </GlobalErrorBoundary>
-          </Suspense>
-        </BrowserRouter>
+              </GlobalErrorBoundary>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
       </QueryClientProvider>
     </HelmetProvider>
   );
