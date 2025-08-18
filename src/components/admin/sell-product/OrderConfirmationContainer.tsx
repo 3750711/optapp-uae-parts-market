@@ -39,6 +39,15 @@ interface OrderConfirmationContainerProps {
     deliveryPrice?: number;
     deliveryMethod: string;
     orderImages: string[];
+    editedData?: {
+      title: string;
+      brand: string;
+      model: string;
+      price: number;
+      deliveryPrice: number;
+      placeNumber: number;
+      textOrder: string;
+    };
   }) => Promise<void>;
   onConfirmImagesComplete: () => void;
   onConfirmImagesSkip: () => void;

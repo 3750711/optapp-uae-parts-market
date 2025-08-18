@@ -137,6 +137,15 @@ const AdminSellProduct = () => {
     deliveryPrice?: number;
     deliveryMethod: string;
     orderImages: string[];
+    editedData?: {
+      title: string;
+      brand: string;
+      model: string;
+      price: number;
+      deliveryPrice: number;
+      placeNumber: number;
+      textOrder: string;
+    };
   }) => {
     if (!state.selectedProduct || !state.selectedBuyer) return;
     
@@ -199,22 +208,44 @@ const AdminSellProduct = () => {
       final: finalDeliveryPrice
     });
 
+    // Apply edited data to product if available
+    let productToUse = state.selectedProduct!;
+    if (orderData.editedData) {
+      console.log("📝 Applying edited data to product:", {
+        original: state.selectedProduct,
+        editedData: orderData.editedData
+      });
+      
+      productToUse = {
+        ...state.selectedProduct!,
+        title: orderData.editedData.title,
+        brand: orderData.editedData.brand || '',
+        model: orderData.editedData.model || '',
+        price: orderData.editedData.price,
+        delivery_price: orderData.editedData.deliveryPrice,
+        place_number: orderData.editedData.placeNumber
+      };
+      
+      console.log("✨ Updated product with edited data:", productToUse);
+    }
+
     // Обновляем orderData с правильными изображениями и стоимостью доставки
     const updatedOrderData = {
       ...orderData,
       orderImages: combinedImages,
-      deliveryPrice: finalDeliveryPrice
+      deliveryPrice: finalDeliveryPrice,
+      textOrder: orderData.editedData?.textOrder
     };
 
     const createOrderOperation = async () => {
       console.log("🚀 Calling createOrder with:", {
         seller: seller,
-        product: state.selectedProduct,
+        product: productToUse,
         buyer: state.selectedBuyer,
         orderData: updatedOrderData
       });
       
-      const result = await createOrder(seller, state.selectedProduct!, state.selectedBuyer!, updatedOrderData);
+      const result = await createOrder(seller, productToUse, state.selectedBuyer!, updatedOrderData);
       
       if (result === 'product_unavailable') {
         updateState({
