@@ -17,7 +17,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
-import { usePWALifecycle } from '@/utils/pwaLifecycleManager';
+import { usePWALifecycle } from '@/hooks/usePWALifecycle';
 
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 
