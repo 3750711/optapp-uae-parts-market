@@ -5,7 +5,7 @@ import { useAdminOrderCreation } from "@/hooks/useAdminOrderCreation";
 import { useAdminSellProductState } from "@/hooks/useAdminSellProductState";
 import { useRetryMechanism } from "@/hooks/useRetryMechanism";
 import { useRateLimit } from "@/hooks/useRateLimit";
-import { useOptimizedFormAutosave } from "@/hooks/useOptimizedFormAutosave";
+import { useEnhancedMobileAutosave } from "@/hooks/useEnhancedMobileAutosave";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import SellProductProgress from "@/components/admin/sell-product/SellProductProgress";
@@ -39,60 +39,89 @@ interface Product {
 
 const AdminSellProduct = () => {
   const { state, updateState, loadBuyers, resetState } = useAdminSellProductState();
+  
+  // Extended state for edited data and additional images
+  const [currentEditedData, setCurrentEditedData] = React.useState<any>(null);
+  const [savedEditedData, setSavedEditedData] = React.useState<any>(null);
+  const [orderImages, setOrderImages] = React.useState<string[]>([]);
 
-  // Autosave for mobile browsers
-  const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
-    key: 'admin_sell_product',
+  // Enhanced mobile autosave for comprehensive state management
+  const { loadSavedData, clearSavedData, saveNow } = useEnhancedMobileAutosave({
+    key: 'admin_sell_product_v2',
     data: {
       step: state.step,
       selectedProduct: state.selectedProduct,
       selectedBuyer: state.selectedBuyer,
       showConfirmDialog: state.showConfirmDialog,
-      showConfirmImagesDialog: state.showConfirmImagesDialog
+      showConfirmImagesDialog: state.showConfirmImagesDialog,
+      currentEditedData,
+      savedEditedData,
+      orderImages,
+      // Mobile-specific metadata
+      lastActivity: Date.now(),
+      scrollPosition: typeof window !== 'undefined' ? window.scrollY : 0,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
+      timestamp: Date.now()
     },
-    delay: 1000,
+    delay: 1500,
     enabled: true,
-    excludeFields: []
+    excludeFields: [],
+    mobileOptimized: true
   });
 
-  // Restore autosaved data on component mount
+  // Comprehensive state restoration on component mount
   useEffect(() => {
     try {
       const saved = loadSavedData();
       if (saved) {
-        console.log('✅ Восстановление состояния продажи товара:', saved);
+        console.log('✅ Comprehensive restoration of sell product state:', saved);
         
-        // Restore state selectively
+        // Restore main state
         const restoredState = { ...state };
-        if (saved.step && saved.step !== 1) restoredState.step = saved.step;
-        if (saved.selectedProduct) restoredState.selectedProduct = saved.selectedProduct;
-        if (saved.selectedBuyer) restoredState.selectedBuyer = saved.selectedBuyer;
+        if (saved.step && saved.step !== 1) {
+          restoredState.step = saved.step;
+        }
+        if (saved.selectedProduct) {
+          restoredState.selectedProduct = saved.selectedProduct;
+        }
+        if (saved.selectedBuyer) {
+          restoredState.selectedBuyer = saved.selectedBuyer;
+        }
+        if (saved.showConfirmDialog !== undefined) {
+          restoredState.showConfirmDialog = saved.showConfirmDialog;
+        }
+        if (saved.showConfirmImagesDialog !== undefined) {
+          restoredState.showConfirmImagesDialog = saved.showConfirmImagesDialog;
+        }
+        
+        // Restore extended state
+        if (saved.currentEditedData) {
+          setCurrentEditedData(saved.currentEditedData);
+        }
+        if (saved.savedEditedData) {
+          setSavedEditedData(saved.savedEditedData);
+        }
+        if (saved.orderImages && Array.isArray(saved.orderImages)) {
+          setOrderImages(saved.orderImages);
+        }
         
         updateState(restoredState);
-        console.log('✅ Состояние продажи товара восстановлено');
+        
+        // Restore scroll position for mobile
+        if (saved.scrollPosition && typeof window !== 'undefined') {
+          setTimeout(() => {
+            window.scrollTo(0, saved.scrollPosition);
+          }, 100);
+        }
+        
+        console.log('✅ Comprehensive state restoration completed');
       }
     } catch (error) {
-      console.error('❌ Ошибка восстановления состояния:', error);
+      console.error('❌ Error during state restoration:', error);
     }
-  }, [loadSavedData, updateState]);
+  }, []);
 
-  // Save immediately on visibility change and page hide (important for mobile)
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') {
-        saveNow();
-      }
-    };
-    const onPageHide = () => {
-      saveNow();
-    };
-    document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('pagehide', onPageHide);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', onPageHide);
-    };
-  }, [saveNow]);
+  // Enhanced mobile compatibility - removed redundant handlers since useEnhancedMobileAutosave handles all mobile events
 
   // Clear autosave on successful order creation
   useEffect(() => {
@@ -149,15 +178,30 @@ const AdminSellProduct = () => {
   }) => {
     if (!state.selectedProduct || !state.selectedBuyer) return;
     
+    // Store edited data for autosave persistence
+    if (orderData.editedData) {
+      console.log("💾 Storing edited data for autosave:", orderData.editedData);
+      setCurrentEditedData(orderData.editedData);
+      setSavedEditedData(orderData.editedData);
+    }
+    
+    // Store order images for autosave
+    if (orderData.orderImages && orderData.orderImages.length > 0) {
+      console.log("📸 Storing order images for autosave:", orderData.orderImages);
+      setOrderImages(orderData.orderImages);
+    }
+    
     // Проверяем rate limit
     if (!checkRateLimit('создание заказа')) {
       return;
     }
 
-    console.log("📦 Creating order with product data:", {
+    console.log("📦 Creating order with comprehensive data:", {
       product: state.selectedProduct,
       buyer: state.selectedBuyer,
-      orderData: orderData
+      orderData: orderData,
+      editedData: orderData.editedData ? "✅ Present" : "❌ Missing",
+      orderImages: orderData.orderImages ? orderData.orderImages.length : 0
     });
 
     // Получаем полные данные продавца из базы данных
@@ -211,9 +255,20 @@ const AdminSellProduct = () => {
     // Apply edited data to product if available
     let productToUse = state.selectedProduct!;
     if (orderData.editedData) {
-      console.log("📝 Applying edited data to product:", {
-        original: state.selectedProduct,
-        editedData: orderData.editedData
+      console.log("📝 DETAILED: Applying edited data to product:", {
+        "Original Product Title": state.selectedProduct.title,
+        "Edited Title": orderData.editedData.title,
+        "Original Product Price": state.selectedProduct.price,
+        "Edited Price": orderData.editedData.price,
+        "Original Product Brand": state.selectedProduct.brand,
+        "Edited Brand": orderData.editedData.brand,
+        "Original Product Model": state.selectedProduct.model,
+        "Edited Model": orderData.editedData.model,
+        "Original Delivery Price": state.selectedProduct.delivery_price,
+        "Edited Delivery Price": orderData.editedData.deliveryPrice,
+        "Original Place Number": state.selectedProduct.place_number,
+        "Edited Place Number": orderData.editedData.placeNumber,
+        "Text Order": orderData.editedData.textOrder
       });
       
       productToUse = {
@@ -226,7 +281,19 @@ const AdminSellProduct = () => {
         place_number: orderData.editedData.placeNumber
       };
       
-      console.log("✨ Updated product with edited data:", productToUse);
+      console.log("✨ RESULT: Updated product with edited data:", {
+        "Final Product": productToUse,
+        "Changes Applied": {
+          titleChanged: productToUse.title !== state.selectedProduct.title,
+          priceChanged: productToUse.price !== state.selectedProduct.price,
+          brandChanged: productToUse.brand !== state.selectedProduct.brand,
+          modelChanged: productToUse.model !== state.selectedProduct.model,
+          deliveryPriceChanged: productToUse.delivery_price !== state.selectedProduct.delivery_price,
+          placeNumberChanged: productToUse.place_number !== state.selectedProduct.place_number
+        }
+      });
+    } else {
+      console.log("📝 No edited data provided, using original product data");
     }
 
     // Обновляем orderData с правильными изображениями и стоимостью доставки
@@ -238,11 +305,16 @@ const AdminSellProduct = () => {
     };
 
     const createOrderOperation = async () => {
-      console.log("🚀 Calling createOrder with:", {
+      console.log("🚀 FINAL: Calling createOrder with complete data:", {
         seller: seller,
         product: productToUse,
         buyer: state.selectedBuyer,
-        orderData: updatedOrderData
+        orderData: updatedOrderData,
+        "EditedData Verification": {
+          hasEditedData: !!orderData.editedData,
+          editedFields: orderData.editedData ? Object.keys(orderData.editedData) : [],
+          textOrderIncluded: !!updatedOrderData.textOrder
+        }
       });
       
       const result = await createOrder(seller, productToUse, state.selectedBuyer!, updatedOrderData);
@@ -304,6 +376,10 @@ const AdminSellProduct = () => {
   };
 
   const handleNewOrder = () => {
+    // Clear all edited data and order images
+    setCurrentEditedData(null);
+    setSavedEditedData(null);
+    setOrderImages([]);
     resetState();
     clearSavedData(); // Clear autosave when starting new order
   };

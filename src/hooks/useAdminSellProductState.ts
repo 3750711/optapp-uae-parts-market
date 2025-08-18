@@ -37,9 +37,9 @@ interface SellProductState {
   createdOrderImages: string[];
 }
 
-const LOCAL_STORAGE_KEY = 'adminSellProductState';
-const CACHE_DURATION = 30 * 60 * 1000; // Увеличили до 30 минут
+// Remove unused LOCAL_STORAGE_KEY as we now use unified autosave
 const BUYERS_CACHE_KEY = 'adminSellProduct_buyers';
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 export const useAdminSellProductState = () => {
   const { toast } = useToast();
@@ -56,84 +56,10 @@ export const useAdminSellProductState = () => {
     createdOrderImages: []
   });
 
-  // Восстановление состояния из localStorage с оптимизацией
-  useEffect(() => {
-    const restoreState = () => {
-      try {
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (saved) {
-          const { data, timestamp } = JSON.parse(saved);
-          if (Date.now() - timestamp < CACHE_DURATION) {
-            setState(prevState => ({
-              ...prevState,
-              ...data,
-              // Сбрасываем временные состояния
-              isLoading: false,
-              showConfirmDialog: false,
-              showConfirmImagesDialog: false,
-              createdOrder: null,
-              createdOrderImages: []
-            }));
-          } else {
-            // Очищаем устаревший кэш
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-          }
-        }
-      } catch (error) {
-        console.error('Error restoring state from localStorage:', error);
-        localStorage.removeItem(LOCAL_STORAGE_KEY);
-      }
-    };
-
-    restoreState();
-  }, []);
-
-  // Оптимизированное сохранение состояния в localStorage
-  const saveStateToStorage = useCallback((newState: Partial<SellProductState>) => {
-    // Используем requestIdleCallback для отложенного сохранения
-    const saveOperation = () => {
-      try {
-        const stateToSave = {
-          step: newState.step ?? state.step,
-          selectedProduct: newState.selectedProduct ?? state.selectedProduct,
-          selectedBuyer: newState.selectedBuyer ?? state.selectedBuyer,
-          buyers: newState.buyers ?? state.buyers
-        };
-        
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
-          data: stateToSave,
-          timestamp: Date.now()
-        }));
-      } catch (error) {
-        console.error('Error saving state to localStorage:', error);
-      }
-    };
-
-    if (window.requestIdleCallback) {
-      window.requestIdleCallback(saveOperation);
-    } else {
-      setTimeout(saveOperation, 0);
-    }
-  }, [state]);
-
-  // Обновление состояния с оптимизированным сохранением
+  // Простое обновление состояния без автосохранения (используется внешнее автосохранение)
   const updateState = useCallback((updates: Partial<SellProductState>) => {
-    setState(prevState => {
-      const newState = { ...prevState, ...updates };
-      // Сохраняем только если есть значимые изменения
-      const hasSignificantChanges = 
-        updates.step !== undefined ||
-        updates.selectedProduct !== undefined ||
-        updates.selectedBuyer !== undefined ||
-        updates.buyers !== undefined;
-      
-      if (hasSignificantChanges) {
-        saveStateToStorage(newState);
-      }
-      
-      return newState;
-    });
-  }, [saveStateToStorage]);
+    setState(prevState => ({ ...prevState, ...updates }));
+  }, []);
 
   // Оптимизированная загрузка покупателей с RPC функцией
   const loadBuyers = useCallback(async () => {
@@ -213,7 +139,7 @@ export const useAdminSellProductState = () => {
     }
   }, [updateState, toast]);
 
-  // Сброс состояния с очисткой кэша
+  // Сброс состояния без очистки кэша (используется внешняя система автосохранения)
   const resetState = useCallback(() => {
     setState({
       step: 1,
@@ -226,12 +152,10 @@ export const useAdminSellProductState = () => {
       createdOrder: null,
       createdOrderImages: []
     });
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
   }, [state.buyers]);
 
-  // Очистка всего кэша
+  // Очистка кэша покупателей
   const clearCache = useCallback(() => {
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
     localStorage.removeItem(BUYERS_CACHE_KEY);
   }, []);
 
