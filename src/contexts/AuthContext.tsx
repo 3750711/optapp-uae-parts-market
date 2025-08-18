@@ -281,7 +281,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (session?.user) {
         console.log('🔧 AuthContext: User found, fetching profile for:', session.user.id);
-        fetchUserProfile(session.user.id);
+        // Используем setTimeout для предотвращения блокировки
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 0);
       } else {
         console.log('🔧 AuthContext: No user found, clearing state');
         setProfile(null);
@@ -304,7 +307,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (session?.user) {
         console.log('🔧 AuthContext: User in auth change, fetching profile for:', session.user.id);
-        fetchUserProfile(session.user.id);
+        // Используем setTimeout для предотвращения блокировки
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 0);
       } else {
         console.log('🔧 AuthContext: No user in auth change, clearing state');
         setProfile(null);

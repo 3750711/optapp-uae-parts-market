@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useLazyCarBrands } from "@/hooks/useLazyCarBrands";
-import { useProductTitleParser } from "@/hooks/useProductTitleParser";
+import { useProductTitleParser } from "@/utils/productTitleParser";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import {
