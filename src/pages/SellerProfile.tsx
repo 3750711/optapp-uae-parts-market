@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import SellerPageSkeleton from "@/components/seller/SellerPageSkeleton";
 import OptimizedSellerDashboard from "@/components/seller/OptimizedSellerDashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";

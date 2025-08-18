@@ -20,7 +20,7 @@ import {
   Share2
 } from 'lucide-react';
 import { ProfileType } from './types';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 
 interface ContactCardProps {
   profile: ProfileType;
