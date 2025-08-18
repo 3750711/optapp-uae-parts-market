@@ -56,16 +56,6 @@ interface EditableOrderFormProps {
     textOrder: string;
     deliveryMethod: string;
   }) => void;
-  onDataChange?: (editedData: {
-    title: string;
-    brand: string;
-    model: string;
-    price: number;
-    deliveryPrice: number;
-    placeNumber: number;
-    textOrder: string;
-    deliveryMethod: string;
-  }) => void;
   isSubmitting: boolean;
   isSeller?: boolean;
   savedData?: any;
@@ -88,7 +78,6 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
   buyer,
   onConfirm,
   onSave,
-  onDataChange,
   isSubmitting,
   isSeller = false,
   savedData
@@ -410,22 +399,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
   };
 
   const updateField = (field: keyof EditableData, value: string | number) => {
-    const newData = { ...editableData, [field]: value };
-    setEditableData(newData);
-    
-    // Notify parent component about data changes
-    if (onDataChange) {
-      onDataChange({
-        title: newData.title,
-        brand: newData.brand,
-        model: newData.model,
-        price: newData.price,
-        deliveryPrice: newData.deliveryPrice,
-        placeNumber: newData.placeNumber,
-        textOrder: newData.textOrder,
-        deliveryMethod: newData.deliveryMethod
-      });
-    }
+    setEditableData(prev => ({ ...prev, [field]: value }));
   };
 
   // Функция для проверки, нужно ли показывать стоимость доставки

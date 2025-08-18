@@ -115,7 +115,6 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   onCancel,
 }) => {
   const [savedEditedData, setSavedEditedData] = useState<any>(null);
-  const [currentEditedData, setCurrentEditedData] = useState<any>(null);
   const { profile } = useAuth();
   const isSeller = profile?.user_type === 'seller';
 
@@ -253,14 +252,9 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
 
   const handleSaveChanges = (editedData: any) => {
     setSavedEditedData(editedData);
-    setCurrentEditedData(editedData);
     if (onSave) {
       onSave(editedData);
     }
-  };
-
-  const handleDataChange = (editedData: any) => {
-    setCurrentEditedData(editedData);
   };
 
   const handleClose = () => {
@@ -313,24 +307,8 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
               product={savedEditedData ? { ...product, ...savedEditedData } : product}
               seller={seller}
               buyer={buyer}
-              onConfirm={(orderData) => {
-                // Use current edited data if available, otherwise use the data from the form
-                const finalOrderData = {
-                  ...orderData,
-                  editedData: currentEditedData ? {
-                    title: currentEditedData.title,
-                    brand: currentEditedData.brand,
-                    model: currentEditedData.model,
-                    price: currentEditedData.price,
-                    deliveryPrice: currentEditedData.deliveryPrice,
-                    placeNumber: currentEditedData.placeNumber,
-                    textOrder: currentEditedData.textOrder
-                  } : orderData.editedData
-                };
-                return onConfirm!(finalOrderData);
-              }}
+              onConfirm={onConfirm}
               onSave={handleSaveChanges}
-              onDataChange={handleDataChange}
               isSubmitting={isSubmitting || false}
               isSeller={isSeller}
               savedData={savedEditedData}

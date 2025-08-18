@@ -2,7 +2,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useOptimizedFormAutosave } from './useOptimizedFormAutosave';
 
 interface BuyerProfile {
   id: string;
@@ -27,23 +26,20 @@ interface Product {
 }
 
 interface SellProductState {
-  step: number; // 1 - выбор товара, 2 - выбор покупателя, 3 - подтверждение заказа
+  step: number;
   selectedProduct: Product | null;
   selectedBuyer: BuyerProfile | null;
   buyers: BuyerProfile[];
   isLoading: boolean;
+  showConfirmDialog: boolean;
+  showConfirmImagesDialog: boolean;
   createdOrder: any;
   createdOrderImages: string[];
 }
 
-interface AutosaveData {
-  step: number;
-  selectedProduct: Product | null;
-  selectedBuyer: BuyerProfile | null;
-}
-
+const LOCAL_STORAGE_KEY = 'adminSellProductState';
+const CACHE_DURATION = 30 * 60 * 1000; // Увеличили до 30 минут
 const BUYERS_CACHE_KEY = 'adminSellProduct_buyers';
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 export const useAdminSellProductState = () => {
   const { toast } = useToast();
@@ -54,34 +50,90 @@ export const useAdminSellProductState = () => {
     selectedBuyer: null,
     buyers: [],
     isLoading: false,
+    showConfirmDialog: false,
+    showConfirmImagesDialog: false,
     createdOrder: null,
     createdOrderImages: []
   });
 
-  // Prepare autosave data
-  const autosaveData: AutosaveData = {
-    step: state.step,
-    selectedProduct: state.selectedProduct,
-    selectedBuyer: state.selectedBuyer,
-  };
+  // Восстановление состояния из localStorage с оптимизацией
+  useEffect(() => {
+    const restoreState = () => {
+      try {
+        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (saved) {
+          const { data, timestamp } = JSON.parse(saved);
+          if (Date.now() - timestamp < CACHE_DURATION) {
+            setState(prevState => ({
+              ...prevState,
+              ...data,
+              // Сбрасываем временные состояния
+              isLoading: false,
+              showConfirmDialog: false,
+              showConfirmImagesDialog: false,
+              createdOrder: null,
+              createdOrderImages: []
+            }));
+          } else {
+            // Очищаем устаревший кэш
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+          }
+        }
+      } catch (error) {
+        console.error('Error restoring state from localStorage:', error);
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+      }
+    };
 
-  // Setup autosave
-  const {
-    loadSavedData,
-    clearSavedData,
-    draftExists,
-    saveNow
-  } = useOptimizedFormAutosave({
-    key: 'admin_sell_product',
-    data: autosaveData,
-    delay: 2000,
-    enabled: !!state.selectedProduct || !!state.selectedBuyer || state.step > 1,
-    excludeFields: []
-  });
-
-  const updateState = useCallback((updates: Partial<SellProductState>) => {
-    setState(prevState => ({ ...prevState, ...updates }));
+    restoreState();
   }, []);
+
+  // Оптимизированное сохранение состояния в localStorage
+  const saveStateToStorage = useCallback((newState: Partial<SellProductState>) => {
+    // Используем requestIdleCallback для отложенного сохранения
+    const saveOperation = () => {
+      try {
+        const stateToSave = {
+          step: newState.step ?? state.step,
+          selectedProduct: newState.selectedProduct ?? state.selectedProduct,
+          selectedBuyer: newState.selectedBuyer ?? state.selectedBuyer,
+          buyers: newState.buyers ?? state.buyers
+        };
+        
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
+          data: stateToSave,
+          timestamp: Date.now()
+        }));
+      } catch (error) {
+        console.error('Error saving state to localStorage:', error);
+      }
+    };
+
+    if (window.requestIdleCallback) {
+      window.requestIdleCallback(saveOperation);
+    } else {
+      setTimeout(saveOperation, 0);
+    }
+  }, [state]);
+
+  // Обновление состояния с оптимизированным сохранением
+  const updateState = useCallback((updates: Partial<SellProductState>) => {
+    setState(prevState => {
+      const newState = { ...prevState, ...updates };
+      // Сохраняем только если есть значимые изменения
+      const hasSignificantChanges = 
+        updates.step !== undefined ||
+        updates.selectedProduct !== undefined ||
+        updates.selectedBuyer !== undefined ||
+        updates.buyers !== undefined;
+      
+      if (hasSignificantChanges) {
+        saveStateToStorage(newState);
+      }
+      
+      return newState;
+    });
+  }, [saveStateToStorage]);
 
   // Оптимизированная загрузка покупателей с RPC функцией
   const loadBuyers = useCallback(async () => {
@@ -161,6 +213,7 @@ export const useAdminSellProductState = () => {
     }
   }, [updateState, toast]);
 
+  // Сброс состояния с очисткой кэша
   const resetState = useCallback(() => {
     setState({
       step: 1,
@@ -168,48 +221,25 @@ export const useAdminSellProductState = () => {
       selectedBuyer: null,
       buyers: state.buyers, // Сохраняем загруженных покупателей
       isLoading: false,
+      showConfirmDialog: false,
+      showConfirmImagesDialog: false,
       createdOrder: null,
       createdOrderImages: []
     });
-    clearSavedData();
-  }, [state.buyers, clearSavedData]);
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+  }, [state.buyers]);
 
-  // Очистка кэша покупателей
+  // Очистка всего кэша
   const clearCache = useCallback(() => {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
     localStorage.removeItem(BUYERS_CACHE_KEY);
   }, []);
-
-  // Restore saved state
-  const restoreSavedState = useCallback(() => {
-    const savedData = loadSavedData();
-    if (savedData) {
-      console.log('🔄 Restoring saved sell product state:', savedData);
-      setState(prevState => ({
-        ...prevState,
-        step: savedData.step || 1,
-        selectedProduct: savedData.selectedProduct || null,
-        selectedBuyer: savedData.selectedBuyer || null,
-      }));
-      
-      toast({
-        title: "Состояние восстановлено",
-        description: "Ваш прогресс был автоматически восстановлен",
-      });
-      
-      return true;
-    }
-    return false;
-  }, [loadSavedData, toast]);
 
   return {
     state,
     updateState,
     loadBuyers,
     resetState,
-    clearCache,
-    restoreSavedState,
-    clearSavedData,
-    draftExists,
-    saveNow
+    clearCache
   };
 };

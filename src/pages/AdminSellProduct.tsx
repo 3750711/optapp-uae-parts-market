@@ -5,15 +5,13 @@ import { useAdminOrderCreation } from "@/hooks/useAdminOrderCreation";
 import { useAdminSellProductState } from "@/hooks/useAdminSellProductState";
 import { useRetryMechanism } from "@/hooks/useRetryMechanism";
 import { useRateLimit } from "@/hooks/useRateLimit";
-import { useIsMobile } from "@/hooks/use-mobile";
-
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import SellProductProgress from "@/components/admin/sell-product/SellProductProgress";
 import AdminSellProductHeader from "@/components/admin/sell-product/AdminSellProductHeader";
 import ProductSelectionContainer from "@/components/admin/sell-product/ProductSelectionContainer";
 import BuyerSelectionContainer from "@/components/admin/sell-product/BuyerSelectionContainer";
-import OrderConfirmationStep from "@/components/admin/sell-product/OrderConfirmationStep";
+import OrderConfirmationContainer from "@/components/admin/sell-product/OrderConfirmationContainer";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 
 interface BuyerProfile {
@@ -39,32 +37,7 @@ interface Product {
 }
 
 const AdminSellProduct = () => {
-  const { 
-    state, 
-    updateState, 
-    loadBuyers, 
-    resetState, 
-    restoreSavedState, 
-    clearSavedData, 
-    draftExists,
-    saveNow 
-  } = useAdminSellProductState();
-  const isMobile = useIsMobile();
-  
-  // Simple page refresh protection
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Show warning if user has selected a product or is in progress
-      if (state.selectedProduct && !state.createdOrder) {
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [state.selectedProduct, state.createdOrder]);
+  const { state, updateState, loadBuyers, resetState } = useAdminSellProductState();
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
   const { executeWithRetry, isRetrying } = useRetryMechanism();
   const { toast } = useToast();
@@ -73,45 +46,12 @@ const AdminSellProduct = () => {
     maxRequests: 5    // 5 заказов в минуту
   });
 
-  // Restore saved state and load buyers on initialization
+  // Загрузка покупателей при инициализации
   useEffect(() => {
-    let stateRestored = false;
-    
-    // Try to restore saved state first
-    if (draftExists) {
-      stateRestored = restoreSavedState();
-    }
-    
-    // Load buyers if not already loaded
     if (state.buyers.length === 0) {
       executeWithRetry(() => loadBuyers(), {}, 'загрузка покупателей');
     }
-  }, [draftExists, restoreSavedState, state.buyers.length, loadBuyers, executeWithRetry]);
-
-  // Handle page visibility and form autosave for iOS/mobile
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && (state.selectedProduct || state.selectedBuyer || state.step > 1)) {
-        console.log('📱 Page hidden, saving sell product state immediately');
-        saveNow();
-      }
-    };
-
-    const handlePageHide = () => {
-      if (state.selectedProduct || state.selectedBuyer || state.step > 1) {
-        console.log('📱 Page hiding, saving sell product state immediately');
-        saveNow();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('pagehide', handlePageHide);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('pagehide', handlePageHide);
-    };
-  }, [state.selectedProduct, state.selectedBuyer, state.step, saveNow]);
+  }, [state.buyers.length, loadBuyers, executeWithRetry]);
 
   const handleProductSelect = (product: Product) => {
     updateState({
@@ -126,7 +66,7 @@ const AdminSellProduct = () => {
     
     updateState({
       selectedBuyer: buyer,
-      step: 3
+      showConfirmDialog: true
     });
   };
 
@@ -135,30 +75,18 @@ const AdminSellProduct = () => {
     deliveryPrice?: number;
     deliveryMethod: string;
     orderImages: string[];
-    editedData?: {
-      title: string;
-      brand: string;
-      model: string;
-      price: number;
-      deliveryPrice: number;
-      placeNumber: number;
-      textOrder: string;
-    };
   }) => {
     if (!state.selectedProduct || !state.selectedBuyer) return;
-    
     
     // Проверяем rate limit
     if (!checkRateLimit('создание заказа')) {
       return;
     }
 
-    console.log("📦 Creating order with comprehensive data:", {
+    console.log("📦 Creating order with product data:", {
       product: state.selectedProduct,
       buyer: state.selectedBuyer,
-      orderData: orderData,
-      editedData: orderData.editedData ? "✅ Present" : "❌ Missing",
-      orderImages: orderData.orderImages ? orderData.orderImages.length : 0
+      orderData: orderData
     });
 
     // Получаем полные данные продавца из базы данных
@@ -209,82 +137,34 @@ const AdminSellProduct = () => {
       final: finalDeliveryPrice
     });
 
-    // Apply edited data to product if available
-    let productToUse = state.selectedProduct!;
-    if (orderData.editedData) {
-      console.log("📝 DETAILED: Applying edited data to product:", {
-        "Original Product Title": state.selectedProduct.title,
-        "Edited Title": orderData.editedData.title,
-        "Original Product Price": state.selectedProduct.price,
-        "Edited Price": orderData.editedData.price,
-        "Original Product Brand": state.selectedProduct.brand,
-        "Edited Brand": orderData.editedData.brand,
-        "Original Product Model": state.selectedProduct.model,
-        "Edited Model": orderData.editedData.model,
-        "Original Delivery Price": state.selectedProduct.delivery_price,
-        "Edited Delivery Price": orderData.editedData.deliveryPrice,
-        "Original Place Number": state.selectedProduct.place_number,
-        "Edited Place Number": orderData.editedData.placeNumber,
-        "Text Order": orderData.editedData.textOrder
-      });
-      
-      productToUse = {
-        ...state.selectedProduct!,
-        title: orderData.editedData.title,
-        brand: orderData.editedData.brand || '',
-        model: orderData.editedData.model || '',
-        price: orderData.editedData.price,
-        delivery_price: orderData.editedData.deliveryPrice,
-        place_number: orderData.editedData.placeNumber
-      };
-      
-      console.log("✨ RESULT: Updated product with edited data:", {
-        "Final Product": productToUse,
-        "Changes Applied": {
-          titleChanged: productToUse.title !== state.selectedProduct.title,
-          priceChanged: productToUse.price !== state.selectedProduct.price,
-          brandChanged: productToUse.brand !== state.selectedProduct.brand,
-          modelChanged: productToUse.model !== state.selectedProduct.model,
-          deliveryPriceChanged: productToUse.delivery_price !== state.selectedProduct.delivery_price,
-          placeNumberChanged: productToUse.place_number !== state.selectedProduct.place_number
-        }
-      });
-    } else {
-      console.log("📝 No edited data provided, using original product data");
-    }
-
     // Обновляем orderData с правильными изображениями и стоимостью доставки
     const updatedOrderData = {
       ...orderData,
       orderImages: combinedImages,
-      deliveryPrice: finalDeliveryPrice,
-      textOrder: orderData.editedData?.textOrder
+      deliveryPrice: finalDeliveryPrice
     };
 
     const createOrderOperation = async () => {
-      console.log("🚀 FINAL: Calling createOrder with complete data:", {
+      console.log("🚀 Calling createOrder with:", {
         seller: seller,
-        product: productToUse,
+        product: state.selectedProduct,
         buyer: state.selectedBuyer,
-        orderData: updatedOrderData,
-        "EditedData Verification": {
-          hasEditedData: !!orderData.editedData,
-          editedFields: orderData.editedData ? Object.keys(orderData.editedData) : [],
-          textOrderIncluded: !!updatedOrderData.textOrder
-        }
+        orderData: updatedOrderData
       });
       
-      const result = await createOrder(seller, productToUse, state.selectedBuyer!, updatedOrderData);
+      const result = await createOrder(seller, state.selectedProduct!, state.selectedBuyer!, updatedOrderData);
       
       if (result === 'product_unavailable') {
         updateState({
           step: 1,
-          selectedProduct: null
+          selectedProduct: null,
+          showConfirmDialog: false
         });
         return null;
       }
       
       if (result === 'order_exists') {
+        updateState({ showConfirmDialog: false });
         return null;
       }
       
@@ -299,12 +179,10 @@ const AdminSellProduct = () => {
       );
       
       if (result && typeof result === 'object') {
-        // Clear autosaved data after successful order creation
-        clearSavedData();
-        
         updateState({
           createdOrder: result,
-          createdOrderImages: updatedOrderData.orderImages
+          createdOrderImages: updatedOrderData.orderImages,
+          showConfirmDialog: false
         });
       }
     } catch (error) {
@@ -313,11 +191,21 @@ const AdminSellProduct = () => {
     }
   };
 
-  // Completed refactoring - modal dialogs replaced with step-based UI
+  const handleConfirmImagesComplete = () => {
+    updateState({ showConfirmImagesDialog: false });
+  };
 
-  const handleBackToBuyers = () => {
+  const handleSkipConfirmImages = () => {
+    updateState({ showConfirmImagesDialog: false });
+  };
+
+  const handleCancelConfirmImages = () => {
+    updateState({ showConfirmImagesDialog: false });
+  };
+
+  const handleBackToProducts = () => {
     updateState({
-      step: 2,
+      step: 1,
       selectedBuyer: null
     });
   };
@@ -366,7 +254,7 @@ const AdminSellProduct = () => {
 
   return (
     <AdminLayout>
-      <div className={`container mx-auto px-4 py-8 ${isMobile ? 'max-w-full' : 'max-w-6xl'}`}>
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         <AdminSellProductHeader />
         
         <SellProductProgress 
@@ -378,9 +266,9 @@ const AdminSellProduct = () => {
         {/* Loading overlay */}
         {isLoadingAny && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`bg-white rounded-lg p-6 flex items-center space-x-3 ${isMobile ? 'mx-4' : ''}`}>
+            <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-              <span className={isMobile ? 'text-sm' : ''}>
+              <span>
                 {isRetrying ? 'Повторная попытка...' : 
                  isCreatingOrder ? 'Создание заказа...' : 
                  'Загрузка...'}
@@ -401,24 +289,25 @@ const AdminSellProduct = () => {
             buyers={state.buyers}
             isLoading={state.isLoading}
             onBuyerSelect={handleBuyerSelect}
-            onBackToProducts={() => updateState({ step: 1, selectedProduct: null })}
+            onBackToProducts={handleBackToProducts}
           />
         )}
 
-        {state.step === 3 && state.selectedProduct && state.selectedBuyer && (
-          <OrderConfirmationStep
-            product={state.selectedProduct}
-            seller={{
-              id: state.selectedProduct.seller_id,
-              full_name: state.selectedProduct.seller_name,
-              opt_id: ''
-            }}
-            buyer={state.selectedBuyer}
-            onConfirm={handleCreateOrder}
-            onBack={handleBackToBuyers}
-            isSubmitting={isCreatingOrder}
-          />
-        )}
+        <OrderConfirmationContainer
+          showConfirmDialog={state.showConfirmDialog}
+          showConfirmImagesDialog={state.showConfirmImagesDialog}
+          selectedProduct={state.selectedProduct}
+          selectedBuyer={state.selectedBuyer}
+          createdOrder={state.createdOrder}
+          isCreatingOrder={isCreatingOrder}
+          onConfirmDialogChange={(open) => updateState({ showConfirmDialog: open })}
+          onConfirmImagesDialogChange={(open) => updateState({ showConfirmImagesDialog: open })}
+          onCreateOrder={handleCreateOrder}
+          onConfirmImagesComplete={handleConfirmImagesComplete}
+          onConfirmImagesSkip={handleSkipConfirmImages}
+          onConfirmImagesCancel={handleCancelConfirmImages}
+          onCancel={handleCancel}
+        />
       </div>
     </AdminLayout>
   );

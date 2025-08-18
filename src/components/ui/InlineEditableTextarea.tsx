@@ -3,7 +3,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Check, X, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface InlineEditableTextareaProps {
   value: string;
@@ -35,7 +34,6 @@ export const InlineEditableTextarea: React.FC<InlineEditableTextareaProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -102,13 +100,13 @@ export const InlineEditableTextarea: React.FC<InlineEditableTextareaProps> = ({
               size="sm"
               onClick={handleSave}
               disabled={isLoading}
-              className={`${isMobile ? 'h-10 text-sm px-4 touch-target' : 'h-8 text-xs'}`}
+              className="h-8 text-xs"
             >
               {isLoading ? (
                 <>Saving...</>
               ) : (
                 <>
-                  <Check className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'} mr-1`} />
+                  <Check className="h-3 w-3 mr-1" />
                   Save
                 </>
               )}
@@ -118,9 +116,9 @@ export const InlineEditableTextarea: React.FC<InlineEditableTextareaProps> = ({
               variant="outline"
               onClick={handleCancel}
               disabled={isLoading}
-              className={`${isMobile ? 'h-10 text-sm px-4 touch-target' : 'h-8 text-xs'}`}
+              className="h-8 text-xs"
             >
-              <X className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'} mr-1`} />
+              <X className="h-3 w-3 mr-1" />
               Cancel
             </Button>
           </div>
@@ -158,7 +156,7 @@ export const InlineEditableTextarea: React.FC<InlineEditableTextareaProps> = ({
       )}>
         {displayValue}
       </p>
-      <Edit3 className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'} text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2`} />
+      <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2" />
     </div>
   );
 };
