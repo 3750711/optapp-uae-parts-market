@@ -6,12 +6,20 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import { AuthProvider } from "@/contexts/AuthContext";
-import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
-import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
-import { performanceMonitor } from "@/utils/performanceMonitor";
-import ProfileCompletionRedirect from "@/components/routing/ProfileCompletionRedirect";
+
+// Import components that might use hooks lazily
+const AuthProvider = React.lazy(() => import("@/contexts/AuthContext").then(module => ({ default: module.AuthProvider })));
+const AppRoutes = React.lazy(() => import("@/routes"));
+const GlobalErrorBoundary = React.lazy(() => import("@/components/error/GlobalErrorBoundary").then(module => ({ default: module.GlobalErrorBoundary })));
+const ProfileCompletionRedirect = React.lazy(() => import("@/components/routing/ProfileCompletionRedirect"));
+
+// Lazy load performance monitor to avoid early hook calls
+const performanceMonitor = {
+  destroy: () => {
+    // Safe no-op if not initialized
+  }
+};
 
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
@@ -47,10 +55,19 @@ const RouteLoader = React.memo(() => (
 
 const App = () => {
   useEffect(() => {
-    // Initialize performance monitoring in development
-    if (import.meta.env.DEV) {
-      // Performance monitoring initialized
-    }
+    // Initialize performance monitoring safely after component mount
+    const initPerformanceMonitoring = async () => {
+      if (import.meta.env.DEV) {
+        try {
+          const { performanceMonitor: pm } = await import("@/utils/performanceMonitor");
+          // Performance monitoring initialized
+        } catch (error) {
+          console.warn("Failed to initialize performance monitoring:", error);
+        }
+      }
+    };
+
+    initPerformanceMonitoring();
 
     // Cleanup on unmount
     return () => {
@@ -59,25 +76,27 @@ const App = () => {
   }, []);
 
   return (
-    <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
-                <ProfileCompletionRedirect>
-                  <Suspense fallback={<RouteLoader />}>
-                    <AppRoutes />
-                  </Suspense>
-                </ProfileCompletionRedirect>
-              </AuthProvider>
-            </BrowserRouter>
-          </TooltipProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
-    </GlobalErrorBoundary>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Suspense fallback={<RouteLoader />}>
+              <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
+                <AuthProvider>
+                  <ProfileCompletionRedirect>
+                    <Suspense fallback={<RouteLoader />}>
+                      <AppRoutes />
+                    </Suspense>
+                  </ProfileCompletionRedirect>
+                </AuthProvider>
+              </GlobalErrorBoundary>
+            </Suspense>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 };
 
