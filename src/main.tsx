@@ -3,33 +3,37 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { initPerformanceOptimizations } from "@/utils/performanceUtils";
+import { initializeClarity } from "@/utils/clarityTracking";
+import { initMobileOptimizations } from "@/utils/mobileOptimizations";
+import { registerServiceWorker } from "@/utils/serviceWorkerManager";
 
-// Safe app initialization with proper error handling
-const initApp = async () => {
+// Import PWA optimizations early for better bfcache handling
+import "@/utils/pwaOptimizations";
+
+// Импортируем системы мониторинга для продакшена
+import "@/utils/productionErrorReporting";
+
+// Оптимизированная инициализация приложения
+const initApp = () => {
   const rootElement = document.getElementById("root");
   
   if (!rootElement) {
     throw new Error("Root element not found");
   }
 
-  try {
-    // Create root and render app
-    const root = createRoot(rootElement);
-    
-    root.render(
-      <StrictMode>
-        <App />
-      </StrictMode>
-    );
-
-    console.log('✅ App initialized successfully');
-  } catch (error) {
-    console.error('❌ Failed to initialize app:', error);
-    throw error;
-  }
+  // Создаем root только один раз
+  const root = createRoot(rootElement);
+  
+  // Рендерим приложение
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
 };
 
-// Production checks
+// Проверка готовности к продакшену
 const performProductionChecks = () => {
   if (import.meta.env.PROD) {
     // Production mode - disable console.log for performance
@@ -37,72 +41,115 @@ const performProductionChecks = () => {
   }
 };
 
-// Improved global error handling
+// Глобальная обработка неперехваченных ошибок
 const handleGlobalError = (event: ErrorEvent) => {
-  console.error('[GLOBAL ERROR]', event.error?.message || 'Unknown error', {
-    filename: event.filename,
-    lineno: event.lineno,
-    colno: event.colno
-  });
+  console.error('[GLOBAL]', event.error?.message || 'Unknown error');
+  
+  // Автоматическое восстановление при ошибках загрузки модулей
+  if (event.error?.message?.includes('Loading chunk') || 
+      event.error?.message?.includes('dynamically imported module')) {
+    
+    // Безопасная очистка кешей с проверкой типов
+    const clearCachesAndReload = async () => {
+      try {
+        if (typeof window !== 'undefined' && 'caches' in window && window.caches) {
+          const names = await window.caches.keys();
+          await Promise.all(names.map(name => window.caches.delete(name)));
+        }
+        } catch (error) {
+        // Silently handle cache clearing errors
+      } finally {
+        // Безопасная перезагрузка страницы
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.reload();
+        }
+      }
+    };
+    
+    clearCachesAndReload();
+  }
 };
 
 const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-  console.error('[UNHANDLED PROMISE]', event.reason?.message || 'Unhandled rejection');
+  console.error('[PROMISE]', event.reason?.message || 'Unhandled rejection');
   
-  // Prevent console spam for known safe errors
+  // Предотвращаем показ ошибки в консоли для известных безопасных ошибок
   if (event.reason?.message?.includes('ResizeObserver loop limit exceeded')) {
     event.preventDefault();
   }
 };
 
-// Safe event listener setup
+// Безопасная установка обработчиков событий
 if (typeof window !== 'undefined') {
   window.addEventListener('error', handleGlobalError);
   window.addEventListener('unhandledrejection', handleUnhandledRejection);
 }
 
-// Initialize app with proper error boundaries
-(async () => {
-  try {
-    performProductionChecks();
-    await initApp();
-  } catch (error) {
-    console.error('[INIT] Critical initialization error:', error);
+// Запускаем приложение
+try {
+  performProductionChecks();
+  
+  // Initialize PWA and mobile optimizations first
+  initMobileOptimizations();
+  
+  // Register service worker for PWA functionality
+  registerServiceWorker();
+  
+  initApp();
+  
+  // Инициализируем мониторинг производительности
+  initPerformanceOptimizations();
+  
+  // Инициализируем Microsoft Clarity (только в продакшене)
+  initializeClarity();
+} catch (error) {
+  console.error('[INIT]', 'Failed to initialize app');
+  
+  // Показываем пользователю сообщение об ошибке безопасным способом
+  if (typeof document !== 'undefined') {
+    // Очищаем body от существующего контента
+    document.body.innerHTML = '';
     
-    // Show fallback UI for critical errors
-    const rootElement = document.getElementById("root");
-    if (rootElement) {
-      rootElement.innerHTML = `
-        <div style="
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          font-family: system-ui, -apple-system, sans-serif;
-          background-color: #f9fafb;
-          color: #374151;
-        ">
-          <div style="text-align: center; max-width: 500px; padding: 2rem;">
-            <h1 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-              Ошибка инициализации
-            </h1>
-            <p style="margin-bottom: 2rem; color: #6b7280;">
-              Не удалось запустить приложение. Попробуйте обновить страницу.
-            </p>
-            <button onclick="window.location.reload()" style="
-              background-color: #3b82f6;
-              color: white;
-              padding: 0.75rem 1.5rem;
-              border: none;
-              border-radius: 0.5rem;
-              cursor: pointer;
-              font-size: 1rem;
-            ">
-              Обновить страницу
-            </button>
-          </div>
-        </div>
-      `;
-    }
+    // Создаем контейнер безопасным способом
+    const errorContainer = document.createElement('div');
+    errorContainer.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #f9fafb;
+      color: #374151;
+    `;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.style.cssText = 'text-align: center; max-width: 500px; padding: 2rem;';
+    
+    const title = document.createElement('h1');
+    title.style.cssText = 'font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;';
+    title.textContent = 'Ошибка загрузки приложения';
+    
+    const message = document.createElement('p');
+    message.style.cssText = 'margin-bottom: 2rem; color: #6b7280;';
+    message.textContent = 'Произошла ошибка при инициализации. Попробуйте обновить страницу.';
+    
+    const reloadButton = document.createElement('button');
+    reloadButton.style.cssText = `
+      background-color: #3b82f6;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 1rem;
+    `;
+    reloadButton.textContent = 'Обновить страницу';
+    reloadButton.addEventListener('click', () => window.location.reload());
+    
+    contentDiv.appendChild(title);
+    contentDiv.appendChild(message);
+    contentDiv.appendChild(reloadButton);
+    errorContainer.appendChild(contentDiv);
+    document.body.appendChild(errorContainer);
   }
-})();
+}
