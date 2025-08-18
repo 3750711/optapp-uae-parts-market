@@ -12,7 +12,7 @@ import {
 import { LogOut, UserCog, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { DeleteAccountButton } from "./DeleteAccountButton";
 import {
