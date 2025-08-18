@@ -1,5 +1,5 @@
 
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -45,6 +45,31 @@ const RouteLoader = React.memo(() => (
   </div>
 ));
 
+// Safe TooltipProvider wrapper that only renders when React is ready
+const SafeTooltipProvider = ({ children }: { children: React.ReactNode }) => {
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Ensure React is fully initialized before rendering TooltipProvider
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isReady) {
+    return <>{children}</>;
+  }
+
+  try {
+    return <TooltipProvider>{children}</TooltipProvider>;
+  } catch (error) {
+    console.warn('TooltipProvider failed to initialize, falling back without tooltips:', error);
+    return <>{children}</>;
+  }
+};
+
 const App = () => {
   useEffect(() => {
     // Initialize performance monitoring in development
@@ -62,7 +87,7 @@ const App = () => {
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
+          <SafeTooltipProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
@@ -74,7 +99,7 @@ const App = () => {
                 </ProfileCompletionRedirect>
               </AuthProvider>
             </BrowserRouter>
-          </TooltipProvider>
+          </SafeTooltipProvider>
         </QueryClientProvider>
       </HelmetProvider>
     </GlobalErrorBoundary>
