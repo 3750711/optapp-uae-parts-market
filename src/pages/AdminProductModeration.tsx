@@ -1,18 +1,118 @@
-import React from 'react';
+import React, { useEffect, useCallback } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useEnhancedProductsState } from '@/hooks/useEnhancedProductsState';
 import { useAdminProductsActions } from '@/hooks/useAdminProductsActions';
 import ProductModerationCard from '@/components/admin/ProductModerationCard';
 import { AlertCircle, Package } from 'lucide-react';
+import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 
 const AdminProductModeration: React.FC = () => {
   const {
     products,
     isLoading,
-    refetch
+    refetch,
+    searchTerm,
+    updateSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    sellerFilter,  
+    setSellerFilter,
+    selectedProducts,
+    setSelectedProducts
   } = useEnhancedProductsState({
     initialFilters: { status: 'pending' }
   });
+
+  // Autosave for mobile browsers - save current state and scroll position
+  const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
+    key: 'admin_product_moderation',
+    data: {
+      searchTerm: searchTerm || '',
+      statusFilter: statusFilter || 'pending',
+      sellerFilter: sellerFilter || '',
+      selectedProducts: selectedProducts || [],
+      scrollPosition: typeof window !== 'undefined' ? window.scrollY : 0
+    },
+    delay: 1000,
+    enabled: true,
+    excludeFields: []
+  });
+
+  // Save scroll position periodically  
+  const saveScrollPosition = useCallback(() => {
+    saveNow({
+      searchTerm: searchTerm || '',
+      statusFilter: statusFilter || 'pending',
+      sellerFilter: sellerFilter || '',
+      selectedProducts: selectedProducts || [],
+      scrollPosition: window.scrollY
+    });
+  }, [searchTerm, statusFilter, sellerFilter, selectedProducts, saveNow]);
+
+  // Restore autosaved state on component mount
+  useEffect(() => {
+    try {
+      const saved = loadSavedData();
+      if (saved) {
+        console.log('✅ Восстановление состояния модерации товаров:', saved);
+        
+        // Restore filters if they exist and are different from current
+        if (saved.searchTerm && saved.searchTerm !== searchTerm && updateSearchTerm) {
+          updateSearchTerm(saved.searchTerm);
+        }
+        if (saved.statusFilter && saved.statusFilter !== statusFilter && setStatusFilter) {
+          setStatusFilter(saved.statusFilter);
+        }
+        if (saved.sellerFilter && saved.sellerFilter !== sellerFilter && setSellerFilter) {
+          setSellerFilter(saved.sellerFilter);
+        }
+        if (saved.selectedProducts && Array.isArray(saved.selectedProducts) && setSelectedProducts) {
+          setSelectedProducts(saved.selectedProducts);
+        }
+        
+        // Restore scroll position after a brief delay
+        if (saved.scrollPosition && typeof saved.scrollPosition === 'number') {
+          setTimeout(() => {
+            window.scrollTo(0, saved.scrollPosition);
+          }, 100);
+        }
+        
+        console.log('✅ Состояние модерации товаров восстановлено');
+      }
+    } catch (error) {
+      console.error('❌ Ошибка восстановления состояния модерации:', error);
+    }
+  }, [loadSavedData]);
+
+  // Save immediately on visibility change and page hide (important for mobile)
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        saveScrollPosition();
+      }
+    };
+    const onPageHide = () => {
+      saveScrollPosition();
+    };
+    const onScroll = () => {
+      // Debounced scroll position saving
+      clearTimeout((window as any).scrollSaveTimeout);
+      (window as any).scrollSaveTimeout = setTimeout(saveScrollPosition, 1000);
+    };
+    
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('scroll', onScroll);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('scroll', onScroll);
+      if ((window as any).scrollSaveTimeout) {
+        clearTimeout((window as any).scrollSaveTimeout);
+      }
+    };
+  }, [saveScrollPosition]);
 
   // Filter for pending products only
   const pendingProducts = products.filter(product => 

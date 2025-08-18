@@ -5,6 +5,7 @@ import { useAdminOrderCreation } from "@/hooks/useAdminOrderCreation";
 import { useAdminSellProductState } from "@/hooks/useAdminSellProductState";
 import { useRetryMechanism } from "@/hooks/useRetryMechanism";
 import { useRateLimit } from "@/hooks/useRateLimit";
+import { useOptimizedFormAutosave } from "@/hooks/useOptimizedFormAutosave";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import SellProductProgress from "@/components/admin/sell-product/SellProductProgress";
@@ -38,6 +39,67 @@ interface Product {
 
 const AdminSellProduct = () => {
   const { state, updateState, loadBuyers, resetState } = useAdminSellProductState();
+
+  // Autosave for mobile browsers
+  const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
+    key: 'admin_sell_product',
+    data: {
+      step: state.step,
+      selectedProduct: state.selectedProduct,
+      selectedBuyer: state.selectedBuyer,
+      showConfirmDialog: state.showConfirmDialog,
+      showConfirmImagesDialog: state.showConfirmImagesDialog
+    },
+    delay: 1000,
+    enabled: true,
+    excludeFields: []
+  });
+
+  // Restore autosaved data on component mount
+  useEffect(() => {
+    try {
+      const saved = loadSavedData();
+      if (saved) {
+        console.log('✅ Восстановление состояния продажи товара:', saved);
+        
+        // Restore state selectively
+        const restoredState = { ...state };
+        if (saved.step && saved.step !== 1) restoredState.step = saved.step;
+        if (saved.selectedProduct) restoredState.selectedProduct = saved.selectedProduct;
+        if (saved.selectedBuyer) restoredState.selectedBuyer = saved.selectedBuyer;
+        
+        updateState(restoredState);
+        console.log('✅ Состояние продажи товара восстановлено');
+      }
+    } catch (error) {
+      console.error('❌ Ошибка восстановления состояния:', error);
+    }
+  }, [loadSavedData, updateState]);
+
+  // Save immediately on visibility change and page hide (important for mobile)
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        saveNow();
+      }
+    };
+    const onPageHide = () => {
+      saveNow();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, [saveNow]);
+
+  // Clear autosave on successful order creation
+  useEffect(() => {
+    if (state.createdOrder) {
+      clearSavedData();
+    }
+  }, [state.createdOrder, clearSavedData]);
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
   const { executeWithRetry, isRetrying } = useRetryMechanism();
   const { toast } = useToast();
@@ -212,6 +274,7 @@ const AdminSellProduct = () => {
 
   const handleNewOrder = () => {
     resetState();
+    clearSavedData(); // Clear autosave when starting new order
   };
 
   const handleCancel = () => {
