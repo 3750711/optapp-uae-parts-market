@@ -46,16 +46,25 @@ const RouteLoader = React.memo(() => (
 ));
 
 const App = () => {
-  useEffect(() => {
-    // Initialize performance monitoring in development
-    if (import.meta.env.DEV) {
-      // Performance monitoring initialized
-    }
+  // Safe useEffect with error boundary
+  React.useEffect(() => {
+    try {
+      // Initialize performance monitoring in development
+      if (import.meta.env.DEV) {
+        // Performance monitoring initialized
+      }
 
-    // Cleanup on unmount
-    return () => {
-      performanceMonitor.destroy();
-    };
+      // Cleanup on unmount
+      return () => {
+        try {
+          performanceMonitor.destroy();
+        } catch (error) {
+          console.warn('Failed to destroy performance monitor:', error);
+        }
+      };
+    } catch (error) {
+      console.warn('Failed to initialize App useEffect:', error);
+    }
   }, []);
 
   return (
