@@ -22,6 +22,8 @@ import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 
 export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isOrderCreated, setIsOrderCreated] = useState(false);
   const isMobile = useIsMobile();
 
   const {
@@ -112,7 +114,7 @@ const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
   key: 'admin_free_order',
   data: { formData, images, videos },
   delay: 1000,
-  enabled: true,
+  enabled: !isCreating && !isOrderCreated && !createdOrder,
   excludeFields: []
 });
 
@@ -165,12 +167,14 @@ useEffect(() => {
 // Мгновенное сохранение при скрытии/уходе со страницы (важно для iOS)
 useEffect(() => {
   const onVisibility = () => {
-    if (document.visibilityState === 'hidden') {
+    if (document.visibilityState === 'hidden' && !isCreating && !isOrderCreated && !createdOrder) {
       saveNow();
     }
   };
   const onPageHide = () => {
-    saveNow();
+    if (!isCreating && !isOrderCreated && !createdOrder) {
+      saveNow();
+    }
   };
   document.addEventListener('visibilitychange', onVisibility);
   window.addEventListener('pagehide', onPageHide);
@@ -178,7 +182,7 @@ useEffect(() => {
     document.removeEventListener('visibilitychange', onVisibility);
     window.removeEventListener('pagehide', onPageHide);
   };
-}, [saveNow]);
+}, [saveNow, isCreating, isOrderCreated, createdOrder]);
 
 // Восстановление бренда/моделей при возврате на страницу (bfcache/pageshow)
 useEffect(() => {
@@ -205,9 +209,15 @@ useEffect(() => {
 // Очистка черновика после успешного создания
 useEffect(() => {
   if (createdOrder) {
+    setIsOrderCreated(true);
     clearSavedData();
   }
 }, [createdOrder, clearSavedData]);
+
+// Отслеживание состояния загрузки
+useEffect(() => {
+  setIsCreating(isLoading);
+}, [isLoading]);
   // Обработчик данных из Telegram парсера (теперь асинхронный)
   const handleTelegramDataParsed = async (data: ParsedTelegramOrder) => {
     console.log('📝 Применение данных из Telegram:', data);
@@ -325,9 +335,23 @@ useEffect(() => {
   const handleConfirmOrder = (e: React.FormEvent) => {
     e.preventDefault();
     setShowPreview(false);
+    setIsCreating(true);
     guardedSubmit(async () => {
-      await originalHandleSubmit(e);
+      try {
+        await originalHandleSubmit(e);
+      } catch (error) {
+        setIsCreating(false);
+        throw error;
+      }
     });
+  };
+
+  // Расширенный сброс формы с очисткой состояния
+  const resetFormAndClearAutosave = () => {
+    setIsCreating(false);
+    setIsOrderCreated(false);
+    clearSavedData();
+    resetForm();
   };
 
   const handleBackToEdit = () => {
@@ -429,7 +453,7 @@ useEffect(() => {
         order={createdOrder}
         images={images}
         videos={videos}
-        onNewOrder={resetForm}
+        onNewOrder={resetFormAndClearAutosave}
         onOrderUpdate={handleOrderUpdate}
         buyerProfile={getBuyerProfile()}
       />
