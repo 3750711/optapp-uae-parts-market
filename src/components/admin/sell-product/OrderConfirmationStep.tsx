@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { InlineEditableField } from '@/components/ui/InlineEditableField';
 import { InlineEditableTextarea } from '@/components/ui/InlineEditableTextarea';
@@ -83,6 +84,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
   isSubmitting
 }) => {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [editableData, setEditableData] = useState<EditableData>({
     title: product.title,
     brand: product.brand || '',
@@ -180,16 +182,16 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center">
-        <h3 className="text-lg font-semibold">Информация о заказе</h3>
+        <h3 className={`${isMobile ? 'text-lg' : 'text-lg'} font-semibold`}>Информация о заказе</h3>
       </div>
 
       {/* Информация о товаре */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Информация о товаре</CardTitle>
+      <Card className={isMobile ? "mx-0" : ""}>
+        <CardHeader className={isMobile ? "pb-3" : ""}>
+          <CardTitle className={isMobile ? "text-base" : ""}>Информация о товаре</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className={`space-y-4 ${isMobile ? 'px-4 pb-4' : ''}`}>
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Название:</Label>
               <InlineEditableField
@@ -235,7 +237,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           {product.product_images && product.product_images.length > 0 && (
             <div>
               <Label className="text-sm font-medium text-muted-foreground mb-2 block">Медиафайлы товара:</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className={`grid gap-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
                 {product.product_images.map((image, index) => (
                   <div key={index} className="aspect-square">
                     <OptimizedImage
@@ -252,12 +254,12 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       </Card>
 
       {/* Параметры заказа */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Параметры заказа</CardTitle>
+      <Card className={isMobile ? "mx-0" : ""}>
+        <CardHeader className={isMobile ? "pb-3" : ""}>
+          <CardTitle className={isMobile ? "text-base" : ""}>Параметры заказа</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className={`space-y-4 ${isMobile ? 'px-4 pb-4' : ''}`}>
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Доставка:</Label>
               <InlineEditableSelect
@@ -293,7 +295,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Итого:</Label>
-              <p className="text-lg font-bold text-primary">${getTotalPrice()}</p>
+              <p className={`${isMobile ? 'text-lg' : 'text-lg'} font-bold text-primary`}>${getTotalPrice()}</p>
             </div>
           </div>
           
@@ -311,12 +313,12 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       </Card>
 
       {/* Информация об участниках */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Продавец</CardTitle>
+      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+        <Card className={isMobile ? "mx-0" : ""}>
+          <CardHeader className={isMobile ? "pb-3" : ""}>
+            <CardTitle className={isMobile ? "text-base" : ""}>Продавец</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className={`space-y-2 ${isMobile ? 'px-4 pb-4' : ''}`}>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Имя:</Label>
               <p className="text-base">{seller.full_name}</p>
@@ -334,11 +336,11 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Покупатель</CardTitle>
+        <Card className={isMobile ? "mx-0" : ""}>
+          <CardHeader className={isMobile ? "pb-3" : ""}>
+            <CardTitle className={isMobile ? "text-base" : ""}>Покупатель</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className={`space-y-2 ${isMobile ? 'px-4 pb-4' : ''}`}>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">Имя:</Label>
               <p className="text-base">{buyer.full_name}</p>
@@ -358,8 +360,13 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       </div>
 
       {/* Кнопки действий */}
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack} disabled={isSubmitting}>
+      <div className={`${isMobile ? 'space-y-3' : 'flex justify-between'}`}>
+        <Button 
+          variant="outline" 
+          onClick={onBack} 
+          disabled={isSubmitting}
+          className={isMobile ? 'w-full' : ''}
+        >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Назад к покупателям
         </Button>
@@ -367,7 +374,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
         <Button 
           onClick={handleConfirmOrder} 
           disabled={isSubmitting}
-          className="min-w-[200px]"
+          className={`${isMobile ? 'w-full' : 'min-w-[200px]'}`}
         >
           {isSubmitting ? (
             <>

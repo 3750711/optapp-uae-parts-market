@@ -5,6 +5,7 @@ import { useAdminOrderCreation } from "@/hooks/useAdminOrderCreation";
 import { useAdminSellProductState } from "@/hooks/useAdminSellProductState";
 import { useRetryMechanism } from "@/hooks/useRetryMechanism";
 import { useRateLimit } from "@/hooks/useRateLimit";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +40,7 @@ interface Product {
 
 const AdminSellProduct = () => {
   const { state, updateState, loadBuyers, resetState } = useAdminSellProductState();
+  const isMobile = useIsMobile();
   
   // Simple page refresh protection
   useEffect(() => {
@@ -319,7 +321,7 @@ const AdminSellProduct = () => {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className={`container mx-auto px-4 py-8 ${isMobile ? 'max-w-full' : 'max-w-6xl'}`}>
         <AdminSellProductHeader />
         
         <SellProductProgress 
@@ -331,9 +333,9 @@ const AdminSellProduct = () => {
         {/* Loading overlay */}
         {isLoadingAny && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
+            <div className={`bg-white rounded-lg p-6 flex items-center space-x-3 ${isMobile ? 'mx-4' : ''}`}>
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-              <span>
+              <span className={isMobile ? 'text-sm' : ''}>
                 {isRetrying ? 'Повторная попытка...' : 
                  isCreatingOrder ? 'Создание заказа...' : 
                  'Загрузка...'}

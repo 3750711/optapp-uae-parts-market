@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Check, X, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface InlineEditableFieldProps {
   value: string | number;
@@ -46,6 +47,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -132,18 +134,18 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
               variant="ghost"
               onClick={handleSave}
               disabled={isLoading}
-              className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+              className={`${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 text-green-600 hover:text-green-700 hover:bg-green-50 touch-target`}
             >
-              <Check className="h-4 w-4" />
+              <Check className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={handleCancel}
               disabled={isLoading}
-              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+              className={`${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 text-red-600 hover:text-red-700 hover:bg-red-50 touch-target`}
             >
-              <X className="h-4 w-4" />
+              <X className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
             </Button>
           </div>
         </div>
@@ -169,7 +171,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
         {displayValue()}
       </span>
       {!disabled && (
-        <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity absolute -right-5 top-1/2 -translate-y-1/2" />
+        <Edit3 className={`${isMobile ? 'h-4 w-4' : 'h-3 w-3'} text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity absolute -right-5 top-1/2 -translate-y-1/2`} />
       )}
     </div>
   );
