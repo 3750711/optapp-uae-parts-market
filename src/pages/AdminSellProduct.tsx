@@ -188,14 +188,12 @@ const AdminSellProduct = () => {
       telegram: sellerProfile.telegram
     };
 
-    // Комбинируем изображения товара с дополнительными изображениями
-    const productImages = state.selectedProduct.product_images?.map(img => img.url) || [];
-    const combinedImages = [...productImages, ...orderData.orderImages];
+    // ✅ FIXED: Remove image combining logic here to prevent duplication
+    // Image handling will be done properly in useAdminOrderCreation hook
     
-    console.log("📸 Image combination:", {
-      productImages: productImages,
+    console.log("📸 Order images data:", {
       additionalImages: orderData.orderImages,
-      combinedImages: combinedImages
+      additionalImagesCount: orderData.orderImages.length
     });
 
     // Используем стоимость доставки из формы или из товара
@@ -253,10 +251,9 @@ const AdminSellProduct = () => {
       console.log("📝 No edited data provided, using original product data");
     }
 
-    // Обновляем orderData с правильными изображениями и стоимостью доставки
+    // ✅ FIXED: Use original orderImages (additional images only)
     const updatedOrderData = {
       ...orderData,
-      orderImages: combinedImages,
       deliveryPrice: finalDeliveryPrice,
       textOrder: orderData.editedData?.textOrder
     };
@@ -304,7 +301,7 @@ const AdminSellProduct = () => {
         
         updateState({
           createdOrder: result,
-          createdOrderImages: updatedOrderData.orderImages
+          createdOrderImages: result.images || [] // Use images from created order
         });
       }
     } catch (error) {

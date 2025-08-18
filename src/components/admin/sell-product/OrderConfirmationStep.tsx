@@ -193,14 +193,15 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
   const handleConfirmOrder = async () => {
     if (!validateForm()) return;
 
-    const productImageUrls = product.product_images?.map(img => img.url) || [];
+    // ✅ FIXED: Don't pass product images in orderImages to prevent duplication
+    // Product images will be handled in useAdminOrderCreation hook
     
     try {
       const orderData = {
         price: editableData.price,
         deliveryPrice: editableData.deliveryPrice,
         deliveryMethod: editableData.deliveryMethod,
-        orderImages: productImageUrls,
+        orderImages: [], // Empty array - only for additional order-specific images
         editedData: {
           title: editableData.title,
           brand: editableData.brand,
