@@ -117,58 +117,40 @@ const AppRoutes: React.FC = () => {
             {/* Маршруты аутентификации - только для гостей */}
             <Route path="/login" element={
               <GuestRoute>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <Login />
-                </Suspense>
+                <Login />
               </GuestRoute>
             } />
             <Route path="/register" element={
               <GuestRoute>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <Register />
-                </Suspense>
+                <Register />
               </GuestRoute>
             } />
             <Route path="/seller-login" element={
               <GuestRoute>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <SellerLogin />
-                </Suspense>
+                <SellerLogin />
               </GuestRoute>
             } />
             <Route path="/seller-register" element={
               <GuestRoute>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <SellerRegister />
-                </Suspense>
+                <SellerRegister />
               </GuestRoute>
             } />
             <Route path="/forgot-password" element={
               <GuestRoute>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <ForgotPassword />
-                </Suspense>
+                <ForgotPassword />
               </GuestRoute>
             } />
             <Route path="/reset-password" element={
               <GuestRoute>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <ResetPassword />
-                </Suspense>
+                <ResetPassword />
               </GuestRoute>
             } />
-            <Route path="/verify-email" element={
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <VerifyEmail />
-                </Suspense>
-            } />
+            <Route path="/verify-email" element={<VerifyEmail />} />
 
             {/* Pending Approval Page - для пользователей ожидающих одобрения */}
             <Route path="/pending-approval" element={
               <PendingApprovalWrapper>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <PendingApprovalPage />
-                </Suspense>
+                <PendingApprovalPage />
               </PendingApprovalWrapper>
             } />
 

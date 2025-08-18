@@ -8,11 +8,13 @@ import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Loader2 } from "lucide-react";
 
-// Import components that might use hooks lazily
-const AuthProvider = React.lazy(() => import("@/contexts/AuthContext").then(module => ({ default: module.AuthProvider })));
+// Import critical components synchronously to avoid dependency chains
+import { AuthProvider } from "@/contexts/AuthContext";
+import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
+import ProfileCompletionRedirect from "@/components/routing/ProfileCompletionRedirect";
+
+// Lazy load only non-critical components
 const AppRoutes = React.lazy(() => import("@/routes"));
-const GlobalErrorBoundary = React.lazy(() => import("@/components/error/GlobalErrorBoundary").then(module => ({ default: module.GlobalErrorBoundary })));
-const ProfileCompletionRedirect = React.lazy(() => import("@/components/routing/ProfileCompletionRedirect"));
 
 // Lazy load performance monitor to avoid early hook calls
 const performanceMonitor = {
@@ -97,17 +99,15 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Suspense fallback={<RouteLoader />}>
-              <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
-                <AuthProvider>
-                  <ProfileCompletionRedirect>
-                    <Suspense fallback={<RouteLoader />}>
-                      <AppRoutes />
-                    </Suspense>
-                  </ProfileCompletionRedirect>
-                </AuthProvider>
-              </GlobalErrorBoundary>
-            </Suspense>
+            <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
+              <AuthProvider>
+                <ProfileCompletionRedirect>
+                  <Suspense fallback={<RouteLoader />}>
+                    <AppRoutes />
+                  </Suspense>
+                </ProfileCompletionRedirect>
+              </AuthProvider>
+            </GlobalErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>

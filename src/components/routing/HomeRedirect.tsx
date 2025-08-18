@@ -1,3 +1,4 @@
+import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { devLog } from "@/utils/logger";
@@ -17,96 +18,83 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     isLoading,
     userType: profile?.user_type,
     verificationStatus: profile?.verification_status,
+    currentPath: location.pathname,
     timestamp: new Date().toISOString()
   });
   
-  devLog("HomeRedirect: Auth state:", { 
-    user: !!user, 
-    profile: !!profile, 
-    isLoading,
-    userType: profile?.user_type
-  });
+  // Add timeout protection against infinite loading
+  const [loadingTimeout, setLoadingTimeout] = React.useState(false);
   
-  // Show loading while checking authentication
-  if (isLoading) {
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        console.warn("🚨 HomeRedirect: Loading timeout reached, forcing render");
+        setLoadingTimeout(true);
+      }
+    }, 10000); // 10 second timeout
+    
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+  
+  // Show loading while checking authentication (with timeout protection)
+  if (isLoading && !loadingTimeout) {
+    console.log("🚀 HomeRedirect: Still loading auth state...");
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow mx-auto"></div>
+          <p className="text-sm text-gray-600">Загрузка...</p>
+        </div>
       </div>
     );
   }
   
-  // If user is authenticated, redirect based on their role
+  // Simplified redirect logic to prevent loops
   if (user && profile) {
-    console.log("🚀 HomeRedirect: User authenticated, checking redirect logic", {
+    console.log("🚀 HomeRedirect: User authenticated, determining redirect", {
       userType: profile.user_type,
       verificationStatus: profile.verification_status,
-      authMethod: profile.auth_method,
       profileCompleted: profile.profile_completed,
-      optId: profile.opt_id,
-      timestamp: new Date().toISOString()
+      currentPath: location.pathname
     });
     
-    devLog("HomeRedirect: User authenticated, redirecting based on role");
-    
-    // PRIORITY: Redirect verified buyers to their dashboard immediately
-    if (profile.user_type === 'buyer' && profile.verification_status === 'verified') {
-      console.log("🚀 HomeRedirect: Redirecting verified buyer to dashboard");
-      if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
-        return <Navigate to="/buyer-dashboard" replace />;
+    // Only redirect if we're on the exact home path "/"
+    if (location.pathname === "/") {
+      const targetPath = getRedirectPath(profile);
+      if (targetPath && redirectProtection.canRedirect(location.pathname, targetPath)) {
+        console.log("🚀 HomeRedirect: Redirecting to:", targetPath);
+        return <Navigate to={targetPath} replace />;
       }
-    }
-    
-    // Enforce: any non-admin user who is not verified must go to pending-approval
-    if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
-      console.log("🚀 HomeRedirect: Redirecting unverified user to pending approval");
-      if (redirectProtection.canRedirect(location.pathname, "/pending-approval")) {
-        return <Navigate to="/pending-approval" replace />;
-      }
-    }
-    
-    // Secondary: buyers with completed profiles (fallback)
-    if (profile.user_type === 'buyer' && profile.profile_completed) {
-      console.log("🚀 HomeRedirect: Redirecting buyer (profile completed) to dashboard");
-      if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
-        return <Navigate to="/buyer-dashboard" replace />;
-      }
-    }
-    
-    // For verified users, redirect based on role
-    if (profile.verification_status === 'verified') {
-      console.log("🚀 HomeRedirect: User verified, checking role redirect");
-      switch (profile.user_type) {
-        case 'seller':
-          console.log("🚀 HomeRedirect: Redirecting seller to dashboard");
-          if (redirectProtection.canRedirect(location.pathname, "/seller/dashboard")) {
-            return <Navigate to="/seller/dashboard" replace />;
-          }
-          break;
-        case 'admin':
-          console.log("🚀 HomeRedirect: Redirecting admin to admin panel");
-          if (redirectProtection.canRedirect(location.pathname, "/admin")) {
-            return <Navigate to="/admin" replace />;
-          }
-          break;
-        case 'buyer':
-          console.log("🚀 HomeRedirect: Redirecting buyer to dashboard");
-          if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
-            return <Navigate to="/buyer-dashboard" replace />;
-          }
-          break;
-        default:
-          console.log("🚀 HomeRedirect: User staying on home page");
-          break;
-      }
-    } else {
-      // Non-verified users are redirected to pending approval above
     }
   }
   
-  // User is not authenticated or is a buyer - show the home page
+  // Show home page content
   console.log("🚀 HomeRedirect: Showing home page content");
   return <>{children}</>;
+};
+
+// Helper function to determine redirect path
+const getRedirectPath = (profile: any): string | null => {
+  // Non-admins who are not verified go to pending approval
+  if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
+    return "/pending-approval";
+  }
+  
+  // Verified users get redirected based on role
+  if (profile.verification_status === 'verified') {
+    switch (profile.user_type) {
+      case 'admin':
+        return "/admin";
+      case 'seller':
+        return "/seller/dashboard";
+      case 'buyer':
+        return "/buyer-dashboard";
+      default:
+        return null;
+    }
+  }
+  
+  return null;
 };
 
 export default HomeRedirect;
