@@ -46,23 +46,21 @@ export const SellerBasicInfo: React.FC<SellerBasicInfoProps> = ({
         <div className="text-sm flex items-center gap-2">
           <span className="text-gray-500">OPT ID: </span>
           <span className="font-medium">{sellerProfile.opt_id}</span>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 text-gray-400 hover:text-primary" 
-                  onClick={() => onCopyOptId(sellerProfile.opt_id || '')}
-                >
-                  {copied ? <CheckCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Копировать OPT ID</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6 text-gray-400 hover:text-primary" 
+                onClick={() => onCopyOptId(sellerProfile.opt_id || '')}
+              >
+                {copied ? <CheckCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Копировать OPT ID</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
       ) : sellerProfile?.opt_id && (
         <div className="text-sm">
