@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useOptimizedFormAutosave } from './useOptimizedFormAutosave';
 
 interface BuyerProfile {
   id: string;
@@ -35,6 +36,12 @@ interface SellProductState {
   createdOrderImages: string[];
 }
 
+interface AutosaveData {
+  step: number;
+  selectedProduct: Product | null;
+  selectedBuyer: BuyerProfile | null;
+}
+
 const BUYERS_CACHE_KEY = 'adminSellProduct_buyers';
 const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
@@ -49,6 +56,27 @@ export const useAdminSellProductState = () => {
     isLoading: false,
     createdOrder: null,
     createdOrderImages: []
+  });
+
+  // Prepare autosave data
+  const autosaveData: AutosaveData = {
+    step: state.step,
+    selectedProduct: state.selectedProduct,
+    selectedBuyer: state.selectedBuyer,
+  };
+
+  // Setup autosave
+  const {
+    loadSavedData,
+    clearSavedData,
+    draftExists,
+    saveNow
+  } = useOptimizedFormAutosave({
+    key: 'admin_sell_product',
+    data: autosaveData,
+    delay: 2000,
+    enabled: !!state.selectedProduct || !!state.selectedBuyer || state.step > 1,
+    excludeFields: []
   });
 
   const updateState = useCallback((updates: Partial<SellProductState>) => {
@@ -143,18 +171,45 @@ export const useAdminSellProductState = () => {
       createdOrder: null,
       createdOrderImages: []
     });
-  }, [state.buyers]);
+    clearSavedData();
+  }, [state.buyers, clearSavedData]);
 
   // Очистка кэша покупателей
   const clearCache = useCallback(() => {
     localStorage.removeItem(BUYERS_CACHE_KEY);
   }, []);
 
+  // Restore saved state
+  const restoreSavedState = useCallback(() => {
+    const savedData = loadSavedData();
+    if (savedData) {
+      console.log('🔄 Restoring saved sell product state:', savedData);
+      setState(prevState => ({
+        ...prevState,
+        step: savedData.step || 1,
+        selectedProduct: savedData.selectedProduct || null,
+        selectedBuyer: savedData.selectedBuyer || null,
+      }));
+      
+      toast({
+        title: "Состояние восстановлено",
+        description: "Ваш прогресс был автоматически восстановлен",
+      });
+      
+      return true;
+    }
+    return false;
+  }, [loadSavedData, toast]);
+
   return {
     state,
     updateState,
     loadBuyers,
     resetState,
-    clearCache
+    clearCache,
+    restoreSavedState,
+    clearSavedData,
+    draftExists,
+    saveNow
   };
 };

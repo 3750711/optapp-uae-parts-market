@@ -39,7 +39,16 @@ interface Product {
 }
 
 const AdminSellProduct = () => {
-  const { state, updateState, loadBuyers, resetState } = useAdminSellProductState();
+  const { 
+    state, 
+    updateState, 
+    loadBuyers, 
+    resetState, 
+    restoreSavedState, 
+    clearSavedData, 
+    draftExists,
+    saveNow 
+  } = useAdminSellProductState();
   const isMobile = useIsMobile();
   
   // Simple page refresh protection
@@ -64,12 +73,45 @@ const AdminSellProduct = () => {
     maxRequests: 5    // 5 заказов в минуту
   });
 
-  // Загрузка покупателей при инициализации
+  // Restore saved state and load buyers on initialization
   useEffect(() => {
+    let stateRestored = false;
+    
+    // Try to restore saved state first
+    if (draftExists) {
+      stateRestored = restoreSavedState();
+    }
+    
+    // Load buyers if not already loaded
     if (state.buyers.length === 0) {
       executeWithRetry(() => loadBuyers(), {}, 'загрузка покупателей');
     }
-  }, [state.buyers.length, loadBuyers, executeWithRetry]);
+  }, [draftExists, restoreSavedState, state.buyers.length, loadBuyers, executeWithRetry]);
+
+  // Handle page visibility and form autosave for iOS/mobile
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && (state.selectedProduct || state.selectedBuyer || state.step > 1)) {
+        console.log('📱 Page hidden, saving sell product state immediately');
+        saveNow();
+      }
+    };
+
+    const handlePageHide = () => {
+      if (state.selectedProduct || state.selectedBuyer || state.step > 1) {
+        console.log('📱 Page hiding, saving sell product state immediately');
+        saveNow();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [state.selectedProduct, state.selectedBuyer, state.step, saveNow]);
 
   const handleProductSelect = (product: Product) => {
     updateState({
@@ -257,6 +299,9 @@ const AdminSellProduct = () => {
       );
       
       if (result && typeof result === 'object') {
+        // Clear autosaved data after successful order creation
+        clearSavedData();
+        
         updateState({
           createdOrder: result,
           createdOrderImages: updatedOrderData.orderImages

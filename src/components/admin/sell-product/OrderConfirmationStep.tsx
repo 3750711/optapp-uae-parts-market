@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import OptimizedImage from '@/components/ui/OptimizedImage';
 import { InlineEditableField } from '@/components/ui/InlineEditableField';
 import { InlineEditableTextarea } from '@/components/ui/InlineEditableTextarea';
 import { InlineEditableSelect } from '@/components/ui/InlineEditableSelect';
+import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 
 interface Product {
   id: string;
@@ -96,6 +97,57 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
     textOrder: ''
   });
 
+  // Setup autosave for editable data
+  const {
+    loadSavedData: loadEditableData,
+    clearSavedData: clearEditableData,
+    draftExists: editableDataExists,
+    saveNow: saveEditableDataNow
+  } = useOptimizedFormAutosave({
+    key: `order_confirmation_${product.id}`,
+    data: editableData,
+    delay: 1500,
+    enabled: true,
+    excludeFields: []
+  });
+
+  // Load saved editable data on component mount
+  useEffect(() => {
+    const savedData = loadEditableData();
+    if (savedData && editableDataExists) {
+      console.log('🔄 Restoring saved editable data:', savedData);
+      setEditableData(savedData);
+      
+      toast({
+        title: "Данные восстановлены",
+        description: "Ваши изменения были автоматически восстановлены",
+      });
+    }
+  }, [loadEditableData, editableDataExists, toast]);
+
+  // Handle page visibility for immediate saves
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('📱 Page hidden, saving editable data immediately');
+        saveEditableDataNow(editableData);
+      }
+    };
+
+    const handlePageHide = () => {
+      console.log('📱 Page hiding, saving editable data immediately');
+      saveEditableDataNow(editableData);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
+  }, [editableData, saveEditableDataNow]);
+
   // Field update handlers
   const handleFieldUpdate = async (field: keyof EditableData, value: string | number) => {
     setEditableData(prev => ({ ...prev, [field]: value }));
@@ -159,6 +211,9 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           textOrder: editableData.textOrder
         }
       };
+      
+      // Clear autosaved editable data after successful submission
+      clearEditableData();
       
       await onConfirm(orderData);
     } catch (error) {
