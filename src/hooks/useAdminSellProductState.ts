@@ -26,13 +26,11 @@ interface Product {
 }
 
 interface SellProductState {
-  step: number;
+  step: number; // 1 - выбор товара, 2 - выбор покупателя, 3 - подтверждение заказа
   selectedProduct: Product | null;
   selectedBuyer: BuyerProfile | null;
   buyers: BuyerProfile[];
   isLoading: boolean;
-  showConfirmDialog: boolean;
-  showConfirmImagesDialog: boolean;
   createdOrder: any;
   createdOrderImages: string[];
 }
@@ -49,8 +47,6 @@ export const useAdminSellProductState = () => {
     selectedBuyer: null,
     buyers: [],
     isLoading: false,
-    showConfirmDialog: false,
-    showConfirmImagesDialog: false,
     createdOrder: null,
     createdOrderImages: []
   });
@@ -144,8 +140,6 @@ export const useAdminSellProductState = () => {
       selectedBuyer: null,
       buyers: state.buyers, // Сохраняем загруженных покупателей
       isLoading: false,
-      showConfirmDialog: false,
-      showConfirmImagesDialog: false,
       createdOrder: null,
       createdOrderImages: []
     });

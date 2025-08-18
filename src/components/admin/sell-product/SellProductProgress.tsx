@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Circle, ArrowRight, Package, Users } from 'lucide-react';
+import { CheckCircle, Circle, ArrowRight, Package, Users, FileCheck } from 'lucide-react';
 
 interface SellProductProgressProps {
   currentStep: number;
@@ -27,6 +27,12 @@ const SellProductProgress: React.FC<SellProductProgressProps> = ({
       title: "Выбор покупателя",
       icon: Users,
       description: "Выберите покупателя"
+    },
+    {
+      number: 3,
+      title: "Подтверждение заказа",
+      icon: FileCheck,
+      description: "Проверьте и подтвердите детали заказа"
     }
   ];
 

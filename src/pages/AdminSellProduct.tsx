@@ -12,7 +12,7 @@ import SellProductProgress from "@/components/admin/sell-product/SellProductProg
 import AdminSellProductHeader from "@/components/admin/sell-product/AdminSellProductHeader";
 import ProductSelectionContainer from "@/components/admin/sell-product/ProductSelectionContainer";
 import BuyerSelectionContainer from "@/components/admin/sell-product/BuyerSelectionContainer";
-import OrderConfirmationContainer from "@/components/admin/sell-product/OrderConfirmationContainer";
+import OrderConfirmationStep from "@/components/admin/sell-product/OrderConfirmationStep";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 
 interface BuyerProfile {
@@ -82,7 +82,7 @@ const AdminSellProduct = () => {
     
     updateState({
       selectedBuyer: buyer,
-      showConfirmDialog: true
+      step: 3
     });
   };
 
@@ -235,14 +235,12 @@ const AdminSellProduct = () => {
       if (result === 'product_unavailable') {
         updateState({
           step: 1,
-          selectedProduct: null,
-          showConfirmDialog: false
+          selectedProduct: null
         });
         return null;
       }
       
       if (result === 'order_exists') {
-        updateState({ showConfirmDialog: false });
         return null;
       }
       
@@ -259,8 +257,7 @@ const AdminSellProduct = () => {
       if (result && typeof result === 'object') {
         updateState({
           createdOrder: result,
-          createdOrderImages: updatedOrderData.orderImages,
-          showConfirmDialog: false
+          createdOrderImages: updatedOrderData.orderImages
         });
       }
     } catch (error) {
@@ -269,21 +266,11 @@ const AdminSellProduct = () => {
     }
   };
 
-  const handleConfirmImagesComplete = () => {
-    updateState({ showConfirmImagesDialog: false });
-  };
+  // Completed refactoring - modal dialogs replaced with step-based UI
 
-  const handleSkipConfirmImages = () => {
-    updateState({ showConfirmImagesDialog: false });
-  };
-
-  const handleCancelConfirmImages = () => {
-    updateState({ showConfirmImagesDialog: false });
-  };
-
-  const handleBackToProducts = () => {
+  const handleBackToBuyers = () => {
     updateState({
-      step: 1,
+      step: 2,
       selectedBuyer: null
     });
   };
@@ -367,25 +354,24 @@ const AdminSellProduct = () => {
             buyers={state.buyers}
             isLoading={state.isLoading}
             onBuyerSelect={handleBuyerSelect}
-            onBackToProducts={handleBackToProducts}
+            onBackToProducts={() => updateState({ step: 1, selectedProduct: null })}
           />
         )}
 
-        <OrderConfirmationContainer
-          showConfirmDialog={state.showConfirmDialog}
-          showConfirmImagesDialog={state.showConfirmImagesDialog}
-          selectedProduct={state.selectedProduct}
-          selectedBuyer={state.selectedBuyer}
-          createdOrder={state.createdOrder}
-          isCreatingOrder={isCreatingOrder}
-          onConfirmDialogChange={(open) => updateState({ showConfirmDialog: open })}
-          onConfirmImagesDialogChange={(open) => updateState({ showConfirmImagesDialog: open })}
-          onCreateOrder={handleCreateOrder}
-          onConfirmImagesComplete={handleConfirmImagesComplete}
-          onConfirmImagesSkip={handleSkipConfirmImages}
-          onConfirmImagesCancel={handleCancelConfirmImages}
-          onCancel={handleCancel}
-        />
+        {state.step === 3 && state.selectedProduct && state.selectedBuyer && (
+          <OrderConfirmationStep
+            product={state.selectedProduct}
+            seller={{
+              id: state.selectedProduct.seller_id,
+              full_name: state.selectedProduct.seller_name,
+              opt_id: ''
+            }}
+            buyer={state.selectedBuyer}
+            onConfirm={handleCreateOrder}
+            onBack={handleBackToBuyers}
+            isSubmitting={isCreatingOrder}
+          />
+        )}
       </div>
     </AdminLayout>
   );
