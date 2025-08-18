@@ -46,7 +46,7 @@ const AdminSellProduct = () => {
   const [orderImages, setOrderImages] = React.useState<string[]>([]);
 
   // Enhanced mobile autosave for comprehensive state management
-  const { loadSavedData, clearSavedData, saveNow } = useEnhancedMobileAutosave({
+  const { loadSavedData, clearSavedData, saveNow, saveStatus, isMobile } = useEnhancedMobileAutosave({
     key: 'admin_sell_product_v2',
     data: {
       step: state.step,
@@ -69,11 +69,17 @@ const AdminSellProduct = () => {
     mobileOptimized: true
   });
 
-  // Comprehensive state restoration on component mount
+  // Comprehensive state restoration on component mount with mobile timeout
   useEffect(() => {
-    try {
-      const saved = loadSavedData();
-      if (saved) {
+    const restoreState = async () => {
+      try {
+        // Increase timeout for mobile devices
+        const timeout = isMobile ? 500 : 100;
+        
+        await new Promise(resolve => setTimeout(resolve, timeout));
+        
+        const saved = await loadSavedData();
+        if (saved) {
         console.log('✅ Comprehensive restoration of sell product state:', saved);
         
         // Restore main state
@@ -114,12 +120,15 @@ const AdminSellProduct = () => {
           }, 100);
         }
         
-        console.log('✅ Comprehensive state restoration completed');
+          console.log('✅ Comprehensive state restoration completed');
+        }
+      } catch (error) {
+        console.error('❌ Error during state restoration:', error);
       }
-    } catch (error) {
-      console.error('❌ Error during state restoration:', error);
-    }
-  }, []);
+    };
+    
+    restoreState();
+  }, [loadSavedData, isMobile]);
 
   // Enhanced mobile compatibility - removed redundant handlers since useEnhancedMobileAutosave handles all mobile events
 
@@ -427,7 +436,38 @@ const AdminSellProduct = () => {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <AdminSellProductHeader />
         
-        <SellProductProgress 
+        {/* Save status indicator for mobile */}
+        {isMobile && saveStatus !== 'idle' && (
+          <div className="fixed top-4 right-4 z-40">
+            <div className={`
+              px-3 py-2 rounded-lg text-sm font-medium shadow-lg transition-all duration-300
+              ${saveStatus === 'saving' ? 'bg-blue-500 text-white' : 
+                saveStatus === 'saved' ? 'bg-green-500 text-white' : 
+                saveStatus === 'error' ? 'bg-red-500 text-white' : 'bg-gray-500 text-white'}
+            `}>
+              {saveStatus === 'saving' && (
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Сохранение...</span>
+                </div>
+              )}
+              {saveStatus === 'saved' && (
+                <div className="flex items-center space-x-2">
+                  <span>✅</span>
+                  <span>Сохранено</span>
+                </div>
+              )}
+              {saveStatus === 'error' && (
+                <div className="flex items-center space-x-2">
+                  <span>⚠️</span>
+                  <span>Ошибка</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
+        <SellProductProgress
           currentStep={state.step} 
           onStepClick={handleStepChange}
           canNavigateBack={true}
