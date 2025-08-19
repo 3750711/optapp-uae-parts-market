@@ -2,17 +2,9 @@ import React from "react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-// Critical React version diagnostics (non-blocking)
-try {
-  console.log("🔍 [React main]", React.version, "URL:", import.meta.url);
-  console.log("🔍 React export keys:", Object.keys(React));
-  console.log("🔍 React internals check:", {
-    hasInternals: !!(React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
-    hasDispatcher: !!(React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher,
-    currentDispatcher: (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher?.current
-  });
-} catch (error) {
-  console.warn("React diagnostics failed (non-critical):", error);
+// Production mode optimization
+if (import.meta.env.DEV) {
+  console.log("🔍 React version:", React.version);
 }
 
 import App from "./App.tsx";
@@ -30,8 +22,6 @@ import "@/utils/pwaOptimizations";
 import "@/utils/productionErrorReporting";
 
 const initApp = () => {
-  console.log("🔍 [React main] initApp: Starting app initialization");
-  
   const rootElement = document.getElementById("root");
   
   if (!rootElement) {
@@ -41,8 +31,6 @@ const initApp = () => {
   // Создаем root только один раз
   const root = createRoot(rootElement);
   
-  console.log("🔍 [React main] initApp: Root created, rendering app");
-  
   // Рендерим приложение
   root.render(
     <StrictMode>
@@ -51,8 +39,6 @@ const initApp = () => {
       </AuthProvider>
     </StrictMode>
   );
-  
-  console.log("🔍 [React main] initApp: App rendered successfully");
 };
 
 const performProductionChecks = () => {
@@ -107,8 +93,6 @@ if (typeof window !== 'undefined') {
 
 // Запускаем приложение
 try {
-  console.log("🔍 [React main] Starting application bootstrap");
-  
   performProductionChecks();
   
   // Initialize PWA and mobile optimizations first
@@ -124,8 +108,6 @@ try {
   
   // Инициализируем Microsoft Clarity (только в продакшене)
   initializeClarity();
-  
-  console.log("🔍 [React main] Application bootstrap completed");
 } catch (error) {
   console.error('[INIT]', 'Failed to initialize app', error);
   

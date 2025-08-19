@@ -28,8 +28,6 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  console.log("🔧 AuthContext: Component render start");
-  
   // Проверка React dispatcher перед использованием хуков
   const reactInternals = (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
   if (!reactInternals?.ReactCurrentDispatcher?.current) {
@@ -294,8 +292,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithTelegram,
     refreshAdminStatus,
   };
-
-  console.log("🔧 AuthContext: Component render complete");
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
