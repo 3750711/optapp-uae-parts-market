@@ -28,18 +28,21 @@ const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
 const Help = lazy(() => import('@/pages/Help'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
-// Lazy loaded страницы аутентификации
-const Login = lazy(() => import('@/pages/Login'));
-const Register = lazy(() => import('@/pages/Register'));
-const SellerLogin = lazy(() => import('@/pages/SellerLogin'));
-const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
-const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
-const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
-const PendingApprovalPage = lazy(() => import('@/pages/PendingApprovalPage'));
+// Critical auth pages - no lazy loading to prevent dispatcher issues
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import SellerLogin from '@/pages/SellerLogin';
+import SellerRegister from '@/pages/SellerRegister';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import VerifyEmail from '@/pages/VerifyEmail';
+import PendingApprovalPage from '@/pages/PendingApprovalPage';
+import Profile from '@/pages/Profile';
 
-// Lazy loaded защищенные страницы
-const Profile = lazy(() => import('@/pages/Profile'));
+// Critical routing component - no lazy loading
+import HomeRedirect from '@/components/routing/HomeRedirect';
+
+// Lazy loaded non-critical pages
 const BuyerDashboard = lazy(() => import('@/pages/BuyerDashboard'));
 const CreateStore = lazy(() => import('@/pages/CreateStore'));
 const CreateRequest = lazy(() => import('@/pages/CreateRequest'));
@@ -71,27 +74,30 @@ import { SellerPriceOffersRealtime } from '@/components/offers/SellerPriceOffers
 // Admin routes
 import { getAdminRoutes } from '@/routes/admin';
 
+
 // Mobile specific pages
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
 const SellerMobileProfileMenu = lazy(() => import('@/pages/SellerMobileProfileMenu'));
-
-// Routing components
-const HomeRedirect = lazy(() => import('@/components/routing/HomeRedirect'));
 
 const AppRoutes: React.FC = () => {
   return (
     <>
       <RouteSEO />
       <RouteErrorBoundary>
-        <Suspense fallback={<RouteSuspenseFallback />}>
-          <Routes>
+        <Routes>
             {/* Публичные маршруты - доступны всем */}
             <Route path="/" element={
               <HomeRedirect>
-                <Index />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <Index />
+                </Suspense>
               </HomeRedirect>
             } />
-            <Route path="/404" element={<NotFound />} />
+            <Route path="/404" element={
+              <Suspense fallback={<RouteSuspenseFallback />}>
+                <NotFound />
+              </Suspense>
+            } />
 
             {/* Маршруты аутентификации - только для гостей */}
             <Route path="/login" element={
@@ -136,66 +142,90 @@ const AppRoutes: React.FC = () => {
             {/* Защищенные публичные маршруты - заблокированы для продавцов */}
             <Route path="/about" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <About />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <About />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/contact" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Contact />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <Contact />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/catalog" element={
               <ProtectedRoute excludedRoles={['seller']}>
                 <CatalogErrorBoundary>
-                  <Catalog />
+                  <Suspense fallback={<RouteSuspenseFallback />}>
+                    <Catalog />
+                  </Suspense>
                 </CatalogErrorBoundary>
               </ProtectedRoute>
             } />
             <Route path="/product/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <ProductDetail />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <ProductDetail />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/stores" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Stores />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <Stores />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/store/:id" element={<Navigate to="/stores/:id" replace />} />
             {/* Alias path to support /stores/:id links */}
             <Route path="/stores/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <StoreDetail />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <StoreDetail />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/requests" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Requests />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <Requests />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/request/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <RequestDetail />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <RequestDetail />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/buyer-guide" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <BuyerGuide />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <BuyerGuide />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/seller/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <PublicSellerProfile />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <PublicSellerProfile />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/public-seller-profile/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <PublicSellerProfile />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <PublicSellerProfile />
+                </Suspense>
               </ProtectedRoute>
             } />
             <Route path="/generate-og-image" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <GenerateOGImage />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <GenerateOGImage />
+                </Suspense>
               </ProtectedRoute>
             } />
 
@@ -356,7 +386,6 @@ const AppRoutes: React.FC = () => {
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Suspense>
       </RouteErrorBoundary>
     </>
   );

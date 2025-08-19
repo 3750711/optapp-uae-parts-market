@@ -101,11 +101,11 @@ const App = () => {
           <BrowserRouter>
             <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
               <AuthProvider>
-                <ProfileCompletionRedirect>
-                  <Suspense fallback={<RouteLoader />}>
-                    <AppRoutes />
-                  </Suspense>
-                </ProfileCompletionRedirect>
+                 <ProfileCompletionRedirect>
+                   <Suspense fallback={<RouteLoader />}>
+                     <AppRoutes />
+                   </Suspense>
+                 </ProfileCompletionRedirect>
               </AuthProvider>
             </GlobalErrorBoundary>
           </BrowserRouter>
