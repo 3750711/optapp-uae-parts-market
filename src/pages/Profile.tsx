@@ -28,6 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { getProfileTranslations } from "@/utils/profileTranslations";
+import { PWAInstallButton } from "@/components/PWAInstallButton";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -309,8 +310,9 @@ const Profile = () => {
             </div>
           </ProfileErrorBoundary>
 
-          {/* Logout Button */}
-          <div className="mt-8 flex justify-center">
+          {/* Account Management */}
+          <div className="mt-8 flex justify-center gap-4">
+            <PWAInstallButton variant="outline" size="sm" />
             <Button 
               variant="ghost" 
               size="sm"
