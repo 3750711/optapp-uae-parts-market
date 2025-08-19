@@ -2,8 +2,9 @@
 import React, { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-// Debug: Check React version consistency
-console.info("[React main]", React.version, import.meta.url);
+// Debug: Check React version consistency - ДОЛЖЕН БЫТЬ ВИДЕН В КОНСОЛИ!
+console.log("🔍 [React main]", React.version, "URL:", import.meta.url);
+console.log("🔍 React export keys:", Object.keys(React));
 import App from "./App.tsx";
 import "./index.css";
 import { AuthProvider } from "@/contexts/AuthContext";

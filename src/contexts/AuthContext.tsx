@@ -1,8 +1,9 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react';
 
-// Debug: Check React version consistency  
-console.info("[React auth]", React.version, import.meta.url);
+// Debug: Check React version consistency - ДОЛЖЕН БЫТЬ ВИДЕН В КОНСОЛИ!
+console.log("🔍 [React auth]", React.version, "URL:", import.meta.url);
+console.log("🔍 React dispatcher:", (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher);
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { getCachedAdminRights, setCachedAdminRights, clearAdminCache } from '@/utils/performanceUtils';
