@@ -91,17 +91,28 @@ export const logger = {
     }
   },
 
-  error: (message: string, error?: any, data?: LogData) => {
+  error: (message: string | Error, error?: any, data?: LogData) => {
+    let errorMessage: string;
+    let errorObject: any;
+    
+    if (message instanceof Error) {
+      errorMessage = message.message;
+      errorObject = message;
+    } else {
+      errorMessage = message;
+      errorObject = error;
+    }
+    
     const errorInfo: any = {
-      message: error?.message || error,
-      stack: isDevelopment ? error?.stack : undefined,
+      message: errorObject?.message || errorObject,
+      stack: isDevelopment ? errorObject?.stack : undefined,
     };
     
     if (data) {
       errorInfo.data = maskSensitiveData(data);
     }
 
-    console.error(`❌ ${message}`, errorInfo);
+    console.error(`❌ ${errorMessage}`, errorInfo);
   },
 
   debug: (message: string, data?: LogData) => {
@@ -127,9 +138,51 @@ export const logger = {
   },
 };
 
+// Backward compatibility functions to match existing usage patterns
+const compatLog = (message: string, data?: any, additionalInfo?: any) => {
+  if (isDevelopment) {
+    if (additionalInfo !== undefined) {
+      // Handle 3-argument case
+      console.log(`🔍 ${message}`, data, additionalInfo);
+    } else if (data && typeof data === 'object') {
+      console.log(`🔍 ${message}`, maskSensitiveData(data));
+    } else if (data !== undefined) {
+      console.log(`🔍 ${message}`, data);
+    } else {
+      console.log(`🔍 ${message}`);
+    }
+  }
+};
+
+const compatError = (errorOrMessage: string | Error, data?: any, additionalData?: any) => {
+  let message: string;
+  let errorData: any;
+  
+  if (errorOrMessage instanceof Error) {
+    message = errorOrMessage.message;
+    errorData = errorOrMessage;
+  } else {
+    message = errorOrMessage;
+    errorData = data;
+  }
+  
+  const errorInfo: any = {
+    message: errorData?.message || errorData,
+    stack: isDevelopment ? errorData?.stack : undefined,
+  };
+  
+  if (additionalData) {
+    errorInfo.additionalData = maskSensitiveData(additionalData);
+  } else if (data && typeof data === 'object' && !(data instanceof Error)) {
+    errorInfo.data = maskSensitiveData(data);
+  }
+
+  console.error(`❌ ${message}`, errorInfo);
+};
+
 // Export for backward compatibility (to be removed gradually)
-export const devLog = logger.log;
-export const devError = logger.error;
+export const devLog = compatLog;
+export const devError = compatError;
 export const devWarn = logger.warn;
-export const prodError = logger.error;
-export const throttledDevLog = logger.log;
+export const prodError = compatError;
+export const throttledDevLog = compatLog;
