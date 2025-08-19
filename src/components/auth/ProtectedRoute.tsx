@@ -30,6 +30,21 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
     };
   }, [user, profile]);
   
+  console.log("🔒 ProtectedRoute: Detailed auth check:", {
+    path: location.pathname,
+    hasUser: authChecks.hasUser,
+    hasProfile: authChecks.hasProfile,
+    userType: authChecks.userType,
+    verificationStatus: authChecks.verificationStatus,
+    profileCompleted: authChecks.profileCompleted,
+    emailConfirmed: authChecks.isEmailConfirmed,
+    allowedRoles,
+    excludedRoles,
+    requireEmailVerification,
+    isLoading,
+    timestamp: new Date().toISOString()
+  });
+  
   devLog("ProtectedRoute: Auth state:", { 
     user: !!user, 
     profile: !!profile, 

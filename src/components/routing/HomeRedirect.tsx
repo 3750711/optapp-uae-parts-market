@@ -17,6 +17,7 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     isLoading,
     userType: profile?.user_type,
     verificationStatus: profile?.verification_status,
+    currentPath: location.pathname,
     timestamp: new Date().toISOString()
   });
   
@@ -36,76 +37,56 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     );
   }
   
-  // If user is authenticated, redirect based on their role
-  if (user && profile) {
-    console.log("🚀 HomeRedirect: User authenticated, checking redirect logic", {
-      userType: profile.user_type,
-      verificationStatus: profile.verification_status,
-      authMethod: profile.auth_method,
-      profileCompleted: profile.profile_completed,
-      optId: profile.opt_id,
-      timestamp: new Date().toISOString()
-    });
-    
-    devLog("HomeRedirect: User authenticated, redirecting based on role");
-    
-    // PRIORITY: Redirect verified buyers to their dashboard immediately
-    if (profile.user_type === 'buyer' && profile.verification_status === 'verified') {
-      console.log("🚀 HomeRedirect: Redirecting verified buyer to dashboard");
-      if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
-        return <Navigate to="/buyer-dashboard" replace />;
-      }
-    }
-    
-    // Enforce: any non-admin user who is not verified must go to pending-approval
-    if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
-      console.log("🚀 HomeRedirect: Redirecting unverified user to pending approval");
-      if (redirectProtection.canRedirect(location.pathname, "/pending-approval")) {
-        return <Navigate to="/pending-approval" replace />;
-      }
-    }
-    
-    // Secondary: buyers with completed profiles (fallback)
-    if (profile.user_type === 'buyer' && profile.profile_completed) {
-      console.log("🚀 HomeRedirect: Redirecting buyer (profile completed) to dashboard");
-      if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
-        return <Navigate to="/buyer-dashboard" replace />;
-      }
-    }
-    
-    // For verified users, redirect based on role
-    if (profile.verification_status === 'verified') {
-      console.log("🚀 HomeRedirect: User verified, checking role redirect");
-      switch (profile.user_type) {
-        case 'seller':
-          console.log("🚀 HomeRedirect: Redirecting seller to dashboard");
-          if (redirectProtection.canRedirect(location.pathname, "/seller/dashboard")) {
-            return <Navigate to="/seller/dashboard" replace />;
-          }
-          break;
-        case 'admin':
-          console.log("🚀 HomeRedirect: Redirecting admin to admin panel");
-          if (redirectProtection.canRedirect(location.pathname, "/admin")) {
-            return <Navigate to="/admin" replace />;
-          }
-          break;
-        case 'buyer':
-          console.log("🚀 HomeRedirect: Redirecting buyer to dashboard");
-          if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
-            return <Navigate to="/buyer-dashboard" replace />;
-          }
-          break;
-        default:
-          console.log("🚀 HomeRedirect: User staying on home page");
-          break;
-      }
-    } else {
-      // Non-verified users are redirected to pending approval above
+  // If user is not authenticated, show home page
+  if (!user || !profile) {
+    console.log("🚀 HomeRedirect: No user/profile, showing home page");
+    return <>{children}</>;
+  }
+  
+  console.log("🚀 HomeRedirect: User authenticated, determining redirect", {
+    userType: profile.user_type,
+    verificationStatus: profile.verification_status,
+    authMethod: profile.auth_method,
+    profileCompleted: profile.profile_completed,
+    optId: profile.opt_id
+  });
+  
+  // Determine redirect target based on user state
+  let redirectTarget: string | null = null;
+  
+  // Non-admins who are not verified must go to pending-approval
+  if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
+    redirectTarget = "/pending-approval";
+    console.log("🚀 HomeRedirect: Unverified user -> pending-approval");
+  } else if (profile.verification_status === 'verified') {
+    // Verified users go to their respective dashboards
+    switch (profile.user_type) {
+      case 'buyer':
+        redirectTarget = "/buyer-dashboard";
+        console.log("🚀 HomeRedirect: Verified buyer -> buyer-dashboard");
+        break;
+      case 'seller':
+        redirectTarget = "/seller/dashboard";
+        console.log("🚀 HomeRedirect: Verified seller -> seller/dashboard");
+        break;
+      case 'admin':
+        redirectTarget = "/admin";
+        console.log("🚀 HomeRedirect: Verified admin -> admin");
+        break;
+      default:
+        console.log("🚀 HomeRedirect: Unknown user type, staying on home page");
+        break;
     }
   }
   
-  // User is not authenticated or is a buyer - show the home page
-  console.log("🚀 HomeRedirect: Showing home page content");
+  // Perform redirect if needed
+  if (redirectTarget && redirectProtection.canRedirect(location.pathname, redirectTarget)) {
+    console.log("🚀 HomeRedirect: Redirecting to:", redirectTarget);
+    return <Navigate to={redirectTarget} replace />;
+  }
+  
+  // User is authenticated but staying on home page
+  console.log("🚀 HomeRedirect: Showing home page content to authenticated user");
   return <>{children}</>;
 };
 

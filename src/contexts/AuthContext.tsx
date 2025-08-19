@@ -197,13 +197,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) throw new Error("No authenticated user");
     
     try {
+      console.log("📝 AuthContext: Updating profile for user:", user.id, updates);
       const { error } = await supabase
-        .from("user_profiles")
+        .from("profiles")
         .update(updates)
         .eq("id", user.id);
       
       if (error) throw error;
       
+      console.log("✅ AuthContext: Profile updated successfully");
       await refreshProfile();
     } catch (error) {
       console.error("❌ AuthContext: Update profile error:", error);
