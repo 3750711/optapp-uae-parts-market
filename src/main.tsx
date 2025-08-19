@@ -1,10 +1,15 @@
-
-import React, { StrictMode } from "react";
+import React, { StrictMode } from "react-dom/client";
 import { createRoot } from "react-dom/client";
 
-// Debug: Check React version consistency - ДОЛЖЕН БЫТЬ ВИДЕН В КОНСОЛИ!
+// КРИТИЧЕСКАЯ ДИАГНОСТИКА: Проверяем React версии и dispatcher
 console.log("🔍 [React main]", React.version, "URL:", import.meta.url);
 console.log("🔍 React export keys:", Object.keys(React));
+console.log("🔍 React internals check:", {
+  hasInternals: !!(React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
+  hasDispatcher: !!(React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher,
+  currentDispatcher: (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher?.current
+});
+
 import App from "./App.tsx";
 import "./index.css";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -19,8 +24,9 @@ import "@/utils/pwaOptimizations";
 // Импортируем системы мониторинга для продакшена
 import "@/utils/productionErrorReporting";
 
-// Оптимизированная инициализация приложения
 const initApp = () => {
+  console.log("🔍 [React main] initApp: Starting app initialization");
+  
   const rootElement = document.getElementById("root");
   
   if (!rootElement) {
@@ -30,6 +36,8 @@ const initApp = () => {
   // Создаем root только один раз
   const root = createRoot(rootElement);
   
+  console.log("🔍 [React main] initApp: Root created, rendering app");
+  
   // Рендерим приложение
   root.render(
     <StrictMode>
@@ -38,9 +46,10 @@ const initApp = () => {
       </AuthProvider>
     </StrictMode>
   );
+  
+  console.log("🔍 [React main] initApp: App rendered successfully");
 };
 
-// Проверка готовности к продакшену
 const performProductionChecks = () => {
   if (import.meta.env.PROD) {
     // Production mode - disable console.log for performance
@@ -48,7 +57,6 @@ const performProductionChecks = () => {
   }
 };
 
-// Глобальная обработка неперехваченных ошибок
 const handleGlobalError = (event: ErrorEvent) => {
   console.error('[GLOBAL]', event.error?.message || 'Unknown error');
   
@@ -94,6 +102,8 @@ if (typeof window !== 'undefined') {
 
 // Запускаем приложение
 try {
+  console.log("🔍 [React main] Starting application bootstrap");
+  
   performProductionChecks();
   
   // Initialize PWA and mobile optimizations first
@@ -109,8 +119,10 @@ try {
   
   // Инициализируем Microsoft Clarity (только в продакшене)
   initializeClarity();
+  
+  console.log("🔍 [React main] Application bootstrap completed");
 } catch (error) {
-  console.error('[INIT]', 'Failed to initialize app');
+  console.error('[INIT]', 'Failed to initialize app', error);
   
   // Показываем пользователю сообщение об ошибке безопасным способом
   if (typeof document !== 'undefined') {

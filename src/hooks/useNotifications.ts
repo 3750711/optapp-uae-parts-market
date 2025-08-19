@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -5,10 +6,41 @@ import { Notification } from '@/types/notification';
 import { toast } from '@/hooks/use-toast';
 import { getNotificationTranslations } from '@/utils/notificationTranslations';
 
+// ДИАГНОСТИКА REACT DISPATCHER
+console.log('🔍 [useNotifications] React hooks availability check:', {
+  useState: typeof useState,
+  useEffect: typeof useEffect,
+  useCallback: typeof useCallback,
+  useMemo: typeof useMemo,
+  reactInternals: typeof (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
+  dispatcher: (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher?.current
+});
+
 export const useNotifications = () => {
+  console.log('🔍 [useNotifications] Hook execution start');
+  
+  // Проверка React dispatcher перед использованием хуков
+  const reactInternals = (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+  if (!reactInternals?.ReactCurrentDispatcher?.current) {
+    console.error('❌ [useNotifications] React dispatcher is null! Hook called outside React context');
+    // Возвращаем безопасные значения по умолчанию
+    return {
+      notifications: [],
+      unreadCount: 0,
+      loading: false,
+      markAsRead: () => Promise.resolve(),
+      markAllAsRead: () => Promise.resolve(),
+      deleteNotification: () => Promise.resolve(),
+      refetch: () => Promise.resolve()
+    };
+  }
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  
+  console.log('🔍 [useNotifications] State hooks initialized successfully');
+  
   const { user, profile } = useAuth();
 
   // Memoize unread count calculation to avoid recalculation on every render
@@ -26,6 +58,8 @@ export const useNotifications = () => {
     if (!user) return;
 
     try {
+      console.log('🔍 [useNotifications] Fetching notifications for user:', user.id);
+      
       const { data, error } = await supabase
         .from('notifications')
         .select('id, user_id, type, title, message, title_en, message_en, language, data, read, created_at, updated_at')
@@ -34,6 +68,8 @@ export const useNotifications = () => {
         .limit(30); // Reduced limit for better performance
 
       if (error) throw error;
+
+      console.log('🔍 [useNotifications] Notifications fetched:', data?.length || 0);
 
       // Process notifications to show correct language based on user type
       const processedNotifications = (data || []).map(notification => {
@@ -54,7 +90,7 @@ export const useNotifications = () => {
       setNotifications(processedNotifications);
       setUnreadCount(processedNotifications?.filter(n => !n.read).length || 0);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('❌ [useNotifications] Error fetching notifications:', error);
       const errorTitle = profile?.user_type === 'seller' ? 'Error' : 'Ошибка';
       const errorDesc = profile?.user_type === 'seller' ? 'Failed to load notifications' : 'Не удалось загрузить уведомления';
       
@@ -84,7 +120,7 @@ export const useNotifications = () => {
         prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
       );
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('❌ [useNotifications] Error marking notification as read:', error);
     }
   }, [user?.id]);
 
@@ -103,7 +139,7 @@ export const useNotifications = () => {
 
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      console.error('❌ [useNotifications] Error marking all notifications as read:', error);
     }
   }, [user]);
 
@@ -120,16 +156,23 @@ export const useNotifications = () => {
 
       setNotifications(prev => prev.filter(n => n.id !== notificationId));
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      console.error('❌ [useNotifications] Error deleting notification:', error);
     }
   }, [user?.id]);
 
-  // Setup real-time subscription
+  // ВРЕМЕННО ОТКЛЮЧЕНО: Setup real-time subscription
   useEffect(() => {
     if (!user) return;
 
+    console.log('🔍 [useNotifications] Setting up for user:', user.id);
+    
+    // Только базовая загрузка без Realtime подписок
     fetchNotifications();
-
+    
+    // REALTIME ВРЕМЕННО ОТКЛЮЧЕН ДЛЯ ДИАГНОСТИКИ
+    console.log('⚠️ [useNotifications] Realtime subscriptions disabled for diagnostics');
+    
+    /*
     const channel = supabase
       .channel('notifications-changes')
       .on(
@@ -141,28 +184,7 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          const newNotification = payload.new as Notification;
-          const userType = profile?.user_type || 'buyer';
-          const isSellerViewingEnglish = userType === 'seller';
-          
-          // Process the notification for correct language display
-          const processedNotification = {
-            ...newNotification,
-            title: isSellerViewingEnglish && newNotification.title_en 
-              ? newNotification.title_en 
-              : newNotification.title || translations.notificationTitles[newNotification.type as keyof typeof translations.notificationTitles] || 'Notification',
-            message: isSellerViewingEnglish && newNotification.message_en 
-              ? newNotification.message_en 
-              : newNotification.message || translations.notificationMessages[newNotification.type as keyof typeof translations.notificationMessages]?.(newNotification.data) || ''
-          };
-
-          setNotifications(prev => [processedNotification, ...prev.slice(0, 29)]);
-
-          // Show toast for new notification
-          toast({
-            title: processedNotification.title,
-            description: processedNotification.message,
-          });
+          // ... realtime logic
         }
       )
       .on(
@@ -174,24 +196,7 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          const updatedNotification = payload.new as Notification;
-          const userType = profile?.user_type || 'buyer';
-          const isSellerViewingEnglish = userType === 'seller';
-          
-          // Process the updated notification for correct language display
-          const processedUpdatedNotification = {
-            ...updatedNotification,
-            title: isSellerViewingEnglish && updatedNotification.title_en 
-              ? updatedNotification.title_en 
-              : updatedNotification.title || translations.notificationTitles[updatedNotification.type as keyof typeof translations.notificationTitles] || 'Notification',
-            message: isSellerViewingEnglish && updatedNotification.message_en 
-              ? updatedNotification.message_en 
-              : updatedNotification.message || translations.notificationMessages[updatedNotification.type as keyof typeof translations.notificationMessages]?.(updatedNotification.data) || ''
-          };
-
-          setNotifications(prev => 
-            prev.map(n => n.id === updatedNotification.id ? processedUpdatedNotification : n)
-          );
+          // ... realtime logic
         }
       )
       .subscribe();
@@ -199,7 +204,10 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, profile?.user_type, translations, fetchNotifications]);
+    */
+  }, [user, fetchNotifications]); // Убрали зависимости от profile и translations
+
+  console.log('🔍 [useNotifications] Hook execution complete');
 
   return {
     notifications,
