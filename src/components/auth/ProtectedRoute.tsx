@@ -2,7 +2,7 @@
 import React from 'react';
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { devLog } from "@/utils/logger";
 import EmailVerificationBanner from "./EmailVerificationBanner";
 
@@ -114,11 +114,12 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
   // Check if user is blocked
   if (authChecks.verificationStatus === 'blocked') {
     devLog("ProtectedRoute: User is blocked");
-    toast({
-      title: "Доступ ограничен",
-      description: "Ваш аккаунт заблокирован. Вы можете только просматривать сайт.",
-      variant: "destructive",
-    });
+    
+    // Show toast after redirect to avoid render-time side effect
+    React.useEffect(() => {
+      toast.error("Доступ ограничен. Ваш аккаунт заблокирован.");
+    }, []);
+    
     return <Navigate to="/" replace />;
   }
 
