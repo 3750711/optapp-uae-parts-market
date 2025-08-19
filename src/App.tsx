@@ -10,11 +10,12 @@ import { RealtimeProvider } from '@/contexts/RealtimeProvider';
 
 import { ThemeProvider } from "next-themes";
 import AppRoutes from "@/routes";
-import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { performanceMonitor } from "@/utils/performanceMonitor";
 import { PWAIndicators } from "@/components/PWAIndicators";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
+import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
+import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,12 +41,7 @@ const queryClient = new QueryClient({
 
 // Компонент загрузки для lazy-loaded маршрутов
 const RouteLoader = React.memo(() => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="text-center space-y-4">
-      <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow mx-auto" />
-      <p className="text-sm text-gray-600">Загрузка...</p>
-    </div>
-  </div>
+  <PBLogoLoader fullscreen message="Загружаем страницу…" />
 ));
 
 const App = () => {
@@ -97,6 +93,7 @@ const App = () => {
                 <BrowserRouter>
                   <TooltipProvider>
                     <Toaster />
+                    <RouteChangeOverlay />
                      <Suspense fallback={<RouteLoader />}>
                        <AppRoutes />
                         <PWAIndicators 
