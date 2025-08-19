@@ -3,26 +3,13 @@ import React from 'react';
 import BuyerSelectionStep from '../order/BuyerSelectionStep';
 import { checkProductStatus } from '@/utils/productStatusChecker';
 import { useToast } from '@/hooks/use-toast';
+import { Product } from '@/types/product';
 
 interface BuyerProfile {
   id: string;
   full_name: string;
   opt_id: string;
   telegram?: string;
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-  seller_id: string;
-  seller_name: string;
 }
 
 interface BuyerSelectionContainerProps {

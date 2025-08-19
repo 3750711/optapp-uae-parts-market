@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import EditableOrderForm from "./sell-product/EditableOrderForm";
 import { useAuth } from "@/contexts/AuthContext";
+import { Product } from "@/types/product";
 
 interface OrderData {
   id: string;
@@ -35,19 +36,6 @@ interface OrderData {
     location: string;
     telegram: string;
   };
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-  place_number?: number;
 }
 
 interface SellerProfile {

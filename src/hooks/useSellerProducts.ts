@@ -3,24 +3,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { SearchFilters } from '@/components/admin/SimpleProductSearchFilters';
+import { Product } from '@/types/product';
 
 interface SellerProfile {
   id: string;
   full_name: string;
   opt_id: string;
   telegram?: string;
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
 }
 
 export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
@@ -74,7 +63,7 @@ export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
     // Фильтр по номеру лота
     if (filters.lotNumber.trim()) {
       filtered = filtered.filter(product =>
-        product.lot_number.toString().includes(filters.lotNumber)
+        product.lot_number?.toString().includes(filters.lotNumber)
       );
     }
 

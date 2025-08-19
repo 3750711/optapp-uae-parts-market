@@ -14,6 +14,7 @@ import OrderCreationProgress from "@/components/admin/order/OrderCreationProgres
 import SellerSelectionStep from "@/components/admin/order/SellerSelectionStep";
 import ProductSelectionStep from "@/components/admin/order/ProductSelectionStep";
 import BuyerSelectionStep from "@/components/admin/order/BuyerSelectionStep";
+import { Product } from "@/types/product";
 
 interface SellerProfile {
   id: string;
@@ -27,18 +28,6 @@ interface BuyerProfile {
   full_name: string;
   opt_id: string;
   telegram?: string;
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
 }
 
 const AdminCreateOrderFromProduct = () => {

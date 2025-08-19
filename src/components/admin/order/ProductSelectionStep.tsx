@@ -4,24 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import SimpleProductSearchFilters, { SearchFilters } from '@/components/admin/SimpleProductSearchFilters';
+import { Product } from '@/types/product';
 
 interface SellerProfile {
   id: string;
   full_name: string;
   opt_id: string;
   telegram?: string;
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
 }
 
 interface ProductSelectionStepProps {
