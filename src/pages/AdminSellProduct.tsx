@@ -15,27 +15,13 @@ import ProductSelectionContainer from "@/components/admin/sell-product/ProductSe
 import BuyerSelectionContainer from "@/components/admin/sell-product/BuyerSelectionContainer";
 import OrderConfirmationStep from "@/components/admin/sell-product/OrderConfirmationStep";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
+import { Product } from "@/types/product";
 
 interface BuyerProfile {
   id: string;
   full_name: string;
   opt_id: string;
   telegram?: string;
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-  seller_id: string;
-  seller_name: string;
-  place_number?: number;
 }
 
 const AdminSellProduct = () => {

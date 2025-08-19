@@ -7,21 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
 import { useProductsQuery } from '@/hooks/useProductsQuery';
 import { useDebounce } from '@/hooks/useDebounce';
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-  seller_id: string;
-  seller_name: string;
-  place_number?: number;
-}
+import { Product } from '@/types/product';
 
 interface GlobalProductSelectionStepProps {
   onProductSelect: (product: Product) => void;

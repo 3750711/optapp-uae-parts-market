@@ -1,17 +1,7 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
-interface Product {
-  id: string;
-  created_at: string;
-  title: string;
-  price: number;
-  status: string;
-  seller_id: string;
-  seller_name: string;
-  [key: string]: any;
-}
+import { Product } from '@/types/product';
 
 interface UseProductsQueryProps {
   debouncedSearchTerm: string;
@@ -20,6 +10,16 @@ interface UseProductsQueryProps {
   pageSize?: number;
 }
 
+interface Page {
+  data: Product[];
+  count: number;
+}
+
+// Escape LIKE wildcards to prevent unintended pattern matching
+const escapeLikePattern = (input: string): string => {
+  return input.replace(/[%_]/g, '\\$&');
+};
+
 export const useProductsQuery = ({
   debouncedSearchTerm,
   statusFilter,
@@ -27,10 +27,9 @@ export const useProductsQuery = ({
   pageSize = 12
 }: UseProductsQueryProps) => {
   const queryClient = useQueryClient();
+  const realtimeChannelRef = useRef<any>(null);
 
-  const fetchProducts = async ({ pageParam = 0 }) => {
-    const { data: { session } } = await supabase.auth.getSession();
-
+  const fetchProducts = async ({ pageParam = 0 }: { pageParam?: number }): Promise<Page> => {
     let query = supabase
       .from('products')
       .select(`
@@ -42,7 +41,8 @@ export const useProductsQuery = ({
 
     // Apply filters
     if (debouncedSearchTerm) {
-      query = query.ilike('title', `%${debouncedSearchTerm}%`);
+      const escapedTerm = escapeLikePattern(debouncedSearchTerm.trim());
+      query = query.ilike('title', `%${escapedTerm}%`);
     }
 
     if (statusFilter !== 'all') {
@@ -62,18 +62,23 @@ export const useProductsQuery = ({
         details: error.details,
         hint: error.hint
       });
-      throw error;
+      // Preserve error metadata for better debugging
+      const enhancedError = Object.assign(
+        new Error(error.message),
+        { code: error.code, details: error.details, hint: error.hint }
+      );
+      throw enhancedError;
     }
 
-    // Sort product_images so primary images come first
+    // Sort product_images so primary images come first (non-mutating)
     const dataWithSortedImages = data?.map(product => ({
       ...product,
-      product_images: product.product_images?.sort((a: any, b: any) => {
+      product_images: product.product_images?.slice().sort((a: any, b: any) => {
         if (a.is_primary && !b.is_primary) return -1;
         if (!a.is_primary && b.is_primary) return 1;
         return 0;
       })
-    }));
+    })) as Product[];
 
     return { 
       data: dataWithSortedImages || [], 
@@ -82,7 +87,7 @@ export const useProductsQuery = ({
   };
 
   const queryResult = useInfiniteQuery({
-    queryKey: ['admin-products', debouncedSearchTerm, statusFilter, sellerFilter],
+    queryKey: ['admin-products', { debouncedSearchTerm, statusFilter, sellerFilter, pageSize }],
     queryFn: fetchProducts,
     getNextPageParam: (lastPage, allPages) => {
       const totalItems = allPages.reduce((sum, page) => sum + page.data.length, 0);
@@ -98,8 +103,13 @@ export const useProductsQuery = ({
     return queryResult.data?.pages.flatMap(page => page.data) || [];
   }, [queryResult.data]);
 
-  // Real-time subscription for products changes
+  // Real-time subscription for products changes with deduplication
   useEffect(() => {
+    // Prevent duplicate channels
+    if (realtimeChannelRef.current) {
+      return;
+    }
+
     const channel = supabase
       .channel('products-changes')
       .on(
@@ -107,19 +117,22 @@ export const useProductsQuery = ({
         {
           event: '*',
           schema: 'public',
-          table: 'products',
-          filter: `status=in.(active,sold,pending)`
+          table: 'products'
         },
         (payload) => {
-          // Invalidate products query to refetch updated data
+          // Only invalidate admin-products queries
           queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-          queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
         }
       )
       .subscribe();
 
+    realtimeChannelRef.current = channel;
+
     return () => {
-      supabase.removeChannel(channel);
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current = null;
+      }
     };
   }, [queryClient]);
 
