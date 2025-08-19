@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProfileAccessLogger } from './useProfileAccessLogger';
 
 interface OptimizedProfileData {
   profile: any;
@@ -15,6 +16,7 @@ interface OptimizedProfileData {
 
 export const useOptimizedProfile = () => {
   const { user, profile } = useAuth();
+  const { logAccess } = useProfileAccessLogger();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['optimized-profile', user?.id, profile?.email], // Добавляем email в ключ кэша
@@ -53,6 +55,18 @@ export const useOptimizedProfile = () => {
         } else {
           storeInfo = store;
         }
+      }
+
+      // Log profile access when loading own profile data
+      if (profile?.id && user?.id && profile.id !== user.id) {
+        logAccess({
+          profileId: profile.id,
+          accessType: 'view',
+          contextData: { 
+            context: 'profile_page',
+            user_type: profile.user_type 
+          }
+        });
       }
 
       return {

@@ -6,6 +6,7 @@ import { SellerProfile } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { useProfileAccessLogger } from "@/hooks/useProfileAccessLogger";
 import { SellerBasicInfo } from "./seller/SellerBasicInfo";
 import { SellerCommunicationRating } from "./seller/SellerCommunicationRating";
 import { SellerStoreSection } from "./seller/SellerStoreSection";
@@ -36,10 +37,25 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
   const [copied, setCopied] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { logAccess } = useProfileAccessLogger();
 
   useEffect(() => {
     const fetchStoreInfo = async () => {
       if (!seller_id) return;
+      
+      // Log access to seller profile when viewing their store info
+      if (seller_id && user?.id !== seller_id) {
+        logAccess({
+          profileId: seller_id,
+          accessType: 'view',
+          contextData: {
+            context: 'seller_info_component',
+            seller_name: seller_name || 'Unknown',
+            product_view: true
+          }
+        });
+      }
+      
       try {
         const { data, error } = await supabase
           .from('stores')
@@ -56,11 +72,22 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
     };
 
     fetchStoreInfo();
-  }, [seller_id]);
+  }, [seller_id, user?.id, seller_name, logAccess]);
 
   const handleShowContactInfo = () => {
     if (!user) {
       setShowAuthDialog(true);
+    } else if (seller_id && user.id !== seller_id) {
+      // Log access to sensitive seller contact info
+      logAccess({
+        profileId: seller_id,
+        accessType: 'view',
+        contextData: {
+          context: 'contact_info_access',
+          seller_name: seller_name || 'Unknown',
+          action: 'contact_details_viewed'
+        }
+      });
     }
   };
 
