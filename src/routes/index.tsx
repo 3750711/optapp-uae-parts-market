@@ -28,15 +28,15 @@ const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
 const Help = lazy(() => import('@/pages/Help'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
-// Lazy loaded страницы аутентификации
-const Login = lazy(() => import('@/pages/Login'));
-const Register = lazy(() => import('@/pages/Register'));
-const SellerLogin = lazy(() => import('@/pages/SellerLogin'));
-const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
-const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
-const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
-const PendingApprovalPage = lazy(() => import('@/pages/PendingApprovalPage'));
+// Критические страницы аутентификации - синхронные для быстрой загрузки
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import SellerLogin from '@/pages/SellerLogin';
+import SellerRegister from '@/pages/SellerRegister';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
+import VerifyEmail from '@/pages/VerifyEmail';
+import PendingApprovalPage from '@/pages/PendingApprovalPage';
 
 // Lazy loaded защищенные страницы
 const Profile = lazy(() => import('@/pages/Profile'));
