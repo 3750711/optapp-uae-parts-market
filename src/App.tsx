@@ -24,11 +24,12 @@ const queryClient = new QueryClient({
         if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
           return false;
         }
-        return failureCount < 2; // Уменьшено количество повторов
+        return failureCount < 1; // Уменьшено для быстрого fallback в офлайн
       },
       staleTime: 5 * 60 * 1000, // Уменьшено до 5 минут для более актуальных данных о предложениях
       gcTime: 30 * 60 * 1000, // 30 минут в памяти
       refetchOnWindowFocus: false, // Отключено для производительности
+      refetchOnReconnect: false, // Отключено для офлайн режима
       refetchOnMount: true, // Включено для получения актуальных данных о предложениях
     },
     mutations: {
