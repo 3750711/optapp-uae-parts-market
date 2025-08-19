@@ -12,6 +12,7 @@ interface AuthContextType {
   isLoading: boolean;
   isProfileLoading: boolean;
   isAdmin: boolean | null;
+  profileError: string | null;
   signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
   signUp: (email: string, password: string, options?: any) => Promise<{ user: User | null; error: any }>;
   signOut: () => Promise<void>;
@@ -23,6 +24,7 @@ interface AuthContextType {
   forceRefreshSession: () => Promise<boolean>;
   signInWithTelegram: (authData: any) => Promise<{ user: User | null; error: any }>;
   refreshAdminStatus: () => Promise<void>;
+  retryProfileLoad: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +43,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  // AbortController для отмены предыдущих запросов профиля
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   // Вычисляем isAdmin на основе профиля
   const isAdmin = React.useMemo(() => {
@@ -48,18 +54,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return profile.user_type === 'admin';
   }, [profile?.user_type]);
 
-  const fetchUserProfile = async (userId: string) => {
-    if (isProfileLoading) return;
+  const fetchUserProfile = async (userId: string, retryCount = 0): Promise<void> => {
+    // Отменяем предыдущий запрос
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Создаем новый AbortController
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
     
     setIsProfileLoading(true);
+    setProfileError(null);
+    
+    const timeoutId = setTimeout(() => {
+      abortController.abort();
+    }, 10000); // 10 секунд timeout
+    
     try {
-      console.log("👤 AuthContext: Fetching profile for user:", userId);
+      console.log("👤 AuthContext: Fetching profile for user:", userId, `(attempt ${retryCount + 1})`);
       
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single();
+        .single()
+        .abortSignal(abortController.signal);
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -71,12 +91,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         console.log("👤 AuthContext: Profile fetched successfully");
         setProfile(data);
+        setProfileError(null);
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Игнорируем ошибки отмены
+      if (error?.name === 'AbortError' || abortController.signal.aborted) {
+        console.log("👤 AuthContext: Profile fetch aborted");
+        return;
+      }
+      
       console.error("❌ AuthContext: Error fetching profile:", error);
+      
+      // Retry logic - максимум 3 попытки
+      if (retryCount < 2) {
+        console.log(`🔄 AuthContext: Retrying profile fetch (${retryCount + 1}/2)`);
+        setTimeout(() => fetchUserProfile(userId, retryCount + 1), 2000 * (retryCount + 1));
+        return;
+      }
+      
       setProfile(null);
+      setProfileError(error.message || 'Failed to load profile');
     } finally {
-      setIsProfileLoading(false);
+      clearTimeout(timeoutId);
+      // Только сбрасываем isProfileLoading если это текущий запрос
+      if (abortControllerRef.current === abortController) {
+        setIsProfileLoading(false);
+      }
     }
   };
 
@@ -122,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkInitialSession();
 
     // Подписка на изменения авторизации
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("🔧 AuthContext: Auth state change", {
         event,
         hasSession: !!session,
@@ -134,11 +174,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (session?.user) {
         setUser(session.user);
-        await fetchUserProfile(session.user.id);
+        // Используем setTimeout чтобы избежать deadlock в onAuthStateChange
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 0);
       } else {
         console.log("🔧 AuthContext: No user in auth change, clearing state");
         setUser(null);
         setProfile(null);
+        setProfileError(null);
+        // Отменяем текущие запросы профиля
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
       }
       
       setIsLoading(false);
@@ -293,6 +341,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     forceRefreshSession,
     signInWithTelegram,
     refreshAdminStatus,
+    profileError,
+    retryProfileLoad: () => user && fetchUserProfile(user.id),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

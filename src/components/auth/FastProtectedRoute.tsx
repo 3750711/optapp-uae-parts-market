@@ -1,6 +1,7 @@
-import React, { memo } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import ProfileLoadingFallback from "./ProfileLoadingFallback";
 
 interface FastProtectedRouteProps {
   children: React.ReactNode;
@@ -8,8 +9,25 @@ interface FastProtectedRouteProps {
 }
 
 const FastProtectedRoute = memo(({ children, allowedRoles }: FastProtectedRouteProps) => {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, isLoading, isProfileLoading, profileError, retryProfileLoad } = useAuth();
   const location = useLocation();
+  const [profileTimeout, setProfileTimeout] = useState(false);
+
+  // Таймаут для определения зависания загрузки профиля
+  useEffect(() => {
+    if (user && !profile && isProfileLoading) {
+      const timeoutId = setTimeout(() => {
+        setProfileTimeout(true);
+      }, 15000); // 15 секунд
+
+      return () => {
+        clearTimeout(timeoutId);
+        setProfileTimeout(false);
+      };
+    } else {
+      setProfileTimeout(false);
+    }
+  }, [user, profile, isProfileLoading]);
   
   // Ultra-fast loading state
   if (isLoading) {
@@ -25,8 +43,20 @@ const FastProtectedRoute = memo(({ children, allowedRoles }: FastProtectedRouteP
     return <Navigate to={`/login?from=${encodeURIComponent(location.pathname)}`} replace />;
   }
   
-  // Quick profile check
+  // Profile loading check with timeout and error handling
   if (!profile) {
+    // Показываем fallback UI если есть ошибка или таймаут
+    if (profileError || profileTimeout) {
+      return (
+        <ProfileLoadingFallback
+          onRetry={retryProfileLoad}
+          error={profileError || (profileTimeout ? "Загрузка профиля занимает слишком много времени" : null)}
+          isLoading={isProfileLoading}
+        />
+      );
+    }
+
+    // Обычный лоадер для быстрой загрузки
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
