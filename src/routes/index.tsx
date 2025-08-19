@@ -179,7 +179,7 @@ const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/catalog" element={
-              <ProtectedRoute allowedRoles={['admin', 'seller']}>
+              <ProtectedRoute allowedRoles={['buyer', 'admin']}>
                 <CatalogErrorBoundary>
                   <Catalog />
                 </CatalogErrorBoundary>

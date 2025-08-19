@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => ({
       "react/jsx-dev-runtime": path.resolve(__dirname, "./node_modules/react/jsx-dev-runtime"),
     },
     // CRITICAL: Prevent React duplicates at resolve level
-    dedupe: ["react", "react-dom"],
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
   build: {
     // Optimized chunk splitting for better caching and loading reliability

@@ -14,7 +14,6 @@ import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { performanceMonitor } from "@/utils/performanceMonitor";
-import { RouteNoticeToaster } from '@/components/routing/RouteNoticeToaster';
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,9 +68,8 @@ const App = () => {
               <RealtimeProvider>
                 <BrowserRouter>
                   <TooltipProvider>
-                    <Toaster />
-                    <Sonner />
-                    <RouteNoticeToaster />
+                    {/* <Toaster /> */}
+                    {/* <Sonner /> */}
                     <Suspense fallback={<RouteLoader />}>
                       <AppRoutes />
                     </Suspense>

@@ -114,7 +114,12 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
   // Check if user is blocked
   if (authChecks.verificationStatus === 'blocked') {
     devLog("ProtectedRoute: User is blocked");
-    return <Navigate to="/" replace state={{ notice: 'blocked' }} />;
+    toast({
+      title: "Доступ ограничен",
+      description: "Ваш аккаунт заблокирован. Вы можете только просматривать сайт.",
+      variant: "destructive",
+    });
+    return <Navigate to="/" replace />;
   }
 
   // PRIORITY 2: Check if user is pending approval (except for admins) - STRICT CHECK
