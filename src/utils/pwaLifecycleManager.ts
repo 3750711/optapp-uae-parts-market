@@ -255,10 +255,11 @@ class PWALifecycleManager {
 // Singleton instance
 export const pwaLifecycleManager = new PWALifecycleManager();
 
+// React import for hook
+import { useEffect } from 'react';
+
 // Hook for React components
 export const usePWALifecycle = (id: string, options: LifecycleOptions) => {
-  const { useEffect } = require('react');
-  
   useEffect(() => {
     return pwaLifecycleManager.register(id, options);
   }, [id]);

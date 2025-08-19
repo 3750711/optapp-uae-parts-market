@@ -19,6 +19,7 @@ import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
 
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
+import { usePWALifecycle } from '@/utils/pwaLifecycleManager';
 
 export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
@@ -164,11 +165,7 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
-// Мгновенное сохранение при скрытии/уходе со страницы (оптимизировано для PWA)
-useEffect(() => {
-  // Use centralized PWA lifecycle management
-  const { usePWALifecycle } = require('@/utils/pwaLifecycleManager');
-  
+  // PWA lifecycle management for autosave
   const { isPWA, forceSave } = usePWALifecycle('admin-free-order-autosave', {
     onVisibilityChange: (isHidden) => {
       if (isHidden && !isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
@@ -190,6 +187,8 @@ useEffect(() => {
     }
   });
 
+// Мгновенное сохранение при скрытии/уходе со страницы (оптимизировано для PWA)
+useEffect(() => {
   // Fallback for older browsers without PWA lifecycle support
   if (!isPWA) {
     const onVisibility = () => {
@@ -209,7 +208,7 @@ useEffect(() => {
       window.removeEventListener('pagehide', onPageHide);
     };
   }
-}, [saveNow, isCreating, isOrderCreated, createdOrder, hasUnsavedChanges]);
+}, [isPWA, saveNow, isCreating, isOrderCreated, createdOrder]);
 
 // Восстановление бренда/моделей при возврате на страницу (bfcache/pageshow)
 useEffect(() => {
