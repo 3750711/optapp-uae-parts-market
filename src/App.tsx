@@ -6,22 +6,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
-import { Loader2 } from "lucide-react";
-
-// Import critical components synchronously to avoid dependency chains
 import { AuthProvider } from "@/contexts/AuthContext";
+import AppRoutes from "@/routes";
+import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
+import { performanceMonitor } from "@/utils/performanceMonitor";
 import ProfileCompletionRedirect from "@/components/routing/ProfileCompletionRedirect";
-
-// Lazy load only non-critical components
-const AppRoutes = React.lazy(() => import("@/routes"));
-
-// Lazy load performance monitor to avoid early hook calls
-const performanceMonitor = {
-  destroy: () => {
-    // Safe no-op if not initialized
-  }
-};
 
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
@@ -56,31 +46,11 @@ const RouteLoader = React.memo(() => (
 ));
 
 const App = () => {
-  const [isReady, setIsReady] = React.useState(false);
-
   useEffect(() => {
-    // Initialize performance monitoring safely after component mount
-    const initPerformanceMonitoring = async () => {
-      if (import.meta.env.DEV) {
-        try {
-          const { performanceMonitor: pm } = await import("@/utils/performanceMonitor");
-          // Performance monitoring initialized
-        } catch (error) {
-          console.warn("Failed to initialize performance monitoring:", error);
-        }
-      }
-    };
-
-    // Ensure React is fully initialized before setting ready state
-    const initializeApp = async () => {
-      await initPerformanceMonitoring();
-      // Small delay to ensure React dispatcher is ready
-      requestAnimationFrame(() => {
-        setIsReady(true);
-      });
-    };
-
-    initializeApp();
+    // Initialize performance monitoring in development
+    if (import.meta.env.DEV) {
+      // Performance monitoring initialized
+    }
 
     // Cleanup on unmount
     return () => {
@@ -88,30 +58,26 @@ const App = () => {
     };
   }, []);
 
-  if (!isReady) {
-    return <RouteLoader />;
-  }
-
   return (
-    <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
+    <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
               <AuthProvider>
-                 <ProfileCompletionRedirect>
-                   <Suspense fallback={<RouteLoader />}>
-                     <AppRoutes />
-                   </Suspense>
-                 </ProfileCompletionRedirect>
+                <ProfileCompletionRedirect>
+                  <Suspense fallback={<RouteLoader />}>
+                    <AppRoutes />
+                  </Suspense>
+                </ProfileCompletionRedirect>
               </AuthProvider>
-            </GlobalErrorBoundary>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </HelmetProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
+    </GlobalErrorBoundary>
   );
 };
 

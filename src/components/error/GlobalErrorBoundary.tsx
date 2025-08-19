@@ -56,20 +56,13 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     const isNetworkError = error.message.includes('fetch') ||
                           error.message.includes('network') ||
                           error.message.includes('connection');
-
-    // Detect React hooks dispatcher errors
-    const isHookError = error.message.includes('dispatcher is null') ||
-                       error.message.includes('Invalid hook call') ||
-                       error.message.includes('Hooks can only be called') ||
-                       error.stack?.includes('dispatcher');
     
     const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // If it's a hook error, treat it like a module load error for recovery
     return { 
       hasError: true, 
       error,
-      isModuleLoadError: isModuleLoadError || isHookError,
+      isModuleLoadError,
       isPermissionError,
       isNetworkError,
       errorId

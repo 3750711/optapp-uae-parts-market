@@ -6,11 +6,11 @@ interface ProfileCompletionRedirectProps {
 }
 
 const ProfileCompletionRedirect = ({ children }: ProfileCompletionRedirectProps) => {
-  const { user, profile, isLoading, isReady } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const location = useLocation();
   
-  // Wait for auth context to be ready to avoid flash of content
-  if (!isReady || isLoading) {
+  // Show loading while checking authentication
+  if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>

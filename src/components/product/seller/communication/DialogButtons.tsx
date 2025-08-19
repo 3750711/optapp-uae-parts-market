@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MessageSquare, Phone, HeadphonesIcon } from "lucide-react";
 
 interface DialogButtonsProps {
@@ -49,13 +49,70 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
 
   if (isMobile) {
     return (
-      <div className="p-3 space-y-2">
+      <TooltipProvider delayDuration={0}>
+        <div className="p-3 space-y-2">
+          {/* Кнопка помощника с подсказкой */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                onClick={onAssistantContact}
+                className="w-full h-10"
+                variant={isVeryDifficult ? "destructive" : "default"}
+              >
+                <HeadphonesIcon className="h-4 w-4 mr-2" />
+                {getAssistantButtonText()}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent 
+              side="top" 
+              align="center"
+              className="text-xs max-w-[200px] text-center"
+              sideOffset={8}
+            >
+              <p>Менеджер поможет договориться</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          {/* Прямая связь */}
+          {!isDirectContactBlocked && (
+            <Button 
+              onClick={onProceed} 
+              className="w-full h-10"
+              variant="outline"
+              disabled={!validation?.canContactDirect}
+            >
+                {contactType === 'telegram' ? (
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                ) : (
+                  <Phone className="h-4 w-4 mr-2" />
+                )}
+                {getDirectContactButtonText()}
+              </Button>
+          )}
+          
+          {/* Кнопка отмены */}
+          <Button 
+            variant="ghost" 
+            onClick={onCancel}
+            className="w-full h-8 text-gray-500"
+            size="sm"
+          >
+            Отмена
+          </Button>
+        </div>
+      </TooltipProvider>
+    );
+  }
+
+  return (
+    <TooltipProvider delayDuration={200}>
+      <div className="p-3 flex gap-2">
         {/* Кнопка помощника с подсказкой */}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 
               onClick={onAssistantContact}
-              className="w-full h-10"
+              className="flex-1 h-10"
               variant={isVeryDifficult ? "destructive" : "default"}
             >
               <HeadphonesIcon className="h-4 w-4 mr-2" />
@@ -65,8 +122,8 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
           <TooltipContent 
             side="top" 
             align="center"
-            className="text-xs max-w-[200px] text-center"
-            sideOffset={8}
+            className="text-sm"
+            sideOffset={5}
           >
             <p>Менеджер поможет договориться</p>
           </TooltipContent>
@@ -76,7 +133,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         {!isDirectContactBlocked && (
           <Button 
             onClick={onProceed} 
-            className="w-full h-10"
+            className="flex-1 h-10"
             variant="outline"
             disabled={!validation?.canContactDirect}
           >
@@ -93,64 +150,11 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           variant="ghost" 
           onClick={onCancel}
-          className="w-full h-8 text-gray-500"
-          size="sm"
+          className="px-4 h-10 text-gray-500"
         >
           Отмена
         </Button>
       </div>
-    );
-  }
-
-  return (
-    <div className="p-3 flex gap-2">
-      {/* Кнопка помощника с подсказкой */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button 
-            onClick={onAssistantContact}
-            className="flex-1 h-10"
-            variant={isVeryDifficult ? "destructive" : "default"}
-          >
-            <HeadphonesIcon className="h-4 w-4 mr-2" />
-            {getAssistantButtonText()}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent 
-          side="top" 
-          align="center"
-          className="text-sm"
-          sideOffset={5}
-        >
-          <p>Менеджер поможет договориться</p>
-        </TooltipContent>
-      </Tooltip>
-      
-      {/* Прямая связь */}
-      {!isDirectContactBlocked && (
-        <Button 
-          onClick={onProceed} 
-          className="flex-1 h-10"
-          variant="outline"
-          disabled={!validation?.canContactDirect}
-        >
-            {contactType === 'telegram' ? (
-              <MessageSquare className="h-4 w-4 mr-2" />
-            ) : (
-              <Phone className="h-4 w-4 mr-2" />
-            )}
-            {getDirectContactButtonText()}
-          </Button>
-      )}
-      
-      {/* Кнопка отмены */}
-      <Button 
-        variant="ghost" 
-        onClick={onCancel}
-        className="px-4 h-10 text-gray-500"
-      >
-        Отмена
-      </Button>
-    </div>
+    </TooltipProvider>
   );
 };

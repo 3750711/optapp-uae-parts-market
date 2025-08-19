@@ -3,43 +3,19 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { initPerformanceOptimizations } from "@/utils/performanceUtils";
+import { initializeClarity } from "@/utils/clarityTracking";
+import { initMobileOptimizations } from "@/utils/mobileOptimizations";
+import { registerServiceWorker } from "@/utils/serviceWorkerManager";
 
-// Безопасная загрузка утилит после инициализации React
-const initializeUtilities = async () => {
-  try {
-    // Wait for React to be fully initialized
-    await new Promise(resolve => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(resolve);
-      });
-    });
-    
-    // Lazy load utilities to avoid early hook calls
-    if (typeof window !== 'undefined') {
-      const { initMobileOptimizations } = await import("@/utils/mobileOptimizations");
-      const { registerServiceWorker } = await import("@/utils/serviceWorkerManager");
-      const { initPerformanceOptimizations } = await import("@/utils/performanceUtils");
-      const { initializeClarity } = await import("@/utils/clarityTracking");
-      
-      // Импортируем системы мониторинга для продакшена
-      await import("@/utils/productionErrorReporting");
-      
-      // Import PWA optimizations
-      await import("@/utils/pwaOptimizations");
-      
-      // Initialize optimizations
-      initMobileOptimizations();
-      registerServiceWorker();
-      initPerformanceOptimizations();
-      initializeClarity();
-    }
-  } catch (error) {
-    console.warn("Failed to initialize utilities:", error);
-  }
-};
+// Import PWA optimizations early for better bfcache handling
+import "@/utils/pwaOptimizations";
+
+// Импортируем системы мониторинга для продакшена
+import "@/utils/productionErrorReporting";
 
 // Оптимизированная инициализация приложения
-const initApp = async () => {
+const initApp = () => {
   const rootElement = document.getElementById("root");
   
   if (!rootElement) {
@@ -55,9 +31,6 @@ const initApp = async () => {
       <App />
     </StrictMode>
   );
-
-  // Initialize utilities after React is fully mounted and settled
-  setTimeout(initializeUtilities, 0);
 };
 
 // Проверка готовности к продакшену
@@ -115,9 +88,22 @@ if (typeof window !== 'undefined') {
 // Запускаем приложение
 try {
   performProductionChecks();
+  
+  // Initialize PWA and mobile optimizations first
+  initMobileOptimizations();
+  
+  // Register service worker for PWA functionality
+  registerServiceWorker();
+  
   initApp();
+  
+  // Инициализируем мониторинг производительности
+  initPerformanceOptimizations();
+  
+  // Инициализируем Microsoft Clarity (только в продакшене)
+  initializeClarity();
 } catch (error) {
-  console.error('[INIT]', 'Failed to initialize app:', error);
+  console.error('[INIT]', 'Failed to initialize app');
   
   // Показываем пользователю сообщение об ошибке безопасным способом
   if (typeof document !== 'undefined') {

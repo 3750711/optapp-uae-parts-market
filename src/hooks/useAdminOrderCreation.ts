@@ -2,7 +2,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { combineAndDeduplicateImages } from '@/utils/imageUtils';
 
 interface SellerProfile {
   id: string;
@@ -102,7 +101,7 @@ export const useAdminOrderCreation = () => {
         throw new Error(`Invalid delivery method: ${orderData.deliveryMethod}`);
       }
 
-      // 📸 CRITICAL FIX: Proper image handling with deduplication
+      // 📸 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Детальная обработка изображений
       const productImages = selectedProduct.product_images?.map(img => img.url) || [];
       console.log("📸 DETAILED Product images processing:", {
         product_images_raw: selectedProduct.product_images,
@@ -122,14 +121,14 @@ export const useAdminOrderCreation = () => {
         additional_images_count: additionalImages.length
       });
 
-      // ✅ CRITICAL FIX: Use deduplication utility to prevent triple duplication
-      const combinedImages = combineAndDeduplicateImages(productImages, additionalImages);
-      console.log("📸 DETAILED Combined images with deduplication:", {
+      // Объединяем: сначала изображения товара, потом дополнительные
+      const combinedImages = [...productImages, ...additionalImages];
+      console.log("📸 DETAILED Combined images final result:", {
         productImages_count: productImages.length,
         additionalImages_count: additionalImages.length,
         combinedImages_count: combinedImages.length,
         combinedImages_full: combinedImages,
-        deduplication_applied: true
+        combinedImages_preview: combinedImages.slice(0, 3)
       });
 
       // 💰 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Детальная обработка стоимости доставки  

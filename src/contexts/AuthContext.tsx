@@ -22,7 +22,6 @@ interface AuthContextType {
   forceRefreshSession: () => Promise<boolean>;
   isLoading: boolean;
   isProfileLoading: boolean;
-  isReady: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,8 +45,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [fetchProfileRef, setFetchProfileRef] = useState<{current: boolean}>({current: false});
 
   // Функция создания базового профиля
   const createBasicProfile = useCallback(async (userId: string) => {
@@ -84,16 +81,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Optimized profile fetch with protection against multiple calls
+  // Оптимизированная функция загрузки профиля с кэшированием
   const fetchUserProfile = useCallback(async (userId: string, retryCount = 0) => {
-    // Prevent multiple simultaneous calls
-    if (fetchProfileRef.current) {
-      console.log('🔧 AuthContext: fetchUserProfile already in progress, skipping');
-      return;
-    }
-    
     console.log('🔧 AuthContext: fetchUserProfile called', { userId, retryCount });
-    fetchProfileRef.current = true;
     setIsProfileLoading(true);
     try {
       // Проверяем кэш админских прав
@@ -145,7 +135,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       console.log('🔧 AuthContext: fetchUserProfile completed');
       setIsProfileLoading(false);
-      fetchProfileRef.current = false;
     }
   }, [createBasicProfile]);
 
@@ -292,19 +281,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (session?.user) {
         console.log('🔧 AuthContext: User found, fetching profile for:', session.user.id);
-        fetchUserProfile(session.user.id);
+        // Используем setTimeout для предотвращения блокировки
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 0);
       } else {
         console.log('🔧 AuthContext: No user found, clearing state');
         setProfile(null);
         setIsAdmin(null);
         setIsLoading(false);
       }
-      
-      // Set ready state after initial check
-      setIsReady(true);
     });
 
-    // Listen to auth changes
+    // Слушаем изменения авторизации
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔧 AuthContext: Auth state change', { 
         event, 
@@ -313,16 +302,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         userId: session?.user?.id 
       });
       
-      // Only update state synchronously, defer profile fetching
       setSession(session);
       setUser(session?.user ?? null);
-      setIsLoading(false);
       
-      // Defer profile fetching to prevent hook conflicts
       if (session?.user) {
-        console.log('🔧 AuthContext: User in auth change, scheduling profile fetch');
+        console.log('🔧 AuthContext: User in auth change, fetching profile for:', session.user.id);
+        // Используем setTimeout для предотвращения блокировки
         setTimeout(() => {
-          fetchUserProfile(session.user!.id);
+          fetchUserProfile(session.user.id);
         }, 0);
       } else {
         console.log('🔧 AuthContext: No user in auth change, clearing state');
@@ -330,6 +317,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsAdmin(null);
         clearAdminCache();
       }
+      
+      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -479,7 +468,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [user, profile, session]);
 
-  // Memoize context value with ready state
+  // Мемоизируем значение контекста
   const contextValue = useMemo(() => ({
     user,
     profile,
@@ -495,9 +484,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkTokenValidity,
     forceRefreshSession,
     isLoading,
-    isProfileLoading,
-    isReady
-  }), [user, profile, session, isAdmin, signUp, signIn, signInWithTelegram, signOut, updateProfile, refreshProfile, refreshAdminStatus, checkTokenValidity, forceRefreshSession, isLoading, isProfileLoading, isReady]);
+    isProfileLoading
+  }), [user, profile, session, isAdmin, signUp, signIn, signInWithTelegram, signOut, updateProfile, refreshProfile, refreshAdminStatus, checkTokenValidity, forceRefreshSession, isLoading, isProfileLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>

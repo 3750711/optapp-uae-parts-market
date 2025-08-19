@@ -28,21 +28,18 @@ const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
 const Help = lazy(() => import('@/pages/Help'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
-// Critical auth pages - no lazy loading to prevent dispatcher issues
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import SellerLogin from '@/pages/SellerLogin';
-import SellerRegister from '@/pages/SellerRegister';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import VerifyEmail from '@/pages/VerifyEmail';
-import PendingApprovalPage from '@/pages/PendingApprovalPage';
-import Profile from '@/pages/Profile';
+// Lazy loaded страницы аутентификации
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const SellerLogin = lazy(() => import('@/pages/SellerLogin'));
+const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+const PendingApprovalPage = lazy(() => import('@/pages/PendingApprovalPage'));
 
-// Critical routing component - no lazy loading
-import HomeRedirect from '@/components/routing/HomeRedirect';
-
-// Lazy loaded non-critical pages
+// Lazy loaded защищенные страницы
+const Profile = lazy(() => import('@/pages/Profile'));
 const BuyerDashboard = lazy(() => import('@/pages/BuyerDashboard'));
 const CreateStore = lazy(() => import('@/pages/CreateStore'));
 const CreateRequest = lazy(() => import('@/pages/CreateRequest'));
@@ -71,161 +68,173 @@ const SellerProductDetail = lazy(() => import('@/pages/SellerProductDetail'));
 // Real-time components
 import { SellerPriceOffersRealtime } from '@/components/offers/SellerPriceOffersRealtime';
 
-// Admin routes
-import { getAdminRoutes } from '@/routes/admin';
+// Критически важные админские страницы - загружаются без lazy loading
+import AdminDashboard from '@/pages/AdminDashboard';
+import AdminAddProduct from '@/pages/AdminAddProduct';
 
+// Lazy loaded админские страницы
+const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
+const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
+const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
+const AdminOrderDetails = lazy(() => import('@/pages/AdminOrderDetails'));
+const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
+const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
+const AdminSellProduct = lazy(() => import('@/pages/AdminSellProduct'));
+const AdminStores = lazy(() => import('@/pages/AdminStores'));
+const OptimizedAdminStores = lazy(() => import('@/pages/OptimizedAdminStores'));
+const AdminEvents = lazy(() => import('@/pages/AdminEvents'));
+const AdminLogistics = lazy(() => import('@/pages/AdminLogistics'));
+const AdminCarCatalog = lazy(() => import('@/pages/AdminCarCatalog'));
+const AdminMessages = lazy(() => import('@/pages/AdminMessages'));
+const AdminPriceOffers = lazy(() => import('@/pages/admin/AdminPriceOffers'));
+const AdminProductModeration = lazy(() => import('@/pages/AdminProductModeration'));
+const AdminTelegramMonitoring = lazy(() => import('@/pages/AdminTelegramMonitoring'));
+const AdminHelpEditor = lazy(() => import('@/pages/AdminHelpEditor'));
+const AdminSynonyms = lazy(() => import('@/pages/AdminSynonyms'));
 
 // Mobile specific pages
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
 const SellerMobileProfileMenu = lazy(() => import('@/pages/SellerMobileProfileMenu'));
+
+// Routing components
+const HomeRedirect = lazy(() => import('@/components/routing/HomeRedirect'));
 
 const AppRoutes: React.FC = () => {
   return (
     <>
       <RouteSEO />
       <RouteErrorBoundary>
-        <Routes>
+        <Suspense fallback={<RouteSuspenseFallback />}>
+          <Routes>
             {/* Публичные маршруты - доступны всем */}
             <Route path="/" element={
               <HomeRedirect>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <Index />
-                </Suspense>
+                <Index />
               </HomeRedirect>
             } />
-            <Route path="/404" element={
-              <Suspense fallback={<RouteSuspenseFallback />}>
-                <NotFound />
-              </Suspense>
-            } />
+            <Route path="/404" element={<NotFound />} />
 
             {/* Маршруты аутентификации - только для гостей */}
             <Route path="/login" element={
               <GuestRoute>
-                <Login />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <Login />
+                </Suspense>
               </GuestRoute>
             } />
             <Route path="/register" element={
               <GuestRoute>
-                <Register />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <Register />
+                </Suspense>
               </GuestRoute>
             } />
             <Route path="/seller-login" element={
               <GuestRoute>
-                <SellerLogin />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <SellerLogin />
+                </Suspense>
               </GuestRoute>
             } />
             <Route path="/seller-register" element={
               <GuestRoute>
-                <SellerRegister />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <SellerRegister />
+                </Suspense>
               </GuestRoute>
             } />
             <Route path="/forgot-password" element={
               <GuestRoute>
-                <ForgotPassword />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <ForgotPassword />
+                </Suspense>
               </GuestRoute>
             } />
             <Route path="/reset-password" element={
               <GuestRoute>
-                <ResetPassword />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <ResetPassword />
+                </Suspense>
               </GuestRoute>
             } />
-            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/verify-email" element={
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <VerifyEmail />
+                </Suspense>
+            } />
 
             {/* Pending Approval Page - для пользователей ожидающих одобрения */}
             <Route path="/pending-approval" element={
               <PendingApprovalWrapper>
-                <PendingApprovalPage />
+                <Suspense fallback={<RouteSuspenseFallback />}>
+                  <PendingApprovalPage />
+                </Suspense>
               </PendingApprovalWrapper>
             } />
 
             {/* Защищенные публичные маршруты - заблокированы для продавцов */}
             <Route path="/about" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <About />
-                </Suspense>
+                <About />
               </ProtectedRoute>
             } />
             <Route path="/contact" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <Contact />
-                </Suspense>
+                <Contact />
               </ProtectedRoute>
             } />
             <Route path="/catalog" element={
               <ProtectedRoute excludedRoles={['seller']}>
                 <CatalogErrorBoundary>
-                  <Suspense fallback={<RouteSuspenseFallback />}>
-                    <Catalog />
-                  </Suspense>
+                  <Catalog />
                 </CatalogErrorBoundary>
               </ProtectedRoute>
             } />
             <Route path="/product/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <ProductDetail />
-                </Suspense>
+                <ProductDetail />
               </ProtectedRoute>
             } />
             <Route path="/stores" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <Stores />
-                </Suspense>
+                <Stores />
               </ProtectedRoute>
             } />
             <Route path="/store/:id" element={<Navigate to="/stores/:id" replace />} />
             {/* Alias path to support /stores/:id links */}
             <Route path="/stores/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <StoreDetail />
-                </Suspense>
+                <StoreDetail />
               </ProtectedRoute>
             } />
             <Route path="/requests" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <Requests />
-                </Suspense>
+                <Requests />
               </ProtectedRoute>
             } />
             <Route path="/request/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <RequestDetail />
-                </Suspense>
+                <RequestDetail />
               </ProtectedRoute>
             } />
             <Route path="/buyer-guide" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <BuyerGuide />
-                </Suspense>
+                <BuyerGuide />
               </ProtectedRoute>
             } />
             <Route path="/seller/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <PublicSellerProfile />
-                </Suspense>
+                <PublicSellerProfile />
               </ProtectedRoute>
             } />
             <Route path="/public-seller-profile/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <PublicSellerProfile />
-                </Suspense>
+                <PublicSellerProfile />
               </ProtectedRoute>
             } />
             <Route path="/generate-og-image" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <Suspense fallback={<RouteSuspenseFallback />}>
-                  <GenerateOGImage />
-                </Suspense>
+                <GenerateOGImage />
               </ProtectedRoute>
             } />
 
@@ -376,16 +385,119 @@ const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             } />
 
-            {/* Admin routes */}
-            {getAdminRoutes().map((route, index) => (
-              <Route key={`admin-${index}`} path={route.path} element={route.element} />
-            ))}
+            {/* Админские маршруты */}
+            <Route path="/admin" element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } />
+            <Route path="/admin/add-product" element={
+              <AdminRoute>
+                <AdminAddProduct />
+              </AdminRoute>
+            } />
+            <Route path="/admin/users" element={
+              <AdminRoute>
+                <AdminUsers />
+              </AdminRoute>
+            } />
+            <Route path="/admin/products" element={
+              <AdminRoute>
+                <AdminProducts />
+              </AdminRoute>
+            } />
+            <Route path="/admin/orders" element={
+              <AdminRoute>
+                <AdminOrders />
+              </AdminRoute>
+            } />
+            <Route path="/admin/orders/:id" element={
+              <AdminRoute>
+                <AdminOrderDetails />
+              </AdminRoute>
+            } />
+            <Route path="/admin/free-order" element={
+              <AdminRoute>
+                <AdminFreeOrder />
+              </AdminRoute>
+            } />
+            <Route path="/admin/create-order-from-product" element={
+              <AdminRoute>
+                <AdminCreateOrderFromProduct />
+              </AdminRoute>
+            } />
+            <Route path="/admin/create-order-from-product/:id" element={
+              <AdminRoute>
+                <AdminCreateOrderFromProduct />
+              </AdminRoute>
+            } />
+            <Route path="/admin/sell-product" element={
+              <AdminRoute>
+                <AdminSellProduct />
+              </AdminRoute>
+            } />
+            <Route path="/admin/stores" element={
+              <AdminRoute>
+                <AdminStores />
+              </AdminRoute>
+            } />
+            <Route path="/admin/optimized-stores" element={
+              <AdminRoute>
+                <OptimizedAdminStores />
+              </AdminRoute>
+            } />
+            <Route path="/admin/events" element={
+              <AdminRoute>
+                <AdminEvents />
+              </AdminRoute>
+            } />
+            <Route path="/admin/logistics" element={
+              <AdminRoute>
+                <AdminLogistics />
+              </AdminRoute>
+            } />
+            <Route path="/admin/car-catalog" element={
+              <AdminRoute>
+                <AdminCarCatalog />
+              </AdminRoute>
+            } />
+            <Route path="/admin/messages" element={
+              <AdminRoute>
+                <AdminMessages />
+              </AdminRoute>
+            } />
+            <Route path="/admin/price-offers" element={
+              <AdminRoute>
+                <AdminPriceOffers />
+              </AdminRoute>
+            } />
+            <Route path="/admin/product-moderation" element={
+              <AdminRoute>
+                <AdminProductModeration />
+              </AdminRoute>
+            } />
+            <Route path="/admin/telegram-monitoring" element={
+              <AdminRoute>
+                <AdminTelegramMonitoring />
+              </AdminRoute>
+            } />
+            <Route path="/admin/help-editor" element={
+              <AdminRoute>
+                <AdminHelpEditor />
+              </AdminRoute>
+            } />
+            <Route path="/admin/synonyms" element={
+              <AdminRoute>
+                <AdminSynonyms />
+              </AdminRoute>
+            } />
 
             {/* Catch-all маршрут */}
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+        </Suspense>
       </RouteErrorBoundary>
     </>
   );
