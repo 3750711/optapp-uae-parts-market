@@ -1,8 +1,8 @@
 
 import React, { Suspense, useEffect } from "react";
-// import { Toaster } from "@/components/ui/toaster"; // Временно отключено для диагностики
-// import { Toaster as Sonner } from "@/components/ui/sonner"; // Временно отключено для диагностики
-// import { TooltipProvider } from "@/components/ui/tooltip"; // Временно отключено для диагностики
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -63,13 +63,13 @@ const App = () => {
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <QueryClientProvider client={queryClient}>
             <BrowserRouter>
-            {/* <TooltipProvider> */} {/* Временно отключено для диагностики */}
-              {/* <Toaster /> */} {/* Временно отключено для диагностики */}
-              {/* <Sonner /> */} {/* Временно отключено для диагностики */}
-              <Suspense fallback={<RouteLoader />}>
-                <AppRoutes />
-              </Suspense>
-            {/* </TooltipProvider> */}
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <Suspense fallback={<RouteLoader />}>
+                  <AppRoutes />
+                </Suspense>
+              </TooltipProvider>
             </BrowserRouter>
           </QueryClientProvider>
         </ThemeProvider>
