@@ -426,7 +426,7 @@ export const useSellerPriceOffers = () => {
     refetchOnWindowFocus: true,
   });
 
-  // Real-time updates are handled by SellerPriceOffersRealtime component
+  // Real-time updates are now handled by unified RealtimeProvider context
 
   return query;
 };

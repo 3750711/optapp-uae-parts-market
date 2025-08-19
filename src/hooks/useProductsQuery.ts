@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/product';
@@ -27,7 +27,6 @@ export const useProductsQuery = ({
   pageSize = 12
 }: UseProductsQueryProps) => {
   const queryClient = useQueryClient();
-  const realtimeChannelRef = useRef<any>(null);
 
   const fetchProducts = async ({ pageParam = 0 }: { pageParam?: number }): Promise<Page> => {
     let query = supabase
@@ -103,38 +102,9 @@ export const useProductsQuery = ({
     return queryResult.data?.pages.flatMap(page => page.data) || [];
   }, [queryResult.data]);
 
-  // Real-time subscription for products changes with deduplication
-  useEffect(() => {
-    // Prevent duplicate channels
-    if (realtimeChannelRef.current) {
-      return;
-    }
-
-    const channel = supabase
-      .channel('products-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'products'
-        },
-        (payload) => {
-          // Only invalidate admin-products queries
-          queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-        }
-      )
-      .subscribe();
-
-    realtimeChannelRef.current = channel;
-
-    return () => {
-      if (realtimeChannelRef.current) {
-        supabase.removeChannel(realtimeChannelRef.current);
-        realtimeChannelRef.current = null;
-      }
-    };
-  }, [queryClient]);
+  // Real-time subscription now handled by unified RealtimeProvider
+  // This hook only manages the query logic
+  // Realtime updates are handled centrally to prevent duplicate subscriptions
 
   return {
     ...queryResult,
