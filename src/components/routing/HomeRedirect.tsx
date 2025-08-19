@@ -38,9 +38,19 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
   }
   
   // If user is not authenticated, show home page
-  if (!user || !profile) {
-    console.log("🚀 HomeRedirect: No user/profile, showing home page");
+  if (!user) {
+    console.log("🚀 HomeRedirect: No user, showing home page");
     return <>{children}</>;
+  }
+
+  // ✅ ИСПРАВЛЕНИЕ: Устранение фликера - показываем спиннер пока профиль загружается
+  if (user && !profile) {
+    console.log("🚀 HomeRedirect: User exists but profile loading, showing spinner");
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>
+      </div>
+    );
   }
   
   console.log("🚀 HomeRedirect: User authenticated, determining redirect", {

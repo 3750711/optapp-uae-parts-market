@@ -220,6 +220,13 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   }, [user, profile]);
 
   useEffect(() => {
+    console.log('🔍 TelegramLoginWidget: Setting up widget', {
+      widgetRefExists: !!widgetRef.current,
+      scriptLoaded: scriptLoadedRef.current,
+      widgetSize,
+      timestamp: new Date().toISOString()
+    });
+
     // Set up global callback
     window.TelegramLoginWidget = {
       dataOnauth: handleTelegramAuth
@@ -227,6 +234,8 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
     // Load Telegram widget script if not already loaded
     if (!scriptLoadedRef.current && widgetRef.current) {
+      console.log('🔍 TelegramLoginWidget: Creating and loading script');
+      
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
       script.setAttribute('data-telegram-login', 'Optnewads_bot'); // Configured bot username
@@ -235,8 +244,27 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       script.setAttribute('data-request-access', 'write');
       script.async = true;
 
+      // ✅ ИСПРАВЛЕНИЕ: Добавляем обработчики загрузки для диагностики
+      script.onload = () => {
+        console.log('✅ TelegramLoginWidget: Script loaded successfully');
+      };
+      
+      script.onerror = (error) => {
+        console.error('❌ TelegramLoginWidget: Script loading failed', error);
+      };
+
       widgetRef.current.appendChild(script);
       scriptLoadedRef.current = true;
+      
+      console.log('🔍 TelegramLoginWidget: Script added to DOM', {
+        src: script.src,
+        attributes: Array.from(script.attributes).map(attr => `${attr.name}="${attr.value}"`),
+        parentElement: widgetRef.current.className
+      });
+    } else if (scriptLoadedRef.current) {
+      console.log('🔍 TelegramLoginWidget: Script already loaded, skipping');
+    } else if (!widgetRef.current) {
+      console.warn('⚠️ TelegramLoginWidget: widgetRef.current is null, cannot load script');
     }
 
     return () => {

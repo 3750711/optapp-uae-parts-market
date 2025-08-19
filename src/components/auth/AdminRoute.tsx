@@ -51,6 +51,30 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
 
   devLog('🔍 AdminRoute state:', authState);
 
+  // ✅ ИСПРАВЛЕНИЕ: Вынос useEffect наверх компонента (не условно)
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  React.useEffect(() => {
+    if (authState.isAdmin === null) {
+      // Очистка предыдущего таймаута если есть
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        if (authState.isAdmin === null) {
+          console.warn('⚠️ Admin check timeout - forcing fallback');
+          refreshAdminStatus();
+        }
+      }, 5000); // 5 секунд таймаут
+      
+      return () => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+      };
+    }
+  }, [authState.isAdmin, refreshAdminStatus]);
+
   // Состояние загрузки
   if (authState.isLoading) {
     return fallback || (
@@ -168,21 +192,9 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // isAdmin === null - ждем проверки прав с таймаутом
+  // isAdmin === null - ждем проверки прав с таймаутом  
   if (authState.isAdmin === null) {
     devLog('⏳ Waiting for admin rights check...');
-    
-    // Добавляем таймаут для предотвращения зависания
-    React.useEffect(() => {
-      const timeout = setTimeout(() => {
-        if (authState.isAdmin === null) {
-          console.warn('⚠️ Admin check timeout - forcing fallback');
-          refreshAdminStatus();
-        }
-      }, 5000); // 5 секунд таймаут
-      
-      return () => clearTimeout(timeout);
-    }, [authState.isAdmin, refreshAdminStatus]);
     
     return (
       <div className="flex items-center justify-center min-h-screen">
