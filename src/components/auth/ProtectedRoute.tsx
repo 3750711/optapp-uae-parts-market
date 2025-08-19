@@ -29,6 +29,14 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
       isEmailConfirmed: profile?.email_confirmed
     };
   }, [user, profile]);
+
+  // ✅ ИСПРАВЛЕНИЕ: Все useEffect вызовы в начале компонента (не условно)
+  React.useEffect(() => {
+    // Показываем toast только для заблокированных пользователей
+    if (authChecks.verificationStatus === 'blocked' && authChecks.hasProfile) {
+      toast.error("Доступ ограничен. Ваш аккаунт заблокирован.");
+    }
+  }, [authChecks.verificationStatus, authChecks.hasProfile]);
   
   console.log("🔒 ProtectedRoute: Detailed auth check:", {
     path: location.pathname,
@@ -114,12 +122,6 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
   // Check if user is blocked
   if (authChecks.verificationStatus === 'blocked') {
     devLog("ProtectedRoute: User is blocked");
-    
-    // Show toast after redirect to avoid render-time side effect
-    React.useEffect(() => {
-      toast.error("Доступ ограничен. Ваш аккаунт заблокирован.");
-    }, []);
-    
     return <Navigate to="/" replace />;
   }
 
