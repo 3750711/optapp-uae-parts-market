@@ -3,13 +3,7 @@ const CACHE_NAME = 'partsbay-pwa-v1';
 const STATIC_CACHE_NAME = 'partsbay-static-v1';
 
 // Essential resources to cache
-const ESSENTIAL_RESOURCES = [
-  '/',
-  '/catalog',
-  '/admin/free-order',
-  '/admin/add-product',
-  '/offline.html'
-];
+const ESSENTIAL_RESOURCES = ['/', '/offline.html'];
 
 // Static assets to cache
 const STATIC_RESOURCES = [
@@ -27,8 +21,8 @@ self.addEventListener('install', (event) => {
       caches.open(STATIC_CACHE_NAME).then(cache => cache.addAll(STATIC_RESOURCES))
     ]).then(() => {
       console.log('✅ SW: Installation complete');
-      // Skip waiting to activate immediately
-      return self.skipWaiting();
+      // Даем новой версии перейти в waiting (для мягкого обновления)
+      return;
     })
   );
 });

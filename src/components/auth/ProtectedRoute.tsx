@@ -30,10 +30,12 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
     };
   }, [user, profile]);
 
-  // ✅ ИСПРАВЛЕНИЕ: Все useEffect вызовы в начале компонента (не условно)
+  // ✅ ИСПРАВЛЕНИЕ: Защита от дублирования toast с useRef
+  const didToast = React.useRef(false);
   React.useEffect(() => {
     // Показываем toast только для заблокированных пользователей
-    if (authChecks.verificationStatus === 'blocked' && authChecks.hasProfile) {
+    if (authChecks.verificationStatus === 'blocked' && authChecks.hasProfile && !didToast.current) {
+      didToast.current = true;
       toast.error("Доступ ограничен. Ваш аккаунт заблокирован.");
     }
   }, [authChecks.verificationStatus, authChecks.hasProfile]);
