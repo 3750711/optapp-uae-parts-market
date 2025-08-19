@@ -6,42 +6,10 @@ import { Notification } from '@/types/notification';
 import { toast } from '@/hooks/use-toast';
 import { getNotificationTranslations } from '@/utils/notificationTranslations';
 
-// ДИАГНОСТИКА REACT DISPATCHER
-console.log('🔍 [useNotifications] React hooks availability check:', {
-  useState: typeof useState,
-  useEffect: typeof useEffect,
-  useCallback: typeof useCallback,
-  useMemo: typeof useMemo,
-  reactInternals: typeof (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
-  dispatcher: (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher?.current
-});
-
 export const useNotifications = () => {
-  console.log('🔍 [useNotifications] Hook execution start');
-  
-  // Проверка React dispatcher перед использованием хуков
-  const reactInternals = (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
-  if (!reactInternals?.ReactCurrentDispatcher?.current) {
-    console.error('❌ [useNotifications] React dispatcher is null! Hook called outside React context');
-    // Возвращаем безопасные значения по умолчанию
-    return {
-      notifications: [],
-      unreadCount: 0,
-      loading: false,
-      markAsRead: () => Promise.resolve(),
-      markAllAsRead: () => Promise.resolve(),
-      deleteNotification: () => Promise.resolve(),
-      refetch: () => Promise.resolve()
-    };
-  }
-
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  
-  console.log('🔍 [useNotifications] State hooks initialized successfully');
-  
   const { user, profile } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Memoize unread count calculation to avoid recalculation on every render
   const memoizedUnreadCount = useMemo(() => {
@@ -88,7 +56,6 @@ export const useNotifications = () => {
       });
 
       setNotifications(processedNotifications);
-      setUnreadCount(processedNotifications?.filter(n => !n.read).length || 0);
     } catch (error) {
       console.error('❌ [useNotifications] Error fetching notifications:', error);
       const errorTitle = profile?.user_type === 'seller' ? 'Error' : 'Ошибка';

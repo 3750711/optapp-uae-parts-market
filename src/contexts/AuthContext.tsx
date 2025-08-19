@@ -3,12 +3,6 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 
-// ДИАГНОСТИКА REACT - проверим версию и dispatcher
-console.log("🔍 [React auth]", React.version, "URL:", import.meta.url);
-console.log("🔍 React dispatcher:", {
-  current: (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher?.current
-});
-
 type UserProfile = Database["public"]["Tables"]["profiles"]["Row"];
 
 interface AuthContextType {

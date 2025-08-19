@@ -2,14 +2,18 @@ import React from "react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-// КРИТИЧЕСКАЯ ДИАГНОСТИКА: Проверяем React версии и dispatcher
-console.log("🔍 [React main]", React.version, "URL:", import.meta.url);
-console.log("🔍 React export keys:", Object.keys(React));
-console.log("🔍 React internals check:", {
-  hasInternals: !!(React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
-  hasDispatcher: !!(React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher,
-  currentDispatcher: (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher?.current
-});
+// Critical React version diagnostics (non-blocking)
+try {
+  console.log("🔍 [React main]", React.version, "URL:", import.meta.url);
+  console.log("🔍 React export keys:", Object.keys(React));
+  console.log("🔍 React internals check:", {
+    hasInternals: !!(React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED,
+    hasDispatcher: !!(React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher,
+    currentDispatcher: (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher?.current
+  });
+} catch (error) {
+  console.warn("React diagnostics failed (non-critical):", error);
+}
 
 import App from "./App.tsx";
 import "./index.css";
