@@ -32,12 +32,16 @@ const initApp = () => {
   const root = createRoot(rootElement);
   
   // Рендерим приложение
+  // Use StrictMode only in development to avoid double initialization
+  const Shell = ({ children }: { children: React.ReactNode }) =>
+    import.meta.env.DEV ? <StrictMode>{children}</StrictMode> : <>{children}</>;
+
   root.render(
-    <StrictMode>
+    <Shell>
       <AuthProvider>
         <App />
       </AuthProvider>
-    </StrictMode>
+    </Shell>
   );
 };
 

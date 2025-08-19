@@ -46,16 +46,16 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
   const [open, setOpen] = React.useState(false);
   const { isAdmin } = useAdminAccess();
 
-const form = useForm({
-  resolver: zodResolver(formSchema),
-  defaultValues: {
-    status: product.status,
-  },
-});
-const { isSubmitting, guardedSubmit } = useSubmissionGuard({ timeout: 3000 });
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      status: product.status,
+    },
+  });
+  const { isSubmitting, guardedSubmit } = useSubmissionGuard({ timeout: 3000 });
 
-const onSubmit = (values: z.infer<typeof formSchema>) =>
-  guardedSubmit(async () => {
+  const onSubmit = (values: z.infer<typeof formSchema>) =>
+    guardedSubmit(async () => {
     if (!isAdmin) {
       toast({
         title: "Ошибка",
