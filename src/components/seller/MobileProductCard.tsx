@@ -2,18 +2,7 @@ import React from "react";
 import { Badge } from "@/components/ui/badge";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { Eye } from "lucide-react";
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-}
+import { Product } from "@/types/product";
 
 interface MobileProductCardProps {
   product: Product;
@@ -57,7 +46,7 @@ const MobileProductCard = React.memo(({ product, onSelect, onPreview }: MobilePr
       <div className="p-3 space-y-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           <Badge variant="outline" className="text-xs">
-            Lot: {product.lot_number}
+            Lot: {product.lot_number || 'N/A'}
           </Badge>
           <Badge 
             variant={product.status === 'active' ? 'success' : 'secondary'}

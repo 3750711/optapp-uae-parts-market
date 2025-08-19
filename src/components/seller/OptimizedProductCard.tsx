@@ -1,18 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import OptimizedImage from "@/components/ui/OptimizedImage";
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-}
+import { Product } from "@/types/product";
 
 interface OptimizedProductCardProps {
   product: Product;

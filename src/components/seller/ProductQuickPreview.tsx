@@ -3,19 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { X } from "lucide-react";
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-  description?: string;
-}
+import { Product } from "@/types/product";
 
 interface ProductQuickPreviewProps {
   product: Product | null;
@@ -72,7 +60,7 @@ const ProductQuickPreview = React.memo(({
           <div className="space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline">
-                Лот: {product.lot_number}
+                Лот: {product.lot_number || 'N/A'}
               </Badge>
               <Badge variant={product.status === 'active' ? 'success' : 'secondary'}>
                 {product.status}
