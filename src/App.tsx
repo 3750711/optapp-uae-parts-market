@@ -13,6 +13,8 @@ import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { performanceMonitor } from "@/utils/performanceMonitor";
+import { PWAIndicators } from "@/components/PWAIndicators";
+import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -46,17 +48,43 @@ const RouteLoader = React.memo(() => (
 ));
 
 const App = () => {
+  const { processSyncQueue } = useBackgroundSync();
+  
   useEffect(() => {
     // Initialize performance monitoring in development
     if (import.meta.env.DEV) {
       // Performance monitoring initialized
     }
 
+    // Listen for SW messages about background sync
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'BACKGROUND_SYNC') {
+        console.log('📱 App: Background sync requested');
+        processSyncQueue().catch(console.error);
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+    }
+
+    // Process sync queue when coming online
+    const handleOnline = () => {
+      console.log('🌐 App: Back online, processing sync queue');
+      processSyncQueue().catch(console.error);
+    };
+
+    window.addEventListener('online', handleOnline);
+
     // Cleanup on unmount
     return () => {
       performanceMonitor.destroy();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleMessage);
+      }
+      window.removeEventListener('online', handleOnline);
     };
-  }, []);
+  }, [processSyncQueue]);
 
   return (
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
@@ -68,9 +96,10 @@ const App = () => {
                 <BrowserRouter>
                   <TooltipProvider>
                     <Toaster />
-                    <Suspense fallback={<RouteLoader />}>
-                      <AppRoutes />
-                    </Suspense>
+                     <Suspense fallback={<RouteLoader />}>
+                       <AppRoutes />
+                       <PWAIndicators />
+                     </Suspense>
                   </TooltipProvider>
                 </BrowserRouter>
               </RealtimeProvider>

@@ -44,6 +44,7 @@ import {
 import LanguageToggle from '@/components/auth/LanguageToggle';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getMainPageTranslations } from '@/utils/mainPageTranslations';
+import { PWAInstallButton } from '@/components/PWAInstallButton';
 
 const Header = () => {
   const { user, signOut, profile, isLoading } = useAuth();
@@ -149,6 +150,9 @@ const Header = () => {
         <NavLinks />
 
         <div className="flex items-center space-x-3">
+          {/* PWA Install Button - desktop only, when installable */}
+          {!isMobile && <PWAInstallButton variant="outline" size="sm" />}
+          
           {/* Language Toggle - always visible */}
           <LanguageToggle 
             language={language}

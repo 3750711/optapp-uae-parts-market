@@ -27,12 +27,20 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - Clean old caches and claim clients
+// Activate event - Clean old caches and claim clients  
 self.addEventListener('activate', (event) => {
   console.log('🚀 SW: Activating...');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
+    (async () => {
+      // Enable Navigation Preload for faster page loads
+      if ('navigationPreload' in self.registration) {
+        await self.registration.navigationPreload.enable();
+        console.log('⚡ SW: Navigation Preload enabled');
+      }
+      
+      // Clean up old caches
+      const cacheNames = await caches.keys();
+      await Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME && cacheName !== STATIC_CACHE_NAME) {
             console.log('🗑️ SW: Deleting old cache:', cacheName);
@@ -40,10 +48,10 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
-    }).then(() => {
+      
       console.log('✅ SW: Activated and claimed clients');
       return self.clients.claim();
-    })
+    })()
   );
 });
 
@@ -160,10 +168,32 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Prevent SW from being killed during background sync
+// Background sync handling with client communication
 self.addEventListener('sync', (event) => {
-  console.log('🔄 SW: Background sync triggered');
+  console.log('🔄 SW: Background sync triggered', event.tag);
+  
+  if (event.tag.startsWith('sync-')) {
+    event.waitUntil(handleBackgroundSync(event.tag));
+  }
 });
+
+// Background sync handler
+async function handleBackgroundSync(tag) {
+  console.log('📱 SW: Processing background sync:', tag);
+  
+  try {
+    // Notify the client to process sync queue
+    const clients = await self.clients.matchAll();
+    for (const client of clients) {
+      client.postMessage({
+        type: 'BACKGROUND_SYNC',
+        tag: tag
+      });
+    }
+  } catch (error) {
+    console.error('❌ SW: Background sync failed:', error);
+  }
+}
 
 // Handle push notifications (if needed in future)
 self.addEventListener('push', (event) => {
