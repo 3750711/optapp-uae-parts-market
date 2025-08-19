@@ -131,3 +131,5 @@ export const logger = {
 export const devLog = logger.log;
 export const devError = logger.error;
 export const devWarn = logger.warn;
+export const prodError = logger.error;
+export const throttledDevLog = logger.log;
