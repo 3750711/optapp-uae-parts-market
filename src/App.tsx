@@ -98,7 +98,10 @@ const App = () => {
                     <Toaster />
                      <Suspense fallback={<RouteLoader />}>
                        <AppRoutes />
-                       <PWAIndicators />
+                        <PWAIndicators 
+                          showOfflineIndicator={false} 
+                          showInstallStatus={false} 
+                        />
                      </Suspense>
                   </TooltipProvider>
                 </BrowserRouter>
