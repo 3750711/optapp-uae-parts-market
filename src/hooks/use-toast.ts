@@ -157,65 +157,30 @@ function dispatch(action: Action) {
 type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
-  const id = genId()
-
-  const update = (props: ToasterToast) =>
-    dispatch({
-      type: "UPDATE_TOAST",
-      toast: { ...props, id },
-    })
+  // ВРЕМЕННО ОТКЛЮЧЕНО: заглушка для toast
+  console.log('Toast disabled:', props.title || props.description)
   
-  const dismiss = () => {
-    dispatch({ type: "DISMISS_TOAST", toastId: id })
-  }
-
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      variant: props.variant || "default",
-    },
-  })
-
-  // Автоматическое закрытие через 4 секунды (по умолчанию)
-  setTimeout(() => {
-    dismiss()
-  }, 4000)
-
   return {
-    id: id,
-    dismiss,
-    update,
+    id: 'disabled',
+    dismiss: () => {},
+    update: () => {},
   }
 }
 
 function useToast() {
-  const [state, setState] = React.useState<State>(memoryState)
-
-  React.useEffect(() => {
-    listeners.add(setState)
-    
-    return () => {
-      listeners.delete(setState)
-      // Очищаем все таймауты при размонтировании
-      if (listeners.size === 0) {
-        clearAllTimeouts()
-      }
-    }
-  }, [])
-
+  // ВРЕМЕННО ОТКЛЮЧЕНО: заглушка для useToast
   return {
-    ...state,
-    toast,
-    dismiss: (toastId?: string) => {
-      dispatch({ type: "DISMISS_TOAST", toastId })
+    toasts: [],
+    toast: (props: Toast) => {
+      console.log('Toast disabled:', props.title || props.description)
+      return {
+        id: 'disabled',
+        dismiss: () => {},
+        update: () => {},
+      }
     },
-    // Добавляем метод для полной очистки
-    clear: () => {
-      dispatch({ type: "REMOVE_TOAST" })
-    }
+    dismiss: () => {},
+    clear: () => {}
   }
 }
 
