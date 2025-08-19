@@ -3,7 +3,7 @@ import React, { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 // Debug: Check React version consistency
-console.info("[React main]", React.version);
+console.info("[React main]", React.version, import.meta.url);
 import App from "./App.tsx";
 import "./index.css";
 import { AuthProvider } from "@/contexts/AuthContext";

@@ -2,7 +2,7 @@
 import React, { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+// import { TooltipProvider } from "@/components/ui/tooltip"; // Временно отключено для диагностики
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -61,13 +61,13 @@ const App = () => {
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
-            <TooltipProvider>
+            {/* <TooltipProvider> */} {/* Временно отключено для диагностики */}
               <Toaster />
               <Sonner />
               <Suspense fallback={<RouteLoader />}>
                 <AppRoutes />
               </Suspense>
-            </TooltipProvider>
+            {/* </TooltipProvider> */}
           </BrowserRouter>
         </QueryClientProvider>
       </HelmetProvider>
