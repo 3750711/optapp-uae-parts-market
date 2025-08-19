@@ -150,9 +150,22 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // isAdmin === null - ждем проверки прав
+  // isAdmin === null - ждем проверки прав с таймаутом
   if (authState.isAdmin === null) {
     devLog('⏳ Waiting for admin rights check...');
+    
+    // Добавляем таймаут для предотвращения зависания
+    React.useEffect(() => {
+      const timeout = setTimeout(() => {
+        if (authState.isAdmin === null) {
+          console.warn('⚠️ Admin check timeout - forcing fallback');
+          refreshAdminStatus();
+        }
+      }, 5000); // 5 секунд таймаут
+      
+      return () => clearTimeout(timeout);
+    }, [authState.isAdmin, refreshAdminStatus]);
+    
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

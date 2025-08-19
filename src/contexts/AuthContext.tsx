@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, []);
 
-  // Оптимизированная функция загрузки профиля с кэшированием
+  // Оптимизированная функция загрузки профиля с защитой от множественных вызовов
   const fetchUserProfile = useCallback(async (userId: string, retryCount = 0) => {
     console.log('🔧 AuthContext: fetchUserProfile called', { userId, retryCount });
     setIsProfileLoading(true);
@@ -117,16 +117,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setProfile(null);
         setIsAdmin(false);
         
-        // Retry mechanism for new users - wait a bit and try again
-        if (retryCount < 3) {
-          console.log(`Retrying profile fetch (attempt ${retryCount + 1}/3) in 1 second...`);
-          setTimeout(() => {
-            fetchUserProfile(userId, retryCount + 1);
-          }, 1000);
-          return; // Don't set loading to false yet
+        // Simplified retry mechanism - only one retry with Promise
+        if (retryCount < 1) {
+          console.log('Retrying profile fetch once more...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return fetchUserProfile(userId, retryCount + 1);
         } else {
-          console.log('Profile still not found after retries. Creating basic profile...');
-          // Try to create a basic profile for email users
+          console.log('Profile still not found after retry. Creating basic profile...');
           await createBasicProfile(userId);
         }
       }
@@ -281,10 +278,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (session?.user) {
         console.log('🔧 AuthContext: User found, fetching profile for:', session.user.id);
-        // Используем setTimeout для предотвращения блокировки
-        setTimeout(() => {
-          fetchUserProfile(session.user.id);
-        }, 0);
+        // Прямой вызов без setTimeout для устранения циклов
+        fetchUserProfile(session.user.id);
       } else {
         console.log('🔧 AuthContext: No user found, clearing state');
         setProfile(null);
@@ -307,10 +302,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (session?.user) {
         console.log('🔧 AuthContext: User in auth change, fetching profile for:', session.user.id);
-        // Используем setTimeout для предотвращения блокировки
-        setTimeout(() => {
-          fetchUserProfile(session.user.id);
-        }, 0);
+        // Прямой вызов без setTimeout для устранения циклов
+        fetchUserProfile(session.user.id);
       } else {
         console.log('🔧 AuthContext: No user in auth change, clearing state');
         setProfile(null);
