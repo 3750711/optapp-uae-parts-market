@@ -19,7 +19,7 @@ import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
 
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
-import { usePWALifecycle } from '@/utils/pwaLifecycleManager';
+import { usePWALifecycle } from '@/hooks/usePWALifecycle';
 
 export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);

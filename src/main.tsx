@@ -1,6 +1,9 @@
 
-import { StrictMode } from "react";
+import React, { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+
+// Debug: Check React version consistency
+console.info("[React main]", React.version);
 import App from "./App.tsx";
 import "./index.css";
 import { initPerformanceOptimizations } from "@/utils/performanceUtils";

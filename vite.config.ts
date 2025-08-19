@@ -18,7 +18,13 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Important: force all React imports to use single instance
+      react: path.resolve(__dirname, "node_modules/react"),
+      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
+      "react/jsx-runtime": path.resolve(__dirname, "node_modules/react/jsx-runtime"),
     },
+    // Critical: prevent React duplicates
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
   },
   build: {
     // Optimized chunk splitting for better caching and loading reliability
