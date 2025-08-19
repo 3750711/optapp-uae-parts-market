@@ -60,17 +60,17 @@ const App = () => {
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AuthProvider>
+          <BrowserRouter>
+            <AuthProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
                 <Suspense fallback={<RouteLoader />}>
                   <AppRoutes />
                 </Suspense>
-              </AuthProvider>
-            </BrowserRouter>
-          </TooltipProvider>
+              </TooltipProvider>
+            </AuthProvider>
+          </BrowserRouter>
         </QueryClientProvider>
       </HelmetProvider>
     </GlobalErrorBoundary>

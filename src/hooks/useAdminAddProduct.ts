@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useProductTitleParser } from "@/utils/productTitleParser";
+import { createProductTitleParser } from "@/utils/productTitleParser";
 import { adminProductSchema, AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useAllCarBrands } from "@/hooks/useAllCarBrands";
@@ -39,13 +39,13 @@ export const useAdminAddProduct = () => {
 
   const { createProductWithTransaction, isCreating } = useAdminProductCreation();
 
-  // Исправляем передачу функций в parseProductTitle - передаем только необходимые функции
-  const { parseProductTitle } = useProductTitleParser(
-    brands,
-    allModels,
-    findBrandIdByName,
-    findModelIdByName
-  );
+  // Create parser function with current brands and models data
+  const parseProductTitle = useMemo(() => {
+    if (brands.length > 0 && allModels.length > 0) {
+      return createProductTitleParser(brands, allModels);
+    }
+    return () => ({ brandId: null, modelId: null });
+  }, [brands, allModels]);
 
   const form = useForm<AdminProductFormValues>({
     resolver: zodResolver(adminProductSchema),

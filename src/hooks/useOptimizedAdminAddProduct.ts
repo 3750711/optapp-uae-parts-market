@@ -1,10 +1,10 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
-import { useProductTitleParser } from "@/utils/productTitleParser";
+import { createProductTitleParser } from "@/utils/productTitleParser";
 import { adminProductSchema, AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useAdminProductCreation } from "@/hooks/useAdminProductCreation";
@@ -84,12 +84,13 @@ export const useOptimizedAdminAddProduct = () => {
     )?.id;
   }, [allModels]);
 
-  const { parseProductTitle } = useProductTitleParser(
-    brands,
-    allModels,
-    findBrandIdByName,
-    findModelIdByName
-  );
+  // Create parser function with current brands and models data
+  const parseProductTitle = useMemo(() => {
+    if (brands.length > 0 && allModels.length > 0) {
+      return createProductTitleParser(brands, allModels);
+    }
+    return () => ({ brandId: null, modelId: null });
+  }, [brands, allModels]);
 
   // Silent restore on mount: restore fields in order and media
   useEffect(() => {

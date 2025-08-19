@@ -14,7 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useLazyCarBrands } from "@/hooks/useLazyCarBrands";
-import { useProductTitleParser } from "@/utils/productTitleParser";
+import { createProductTitleParser } from "@/utils/productTitleParser";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import {
@@ -102,12 +102,12 @@ const SellerAddProduct = () => {
   }, [enableBrandsLoading]);
 
   // Initialize our title parser (only when needed)
-  const { parseProductTitle } = useProductTitleParser(
-    brands,
-    allModels,
-    findBrandIdByName,
-    findModelIdByName
-  );
+  const parseProductTitle = useMemo(() => {
+    if (brands.length > 0 && allModels.length > 0) {
+      return createProductTitleParser(brands, allModels);
+    }
+    return () => ({ brandId: null, modelId: null });
+  }, [brands, allModels]);
 
   // Get form data for autosave - use getValues instead of watch to avoid reactivity
   const getFormDataForAutosave = useCallback(() => form.getValues(), [form]);
