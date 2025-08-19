@@ -102,8 +102,11 @@ try {
   // Initialize PWA and mobile optimizations first
   initMobileOptimizations();
   
-  // Register service worker for PWA functionality - ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ДИАГНОСТИКИ
-  // registerServiceWorker();
+  // Register service worker for PWA functionality
+  registerServiceWorker().catch(error => {
+    console.warn('SW registration failed:', error);
+    // Не блокируем работу приложения при неудаче регистрации SW
+  });
   
   initApp();
   
