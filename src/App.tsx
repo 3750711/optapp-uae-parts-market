@@ -61,15 +61,13 @@ const App = () => {
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
-            <AuthProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <Suspense fallback={<RouteLoader />}>
-                  <AppRoutes />
-                </Suspense>
-              </TooltipProvider>
-            </AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Suspense fallback={<RouteLoader />}>
+                <AppRoutes />
+              </Suspense>
+            </TooltipProvider>
           </BrowserRouter>
         </QueryClientProvider>
       </HelmetProvider>

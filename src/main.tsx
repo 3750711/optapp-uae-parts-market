@@ -6,6 +6,7 @@ import { createRoot } from "react-dom/client";
 console.info("[React main]", React.version);
 import App from "./App.tsx";
 import "./index.css";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { initPerformanceOptimizations } from "@/utils/performanceUtils";
 import { initializeClarity } from "@/utils/clarityTracking";
 import { initMobileOptimizations } from "@/utils/mobileOptimizations";
@@ -31,7 +32,9 @@ const initApp = () => {
   // Рендерим приложение
   root.render(
     <StrictMode>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </StrictMode>
   );
 };

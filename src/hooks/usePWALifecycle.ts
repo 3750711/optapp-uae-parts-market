@@ -1,18 +1,6 @@
 import { useEffect } from 'react';
 import { pwaLifecycleManager } from '@/utils/pwaLifecycleManager';
-
-interface LifecycleOptions {
-  onVisibilityChange?: (isHidden: boolean) => void;
-  onPageHide?: () => void;
-  onPageShow?: (event: PageTransitionEvent) => void;
-  onFreeze?: () => void;
-  onResume?: () => void;
-  onFocus?: () => void;
-  onBlur?: () => void;
-  enableBfcacheOptimization?: boolean;
-  debounceDelay?: number;
-  skipFastSwitching?: boolean;
-}
+import { LifecycleOptions } from '@/types/pwa';
 
 // Hook for React components
 export const usePWALifecycle = (id: string, options: LifecycleOptions) => {

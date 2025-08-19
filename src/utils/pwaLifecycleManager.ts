@@ -1,18 +1,6 @@
 // PWA-optimized lifecycle management to prevent constant refreshes
 import { debounce } from '@/utils/debounce';
-
-interface LifecycleOptions {
-  onVisibilityChange?: (isHidden: boolean) => void;
-  onPageHide?: () => void;
-  onPageShow?: (event: PageTransitionEvent) => void;
-  onFreeze?: () => void;
-  onResume?: () => void;
-  onFocus?: () => void;
-  onBlur?: () => void;
-  enableBfcacheOptimization?: boolean;
-  debounceDelay?: number;
-  skipFastSwitching?: boolean;
-}
+import { LifecycleOptions } from '@/types/pwa';
 
 class PWALifecycleManager {
   private listeners: Map<string, LifecycleOptions> = new Map();
