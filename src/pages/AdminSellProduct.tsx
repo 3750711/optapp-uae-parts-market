@@ -68,10 +68,7 @@ const AdminSellProduct = () => {
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
   const { executeWithRetry, isRetrying } = useRetryMechanism();
   const { toast } = useToast();
-  const { checkRateLimit } = useRateLimit({
-    windowMs: 60000, // 1 минута
-    maxRequests: 5    // 5 заказов в минуту
-  });
+  const { checkRateLimit } = useRateLimit();
 
   // Restore saved state and load buyers on initialization
   useEffect(() => {
@@ -149,7 +146,12 @@ const AdminSellProduct = () => {
     
     
     // Проверяем rate limit
-    if (!checkRateLimit('создание заказа')) {
+    const rateLimitPassed = await checkRateLimit('order_creation', {
+      limitPerHour: 5,
+      windowMinutes: 60
+    });
+    
+    if (!rateLimitPassed) {
       return;
     }
 

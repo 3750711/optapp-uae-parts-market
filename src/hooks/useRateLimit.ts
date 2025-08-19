@@ -1,53 +1,119 @@
 
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 interface RateLimitConfig {
-  windowMs: number;
-  maxRequests: number;
+  limitPerHour?: number;
+  windowMinutes?: number;
 }
 
-const DEFAULT_CONFIG: RateLimitConfig = {
-  windowMs: 60000, // 1 минута
-  maxRequests: 10   // 10 запросов в минуту
-};
+interface RateLimitResponse {
+  allowed: boolean;
+  remainingRequests: number;
+  resetTime: string;
+  message?: string;
+}
 
-export const useRateLimit = (config: Partial<RateLimitConfig> = {}) => {
+export const useRateLimit = () => {
   const { toast } = useToast();
-  const { windowMs, maxRequests } = { ...DEFAULT_CONFIG, ...config };
-  const requestsRef = useRef<number[]>([]);
 
-  const checkRateLimit = useCallback((operationName = 'операция'): boolean => {
-    const now = Date.now();
-    
-    // Удаляем старые запросы
-    requestsRef.current = requestsRef.current.filter(
-      timestamp => now - timestamp < windowMs
-    );
-    
-    if (requestsRef.current.length >= maxRequests) {
-      toast({
-        title: "Превышен лимит запросов",
-        description: `Слишком много попыток выполнить ${operationName}. Попробуйте позже.`,
-        variant: "destructive",
+  const checkRateLimit = useCallback(async (
+    action: string, 
+    config: RateLimitConfig = {}
+  ): Promise<boolean> => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        logger.warn('Rate limit check attempted without authenticated user');
+        return false;
+      }
+
+      // Call rate limiter edge function
+      const { data, error } = await supabase.functions.invoke('rate-limiter', {
+        body: {
+          userId: user.id,
+          action,
+          limitPerHour: config.limitPerHour || 60,
+          windowMinutes: config.windowMinutes || 60,
+        }
       });
-      return false;
-    }
-    
-    requestsRef.current.push(now);
-    return true;
-  }, [windowMs, maxRequests, toast]);
 
-  const getRemainingRequests = useCallback((): number => {
-    const now = Date.now();
-    requestsRef.current = requestsRef.current.filter(
-      timestamp => now - timestamp < windowMs
-    );
-    return maxRequests - requestsRef.current.length;
-  }, [windowMs, maxRequests]);
+      if (error) {
+        logger.error('Rate limit check failed', error);
+        // Allow action on rate limiter failure to avoid blocking users
+        return true;
+      }
+
+      const response = data as RateLimitResponse;
+
+      if (!response.allowed) {
+        logger.security('Rate limit exceeded', {
+          action,
+          userId: user.id,
+          remainingRequests: response.remainingRequests,
+        });
+
+        toast({
+          title: "Rate Limit Exceeded",
+          description: response.message || "Too many requests. Please try again later.",
+          variant: "destructive",
+        });
+
+        return false;
+      }
+
+      // Log successful rate limit check in development
+      if (import.meta.env.DEV) {
+        logger.debug('Rate limit check passed', {
+          action,
+          remainingRequests: response.remainingRequests,
+        });
+      }
+
+      return true;
+
+    } catch (error) {
+      logger.error('Rate limit check exception', error);
+      // Allow action on exception to avoid blocking users
+      return true;
+    }
+  }, [toast]);
+
+  const getRemainingRequests = useCallback(async (
+    action: string,
+    config: RateLimitConfig = {}
+  ): Promise<number> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return 0;
+
+      const { data, error } = await supabase.functions.invoke('rate-limiter', {
+        body: {
+          userId: user.id,
+          action,
+          limitPerHour: config.limitPerHour || 60,
+          windowMinutes: config.windowMinutes || 60,
+        }
+      });
+
+      if (error || !data) {
+        return config.limitPerHour || 60; // Return full limit on error
+      }
+
+      const response = data as RateLimitResponse;
+      return response.remainingRequests;
+
+    } catch (error) {
+      logger.error('Get remaining requests failed', error);
+      return config.limitPerHour || 60;
+    }
+  }, []);
 
   return {
     checkRateLimit,
-    getRemainingRequests
+    getRemainingRequests,
   };
 };
