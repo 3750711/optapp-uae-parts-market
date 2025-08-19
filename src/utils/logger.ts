@@ -1,77 +1,133 @@
+/**
+ * Centralized logging utility with production safety
+ * Prevents sensitive data exposure and controls log verbosity
+ */
 
-// Централизованная система логирования с отключением в production
+interface LogData {
+  [key: string]: any;
+}
+
+interface SensitiveFields {
+  [key: string]: boolean;
+}
+
+const SENSITIVE_FIELDS: SensitiveFields = {
+  password: true,
+  token: true,
+  secret: true,
+  key: true,
+  authorization: true,
+  cookie: true,
+  session: true,
+  email: true,
+  phone: true,
+  telegram: true,
+  api_key: true,
+  access_token: true,
+  refresh_token: true,
+};
+
 const isDevelopment = import.meta.env.DEV;
 const isProduction = import.meta.env.PROD;
 
-// Конфигурация логирования - полностью отключено в production
-const LOG_CONFIG = {
-  enableDevLogs: isDevelopment,
-  enableProdLogs: false, // Полностью отключено в production
-  enablePerformanceLogs: false,
-  throttleEnabled: false,
-  maxLogHistory: isDevelopment ? 50 : 0
-};
-
-// Development логирование (полностью отключено в production)
-export const devLog = (...args: any[]) => {
-  if (LOG_CONFIG.enableDevLogs && isDevelopment) {
-    console.log('[DEV]', ...args);
+/**
+ * Masks sensitive data in objects for safe logging
+ */
+function maskSensitiveData(data: any): any {
+  if (typeof data !== 'object' || data === null) {
+    return data;
   }
-};
 
-export const devWarn = (...args: any[]) => {
-  if (LOG_CONFIG.enableDevLogs && isDevelopment) {
-    console.warn('[DEV]', ...args);
+  if (Array.isArray(data)) {
+    return data.map(maskSensitiveData);
   }
-};
 
-export const devError = (...args: any[]) => {
-  if (LOG_CONFIG.enableDevLogs && isDevelopment) {
-    console.error('[DEV]', ...args);
+  const masked: any = {};
+  for (const [key, value] of Object.entries(data)) {
+    const lowerKey = key.toLowerCase();
+    const isSensitive = Object.keys(SENSITIVE_FIELDS).some(field => 
+      lowerKey.includes(field)
+    );
+    
+    if (isSensitive) {
+      masked[key] = '***REDACTED***';
+    } else if (typeof value === 'object') {
+      masked[key] = maskSensitiveData(value);
+    } else {
+      masked[key] = value;
+    }
   }
+  
+  return masked;
+}
+
+/**
+ * Safe console.log replacement
+ */
+export const logger = {
+  log: (message: string, data?: LogData) => {
+    if (isDevelopment) {
+      if (data) {
+        console.log(`🔍 ${message}`, maskSensitiveData(data));
+      } else {
+        console.log(`🔍 ${message}`);
+      }
+    }
+  },
+
+  info: (message: string, data?: LogData) => {
+    if (data) {
+      console.info(`ℹ️ ${message}`, maskSensitiveData(data));
+    } else {
+      console.info(`ℹ️ ${message}`);
+    }
+  },
+
+  warn: (message: string, data?: LogData) => {
+    if (data) {
+      console.warn(`⚠️ ${message}`, maskSensitiveData(data));
+    } else {
+      console.warn(`⚠️ ${message}`);
+    }
+  },
+
+  error: (message: string, error?: any, data?: LogData) => {
+    const errorInfo: any = {
+      message: error?.message || error,
+      stack: isDevelopment ? error?.stack : undefined,
+    };
+    
+    if (data) {
+      errorInfo.data = maskSensitiveData(data);
+    }
+
+    console.error(`❌ ${message}`, errorInfo);
+  },
+
+  debug: (message: string, data?: LogData) => {
+    if (isDevelopment) {
+      if (data) {
+        console.debug(`🐛 ${message}`, maskSensitiveData(data));
+      } else {
+        console.debug(`🐛 ${message}`);
+      }
+    }
+  },
+
+  security: (message: string, data?: LogData) => {
+    // Security events should always be logged, even in production
+    const securityEvent = {
+      timestamp: new Date().toISOString(),
+      event: message,
+      data: data ? maskSensitiveData(data) : undefined,
+      environment: isProduction ? 'production' : 'development',
+    };
+    
+    console.warn(`🔒 SECURITY: ${message}`, securityEvent);
+  },
 };
 
-// Production error logging (только критические ошибки)
-export const prodError = (error: Error | string, context?: Record<string, any>) => {
-  if (isProduction) {
-    // В production логируем только критические ошибки без дополнительной информации
-    const errorMessage = typeof error === 'string' ? error : error.message;
-    console.error('[PROD]', errorMessage);
-  } else if (isDevelopment) {
-    // В development логируем подробнее
-    const errorMessage = typeof error === 'string' ? error : error.message;
-    const stack = typeof error === 'object' ? error.stack : undefined;
-    console.error('[DEV] Error:', errorMessage, context, stack ? { stack } : {});
-  }
-};
-
-// Критические ошибки (минимальное логирование)
-export const criticalError = (error: Error | string, context?: Record<string, any>) => {
-  const errorMessage = typeof error === 'string' ? error : error.message;
-  console.error('[CRITICAL]', errorMessage);
-};
-
-// Performance logging (полностью отключено)
-export const perfStart = (label: string) => {
-  // Отключено для производительности
-};
-
-export const perfEnd = (label: string) => {
-  // Отключено для производительности
-};
-
-// Отключенная метрика производительности
-export const trackMetric = (name: string, value: number, tags?: Record<string, string>) => {
-  // Отключено
-};
-
-// Throttled logging (только для development)
-export const throttledDevLog = (key: string, ...args: any[]) => {
-  if (isDevelopment && LOG_CONFIG.enableDevLogs) {
-    console.log(...args);
-  }
-};
-
-// Заглушки для совместимости
-export const resetLogCounters = () => {};
-export const getLogStats = () => ({ disabled: 'production mode' });
+// Export for backward compatibility (to be removed gradually)
+export const devLog = logger.log;
+export const devError = logger.error;
+export const devWarn = logger.warn;
