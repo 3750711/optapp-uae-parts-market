@@ -99,8 +99,8 @@ try {
   // Initialize PWA and mobile optimizations first
   initMobileOptimizations();
   
-  // Register service worker for PWA functionality
-  registerServiceWorker();
+  // Register service worker for PWA functionality - ВРЕМЕННО ОТКЛЮЧЕНО ДЛЯ ДИАГНОСТИКИ
+  // registerServiceWorker();
   
   initApp();
   

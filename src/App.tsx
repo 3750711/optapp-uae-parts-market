@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "next-themes";
 import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
@@ -59,8 +60,9 @@ const App = () => {
   return (
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter>
             {/* <TooltipProvider> */} {/* Временно отключено для диагностики */}
               {/* <Toaster /> */} {/* Временно отключено для диагностики */}
               {/* <Sonner /> */} {/* Временно отключено для диагностики */}
@@ -68,8 +70,9 @@ const App = () => {
                 <AppRoutes />
               </Suspense>
             {/* </TooltipProvider> */}
-          </BrowserRouter>
-        </QueryClientProvider>
+            </BrowserRouter>
+          </QueryClientProvider>
+        </ThemeProvider>
       </HelmetProvider>
     </GlobalErrorBoundary>
   );
