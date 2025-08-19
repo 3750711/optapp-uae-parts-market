@@ -23,12 +23,14 @@ export const RATE_LIMITS = {
 } as const;
 
 // Content Security Policy configuration
+// WARNING: 'unsafe-eval' is required for Telegram login widget functionality
+// This is a security compromise but necessary for the Telegram widget's internal eval() calls
 export const CSP_DIRECTIVES = {
   'default-src': ["'self'"],
   'img-src': ["'self'", "https://res.cloudinary.com", "https://cdn.gpteng.co", "data:"],
   'connect-src': ["'self'", "https://*.supabase.co", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://telegram.org"],
-  'script-src': ["'self'", "'unsafe-inline'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://telegram.org"],
-  'script-src-elem': ["'self'", "'unsafe-inline'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://telegram.org"],
+  'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://telegram.org"],
+  'script-src-elem': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://telegram.org"],
   'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
   'font-src': ["'self'", "data:", "https://fonts.gstatic.com"],
   'frame-src': ["https://oauth.telegram.org"],
