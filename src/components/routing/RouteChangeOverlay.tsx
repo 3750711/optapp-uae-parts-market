@@ -18,5 +18,5 @@ export function RouteChangeOverlay({ delay = 350 }: { delay?: number }) {
   }, [location.key, delay]);
 
   if (!busy) return null;
-  return <PBLogoLoader fullscreen message="" />;
+  return <PBLogoLoader />;
 }

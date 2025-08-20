@@ -41,7 +41,7 @@ const queryClient = new QueryClient({
 
 // Компонент загрузки для lazy-loaded маршрутов
 const RouteLoader = React.memo(() => (
-  <PBLogoLoader fullscreen message="Загружаем страницу…" />
+  <PBLogoLoader />
 ));
 
 const App = () => {

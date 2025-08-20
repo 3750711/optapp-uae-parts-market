@@ -1,32 +1,22 @@
 import * as React from "react";
 import clsx from "clsx";
 
-/** Фирменный лоадер: PB + стрелки по кругу. */
-export function PBLogoLoader({
-  fullscreen = false,
-  message = "Загрузка страницы…",
-  className,
-}: {
-  fullscreen?: boolean;
-  message?: string;
-  className?: string;
-}) {
+/** Фирменный лоадер: PB + стрелки по кругу. Всегда по центру экрана. */
+export function PBLogoLoader({ className }: { className?: string }) {
   return (
     <div
       className={clsx(
-        fullscreen
-          ? "fixed inset-0 z-[9999] grid place-items-center bg-background/80 backdrop-blur-sm"
-          : "inline-flex items-center gap-3",
+        "fixed inset-0 z-[9999] grid place-items-center bg-background/80 backdrop-blur-sm",
         className
       )}
       role="status"
       aria-live="polite"
       aria-busy="true"
     >
-      <div className="relative h-24 w-24">
+      <div className="relative h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24">
         {/* PB */}
         <div className="absolute inset-0 grid place-items-center">
-          <span className="font-extrabold tracking-widest text-3xl text-foreground select-none">
+          <span className="font-extrabold tracking-widest text-xl sm:text-2xl md:text-3xl text-foreground select-none">
             PB
           </span>
         </div>
@@ -35,7 +25,7 @@ export function PBLogoLoader({
         <svg
           viewBox="0 0 100 100"
           className="absolute inset-0 h-full w-full text-primary"
-          style={{ animation: "spin 1.25s linear infinite" }} // чуть медленнее стандартного
+          style={{ animation: "spin 1.25s linear infinite" }}
         >
           <defs>
             <marker id="pb-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
@@ -72,10 +62,6 @@ export function PBLogoLoader({
           />
         </svg>
       </div>
-
-      {message && (
-        <div className="mt-4 text-sm text-muted-foreground">{message}</div>
-      )}
     </div>
   );
 }
