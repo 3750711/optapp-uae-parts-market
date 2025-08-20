@@ -291,13 +291,13 @@ const SellerSellProduct = () => {
 
       // Используем RPC функцию для создания заказов продавцами
       const orderPayload = {
-        p_title: selectedProduct.title,
+        p_title: orderData.editedData?.title || selectedProduct.title,
         p_price: orderData.price,
         p_place_number: orderData.editedData?.placeNumber || selectedProduct.place_number || 1,
         p_order_seller_name: profile.full_name || '',
         p_buyer_id: selectedBuyer.id,
-        p_brand: selectedProduct.brand || '',
-        p_model: selectedProduct.model || '',
+        p_brand: orderData.editedData?.brand || selectedProduct.brand || '',
+        p_model: orderData.editedData?.model || selectedProduct.model || '',
         p_status: 'seller_confirmed' as const,
         p_order_created_type: 'product_order' as const,
         p_telegram_url_order: selectedBuyer.telegram || '',
@@ -305,7 +305,7 @@ const SellerSellProduct = () => {
         p_videos: [], // ДОБАВЛЕНО: пустой массив видео для заказов из товаров
         p_product_id: selectedProduct.id,
         p_delivery_method: orderData.deliveryMethod as 'cargo_rf' | 'cargo_kz' | 'self_pickup',
-        p_text_order: '',
+        p_text_order: orderData.editedData?.textOrder || '',
         p_delivery_price_confirm: orderData.deliveryPrice || null
       };
 
