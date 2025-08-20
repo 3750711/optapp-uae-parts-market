@@ -563,6 +563,8 @@ const BuyerCreateOrder = () => {
                     required 
                     placeholder="0.00"
                     step="0.01"
+                    min="0"
+                    inputMode="decimal"
                   />
                 </div>
                 <div className="space-y-2">
@@ -574,6 +576,8 @@ const BuyerCreateOrder = () => {
                     onChange={(e) => handleInputChange('delivery_price', e.target.value)}
                     placeholder="0.00"
                     step="0.01"
+                    min="0"
+                    inputMode="decimal"
                   />
                 </div>
               </div>

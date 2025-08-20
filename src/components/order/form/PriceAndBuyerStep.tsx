@@ -161,6 +161,7 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
             required 
             placeholder="0.00"
             step="0.01"
+            min="0"
             inputMode="decimal"
             touched={touchedFields.has('price')}
             error={getFieldError('price')}
@@ -183,6 +184,7 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
             onChange={(e) => onInputChange('delivery_price', e.target.value)}
             placeholder="0.00"
             step="0.01"
+            min="0"
             inputMode="decimal"
           />
         </div>

@@ -146,6 +146,9 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                 value={formData.price || ''}
                 onChange={(e) => handleInputChange('price', e.target.value)}
                 placeholder="0"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
                 disabled={disabled}
                 className="bg-white"
               />
@@ -159,6 +162,9 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                 value={formData.delivery_price || ''}
                 onChange={(e) => handleInputChange('delivery_price', e.target.value)}
                 placeholder="0"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
                 disabled={disabled}
                 className="bg-white"
               />
