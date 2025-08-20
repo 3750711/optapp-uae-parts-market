@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
+import { OrderCreationTypeBadge } from '@/components/order/OrderCreationTypeBadge';
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { CompactOrderInfo } from './CompactOrderInfo';
 import { ResendNotificationButton } from './ResendNotificationButton';
@@ -28,6 +29,7 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
     email: string | null;
     phone: string | null;
     opt_status: string | null;
+    user_type: string | null;
   } | null;
 };
 
@@ -171,6 +173,11 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
             />
             <div className="flex flex-col gap-1">
               <EnhancedOrderStatusBadge status={order.status} />
+              <OrderCreationTypeBadge 
+                orderCreatedType={order.order_created_type as any}
+                sellerUserType={order.seller?.user_type}
+                className="mt-1"
+              />
               <div className="text-xs text-muted-foreground">
                 {new Date(order.created_at).toLocaleDateString('ru-RU', {
                   day: '2-digit',

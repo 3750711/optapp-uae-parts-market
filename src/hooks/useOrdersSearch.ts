@@ -29,6 +29,7 @@ export interface OrderSearchResult {
     phone: string | null;
     telegram: string | null;
     opt_id: string | null;
+    user_type?: string | null;
   };
 }
 

@@ -7,6 +7,7 @@ import { OrderSearchResult } from '@/hooks/useOrdersSearch';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
+import { OrderCreationTypeBadge } from '@/components/order/OrderCreationTypeBadge';
 import { Camera, CheckCircle } from 'lucide-react';
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
@@ -89,6 +90,14 @@ const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
               {order.created_at && new Date(order.created_at).toLocaleDateString('ru-RU')}
             </span>
           </div>
+        </div>
+
+        {/* Тип создания заказа */}
+        <div className="mb-3">
+          <OrderCreationTypeBadge 
+            orderCreatedType={order.order_created_type as any}
+            sellerUserType={order.seller?.user_type || null}
+          />
         </div>
 
         {/* Информация о товаре */}

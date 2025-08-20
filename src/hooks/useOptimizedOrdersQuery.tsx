@@ -22,6 +22,7 @@ export type Order = Database['public']['Tables']['orders']['Row'] & {
     email: string | null;
     phone: string | null;
     opt_status: string | null;
+    user_type: string | null;
   } | null;
   updated_at?: string;
 };
@@ -75,7 +76,8 @@ export const useOptimizedOrdersQuery = ({
             opt_id,
             email,
             phone,
-            opt_status
+            opt_status,
+            user_type
           )
         `, { count: 'exact' })
         .range(offset, offset + effectivePageSize - 1);

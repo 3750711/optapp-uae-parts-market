@@ -26,7 +26,16 @@ export const useSellerOrdersQuery = ({
             buyer:buyer_id(
               full_name,
               opt_id,
-              opt_status
+              opt_status,
+              user_type
+            ),
+            seller:seller_id(
+              full_name,
+              opt_id,
+              opt_status,
+              user_type,
+              phone,
+              telegram
             )
           `, { count: 'exact' })
           .or(`seller_id.eq.${sellerId},order_created_type.eq.ads_order`);
