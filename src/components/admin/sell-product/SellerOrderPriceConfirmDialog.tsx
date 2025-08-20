@@ -6,13 +6,11 @@ import { Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MobileKeyboardOptimizedDialog } from "@/components/ui/MobileKeyboardOptimizedDialog";
 import TouchOptimizedInput from "@/components/ui/TouchOptimizedInput";
-import { formatPrice } from "@/utils/formatPrice";
 
 interface SellerOrderPriceConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentProductPrice: number;
-  deliveryPrice: number;
   onConfirm: (newProductPrice: number) => void;
   isSubmitting: boolean;
 }
@@ -21,7 +19,6 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
   open,
   onOpenChange,
   currentProductPrice,
-  deliveryPrice,
   onConfirm,
   isSubmitting,
 }) => {
@@ -60,7 +57,6 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
   };
 
   const isPriceUnchanged = parseFloat(productPrice) === currentProductPrice;
-  const totalPrice = parseFloat(productPrice) + deliveryPrice;
 
   return (
     <MobileKeyboardOptimizedDialog 
@@ -86,22 +82,6 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
             className="text-lg"
             placeholder="Enter product price"
           />
-        </div>
-
-        {deliveryPrice > 0 && (
-          <div className="space-y-2">
-            <Label>Delivery Price (readonly)</Label>
-            <div className="px-3 py-2 border rounded-md bg-muted text-muted-foreground">
-              {formatPrice(deliveryPrice)}
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <Label>Total Order Price</Label>
-          <div className="px-3 py-2 border rounded-md bg-accent text-accent-foreground font-semibold">
-            {formatPrice(totalPrice)}
-          </div>
         </div>
         
         {isPriceUnchanged && (

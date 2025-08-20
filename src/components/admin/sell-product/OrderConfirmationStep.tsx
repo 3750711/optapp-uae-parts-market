@@ -465,14 +465,13 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
         </Button>
       </div>
 
-      <SellerOrderPriceConfirmDialog
-        open={showPriceConfirmDialog}
-        onOpenChange={setShowPriceConfirmDialog}
-        currentProductPrice={editableData.price}
-        deliveryPrice={editableData.deliveryPrice}
-        onConfirm={handlePriceConfirmed}
-        isSubmitting={isSubmitting}
-      />
+        <SellerOrderPriceConfirmDialog
+          open={showPriceConfirmDialog}
+          onOpenChange={setShowPriceConfirmDialog}
+          currentProductPrice={editableData.price}
+          onConfirm={handlePriceConfirmed}
+          isSubmitting={isSubmitting}
+        />
     </div>
   );
 };
