@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Package, UserCheck, ShoppingCart, ChevronLeft, Eye } from "lucide-react";
-import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmationDialog";
+import OrderConfirmationStep from "@/components/admin/sell-product/OrderConfirmationStep";
 import { useNavigate } from "react-router-dom";
 import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationImagesUploadDialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,7 +45,7 @@ const SellerSellProduct = () => {
   const [selectedBuyer, setSelectedBuyer] = useState<BuyerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  
   const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   
@@ -229,21 +229,19 @@ const SellerSellProduct = () => {
   const handleBuyerSelect = useCallback((buyerId: string) => {
     const buyer = buyers.find(b => b.id === buyerId);
     setSelectedBuyer(buyer || null);
-    setShowConfirmDialog(true);
+    setStep(3);
   }, [buyers]);
 
   // Обработчики горячих клавиш
   const handleKeyboardCancel = useCallback(() => {
-    if (showConfirmDialog) {
-      setShowConfirmDialog(false);
-    } else if (showPreview) {
+    if (showPreview) {
       setShowPreview(false);
     } else if (step > 1) {
       setStep(step - 1);
     } else {
       navigate('/seller/dashboard');
     }
-  }, [showConfirmDialog, showPreview, step, navigate]);
+  }, [showPreview, step, navigate]);
 
   const handleKeyboardSearch = useCallback(() => {
     if (searchInputRef) {
@@ -343,8 +341,7 @@ const SellerSellProduct = () => {
         description: `Order successfully created`,
       });
 
-      // Закрываем диалог подтверждения и открываем диалог загрузки фото
-      setShowConfirmDialog(false);
+      // Открываем диалог загрузки фото
       setShowConfirmImagesDialog(true);
 
     } catch (error) {
@@ -389,7 +386,6 @@ const SellerSellProduct = () => {
     setSelectedProduct(null);
     setSelectedBuyer(null);
     setStep(1);
-    setShowConfirmDialog(false);
     setShowConfirmImagesDialog(false);
     setCreatedOrderId(null);
   };
@@ -417,7 +413,7 @@ const SellerSellProduct = () => {
       <KeyboardShortcuts
         onCancel={handleKeyboardCancel}
         onSearch={handleKeyboardSearch}
-        disabled={isCreatingOrder || showConfirmDialog || showConfirmImagesDialog}
+        disabled={isCreatingOrder || showConfirmImagesDialog}
       />
 
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -447,7 +443,7 @@ const SellerSellProduct = () => {
             {[
               { num: 1, title: "Product", completed: step > 1 },
               { num: 2, title: "Buyer", completed: step > 2 },
-              { num: 3, title: "Creation", completed: false }
+              { num: 3, title: "Confirmation", completed: false }
             ].map((stepItem, index) => (
               <React.Fragment key={stepItem.num}>
                 <div className="flex items-center space-x-2">
@@ -558,12 +554,29 @@ const SellerSellProduct = () => {
                 </Select>
               </div>
               <div className="mt-6 flex space-x-2">
-                <Button variant="outline" onClick={() => setStep(1)}>
-                  Back
-                </Button>
+                 <Button variant="outline" onClick={() => setStep(1)}>
+                   Back
+                 </Button>
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Шаг 3: Подтверждение заказа */}
+        {step === 3 && selectedProduct && selectedBuyer && profile && (
+          <OrderConfirmationStep
+            product={selectedProduct}
+            seller={{
+              id: profile.id,
+              full_name: profile.full_name || '',
+              opt_id: profile.opt_id || '',
+              telegram: profile.telegram
+            }}
+            buyer={selectedBuyer}
+            onConfirm={createOrder}
+            onBack={() => setStep(2)}
+            isSubmitting={isCreatingOrder}
+          />
         )}
 
         {/* Диалог предварительного просмотра товара */}
@@ -574,24 +587,6 @@ const SellerSellProduct = () => {
           onSelectProduct={handleProductSelect}
         />
 
-        {/* Диалог подтверждения заказа */}
-        {showConfirmDialog && selectedProduct && selectedBuyer && profile && (
-          <AdminOrderConfirmationDialog
-            open={showConfirmDialog}
-            onOpenChange={setShowConfirmDialog}
-            onConfirm={createOrder}
-            isSubmitting={isCreatingOrder}
-            product={selectedProduct}
-            seller={{
-              id: profile.id,
-              full_name: profile.full_name || '',
-              opt_id: profile.opt_id || '',
-              telegram: profile.telegram
-            }}
-            buyer={selectedBuyer}
-            onCancel={resetForm}
-          />
-        )}
 
         {/* Диалог загрузки фото подтверждения */}
         {showConfirmImagesDialog && createdOrderId && (
