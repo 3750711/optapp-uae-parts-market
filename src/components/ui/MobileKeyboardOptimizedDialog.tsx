@@ -22,29 +22,50 @@ export const MobileKeyboardOptimizedDialog = ({
   useEffect(() => {
     if (!open) return;
 
-    let initialViewportHeight = window.innerHeight;
+    // Use visual viewport API when available for better detection
+    const viewport = window.visualViewport;
+    let initialViewportHeight = viewport ? viewport.height : window.innerHeight;
+    let timeoutId: NodeJS.Timeout;
     
-    const handleResize = () => {
-      const currentHeight = window.innerHeight;
+    const handleViewportChange = () => {
+      const currentHeight = viewport ? viewport.height : window.innerHeight;
       const heightDifference = initialViewportHeight - currentHeight;
       
-      // Считаем что клавиатура видна если высота уменьшилась больше чем на 150px
-      setIsKeyboardVisible(heightDifference > 150);
+      // Keyboard is visible if height decreased by more than 150px
+      // Add debouncing to prevent flickering
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsKeyboardVisible(heightDifference > 150);
+      }, 100);
     };
 
-    const handleFocus = () => {
-      // Небольшая задержка для корректного определения размера
-      setTimeout(handleResize, 300);
+    const handleFocus = (e: FocusEvent) => {
+      // Only trigger for input elements
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        setTimeout(handleViewportChange, 300);
+      }
     };
 
-    window.addEventListener('resize', handleResize);
+    // Use visual viewport API when available
+    if (viewport) {
+      viewport.addEventListener('resize', handleViewportChange);
+    } else {
+      window.addEventListener('resize', handleViewportChange);
+    }
+    
     document.addEventListener('focusin', handleFocus);
 
-    // Инициальная проверка
-    handleResize();
+    // Initial check
+    handleViewportChange();
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+      const viewport = window.visualViewport;
+      if (viewport) {
+        viewport.removeEventListener('resize', handleViewportChange);
+      } else {
+        window.removeEventListener('resize', handleViewportChange);
+      }
       document.removeEventListener('focusin', handleFocus);
       setIsKeyboardVisible(false);
     };
@@ -56,15 +77,21 @@ export const MobileKeyboardOptimizedDialog = ({
         className={cn(
           "w-full max-w-sm mx-auto",
           "max-h-[85vh] overflow-hidden",
-          isKeyboardVisible && "max-h-[50vh]",
+          "transition-all duration-200 ease-in-out",
+          "safe-area-insets",
+          isKeyboardVisible && [
+            "max-h-[50vh]",
+            "keyboard-visible"
+          ],
           className
         )}
         style={{
           position: 'fixed',
-          top: isKeyboardVisible ? '5vh' : '50%',
+          top: isKeyboardVisible ? 'max(5vh, env(safe-area-inset-top, 0px))' : '50%',
           left: '50%',
           transform: isKeyboardVisible ? 'translateX(-50%)' : 'translate(-50%, -50%)',
-          transition: 'all 0.2s ease-in-out'
+          // Use CSS transition instead of inline for better browser support
+          WebkitTransform: isKeyboardVisible ? 'translateX(-50%)' : 'translate(-50%, -50%)',
         }}
       >
         <DialogHeader className="flex-shrink-0">
