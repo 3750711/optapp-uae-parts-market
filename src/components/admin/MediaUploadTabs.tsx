@@ -15,6 +15,9 @@ interface MediaUploadTabsProps {
   orderId: string;
   disabled: boolean;
   isSeller?: boolean;
+  showVideos?: boolean;
+  imageAccept?: string;
+  maxImages?: number;
 }
 
 export const MediaUploadTabs: React.FC<MediaUploadTabsProps> = ({
@@ -26,13 +29,35 @@ export const MediaUploadTabs: React.FC<MediaUploadTabsProps> = ({
   onVideoDelete,
   orderId,
   disabled,
-  isSeller = false
+  isSeller = false,
+  showVideos = true,
+  imageAccept = "image/*",
+  maxImages = 10,
 }) => {
   const t = {
     photos: isSeller ? "Photos" : "Фото",
     videos: isSeller ? "Videos" : "Видео",
-    uploadVideoButton: isSeller ? "Upload confirmation video" : "Загрузить видео подтверждения"
+    uploadVideoButton: isSeller ? "Upload confirmation video" : "Загрузить видео подтверждения",
+    uploadButton: isSeller ? "Upload screenshot" : "Загрузить скриншот",
+    dragDropHint: isSeller ? "Drop images here" : "Перетащите изображения сюда"
   };
+
+  if (!showVideos) {
+    return (
+      <div className="w-full">
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-6">
+          <MobileOptimizedImageUpload
+            onUploadComplete={onImagesUpload}
+            maxImages={maxImages}
+            existingImages={confirmImages}
+            onImageDelete={onImageDelete}
+            disabled={disabled}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Tabs defaultValue="images" className="w-full">
       <TabsList className="grid w-full grid-cols-2 h-8 sm:h-10">
@@ -50,7 +75,7 @@ export const MediaUploadTabs: React.FC<MediaUploadTabsProps> = ({
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-6">
           <MobileOptimizedImageUpload
             onUploadComplete={onImagesUpload}
-            maxImages={10}
+            maxImages={maxImages}
             existingImages={confirmImages}
             onImageDelete={onImageDelete}
             disabled={disabled}

@@ -27,6 +27,7 @@ import { SessionStatusComponent } from "./SessionStatusComponent";
 import { MediaUploadTabs } from "./MediaUploadTabs";
 import { UploadedFilesInfo } from "./UploadedFilesInfo";
 import { useConfirmationUpload } from "./useConfirmationUpload";
+import ProofExampleCard from "./sell-product/ProofExampleCard";
 
 interface ConfirmationImagesUploadDialogProps {
   open: boolean;
@@ -34,6 +35,7 @@ interface ConfirmationImagesUploadDialogProps {
   onComplete: () => void;
   onSkip: () => void;
   onCancel: () => void;
+  variant?: 'full' | 'chat-proof-only';
 }
 
 export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDialogProps> = ({
@@ -42,6 +44,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   onComplete,
   onSkip,
   onCancel,
+  variant = 'full',
 }) => {
   const { profile } = useAuth();
   const isMobile = useIsMobile();
@@ -50,6 +53,9 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   // Checkbox states for mandatory confirmations
   const [additionalPhotosConfirmed, setAdditionalPhotosConfirmed] = useState(false);
   const [conversationScreenshotConfirmed, setConversationScreenshotConfirmed] = useState(false);
+  const [chatProofConfirmed, setChatProofConfirmed] = useState(false);
+
+  const isImageOnlyMode = variant === 'chat-proof-only';
 
   // Handle skip attempts when confirmations are required
   const handleSkipAttempt = () => {
@@ -62,19 +68,26 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
   // Translation helper
   const t = {
-    title: isSeller ? "Order Confirmation Files Upload" : "Загрузка файлов подтверждения заказа",
-    description: isSeller 
-      ? "Upload photos and videos confirming order completion, or skip this step."
-      : "Загрузите фотографии и видео, подтверждающие выполнение заказа, или пропустите этот шаг.",
+    title: isImageOnlyMode 
+      ? "Upload Purchase Confirmation Screenshot"
+      : isSeller 
+        ? "Order Confirmation Files Upload" 
+        : "Загрузка файлов подтверждения заказа",
+    description: isImageOnlyMode
+      ? "Please add a chat screenshot showing the buyer's consent"
+      : isSeller 
+        ? "Upload photos and videos confirming order completion, or skip this step."
+        : "Загрузите фотографии и видео, подтверждающие выполнение заказа, или пропустите этот шаг.",
     smartProcessing: isSeller ? "Smart Image Processing" : "Умная обработка изображений",
     processingDescription: isSeller 
       ? "Images are automatically optimized for fast loading: small files (<400KB) are not compressed, large ones are optimized to WebP format."
       : "Изображения автоматически оптимизируются для быстрой загрузки: малые файлы (<400KB) не сжимаются, большие - оптимизируются до WebP формата.",
-    skip: isSeller ? "Skip" : "Пропустить",
+    skip: isImageOnlyMode ? "Skip for now" : isSeller ? "Skip" : "Пропустить",
     saveAndContinue: isSeller ? "Save and Continue" : "Сохранить и продолжить",
-    saving: isSeller ? "Saving..." : "Сохранение...",
+    saving: isImageOnlyMode ? "Saving screenshot..." : isSeller ? "Saving..." : "Сохранение...",
     additionalPhotosLabel: "I uploaded additional photos that I sent to the seller",
-    conversationScreenshotLabel: "I added screenshot of conversation with client"
+    conversationScreenshotLabel: "I added screenshot of conversation with client",
+    chatProofLabel: "I confirm that the screenshot shows the buyer's clear consent (e.g., \"ok, i will buy\")."
   };
   const {
     confirmImages,
@@ -90,11 +103,13 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
     handleSaveMedia,
     handleSessionRecovery,
     handleReset
-  } = useConfirmationUpload(open, orderId, onComplete);
+  } = useConfirmationUpload(open, orderId, onComplete, isImageOnlyMode ? 'images-only' : 'all');
 
   const totalFiles = confirmImages.length + confirmVideos.length;
   const isDisabled = !isComponentReady || sessionLost || isUploading;
-  const canSave = additionalPhotosConfirmed && conversationScreenshotConfirmed && totalFiles > 0;
+  const canSave = isImageOnlyMode 
+    ? confirmImages.length > 0 && chatProofConfirmed
+    : additionalPhotosConfirmed && conversationScreenshotConfirmed && totalFiles > 0;
   const isSkipDisabled = isUploading || (totalFiles > 0 && !canSave);
 
   // Prevent accidental closing during upload
@@ -121,8 +136,20 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
       {isComponentReady && !sessionLost && (
         <>
+          {/* Show example card for chat proof only mode */}
+          {isImageOnlyMode && <ProofExampleCard />}
+
+          {/* Description for chat proof mode */}
+          {isImageOnlyMode && (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Upload a screenshot of your chat (WhatsApp/Telegram) where the buyer clearly confirms the purchase (e.g., "ok, i will buy"). Make sure date/time and the buyer's name are visible.
+              </p>
+            </div>
+          )}
+
           {/* Mobile compression info */}
-          {isMobile && (
+          {isMobile && !isImageOnlyMode && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-start gap-2">
                 <Upload className="h-4 w-4 text-blue-600 mt-0.5 shrink-0" />
@@ -148,6 +175,8 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
             orderId={orderId}
             disabled={isDisabled}
             isSeller={isSeller}
+            showVideos={!isImageOnlyMode}
+            maxImages={isImageOnlyMode ? 3 : 10}
           />
 
           <UploadedFilesInfo
@@ -162,36 +191,54 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           {totalFiles > 0 && (
             <div className="space-y-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
               <div className="text-sm font-medium text-orange-800">
-                Required confirmations before saving:
+                {isImageOnlyMode ? "Required confirmation before saving:" : "Required confirmations before saving:"}
               </div>
               
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="additional-photos"
-                  checked={additionalPhotosConfirmed}
-                  onCheckedChange={(checked) => setAdditionalPhotosConfirmed(checked === true)}
-                />
-                <label 
-                  htmlFor="additional-photos"
-                  className="text-sm text-orange-700 leading-relaxed cursor-pointer"
-                >
-                  {t.additionalPhotosLabel}
-                </label>
-              </div>
+              {isImageOnlyMode ? (
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="chat-proof"
+                    checked={chatProofConfirmed}
+                    onCheckedChange={(checked) => setChatProofConfirmed(checked === true)}
+                  />
+                  <label 
+                    htmlFor="chat-proof"
+                    className="text-sm text-orange-700 leading-relaxed cursor-pointer"
+                  >
+                    {t.chatProofLabel}
+                  </label>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="additional-photos"
+                      checked={additionalPhotosConfirmed}
+                      onCheckedChange={(checked) => setAdditionalPhotosConfirmed(checked === true)}
+                    />
+                    <label 
+                      htmlFor="additional-photos"
+                      className="text-sm text-orange-700 leading-relaxed cursor-pointer"
+                    >
+                      {t.additionalPhotosLabel}
+                    </label>
+                  </div>
 
-              <div className="flex items-start space-x-3">
-                <Checkbox
-                  id="conversation-screenshot"
-                  checked={conversationScreenshotConfirmed}
-                  onCheckedChange={(checked) => setConversationScreenshotConfirmed(checked === true)}
-                />
-                <label 
-                  htmlFor="conversation-screenshot"
-                  className="text-sm text-orange-700 leading-relaxed cursor-pointer"
-                >
-                  {t.conversationScreenshotLabel}
-                </label>
-              </div>
+                  <div className="flex items-start space-x-3">
+                    <Checkbox
+                      id="conversation-screenshot"
+                      checked={conversationScreenshotConfirmed}
+                      onCheckedChange={(checked) => setConversationScreenshotConfirmed(checked === true)}
+                    />
+                    <label 
+                      htmlFor="conversation-screenshot"
+                      className="text-sm text-orange-700 leading-relaxed cursor-pointer"
+                    >
+                      {t.conversationScreenshotLabel}
+                    </label>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </>
@@ -277,7 +324,10 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                 ) : (
                   <>
                     <Check className="h-5 w-5" />
-                    {t.saveAndContinue} ({totalFiles})
+                    {isImageOnlyMode 
+                      ? `${t.saveAndContinue} (${confirmImages.length})`
+                      : `${t.saveAndContinue} (${totalFiles})`
+                    }
                   </>
                 )}
               </Button>

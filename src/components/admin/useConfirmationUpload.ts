@@ -4,7 +4,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-export const useConfirmationUpload = (open: boolean, orderId: string, onComplete: () => void) => {
+export const useConfirmationUpload = (
+  open: boolean, 
+  orderId: string, 
+  onComplete: () => void,
+  mode: 'all' | 'images-only' = 'all'
+) => {
   const { isAdmin, user, profile } = useAuth();
   
   const [confirmImages, setConfirmImages] = useState<string[]>([]);
@@ -60,24 +65,35 @@ export const useConfirmationUpload = (open: boolean, orderId: string, onComplete
       setIsSaving(true);
       setUploadError(null);
 
-      // Save URLs to Supabase
-      const allUrls = [...confirmImages, ...confirmVideos];
-      const confirmImageRecords = allUrls.map(url => ({
+      const insertData: any = {
         order_id: orderId,
-        url,
         uploaded_by: user.id,
-        created_at: new Date().toISOString()
-      }));
+        image_urls: confirmImages,
+      };
+
+      // Only include video URLs if in 'all' mode
+      if (mode === 'all') {
+        insertData.video_urls = confirmVideos;
+      }
+
+      // Add evidence type for chat proof mode
+      if (mode === 'images-only') {
+        insertData.evidence_type = 'chat_screenshot';
+      }
 
       const { error } = await supabase
         .from('confirm_images')
-        .insert(confirmImageRecords);
+        .insert(insertData);
 
       if (error) {
         throw error;
       }
 
-      toast.success('Confirmation media uploaded successfully');
+      const successMessage = mode === 'images-only' 
+        ? 'Your confirmation screenshot has been saved successfully.'
+        : 'Confirmation media uploaded successfully';
+
+      toast.success(successMessage);
       onComplete();
       handleReset();
     } catch (error) {
@@ -87,7 +103,7 @@ export const useConfirmationUpload = (open: boolean, orderId: string, onComplete
     } finally {
       setIsSaving(false);
     }
-  }, [user, confirmImages, confirmVideos, orderId, onComplete]);
+  }, [user, confirmImages, confirmVideos, orderId, onComplete, mode]);
 
   const handleSessionRecovery = useCallback(async () => {
     try {

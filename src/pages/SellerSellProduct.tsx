@@ -590,13 +590,14 @@ const SellerSellProduct = () => {
 
         {/* Confirmation Images Upload Dialog */}
         {showConfirmImagesDialog && createdOrderId && (
-          <ConfirmationImagesUploadDialog
-            open={showConfirmImagesDialog}
-            orderId={createdOrderId}
-            onComplete={handleConfirmImagesComplete}
-            onSkip={handleSkipConfirmImages}
-            onCancel={handleCancelConfirmImages}
-          />
+        <ConfirmationImagesUploadDialog
+          open={showConfirmImagesDialog}
+          orderId={createdOrderId}
+          onComplete={handleConfirmImagesComplete}
+          onSkip={handleSkipConfirmImages}
+          onCancel={handleCancelConfirmImages}
+          variant="chat-proof-only"
+        />
         )}
       </div>
     </div>
