@@ -71,9 +71,9 @@ interface EditableData {
 }
 
 const DELIVERY_OPTIONS = [
-  { value: 'cargo_rf', label: '🚛 Доставка Cargo РФ' },
-  { value: 'self_pickup', label: '📦 Самовывоз' },
-  { value: 'cargo_kz', label: '🚚 Доставка Cargo KZ' }
+  { value: 'cargo_rf', label: '🚛 Cargo RF Delivery' },
+  { value: 'self_pickup', label: '📦 Self Pickup' },
+  { value: 'cargo_kz', label: '🚚 Cargo KZ Delivery' }
 ];
 
 const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
@@ -119,8 +119,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       setEditableData(savedData);
       
       toast({
-        title: "Данные восстановлены",
-        description: "Ваши изменения были автоматически восстановлены",
+        title: "Data Restored",
+        description: "Your changes have been automatically restored",
       });
     }
   }, [loadEditableData, editableDataExists, toast]);
@@ -154,16 +154,16 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
     
     // Show success toast for field updates
     toast({
-      title: "Поле обновлено",
-      description: "Изменения сохранены",
+      title: "Field Updated",
+      description: "Changes Saved",
     });
   };
 
   const validateForm = (): boolean => {
     if (!editableData.title.trim()) {
       toast({
-        title: "Ошибка валидации",
-        description: "Название товара обязательно для заполнения",
+        title: "Validation Error",
+        description: "Product title is required",
         variant: "destructive",
       });
       return false;
@@ -171,8 +171,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
 
     if (editableData.price <= 0) {
       toast({
-        title: "Ошибка валидации",
-        description: "Цена должна быть больше 0",
+        title: "Validation Error",
+        description: "Price must be greater than 0",
         variant: "destructive",
       });
       return false;
@@ -180,8 +180,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
 
     if (editableData.placeNumber <= 0) {
       toast({
-        title: "Ошибка валидации",
-        description: "Количество мест должно быть больше 0",
+        title: "Validation Error",
+        description: "Number of places must be greater than 0",
         variant: "destructive",
       });
       return false;
@@ -237,28 +237,28 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center">
-        <h3 className={`${isMobile ? 'text-lg' : 'text-lg'} font-semibold`}>Информация о заказе</h3>
+        <h3 className={`${isMobile ? 'text-lg' : 'text-lg'} font-semibold`}>Order Information</h3>
       </div>
 
       {/* Информация о товаре */}
       <Card className={isMobile ? "mx-0" : ""}>
         <CardHeader className={isMobile ? "pb-3" : ""}>
-          <CardTitle className={isMobile ? "text-base" : ""}>Информация о товаре</CardTitle>
+          <CardTitle className={isMobile ? "text-base" : ""}>Product Information</CardTitle>
         </CardHeader>
         <CardContent className={`space-y-4 ${isMobile ? 'px-4 pb-4' : ''}`}>
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Название:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Title:</Label>
               <InlineEditableField
                 value={editableData.title}
                 onSave={(value) => handleFieldUpdate('title', value)}
                 required
-                placeholder="Введите название товара"
+                placeholder="Enter product title"
                 className="text-base font-medium"
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Цена:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Price:</Label>
               <InlineEditableField
                 value={editableData.price}
                 onSave={(value) => handleFieldUpdate('price', value)}
@@ -269,20 +269,20 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Бренд:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Brand:</Label>
               <InlineEditableField
-                value={editableData.brand || 'Не указан'}
+                value={editableData.brand || 'Not specified'}
                 onSave={(value) => handleFieldUpdate('brand', value)}
-                placeholder="Введите бренд"
+                placeholder="Enter brand"
                 className="text-base"
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Модель:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Model:</Label>
               <InlineEditableField
-                value={editableData.model || 'Не указана'}
+                value={editableData.model || 'Not specified'}
                 onSave={(value) => handleFieldUpdate('model', value)}
-                placeholder="Введите модель"
+                placeholder="Enter model"
                 className="text-base"
               />
             </div>
@@ -291,13 +291,13 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           {/* Изображения товара */}
           {product.product_images && product.product_images.length > 0 && (
             <div>
-              <Label className="text-sm font-medium text-muted-foreground mb-2 block">Медиафайлы товара:</Label>
+              <Label className="text-sm font-medium text-muted-foreground mb-2 block">Product Media:</Label>
               <div className={`grid gap-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
                 {product.product_images.map((image, index) => (
                   <div key={index} className="aspect-square">
                     <OptimizedImage
                       src={image.url}
-                      alt={`Товар ${index + 1}`}
+                      alt={`Product ${index + 1}`}
                       className="w-full h-full object-cover rounded-md border"
                     />
                   </div>
@@ -311,23 +311,23 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       {/* Параметры заказа */}
       <Card className={isMobile ? "mx-0" : ""}>
         <CardHeader className={isMobile ? "pb-3" : ""}>
-          <CardTitle className={isMobile ? "text-base" : ""}>Параметры заказа</CardTitle>
+          <CardTitle className={isMobile ? "text-base" : ""}>Order Parameters</CardTitle>
         </CardHeader>
         <CardContent className={`space-y-4 ${isMobile ? 'px-4 pb-4' : ''}`}>
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Доставка:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Delivery:</Label>
               <InlineEditableSelect
                 value={editableData.deliveryMethod}
                 onSave={(value) => handleFieldUpdate('deliveryMethod', value)}
                 options={DELIVERY_OPTIONS}
-                placeholder="Выберите способ доставки"
+                placeholder="Select delivery method"
                 className="text-base"
               />
             </div>
             {editableData.deliveryMethod === 'cargo_rf' && (
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Стоимость доставки:</Label>
+                <Label className="text-sm font-medium text-muted-foreground">Delivery Price:</Label>
                 <InlineEditableField
                   value={editableData.deliveryPrice}
                   onSave={(value) => handleFieldUpdate('deliveryPrice', value)}
@@ -339,7 +339,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
               </div>
             )}
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Количество мест:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Number of Places:</Label>
               <InlineEditableField
                 value={editableData.placeNumber}
                 onSave={(value) => handleFieldUpdate('placeNumber', value)}
@@ -349,18 +349,18 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Итого:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Total:</Label>
               <p className={`${isMobile ? 'text-lg' : 'text-lg'} font-bold text-primary`}>${getTotalPrice()}</p>
             </div>
           </div>
           
           <div>
-            <Label className="text-sm font-medium text-muted-foreground">Дополнительная информация:</Label>
+            <Label className="text-sm font-medium text-muted-foreground">Additional Information:</Label>
             <InlineEditableTextarea
               value={editableData.textOrder}
               onSave={(value) => handleFieldUpdate('textOrder', value)}
-              placeholder="Укажите дополнительную информацию по заказу"
-              emptyText="Нажмите, чтобы добавить дополнительную информацию"
+              placeholder="Specify additional order information"
+              emptyText="Click to add additional information"
               className="mt-1"
             />
           </div>
@@ -371,11 +371,11 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <Card className={isMobile ? "mx-0" : ""}>
           <CardHeader className={isMobile ? "pb-3" : ""}>
-            <CardTitle className={isMobile ? "text-base" : ""}>Продавец</CardTitle>
+            <CardTitle className={isMobile ? "text-base" : ""}>Seller</CardTitle>
           </CardHeader>
           <CardContent className={`space-y-2 ${isMobile ? 'px-4 pb-4' : ''}`}>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Имя:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Name:</Label>
               <p className="text-base">{seller.full_name}</p>
             </div>
             <div>
@@ -393,11 +393,11 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
 
         <Card className={isMobile ? "mx-0" : ""}>
           <CardHeader className={isMobile ? "pb-3" : ""}>
-            <CardTitle className={isMobile ? "text-base" : ""}>Покупатель</CardTitle>
+            <CardTitle className={isMobile ? "text-base" : ""}>Buyer</CardTitle>
           </CardHeader>
           <CardContent className={`space-y-2 ${isMobile ? 'px-4 pb-4' : ''}`}>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Имя:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Name:</Label>
               <p className="text-base">{buyer.full_name}</p>
             </div>
             <div>
@@ -423,7 +423,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           className={isMobile ? 'w-full' : ''}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Назад к покупателям
+          Back to Buyers
         </Button>
         
         <Button 
@@ -434,12 +434,12 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           {isSubmitting ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Создание заказа...
+              Creating Order...
             </>
           ) : (
             <>
               <CheckCircle className="h-4 w-4 mr-2" />
-              Создать заказ
+              Create Order
             </>
           )}
         </Button>

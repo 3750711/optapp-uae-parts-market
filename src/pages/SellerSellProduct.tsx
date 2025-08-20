@@ -14,7 +14,7 @@ import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationI
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Новые оптимизированные компоненты
+// New optimized components
 import OptimizedProductCard from "@/components/seller/OptimizedProductCard";
 import EnhancedProductSearch, { SearchFilters } from "@/components/seller/EnhancedProductSearch";
 import ProductBreadcrumbs from "@/components/seller/ProductBreadcrumbs";
@@ -49,7 +49,7 @@ const SellerSellProduct = () => {
   const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   
-  // Новые состояния для улучшенного UX
+  // New states for improved UX
   const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [searchInputRef, setSearchInputRef] = useState<HTMLInputElement | null>(null);
@@ -59,7 +59,7 @@ const SellerSellProduct = () => {
     { label: "Sell Product" }
   ], []);
 
-  // Проверяем, что пользователь - продавец
+  // Check that user is a seller
   useEffect(() => {
     if (profile && profile.user_type !== 'seller') {
       toast({
@@ -72,7 +72,7 @@ const SellerSellProduct = () => {
     }
   }, [profile, navigate]);
 
-  // Загрузка покупателей с обработкой ошибок
+  // Load buyers with error handling
   useEffect(() => {
     const fetchBuyers = async () => {
       try {
@@ -98,7 +98,7 @@ const SellerSellProduct = () => {
     fetchBuyers();
   }, []);
 
-  // Загрузка товаров с обработкой ошибок и cleanup
+  // Load products with error handling and cleanup
   useEffect(() => {
     if (!user) return;
 
@@ -145,11 +145,11 @@ const SellerSellProduct = () => {
     };
   }, [user]);
 
-  // Оптимизированная функция поиска с мемоизацией
+  // Optimized search function with memoization
   const handleSearchChange = useCallback((filters: SearchFilters) => {
     let filtered = [...products];
 
-    // Фильтр по названию
+    // Filter by title
     if (filters.searchTerm.trim()) {
       const searchLower = filters.searchTerm.toLowerCase();
       filtered = filtered.filter(product =>
@@ -159,14 +159,14 @@ const SellerSellProduct = () => {
       );
     }
 
-    // Фильтр по номеру лота
+    // Filter by lot number
     if (filters.lotNumber.trim()) {
       filtered = filtered.filter(product =>
         product.lot_number?.toString().includes(filters.lotNumber)
       );
     }
 
-    // Фильтр по цене
+    // Filter by price
     if (filters.priceFrom.trim()) {
       const priceFrom = parseFloat(filters.priceFrom);
       if (!isNaN(priceFrom)) {
@@ -181,7 +181,7 @@ const SellerSellProduct = () => {
       }
     }
 
-    // Сортировка
+    // Sorting
     filtered.sort((a, b) => {
       let aValue: any, bValue: any;
       
@@ -232,7 +232,7 @@ const SellerSellProduct = () => {
     setStep(3);
   }, [buyers]);
 
-  // Обработчики горячих клавиш
+  // Keyboard shortcuts handlers
   const handleKeyboardCancel = useCallback(() => {
     if (showPreview) {
       setShowPreview(false);
@@ -283,13 +283,13 @@ const SellerSellProduct = () => {
     setIsCreatingOrder(true);
 
     try {
-      // Валидация delivery_method
+      // Validate delivery_method
       const validDeliveryMethods = ['cargo_rf', 'cargo_kz', 'self_pickup'];
       if (!validDeliveryMethods.includes(orderData.deliveryMethod)) {
         throw new Error(`Invalid delivery method: ${orderData.deliveryMethod}`);
       }
 
-      // Используем RPC функцию для создания заказов продавцами
+      // Use RPC function for creating orders by sellers
       const orderPayload = {
         p_title: orderData.editedData?.title || selectedProduct.title,
         p_price: orderData.price,
@@ -302,7 +302,7 @@ const SellerSellProduct = () => {
         p_order_created_type: 'product_order' as const,
         p_telegram_url_order: selectedBuyer.telegram || '',
         p_images: orderData.orderImages,
-        p_videos: [], // ДОБАВЛЕНО: пустой массив видео для заказов из товаров
+        p_videos: [], // ADDED: empty video array for product orders
         p_product_id: selectedProduct.id,
         p_delivery_method: orderData.deliveryMethod as 'cargo_rf' | 'cargo_kz' | 'self_pickup',
         p_text_order: orderData.editedData?.textOrder || '',
@@ -322,7 +322,7 @@ const SellerSellProduct = () => {
       console.log("Order created with ID:", orderId);
       setCreatedOrderId(orderId);
 
-      // Получаем данные созданного заказа для Telegram уведомления
+      // Get created order data for Telegram notification
       const { data: createdOrder, error: fetchError } = await supabase
         .from('orders')
         .select('*')
@@ -333,7 +333,7 @@ const SellerSellProduct = () => {
         console.error("Error fetching created order:", fetchError);
       }
 
-      // Уведомления будут отправлены автоматически через триггеры базы данных
+      // Notifications will be sent automatically via database triggers
       console.log("Order created, notifications will be sent via database triggers");
 
       toast({
@@ -341,7 +341,7 @@ const SellerSellProduct = () => {
         description: `Order successfully created`,
       });
 
-      // Открываем диалог загрузки фото
+      // Open photo upload dialog
       setShowConfirmImagesDialog(true);
 
     } catch (error) {
@@ -358,7 +358,7 @@ const SellerSellProduct = () => {
   };
 
   const handleConfirmImagesComplete = () => {
-    // Закрываем диалог загрузки фото и переходим на страницу заказов продавца
+    // Close photo upload dialog and navigate to seller orders page
     setShowConfirmImagesDialog(false);
     if (createdOrderId) {
       navigate(`/order/${createdOrderId}`);
@@ -368,7 +368,7 @@ const SellerSellProduct = () => {
   };
 
   const handleSkipConfirmImages = () => {
-    // Пропускаем загрузку фото и переходим на страницу заказов продавца
+    // Skip photo upload and navigate to seller orders page
     setShowConfirmImagesDialog(false);
     if (createdOrderId) {
       navigate(`/order/${createdOrderId}`);
@@ -378,7 +378,7 @@ const SellerSellProduct = () => {
   };
 
   const handleCancelConfirmImages = () => {
-    // Просто закрываем диалог без перехода
+    // Simply close dialog without navigation
     setShowConfirmImagesDialog(false);
   };
 
@@ -409,7 +409,7 @@ const SellerSellProduct = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Горячие клавиши */}
+      {/* Keyboard shortcuts */}
       <KeyboardShortcuts
         onCancel={handleKeyboardCancel}
         onSearch={handleKeyboardSearch}
@@ -437,7 +437,7 @@ const SellerSellProduct = () => {
           </p>
         </div>
 
-        {/* Прогресс */}
+        {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center space-x-4">
             {[
@@ -468,7 +468,7 @@ const SellerSellProduct = () => {
           </div>
         </div>
 
-        {/* Шаг 1: Выбор товара с улучшенным поиском */}
+        {/* Step 1: Select Product with enhanced search */}
         {step === 1 && (
           <Card>
             <CardHeader>
@@ -478,7 +478,7 @@ const SellerSellProduct = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Улучшенный компонент поиска */}
+              {/* Enhanced search component */}
               <EnhancedProductSearch
                 onSearchChange={handleSearchChange}
                 onClearFilters={handleClearFilters}
@@ -528,7 +528,7 @@ const SellerSellProduct = () => {
           </Card>
         )}
 
-        {/* Шаг 2: Выбор покупателя */}
+        {/* Step 2: Select Buyer */}
         {step === 2 && selectedProduct && (
           <Card>
             <CardHeader>
@@ -562,7 +562,7 @@ const SellerSellProduct = () => {
           </Card>
         )}
 
-        {/* Шаг 3: Подтверждение заказа */}
+        {/* Step 3: Order Confirmation */}
         {step === 3 && selectedProduct && selectedBuyer && profile && (
           <OrderConfirmationStep
             product={selectedProduct}
@@ -579,7 +579,7 @@ const SellerSellProduct = () => {
           />
         )}
 
-        {/* Диалог предварительного просмотра товара */}
+        {/* Product Preview Dialog */}
         <ProductQuickPreview
           product={previewProduct}
           open={showPreview}
@@ -588,7 +588,7 @@ const SellerSellProduct = () => {
         />
 
 
-        {/* Диалог загрузки фото подтверждения */}
+        {/* Confirmation Images Upload Dialog */}
         {showConfirmImagesDialog && createdOrderId && (
           <ConfirmationImagesUploadDialog
             open={showConfirmImagesDialog}
