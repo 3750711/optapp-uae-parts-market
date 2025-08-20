@@ -1,6 +1,7 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, FileText, Crown, Store } from 'lucide-react';
+import { useAuth } from "@/contexts/AuthContext";
 
 interface OrderCreationTypeBadgeProps {
   orderCreatedType: 'free_order' | 'product_order' | 'ads_order' | 'price_offer_order';
@@ -13,6 +14,12 @@ export const OrderCreationTypeBadge: React.FC<OrderCreationTypeBadgeProps> = ({
   sellerUserType,
   className = ""
 }) => {
+  const { isAdmin } = useAuth();
+  
+  // Only show badges to administrators
+  if (!isAdmin) {
+    return null;
+  }
   const getCreationTypeBadge = () => {
     switch (orderCreatedType) {
       case 'product_order':
