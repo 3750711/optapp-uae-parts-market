@@ -65,27 +65,19 @@ export const useConfirmationUpload = (
       setIsSaving(true);
       setUploadError(null);
 
-      const insertData: any = {
+      // Create individual rows for each image URL
+      const imageRows = confirmImages.map(url => ({
         order_id: orderId,
-        uploaded_by: user.id,
-        image_urls: confirmImages,
-      };
+        url: url
+      }));
 
-      // Only include video URLs if in 'all' mode
-      if (mode === 'all') {
-        insertData.video_urls = confirmVideos;
-      }
-
-      // Add evidence type for chat proof mode
-      if (mode === 'images-only') {
-        insertData.evidence_type = 'chat_screenshot';
-      }
-
+      // Insert all image URLs as separate rows
       const { error } = await supabase
         .from('confirm_images')
-        .insert(insertData);
+        .insert(imageRows);
 
       if (error) {
+        console.error('Database error:', error);
         throw error;
       }
 
@@ -103,7 +95,7 @@ export const useConfirmationUpload = (
     } finally {
       setIsSaving(false);
     }
-  }, [user, confirmImages, confirmVideos, orderId, onComplete, mode]);
+  }, [user, confirmImages, orderId, onComplete, mode]);
 
   const handleSessionRecovery = useCallback(async () => {
     try {
