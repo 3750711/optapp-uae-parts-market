@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { ConfirmationImagesUploadDialog } from '@/components/admin/ConfirmationImagesUploadDialog';
+import { OrderConfirmEvidenceWizard } from '@/components/admin/OrderConfirmEvidenceWizard';
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 interface MobileOrderCardProps {
@@ -281,11 +281,10 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
         </div>
       </CardContent>
       
-      <ConfirmationImagesUploadDialog
+      <OrderConfirmEvidenceWizard
         open={isConfirmImagesDialogOpen}
         orderId={order.id}
         onComplete={handlePhotoUploadComplete}
-        onSkip={handlePhotoUploadSkip}
         onCancel={handlePhotoUploadCancel}
       />
     </Card>

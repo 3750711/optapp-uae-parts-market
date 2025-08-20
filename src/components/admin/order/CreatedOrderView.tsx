@@ -7,7 +7,7 @@ import { CheckCircle, Package, DollarSign, User, Calendar, Plus, Camera, Upload 
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileFormSection } from './MobileFormSection';
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
-import { ConfirmationImagesUploadDialog } from '@/components/admin/ConfirmationImagesUploadDialog';
+import { OrderConfirmEvidenceWizard } from '@/components/admin/OrderConfirmEvidenceWizard';
 import { CreatedOrderMediaSection } from './CreatedOrderMediaSection';
 
 interface CreatedOrderViewProps {
@@ -305,12 +305,11 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
       )}
 
       {/* Confirmation Images Upload Dialog */}
-      <ConfirmationImagesUploadDialog
+      <OrderConfirmEvidenceWizard
         open={showConfirmationUpload}
         orderId={order.id}
         onComplete={handleConfirmationUploadComplete}
-        onSkip={handleConfirmationUploadSkip}
-        onCancel={() => setShowConfirmationUpload(false)}
+        onCancel={handleConfirmationUploadSkip}
       />
     </div>
   );

@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Package, UserCheck, ShoppingCart, ChevronLeft, Eye } from "lucide-react";
 import OrderConfirmationStep from "@/components/admin/sell-product/OrderConfirmationStep";
 import { useNavigate } from "react-router-dom";
-import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationImagesUploadDialog";
+import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvidenceWizard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -590,13 +590,11 @@ const SellerSellProduct = () => {
 
         {/* Confirmation Images Upload Dialog */}
         {showConfirmImagesDialog && createdOrderId && (
-        <ConfirmationImagesUploadDialog
+        <OrderConfirmEvidenceWizard
           open={showConfirmImagesDialog}
           orderId={createdOrderId}
           onComplete={handleConfirmImagesComplete}
-          onSkip={handleSkipConfirmImages}
           onCancel={handleCancelConfirmImages}
-          variant="chat-proof-only"
         />
         )}
       </div>

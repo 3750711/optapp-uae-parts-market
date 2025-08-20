@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmationDialog";
-import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationImagesUploadDialog";
+import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvidenceWizard";
 import { useAdminOrderCreation } from "@/hooks/useAdminOrderCreation";
 import { useOrderSteps } from "@/hooks/useOrderSteps";
 import { useSellerProducts } from "@/hooks/useSellerProducts";
@@ -302,11 +302,10 @@ const AdminCreateOrderFromProduct = () => {
         )}
 
         {showConfirmImagesDialog && createdOrderId && (
-          <ConfirmationImagesUploadDialog
+          <OrderConfirmEvidenceWizard
             open={showConfirmImagesDialog}
             orderId={createdOrderId}
             onComplete={handleConfirmImagesComplete}
-            onSkip={handleSkipConfirmImages}
             onCancel={handleCancelConfirmImages}
           />
         )}

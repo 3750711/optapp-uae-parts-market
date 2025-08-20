@@ -8,7 +8,8 @@ export const useConfirmationUpload = (
   open: boolean, 
   orderId: string, 
   onComplete: () => void,
-  mode: 'all' | 'images-only' = 'all'
+  mode: 'all' | 'images-only' = 'all',
+  category?: 'chat_screenshot' | 'signed_product'
 ) => {
   const { isAdmin, user, profile } = useAuth();
   
@@ -20,6 +21,25 @@ export const useConfirmationUpload = (
   const [isSaving, setIsSaving] = useState(false);
 
   const isUploading = isSaving;
+
+  // Function to get existing images by category
+  const getImagesByCategory = useCallback(async (targetCategory: 'chat_screenshot' | 'signed_product') => {
+    if (!orderId) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('confirm_images')
+        .select('url')
+        .eq('order_id', orderId)
+        .eq('category', targetCategory);
+      
+      if (error) throw error;
+      return data?.map(item => item.url) || [];
+    } catch (error) {
+      console.error('Error fetching images by category:', error);
+      return [];
+    }
+  }, [orderId]);
 
   // Initialize component readiness
   useEffect(() => {
@@ -68,7 +88,8 @@ export const useConfirmationUpload = (
       // Create individual rows for each image URL
       const imageRows = confirmImages.map(url => ({
         order_id: orderId,
-        url: url
+        url: url,
+        category: category || null
       }));
 
       // Insert all image URLs as separate rows
@@ -95,7 +116,7 @@ export const useConfirmationUpload = (
     } finally {
       setIsSaving(false);
     }
-  }, [user, confirmImages, orderId, onComplete, mode]);
+  }, [user, confirmImages, orderId, onComplete, mode, category]);
 
   const handleSessionRecovery = useCallback(async () => {
     try {
@@ -138,6 +159,7 @@ export const useConfirmationUpload = (
     handleVideoDelete,
     handleSaveMedia,
     handleSessionRecovery,
-    handleReset
+    handleReset,
+    getImagesByCategory
   };
 };

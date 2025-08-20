@@ -93,18 +93,21 @@ export type Database = {
       }
       confirm_images: {
         Row: {
+          category: string | null
           created_at: string
           id: string
           order_id: string
           url: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           id?: string
           order_id: string
           url: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           id?: string
           order_id?: string
