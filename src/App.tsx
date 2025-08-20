@@ -86,7 +86,7 @@ const App = () => {
   return (
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
               <RealtimeProvider>
