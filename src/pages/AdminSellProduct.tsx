@@ -176,14 +176,12 @@ const AdminSellProduct = () => {
       telegram: sellerProfile.telegram
     };
 
-    // Комбинируем изображения товара с дополнительными изображениями
-    const productImages = state.selectedProduct.product_images?.map(img => img.url) || [];
-    const combinedImages = [...productImages, ...orderData.orderImages];
+    // Используем изображения из orderData (они уже содержат изображения товара)
+    const orderImages = orderData.orderImages;
     
-    console.log("📸 Image combination:", {
-      productImages: productImages,
-      additionalImages: orderData.orderImages,
-      combinedImages: combinedImages
+    console.log("📸 Using order images directly:", {
+      orderImages: orderImages,
+      orderImagesCount: orderImages.length
     });
 
     // Используем стоимость доставки из формы или из товара
@@ -241,10 +239,10 @@ const AdminSellProduct = () => {
       console.log("📝 No edited data provided, using original product data");
     }
 
-    // Обновляем orderData с правильными изображениями и стоимостью доставки
+    // Обновляем orderData со стоимостью доставки (изображения уже корректные)
     const updatedOrderData = {
       ...orderData,
-      orderImages: combinedImages,
+      orderImages: orderImages,
       deliveryPrice: finalDeliveryPrice,
       textOrder: orderData.editedData?.textOrder
     };
