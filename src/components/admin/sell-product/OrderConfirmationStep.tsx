@@ -10,6 +10,7 @@ import { InlineEditableField } from '@/components/ui/InlineEditableField';
 import { InlineEditableTextarea } from '@/components/ui/InlineEditableTextarea';
 import { InlineEditableSelect } from '@/components/ui/InlineEditableSelect';
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
+import SellerOrderPriceConfirmDialog from './SellerOrderPriceConfirmDialog';
 
 interface Product {
   id: string;
@@ -86,6 +87,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const [showPriceConfirmDialog, setShowPriceConfirmDialog] = useState(false);
   const [editableData, setEditableData] = useState<EditableData>({
     title: product.title,
     brand: product.brand || '',
@@ -190,34 +192,52 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
     return true;
   };
 
-  const handleConfirmOrder = async () => {
-    if (!validateForm()) return;
+  const handleCreateOrderClick = () => {
+    if (!validateForm()) {
+      return;
+    }
+    // Show price confirmation dialog
+    setShowPriceConfirmDialog(true);
+  };
 
-    const productImageUrls = product.product_images?.map(img => img.url) || [];
-    
+  const handlePriceConfirmed = async (newProductPrice: number) => {
     try {
+      // Update the price in editableData
+      const updatedData = { ...editableData, price: newProductPrice };
+      setEditableData(updatedData);
+      
+      const productImageUrls = product.product_images?.map(img => img.url) || [];
+      
       const orderData = {
-        price: editableData.price,
-        deliveryPrice: editableData.deliveryPrice,
-        deliveryMethod: editableData.deliveryMethod,
+        price: updatedData.price,
+        deliveryPrice: updatedData.deliveryPrice,
+        deliveryMethod: updatedData.deliveryMethod,
         orderImages: productImageUrls,
         editedData: {
-          title: editableData.title,
-          brand: editableData.brand,
-          model: editableData.model,
-          price: editableData.price,
-          deliveryPrice: editableData.deliveryPrice,
-          placeNumber: editableData.placeNumber,
-          textOrder: editableData.textOrder
+          title: updatedData.title,
+          brand: updatedData.brand,
+          model: updatedData.model,
+          price: updatedData.price,
+          deliveryPrice: updatedData.deliveryPrice,
+          placeNumber: updatedData.placeNumber,
+          textOrder: updatedData.textOrder
         }
       };
+      
+      // Close the dialog and proceed with order creation
+      setShowPriceConfirmDialog(false);
       
       // Clear autosaved editable data after successful submission
       clearEditableData();
       
       await onConfirm(orderData);
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('Failed to confirm order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to confirm order. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -427,7 +447,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
         </Button>
         
         <Button 
-          onClick={handleConfirmOrder} 
+          onClick={handleCreateOrderClick} 
           disabled={isSubmitting}
           className={`${isMobile ? 'w-full' : 'min-w-[200px]'}`}
         >
@@ -444,6 +464,15 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           )}
         </Button>
       </div>
+
+      <SellerOrderPriceConfirmDialog
+        open={showPriceConfirmDialog}
+        onOpenChange={setShowPriceConfirmDialog}
+        currentProductPrice={editableData.price}
+        deliveryPrice={editableData.deliveryPrice}
+        onConfirm={handlePriceConfirmed}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
 };
