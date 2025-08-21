@@ -147,11 +147,13 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
             <SelectValue placeholder={isBuyersLoading ? "Загрузка..." : "Выберите покупателя"} />
           </SelectTrigger>
           <SelectContent>
-            {buyers.map((buyer) => (
-              <SelectItem key={buyer.id} value={buyer.opt_id || buyer.id}>
-                {buyer.full_name || buyer.email} {buyer.opt_id ? `(${buyer.opt_id})` : ''}
-              </SelectItem>
-            ))}
+            {buyers
+              .sort((a, b) => (a.opt_id || '').localeCompare(b.opt_id || ''))
+              .map((buyer) => (
+                <SelectItem key={buyer.id} value={buyer.opt_id || buyer.id}>
+                  {buyer.opt_id ? `${buyer.opt_id} - ${buyer.full_name || buyer.email}` : (buyer.full_name || buyer.email)}
+                </SelectItem>
+              ))}
             {buyers.length === 0 && !isBuyersLoading && (
               <div className="py-2 px-3 text-sm text-gray-500">
                 Покупатели не найдены

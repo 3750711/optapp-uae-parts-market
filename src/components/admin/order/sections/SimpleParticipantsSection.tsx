@@ -119,7 +119,7 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
             <SelectContent>
               {buyerOptions.map((buyer) => (
                 <SelectItem key={buyer.id} value={buyer.opt_id}>
-                  {buyer.full_name || 'Без имени'} ({buyer.opt_id})
+                  {buyer.opt_id} - {buyer.full_name || 'Без имени'}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -102,7 +102,7 @@ export const useAdminSellProductState = () => {
           .select("id, full_name, opt_id, telegram")
           .eq("user_type", "buyer")
           .not("opt_id", "is", null)
-          .order("full_name")
+          .order("opt_id")
           .limit(100);
 
         if (fallbackError) throw fallbackError;

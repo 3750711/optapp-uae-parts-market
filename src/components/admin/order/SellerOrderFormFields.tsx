@@ -193,11 +193,13 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                   <SelectValue placeholder="Select buyer..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {buyerProfiles.map((buyer) => (
-                    <SelectItem key={buyer.id} value={buyer.opt_id}>
-                      {buyer.full_name || 'No name'} ({buyer.opt_id})
-                    </SelectItem>
-                  ))}
+                  {buyerProfiles
+                    .sort((a, b) => (a.opt_id || '').localeCompare(b.opt_id || ''))
+                    .map((buyer) => (
+                      <SelectItem key={buyer.id} value={buyer.opt_id}>
+                        {buyer.opt_id} - {buyer.full_name || 'No name'}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             )}
