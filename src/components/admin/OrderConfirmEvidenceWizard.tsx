@@ -5,6 +5,8 @@ import { Loader2, Upload, Check, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -55,6 +57,22 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   const [step2Images, setStep2Images] = useState<string[]>([]);
   const [step1Confirmed, setStep1Confirmed] = useState(false);
   const [isLoadingStepData, setIsLoadingStepData] = useState(true);
+
+  // Fetch order data
+  const { data: orderData, isLoading: isLoadingOrder } = useQuery({
+    queryKey: ['order-confirm-data', orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('order_number, buyer_opt_id, title')
+        .eq('id', orderId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: open && !!orderId,
+  });
 
   // Get hooks for each step
   const step1Hook = useConfirmationUpload(
@@ -163,6 +181,13 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     }
   }, [currentStep, canProceedStep2, step2Hook, onComplete]);
 
+  const handleSkip = useCallback(() => {
+    if (currentStep === 'signed_product') {
+      toast.success('Second step skipped. You can upload signed product photos later.');
+      onComplete();
+    }
+  }, [currentStep, onComplete]);
+
   const handleBack = useCallback(() => {
     if (currentStep === 'signed_product') {
       setCurrentStep('chat_confirmation');
@@ -247,10 +272,42 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               <div className="space-y-4">
                 <SignedProductExampleCard />
                 
+                {/* Order Information for Labeling */}
+                {!isLoadingOrder && orderData && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mb-4">
+                    <h3 className="font-bold text-yellow-800 mb-3 text-sm sm:text-base">
+                      LABEL THE SOLD PRODUCT:
+                    </h3>
+                    <div className="space-y-2">
+                      <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                        <div className="text-yellow-700 font-medium text-xs sm:text-sm">BUYER'S OPT ID:</div>
+                        <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                          {orderData.buyer_opt_id?.toUpperCase() || 'NOT SPECIFIED'}
+                        </div>
+                      </div>
+                      <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                        <div className="text-yellow-700 font-medium text-xs sm:text-sm">ORDER NUMBER:</div>
+                        <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                          #{orderData.order_number || 'NOT SPECIFIED'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {isLoadingOrder && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="text-sm text-yellow-700">Loading order information...</span>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Signed Product Photo</h3>
                   <p className="text-sm text-muted-foreground">
-                    Write on the part: BUYER OPT ID and ORDER #. Make it large and readable.
+                    Write the BUYER OPT ID and ORDER NUMBER shown above on the product. Make it large and readable.
                   </p>
                 </div>
 
@@ -313,23 +370,33 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           )}
         </Button>
       ) : (
-        <Button
-          onClick={handleFinish}
-          disabled={!canSaveCurrentStep || currentHook.isUploading || step1Images.length === 0}
-          className="bg-green-600 hover:bg-green-700 flex items-center gap-2 flex-1"
-        >
-          {currentHook.isUploading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Check className="h-4 w-4" />
-              Finish
-            </>
-          )}
-        </Button>
+        <div className="flex gap-2 flex-1">
+          <Button
+            onClick={handleSkip}
+            variant="outline"
+            disabled={currentHook.isUploading || step1Images.length === 0}
+            className="flex items-center gap-2"
+          >
+            Skip Later
+          </Button>
+          <Button
+            onClick={handleFinish}
+            disabled={!canSaveCurrentStep || currentHook.isUploading || step1Images.length === 0}
+            className="bg-green-600 hover:bg-green-700 flex items-center gap-2 flex-1"
+          >
+            {currentHook.isUploading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                Finish
+              </>
+            )}
+          </Button>
+        </div>
       )}
     </div>
   );
