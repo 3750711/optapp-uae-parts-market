@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { combineAndDeduplicate, deduplicateArray } from '@/utils/deduplication';
 
 interface OrderMediaTabProps {
   order: any;
@@ -25,7 +26,9 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
   const isMobile = useIsMobile();
 
   const handleImageUpload = (uploadedUrls: string[]) => {
-    const newImageList = [...orderImages, ...uploadedUrls];
+    // Дедуплицируем новые изображения, исключая уже существующие
+    const uniqueNewUrls = uploadedUrls.filter(url => !orderImages.includes(url));
+    const newImageList = combineAndDeduplicate(orderImages, uniqueNewUrls);
     onImagesChange(newImageList);
   };
   
@@ -35,7 +38,9 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
   };
 
   const handleVideoUpload = (uploadedUrls: string[]) => {
-    const newVideoList = [...orderVideos, ...uploadedUrls];
+    // Дедуплицируем новые видео, исключая уже существующие
+    const uniqueNewUrls = uploadedUrls.filter(url => !orderVideos.includes(url));
+    const newVideoList = combineAndDeduplicate(orderVideos, uniqueNewUrls);
     onVideosChange(newVideoList);
   };
 

@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { OrderFormData } from '@/types/order';
+import { deduplicateArray } from '@/utils/deduplication';
 
 interface OptimizedOrderSubmissionResult {
   isLoading: boolean;
@@ -84,8 +85,8 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
           p_status: 'created',
           p_order_created_type: 'free_order',
           p_telegram_url_order: null,
-          p_images: images,
-          p_videos: videos,
+          p_images: deduplicateArray(images),
+          p_videos: deduplicateArray(videos),
           p_product_id: null,
           p_delivery_method: formData.deliveryMethod,
           p_text_order: formData.text_order || null,
