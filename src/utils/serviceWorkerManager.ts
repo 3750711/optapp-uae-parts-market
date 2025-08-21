@@ -96,11 +96,13 @@ class PWAServiceWorkerManager implements ServiceWorkerManager {
   }
 
   private notifyUpdateAvailable(): void {
-    // Dispatch custom event for update notification
-    const event = new CustomEvent('sw-update-available', {
-      detail: { registration: this.registration }
-    });
-    window.dispatchEvent(event);
+    // Auto-activate update in background without user notification
+    console.log('🔄 SW: Auto-activating update in background...');
+    
+    // Small delay to ensure smooth transition
+    setTimeout(() => {
+      this.activateUpdate();
+    }, 2000);
   }
 
   // Force activate new service worker
