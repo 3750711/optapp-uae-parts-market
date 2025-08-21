@@ -224,11 +224,13 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                     <SelectValue placeholder="Выберите продавца..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {sellerProfiles.map((seller) => (
-                      <SelectItem key={seller.id} value={seller.id}>
-                        {seller.opt_id ? `${seller.full_name || 'Без имени'} (${seller.opt_id})` : (seller.full_name || 'Без имени')}
-                      </SelectItem>
-                    ))}
+                    {sellerProfiles
+                      .sort((a, b) => (a.opt_id || '').localeCompare(b.opt_id || ''))
+                      .map((seller) => (
+                        <SelectItem key={seller.id} value={seller.id}>
+                          {seller.opt_id ? `${seller.opt_id} - ${seller.full_name || 'Без имени'}` : (seller.full_name || 'Без имени')}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               )}

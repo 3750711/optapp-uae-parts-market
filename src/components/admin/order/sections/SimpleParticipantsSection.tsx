@@ -87,8 +87,8 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
               </SelectTrigger>
               <SelectContent>
                 {sellerOptions.map((seller) => (
-                  <SelectItem key={seller.id} value={seller.id}>
-                    {seller.opt_id ? `${seller.full_name || 'Без имени'} (${seller.opt_id})` : (seller.full_name || 'Без имени')}
+        <SelectItem key={seller.id} value={seller.id}>
+          {seller.opt_id ? `${seller.opt_id} - ${seller.full_name || 'Без имени'}` : (seller.full_name || 'Без имени')}
                   </SelectItem>
                 ))}
               </SelectContent>

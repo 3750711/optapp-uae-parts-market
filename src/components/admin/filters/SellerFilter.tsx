@@ -20,11 +20,13 @@ const SellerFilter: React.FC<SellerFilterProps> = ({ value, onChange, sellers, d
         </SelectTrigger>
         <SelectContent>
             <SelectItem value="all">Все продавцы</SelectItem>
-            {sellers.map(seller => (
-            <SelectItem key={seller.id} value={seller.id}>
-                {seller.name} {seller.opt_id ? `(${seller.opt_id})` : ''}
-            </SelectItem>
-            ))}
+            {sellers
+              .sort((a, b) => (a.opt_id || '').localeCompare(b.opt_id || ''))
+              .map(seller => (
+                <SelectItem key={seller.id} value={seller.id}>
+                  {seller.opt_id ? `${seller.opt_id} - ${seller.name}` : seller.name}
+                </SelectItem>
+              ))}
         </SelectContent>
         </Select>
     </div>

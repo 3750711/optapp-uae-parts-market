@@ -36,11 +36,13 @@ const SellerSelectionStep: React.FC<SellerSelectionStepProps> = ({
               <SelectValue placeholder="Выберите продавца" />
             </SelectTrigger>
             <SelectContent>
-              {sellers.map((seller) => (
-                <SelectItem key={seller.id} value={seller.id}>
-                  {seller.full_name} ({seller.opt_id})
-                </SelectItem>
-              ))}
+              {sellers
+                .sort((a, b) => (a.opt_id || '').localeCompare(b.opt_id || ''))
+                .map((seller) => (
+                  <SelectItem key={seller.id} value={seller.id}>
+                    {seller.opt_id} - {seller.full_name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
