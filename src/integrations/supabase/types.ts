@@ -1830,6 +1830,15 @@ export type Database = {
       complete_profile_after_signup: {
         Args:
           | {
+              p_company_name: string
+              p_full_name: string
+              p_location: string
+              p_opt_id?: string
+              p_phone: string
+              p_telegram: string
+              p_user_type: string
+            }
+          | {
               p_company_name?: string
               p_full_name: string
               p_location?: string

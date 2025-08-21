@@ -178,13 +178,15 @@ const createSellerAccount = async (personalInfo: PersonalData) => {
       console.log('Auth user created:', authData.user.id);
 
       // Step 2: Complete profile setup using RPC (this will create the profile)
+      console.log('Calling complete_profile_after_signup with opt_id:', generatedOptId);
       const { data: profileData, error: profileError } = await supabase.rpc('complete_profile_after_signup', {
         p_full_name: personalInfo.fullName,
         p_company_name: storeData?.name,
         p_location: storeData?.location,
         p_phone: personalInfo.phone,
         p_telegram: null, // No telegram field in PersonalData
-        p_user_type: 'seller'
+        p_user_type: 'seller',
+        p_opt_id: generatedOptId
       });
 
       if (profileError) {
@@ -257,13 +259,15 @@ const createBuyerAccount = async (data: BuyerData) => {
       console.log('Auth user created:', authData.user.id);
 
       // Step 2: Complete profile setup using RPC
+      console.log('Calling complete_profile_after_signup with opt_id:', generatedOptId);
       const { data: profileData, error: profileError } = await supabase.rpc('complete_profile_after_signup', {
         p_full_name: data.fullName,
         p_company_name: null,
         p_location: null,
         p_phone: data.phone,
         p_telegram: null,
-        p_user_type: 'buyer'
+        p_user_type: 'buyer',
+        p_opt_id: generatedOptId
       });
 
       if (profileError) {
