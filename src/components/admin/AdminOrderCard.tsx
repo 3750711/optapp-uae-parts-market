@@ -9,7 +9,7 @@ import { Database } from '@/integrations/supabase/types';
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
+import { OrderConfirmImagesDialog } from "@/components/order/OrderConfirmImagesDialog";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -256,10 +256,7 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
           )}
         </div>
 
-        <OrderConfirmationImages 
-          orderId={order.id} 
-          canEdit={true}
-        />
+        <OrderConfirmImagesDialog orderId={order.id} />
 
         <div className="pt-2 space-y-2">
           <div className="flex justify-between items-center text-sm text-muted-foreground">

@@ -8,7 +8,7 @@ import { OrderEditForm } from './OrderEditForm';
 import { Label } from "@/components/ui/label";
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderDetails } from './OrderDetails';
-import { OrderConfirmationImages } from './OrderConfirmationImages';
+import { OrderConfirmImagesDialog } from './OrderConfirmImagesDialog';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -45,7 +45,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
   onOrderUpdate
 }) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
+  
   const { user, profile } = useAuth();
 
   // Проверяем, является ли пользователь администратором
@@ -79,20 +79,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
         <div className="absolute right-6 top-6 flex gap-2">
           {/* Компактная кнопка загрузки подтверждающих фото для администраторов */}
           {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsConfirmImagesDialogOpen(true)}
-              className="h-8 px-2 text-xs relative"
-              title="Подтверждающие фото"
-            >
-              <Camera className="h-3 w-3" />
-              {confirmImages.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
-                  {confirmImages.length}
-                </span>
-              )}
-            </Button>
+            <OrderConfirmImagesDialog orderId={order.id} />
           )}
           {order.status === 'created'}
         </div>
@@ -129,20 +116,6 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
           </DialogContent>
         </Dialog>
 
-        {/* Диалог для управления подтверждающими фотографиями */}
-        {isAdmin && (
-          <Dialog open={isConfirmImagesDialogOpen} onOpenChange={setIsConfirmImagesDialogOpen}>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Подтверждающие фотографии - Заказ № {order.order_number}</DialogTitle>
-              </DialogHeader>
-              <OrderConfirmationImages 
-                orderId={order.id} 
-                canEdit={true}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
       </CardContent>
     </Card>
   );

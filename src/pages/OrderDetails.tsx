@@ -8,14 +8,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle } from 'lucide-react';
-import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 import { OrderShipmentInfo } from '@/components/order/OrderShipmentInfo';
 
 const OrderDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { user, profile } = useAuth();
-  const [showConfirmImages, setShowConfirmImages] = React.useState(false);
 
   const { data: order, isLoading, error } = useQuery({
     queryKey: ['order', id],
@@ -229,20 +227,7 @@ const OrderDetails = () => {
               
               <div className="flex items-center gap-2">
                 {isAdmin && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowConfirmImages(true)}
-                    className="relative"
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    Подтв. фото
-                    {confirmImages.length > 0 && (
-                      <Badge className="ml-2 bg-primary text-primary-foreground h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                        {confirmImages.length}
-                      </Badge>
-                    )}
-                  </Button>
+                  <OrderConfirmImagesDialog orderId={order.id} />
                 )}
               </div>
             </div>
@@ -504,19 +489,6 @@ const OrderDetails = () => {
           </div>
         </div>
 
-        {isAdmin && (
-          <Dialog open={showConfirmImages} onOpenChange={setShowConfirmImages}>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Подтверждающие фотографии - Заказ № {order.order_number}</DialogTitle>
-              </DialogHeader>
-              <OrderConfirmationImages 
-                orderId={order.id} 
-                canEdit={true}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
     </Layout>
   );

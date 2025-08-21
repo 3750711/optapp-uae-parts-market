@@ -10,14 +10,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Download, Calendar, Star, MessageCircle } from 'lucide-react';
-import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
+import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 
 const SellerOrderDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { user, profile } = useAuth();
-  const [showConfirmImages, setShowConfirmImages] = React.useState(false);
 
   // Translation system based on user type
   const isSeller = profile?.user_type === 'seller';
@@ -338,20 +337,7 @@ const SellerOrderDetails = () => {
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
                 {isOrderSeller && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowConfirmImages(true)}
-                    className="relative"
-                  >
-                    <Camera className="h-4 w-4 mr-2" />
-                    {t.confirmPhotos}
-                    {confirmImages.length > 0 && (
-                      <Badge className="ml-2 bg-primary text-primary-foreground h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                        {confirmImages.length}
-                      </Badge>
-                    )}
-                  </Button>
+                  <OrderConfirmImagesDialog orderId={order.id} />
                 )}
               </div>
             </div>
@@ -594,20 +580,6 @@ const SellerOrderDetails = () => {
           </div>
         </div>
 
-        {/* Confirmation Images Dialog */}
-        {isOrderSeller && (
-          <Dialog open={showConfirmImages} onOpenChange={setShowConfirmImages}>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>{t.confirmationPhotos} - {isSeller ? 'Order' : 'Заказ'} № {order.order_number}</DialogTitle>
-              </DialogHeader>
-              <OrderConfirmationImages 
-                orderId={order.id} 
-                canEdit={true}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
     </LayoutComponent>
   );
