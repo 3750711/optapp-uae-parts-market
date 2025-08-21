@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useRateLimit } from '@/hooks/useRateLimit';
 import { AccountMergeDialog } from './AccountMergeDialog';
 import { TelegramRegistrationModal } from './TelegramRegistrationModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { logLoginFailure, logLoginSuccess, logRateLimitHit } from '@/utils/authLogger';
 
 interface TelegramAuthData {
   id: number;
@@ -73,6 +75,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   } | null>(null);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
   const { user, profile } = useAuth();
+  const { checkRateLimit } = useRateLimit();
 
   // Generate deterministic password based on telegram_id
   const generateDeterministicPassword = async (telegramId: number): Promise<string> => {
@@ -96,6 +99,13 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
   const handleTelegramAuth = async (authData: TelegramAuthData) => {
     try {
+      // Rate limiting check
+      const allowed = await checkRateLimit('login', { limitPerHour: 10, windowMinutes: 60 });
+      if (!allowed) {
+        await logRateLimitHit('telegram', { telegramId: authData.id });
+        return;
+      }
+
       toast.loading(t.loading);
 
       // Call the telegram-widget-auth Edge Function
@@ -148,6 +158,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     } catch (error) {
       toast.dismiss();
       const errorMessage = error instanceof Error ? error.message : t.error;
+      await logLoginFailure('telegram', errorMessage);
       toast.error(errorMessage);
       onError?.(errorMessage);
     }
@@ -182,6 +193,12 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
           console.error('signInWithPassword error for new user:', signInError);
           throw signInError;
         }
+      }
+
+      // Get current user for logging
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        await logLoginSuccess('telegram', currentUser.id);
       }
 
       toast.dismiss();

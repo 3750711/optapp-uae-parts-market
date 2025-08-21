@@ -5,7 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRateLimit } from '@/hooks/useRateLimit';
 import { toast } from 'sonner';
+import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
+import { logLoginFailure, logLoginSuccess, logRateLimitHit } from '@/utils/authLogger';
 
 interface LoginFormProps {
   language?: 'ru' | 'en';
@@ -54,6 +57,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ language = 'ru', compact = false,
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
+  const { checkRateLimit } = useRateLimit();
   const t = getLoginFormTranslations(language);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,16 +65,55 @@ const LoginForm: React.FC<LoginFormProps> = ({ language = 'ru', compact = false,
     setIsLoading(true);
 
     try {
-      const { error } = await signIn(email, password);
+      // Rate limiting check
+      const allowed = await checkRateLimit('login', { limitPerHour: 5, windowMinutes: 60 });
+      if (!allowed) {
+        await logRateLimitHit('email', { email: email.substring(0, email.indexOf('@')) });
+        setIsLoading(false);
+        return;
+      }
+
+      // Detect input type and handle accordingly
+      const inputType = detectInputType(email);
+      let loginEmail = email;
+      
+      if (inputType === 'opt_id') {
+        // Convert OPT ID to email
+        const { email: foundEmail, isRateLimited } = await getEmailByOptId(email);
+        
+        if (isRateLimited) {
+          await logRateLimitHit('opt_id', { optId: email });
+          setIsLoading(false);
+          return;
+        }
+        
+        if (!foundEmail) {
+          const errorMsg = 'OPT ID not found';
+          await logLoginFailure('opt_id', errorMsg);
+          toast.error(t.errorTitle, {
+            description: 'OPT ID не найден',
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        loginEmail = foundEmail;
+      }
+
+      const { user, error } = await signIn(loginEmail, password);
       
       if (error) {
+        await logLoginFailure(inputType === 'opt_id' ? 'opt_id' : 'email', error.message);
         toast.error(t.errorTitle, {
           description: error.message,
         });
-      } else {
+      } else if (user) {
+        await logLoginSuccess(inputType === 'opt_id' ? 'opt_id' : 'email', user.id);
         toast.success(t.welcome);
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t.generalError;
+      await logLoginFailure('email', errorMessage);
       toast.error(t.generalError);
     } finally {
       setIsLoading(false);

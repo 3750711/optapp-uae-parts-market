@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { logRateLimitHit } from '@/utils/authLogger';
 
 export type InputType = 'email' | 'opt_id';
 
@@ -37,6 +38,7 @@ export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult
       
       // Проверяем, является ли ошибка связанной с rate limiting
       if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
+        await logRateLimitHit('opt_id', { optId });
         return { email: null, isRateLimited: true };
       }
       

@@ -15,6 +15,7 @@ import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { useNavigate } from 'react-router-dom';
 import { checkOptIdExists } from '@/utils/authUtils';
 import { useAdminNotifications } from '@/hooks/useAdminNotifications';
+import { logRegistrationSuccess, logRegistrationFailure } from '@/utils/authLogger';
 
 type RegistrationStep = 
   | 'type-selection'
@@ -178,7 +179,10 @@ const createSellerAccount = async (data: PersonalData) => {
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        await logRegistrationFailure('seller', 'email', authError.message);
+        throw authError;
+      }
 
       // Ensure profile creation fallback
       const userId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
@@ -233,6 +237,7 @@ const createSellerAccount = async (data: PersonalData) => {
       // Notify admins about new user (deduped on server)
       const newUserId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
       if (newUserId) {
+        await logRegistrationSuccess('seller', 'email', newUserId);
         notifyAdminsNewUser({
           userId: newUserId,
           fullName: metadata.full_name,
@@ -253,9 +258,11 @@ const createSellerAccount = async (data: PersonalData) => {
       navigate('/pending-approval', { replace: true });
     } catch (error: any) {
       console.error('Registration error:', error);
+      const errorMessage = error.message || translations.errors.registrationErrorDescription;
+      await logRegistrationFailure('seller', 'email', errorMessage);
       toast({
         title: translations.errors.registrationErrorTitle,
-        description: error.message || translations.errors.registrationErrorDescription,
+        description: errorMessage,
         variant: 'destructive',
       });
       setCurrentStep('personal-info');
@@ -286,7 +293,10 @@ const createBuyerAccount = async (data: BuyerData) => {
         },
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        await logRegistrationFailure('buyer', 'email', authError.message);
+        throw authError;
+      }
 
       // Ensure profile creation fallback
       const userId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
@@ -338,6 +348,7 @@ const createBuyerAccount = async (data: BuyerData) => {
       // Notify admins about new user (deduped on server)
       const newUserId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
       if (newUserId) {
+        await logRegistrationSuccess('buyer', 'email', newUserId);
         notifyAdminsNewUser({
           userId: newUserId,
           fullName: metadata.full_name,
@@ -358,9 +369,11 @@ const createBuyerAccount = async (data: BuyerData) => {
       navigate('/pending-approval', { replace: true });
     } catch (error: any) {
       console.error('Registration error:', error);
+      const errorMessage = error.message || translations.errors.registrationErrorDescription;
+      await logRegistrationFailure('buyer', 'email', errorMessage);
       toast({
         title: translations.errors.registrationErrorTitle,
-        description: error.message || translations.errors.registrationErrorDescription,
+        description: errorMessage,
         variant: 'destructive',
       });
       setCurrentStep('buyer-registration');
