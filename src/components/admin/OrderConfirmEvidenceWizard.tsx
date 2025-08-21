@@ -216,6 +216,38 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
     return (
       <div className="space-y-4">
+        {/* Order Information for Labeling - Always shown at top */}
+        {!isLoadingOrder && orderData && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
+            <h3 className="font-bold text-yellow-800 mb-3 text-sm sm:text-base">
+              LABEL THE SOLD PRODUCT:
+            </h3>
+            <div className="space-y-2">
+              <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                <div className="text-yellow-700 font-medium text-xs sm:text-sm">BUYER'S OPT ID:</div>
+                <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                  {orderData.buyer_opt_id?.toUpperCase() || 'NOT SPECIFIED'}
+                </div>
+              </div>
+              <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                <div className="text-yellow-700 font-medium text-xs sm:text-sm">ORDER NUMBER:</div>
+                <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                  #{orderData.order_number || 'NOT SPECIFIED'}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isLoadingOrder && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <span className="text-sm text-yellow-700">Loading order information...</span>
+            </div>
+          </div>
+        )}
+
         <SessionStatusComponent
           isComponentReady={currentHook.isComponentReady}
           sessionLost={currentHook.sessionLost}
@@ -271,38 +303,6 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
             {currentStep === 'signed_product' && (
               <div className="space-y-4">
                 <SignedProductExampleCard />
-                
-                {/* Order Information for Labeling */}
-                {!isLoadingOrder && orderData && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mb-4">
-                    <h3 className="font-bold text-yellow-800 mb-3 text-sm sm:text-base">
-                      LABEL THE SOLD PRODUCT:
-                    </h3>
-                    <div className="space-y-2">
-                      <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
-                        <div className="text-yellow-700 font-medium text-xs sm:text-sm">BUYER'S OPT ID:</div>
-                        <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
-                          {orderData.buyer_opt_id?.toUpperCase() || 'NOT SPECIFIED'}
-                        </div>
-                      </div>
-                      <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
-                        <div className="text-yellow-700 font-medium text-xs sm:text-sm">ORDER NUMBER:</div>
-                        <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
-                          #{orderData.order_number || 'NOT SPECIFIED'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {isLoadingOrder && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      <span className="text-sm text-yellow-700">Loading order information...</span>
-                    </div>
-                  </div>
-                )}
                 
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Signed Product Photo</h3>
