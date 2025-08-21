@@ -1,14 +1,11 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
 import { OrderConfirmButton } from '@/components/order/OrderConfirmButton';
 import { OrderSearchResult } from '@/hooks/useOrdersSearch';
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
+import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 import { OrderCreationTypeBadge } from '@/components/order/OrderCreationTypeBadge';
-import { Camera, CheckCircle } from 'lucide-react';
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 const statusColors = {
@@ -51,46 +48,23 @@ const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
   order,
   isSeller
 }) => {
-  const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
-
   return (
-    <>
-      <div className="bg-white rounded-xl shadow-md border hover:shadow-lg transition-all p-3 relative overflow-hidden">
-        {/* Заголовок с номером заказа и статусом */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-lg text-gray-900">№{order.order_number}</span>
-            <Badge className={`text-xs px-2 py-1 ${statusColors[order.status] || statusColors["created"]}`}>
-              {statusLabels[order.status] || order.status}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-2">
-            {order.hasConfirmImages ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-green-600 hover:text-green-700"
-                onClick={() => setIsConfirmImagesDialogOpen(true)}
-              >
-                <CheckCircle className="h-5 w-5" />
-              </Button>
-            ) : (
-              isSeller && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground"
-                  onClick={() => setIsConfirmImagesDialogOpen(true)}
-                >
-                  <Camera className="h-5 w-5" />
-                </Button>
-              )
-            )}
-            <span className="text-xs text-gray-500">
-              {order.created_at && new Date(order.created_at).toLocaleDateString('ru-RU')}
-            </span>
-          </div>
+    <div className="bg-white rounded-xl shadow-md border hover:shadow-lg transition-all p-3 relative overflow-hidden">
+      {/* Заголовок с номером заказа и статусом */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-lg text-gray-900">№{order.order_number}</span>
+          <Badge className={`text-xs px-2 py-1 ${statusColors[order.status] || statusColors["created"]}`}>
+            {statusLabels[order.status] || order.status}
+          </Badge>
         </div>
+        <div className="flex items-center gap-2">
+          <OrderConfirmImagesDialog orderId={order.id} />
+          <span className="text-xs text-gray-500">
+            {order.created_at && new Date(order.created_at).toLocaleDateString('ru-RU')}
+          </span>
+        </div>
+      </div>
 
         {/* Тип создания заказа */}
         <div className="mb-3">
@@ -213,18 +187,6 @@ const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
           )}
         </div>
       </div>
-      <Dialog open={isConfirmImagesDialogOpen} onOpenChange={setIsConfirmImagesDialogOpen}>
-        <DialogContent className="max-w-4xl w-[95vw] rounded-lg">
-          <DialogHeader>
-            <DialogTitle>Подтверждающие фотографии - Заказ № {order.order_number}</DialogTitle>
-          </DialogHeader>
-          <OrderConfirmationImages 
-            orderId={order.id} 
-            canEdit={isSeller}
-          />
-        </DialogContent>
-      </Dialog>
-    </>
   );
 };
 
