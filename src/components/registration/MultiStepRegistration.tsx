@@ -141,6 +141,12 @@ const handleBuyerRegistration = async (data: BuyerData) => {
 const createSellerAccount = async (personalInfo: PersonalData) => {
     try {
       console.log('Creating seller account with data:', personalInfo);
+      console.log('Generated OPT ID:', generatedOptId);
+      
+      // Validate that we have a generated OPT ID
+      if (!generatedOptId || generatedOptId.trim() === '') {
+        throw new Error('OPT ID not generated. Please try again.');
+      }
       
       await logRegistrationSuccess('seller', 'email', 'pending-creation');
       
@@ -222,6 +228,12 @@ const createSellerAccount = async (personalInfo: PersonalData) => {
 const createBuyerAccount = async (data: BuyerData) => {
     try {
       console.log('Creating buyer account with data:', data);
+      console.log('Generated OPT ID:', generatedOptId);
+      
+      // Validate that we have a generated OPT ID
+      if (!generatedOptId || generatedOptId.trim() === '') {
+        throw new Error('OPT ID not generated. Please try again.');
+      }
       
       await logRegistrationSuccess('buyer', 'email', 'pending-creation');
       
