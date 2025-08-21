@@ -188,7 +188,7 @@ export type Database = {
           action_type: string
           created_at: string
           details: Json
-          entity_id: string
+          entity_id: string | null
           entity_type: string
           id: string
           user_id: string | null
@@ -197,7 +197,7 @@ export type Database = {
           action_type: string
           created_at?: string
           details: Json
-          entity_id: string
+          entity_id?: string | null
           entity_type: string
           id?: string
           user_id?: string | null
@@ -206,7 +206,7 @@ export type Database = {
           action_type?: string
           created_at?: string
           details?: Json
-          entity_id?: string
+          entity_id?: string | null
           entity_type?: string
           id?: string
           user_id?: string | null
