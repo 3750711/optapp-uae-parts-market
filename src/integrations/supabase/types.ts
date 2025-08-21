@@ -2254,10 +2254,10 @@ export type Database = {
       }
       validate_profile_update: {
         Args: {
-          p_new_is_trusted_seller: boolean
-          p_new_user_type: Database["public"]["Enums"]["user_type"]
-          p_new_verification_status: Database["public"]["Enums"]["verification_status"]
+          p_is_trusted_seller: boolean
           p_user_id: string
+          p_user_type: Database["public"]["Enums"]["user_type"]
+          p_verification_status: Database["public"]["Enums"]["verification_status"]
         }
         Returns: boolean
       }
