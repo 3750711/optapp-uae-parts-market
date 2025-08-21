@@ -29,8 +29,8 @@ const SignedProductExampleCard: React.FC = () => {
             <div className="hidden bg-muted/50 h-full rounded-lg flex-col justify-center items-center text-xs text-muted-foreground p-4">
               <Camera className="h-8 w-8 mb-2 opacity-50" />
               <div className="text-center">
-                <div className="font-medium mb-1">BUYER OPT ID</div>
-                <div className="font-medium">ORDER #8101</div>
+                <div className="font-mono font-medium mb-1 text-blue-600">[ВАШ OPT ID]</div>
+                <div className="font-mono font-medium text-green-600">[НОМЕР ЗАКАЗА]</div>
               </div>
             </div>
           </div>
@@ -53,7 +53,7 @@ const SignedProductExampleCard: React.FC = () => {
             <div className="text-sm">
               <span className="font-medium text-foreground">Buyer OPT ID</span>
               <p className="text-muted-foreground text-xs mt-1">
-                Write the buyer's OPT ID clearly and large
+                Write the <span className="font-mono font-medium text-blue-600">[ВАШ OPT ID]</span> clearly and large
               </p>
             </div>
           </div>
@@ -63,7 +63,7 @@ const SignedProductExampleCard: React.FC = () => {
             <div className="text-sm">
               <span className="font-medium text-foreground">Order number</span>
               <p className="text-muted-foreground text-xs mt-1">
-                Include the full order number (e.g., ORDER #8101)
+                Include the full <span className="font-mono font-medium text-green-600">[НОМЕР ЗАКАЗА]</span>
               </p>
             </div>
           </div>
@@ -83,7 +83,9 @@ const SignedProductExampleCard: React.FC = () => {
       <div className="mt-4 p-3 bg-muted/50 rounded-lg">
         <p className="text-xs text-muted-foreground">
           <span className="font-medium">Tip:</span> Use a permanent marker for dark parts 
-          or white correction fluid/tape for light colored parts to ensure good contrast.
+          or white correction fluid/tape for light colored parts to ensure good contrast when writing the 
+          <span className="font-mono font-medium text-blue-600 mx-1">[ВАШ OPT ID]</span> and 
+          <span className="font-mono font-medium text-green-600 mx-1">[НОМЕР ЗАКАЗА]</span>.
         </p>
       </div>
     </div>
