@@ -10,6 +10,8 @@ interface OrderConfirmButtonProps {
 }
 
 export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
   const { data: orderDetails } = useQuery({
     queryKey: ['order-details', orderId],
     queryFn: async () => {
@@ -66,11 +68,12 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
       <div className="space-y-2">
         {/* Chat Screenshots Status */}
         <div
-          className={`flex items-center gap-2 p-2 rounded-lg border ${
+          className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:opacity-80 ${
             hasChatScreenshots 
               ? 'text-green-600 border-green-200 bg-green-50' 
               : 'text-orange-600 border-orange-200 bg-orange-50'
           }`}
+          onClick={() => setDialogOpen(true)}
         >
           <MessageSquare className="h-4 w-4" />
           {hasChatScreenshots ? (
@@ -88,11 +91,12 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
 
         {/* Signed Product Photos Status */}
         <div
-          className={`flex items-center gap-2 p-2 rounded-lg border ${
+          className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer hover:opacity-80 ${
             hasSignedProductPhotos 
               ? 'text-green-600 border-green-200 bg-green-50' 
               : 'text-orange-600 border-orange-200 bg-orange-50'
           }`}
+          onClick={() => setDialogOpen(true)}
         >
           <Package className="h-4 w-4" />
           {hasSignedProductPhotos ? (
@@ -110,7 +114,11 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
       </div>
 
       {/* Upload Dialog */}
-      <OrderConfirmImagesDialog orderId={orderId} />
+      <OrderConfirmImagesDialog 
+        orderId={orderId} 
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </div>
   );
 };

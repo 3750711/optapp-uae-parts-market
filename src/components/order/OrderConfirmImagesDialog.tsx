@@ -15,9 +15,11 @@ import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvide
 
 interface OrderConfirmImagesDialogProps {
   orderId: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export const OrderConfirmImagesDialog = ({ orderId }: OrderConfirmImagesDialogProps) => {
+export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderConfirmImagesDialogProps) => {
   const [showWizard, setShowWizard] = useState(false);
   const queryClient = useQueryClient();
 
@@ -113,13 +115,7 @@ export const OrderConfirmImagesDialog = ({ orderId }: OrderConfirmImagesDialogPr
 
   return (
     <>
-      <Dialog>
-        <DialogTrigger asChild>
-          <div className="flex items-center gap-2 text-green-600 text-sm cursor-pointer hover:text-green-700">
-            <Check className="h-4 w-4" />
-            <span>Confirmation photos received</span>
-          </div>
-        </DialogTrigger>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Order Confirmation Evidence</DialogTitle>
