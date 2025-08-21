@@ -27,8 +27,8 @@ export const useRateLimit = () => {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        logger.warn('Rate limit check attempted without authenticated user');
-        return false;
+        // Silently allow action for unauthenticated users without logging
+        return true;
       }
 
       // Call rate limiter edge function
