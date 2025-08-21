@@ -12,6 +12,7 @@ interface EmailVerificationFormProps {
   initialEmail?: string;
   onVerificationSuccess: (email: string) => void;
   onCancel?: () => void;
+  onChangeEmail?: () => void;
   title?: string;
   description?: string;
 }
@@ -20,6 +21,7 @@ const EmailVerificationForm = ({
   initialEmail, 
   onVerificationSuccess, 
   onCancel,
+  onChangeEmail,
   title = "Подтверждение email",
   description = "Введите код, отправленный на вашу почту"
 }: EmailVerificationFormProps) => {
@@ -144,10 +146,18 @@ const EmailVerificationForm = ({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-2">
+            <div className="text-center space-y-2">
+              <p className="text-sm text-muted-foreground">
                 Код отправлен на: <span className="font-medium">{initialEmail}</span>
               </p>
+              {onChangeEmail && (
+                <button
+                  onClick={onChangeEmail}
+                  className="text-xs text-primary underline hover:no-underline"
+                >
+                  Изменить email
+                </button>
+              )}
             </div>
 
           <div className="space-y-3">

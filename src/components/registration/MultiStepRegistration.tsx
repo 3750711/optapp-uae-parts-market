@@ -11,6 +11,7 @@ import { TelegramLoginWidget } from '@/components/auth/TelegramLoginWidget';
 import EmailVerificationForm from '@/components/auth/EmailVerificationForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { useNavigate } from 'react-router-dom';
 import { checkOptIdExists } from '@/utils/authUtils';
 import { useAdminNotifications } from '@/hooks/useAdminNotifications';
@@ -42,6 +43,13 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [personalData, setPersonalData] = useState<PersonalData | null>(null);
   const [buyerData, setBuyerData] = useState<BuyerData | null>(null);
+  
+  const { guardedSubmit, isSubmitting } = useSubmissionGuard({
+    timeout: 6000,
+    onDuplicateSubmit: () => {
+      // Already showing toast in useSubmissionGuard
+    }
+  });
   const [generatedOptId, setGeneratedOptId] = useState<string>('');
   
   const { toast } = useToast();
@@ -121,23 +129,26 @@ const handleBuyerRegistration = async (data: BuyerData) => {
 const handleEmailVerificationSuccess = async (verifiedEmail: string) => {
   // After successful email verification, proceed with account creation
   setCurrentStep('final-loading');
-  try {
-    if (userType === 'seller' && personalData) {
-      await createSellerAccount(personalData);
-    } else if (userType === 'buyer' && buyerData) {
-      await createBuyerAccount(buyerData);
-    } else {
-      toast({
-        title: translations.errors.registrationErrorTitle,
-        description: translations.errors.registrationErrorDescription,
-        variant: 'destructive',
-      });
-      // Fallback to start
-      setCurrentStep('type-selection');
+  
+  await guardedSubmit(async () => {
+    try {
+      if (userType === 'seller' && personalData) {
+        await createSellerAccount(personalData);
+      } else if (userType === 'buyer' && buyerData) {
+        await createBuyerAccount(buyerData);
+      } else {
+        toast({
+          title: translations.errors.registrationErrorTitle,
+          description: translations.errors.registrationErrorDescription,
+          variant: 'destructive',
+        });
+        // Fallback to start
+        setCurrentStep('type-selection');
+      }
+    } catch (e) {
+      // Errors are handled inside create* functions
     }
-  } catch (e) {
-    // Errors are handled inside create* functions
-  }
+  });
 };
 
 const createSellerAccount = async (data: PersonalData) => {
@@ -168,6 +179,34 @@ const createSellerAccount = async (data: PersonalData) => {
       });
 
       if (authError) throw authError;
+
+      // Ensure profile creation fallback
+      const userId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
+      if (userId) {
+        // Create profile record as fallback even without session
+        try {
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: userId,
+              full_name: metadata.full_name,
+              user_type: metadata.user_type,
+              opt_id: metadata.opt_id,
+              phone: metadata.phone,
+              company_name: metadata.company_name,
+              location: metadata.location,
+              description_user: metadata.description_user,
+              email: data.email,
+              email_confirmed: !!authData.session,
+              accepted_terms: true,
+              accepted_terms_at: metadata.accepted_terms_at,
+              accepted_privacy: true,
+              accepted_privacy_at: metadata.accepted_privacy_at,
+            }, { onConflict: 'id' });
+        } catch (profileError) {
+          console.warn('Profile fallback creation failed:', profileError);
+        }
+      }
 
       // If no session yet (email confirmation required), guide user to login after confirming
       if (!authData.session) {
@@ -248,6 +287,31 @@ const createBuyerAccount = async (data: BuyerData) => {
       });
 
       if (authError) throw authError;
+
+      // Ensure profile creation fallback
+      const userId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
+      if (userId) {
+        // Create profile record as fallback even without session
+        try {
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: userId,
+              full_name: metadata.full_name,
+              user_type: metadata.user_type,
+              opt_id: metadata.opt_id,
+              phone: metadata.phone,
+              email: data.email,
+              email_confirmed: !!authData.session,
+              accepted_terms: true,
+              accepted_terms_at: metadata.accepted_terms_at,
+              accepted_privacy: true,
+              accepted_privacy_at: metadata.accepted_privacy_at,
+            }, { onConflict: 'id' });
+        } catch (profileError) {
+          console.warn('Profile fallback creation failed:', profileError);
+        }
+      }
 
       // If no session yet (email confirmation required), guide user to login after confirming
       if (!authData.session) {

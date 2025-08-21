@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
+import { validatePassword } from '@/utils/authUtils';
+import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 
 interface BuyerRegistrationStepProps {
   onNext: (buyerData: BuyerData) => void;
@@ -39,6 +41,13 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
 
+  const { guardedSubmit, isSubmitting } = useSubmissionGuard({
+    timeout: 4000,
+    onDuplicateSubmit: () => {
+      // Already showing toast in useSubmissionGuard
+    }
+  });
+
   const validateForm = () => {
     const newErrors: Partial<BuyerData> = {};
     
@@ -60,8 +69,11 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
     
     if (!formData.password) {
       newErrors.password = translations.errors.passwordRequired;
-    } else if (formData.password.length < 6) {
-      newErrors.password = translations.errors.passwordTooShort;
+    } else {
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.isValid) {
+        newErrors.password = passwordValidation.errors[0];
+      }
     }
     
     if (formData.password !== formData.confirmPassword) {
@@ -82,7 +94,9 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      onNext(formData);
+      guardedSubmit(async () => {
+        onNext(formData);
+      });
     }
   };
 
@@ -235,8 +249,8 @@ export const BuyerRegistrationStep: React.FC<BuyerRegistrationStepProps> = ({
               <Button type="button" variant="outline" onClick={onBack} className="flex-1">
                 {translations.back}
               </Button>
-              <Button type="submit" className="flex-1">
-                {translations.finish}
+              <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                {isSubmitting ? translations.submitting || "Отправка..." : translations.finish}
               </Button>
             </div>
           </form>

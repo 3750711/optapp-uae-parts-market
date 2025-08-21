@@ -61,8 +61,7 @@ export const useApprovalStatus = () => {
               }
             }, 2000);
           } else if (newProfile.verification_status === 'blocked') {
-            // Handle blocked status - redirect to home
-            navigate('/');
+            navigate('/blocked', { replace: true });
           }
         }
       )

@@ -40,6 +40,7 @@ const VerifyEmail = () => {
             initialEmail={email}
             onVerificationSuccess={handleVerificationSuccess}
             onCancel={handleCancel}
+            onChangeEmail={() => navigate('/register', { replace: true })}
             title="Подтверждение email"
             description="Введите код подтверждения, отправленный на вашу почту"
           />

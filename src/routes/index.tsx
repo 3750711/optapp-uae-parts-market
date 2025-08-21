@@ -11,6 +11,7 @@ import PendingApprovalWrapper from '@/components/auth/PendingApprovalWrapper';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 import TermsPage from "@/pages/TermsPage";
 import PrivacyPage from "@/pages/PrivacyPage";
+import BlockedPage from "@/pages/BlockedPage";
 
 // Lazy loaded публичные страницы
 const Index = lazy(() => import('@/pages/Index'));
@@ -488,6 +489,14 @@ const AppRoutes: React.FC = () => {
             {/* Catch-all маршрут */}
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
+            
+            {/* Blocked users page */}
+            <Route path="/blocked" element={
+              <ProtectedRoute>
+                <BlockedPage />
+              </ProtectedRoute>
+            } />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
