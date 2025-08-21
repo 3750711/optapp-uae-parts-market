@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Upload, Check } from "lucide-react";
+import { Upload, Check, AlertTriangle, MessageSquare, Package } from "lucide-react";
 import { OrderConfirmImagesDialog } from "@/components/order/OrderConfirmImagesDialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,6 @@ interface OrderConfirmButtonProps {
 }
 
 export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId }) => {
-
   const { data: orderDetails } = useQuery({
     queryKey: ['order-details', orderId],
     queryFn: async () => {
@@ -30,29 +29,88 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
     }
   });
 
-  const { data: images = [] } = useQuery({
-    queryKey: ['confirm-images', orderId],
+  const { data: chatScreenshots = [] } = useQuery({
+    queryKey: ['chat-screenshots', orderId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('confirm_images')
         .select('url')
-        .eq('order_id', orderId);
+        .eq('order_id', orderId)
+        .eq('category', 'chat_screenshot');
 
       if (error) throw error;
       return data?.map(img => img.url) || [];
     }
   });
 
-  if (images.length > 0) {
-    return (
-      <div className="flex items-center gap-2 text-green-600">
-        <Check className="h-4 w-4" />
-        <span>Confirmation photos uploaded</span>
-      </div>
-    );
-  }
+  const { data: signedProductPhotos = [] } = useQuery({
+    queryKey: ['signed-product-photos', orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('confirm_images')
+        .select('url')
+        .eq('order_id', orderId)
+        .eq('category', 'signed_product');
+
+      if (error) throw error;
+      return data?.map(img => img.url) || [];
+    }
+  });
+
+  const hasChatScreenshots = chatScreenshots.length > 0;
+  const hasSignedProductPhotos = signedProductPhotos.length > 0;
 
   return (
-    <OrderConfirmImagesDialog orderId={orderId} />
+    <div className="space-y-3">
+      {/* Status Indicators */}
+      <div className="space-y-2">
+        {/* Chat Screenshots Status */}
+        <div
+          className={`flex items-center gap-2 p-2 rounded-lg border ${
+            hasChatScreenshots 
+              ? 'text-green-600 border-green-200 bg-green-50' 
+              : 'text-orange-600 border-orange-200 bg-orange-50'
+          }`}
+        >
+          <MessageSquare className="h-4 w-4" />
+          {hasChatScreenshots ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <AlertTriangle className="h-4 w-4" />
+          )}
+          <span className="text-sm">
+            {hasChatScreenshots 
+              ? 'Chat screenshots uploaded' 
+              : 'Chat screenshots needed'
+            }
+          </span>
+        </div>
+
+        {/* Signed Product Photos Status */}
+        <div
+          className={`flex items-center gap-2 p-2 rounded-lg border ${
+            hasSignedProductPhotos 
+              ? 'text-green-600 border-green-200 bg-green-50' 
+              : 'text-orange-600 border-orange-200 bg-orange-50'
+          }`}
+        >
+          <Package className="h-4 w-4" />
+          {hasSignedProductPhotos ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <AlertTriangle className="h-4 w-4" />
+          )}
+          <span className="text-sm">
+            {hasSignedProductPhotos 
+              ? 'Product photos uploaded' 
+              : 'Product photos needed'
+            }
+          </span>
+        </div>
+      </div>
+
+      {/* Upload Dialog */}
+      <OrderConfirmImagesDialog orderId={orderId} />
+    </div>
   );
 };
