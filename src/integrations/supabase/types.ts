@@ -1828,7 +1828,16 @@ export type Database = {
         Returns: string
       }
       complete_profile_after_signup: {
-        Args: { p_email: string; payload: Json }
+        Args:
+          | {
+              p_company_name?: string
+              p_full_name: string
+              p_location?: string
+              p_phone?: string
+              p_telegram?: string
+              p_user_type?: string
+            }
+          | { p_email: string; payload: Json }
         Returns: Json
       }
       create_bilingual_notification: {

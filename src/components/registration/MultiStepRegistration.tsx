@@ -120,263 +120,179 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
 
 const handlePersonalInfo = async (data: PersonalData) => {
   setPersonalData(data);
-  setCurrentStep('email-verification');
+  
+  // Create seller account immediately after collecting personal info
+  await guardedSubmit(async () => {
+    await createSellerAccount(data);
+  });
 };
 
 const handleBuyerRegistration = async (data: BuyerData) => {
   setBuyerData(data);
-  setCurrentStep('email-verification');
-};
-const handleEmailVerificationSuccess = async (verifiedEmail: string) => {
-  // After successful email verification, proceed with account creation
-  setCurrentStep('final-loading');
   
+  // Create buyer account immediately after collecting data
   await guardedSubmit(async () => {
-    try {
-      if (userType === 'seller' && personalData) {
-        await createSellerAccount(personalData);
-      } else if (userType === 'buyer' && buyerData) {
-        await createBuyerAccount(buyerData);
-      } else {
-        toast({
-          title: translations.errors.registrationErrorTitle,
-          description: translations.errors.registrationErrorDescription,
-          variant: 'destructive',
-        });
-        // Fallback to start
-        setCurrentStep('type-selection');
-      }
-    } catch (e) {
-      // Errors are handled inside create* functions
-    }
+    await createBuyerAccount(data);
   });
 };
+// Remove this handler since we're not using email verification step for account creation anymore
+// Email verification will be handled on the verify email page after account creation
 
-const createSellerAccount = async (data: PersonalData) => {
+const createSellerAccount = async (personalInfo: PersonalData) => {
     try {
-      const metadata = {
-        full_name: data.fullName,
-        user_type: 'seller',
-        opt_id: generatedOptId,
-        phone: data.phone,
-        company_name: storeData?.name ?? null,
-        location: storeData?.location ?? null,
-        description_user: storeData?.description ?? null,
-        accepted_terms: true,
-        accepted_terms_at: new Date().toISOString(),
-        accepted_privacy: true,
-        accepted_privacy_at: new Date().toISOString(),
-        registration_path: 'standard'
-      } as const;
-
-      // Create auth user
+      console.log('Creating seller account with data:', personalInfo);
+      
+      await logRegistrationSuccess('seller', 'email', 'pending-creation');
+      
+      // Step 1: Create auth user with Supabase
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
+        email: personalInfo.email,
+        password: personalInfo.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
-          data: metadata,
-        },
+        }
       });
 
       if (authError) {
+        console.error('Supabase auth error:', authError);
         await logRegistrationFailure('seller', 'email', authError.message);
+        
+        if (authError.message === 'User already registered') {
+          toast({
+            title: "Ошибка регистрации",
+            description: "Пользователь с таким email уже существует. Попробуйте войти в систему.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw authError;
       }
 
-      // Ensure profile creation fallback
-      const userId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
-      if (userId) {
-        // Create profile record as fallback even without session
-        try {
-          await supabase
-            .from('profiles')
-            .upsert({
-              id: userId,
-              full_name: metadata.full_name,
-              user_type: metadata.user_type,
-              opt_id: metadata.opt_id,
-              phone: metadata.phone,
-              company_name: metadata.company_name,
-              location: metadata.location,
-              description_user: metadata.description_user,
-              email: data.email,
-              email_confirmed: !!authData.session,
-              accepted_terms: true,
-              accepted_terms_at: metadata.accepted_terms_at,
-              accepted_privacy: true,
-              accepted_privacy_at: metadata.accepted_privacy_at,
-            }, { onConflict: 'id' });
-        } catch (profileError) {
-          console.warn('Profile fallback creation failed:', profileError);
-        }
+      if (!authData.user?.id) {
+        const errorMsg = 'Failed to create user account';
+        await logRegistrationFailure('seller', 'email', errorMsg);
+        throw new Error(errorMsg);
       }
 
-      // If no session yet (email confirmation required), guide user to login after confirming
-      if (!authData.session) {
-        toast({
-          title: language === 'en' ? 'Confirm your email' : 'Подтвердите почту',
-          description:
-            language === 'en'
-              ? 'We sent a confirmation link. Please confirm and log in to continue.'
-              : 'Мы отправили ссылку подтверждения. Подтвердите email и войдите, чтобы продолжить.',
-        });
-        navigate(
-          `/login?notice=check-email&email=${encodeURIComponent(data.email)}&returnTo=/pending-approval`,
-          { replace: true }
-        );
-        return;
-      }
+      console.log('Auth user created:', authData.user.id);
 
-      // If session exists (email auto-confirm), complete profile immediately
-      await supabase.rpc('complete_profile_after_signup', {
-        p_email: data.email,
-        payload: metadata,
+      // Step 2: Complete profile setup using RPC (this will create the profile)
+      const { data: profileData, error: profileError } = await supabase.rpc('complete_profile_after_signup', {
+        p_full_name: personalInfo.fullName,
+        p_company_name: storeData?.name,
+        p_location: storeData?.location,
+        p_phone: personalInfo.phone,
+        p_telegram: null, // No telegram field in PersonalData
+        p_user_type: 'seller'
       });
 
-      // Notify admins about new user (deduped on server)
-      const newUserId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
-      if (newUserId) {
-        await logRegistrationSuccess('seller', 'email', newUserId);
-        notifyAdminsNewUser({
-          userId: newUserId,
-          fullName: metadata.full_name,
-          email: data.email,
-          userType: metadata.user_type,
-          phone: metadata.phone,
-          optId: metadata.opt_id,
-          telegram: null,
-          createdAt: new Date().toISOString(),
-        });
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        await logRegistrationFailure('seller', 'email', profileError.message);
+        throw profileError;
       }
+
+      console.log('Profile created successfully:', profileData);
+      
+      await logRegistrationSuccess('seller', 'email', authData.user.id);
 
       toast({
-        title: translations.success.registrationCompletedTitle,
-        description: translations.success.accountCreatedPending,
+        title: "Регистрация завершена!",
+        description: "Ваш аккаунт продавца успешно создан. Пожалуйста, подтвердите ваш email.",
+        variant: "default",
       });
 
-      navigate('/pending-approval', { replace: true });
+      // Step 3: Redirect to email verification (email verification is optional for profile activation)
+      navigate(`/verify-email?email=${encodeURIComponent(personalInfo.email)}&returnTo=/profile`);
     } catch (error: any) {
       console.error('Registration error:', error);
-      const errorMessage = error.message || translations.errors.registrationErrorDescription;
-      await logRegistrationFailure('seller', 'email', errorMessage);
+      await logRegistrationFailure('seller', 'email', error.message);
+      
       toast({
-        title: translations.errors.registrationErrorTitle,
-        description: errorMessage,
-        variant: 'destructive',
+        title: "Ошибка регистрации",
+        description: error.message || "Произошла ошибка при регистрации. Попробуйте снова.",
+        variant: "destructive",
       });
-      setCurrentStep('personal-info');
     }
   };
 
 const createBuyerAccount = async (data: BuyerData) => {
     try {
-      const metadata = {
-        full_name: data.fullName,
-        user_type: 'buyer',
-        opt_id: generatedOptId,
-        phone: data.phone,
-        accepted_terms: true,
-        accepted_terms_at: new Date().toISOString(),
-        accepted_privacy: true,
-        accepted_privacy_at: new Date().toISOString(),
-        registration_path: 'standard'
-      } as const;
-
-      // Create auth user
+      console.log('Creating buyer account with data:', data);
+      
+      await logRegistrationSuccess('buyer', 'email', 'pending-creation');
+      
+      // Step 1: Create auth user with Supabase
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           emailRedirectTo: `${window.location.origin}/`,
-          data: metadata,
-        },
+        }
       });
 
       if (authError) {
+        console.error('Supabase auth error:', authError);
         await logRegistrationFailure('buyer', 'email', authError.message);
+        
+        if (authError.message === 'User already registered') {
+          toast({
+            title: "Ошибка регистрации",
+            description: "Пользователь с таким email уже существует. Попробуйте войти в систему.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw authError;
       }
 
-      // Ensure profile creation fallback
-      const userId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
-      if (userId) {
-        // Create profile record as fallback even without session
-        try {
-          await supabase
-            .from('profiles')
-            .upsert({
-              id: userId,
-              full_name: metadata.full_name,
-              user_type: metadata.user_type,
-              opt_id: metadata.opt_id,
-              phone: metadata.phone,
-              email: data.email,
-              email_confirmed: !!authData.session,
-              accepted_terms: true,
-              accepted_terms_at: metadata.accepted_terms_at,
-              accepted_privacy: true,
-              accepted_privacy_at: metadata.accepted_privacy_at,
-            }, { onConflict: 'id' });
-        } catch (profileError) {
-          console.warn('Profile fallback creation failed:', profileError);
-        }
+      if (!authData.user?.id) {
+        const errorMsg = 'Failed to create user account';
+        await logRegistrationFailure('buyer', 'email', errorMsg);
+        throw new Error(errorMsg);
       }
 
-      // If no session yet (email confirmation required), guide user to login after confirming
-      if (!authData.session) {
-        toast({
-          title: language === 'en' ? 'Confirm your email' : 'Подтвердите почту',
-          description:
-            language === 'en'
-              ? 'We sent a confirmation link. Please confirm and log in to continue.'
-              : 'Мы отправили ссылку подтверждения. Подтвердите email и войдите, чтобы продолжить.',
-        });
-        navigate(
-          `/login?notice=check-email&email=${encodeURIComponent(data.email)}&returnTo=/pending-approval`,
-          { replace: true }
-        );
-        return;
-      }
+      console.log('Auth user created:', authData.user.id);
 
-      // If session exists (email auto-confirm), complete profile immediately
-      await supabase.rpc('complete_profile_after_signup', {
-        p_email: data.email,
-        payload: metadata,
+      // Step 2: Complete profile setup using RPC
+      const { data: profileData, error: profileError } = await supabase.rpc('complete_profile_after_signup', {
+        p_full_name: data.fullName,
+        p_company_name: null,
+        p_location: null,
+        p_phone: data.phone,
+        p_telegram: null,
+        p_user_type: 'buyer'
       });
 
-      // Notify admins about new user (deduped on server)
-      const newUserId = authData.user?.id || (await supabase.auth.getUser()).data.user?.id;
-      if (newUserId) {
-        await logRegistrationSuccess('buyer', 'email', newUserId);
-        notifyAdminsNewUser({
-          userId: newUserId,
-          fullName: metadata.full_name,
-          email: data.email,
-          userType: metadata.user_type,
-          phone: metadata.phone,
-          optId: metadata.opt_id,
-          telegram: null,
-          createdAt: new Date().toISOString(),
-        });
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        await logRegistrationFailure('buyer', 'email', profileError.message);
+        throw profileError;
       }
+
+      console.log('Profile created successfully:', profileData);
+      
+      await logRegistrationSuccess('buyer', 'email', authData.user.id);
 
       toast({
-        title: translations.success.registrationCompletedTitle,
-        description: translations.success.accountCreatedPending,
+        title: "Регистрация завершена!",
+        description: "Ваш аккаунт покупателя успешно создан. Пожалуйста, подтвердите ваш email.",
+        variant: "default",
       });
 
-      navigate('/pending-approval', { replace: true });
+      // Step 3: Redirect to email verification
+      navigate(`/verify-email?email=${encodeURIComponent(data.email)}&returnTo=/profile`);
     } catch (error: any) {
       console.error('Registration error:', error);
-      const errorMessage = error.message || translations.errors.registrationErrorDescription;
-      await logRegistrationFailure('buyer', 'email', errorMessage);
+      await logRegistrationFailure('buyer', 'email', error.message);
+      
       toast({
-        title: translations.errors.registrationErrorTitle,
-        description: errorMessage,
-        variant: 'destructive',
+        title: "Ошибка регистрации",
+        description: error.message || "Произошла ошибка при регистрации. Попробуйте снова.",
+        variant: "destructive",
       });
-      setCurrentStep('buyer-registration');
     }
   };
 
@@ -500,17 +416,6 @@ case 'buyer-registration':
       translations={translations}
       optId={generatedOptId}
       language={language}
-    />
-  );
-
-case 'email-verification':
-  return (
-    <EmailVerificationForm
-      initialEmail={(userType === 'seller' ? personalData?.email : buyerData?.email) || ''}
-      onVerificationSuccess={handleEmailVerificationSuccess}
-      onCancel={() => setCurrentStep(userType === 'seller' ? 'personal-info' : 'buyer-registration')}
-      title={language === 'en' ? 'Verify your email' : 'Подтвердите email'}
-      description={language === 'en' ? 'Введите 6-значный код из письма' : 'Введите 6-значный код, отправленный на вашу почту'}
     />
   );
 
