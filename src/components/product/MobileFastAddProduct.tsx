@@ -5,6 +5,9 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { Form } from "@/components/ui/form";
 import { ProductFormValues } from './AddProductForm';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getFormTranslations } from '@/utils/translations/forms';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 // Lazy load heavy components
 const OptimizedMediaSection = React.lazy(() => import('./form/OptimizedMediaSection'));
@@ -55,6 +58,9 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
   onUploadStateChange,
 }) => {
   const isMobile = useIsMobile();
+  const { language } = useLanguage();
+  const t = getFormTranslations(language);
+  const c = getCommonTranslations(language);
 
   // Memoize sections to prevent re-renders
   const basicInfoSection = useMemo(() => (
@@ -112,12 +118,12 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
                 className="touch-target flex items-center gap-2 hover:bg-accent/50 transition-colors"
               >
                 <ArrowLeft className="h-4 w-4" />
-                <span className="font-medium">Back</span>
+                <span className="font-medium">{c.buttons.back}</span>
               </Button>
             )}
             <div className="flex-1">
-              <h1 className="text-xl font-bold text-foreground">Add Product</h1>
-              <p className="text-sm text-muted-foreground">Fill in the details below</p>
+              <h1 className="text-xl font-bold text-foreground">{t.sections.addProduct}</h1>
+              <p className="text-sm text-muted-foreground">{t.sections.productDescription}</p>
             </div>
           </div>
         </div>
@@ -125,11 +131,11 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmitMemo)} className="space-y-6">
             {/* Enhanced Basic Information Section */}
-            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label="Basic Information">
+            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label={t.sections.basicInformation}>
               <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
                 <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  Basic Information
+                  {t.sections.basicInformation}
                 </h2>
               </div>
               <div className="p-4">
@@ -138,11 +144,11 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
             </section>
 
             {/* Enhanced Car Information Section */}
-            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label="Car Information">
+            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label={t.sections.carInformation}>
               <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
                 <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  Car Information
+                  {t.sections.carInformation}
                 </h2>
               </div>
               <div className="p-4">
@@ -151,11 +157,11 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
             </section>
             
             {/* Enhanced Media Files Section */}
-            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label="Media Files">
+            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label={t.sections.mediaFiles}>
               <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
                 <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  Media Files
+                  {t.sections.mediaFiles}
                 </h2>
               </div>
               <div className="p-4">
@@ -175,10 +181,10 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Publishing...
+                        {t.messages.uploadingMedia}
                       </>
                     ) : (
-                      'Publish Product'
+                      t.sections.publishProduct
                     )}
                   </Button>
                 </div>

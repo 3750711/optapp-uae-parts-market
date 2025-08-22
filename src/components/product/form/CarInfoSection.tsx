@@ -9,6 +9,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getFormTranslations } from '@/utils/translations/forms';
 
 interface Brand {
   id: string;
@@ -36,6 +38,9 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
   watchBrandId,
   isLoadingCarData
 }) => {
+  const { language } = useLanguage();
+  const t = getFormTranslations(language);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormField
@@ -43,14 +48,14 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
         name="brandId"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Car Brand</FormLabel>
+            <FormLabel>{t.labels.brand}</FormLabel>
             <FormControl>
               <EnhancedVirtualizedSelect
                 options={brands}
                 value={field.value}
                 onValueChange={field.onChange}
-                placeholder="Select brand"
-                searchPlaceholder="Search brand..."
+                placeholder={t.placeholders.selectBrand}
+                searchPlaceholder={t.placeholders.searchBrand}
                 disabled={isLoadingCarData}
               />
             </FormControl>
@@ -64,14 +69,14 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
         name="modelId"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Model (optional)</FormLabel>
+            <FormLabel>{t.labels.model} {t.optional}</FormLabel>
             <FormControl>
               <EnhancedVirtualizedSelect
                 options={models}
                 value={field.value}
                 onValueChange={field.onChange}
-                placeholder={watchBrandId ? "Select model" : "First select brand"}
-                searchPlaceholder="Search model..."
+                placeholder={watchBrandId ? t.placeholders.selectModel : t.placeholders.firstSelectBrand}
+                searchPlaceholder={t.placeholders.searchModel}
                 disabled={!watchBrandId || isLoadingCarData}
               />
             </FormControl>

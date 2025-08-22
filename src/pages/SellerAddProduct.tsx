@@ -172,8 +172,8 @@ const SellerAddProduct = () => {
         }
 
         toast({
-          title: "Car Detected",
-          description: "Car brand and model determined from title",
+          title: t.messages.carDetected,
+          description: t.messages.carDetectedDescription,
         });
       }
     }
@@ -476,7 +476,7 @@ const SellerAddProduct = () => {
     <div className="flex items-center justify-center min-h-screen">
       <div className="flex flex-col items-center gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm text-muted-foreground">Loading car data...</span>
+        <span className="text-sm text-muted-foreground">{t.messages.loadingCarData}</span>
       </div>
     </div>
   );
@@ -519,7 +519,7 @@ const SellerAddProduct = () => {
                   className="flex items-center gap-2"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back to Dashboard
+                  {t.buttons.backToDashboard}
                 </Button>
               </div>
               
@@ -528,24 +528,24 @@ const SellerAddProduct = () => {
                   <BreadcrumbItem>
                     <BreadcrumbLink asChild>
                       <Link to="/seller/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-                        Seller Dashboard
+                        {sp.sellerDashboard}
                       </Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
                   <BreadcrumbPage className="text-foreground">
-                    Add Product
+                    {t.sections.addProduct}
                   </BreadcrumbPage>
                 </BreadcrumbList>
               </Breadcrumb>
               
-              <h1 className="text-3xl font-bold mb-6">Add Product</h1>
+              <h1 className="text-3xl font-bold mb-6">{t.sections.addProduct}</h1>
               
               {showDraftSaved && (
                 <Alert className="mb-6">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Saved draft loaded. You can continue filling out the form.
+                    {t.messages.draftLoadedDescription}
                   </AlertDescription>
                 </Alert>
               )}
@@ -553,14 +553,14 @@ const SellerAddProduct = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    Product Information
+                    {t.sections.productInformation}
                     <Badge variant="outline" className="text-xs flex items-center gap-1">
                       <Sparkles className="h-3 w-3" />
                       Cloudinary integration
                     </Badge>
                   </CardTitle>
                   <CardDescription>
-                    Fill in all fields to create a product. The product will be sent for moderation.
+                    {t.sections.productDescription}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -614,14 +614,14 @@ const SellerAddProduct = () => {
 
           {/* Mobile draft notification */}
           {isMobile && showDraftSaved && (
-            <div className="fixed top-4 left-4 right-4 z-50">
-              <Alert className="bg-background/95 backdrop-blur-sm border shadow-lg">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Saved draft loaded. Continue filling out the form.
-                </AlertDescription>
-              </Alert>
-            </div>
+              <div className="fixed top-4 left-4 right-4 z-50">
+                <Alert className="bg-background/95 backdrop-blur-sm border shadow-lg">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    {t.messages.draftLoadedMobile}
+                  </AlertDescription>
+                </Alert>
+              </div>
           )}
         </div>
       </GlobalErrorBoundary>
@@ -647,7 +647,7 @@ const SellerAddProduct = () => {
               onClick={() => window.location.reload()}
               className="w-full"
             >
-              Refresh Page
+              {t.buttons.refreshPage}
             </Button>
           </CardContent>
         </Card>

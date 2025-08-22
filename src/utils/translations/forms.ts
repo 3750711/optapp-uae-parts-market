@@ -28,10 +28,17 @@ export interface FormTranslations {
   };
   placeholders: {
     title: string;
+    titleExample: string;
     price: string;
     description: string;
     deliveryPrice: string;
     placeNumber: string;
+    placeNumberText: string;
+    selectBrand: string;
+    selectModel: string;
+    firstSelectBrand: string;
+    searchBrand: string;
+    searchModel: string;
   };
   buttons: {
     save: string;
@@ -39,13 +46,31 @@ export interface FormTranslations {
     publish: string;
     addImages: string;
     addVideos: string;
+    backToDashboard: string;
+    refreshPage: string;
   };
   messages: {
     productCreated: string;
     productSaved: string;
     imageRequired: string;
     uploadingMedia: string;
+    draftLoaded: string;
+    draftLoadedDescription: string;
+    draftLoadedMobile: string;
+    loadingCarData: string;
+    carDetected: string;
+    carDetectedDescription: string;
   };
+  sections: {
+    addProduct: string;
+    basicInformation: string;
+    carInformation: string;
+    mediaFiles: string;
+    productInformation: string;
+    productDescription: string;
+    publishProduct: string;
+  };
+  optional: string;
 }
 
 const formTranslations: Record<Lang, FormTranslations> = {
@@ -77,10 +102,17 @@ const formTranslations: Record<Lang, FormTranslations> = {
     },
     placeholders: {
       title: 'Введите название товара',
+      titleExample: 'Например: BMW X5 F15 Передний бампер',
       price: '0.00',
       description: 'Описание товара...',
       deliveryPrice: '0.00',
       placeNumber: '1',
+      placeNumberText: 'Количество мест',
+      selectBrand: 'Выберите марку',
+      selectModel: 'Выберите модель',
+      firstSelectBrand: 'Сначала выберите марку',
+      searchBrand: 'Поиск марки...',
+      searchModel: 'Поиск модели...',
     },
     buttons: {
       save: 'Сохранить',
@@ -88,13 +120,31 @@ const formTranslations: Record<Lang, FormTranslations> = {
       publish: 'Опубликовать',
       addImages: 'Добавить изображения',
       addVideos: 'Добавить видео',
+      backToDashboard: 'Назад к панели',
+      refreshPage: 'Обновить страницу',
     },
     messages: {
       productCreated: 'Товар успешно создан',
       productSaved: 'Товар сохранен',
       imageRequired: 'Добавьте хотя бы одно изображение',
       uploadingMedia: 'Загрузка медиафайлов...',
+      draftLoaded: 'Черновик загружен',
+      draftLoadedDescription: 'Загружен сохраненный черновик. Вы можете продолжить заполнение формы.',
+      draftLoadedMobile: 'Загружен сохраненный черновик. Продолжите заполнение формы.',
+      loadingCarData: 'Загрузка данных о машинах...',
+      carDetected: 'Автомобиль обнаружен',
+      carDetectedDescription: 'Марка и модель автомобиля определены из названия',
     },
+    sections: {
+      addProduct: 'Добавить товар',
+      basicInformation: 'Основная информация',
+      carInformation: 'Информация об автомобиле',
+      mediaFiles: 'Медиафайлы',
+      productInformation: 'Информация о товаре',
+      productDescription: 'Заполните все поля для создания товара. Товар будет отправлен на модерацию.',
+      publishProduct: 'Опубликовать товар',
+    },
+    optional: '(опционально)',
   },
   en: {
     validation: {
@@ -124,10 +174,17 @@ const formTranslations: Record<Lang, FormTranslations> = {
     },
     placeholders: {
       title: 'Enter product title',
+      titleExample: 'For example: BMW X5 F15 Front Bumper',
       price: '0.00',
       description: 'Product description...',
       deliveryPrice: '0.00',
       placeNumber: '1',
+      placeNumberText: 'Number of places',
+      selectBrand: 'Select brand',
+      selectModel: 'Select model',
+      firstSelectBrand: 'First select brand',
+      searchBrand: 'Search brand...',
+      searchModel: 'Search model...',
     },
     buttons: {
       save: 'Save',
@@ -135,13 +192,31 @@ const formTranslations: Record<Lang, FormTranslations> = {
       publish: 'Publish',
       addImages: 'Add Images',
       addVideos: 'Add Videos',
+      backToDashboard: 'Back to Dashboard',
+      refreshPage: 'Refresh Page',
     },
     messages: {
       productCreated: 'Product successfully created',
       productSaved: 'Product saved',
       imageRequired: 'Add at least one image',
       uploadingMedia: 'Uploading media...',
+      draftLoaded: 'Draft loaded',
+      draftLoadedDescription: 'Saved draft loaded. You can continue filling out the form.',
+      draftLoadedMobile: 'Saved draft loaded. Continue filling out the form.',
+      loadingCarData: 'Loading car data...',
+      carDetected: 'Car Detected',
+      carDetectedDescription: 'Car brand and model determined from title',
     },
+    sections: {
+      addProduct: 'Add Product',
+      basicInformation: 'Basic Information',
+      carInformation: 'Car Information',
+      mediaFiles: 'Media Files',
+      productInformation: 'Product Information',
+      productDescription: 'Fill in all fields to create a product. The product will be sent for moderation.',
+      publishProduct: 'Publish Product',
+    },
+    optional: '(optional)',
   },
   bn: {
     validation: {
@@ -171,10 +246,17 @@ const formTranslations: Record<Lang, FormTranslations> = {
     },
     placeholders: {
       title: 'পণ্যের শিরোনাম লিখুন',
+      titleExample: 'উদাহরণ: BMW X5 F15 সামনের বাম্পার',
       price: '0.00',
       description: 'পণ্যের বিবরণ...',
       deliveryPrice: '0.00',
       placeNumber: '1',
+      placeNumberText: 'স্থানের সংখ্যা',
+      selectBrand: 'ব্র্যান্ড নির্বাচন করুন',
+      selectModel: 'মডেল নির্বাচন করুন',
+      firstSelectBrand: 'প্রথমে ব্র্যান্ড নির্বাচন করুন',
+      searchBrand: 'ব্র্যান্ড অনুসন্ধান...',
+      searchModel: 'মডেল অনুসন্ধান...',
     },
     buttons: {
       save: 'সংরক্ষণ',
@@ -182,13 +264,31 @@ const formTranslations: Record<Lang, FormTranslations> = {
       publish: 'প্রকাশ',
       addImages: 'ছবি যোগ করুন',
       addVideos: 'ভিডিও যোগ করুন',
+      backToDashboard: 'ড্যাশবোর্ডে ফিরুন',
+      refreshPage: 'পৃষ্ঠা রিফ্রেশ করুন',
     },
     messages: {
       productCreated: 'পণ্য সফলভাবে তৈরি',
       productSaved: 'পণ্য সংরক্ষিত',
       imageRequired: 'অন্তত একটি ছবি যোগ করুন',
       uploadingMedia: 'মিডিয়া আপলোড করা হচ্ছে...',
+      draftLoaded: 'খসড়া লোড হয়েছে',
+      draftLoadedDescription: 'সংরক্ষিত খসড়া লোড হয়েছে। আপনি ফর্ম পূরণ করা চালিয়ে যেতে পারেন।',
+      draftLoadedMobile: 'সংরক্ষিত খসড়া লোড হয়েছে। ফর্ম পূরণ করা চালিয়ে যান।',
+      loadingCarData: 'গাড়ির তথ্য লোড করা হচ্ছে...',
+      carDetected: 'গাড়ি শনাক্ত করা হয়েছে',
+      carDetectedDescription: 'শিরোনাম থেকে গাড়ির ব্র্যান্ড এবং মডেল নির্ধারণ করা হয়েছে',
     },
+    sections: {
+      addProduct: 'পণ্য যোগ করুন',
+      basicInformation: 'মৌলিক তথ্য',
+      carInformation: 'গাড়ির তথ্য',
+      mediaFiles: 'মিডিয়া ফাইল',
+      productInformation: 'পণ্যের তথ্য',
+      productDescription: 'একটি পণ্য তৈরি করতে সমস্ত ক্ষেত্র পূরণ করুন। পণ্যটি পরিমার্জনের জন্য পাঠানো হবে।',
+      publishProduct: 'পণ্য প্রকাশ করুন',
+    },
+    optional: '(ঐচ্ছিক)',
   },
 };
 

@@ -11,12 +11,17 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getFormTranslations } from '@/utils/translations/forms';
 
 interface BasicInfoSectionProps {
   form: UseFormReturn<ProductFormValues>;
 }
 
 const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
+  const { language } = useLanguage();
+  const t = getFormTranslations(language);
+
   return (
     <div className="space-y-4">
       <FormField
@@ -24,10 +29,10 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
         name="title"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Product Title</FormLabel>
+            <FormLabel>{t.labels.title}</FormLabel>
             <FormControl>
               <Input 
-                placeholder="For example: BMW X5 F15 Front Bumper"
+                placeholder={t.placeholders.titleExample}
                 {...field}
               />
             </FormControl>
@@ -42,7 +47,7 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
           name="price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Price ($)</FormLabel>
+              <FormLabel>{t.labels.price}</FormLabel>
               <FormControl>
                 <Input 
                   type="number"
@@ -61,13 +66,13 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
           name="deliveryPrice"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Delivery Cost ($)</FormLabel>
+              <FormLabel>{t.labels.deliveryPrice}</FormLabel>
               <FormControl>
                 <Input 
                   type="number"
                   step="0.01"
                   inputMode="decimal"
-                  placeholder="0.00"
+                  placeholder={t.placeholders.deliveryPrice}
                   {...field}
                 />
               </FormControl>
@@ -82,12 +87,12 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
         name="placeNumber"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Number of Places for Shipping</FormLabel>
+            <FormLabel>{t.labels.placeNumber}</FormLabel>
             <FormControl>
               <Input 
                 type="number"
                 min="1"
-                placeholder="Number of places"
+                placeholder={t.placeholders.placeNumberText}
                 {...field}
               />
             </FormControl>
@@ -101,10 +106,10 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Product Description (optional)</FormLabel>
+            <FormLabel>{t.labels.description} {t.optional}</FormLabel>
             <FormControl>
               <Textarea 
-                placeholder="Product description"
+                placeholder={t.placeholders.description}
                 className="min-h-[100px]"
                 {...field}
               />
