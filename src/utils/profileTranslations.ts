@@ -332,9 +332,182 @@ export const profileTranslations = {
       selectImages: "Select Images",
       selectFiles: "Select files to upload"
     }
+  },
+  bn: {
+    // Profile page
+    myProfile: "আমার প্রোফাইল",
+    back: "পেছনে",
+    signOut: "সাইন আউট",
+    profileUpdated: "প্রোফাইল আপডেট হয়েছে",
+    profileUpdatedDesc: "আপনার তথ্য সফলভাবে সংরক্ষিত হয়েছে",
+    noChanges: "কোন পরিবর্তন নেই",
+    noChangesDesc: "সংরক্ষণের জন্য কোন পরিবর্তন নেই",
+    updateError: "আপডেট ত্রুটি",
+    optIdError: "OPT ID ইতিমধ্যে অন্য ব্যবহারকারী দ্বারা ব্যবহৃত হচ্ছে",
+    signOutConfirm: "সাইন আউট",
+    signOutConfirmDesc: "আপনি কি নিশ্চিত যে আপনি সাইন আউট করতে চান?",
+    cancel: "বাতিল",
+    signOutBtn: "সাইন আউট",
+    signOutSuccess: "আপনি সাইন আউট হয়েছেন",
+    signOutSuccessDesc: "বিদায়!",
+    signOutError: "সাইন আউট ত্রুটি",
+    signOutErrorDesc: "সাইন আউট করতে ব্যর্থ। অনুগ্রহ করে আবার চেষ্টা করুন।",
+    retryLoad: "আবার চেষ্টা করুন",
+    profileLoadError: "প্রোফাইল লোড করতে ব্যর্থ",
+    
+    // Profile form
+    profileData: "প্রোফাইল ডেটা",
+    fullName: "পূর্ণ নাম",
+    email: "ইমেইল",
+    phone: "ফোন",
+    companyName: "কোম্পানির নাম",
+    telegram: "টেলিগ্রাম",
+    userType: "ব্যবহারকারীর ধরন",
+    description: "প্রোফাইল বিবরণ",
+    saveChanges: "পরিবর্তন সংরক্ষণ",
+    changeEmail: "ইমেইল পরিবর্তন",
+    saving: "সংরক্ষণ করা হচ্ছে...",
+    
+    // Placeholders
+    fullNamePlaceholder: "আপনার পূর্ণ নাম লিখুন",
+    phonePlaceholder: "ফোন নম্বর লিখুন",
+    companyNamePlaceholder: "কোম্পানির নাম লিখুন",
+    telegramPlaceholder: "@ইউজারনেম",
+    descriptionPlaceholder: "আপনার বা আপনার কোম্পানি সম্পর্কে বলুন",
+    
+    // User types
+    accountType: "একাউন্টের ধরন",
+    selectUserType: "ব্যবহারকারীর ধরন নির্বাচন করুন",
+    buyerType: "ক্রেতা",
+    sellerType: "বিক্রেতা",
+    adminType: "প্রশাসক",
+    userTypeReadOnly: "নিবন্ধনের পরে একাউন্টের ধরন পরিবর্তন করা যাবে না",
+    
+    // Telegram field
+    telegramDescription: "যোগাযোগের জন্য আপনার টেলিগ্রাম ইউজারনেম লিখুন",
+    
+    // OPT ID field
+    optIdPlaceholder: "আপনার OPT ID লিখুন",
+    optIdChangeContact: "যদি আপনাকে OPT ID পরিবর্তন করতে হয় তাহলে প্রশাসকের সাথে যোগাযোগ করুন",
+    optIdAccessDenied: "OPT ID শুধুমাত্র প্রোফাইল মালিক বা প্রশাসক দ্বারা পরিবর্তন করা যেতে পারে",
+    optIdOnceOnly: "OPT ID লিখুন। সংরক্ষণের পরে এটি পরিবর্তন করা যাবে না।",
+    
+    // Email change form
+    emailChangeTitle: "ইমেইল পরিবর্তন",
+    currentEmail: "বর্তমান ইমেইল:",
+    newEmailLabel: "নতুন ইমেইল ঠিকানা",
+    newEmailPlaceholder: "new@email.com",
+    sendCode: "কোড পাঠান",
+    sending: "পাঠানো হচ্ছে...",
+    verificationCode: "যাচাইকরণ কোড",
+    changeEmail2: "ইমেইল পরিবর্তন",
+    changing: "পরিবর্তন করা হচ্ছে...",
+    resendCode: "কোড পুনরায় পাঠান",
+    changeEmailAction: "ইমেইল পরিবর্তন",
+    
+    // Email change notifications
+    invalidEmail: "অবৈধ ইমেইল",
+    invalidEmailDesc: "একটি বৈধ ইমেইল ঠিকানা লিখুন",
+    sameEmail: "একই ইমেইল",
+    sameEmailDesc: "নতুন ইমেইল বর্তমান থেকে ভিন্ন হতে হবে",
+    codeSent: "কোড পাঠানো হয়েছে",
+    codeSentDesc: "নতুন ইমেইলে যাচাইকরণ কোড পাঠানো হয়েছে",
+    sendError: "পাঠানো ত্রুটি",
+    incompleteCode: "অসম্পূর্ণ কোড",
+    incompleteCodeDesc: "সম্পূর্ণ ৬-অঙ্কের কোড লিখুন",
+    invalidCode: "অবৈধ কোড",
+    emailChanged: "ইমেইল পরিবর্তিত",
+    emailChangedDesc: "আপনার ইমেইল সফলভাবে পরিবর্তিত হয়েছে। উভয় ঠিকানায় বিজ্ঞপ্তি পাঠানো হয়েছে: পুরানো (নিরাপত্তার জন্য) এবং নতুন (নিশ্চিতকরণ)।",
+    updateEmailError: "আপডেট ত্রুটি",
+    updateEmailErrorDesc: "ইমেইল আপডেট করতে ব্যর্থ। পরে চেষ্টা করুন।",
+    changeEmailError: "ত্রুটি",
+    changeEmailErrorDesc: "ইমেইল পরিবর্তন করার সময় একটি ত্রুটি ঘটেছে",
+    emailChangeNotification: "ইমেইল পরিবর্তনের পরে আপনি বিজ্ঞপ্তি পাবেন:",
+    emailChangeOldNotification: "• পুরানো ঠিকানা - পরিবর্তন বিজ্ঞপ্তি (নিরাপত্তা)",
+    emailChangeNewNotification: "• নতুন ঠিকানা - পরিবর্তন নিশ্চিতকরণ",
+    emailSentTo: "কোড পাঠানো হয়েছে:",
+    
+    // Profile stats
+    profileStats: "প্রোফাইল পরিসংখ্যান",
+    activeListings: "সক্রিয় তালিকা",
+    totalOrders: "মোট অর্ডার",
+    completedOrders: "সম্পন্ন অর্ডার",
+    pendingOrders: "অপেক্ষমাণ অর্ডার",
+    rating: "রেটিং",
+    daysOnPlatform: "প্ল্যাটফর্মে দিন",
+    contactAdmin: "প্রশাসকের সাথে যোগাযোগ",
+    
+    // Profile progress
+    profileCompletion: "প্রোফাইল সম্পূর্ণতা",
+    progress: "অগ্রগতি",
+    completed: "সম্পন্ন",
+    recommendedToFill: "পূরণ করার পরামর্শ দেওয়া হয়",
+    
+    // Profile header
+    userProfile: "ব্যবহারকারী প্রোফাইল",
+    seller: "বিক্রেতা",
+    buyer: "ক্রেতা",
+    verified: "যাচাইকৃত",
+    pendingVerification: "যাচাইয়ের অপেক্ষায়",
+    avatarUpdated: "ছবি আপডেট হয়েছে",
+    avatarUpdatedDesc: "আপনার অবতার সফলভাবে আপডেট হয়েছে",
+    uploadError: "আপলোড ত্রুটি",
+    selectImage: "অনুগ্রহ করে একটি ছবি নির্বাচন করুন",
+    fileSizeError: "ফাইলের আকার ২MB এর বেশি হওয়া উচিত নয়",
+    
+    // Profile info
+    accountInfo: "একাউন্ট তথ্য",
+    registrationDate: "নিবন্ধনের তারিখ",
+    lastLogin: "শেষ লগইন",
+    listingCount: "তালিকার সংখ্যা",
+    sellerRating: "বিক্রেতার রেটিং",
+    noRatingsYet: "এখনও কোন রেটিং নেই",
+    
+    // Store management
+    storeManagement: "দোকান ব্যবস্থাপনা",
+    storeInfo: "দোকানের তথ্য",
+    noStoreYet: "আপনার এখনও কোন দোকান নেই। স্বয়ংক্রিয়ভাবে একটি দোকান তৈরি করতে আপনার প্রোফাইলে \"কোম্পানির নাম\" ক্ষেত্র পূরণ করুন।",
+    generalInfo: "সাধারণ তথ্য",
+    storeName: "দোকানের নাম",
+    storeNamePlaceholder: "দোকানের নাম লিখুন",
+    storeDescription: "বিবরণ",
+    storeDescriptionPlaceholder: "দোকানের বিবরণ লিখুন",
+    storeAddress: "ঠিকানা",
+    storeAddressPlaceholder: "দোকানের ঠিকানা লিখুন",
+    storePhone: "ফোন",
+    storePhonePlaceholder: "দোকানের ফোন লিখুন",
+    storeLocation: "অবস্থান",
+    storeLocationDescription: "অবস্থান স্বয়ংক্রিয়ভাবে আপনার প্রোফাইল থেকে নেওয়া হয়",
+    storePhotos: "দোকানের ছবি",
+    storePhotosDescription: "আপনার দোকানের ছবি যোগ করুন যাতে ক্রেতারা এটি সম্পর্কে আরও জানতে পারে",
+    storeUpdated: "দোকান আপডেট হয়েছে",
+    storeUpdatedDesc: "দোকানের তথ্য সফলভাবে আপডেট হয়েছে",
+    storeUpdateError: "আপডেট ত্রুটি",
+    storeUpdateErrorDesc: "দোকানের তথ্য আপডেট করার সময় একটি ত্রুটি ঘটেছে",
+    
+    // Image upload translations
+    imageUpload: {
+      limitExceeded: "সীমা অতিক্রম",
+      maxImagesText: "ছবির সর্বোচ্চ সংখ্যা:",
+      success: "সফল",
+      uploadedText: "আপলোড হয়েছে {count} টি {total} টি ছবির মধ্যে",
+      error: "ত্রুটি",
+      uploadFailed: "ছবি আপলোড করতে ব্যর্থ",
+      uploading: "ছবি আপলোড হচ্ছে...",
+      dragDropText: "আপলোড করতে ছবি ক্লিক করুন বা টেনে আনুন",
+      imagesUploaded: "ছবি আপলোড হয়েছে",
+      selectImages: "ছবি নির্বাচন করুন",
+      selectFiles: "আপলোড করার জন্য ফাইল নির্বাচন করুন"
+    }
   }
 };
 
-export const getProfileTranslations = (userType: string) => {
-  return userType === 'seller' ? profileTranslations.en : profileTranslations.ru;
+export const getProfileTranslations = (language?: 'ru' | 'en' | 'bn') => {
+  // If language is provided, use it directly
+  if (language) {
+    return profileTranslations[language] || profileTranslations.en;
+  }
+  
+  // Fallback to English if no language specified
+  return profileTranslations.en;
 };

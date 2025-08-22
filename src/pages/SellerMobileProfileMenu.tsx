@@ -24,12 +24,14 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useLanguage } from '@/hooks/useLanguage';
 import { allowedLocalesFor } from '@/utils/languageVisibility';
 import LanguageToggle from '@/components/auth/LanguageToggle';
+import { getProfileMenuTranslations } from '@/utils/translations/profileMenuPages';
 
 const SellerMobileProfileMenu = () => {
   const { user, signOut, profile } = useAuth();
   const { unreadCount } = useNotifications();
   const { language, changeLanguage } = useLanguage();
   const navigate = useNavigate();
+  const t = getProfileMenuTranslations(language);
 
   // Get allowed languages for seller
   const allowedLanguages = allowedLocalesFor(profile?.user_type || null, '/seller/profile-menu');
@@ -38,8 +40,8 @@ const SellerMobileProfileMenu = () => {
     try {
       await signOut();
       toast({
-        title: "Signed out successfully",
-        description: "You have successfully signed out"
+        title: t.signedOut,
+        description: t.signedOutDescription
       });
       navigate('/');
     } catch (error) {
@@ -63,7 +65,7 @@ const SellerMobileProfileMenu = () => {
         <Button variant="ghost" size="sm" onClick={() => navigate('/seller/dashboard')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-lg font-semibold">Profile</h1>
+        <h1 className="text-lg font-semibold">{t.profileSettings}</h1>
         <div className="w-10" />
       </div>
 
@@ -85,12 +87,12 @@ const SellerMobileProfileMenu = () => {
             </h2>
             {profile.opt_id && (
               <p className="text-sm text-muted-foreground">
-                OPT ID: {profile.opt_id}
+                {t.optId}: {profile.opt_id}
               </p>
             )}
             {profile.telegram && (
               <p className="text-sm text-muted-foreground">
-                @{profile.telegram.replace('@', '')}
+                {t.telegram}: @{profile.telegram.replace('@', '')}
               </p>
             )}
             <p className="text-sm text-muted-foreground">
@@ -106,7 +108,7 @@ const SellerMobileProfileMenu = () => {
         <Link to="/profile">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <Settings className="mr-3 h-5 w-5" />
-            Profile Settings
+            {t.profileSettings}
           </Button>
         </Link>
 
@@ -117,7 +119,7 @@ const SellerMobileProfileMenu = () => {
           <div className="flex items-center justify-between px-3">
             <div className="flex items-center space-x-2">
               <Globe className="h-5 w-5 text-muted-foreground" />
-              <span className="text-base font-medium">Language</span>
+              <span className="text-base font-medium">{t.language}</span>
             </div>
           </div>
           <div className="px-3">
@@ -134,7 +136,7 @@ const SellerMobileProfileMenu = () => {
         <Link to="/notifications">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <Bell className="mr-3 h-5 w-5" />
-            <span className="flex-1 text-left">Notifications</span>
+            <span className="flex-1 text-left">{t.notifications}</span>
             {unreadCount > 0 && (
               <Badge variant="destructive" className="h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs min-w-0">
                 {unreadCount > 99 ? '99+' : unreadCount}
@@ -150,35 +152,35 @@ const SellerMobileProfileMenu = () => {
         <Link to="/seller/dashboard">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <Store className="mr-3 h-5 w-5" />
-            Seller Dashboard
+            {t.sellerDashboard}
           </Button>
         </Link>
         
         <Link to="/seller/listings">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <Package className="mr-3 h-5 w-5" />
-            My Products
+            {t.myProducts}
           </Button>
         </Link>
         
         <Link to="/seller/add-product">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <Plus className="mr-3 h-5 w-5" />
-            Add Product
+            {t.addProduct}
           </Button>
         </Link>
         
         <Link to="/seller/orders">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <ClipboardList className="mr-3 h-5 w-5" />
-            My Orders
+            {t.myOrders}
           </Button>
         </Link>
         
         <Link to="/seller/price-offers">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <DollarSign className="mr-3 h-5 w-5" />
-            Price Offers
+            {t.priceOffers}
           </Button>
         </Link>
 
@@ -188,7 +190,7 @@ const SellerMobileProfileMenu = () => {
         <Link to="/help">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <HelpCircle className="mr-3 h-5 w-5" />
-            Help
+            {t.help}
           </Button>
         </Link>
 
@@ -201,7 +203,7 @@ const SellerMobileProfileMenu = () => {
           className="w-full justify-start h-12 text-base text-destructive hover:text-destructive hover:bg-destructive/10"
         >
           <LogOut className="mr-3 h-5 w-5" />
-          Sign Out
+          {t.signOut}
         </Button>
       </div>
     </div>
