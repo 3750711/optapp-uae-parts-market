@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
+import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
+import { getCommonTranslations } from "@/utils/translations/common";
 
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -47,11 +49,13 @@ const AddProductForm = React.lazy(() => import("@/components/product/AddProductF
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
   const { language } = useLanguage();
   const t = getFormTranslations(language);
   const sp = getSellerPagesTranslations(language);
   const c = getCommonTranslations(language);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const { guardedSubmit, isSubmitting } = useSubmissionGuard();
   const [primaryImage, setPrimaryImage] = useState<string>("");

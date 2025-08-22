@@ -6,14 +6,16 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { getCommonTranslations } from '@/utils/translations/common';
 
 interface ProductSpecificationsProps {
-  product: {
-    brand?: string;
-    model?: string;
-    lot_number?: string;
-  };
+  brand?: string;
+  model?: string;
+  lot_number?: string | number;
 }
 
-const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({ product }) => {
+const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({ 
+  brand, 
+  model, 
+  lot_number 
+}) => {
   const { language } = useLanguage();
   const c = getCommonTranslations(language);
 
@@ -23,15 +25,15 @@ const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({ product }
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <h4 className="font-medium text-muted-foreground mb-2">{c.product.brand}</h4>
-            <p className="text-sm">{product.brand || c.product.notSpecified}</p>
+            <p className="text-sm">{brand || c.product.notSpecified}</p>
           </div>
           <div>
             <h4 className="font-medium text-muted-foreground mb-2">{c.product.model}</h4>
-            <p className="text-sm">{product.model || c.product.notSpecified}</p>
+            <p className="text-sm">{model || c.product.notSpecified}</p>
           </div>
           <div>
             <h4 className="font-medium text-muted-foreground mb-2">{c.product.lotNumber}</h4>
-            <p className="text-sm font-mono">{product.lot_number || c.product.notSpecified}</p>
+            <p className="text-sm font-mono">{lot_number || c.product.notSpecified}</p>
           </div>
         </div>
       </CardContent>
