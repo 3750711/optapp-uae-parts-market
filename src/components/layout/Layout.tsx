@@ -7,14 +7,17 @@ import { PWAStatus } from '@/components/PWAStatus';
 interface LayoutProps {
   children: React.ReactNode;
   className?: string;
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, className, language }) => {
+const Layout: React.FC<LayoutProps> = ({ children, className, language = 'ru' }) => {
   useEffect(() => {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
-  }, []);
+    
+    // Set HTML lang attribute for accessibility and SEO
+    document.documentElement.lang = language;
+  }, [language]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">

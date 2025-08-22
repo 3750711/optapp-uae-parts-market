@@ -44,6 +44,7 @@ import {
 import LanguageToggle from '@/components/auth/LanguageToggle';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getMainPageTranslations } from '@/utils/mainPageTranslations';
+import { allowedLocalesFor } from '@/utils/languageVisibility';
 
 
 const Header = () => {
@@ -150,10 +151,11 @@ const Header = () => {
         <NavLinks />
 
         <div className="flex items-center space-x-3">
-          {/* Language Toggle - always visible */}
+          {/* Language Toggle - conditionally visible based on role and route */}
           <LanguageToggle 
             language={language}
             onLanguageChange={changeLanguage}
+            allowedLanguages={allowedLocalesFor(profile?.user_type || null, window.location.pathname)}
             className="mr-2"
           />
           

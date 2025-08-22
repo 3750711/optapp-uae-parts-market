@@ -4,7 +4,7 @@ import { TelegramLoginWidget } from './TelegramLoginWidget';
 import LoginForm from './LoginForm';
 
 interface ProfessionalAuthBlockProps {
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
 }
 
 const authTranslations = {
@@ -36,7 +36,7 @@ export const ProfessionalAuthBlock: React.FC<ProfessionalAuthBlockProps> = ({
   language = 'ru' 
 }) => {
   
-  const t = authTranslations[language];
+  const t = authTranslations[language === 'bn' ? 'en' : language];
 
   const handleTelegramSuccess = () => {
     // Handle successful Telegram login
@@ -54,7 +54,7 @@ export const ProfessionalAuthBlock: React.FC<ProfessionalAuthBlockProps> = ({
           <TelegramLoginWidget 
             onSuccess={handleTelegramSuccess}
             onError={handleTelegramError}
-            language={language}
+            language={language === 'bn' ? 'en' : language}
             compact
           />
         </div>
@@ -72,7 +72,7 @@ export const ProfessionalAuthBlock: React.FC<ProfessionalAuthBlockProps> = ({
 
         {/* Compact email login */}
         <div className="mt-4">
-          <LoginForm language={language} compact hideHeader hideLinks />
+          <LoginForm language={language === 'bn' ? 'en' : language} compact hideHeader hideLinks />
         </div>
 
         {/* Bottom links */}

@@ -213,6 +213,8 @@ export const translations: Record<'ru' | 'en', LoginTranslations> = {
   },
 };
 
-export const getLoginTranslations = (language: 'ru' | 'en' = 'ru'): LoginTranslations => {
-  return translations[language];
+export const getLoginTranslations = (language: 'ru' | 'en' | 'bn' = 'ru'): LoginTranslations => {
+  // Bengali users see English translations for login
+  const actualLanguage = language === 'bn' ? 'en' : language;
+  return translations[actualLanguage as 'ru' | 'en'];
 };

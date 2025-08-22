@@ -1084,6 +1084,7 @@ export type Database = {
           opt_id: string | null
           opt_status: Database["public"]["Enums"]["opt_user_status"]
           phone: string | null
+          preferred_locale: string | null
           profile_completed: boolean | null
           rating: number | null
           telegram: string | null
@@ -1117,6 +1118,7 @@ export type Database = {
           opt_id?: string | null
           opt_status?: Database["public"]["Enums"]["opt_user_status"]
           phone?: string | null
+          preferred_locale?: string | null
           profile_completed?: boolean | null
           rating?: number | null
           telegram?: string | null
@@ -1150,6 +1152,7 @@ export type Database = {
           opt_id?: string | null
           opt_status?: Database["public"]["Enums"]["opt_user_status"]
           phone?: string | null
+          preferred_locale?: string | null
           profile_completed?: boolean | null
           rating?: number | null
           telegram?: string | null

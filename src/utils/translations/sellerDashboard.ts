@@ -1,74 +1,72 @@
 // Translation constants for Seller Dashboard and related components
 export const sellerDashboardTranslations = {
   ru: {
-  // Dashboard main titles
-  pageTitle: "Seller Dashboard",
-  pageSubtitle: "Manage your products and orders",
-  
-  // Dashboard cards
-  addProduct: {
-    title: "Add Product",
-    description: "List a new product on the marketplace"
-  },
-  
-  myWarehouse: {
-    title: "My Warehouse", 
-    description: "View all your products in stock"
-  },
-  
-  sellProduct: {
-    title: "Sell Product",
-    description: "Create an order from your products"
-  },
-  
-  createOrder: {
-    title: "Create Order",
-    description: "Create a new order"
-  },
-  
-  catalog: {
-    title: "Catalog",
-    description: "Browse all available products"
-  },
-  
-  contactAdmin: {
-    title: "Contact Admin",
-    description: "Get help from administrator"
-  },
-  
-  myOrders: {
-    title: "My Orders", 
-    description: "View and manage your orders"
-  },
+    // Dashboard main titles
+    pageTitle: "Панель продавца",
+    pageSubtitle: "Управляйте своими товарами и заказами",
+    
+    // Dashboard cards
+    addProduct: {
+      title: "Добавить товар",
+      description: "Разместить новый товар на маркетплейсе"
+    },
+    
+    myWarehouse: {
+      title: "Мой склад", 
+      description: "Просмотреть все товары в наличии"
+    },
+    
+    sellProduct: {
+      title: "Продать товар",
+      description: "Создать заказ из ваших товаров"
+    },
+    
+    createOrder: {
+      title: "Создать заказ",
+      description: "Создать новый заказ"
+    },
+    
+    catalog: {
+      title: "Каталог",
+      description: "Просмотреть все доступные товары"
+    },
+    
+    contactAdmin: {
+      title: "Связаться с админом",
+      description: "Получить помощь от администратора"
+    },
+    
+    myOrders: {
+      title: "Мои заказы", 
+      description: "Просмотреть и управлять заказами"
+    },
 
-  priceOffers: {
-    title: "Price Offers",
-    description: "Manage price offers from buyers"
-  },
-  
-  // Contact admin message
-  contactAdminMessage: "I have a problem boss, my ID is",
-  notSpecified: "Not specified",
-  
-  // Loading and error states
-  loading: "Loading...",
-  error: "Error loading dashboard",
-  
-  // Stats section
-  stats: {
-    totalProducts: "Total Products",
-    activeProducts: "Active Products", 
-    totalOrders: "Total Orders",
-    pendingOrders: "Pending Orders",
-    revenue: "Revenue",
-    recentOrders: "Recent Orders",
-    lastUpdated: "Last updated",
-    noData: "No data available",
-    errorLoading: "Error loading statistics",
-    retry: "Retry"
-  }
-};
-
+    priceOffers: {
+      title: "Ценовые предложения",
+      description: "Управлять ценовыми предложениями от покупателей"
+    },
+    
+    // Contact admin message
+    contactAdminMessage: "У меня проблема босс, мой ID",
+    notSpecified: "Не указано",
+    
+    // Loading and error states
+    loading: "Загрузка...",
+    error: "Ошибка загрузки панели",
+    
+    // Stats section
+    stats: {
+      totalProducts: "Всего товаров",
+      activeProducts: "Активных товаров", 
+      totalOrders: "Всего заказов",
+      pendingOrders: "Ожидающих заказов",
+      revenue: "Выручка",
+      recentOrders: "Последние заказы",
+      lastUpdated: "Последнее обновление",
+      noData: "Нет данных",
+      errorLoading: "Ошибка загрузки статистики",
+      retry: "Повторить"
+    }
   },
   en: {
     // Dashboard main titles  

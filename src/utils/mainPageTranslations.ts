@@ -105,9 +105,6 @@ const translations: Record<'ru' | 'en' | 'bn', MainPageTranslations> = {
       keywords: 'B2B auto parts UAE, auto parts platform, closed community',
     },
   },
-};
-
-  },
   bn: {
     header: {
       home: 'হোম',

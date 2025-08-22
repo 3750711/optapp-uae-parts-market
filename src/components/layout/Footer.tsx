@@ -3,10 +3,10 @@ import React from "react";
 import { Link } from "react-router-dom";
 
 interface FooterProps {
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
 }
 
-const getFooterTranslations = (language: 'ru' | 'en') => {
+const getFooterTranslations = (language: 'ru' | 'en' | 'bn') => {
   const translations = {
     ru: {
       description: "Торговая площадка автозапчастей в ОАЭ напрямую от поставщиков и магазинов.",
@@ -17,6 +17,11 @@ const getFooterTranslations = (language: 'ru' | 'en') => {
       description: "Auto parts marketplace in the UAE directly from suppliers and stores.",
       disclaimer: "Information on the PartsBay portal is for informational purposes only. All sellers are independent companies or individuals, and our portal bears no responsibility for their actions.",
       copyright: "All rights reserved."
+    },
+    bn: {
+      description: "UAE-তে সরবরাহকারী এবং দোকান থেকে সরাসরি গাড়ির যন্ত্রাংশের মার্কেটপ্লেস।",
+      disclaimer: "PartsBay পোর্টালের তথ্য শুধুমাত্র তথ্যগত উদ্দেশ্যে। সমস্ত বিক্রেতা স্বতন্ত্র কোম্পানি বা ব্যক্তি, এবং আমাদের পোর্টাল তাদের কর্মের জন্য কোনো দায়বদ্ধতা বহন করে না।",
+      copyright: "সমস্ত অধিকার সংরক্ষিত।"
     }
   };
   return translations[language];

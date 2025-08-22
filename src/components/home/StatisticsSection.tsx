@@ -26,7 +26,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, value, label }) => {
 };
 
 interface StatisticsSectionProps {
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
 }
 
 const StatisticsSection: React.FC<StatisticsSectionProps> = ({ language = 'ru' }) => {

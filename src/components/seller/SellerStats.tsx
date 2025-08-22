@@ -14,10 +14,13 @@ import {
   Clock
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { sellerDashboardTranslations } from "@/utils/translations/sellerDashboard";
+import { sellerDashboardTranslations, getSellerDashboardTranslations } from "@/utils/translations/sellerDashboard";
+import { useLanguage } from "@/hooks/useLanguage";
 
 const SellerStats = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const { language } = useLanguage();
+  const t = getSellerDashboardTranslations(profile?.user_type === 'seller' ? language : 'ru');
 
   const { data: stats, isLoading, error, refetch } = useQuery({
     queryKey: ['seller-stats', user?.id],
@@ -84,12 +87,12 @@ const SellerStats = () => {
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6">
           <div className="text-center">
-            <p className="text-red-600 mb-2">{sellerDashboardTranslations.stats.errorLoading}</p>
+            <p className="text-red-600 mb-2">{t.stats.errorLoading}</p>
             <button 
               onClick={() => refetch()}
               className="text-sm text-red-800 underline hover:no-underline"
             >
-              {sellerDashboardTranslations.stats.retry}
+              {t.stats.retry}
             </button>
           </div>
         </CardContent>
@@ -190,7 +193,7 @@ const SellerStats = () => {
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Statistics</h3>
         <Badge variant="outline" className="text-xs">
-          {sellerDashboardTranslations.stats.lastUpdated}: {new Date().toLocaleTimeString()}
+          {t.stats.lastUpdated}: {new Date().toLocaleTimeString()}
         </Badge>
       </div>
       
