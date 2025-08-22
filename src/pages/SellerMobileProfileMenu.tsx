@@ -14,18 +14,25 @@ import {
   Store, 
   MessageSquare,
   Bell,
-  
+  Globe,
   HelpCircle,
   ClipboardList,
   DollarSign
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useLanguage } from '@/hooks/useLanguage';
+import { allowedLocalesFor } from '@/utils/languageVisibility';
+import LanguageToggle from '@/components/auth/LanguageToggle';
 
 const SellerMobileProfileMenu = () => {
   const { user, signOut, profile } = useAuth();
   const { unreadCount } = useNotifications();
+  const { language, changeLanguage } = useLanguage();
   const navigate = useNavigate();
+
+  // Get allowed languages for seller
+  const allowedLanguages = allowedLocalesFor(profile?.user_type || null, '/seller/profile-menu');
 
   const handleLogout = async () => {
     try {
@@ -105,7 +112,25 @@ const SellerMobileProfileMenu = () => {
 
         <Separator className="my-4" />
 
-        {/* Universal Items */}
+        {/* Language Settings */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-3">
+            <div className="flex items-center space-x-2">
+              <Globe className="h-5 w-5 text-muted-foreground" />
+              <span className="text-base font-medium">Language</span>
+            </div>
+          </div>
+          <div className="px-3">
+            <LanguageToggle
+              language={language}
+              onLanguageChange={changeLanguage}
+              allowedLanguages={allowedLanguages}
+              className="w-full justify-center"
+            />
+          </div>
+        </div>
+
+        <Separator className="my-4" />
         <Link to="/notifications">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <Bell className="mr-3 h-5 w-5" />
