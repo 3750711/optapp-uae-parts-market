@@ -16,6 +16,9 @@ import { OrderPreviewDialog } from "@/components/admin/order/OrderPreviewDialog"
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { toast } from "@/hooks/use-toast";
+import { useLanguage } from '@/hooks/useLanguage';
+import { tPick } from '@/utils/i18n';
+import { sellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 const SellerCreateOrder = () => {
   const navigate = useNavigate();
@@ -23,6 +26,8 @@ const SellerCreateOrder = () => {
   const productId = searchParams.get('productId');
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = tPick(sellerPagesTranslations, language);
   const [showPreview, setShowPreview] = useState(false);
   const [primaryImage, setPrimaryImage] = useState<string>('');
 
@@ -50,7 +55,7 @@ const SellerCreateOrder = () => {
     timeout: 10000,
     onDuplicateSubmit: () => {
       toast({
-        title: "Order is being created",
+        title: t.creatingOrder,
         description: "Please wait, order is already being created",
         variant: "destructive",
       });
@@ -200,25 +205,25 @@ const SellerCreateOrder = () => {
         <div className="max-w-4xl mx-auto">
           {/* Header with Back Button */}
           <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold">Create Order</h1>
-              <p className="text-muted-foreground">Fill in the order information</p>
-            </div>
-            <Button variant="outline" onClick={handleGoBack}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
-            </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{t.createOrder}</h1>
+            <p className="text-muted-foreground">{t.fillOrderInfo}</p>
+          </div>
+          <Button variant="outline" onClick={handleGoBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {t.back}
+          </Button>
           </div>
           
-          <Card>
+            <Card>
             <CardHeader>
-              <CardTitle>Create Order</CardTitle>
-              <CardDescription>Loading data...</CardDescription>
+              <CardTitle>{t.createOrder}</CardTitle>
+              <CardDescription>{t.loading}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-center py-8">
                 <Loader className="h-8 w-8 animate-spin mr-2" />
-                <span>Loading buyers and brands...</span>
+                <span>{t.loading}</span>
               </div>
             </CardContent>
           </Card>
@@ -246,12 +251,12 @@ const SellerCreateOrder = () => {
         {/* Header with Back Button */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Create Order</h1>
-            <p className="text-muted-foreground">Fill in the order information</p>
+            <h1 className="text-3xl font-bold">{t.createOrder}</h1>
+            <p className="text-muted-foreground">{t.fillOrderInfo}</p>
           </div>
           <Button variant="outline" onClick={handleGoBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            {t.back}
           </Button>
         </div>
         
@@ -259,15 +264,15 @@ const SellerCreateOrder = () => {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className={isMobile ? "text-xl" : ""}>Create Order</CardTitle>
+                <CardTitle className={isMobile ? "text-xl" : ""}>{t.createOrder}</CardTitle>
                 <CardDescription>
-                  Fill in the order information
+                  {t.fillOrderInfo}
                 </CardDescription>
               </div>
               {isLoading && (
                 <div className="flex items-center text-orange-600 text-sm">
                   <Save className="h-4 w-4 mr-1" />
-                  Creating order
+                  {t.creatingOrder}
                 </div>
               )}
             </div>
@@ -332,7 +337,7 @@ const SellerCreateOrder = () => {
                   disabled={isFormDisabled}
                   className={isMobile ? "min-h-[44px]" : ""}
                 >
-                  Cancel
+                  {t.cancel}
                 </Button>
                 <Button
                   type="button"
@@ -340,7 +345,7 @@ const SellerCreateOrder = () => {
                   disabled={isFormDisabled}
                   className={isMobile ? "min-h-[44px]" : ""}
                 >
-                  Create Order
+                  {t.createOrder}
                 </Button>
               </div>
             </div>

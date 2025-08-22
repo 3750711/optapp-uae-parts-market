@@ -11,17 +11,24 @@ import CarInfoSection from "./form/CarInfoSection";
 
 // Экспортируем базовую схему для seller страниц
 import { z } from "zod";
+import { getProductValidationMessages, ProductValidationMessages } from "@/utils/translations/forms";
+import { Lang } from "@/types/i18n";
 
-export const productSchema = z.object({
-  title: z.string().min(3, { message: "Title must contain at least 3 characters" }),
-  price: z.string().min(1, { message: "Please specify product price" }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: "Price must be a positive number" }),
-  brandId: z.string().min(1, { message: "Please select car brand" }),
+// Create schema function that accepts translations
+export const createProductSchema = (t: ProductValidationMessages) => z.object({
+  title: z.string().min(3, { message: t.titleMinLength }),
+  price: z.string().min(1, { message: t.priceRequired }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: t.priceInvalid }),
+  brandId: z.string().min(1, { message: t.brandRequired }),
   modelId: z.string().optional(),
-  placeNumber: z.string().min(1, { message: "Please specify number of places" }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, { message: "Number of places must be a positive integer" }),
+  placeNumber: z.string().min(1, { message: t.placesRequired }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, { message: t.placesInvalid }),
   description: z.string().optional(),
-  deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), { message: "Delivery cost must be a number" }),
+  deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), { message: t.deliveryPriceInvalid }),
   sellerId: z.string().optional(),
 });
+
+// Default English schema for backward compatibility
+const defaultValidation = getProductValidationMessages('en');
+export const productSchema = createProductSchema(defaultValidation);
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -75,7 +82,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {showSellerSelection && sellers.length > 0 && (
-          <FormSectionWrapper title="Seller">
+        <FormSectionWrapper title="Seller">
             <SellerSelectionSection form={form} sellers={sellers} />
           </FormSectionWrapper>
         )}

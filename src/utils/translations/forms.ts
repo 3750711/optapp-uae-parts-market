@@ -192,8 +192,57 @@ const formTranslations: Record<Lang, FormTranslations> = {
   },
 };
 
-export const getFormTranslations = (language: Lang): FormTranslations => {
-  return formTranslations[language];
+// Product validation messages
+export interface ProductValidationMessages {
+  titleMinLength: string;
+  priceRequired: string;
+  priceInvalid: string;
+  brandRequired: string;
+  placesRequired: string;
+  placesInvalid: string;
+  deliveryPriceInvalid: string;
+}
+
+const productValidationRu: ProductValidationMessages = {
+  titleMinLength: 'Название должно содержать не менее 3 символов',
+  priceRequired: 'Укажите цену товара',
+  priceInvalid: 'Цена должна быть положительным числом',
+  brandRequired: 'Выберите марку автомобиля',
+  placesRequired: 'Укажите количество мест',
+  placesInvalid: 'Количество мест должно быть положительным целым числом',
+  deliveryPriceInvalid: 'Стоимость доставки должна быть числом',
 };
 
-export default getFormTranslations;
+const productValidationEn: ProductValidationMessages = {
+  titleMinLength: 'Title must contain at least 3 characters',
+  priceRequired: 'Please specify product price',
+  priceInvalid: 'Price must be a positive number',
+  brandRequired: 'Please select car brand',
+  placesRequired: 'Please specify number of places',
+  placesInvalid: 'Number of places must be a positive integer',
+  deliveryPriceInvalid: 'Delivery cost must be a number',
+};
+
+const productValidationBn: ProductValidationMessages = {
+  titleMinLength: 'শিরোনাম কমপক্ষে ৩টি অক্ষর থাকতে হবে',
+  priceRequired: 'দয়া করে পণ্যের মূল্য নির্দিষ্ট করুন',
+  priceInvalid: 'মূল্য একটি ধনাত্মক সংখ্যা হতে হবে',
+  brandRequired: 'দয়া করে গাড়ির ব্র্যান্ড নির্বাচন করুন',
+  placesRequired: 'দয়া করে জায়গার সংখ্যা নির্দিষ্ট করুন',
+  placesInvalid: 'জায়গার সংখ্যা একটি ধনাত্মক পূর্ণ সংখ্যা হতে হবে',
+  deliveryPriceInvalid: 'ডেলিভারির খরচ একটি সংখ্যা হতে হবে',
+};
+
+export const productValidationTranslations: Record<Lang, ProductValidationMessages> = {
+  ru: productValidationRu,
+  en: productValidationEn,
+  bn: productValidationBn,
+};
+
+export const getProductValidationMessages = (lang: Lang): ProductValidationMessages => {
+  return productValidationTranslations[lang] || productValidationTranslations.en;
+};
+
+export const getFormTranslations = (language: Lang): FormTranslations => {
+  return formTranslations[language] || formTranslations.en;
+};
