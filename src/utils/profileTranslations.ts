@@ -154,6 +154,11 @@ export const profileTranslations = {
     // No data fallback
     noData: "Н/Д",
 
+    // Error messages
+    generalUpdateError: "Произошла ошибка при обновлении данных",
+    avatarUpdateError: "Ошибка обновления аватара", 
+    avatarUpdateFailure: "Не удалось обновить аватар",
+
     // Profile warning dialog
     profileIncomplete: "Профиль не заполнен",
     profileIncompleteDesc: "Для совершения покупки необходимо указать ваш OPT ID и Telegram в профиле.",
@@ -337,6 +342,11 @@ export const profileTranslations = {
     // No data fallback
     noData: "N/A",
 
+    // Error messages
+    generalUpdateError: "An error occurred while updating data",
+    avatarUpdateError: "Avatar Update Error",
+    avatarUpdateFailure: "Failed to update avatar",
+
     // Profile warning dialog
     profileIncomplete: "Profile Incomplete",
     profileIncompleteDesc: "To make a purchase, you need to specify your OPT ID and Telegram in your profile.",
@@ -519,6 +529,11 @@ export const profileTranslations = {
     
     // No data fallback
     noData: "তথ্য নেই",
+
+    // Error messages
+    generalUpdateError: "তথ্য আপডেট করার সময় একটি ত্রুটি ঘটেছে",
+    avatarUpdateError: "অবতার আপডেট ত্রুটি",
+    avatarUpdateFailure: "অবতার আপডেট করতে ব্যর্থ",
 
     // Profile warning dialog
     profileIncomplete: "প্রোফাইল অসম্পূর্ণ",

@@ -28,22 +28,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { getProfileTranslations } from "@/utils/profileTranslations";
+import { useLanguage } from "@/hooks/useLanguage";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 
-const formSchema = z.object({
-  fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
-  email: z.string().email({ message: "Введите корректный email адрес" }),
+const createFormSchema = (t: any) => z.object({
+  fullName: z.string().min(2, { message: t.validation.fullNameMin }).optional(),
+  email: z.string().email({ message: t.validation.emailInvalid }),
   phone: z.string().optional(),
   companyName: z.string().optional(),
   telegram: z.string().optional(),
   optId: z.string().optional(),
-  description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
+  description: z.string().max(500, { message: t.validation.descriptionMax }).optional(),
 });
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = z.infer<ReturnType<typeof createFormSchema>>;
 
 const Profile = () => {
   const { user, signOut, refreshProfile } = useAuth();
+  const { language } = useLanguage();
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const navigate = useNavigate();
@@ -74,7 +76,7 @@ const Profile = () => {
       return;
     }
     
-    const t = getProfileTranslations(profile?.user_type || 'buyer');
+    const t = getProfileTranslations(language);
     console.log("Profile: Starting form submission", formData);
     setIsFormLoading(true);
     
@@ -132,7 +134,7 @@ const Profile = () => {
       } else {
         toast({
           title: t.updateError,
-          description: error.message || "Произошла ошибка при обновлении данных",
+          description: error.message || t.generalUpdateError,
           variant: "destructive",
         });
       }
@@ -168,10 +170,11 @@ const Profile = () => {
       await refetch(); // Обновляем кэш
     } catch (error: any) {
       console.error("Profile: Avatar update error:", error);
+      const t = getProfileTranslations(language);
       toast({
         variant: "destructive",
-        title: "Ошибка обновления аватара",
-        description: error.message || "Не удалось обновить аватар",
+        title: t.avatarUpdateError,
+        description: error.message || t.avatarUpdateFailure,
       });
       throw error;
     }
@@ -182,7 +185,7 @@ const Profile = () => {
   };
 
   const handleSignOut = async () => {
-    const t = getProfileTranslations(profile?.user_type || 'buyer');
+    const t = getProfileTranslations(language);
     try {
       console.log("Profile: Signing out user");
       await signOut();
@@ -219,9 +222,9 @@ const Profile = () => {
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center items-center">
         <div className="text-center">
-          <p className="text-gray-600 mb-4">{getProfileTranslations('buyer').profileLoadError}</p>
+          <p className="text-gray-600 mb-4">{getProfileTranslations(language).profileLoadError}</p>
           <Button onClick={() => refetch()}>
-            {getProfileTranslations('buyer').retryLoad}
+            {getProfileTranslations(language).retryLoad}
           </Button>
         </div>
         </div>
@@ -230,7 +233,7 @@ const Profile = () => {
   }
 
   const isSeller = profile.user_type === 'seller';
-  const t = getProfileTranslations(profile.user_type);
+  const t = getProfileTranslations(language);
   console.log("Profile: Rendering profile page for user type:", profile.user_type);
 
   return (
