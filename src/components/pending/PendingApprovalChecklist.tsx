@@ -1,13 +1,34 @@
 import React, { useMemo } from 'react';
 import { CheckCircle2, XCircle, Info } from 'lucide-react';
-
 import { useAuth } from '@/contexts/AuthContext';
+import { Lang } from '@/types/i18n';
+import { tPick } from '@/utils/i18n';
 
 interface PendingApprovalChecklistProps {
-  language: 'ru' | 'en' | 'bn';
+  language: Lang;
 }
 
-const i18n = {
+const i18n: Record<Lang, {
+  statusTitle: string;
+  awaiting: string;
+  checklistTitle: string;
+  items: {
+    telegram: string;
+    terms: string;
+    privacy: string;
+    profile: string;
+    email: string;
+    storeBlock: string;
+    company: string;
+    location: string;
+    description: string;
+  };
+  actions: {
+    completeProfile: string;
+    createStore: string;
+  };
+  hint: string;
+}> = {
   ru: {
     statusTitle: 'Статус аккаунта',
     awaiting: 'В ожидании подтверждения администратором',
@@ -50,6 +71,27 @@ const i18n = {
     },
     hint: 'If anything is missing, please update your profile. We will approve your account shortly after review.',
   },
+  bn: {
+    statusTitle: 'অ্যাকাউন্টের অবস্থা',
+    awaiting: 'প্রশাসকের অনুমোদনের অপেক্ষায়',
+    checklistTitle: 'নিম্নলিখিতগুলি নিশ্চিত করুন',
+    items: {
+      telegram: 'টেলিগ্রাম সংযুক্ত',
+      terms: 'শর্তাবলী গৃহীত',
+      privacy: 'গোপনীয়তা নীতি গৃহীত',
+      profile: 'প্রোফাইল সম্পূর্ণ',
+      email: 'ইমেইল নিশ্চিত',
+      storeBlock: 'দোকানের বিবরণ (বিক্রেতাদের জন্য)',
+      company: 'দোকানের নাম প্রদান',
+      location: 'অবস্থান প্রদান',
+      description: 'দোকানের বিবরণ প্রদান',
+    },
+    actions: {
+      completeProfile: 'প্রোফাইল সম্পূর্ণ করুন',
+      createStore: 'প্রোফাইলে যান',
+    },
+    hint: 'কিছু অনুপস্থিত থাকলে, অনুগ্রহ করে আপনার প্রোফাইল আপডেট করুন। পর্যালোচনার পরে আমরা শীঘ্রই আপনার অ্যাকাউন্ট অনুমোদন করব।',
+  },
 };
 
 const Item: React.FC<{ ok: boolean; label: string }> = ({ ok, label }) => (
@@ -65,9 +107,7 @@ const Item: React.FC<{ ok: boolean; label: string }> = ({ ok, label }) => (
 
 export const PendingApprovalChecklist: React.FC<PendingApprovalChecklistProps> = ({ language }) => {
   const { profile } = useAuth();
-  // Bengali users see English translations
-  const actualLanguage = language === 'bn' ? 'en' : language;
-  const t = i18n[actualLanguage as 'ru' | 'en'];
+  const t = tPick(i18n, language);
 
   const flags = useMemo(() => {
     const isTelegramLinked = Boolean(profile?.telegram || profile?.telegram_id);

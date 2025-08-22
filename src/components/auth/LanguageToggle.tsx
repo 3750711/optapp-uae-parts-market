@@ -29,6 +29,9 @@ const LanguageToggle: React.FC<LanguageToggleProps> = ({
     { code: 'bn' as const, label: 'BN', name: 'বাংলা' }
   ].filter(lang => allowedLanguages.includes(lang.code));
 
+  // Hide toggle if only one language is available
+  if (languageButtons.length < 2) return null;
+
   return (
     <div className={cn("flex items-center bg-muted/50 rounded-lg p-1", className)}>
       <div className="flex items-center gap-1">

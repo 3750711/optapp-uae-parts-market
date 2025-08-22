@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Lang } from '@/types/i18n';
 
 interface GenerateSynonymsParams {
   term: string;
   category?: 'brand' | 'model' | 'part' | 'general';
-  language?: 'ru' | 'en';
+  language?: Lang;
 }
 
 interface SynonymGenerationResult {
@@ -37,11 +38,14 @@ export const useSynonymGeneration = () => {
     try {
       console.log('Generating synonyms for:', params);
 
+      // Map Bengali to English for the service
+      const langForService: 'ru' | 'en' = params.language === 'bn' ? 'en' : (params.language || 'ru') as 'ru' | 'en';
+      
       const { data, error } = await supabase.functions.invoke('generate-synonyms', {
         body: {
           term: params.term.trim(),
           category: params.category || 'general',
-          language: params.language || 'ru'
+          language: langForService
         }
       });
 

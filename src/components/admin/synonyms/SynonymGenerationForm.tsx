@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, Plus, X, Loader2 } from 'lucide-react';
 import { useSynonymGeneration } from '@/hooks/useSynonymGeneration';
+import { Lang } from '@/types/i18n';
 
 interface SynonymGenerationFormProps {
   onSynonymsGenerated: () => void;
@@ -62,7 +63,7 @@ export const SynonymGenerationForm: React.FC<SynonymGenerationFormProps> = ({
       await generateSynonyms({
         term: termToGenerate,
         category: category as 'brand' | 'model' | 'part' | 'general',
-        language: language as 'ru' | 'en'
+        language: language as Lang
       });
       
       // Small delay between requests to avoid rate limiting
@@ -79,7 +80,7 @@ export const SynonymGenerationForm: React.FC<SynonymGenerationFormProps> = ({
     await generateSynonyms({
       term: term.trim(),
       category: category as 'brand' | 'model' | 'part' | 'general',
-      language: language as 'ru' | 'en'
+      language: language as Lang
     });
 
     setTerm('');
@@ -126,6 +127,7 @@ export const SynonymGenerationForm: React.FC<SynonymGenerationFormProps> = ({
               <SelectContent>
                 <SelectItem value="ru">Русский</SelectItem>
                 <SelectItem value="en">English</SelectItem>
+                <SelectItem value="bn">বাংলা</SelectItem>
               </SelectContent>
             </Select>
           </div>

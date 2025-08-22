@@ -69,7 +69,7 @@ export interface LoginTranslations {
   growYourBusinessDesc: string;
 }
 
-export const translations: Record<'ru' | 'en', LoginTranslations> = {
+export const translations: Record<'ru' | 'en' | 'bn', LoginTranslations> = {
   ru: {
     // UI Elements
     loginTitle: 'Вход',
@@ -210,6 +210,76 @@ export const translations: Record<'ru' | 'en', LoginTranslations> = {
     connectWithBuyersDesc: 'Reach thousands of wholesale buyers',
     growYourBusiness: 'Grow Your Business',
     growYourBusinessDesc: 'Expand your market reach in UAE',
+  },
+  bn: {
+    // UI Elements
+    loginTitle: 'লগইন',
+    loginDescription: 'চালিয়ে যেতে আপনার অ্যাকাউন্টে প্রবেশ করুন',
+    sellerLoginTitle: 'বিক্রেতা লগইন',
+    sellerLoginDescription: 'আপনার বিক্রেতা ড্যাশবোর্ড অ্যাক্সেস করতে আপনার শংসাপত্র প্রবেশ করান',
+    email: 'ইমেইল',
+    optId: 'অপট আইডি',
+    password: 'পাসওয়ার্ড',
+    signIn: 'সাইন ইন',
+    signingIn: 'সাইন ইন করা হচ্ছে...',
+    enter: 'প্রবেশ করুন',
+    
+    // Placeholders
+    emailPlaceholder: 'আপনার ইমেইল প্রবেশ করান',
+    optIdPlaceholder: 'আপনার অপট আইডি প্রবেশ করান',
+    passwordPlaceholder: 'আপনার পাসওয়ার্ড প্রবেশ করান',
+    sellerEmailPlaceholder: 'your@email.com',
+    sellerPasswordPlaceholder: 'আপনার পাসওয়ার্ড প্রবেশ করান',
+    
+    // Helper text
+    loginHelperText: 'আপনি ইমেইল বা অপট আইডি ব্যবহার করে লগইন করতে পারেন',
+    
+    // Actions and links
+    forgotPassword: 'আপনার পাসওয়ার্ড ভুলে গেছেন?',
+    noAccount: 'কোন অ্যাকাউন্ট নেই?',
+    register: 'নিবন্ধন করুন',
+    dontHaveSellerAccount: 'বিক্রেতা অ্যাকাউন্ট নেই?',
+    registerAsSeller: 'বিক্রেতা হিসেবে নিবন্ধন',
+    lookingForBuyerAccess: 'ক্রেতার অ্যাক্সেস খুঁজছেন?',
+    buyerLogin: 'ক্রেতা লগইন',
+    orContinueWith: 'অথবা এর সাথে চালিয়ে যান',
+    or: 'অথবা',
+    
+    // Success messages
+    loginSuccess: 'লগইন সফল',
+    welcomeBack: 'স্বাগতম!',
+    telegramLoginSuccess: 'টেলিগ্রামের মাধ্যমে সফল লগইন',
+    
+    // Error messages
+    errors: {
+      invalidCredentials: 'ভুল পাসওয়ার্ড। আপনার শংসাপত্র পরীক্ষা করুন।',
+      userNotFound: 'এই ইমেইল দিয়ে ব্যবহারকারী খুঁজে পাওয়া যায়নি। সম্ভবত আপনি এখনও নিবন্ধিত নন?',
+      optIdNotFound: 'সিস্টেমে অপট আইডি পাওয়া যায়নি। প্রবেশ করা আইডি পরীক্ষা করুন।',
+      rateLimited: 'অনেক লগইন প্রচেষ্টা। কয়েক মিনিট পরে আবার চেষ্টা করুন।',
+      networkError: 'ইন্টারনেট সংযোগের সমস্যা। আপনার সংযোগ পরীক্ষা করুন এবং আবার চেষ্টা করুন।',
+      genericError: 'একটি অপ্রত্যাশিত ত্রুটি ঘটেছে। পৃষ্ঠা রিফ্রেশ করুন।',
+      fillAllFields: 'অনুগ্রহ করে সমস্ত ক্ষেত্র পূরণ করুন',
+      loginFailed: 'লগইন ব্যর্থ',
+      telegramLoginFailed: 'টেলিগ্রাম লগইন ব্যর্থ',
+    },
+    
+    // Error actions
+    errorActions: {
+      register: 'নিবন্ধন করুন',
+      recoverPassword: 'পাসওয়ার্ড পুনরুদ্ধার',
+    },
+    
+    // Seller portal info
+    sellerPortal: 'বিক্রেতা পোর্টাল',
+    sellerPortalDescription: 'আপনার বিক্রেতা ড্যাশবোর্ড অ্যাক্সেস করুন এবং PartsBay.ae-তে আপনার অটো পার্টস ব্যবসা পরিচালনা করুন',
+    manageInventory: 'ইনভেন্টরি পরিচালনা',
+    manageInventoryDesc: 'আপনার অটো পার্টস তালিকা যোগ এবং পরিচালনা করুন',
+    processOrders: 'অর্ডার প্রক্রিয়া',
+    processOrdersDesc: 'গ্রাহকের অর্ডার দক্ষতার সাথে পরিচালনা করুন',
+    connectWithBuyers: 'ক্রেতাদের সাথে সংযোগ',
+    connectWithBuyersDesc: 'হাজার হাজার পাইকারি ক্রেতাদের কাছে পৌঁছান',
+    growYourBusiness: 'আপনার ব্যবসা বৃদ্ধি',
+    growYourBusinessDesc: 'সংযুক্ত আরব আমিরাতে আপনার বাজার সম্প্রসারণ করুন',
   },
 };
 

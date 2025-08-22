@@ -4,6 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getFormTranslations } from "@/utils/translations/forms";
 
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -47,6 +49,8 @@ const SellerAddProduct = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = getFormTranslations(language);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const { guardedSubmit, isSubmitting } = useSubmissionGuard();
@@ -245,8 +249,8 @@ const SellerAddProduct = () => {
 
     if (imageUrls.length === 0) {
       toast({
-        title: "Error",
-        description: "Add at least one photo",
+        title: t.messages.imageRequired,
+        description: t.messages.imageRequired,
         variant: "destructive",
       });
       return;
@@ -437,7 +441,7 @@ const SellerAddProduct = () => {
         : "Product sent for moderation and will be published after review";
 
       toast({
-        title: "Product Created",
+        title: t.messages.productCreated,
         description: successMessage,
       });
 

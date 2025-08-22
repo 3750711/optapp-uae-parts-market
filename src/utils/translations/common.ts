@@ -1,5 +1,7 @@
 // Common translations used across multiple components
-export type CommonLang = 'ru' | 'en' | 'bn';
+import { Lang } from '@/types/i18n';
+
+export type CommonLang = Lang;
 
 const en = {
   // Common buttons
