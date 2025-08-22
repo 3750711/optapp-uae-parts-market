@@ -1,32 +1,41 @@
-
-import React from "react";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 interface ProductSpecificationsProps {
-  brand: string;
-  model: string;
-  lot_number: string | number;
+  product: {
+    brand?: string;
+    model?: string;
+    lot_number?: string;
+  };
 }
 
-const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({ 
-  brand, 
-  model, 
-  lot_number 
-}) => {
+const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({ product }) => {
+  const { language } = useLanguage();
+  const c = getCommonTranslations(language);
+
   return (
-    <div className="grid grid-cols-3 gap-2 text-sm mb-6">
-      <div className="border rounded p-2">
-        <div className="text-gray-500">Бренд</div>
-        <div className="font-medium">{brand}</div>
-      </div>
-      <div className="border rounded p-2">
-        <div className="text-gray-500">Модель</div>
-        <div className="font-medium">{model}</div>
-      </div>
-      <div className="border rounded p-2">
-        <div className="text-gray-500">Номер лота</div>
-        <div className="font-medium">{lot_number}</div>
-      </div>
-    </div>
+    <Card>
+      <CardContent className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <h4 className="font-medium text-muted-foreground mb-2">{c.product.brand}</h4>
+            <p className="text-sm">{product.brand || c.product.notSpecified}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-muted-foreground mb-2">{c.product.model}</h4>
+            <p className="text-sm">{product.model || c.product.notSpecified}</p>
+          </div>
+          <div>
+            <h4 className="font-medium text-muted-foreground mb-2">{c.product.lotNumber}</h4>
+            <p className="text-sm font-mono">{product.lot_number || c.product.notSpecified}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

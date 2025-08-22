@@ -12,9 +12,15 @@ import { toast } from "@/components/ui/use-toast";
 import SellerPageSkeleton from "@/components/seller/SellerPageSkeleton";
 import OptimizedSellerDashboard from "@/components/seller/OptimizedSellerDashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 const SellerProfile = () => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
+  const c = getCommonTranslations(language);
   const { user } = useAuth();
 
   // Fixed back button functionality

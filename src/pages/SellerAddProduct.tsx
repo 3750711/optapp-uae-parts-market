@@ -47,11 +47,11 @@ const AddProductForm = React.lazy(() => import("@/components/product/AddProductF
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
-  const { toast } = useToast();
   const { language } = useLanguage();
   const t = getFormTranslations(language);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const sp = getSellerPagesTranslations(language);
+  const c = getCommonTranslations(language);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const { guardedSubmit, isSubmitting } = useSubmissionGuard();
   const [primaryImage, setPrimaryImage] = useState<string>("");

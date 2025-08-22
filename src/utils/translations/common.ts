@@ -21,7 +21,11 @@ const en = {
     submit: 'Submit',
     create: 'Create',
     update: 'Update',
-    remove: 'Remove'
+    remove: 'Remove',
+    backToDashboard: 'Back to Dashboard',
+    backToOrders: 'Back to Orders',
+    retry: 'Retry',
+    refresh: 'Refresh'
   },
 
   // Common statuses
@@ -60,6 +64,14 @@ const en = {
     unsavedChanges: 'You have unsaved changes',
     networkError: 'Network connection error',
     unauthorized: 'You are not authorized to perform this action'
+  },
+
+  // Product fields
+  product: {
+    brand: 'Brand',
+    model: 'Model',
+    lotNumber: 'Lot Number',
+    notSpecified: 'Not specified'
   }
 };
 
@@ -81,7 +93,11 @@ const ru = {
     submit: 'Отправить',
     create: 'Создать',
     update: 'Обновить',
-    remove: 'Удалить'
+    remove: 'Удалить',
+    backToDashboard: 'Назад к дашборду',
+    backToOrders: 'Назад к заказам',
+    retry: 'Повторить',
+    refresh: 'Обновить'
   },
 
   // Common statuses
@@ -120,6 +136,14 @@ const ru = {
     unsavedChanges: 'У вас есть несохраненные изменения',
     networkError: 'Ошибка сетевого подключения',
     unauthorized: 'У вас нет прав для выполнения этого действия'
+  },
+
+  // Product fields
+  product: {
+    brand: 'Бренд',
+    model: 'Модель',
+    lotNumber: 'Номер лота',
+    notSpecified: 'Не указан'
   }
 };
 
@@ -141,7 +165,11 @@ const bn = {
     submit: 'জমা দিন',
     create: 'তৈরি করুন',
     update: 'আপডেট',
-    remove: 'সরান'
+    remove: 'সরান',
+    backToDashboard: 'ড্যাশবোর্ডে ফিরুন',
+    backToOrders: 'অর্ডারে ফিরুন',
+    retry: 'পুনরায় চেষ্টা করুন',
+    refresh: 'রিফ্রেশ'
   },
 
   // Common statuses
@@ -180,6 +208,14 @@ const bn = {
     unsavedChanges: 'আপনার অসংরক্ষিত পরিবর্তন আছে',
     networkError: 'নেটওয়ার্ক সংযোগ ত্রুটি',
     unauthorized: 'এই কাজটি সম্পাদন করার জন্য আপনার অনুমতি নেই'
+  },
+
+  // Product fields
+  product: {
+    brand: 'ব্র্যান্ড',
+    model: 'মডেল',
+    lotNumber: 'লট নাম্বার',
+    notSpecified: 'নির্দিষ্ট নয়'
   }
 };
 

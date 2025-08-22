@@ -2,6 +2,8 @@ import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 interface SellerLayoutProps {
   children: React.ReactNode;
@@ -10,6 +12,8 @@ interface SellerLayoutProps {
 
 const SellerLayout: React.FC<SellerLayoutProps> = ({ children, className }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const c = getCommonTranslations(language);
 
   useEffect(() => {
     // Scroll to top when component mounts
@@ -34,7 +38,7 @@ const SellerLayout: React.FC<SellerLayoutProps> = ({ children, className }) => {
             className="flex items-center gap-2"
           >
             <ChevronLeft className="h-4 w-4" />
-            Back to Orders
+            {c.buttons.backToOrders}
           </Button>
         </div>
       </div>
