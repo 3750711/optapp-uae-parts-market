@@ -3,18 +3,18 @@ import { useState, useEffect } from 'react';
 const LANGUAGE_STORAGE_KEY = 'login-language';
 const LANGUAGE_CHANGE_EVENT = 'language-change';
 
-export const useLanguage = (defaultLanguage: 'ru' | 'en' = 'ru') => {
-  const [language, setLanguage] = useState<'ru' | 'en'>(() => {
+export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'ru') => {
+  const [language, setLanguage] = useState<'ru' | 'en' | 'bn'>(() => {
     // Get saved language from localStorage or use default
     const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    return (saved as 'ru' | 'en') || defaultLanguage;
+    return (saved as 'ru' | 'en' | 'bn') || defaultLanguage;
   });
 
   useEffect(() => {
     // Listen for storage changes (from other tabs/windows)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === LANGUAGE_STORAGE_KEY && e.newValue) {
-        setLanguage(e.newValue as 'ru' | 'en');
+        setLanguage(e.newValue as 'ru' | 'en' | 'bn');
       }
     };
 
@@ -32,7 +32,7 @@ export const useLanguage = (defaultLanguage: 'ru' | 'en' = 'ru') => {
     };
   }, []);
 
-  const changeLanguage = (newLanguage: 'ru' | 'en') => {
+  const changeLanguage = (newLanguage: 'ru' | 'en' | 'bn') => {
     setLanguage(newLanguage);
     localStorage.setItem(LANGUAGE_STORAGE_KEY, newLanguage);
     

@@ -116,6 +116,20 @@
     line-height: 1.6;
   }
 
+  /* Bengali font support */
+  html[lang="bn"] body {
+    font-family: 'Noto Sans Bengali', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  html[lang="bn"] h1, 
+  html[lang="bn"] h2, 
+  html[lang="bn"] h3, 
+  html[lang="bn"] h4, 
+  html[lang="bn"] h5, 
+  html[lang="bn"] h6 {
+    font-family: 'Noto Sans Bengali', 'Inter', sans-serif;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold;
     line-height: 1.3;

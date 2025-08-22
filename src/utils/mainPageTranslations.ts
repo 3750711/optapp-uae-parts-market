@@ -40,7 +40,7 @@ interface MainPageTranslations {
   };
 }
 
-const translations: Record<'ru' | 'en', MainPageTranslations> = {
+const translations: Record<'ru' | 'en' | 'bn', MainPageTranslations> = {
   ru: {
     header: {
       home: 'Главная',
@@ -107,6 +107,41 @@ const translations: Record<'ru' | 'en', MainPageTranslations> = {
   },
 };
 
-export const getMainPageTranslations = (language: 'ru' | 'en' = 'ru'): MainPageTranslations => {
+  },
+  bn: {
+    header: {
+      home: 'হোম',
+      catalog: 'ক্যাটালগ',
+      stores: 'দোকান',
+      requests: 'অনুরোধ',
+      about: 'আমাদের সম্পর্কে',
+    },
+    hero: {
+      title: 'PartsBay.ae',
+      subtitle: 'B2B/B2C গাড়ির যন্ত্রাংশের প্ল্যাটফর্ম',
+      description: 'UAE-তে সবচেয়ে বড় গাড়ির যন্ত্রাংশের প্ল্যাটফর্মে যোগ দিন। যাচাইকৃত বিক্রেতা, ন্যায্য নিলাম এবং বিশ্বস্ত লজিস্টিক্স — সব এক জায়গায়।',
+      accessTitle: 'শুধুমাত্র নিবন্ধনের মাধ্যমে প্রবেশ',
+      accessDescription: 'প্ল্যাটফর্ম অ্যাক্সেস করতে অনুমোদন প্রয়োজন',
+    },
+    statistics: {
+      partsListed: 'সক্রিয় গাড়ির যন্ত্রাংশ',
+      ordersCreated: 'অর্ডার তৈরি',
+    },
+    welcome: {
+      greeting: 'স্বাগতম',
+      sellerDescription: 'আপনার গাড়ির যন্ত্রাংশ এবং অর্ডার পরিচালনা করুন',
+      buyerDescription: 'গাড়ির যন্ত্রাংশের ক্যাটালগ ব্রাউজ করুন',
+      sellerButton: 'ড্যাশবোর্ড',
+      buyerButton: 'ক্যাটালগ খুলুন',
+    },
+    meta: {
+      title: 'PartsBay.ae - B2B/B2C গাড়ির যন্ত্রাংশের প্ল্যাটফর্ম',
+      description: 'UAE-তে বন্ধ পেশাদার গাড়ির যন্ত্রাংশের প্ল্যাটফর্ম। শুধুমাত্র নিবন্ধিত ব্যবহারকারীদের জন্য প্রবেশাধিকার।',
+      keywords: 'B2B গাড়ির যন্ত্রাংশ UAE, গাড়ির যন্ত্রাংশের প্ল্যাটফর্ম, বন্ধ কমিউনিটি',
+    },
+  },
+};
+
+export const getMainPageTranslations = (language: 'ru' | 'en' | 'bn' = 'ru'): MainPageTranslations => {
   return translations[language];
 };
