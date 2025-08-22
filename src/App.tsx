@@ -7,6 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { RealtimeProvider } from '@/contexts/RealtimeProvider';
+import LanguageProvider from '@/components/layout/LanguageProvider';
 
 import { ThemeProvider } from "next-themes";
 import AppRoutes from "@/routes";
@@ -91,7 +92,8 @@ const App = () => {
             <AuthProvider>
               <RealtimeProvider>
                 <BrowserRouter>
-                  <TooltipProvider>
+                  <LanguageProvider>
+                    <TooltipProvider>
                     <Toaster />
                     <RouteChangeOverlay />
                      <Suspense fallback={<RouteLoader />}>
@@ -99,10 +101,11 @@ const App = () => {
                         <PWAIndicators 
                           showOfflineIndicator={false} 
                           showInstallStatus={false} 
-                        />
+                     />
                      </Suspense>
-                  </TooltipProvider>
-                </BrowserRouter>
+                   </TooltipProvider>
+                 </LanguageProvider>
+                 </BrowserRouter>
               </RealtimeProvider>
             </AuthProvider>
           </QueryClientProvider>

@@ -11,13 +11,13 @@ import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
 import { logLoginFailure, logLoginSuccess, logRateLimitHit } from '@/utils/authLogger';
 
 interface LoginFormProps {
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
   compact?: boolean;
   hideHeader?: boolean;
   hideLinks?: boolean;
 }
 
-const getLoginFormTranslations = (language: 'ru' | 'en') => {
+const getLoginFormTranslations = (language: 'ru' | 'en' | 'bn') => {
   const translations = {
     ru: {
       title: "Вход",
@@ -52,13 +52,15 @@ const getLoginFormTranslations = (language: 'ru' | 'en') => {
 };
 
 const LoginForm: React.FC<LoginFormProps> = ({ language = 'ru', compact = false, hideHeader = false, hideLinks = false }) => {
+  // Map Bengali to English for fallback
+  const mappedLanguage = language === 'bn' ? 'en' : language;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
   const { checkRateLimit } = useRateLimit();
-  const t = getLoginFormTranslations(language);
+  const t = getLoginFormTranslations(mappedLanguage);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

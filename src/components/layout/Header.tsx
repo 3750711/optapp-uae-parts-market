@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";
@@ -55,9 +55,29 @@ const Header = () => {
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { language, changeLanguage } = useLanguage();
   const t = getMainPageTranslations(language);
-  const l = language === 'en' ? {
+  const l = language === 'bn' ? {
+    logoutSuccessTitle: 'সাইন আউট',
+    logoutSuccessDesc: 'আপনি সফলভাবে সাইন আউট করেছেন',
+    logoutErrorTitle: 'ত্রুটি',
+    logoutErrorDesc: 'সাইন আউট করতে ব্যর্থ',
+    profileSettings: 'প্রোফাইল সেটিংস',
+    notifications: 'বিজ্ঞপ্তি',
+    favorites: 'পছন্দের',
+    buyerDashboard: 'ক্রেতা ড্যাশবোর্ড',
+    myOrders: 'আমার অর্ডার',
+    auctions: 'নিলাম',
+    sellerDashboard: 'বিক্রেতা ড্যাশবোর্ড',
+    myListings: 'আমার পণ্য',
+    addProduct: 'পণ্য যুক্ত করুন',
+    sellerOrders: 'আমার অর্ডার',
+    productOffers: 'পণ্যের অফার',
+    adminPanel: 'অ্যাডমিন প্যানেল',
+    help: 'সহায়তা',
+    logout: 'সাইন আউট',
+  } : language === 'en' ? {
     logoutSuccessTitle: 'Signed out',
     logoutSuccessDesc: 'You have successfully signed out',
     logoutErrorTitle: 'Error',
@@ -155,7 +175,7 @@ const Header = () => {
           <LanguageToggle 
             language={language}
             onLanguageChange={changeLanguage}
-            allowedLanguages={allowedLocalesFor(profile?.user_type || null, window.location.pathname)}
+            allowedLanguages={allowedLocalesFor(profile?.user_type || null, location.pathname)}
             className="mr-2"
           />
           

@@ -28,7 +28,8 @@ import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesD
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 import OrdersSearchBar from '@/components/orders/OrdersSearchBar';
 import { useSellerOrdersQuery } from '@/hooks/useSellerOrdersQuery';
-import { sellerOrdersTranslations as t } from '@/utils/translations/sellerOrders';
+import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
+import { useLanguage } from '@/hooks/useLanguage';
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
@@ -37,6 +38,8 @@ const SellerOrders = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { language } = useLanguage();
+  const t = getSellerOrdersTranslations(language);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   
@@ -122,8 +125,8 @@ const SellerOrders = () => {
       queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
       
       toast({
-        title: "Order Confirmed",
-        description: "Order status successfully updated",
+        title: t.orderConfirmed,
+        description: t.orderConfirmedDescription,
       });
 
       setIsPriceDialogOpen(false);
@@ -132,8 +135,8 @@ const SellerOrders = () => {
     onError: (error) => {
       console.error('Error confirming order:', error);
       toast({
-        title: "Error",
-        description: "Failed to confirm order",
+        title: t.error,
+        description: t.confirmOrderError,
         variant: "destructive",
       });
     },
@@ -174,15 +177,15 @@ const SellerOrders = () => {
       queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
       
       toast({
-        title: "Order Cancelled",
-        description: "Order status successfully updated",
+        title: t.orderCancelled,
+        description: t.orderCancelledDescription,
       });
     },
     onError: (error) => {
       console.error('Error cancelling order:', error);
       toast({
-        title: "Error",
-        description: "Failed to cancel order",
+        title: t.error,
+        description: t.cancelOrderError,
         variant: "destructive",
       });
     },
@@ -281,7 +284,7 @@ const SellerOrders = () => {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+              {t.backToDashboard}
             </Button>
           </div>
           <div className="flex justify-center items-center min-h-[60vh]">
@@ -304,13 +307,13 @@ const SellerOrders = () => {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
+              {t.backToDashboard}
             </Button>
           </div>
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold">My Orders</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">{t.pageTitle}</h1>
             <p className="text-sm md:text-base text-muted-foreground mt-1">
-              Manage created orders and listing orders
+              {t.pageDescription}
             </p>
           </div>
 
