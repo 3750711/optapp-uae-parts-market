@@ -246,3 +246,5 @@ export const getProductValidationMessages = (lang: Lang): ProductValidationMessa
 export const getFormTranslations = (language: Lang): FormTranslations => {
   return formTranslations[language] || formTranslations.en;
 };
+
+export default getFormTranslations;
