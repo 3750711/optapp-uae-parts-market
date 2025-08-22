@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerListingsPageTranslations } from '@/utils/translations/sellerListingsPage';
+import { getCommonTranslations } from '@/utils/translations/common';
 import ProductGrid from "@/components/product/ProductGrid";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/product";
@@ -21,6 +24,9 @@ const SellerListingsContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { language } = useLanguage();
+  const t = getSellerListingsPageTranslations(language);
+  const c = getCommonTranslations(language);
   const ITEMS_PER_PAGE = 12;
   
   // Search state
@@ -155,8 +161,8 @@ const SellerListingsContent = () => {
     devLog("Product status changed, applying optimistic update");
     
     toast({
-      title: "Status updated",
-      description: "Changes applied",
+      title: t.statusUpdated,
+      description: t.changesApplied,
     });
     queryClient.invalidateQueries({
       queryKey: ['seller-products', user?.id, activeSearch],
@@ -175,15 +181,15 @@ const SellerListingsContent = () => {
       devLog('🔄 Retrying seller products fetch...');
       await refetch();
       toast({
-        title: "Updating data",
-        description: "Loading your products...",
+        title: t.updatingData,
+        description: t.loadingProducts,
       });
     } catch (error) {
       prodError('Retry failed in seller listings', { error });
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update data",
+        description: t.failedToUpdate,
       });
     }
   };
@@ -195,7 +201,7 @@ const SellerListingsContent = () => {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
         variant: "destructive",
-        title: "Error loading products",
+        title: t.errorLoadingProducts,
         description: errorMessage,
       });
     }
@@ -329,17 +335,17 @@ const SellerListingsContent = () => {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">My SHOP</h1>
+          <h1 className="text-3xl font-bold">{t.myShop}</h1>
         </div>
         
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
             <div>
-              <div className="font-medium mb-1">Error loading products</div>
+              <div className="font-medium mb-1">{t.errorLoadingProducts}</div>
               <div className="text-sm">{errorMessage}</div>
               <div className="text-xs mt-1 opacity-75">
-                Check your internet connection and try again
+                {t.checkConnection}
               </div>
             </div>
             <Button 
@@ -349,7 +355,7 @@ const SellerListingsContent = () => {
               className="ml-4"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              {t.retry}
             </Button>
           </AlertDescription>
         </Alert>
@@ -368,9 +374,9 @@ const SellerListingsContent = () => {
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {c.buttons.back}
           </Button>
-          <h1 className="text-3xl font-bold">My SHOP</h1>
+          <h1 className="text-3xl font-bold">{t.myShop}</h1>
         </div>
       </div>
       
@@ -383,18 +389,18 @@ const SellerListingsContent = () => {
               <Input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Search by title, brand, model or lot/place number..."
+                placeholder={t.searchPlaceholder}
                 className="w-full pl-10"
               />
             </div>
-            <Button type="submit">Search</Button>
+            <Button type="submit">{t.search}</Button>
           </form>
           {activeSearch && (
             <div className="mt-3 text-sm text-muted-foreground">
               {/^\d+$/.test(activeSearch) ? (
-                <span>Search by lot/place number: {activeSearch}</span>
+                <span>{t.searchByLotPlace}: {activeSearch}</span>
               ) : (
-                <span>Text search: "{activeSearch}"</span>
+                <span>{t.textSearch}: "{activeSearch}"</span>
               )}
             </div>
           )}
@@ -415,7 +421,7 @@ const SellerListingsContent = () => {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-8">
               <div className="text-sm text-muted-foreground">
-                Showing {startIndex + 1}-{Math.min(endIndex, allProducts?.length || 0)} of {allProducts?.length || 0} products
+                {t.showingResults} {startIndex + 1}-{Math.min(endIndex, allProducts?.length || 0)} {t.of} {allProducts?.length || 0} {t.products}
               </div>
               
               <div className="flex items-center gap-2">
@@ -427,12 +433,12 @@ const SellerListingsContent = () => {
                   className="flex items-center gap-1"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous
+                  {t.previous}
                 </Button>
                 
                 <div className="flex items-center gap-1">
                   <span className="text-sm font-medium">
-                    Page {currentPage + 1} of {totalPages}
+                    {t.page} {currentPage + 1} {t.of} {totalPages}
                   </span>
                 </div>
                 
@@ -443,7 +449,7 @@ const SellerListingsContent = () => {
                   disabled={currentPage >= totalPages - 1}
                   className="flex items-center gap-1"
                 >
-                  Next
+                  {t.next}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -459,10 +465,10 @@ const SellerListingsContent = () => {
               </svg>
             </div>
             <h3 className="text-xl font-medium text-gray-900 mb-2">
-              You don't have any listings yet
+              {t.noListingsYet}
             </h3>
             <p className="text-gray-500 mb-6">
-              Create your first listing to start selling
+              {t.createFirstListing}
             </p>
           </div>
         </div>

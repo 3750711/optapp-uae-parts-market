@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from '@tanstack/react-query';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
+import { getCommonTranslations } from '@/utils/translations/common';
 import SellerLayout from "@/components/layout/SellerLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +35,9 @@ const SellerPriceOffers = () => {
   const navigate = useNavigate();
   const mountedRef = useRef(true);
   const { startTimer } = usePerformanceMonitor();
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
+  const c = getCommonTranslations(language);
   
   const [responseModal, setResponseModal] = useState<{
     isOpen: boolean;
@@ -108,7 +114,7 @@ const SellerPriceOffers = () => {
     if (!responseModal.offer) {
       console.error('❌ [SubmitResponse] No offer in responseModal', responseModal);
       toast({
-        title: "Error",
+        title: sp.error,
         description: "No offer selected. Please try again.",
         variant: "destructive",
       });
@@ -118,7 +124,7 @@ const SellerPriceOffers = () => {
     if (!responseModal.action) {
       console.error('❌ [SubmitResponse] No action in responseModal', responseModal);
       toast({
-        title: "Error", 
+        title: sp.error, 
         description: "No action selected. Please try again.",
         variant: "destructive",
       });
@@ -182,12 +188,12 @@ const SellerPriceOffers = () => {
 
       if (action === "accept") {
         toast({
-          title: "Offer Accepted!",
+          title: sp.offerAccepted,
           description: "Order will be created automatically. Refresh the page in a few seconds to see the order link.",
         });
       } else {
         toast({
-          title: "Offer Rejected",
+          title: sp.offerRejected,
           description: "Buyer will be notified of rejection.",
         });
       }
@@ -252,9 +258,9 @@ const SellerPriceOffers = () => {
       <SellerLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">Price Offers</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">{sp.priceOffers}</h1>
             <p className="text-muted-foreground">
-              Manage price offers for your products
+              {sp.managePriceOffers}
             </p>
           </div>
 
@@ -262,9 +268,9 @@ const SellerPriceOffers = () => {
             <Card>
               <CardContent className="text-center py-12">
                 <DollarSign className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No Price Offers</h3>
+                <h3 className="text-xl font-semibold mb-2">{sp.noPriceOffers}</h3>
                 <p className="text-muted-foreground">
-                  No one has made price offers for your products yet.
+                  {sp.noPriceOffersDesc}
                 </p>
               </CardContent>
             </Card>
@@ -289,7 +295,7 @@ const SellerPriceOffers = () => {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {responseModal.action === "accept" ? "Accept Offer" : "Reject Offer"}
+                {responseModal.action === "accept" ? sp.acceptOffer : sp.rejectOffer}
               </DialogTitle>
             </DialogHeader>
 
@@ -314,13 +320,13 @@ const SellerPriceOffers = () => {
                   
                   <div className="flex justify-between items-center pt-2 border-t">
                     <div>
-                      <div className="text-sm text-muted-foreground">Your Price</div>
+                      <div className="text-sm text-muted-foreground">{sp.yourPrice}</div>
                       <div className="font-semibold line-through text-gray-500">
                         {formatPrice(responseModal.offer.original_price)}
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm text-muted-foreground">Offer</div>
+                      <div className="text-sm text-muted-foreground">{sp.offer}</div>
                       <div className="text-lg font-bold text-green-600">
                         {formatPrice(responseModal.offer.offered_price)}
                       </div>
@@ -331,7 +337,7 @@ const SellerPriceOffers = () => {
                     <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                       <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
                         <ShoppingCart className="h-4 w-4" />
-                        Order will be created automatically
+                        {sp.orderWillBeCreated}
                       </p>
                       <p className="text-xs text-green-700">
                         After accepting the offer, order will be created automatically
@@ -344,8 +350,8 @@ const SellerPriceOffers = () => {
               <div>
                 <Label htmlFor="response">
                   {responseModal.action === "accept" 
-                    ? "Message to buyer (optional)"
-                    : "Reason for rejection (optional)"
+                    ? sp.messageTobuyer 
+                    : sp.reasonForRejection
                   }
                 </Label>
                 <Textarea
@@ -369,7 +375,7 @@ const SellerPriceOffers = () => {
                   disabled={isSubmitting}
                   className="flex-1"
                 >
-                  Cancel
+                  {c.buttons.cancel}
                 </Button>
                 <Button
                   onClick={handleSubmitResponse}
@@ -377,8 +383,8 @@ const SellerPriceOffers = () => {
                   className="flex-1"
                   variant={responseModal.action === "accept" ? "default" : "destructive"}
                 >
-                  {isSubmitting ? "Processing..." : 
-                   responseModal.action === "accept" ? "Accept Offer" : "Reject"
+                  {isSubmitting ? sp.processingOffer : 
+                   responseModal.action === "accept" ? sp.acceptOffer : sp.rejectOffer
                   }
                 </Button>
               </div>

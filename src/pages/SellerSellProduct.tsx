@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +38,9 @@ const SellerSellProduct = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const isMobile = useIsMobile();
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
+  const c = getCommonTranslations(language);
   
   // State management
   const [step, setStep] = useState(1);
@@ -56,15 +62,15 @@ const SellerSellProduct = () => {
 
   // Memoized breadcrumbs
   const breadcrumbItems = useMemo(() => [
-    { label: "Sell Product" }
-  ], []);
+    { label: sp.sellProductTitle }
+  ], [sp.sellProductTitle]);
 
   // Check that user is a seller
   useEffect(() => {
     if (profile && profile.user_type !== 'seller') {
       toast({
-        title: "Access Error",
-        description: "This page is only available to sellers",
+        title: sp.accessError,
+        description: sp.onlyForSellers,
         variant: "destructive",
       });
       navigate('/');
@@ -88,8 +94,8 @@ const SellerSellProduct = () => {
       } catch (error) {
         console.error("Error fetching buyers:", error);
         toast({
-          title: "Error",
-          description: "Failed to load buyers list",
+          title: sp.error,
+          description: sp.failedToLoadBuyers,
           variant: "destructive",
         });
       }
@@ -125,8 +131,8 @@ const SellerSellProduct = () => {
         if (error.name !== 'AbortError' && isMounted) {
           console.error("Error fetching products:", error);
           toast({
-            title: "Error",
-            description: "Failed to load your products",
+            title: sp.error,
+            description: sp.failedToLoadProducts,
             variant: "destructive",
           });
         }
@@ -266,8 +272,8 @@ const SellerSellProduct = () => {
   }) => {
     if (!selectedProduct || !selectedBuyer || !profile) {
       toast({
-        title: "Error",
-        description: "Not all data is filled",
+        title: sp.error,
+        description: sp.notAllDataFilled,
         variant: "destructive",
       });
       return;
@@ -337,8 +343,8 @@ const SellerSellProduct = () => {
       console.log("Order created, notifications will be sent via database triggers");
 
       toast({
-        title: "Order Created",
-        description: `Order successfully created`,
+        title: sp.orderCreated,
+        description: "Order successfully created",
       });
 
       // Open photo upload dialog
@@ -348,7 +354,7 @@ const SellerSellProduct = () => {
       console.error("Error creating order:", error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       toast({
-        title: "Order Creation Error",
+        title: sp.orderCreationError,
         description: `Details: ${errorMessage}`,
         variant: "destructive",
       });
@@ -428,12 +434,12 @@ const SellerSellProduct = () => {
               className="mr-4" 
               onClick={handleGoBack}
             >
-              <ChevronLeft className="h-5 w-5 mr-1" /> Back
+              <ChevronLeft className="h-5 w-5 mr-1" /> {c.buttons.back}
             </Button>
-            <h1 className="text-3xl font-bold">Sell Product</h1>
+            <h1 className="text-3xl font-bold">{sp.sellProductTitle}</h1>
           </div>
           <p className="text-gray-600 mt-2">
-            Select a product from your inventory and a buyer to create an order
+            {sp.selectProductAndBuyer}
           </p>
         </div>
 
@@ -441,9 +447,9 @@ const SellerSellProduct = () => {
         <div className="mb-8">
           <div className="flex items-center space-x-4">
             {[
-              { num: 1, title: "Product", completed: step > 1 },
-              { num: 2, title: "Buyer", completed: step > 2 },
-              { num: 3, title: "Confirmation", completed: false }
+              { num: 1, title: sp.selectProduct, completed: step > 1 },
+              { num: 2, title: sp.selectBuyer, completed: step > 2 },
+              { num: 3, title: sp.confirmation, completed: false }
             ].map((stepItem, index) => (
               <React.Fragment key={stepItem.num}>
                 <div className="flex items-center space-x-2">
