@@ -7,6 +7,7 @@ import { ProfileType } from "./types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getProfileTranslations } from "@/utils/profileTranslations";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface OptimizedProfileHeaderProps {
   profile: ProfileType;
@@ -20,6 +21,7 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
   isLoading = false
 }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const { language } = useLanguage();
 
   const renderRatingStars = (rating: number | null) => {
     if (!rating) return null;
@@ -44,7 +46,7 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const t = getProfileTranslations(profile.user_type);
+    const t = getProfileTranslations(language);
 
     if (!file.type.startsWith('image/')) {
       toast({
@@ -91,7 +93,7 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
       toast({
         variant: "destructive",
         title: t.uploadError,
-        description: error.message || "Не удалось загрузить изображение"
+        description: error.message || t.avatarUpdateFailure
       });
     } finally {
       setIsUploading(false);
@@ -99,7 +101,7 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
   };
 
   if (isLoading) {
-    const t = getProfileTranslations('buyer');
+    const t = getProfileTranslations(language);
     return (
       <Card className="bg-gradient-to-br from-white via-blue-50 to-indigo-100 border shadow-lg">
         <CardHeader className="pb-2">
@@ -119,7 +121,7 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
     );
   }
 
-  const t = getProfileTranslations(profile.user_type);
+  const t = getProfileTranslations(language);
   
   return (
     <Card className="bg-gradient-to-br from-white via-blue-50 to-indigo-100 border shadow-lg hover:shadow-xl transition-all duration-300">
@@ -168,7 +170,7 @@ const OptimizedProfileHeader: React.FC<OptimizedProfileHeaderProps> = memo(({
         <div className="flex flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold text-gray-900 drop-shadow-sm">
-              {profile?.full_name || 'Пользователь'}
+              {profile?.full_name || t.noData}
             </h2>
             {profile?.opt_status === 'opt_user' && (
               <span className="px-3 py-1 bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 rounded-full text-sm font-medium shadow-sm">

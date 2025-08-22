@@ -6,6 +6,7 @@ import { ShoppingBag, Package, Star, Clock, TrendingUp, MessageCircle } from 'lu
 import { ProfileType } from './types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getProfileTranslations } from '@/utils/profileTranslations';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface OptimizedProfileStatsProps {
   profile: ProfileType;
@@ -22,8 +23,9 @@ const OptimizedProfileStats: React.FC<OptimizedProfileStatsProps> = memo(({
   orderStats,
   isLoading = false
 }) => {
+  const { language } = useLanguage();
   const isSeller = profile.user_type === 'seller';
-  const t = getProfileTranslations(profile.user_type);
+  const t = getProfileTranslations(language);
 
   const handleContactAdmin = () => {
     window.open('https://t.me/Nastya_PostingLots_OptCargo', '_blank');

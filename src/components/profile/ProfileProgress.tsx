@@ -6,13 +6,15 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle, AlertCircle, Target } from 'lucide-react';
 import { ProfileType } from './types';
 import { getProfileTranslations } from '@/utils/profileTranslations';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface ProfileProgressProps {
   profile: ProfileType;
 }
 
 const ProfileProgress: React.FC<ProfileProgressProps> = ({ profile }) => {
-  const t = getProfileTranslations(profile.user_type);
+  const { language } = useLanguage();
+  const t = getProfileTranslations(language);
   
   const calculateProgress = () => {
     const isSeller = profile.user_type === 'seller';
@@ -52,17 +54,10 @@ const ProfileProgress: React.FC<ProfileProgressProps> = ({ profile }) => {
   };
 
   const getProgressMessage = () => {
-    if (profile.user_type === 'seller') {
-      if (totalProgress >= 90) return 'Excellent work! Your profile is almost completely filled.';
-      if (totalProgress >= 70) return 'Good! Fill in a few more fields for better results.';
-      if (totalProgress >= 50) return 'Nice start! Add more information about yourself.';
-      return 'Complete your profile for better user interaction.';
-    } else {
-      if (totalProgress >= 90) return 'Отличная работа! Ваш профиль почти полностью заполнен.';
-      if (totalProgress >= 70) return 'Хорошо! Заполните еще несколько полей для лучшего результата.';
-      if (totalProgress >= 50) return 'Неплохое начало! Добавьте больше информации о себе.';
-      return 'Заполните профиль для лучшего взаимодействия с пользователями.';
-    }
+    if (totalProgress >= 90) return t.progressExcellent || 'Excellent work! Your profile is almost completely filled.';
+    if (totalProgress >= 70) return t.progressGood || 'Good! Fill in a few more fields for better results.';
+    if (totalProgress >= 50) return t.progressNice || 'Nice start! Add more information about yourself.';
+    return t.progressIncomplete || 'Complete your profile for better user interaction.';
   };
 
   return (

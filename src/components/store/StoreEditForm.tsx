@@ -16,6 +16,7 @@ import StoreLocationPicker from "./StoreLocationPicker";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getProfileTranslations } from "@/utils/profileTranslations";
+import { useLanguage } from "@/hooks/useLanguage";
 
 const storeFormSchema = z.object({
   name: z.string().min(3, 'Название должно быть не менее 3 символов'),
@@ -39,7 +40,8 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
   const [storeId, setStoreId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("general");
   const { user, profile } = useAuth();
-  const t = getProfileTranslations(profile?.user_type || 'buyer');
+  const { language } = useLanguage();
+  const t = getProfileTranslations(language);
 
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeFormSchema),

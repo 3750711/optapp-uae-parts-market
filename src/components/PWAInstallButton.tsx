@@ -29,6 +29,13 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
     installSuccess: 'App installed successfully',
     installFailed: 'Failed to install app',
     installCancelled: 'Installation cancelled'
+  } : language === 'bn' ? {
+    install: 'অ্যাপ ইনস্টল করুন',
+    installing: 'ইনস্টল হচ্ছে...',
+    installed: 'অ্যাপ ইনস্টল হয়েছে',
+    installSuccess: 'অ্যাপ সফলভাবে ইনস্টল হয়েছে',
+    installFailed: 'অ্যাপ ইনস্টল করতে ব্যর্থ',
+    installCancelled: 'ইনস্টলেশন বাতিল'
   } : {
     install: 'Установить приложение',
     installing: 'Установка...',
@@ -49,6 +56,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           title: t.installSuccess,
           description: language === 'en' 
             ? 'You can now use the app from your home screen'
+            : language === 'bn'
+            ? 'এখন আপনি আপনার হোম স্ক্রিন থেকে অ্যাপটি ব্যবহার করতে পারেন'
             : 'Теперь вы можете использовать приложение с главного экрана'
         });
       } else {
@@ -56,6 +65,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           title: t.installCancelled,
           description: language === 'en'
             ? 'You can install the app later from the browser menu'
+            : language === 'bn'
+            ? 'আপনি পরে ব্রাউজার মেনু থেকে অ্যাপটি ইনস্টল করতে পারেন'
             : 'Вы можете установить приложение позже через меню браузера',
           variant: 'default'
         });
@@ -66,6 +77,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         title: t.installFailed,
         description: language === 'en'
           ? 'Please try again or install from browser menu'
+          : language === 'bn'
+          ? 'অনুগ্রহ করে আবার চেষ্টা করুন বা ব্রাউজার মেনু থেকে ইনস্টল করুন'
           : 'Попробуйте еще раз или установите через меню браузера',
         variant: 'destructive'
       });

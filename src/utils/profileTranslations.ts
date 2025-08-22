@@ -108,6 +108,10 @@ export const profileTranslations = {
     progress: "Прогресс",
     completed: "Заполнено",
     recommendedToFill: "Рекомендуется заполнить",
+    progressExcellent: "Отличная работа! Ваш профиль почти полностью заполнен.",
+    progressGood: "Хорошо! Заполните еще несколько полей для лучшего результата.",
+    progressNice: "Неплохое начало! Добавьте больше информации о себе.",
+    progressIncomplete: "Заполните профиль для лучшего взаимодействия с пользователями.",
     
     // Profile header
     userProfile: "Профиль пользователя",
@@ -296,6 +300,10 @@ export const profileTranslations = {
     progress: "Progress",
     completed: "Completed",
     recommendedToFill: "Recommended to Fill",
+    progressExcellent: "Excellent work! Your profile is almost completely filled.",
+    progressGood: "Good! Fill in a few more fields for better results.",
+    progressNice: "Nice start! Add more information about yourself.",
+    progressIncomplete: "Complete your profile for better user interaction.",
     
     // Profile header
     userProfile: "User Profile",
@@ -484,6 +492,10 @@ export const profileTranslations = {
     progress: "অগ্রগতি",
     completed: "সম্পন্ন",
     recommendedToFill: "পূরণ করার পরামর্শ দেওয়া হয়",
+    progressExcellent: "চমৎকার কাজ! আপনার প্রোফাইল প্রায় সম্পূর্ণভাবে পূরণ হয়েছে।",
+    progressGood: "ভাল! আরও ভাল ফলাফলের জন্য আরো কয়েকটি ক্ষেত্র পূরণ করুন।",
+    progressNice: "চমৎকার শুরু! নিজের সম্পর্কে আরও তথ্য যোগ করুন।",
+    progressIncomplete: "ব্যবহারকারীদের সাথে ভাল যোগাযোগের জন্য আপনার প্রোফাইল পূরণ করুন।",
     
     // Profile header
     userProfile: "ব্যবহারকারী প্রোফাইল",
