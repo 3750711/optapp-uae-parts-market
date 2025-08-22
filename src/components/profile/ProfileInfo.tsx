@@ -4,13 +4,15 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ProfileType } from "./types";
 import { Star, StarHalf } from "lucide-react";
 import { getProfileTranslations } from "@/utils/profileTranslations";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface ProfileInfoProps {
   profile: ProfileType;
 }
 
 const ProfileInfo: React.FC<ProfileInfoProps> = ({ profile }) => {
-  const t = getProfileTranslations(profile.user_type);
+  const { language } = useLanguage();
+  const t = getProfileTranslations(language);
   
   const renderRatingStars = (rating: number | null) => {
     if (!rating) return null;
