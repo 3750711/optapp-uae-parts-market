@@ -284,7 +284,6 @@ export const translations: Record<'ru' | 'en' | 'bn', LoginTranslations> = {
 };
 
 export const getLoginTranslations = (language: 'ru' | 'en' | 'bn' = 'ru'): LoginTranslations => {
-  // Bengali users see English translations for login
-  const actualLanguage = language === 'bn' ? 'en' : language;
-  return translations[actualLanguage as 'ru' | 'en'];
+  // Show Bengali if available, fallback to English if needed
+  return translations[language] ?? translations.en;
 };

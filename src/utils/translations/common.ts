@@ -25,7 +25,11 @@ const en = {
     backToDashboard: 'Back to Dashboard',
     backToOrders: 'Back to Orders',
     retry: 'Retry',
-    refresh: 'Refresh'
+    refresh: 'Refresh',
+    register: 'Register',
+    hide: 'Hide',
+    restore: 'Restore',
+    apply: 'Apply'
   },
 
   // Common statuses
@@ -66,6 +70,17 @@ const en = {
     unauthorized: 'You are not authorized to perform this action'
   },
 
+  // Common errors
+  errors: {
+    title: 'Error',
+    accessDenied: 'Access denied'
+  },
+
+  // Common fields
+  fields: {
+    price: 'Price'
+  },
+
   // Product fields
   product: {
     brand: 'Brand',
@@ -97,7 +112,11 @@ const ru = {
     backToDashboard: 'Назад к дашборду',
     backToOrders: 'Назад к заказам',
     retry: 'Повторить',
-    refresh: 'Обновить'
+    refresh: 'Обновить',
+    register: 'Зарегистрироваться',
+    hide: 'Скрыть',
+    restore: 'Восстановить',
+    apply: 'Применить'
   },
 
   // Common statuses
@@ -138,6 +157,17 @@ const ru = {
     unauthorized: 'У вас нет прав для выполнения этого действия'
   },
 
+  // Common errors
+  errors: {
+    title: 'Ошибка',
+    accessDenied: 'Доступ запрещен'
+  },
+
+  // Common fields
+  fields: {
+    price: 'Цена'
+  },
+
   // Product fields
   product: {
     brand: 'Бренд',
@@ -169,7 +199,11 @@ const bn = {
     backToDashboard: 'ড্যাশবোর্ডে ফিরুন',
     backToOrders: 'অর্ডারে ফিরুন',
     retry: 'পুনরায় চেষ্টা করুন',
-    refresh: 'রিফ্রেশ'
+    refresh: 'রিফ্রেশ',
+    register: 'রেজিস্টার করুন',
+    hide: 'লুকান',
+    restore: 'পুনরুদ্ধার',
+    apply: 'প্রয়োগ করুন'
   },
 
   // Common statuses
@@ -208,6 +242,17 @@ const bn = {
     unsavedChanges: 'আপনার অসংরক্ষিত পরিবর্তন আছে',
     networkError: 'নেটওয়ার্ক সংযোগ ত্রুটি',
     unauthorized: 'এই কাজটি সম্পাদন করার জন্য আপনার অনুমতি নেই'
+  },
+
+  // Common errors
+  errors: {
+    title: 'ত্রুটি',
+    accessDenied: 'প্রবেশ নিষিদ্ধ'
+  },
+
+  // Common fields
+  fields: {
+    price: 'মূল্য'
   },
 
   // Product fields

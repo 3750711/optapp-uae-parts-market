@@ -21,12 +21,21 @@ import SellerLayout from "@/components/layout/SellerLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Shield } from "lucide-react";
 import ProductErrorBoundary from "@/components/error/ProductErrorBoundary";
+// i18n: язык и словари
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 const SellerProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { isMobile } = useMobileLayout();
+  
+  // i18n
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
+  const c = getCommonTranslations(language);
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
@@ -49,7 +58,7 @@ const SellerProductDetail = () => {
   useEffect(() => {
     if (profile && profile.user_type !== 'seller') {
       toast({
-        title: "Доступ запрещен",
+        title: sp.accessDenied,
         description: "Эта страница доступна только продавцам.",
         variant: "destructive"
       });
@@ -130,14 +139,14 @@ const SellerProductDetail = () => {
         <div className="container mx-auto px-4 py-6 max-w-7xl">
           <Alert variant="destructive" className="mb-6">
             <Shield className="h-4 w-4" />
-            <AlertTitle>Доступ запрещен</AlertTitle>
+            <AlertTitle>{sp.accessDenied}</AlertTitle>
             <AlertDescription>
               Вы можете просматривать только свои собственные объявления. 
               Проверьте правильность ссылки или вернитесь к списку ваших объявлений.
             </AlertDescription>
           </Alert>
           <Button variant="default" onClick={handleBack}>
-            Вернуться к моим объявлениям
+            {c.buttons.backToOrders}
           </Button>
         </div>
       </SellerLayout>

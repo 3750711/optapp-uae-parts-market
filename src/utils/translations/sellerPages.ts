@@ -132,6 +132,22 @@ export interface SellerPagesTranslations {
   waiting: string;
   inTransit: string;
   atCustoms: string;
+
+  // Additional keys for new components
+  productDetailsTitle?: string;
+  productInfoDetails?: {
+    title: string;
+    views: string;
+    created: string;
+  };
+  productActions?: {
+    updated: string;
+    updateFailed: string;
+  };
+  register?: {
+    title: string;
+    subtitle: string;
+  };
 }
 
 const ru: SellerPagesTranslations = {
@@ -266,6 +282,22 @@ const ru: SellerPagesTranslations = {
   waiting: 'Ожидание',
   inTransit: 'В пути',
   atCustoms: 'На таможне',
+
+  // Additional keys for new components
+  productDetailsTitle: 'Детали товара',
+  productInfoDetails: {
+    title: 'Информация о товаре',
+    views: 'просмотров',
+    created: 'Создан'
+  },
+  productActions: {
+    updated: 'Товар обновлён',
+    updateFailed: 'Не удалось обновить товар'
+  },
+  register: {
+    title: 'Станьте продавцом на',
+    subtitle: 'Расширьте свой бизнес и привлеките новых клиентов, став частью ведущего B2B-маркетплейса автозапчастей в ОАЭ.'
+  },
 };
 
 const en: SellerPagesTranslations = {
@@ -400,6 +432,22 @@ const en: SellerPagesTranslations = {
   waiting: 'Waiting',
   inTransit: 'In Transit',
   atCustoms: 'At Customs',
+
+  // Additional keys for new components
+  productDetailsTitle: 'Product Details',
+  productInfoDetails: {
+    title: 'Product Information',
+    views: 'views',
+    created: 'Created'
+  },
+  productActions: {
+    updated: 'Product Updated',
+    updateFailed: 'Failed to update product'
+  },
+  register: {
+    title: 'Become a seller on',
+    subtitle: 'Expand your business and attract new customers by becoming part of the leading B2B auto parts marketplace in the UAE.'
+  },
 };
 
 const bn: SellerPagesTranslations = {
@@ -534,6 +582,22 @@ const bn: SellerPagesTranslations = {
   waiting: 'অপেক্ষা',
   inTransit: 'পথে',
   atCustoms: 'শুল্কে',
+
+  // Additional keys for new components
+  productDetailsTitle: 'পণ্যের বিবরণ',
+  productInfoDetails: {
+    title: 'পণ্যের তথ্য',
+    views: 'দেখা হয়েছে',
+    created: 'তৈরি হয়েছে'
+  },
+  productActions: {
+    updated: 'পণ্য আপডেট হয়েছে',
+    updateFailed: 'পণ্য আপডেট করা যায়নি'
+  },
+  register: {
+    title: 'বিক্রেতা হন',
+    subtitle: 'ইউএই-এর শীর্ষস্থানীয় B2B অটো পার্টস মার্কেটপ্লেসের অংশ হয়ে আপনার ব্যবসা সম্প্রসারিত করুন এবং নতুন গ্রাহকদের আকর্ষণ করুন।'
+  },
 };
 
 export const sellerPagesTranslations: Record<Lang, SellerPagesTranslations> = {

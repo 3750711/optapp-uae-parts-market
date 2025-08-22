@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
 import { useLocalStorageFilters } from "@/hooks/useLocalStorageFilters";
 import { toast } from "@/components/ui/use-toast";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerListingsPageTranslations } from '@/utils/translations/sellerListingsPage';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 export interface SearchFilters {
   searchTerm: string;
@@ -34,6 +37,9 @@ const EnhancedProductSearch = React.memo(({
   filteredCount 
 }: EnhancedProductSearchProps) => {
   const { savedFilters, saveFilters, clearSavedFilters } = useLocalStorageFilters();
+  const { language } = useLanguage();
+  const lp = getSellerListingsPageTranslations(language);
+  const c = getCommonTranslations(language);
   
   const [filters, setFilters] = useState<SearchFilters>({
     searchTerm: '',
@@ -131,7 +137,7 @@ const EnhancedProductSearch = React.memo(({
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              placeholder="Search by title, brand, model..."
+              placeholder={lp.searchPlaceholder}
               value={filters.searchTerm}
               onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
               className="pl-10"
@@ -146,7 +152,7 @@ const EnhancedProductSearch = React.memo(({
               size="sm"
             >
               <Filter className="h-4 w-4" />
-              <span className="hidden sm:inline">Filters</span>
+              <span className="hidden sm:inline">{lp.filters?.title || 'Filters'}</span>
             </Button>
 
             <Select value={filters.sortBy} onValueChange={(value) => updateFilters({ sortBy: value })}>
@@ -154,8 +160,8 @@ const EnhancedProductSearch = React.memo(({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="created_at">By Date</SelectItem>
-                <SelectItem value="price">By Price</SelectItem>
+                <SelectItem value="created_at">{lp.filters?.byDate || 'By Date'}</SelectItem>
+                <SelectItem value="price">{lp.filters?.byPrice || 'By Price'}</SelectItem>
                 <SelectItem value="title">By Title</SelectItem>
                 <SelectItem value="lot_number">By Lot</SelectItem>
               </SelectContent>

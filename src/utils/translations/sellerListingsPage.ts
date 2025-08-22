@@ -40,6 +40,14 @@ export interface SellerListingsPageTranslations {
   // Meta tags
   metaTitle: string;
   metaDescription: string;
+
+  // Filters
+  filters?: {
+    title: string;
+    sortBy: string;
+    byDate: string;
+    byPrice: string;
+  };
 }
 
 const ru: SellerListingsPageTranslations = {
@@ -81,7 +89,15 @@ const ru: SellerListingsPageTranslations = {
   
   // Meta tags
   metaTitle: 'Товары продавца | Ожидающие первыми',
-  metaDescription: 'Управляйте своими товарами. Ожидающие модерации товары отображаются первыми.'
+  metaDescription: 'Управляйте своими товарами. Ожидающие модерации товары отображаются первыми.',
+
+  // Filters
+  filters: {
+    title: 'Фильтры',
+    sortBy: 'Сортировка',
+    byDate: 'По дате',
+    byPrice: 'По цене'
+  }
 };
 
 const en: SellerListingsPageTranslations = {
@@ -123,7 +139,15 @@ const en: SellerListingsPageTranslations = {
   
   // Meta tags
   metaTitle: 'Seller Listings | Pending first',
-  metaDescription: 'Manage your listings. Pending (moderation) items appear first.'
+  metaDescription: 'Manage your listings. Pending (moderation) items appear first.',
+
+  // Filters
+  filters: {
+    title: 'Filters',
+    sortBy: 'Sort by',
+    byDate: 'By Date',
+    byPrice: 'By Price'
+  }
 };
 
 const bn: SellerListingsPageTranslations = {
@@ -165,7 +189,15 @@ const bn: SellerListingsPageTranslations = {
   
   // Meta tags
   metaTitle: 'বিক্রেতার তালিকা | অপেক্ষমাণ প্রথম',
-  metaDescription: 'আপনার তালিকা পরিচালনা করুন। অপেক্ষমাণ (মডারেশন) আইটেম প্রথমে প্রদর্শিত হয়।'
+  metaDescription: 'আপনার তালিকা পরিচালনা করুন। অপেক্ষমাণ (মডারেশন) আইটেম প্রথমে প্রদর্শিত হয়।',
+
+  // Filters
+  filters: {
+    title: 'ফিল্টার',
+    sortBy: 'সাজান',
+    byDate: 'তারিখ অনুযায়ী',
+    byPrice: 'দামের অনুযায়ী'
+  }
 };
 
 export const sellerListingsPageTranslations: Record<Lang, SellerListingsPageTranslations> = {

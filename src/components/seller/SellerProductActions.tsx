@@ -7,6 +7,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 import {
   AlertDialog,
@@ -32,6 +35,9 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
+  const c = getCommonTranslations(language);
   
 
   // Status update mutation
@@ -51,15 +57,15 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
       
       
       toast({
-        title: "Статус обновлен",
+        title: sp.productActions?.updated || "Статус обновлен",
         description: "Статус вашего объявления успешно изменен.",
       });
       onProductUpdate();
     },
     onError: (error) => {
       toast({
-        title: "Ошибка",
-        description: "Не удалось обновить статус объявления.",
+        title: c.errors?.title || "Ошибка",
+        description: sp.productActions?.updateFailed || "Не удалось обновить статус объявления.",
         variant: "destructive"
       });
     }
@@ -114,7 +120,7 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
         {/* Current Status */}
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-muted-foreground">
-            Текущий статус:
+            {sp.containerStatus || 'Текущий статус'}:
           </span>
           <Badge className={statusInfo.color}>
             {statusInfo.text}
@@ -122,7 +128,7 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
           {product.view_count && product.view_count > 0 && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Eye className="h-4 w-4" />
-              {product.view_count} просмотров
+              {product.view_count} {sp.productInfoDetails?.views || 'просмотров'}
             </div>
           )}
         </div>
@@ -137,7 +143,7 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
             className="flex items-center gap-2"
           >
             <Edit className="h-4 w-4" />
-            Редактировать
+            {c.buttons.edit}
           </Button>
 
           {/* Status Change Buttons */}
@@ -151,21 +157,21 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
                     className="flex items-center gap-2"
                   >
                     <EyeOff className="h-4 w-4" />
-                    Скрыть
+                    {c.buttons.hide || 'Скрыть'}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Скрыть объявление?</AlertDialogTitle>
+                    <AlertDialogTitle>{c.buttons.hide || 'Скрыть'} объявление?</AlertDialogTitle>
                     <AlertDialogDescription>
                       Объявление будет помещено в архив и не будет отображаться в поиске.
                       Вы сможете восстановить его позже.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                    <AlertDialogCancel>{c.buttons.cancel}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => handleStatusChange('archived')}>
-                      Скрыть
+                      {c.buttons.hide || 'Скрыть'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -179,7 +185,7 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
                     className="flex items-center gap-2"
                   >
                     <Archive className="h-4 w-4" />
-                    Продано
+                    {sp.shipped || 'Продано'}
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -190,9 +196,9 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                    <AlertDialogCancel>{c.buttons.cancel}</AlertDialogCancel>
                     <AlertDialogAction onClick={() => handleStatusChange('sold')}>
-                      Пометить как проданное
+                      {sp.shipped || 'Пометить как проданное'}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
@@ -209,7 +215,7 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
               className="flex items-center gap-2"
             >
               <RotateCcw className="h-4 w-4" />
-              Восстановить
+              {c.buttons.restore || 'Восстановить'}
             </Button>
           )}
 

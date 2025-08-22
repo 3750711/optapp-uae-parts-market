@@ -5,8 +5,16 @@ import { Check, ArrowRight, ShoppingCart, Store, Shield } from 'lucide-react';
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+// i18n
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 const SellerRegister: React.FC = () => {
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
+  const c = getCommonTranslations(language);
+  
   return (
     <Layout>
       <div className="bg-white">
@@ -15,11 +23,11 @@ const SellerRegister: React.FC = () => {
           <div className="container mx-auto px-4 py-12 md:py-24 lg:py-32 flex flex-col md:flex-row items-center">
             <div className="md:w-1/2 text-center md:text-left mb-8 md:mb-0">
               <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold mb-6 md:mb-8 leading-tight animate-fade-in">
-                <span className="text-foreground">Станьте продавцом на </span> 
+                <span className="text-foreground">{sp.register?.title || 'Станьте продавцом на'} </span> 
                 <span className="text-primary relative inline-block after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-1 after:bg-primary/30 after:rounded-full">partsbay.ae</span>
               </h1>
               <p className="text-base md:text-xl text-foreground/80 mb-8 md:mb-10 max-w-lg mx-auto md:mx-0 animate-fade-in [animation-delay:300ms]">
-                Расширьте свой бизнес и привлеките новых клиентов, став частью ведущего B2B-маркетплейса автозапчастей в ОАЭ.
+                {sp.register?.subtitle || 'Расширьте свой бизнес и привлеките новых клиентов, став частью ведущего B2B-маркетплейса автозапчастей в ОАЭ.'}
               </p>
               <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4 animate-fade-in [animation-delay:600ms]">
                 <Button 
@@ -28,7 +36,7 @@ const SellerRegister: React.FC = () => {
                   asChild
                 >
                   <a href="#register-form" className="flex items-center gap-2">
-                    <span>Начать сейчас</span>
+                    <span>{c.buttons.register}</span>
                     <ArrowRight className="ml-1 h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </a>
                 </Button>
@@ -237,7 +245,7 @@ const SellerRegister: React.FC = () => {
                     type="submit" 
                     className="w-full md:w-auto md:px-12 group shadow-elevation-hover transition-all duration-300 hover:translate-y-[-4px]"
                   >
-                    Зарегистрироваться
+                    {c.buttons.register}
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </div>
@@ -294,7 +302,7 @@ const SellerRegister: React.FC = () => {
               asChild
             >
               <a href="#register-form" className="flex items-center gap-2">
-                <span>Начать сейчас</span>
+                <span>{c.buttons.register}</span>
                 <ArrowRight className="ml-1 h-5 w-5" />
               </a>
             </Button>
