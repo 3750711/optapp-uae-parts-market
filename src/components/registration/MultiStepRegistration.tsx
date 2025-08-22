@@ -32,7 +32,7 @@ type UserType = 'buyer' | 'seller';
 type RegistrationType = 'telegram' | 'standard';
 
 interface MultiStepRegistrationProps {
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
 }
 
 export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({ 

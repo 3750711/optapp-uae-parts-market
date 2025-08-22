@@ -4,7 +4,7 @@ import { CONTACT_CONFIG } from '@/config/contact';
 import { Button } from '@/components/ui/button';
 
 interface ContactAdminCardProps {
-  language: 'ru' | 'en';
+  language: 'ru' | 'en' | 'bn';
 }
 
 const i18n = {
@@ -21,7 +21,9 @@ const i18n = {
 };
 
 export const ContactAdminCard: React.FC<ContactAdminCardProps> = ({ language }) => {
-  const t = i18n[language];
+  // Bengali users see English translations
+  const actualLanguage = language === 'bn' ? 'en' : language;
+  const t = i18n[actualLanguage as 'ru' | 'en'];
   const managerUsername = CONTACT_CONFIG.TELEGRAM_MANAGER.username;
   const managerUrl = `https://t.me/${managerUsername}`;
 

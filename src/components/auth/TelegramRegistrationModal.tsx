@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom';
 interface TelegramRegistrationModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
   onComplete?: () => void;
 }
 
@@ -42,7 +42,9 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
 }) => {
   const { toast } = useToast();
   const { refreshProfile } = useAuth();
-  const t = registrationTranslations[language];
+  // Bengali users see English translations
+  const actualLanguage = language === 'bn' ? 'en' : language;
+  const t = registrationTranslations[actualLanguage as 'ru' | 'en'];
   
   const [currentStep, setCurrentStep] = useState<RegistrationStep>('account-type');
   const [userType, setUserType] = useState<UserType | null>(null);
@@ -104,14 +106,14 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
     if (!phoneRaw) {
       newErrors.phone = t.errors.phoneRequired;
     } else if (!/^\+?[1-9]\d{6,14}$/.test(phoneSanitized)) {
-      newErrors.phone = language === 'en' ? 'Enter a valid phone number' : 'Введите корректный номер телефона';
+      newErrors.phone = actualLanguage === 'en' ? 'Enter a valid phone number' : 'Введите корректный номер телефона';
     }
 
     if (!acceptedTerms) {
-      newErrors.acceptedTerms = language === 'en' ? 'You must accept the Terms and Conditions' : 'Необходимо принять Условия использования';
+      newErrors.acceptedTerms = actualLanguage === 'en' ? 'You must accept the Terms and Conditions' : 'Необходимо принять Условия использования';
     }
     if (!acceptedPrivacy) {
-      newErrors.acceptedPrivacy = language === 'en' ? 'You must accept the Privacy Policy' : 'Необходимо принять Политику конфиденциальности';
+      newErrors.acceptedPrivacy = actualLanguage === 'en' ? 'You must accept the Privacy Policy' : 'Необходимо принять Политику конфиденциальности';
     }
     
     setErrors(newErrors);
@@ -249,12 +251,12 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
       await refreshProfile();
 
       toast({
-        title: language === 'en' ? "Registration completed!" : "Регистрация завершена!",
+        title: actualLanguage === 'en' ? "Registration completed!" : "Регистрация завершена!",
         description: userType === 'seller' 
-          ? (language === 'en' 
+          ? (actualLanguage === 'en' 
               ? `Your OPT_ID: ${optId}. Awaiting account verification.`
               : `Ваш OPT_ID: ${optId}. Ожидайте верификации аккаунта.`)
-          : (language === 'en'
+          : (actualLanguage === 'en'
               ? `Your OPT_ID: ${optId}. Welcome to PartsBay!`
               : `Ваш OPT_ID: ${optId}. Добро пожаловать на PartsBay!`)
       });
@@ -267,25 +269,25 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
       console.error('Registration completion error:', error);
       
       let errorMessage = "Попробуйте еще раз";
-      if (language === 'en') {
+      if (actualLanguage === 'en') {
         errorMessage = "Please try again";
       }
       
       // More specific error messages
       if (error instanceof Error) {
         if (error.message.includes('No authenticated user')) {
-          errorMessage = language === 'en' 
+          errorMessage = actualLanguage === 'en' 
             ? "Authentication error. Please try logging in again."
             : "Ошибка аутентификации. Попробуйте войти заново.";
         } else if (error.message.includes('profiles')) {
-          errorMessage = language === 'en'
+          errorMessage = actualLanguage === 'en'
             ? "Profile update failed. Please check your data."
             : "Не удалось обновить профиль. Проверьте данные.";
         }
       }
       
       toast({
-        title: language === 'en' ? "Registration Error" : "Ошибка регистрации",
+        title: actualLanguage === 'en' ? "Registration Error" : "Ошибка регистрации",
         description: errorMessage,
         variant: "destructive"
       });
@@ -389,7 +391,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
               className="mt-1"
             />
             <label htmlFor="terms" className="text-sm text-muted-foreground">
-              {language === 'en' ? (
+              {actualLanguage === 'en' ? (
                 <>I accept the <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline">Terms and Conditions</Link></>
               ) : (
                 <>Я принимаю <Link to="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline">Условия использования</Link></>
@@ -409,7 +411,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
               className="mt-1"
             />
             <label htmlFor="privacy" className="text-sm text-muted-foreground">
-              {language === 'en' ? (
+              {actualLanguage === 'en' ? (
                 <>I accept the <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</Link></>
               ) : (
                 <>Я принимаю <Link to="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Политику конфиденциальности</Link></>
@@ -501,7 +503,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
         <h3 className="text-lg font-semibold">{t.creatingAccount}</h3>
         <p className="text-muted-foreground">{t.waitingVerification}</p>
         <p className="text-sm text-muted-foreground">
-          {language === 'en' ? 'Generating your unique OPT_ID...' : 'Генерируем ваш уникальный OPT_ID...'}
+          {actualLanguage === 'en' ? 'Generating your unique OPT_ID...' : 'Генерируем ваш уникальный OPT_ID...'}
         </p>
       </div>
     </div>
@@ -537,7 +539,7 @@ return (
     >
         <DialogHeader>
           <DialogTitle>
-            {language === 'en' ? 'Complete Registration' : 'Завершение регистрации'}
+            {actualLanguage === 'en' ? 'Complete Registration' : 'Завершение регистрации'}
           </DialogTitle>
         </DialogHeader>
         

@@ -28,7 +28,7 @@ interface AccountMergeDialogProps {
   telegramData: TelegramData;
   onMergeSuccess: (email: string, password: string) => void;
   onCancel: () => void;
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
 }
 
 export const AccountMergeDialog: React.FC<AccountMergeDialogProps> = ({
@@ -43,7 +43,9 @@ export const AccountMergeDialog: React.FC<AccountMergeDialogProps> = ({
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const t = language === 'en' ? {
+  // Bengali users see English translations  
+  const actualLanguage = language === 'bn' ? 'en' : language;
+  const t = actualLanguage === 'en' ? {
     title: 'Merge Accounts',
     foundExistingPrefix: 'We found an existing account with the same Telegram:',
     instructions: 'To access your orders and products, enter the password for the existing account. We will merge your accounts and you will be able to login via Telegram.',

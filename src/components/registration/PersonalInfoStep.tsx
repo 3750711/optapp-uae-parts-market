@@ -12,7 +12,7 @@ interface PersonalInfoStepProps {
   onBack: () => void;
   translations: any;
   optId?: string;
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
 }
 
 export interface PersonalData {

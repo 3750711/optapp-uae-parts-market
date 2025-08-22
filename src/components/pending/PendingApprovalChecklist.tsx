@@ -4,7 +4,7 @@ import { CheckCircle2, XCircle, Info } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface PendingApprovalChecklistProps {
-  language: 'ru' | 'en';
+  language: 'ru' | 'en' | 'bn';
 }
 
 const i18n = {
@@ -65,7 +65,9 @@ const Item: React.FC<{ ok: boolean; label: string }> = ({ ok, label }) => (
 
 export const PendingApprovalChecklist: React.FC<PendingApprovalChecklistProps> = ({ language }) => {
   const { profile } = useAuth();
-  const t = i18n[language];
+  // Bengali users see English translations
+  const actualLanguage = language === 'bn' ? 'en' : language;
+  const t = i18n[actualLanguage as 'ru' | 'en'];
 
   const flags = useMemo(() => {
     const isTelegramLinked = Boolean(profile?.telegram || profile?.telegram_id);

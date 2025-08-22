@@ -20,7 +20,7 @@ interface TelegramAuthData {
 interface TelegramLoginWidgetProps {
   onSuccess?: () => void;
   onError?: (error: string) => void;
-  language?: 'ru' | 'en';
+  language?: 'ru' | 'en' | 'bn';
   compact?: boolean;
 }
 
@@ -32,7 +32,7 @@ declare global {
   }
 }
 
-const getTelegramTranslations = (language: 'ru' | 'en') => {
+const getTelegramTranslations = (language: 'ru' | 'en' | 'bn') => {
   const translations = {
     ru: {
       title: "Профессиональная авторизация",
@@ -55,9 +55,22 @@ const getTelegramTranslations = (language: 'ru' | 'en') => {
       error: "Authorization error",
       mergeError: "Error after account merge",
       mergeInfo: "You can create a new account through regular registration"
+    },
+    bn: {
+      title: "পেশাদার অথরাইজেশন",
+      description: "B2B/B2C কমিউনিটি সদস্যদের জন্য নিরাপদ টেলিগ্রাম লগইন",
+      instant: "অতিরিক্ত পাসওয়ার্ড ছাড়াই তাৎক্ষণিক অথরাইজেশন",
+      recommended: "প্রস্তাবিত লগইন পদ্ধতি",
+      loading: "টেলিগ্রামের মাধ্যমে অথরাইজেশন...",
+      success: "সফল টেলিগ্রাম অথরাইজেশন!",
+      error: "অথরাইজেশন ত্রুটি",
+      mergeError: "অ্যাকাউন্ট একীকরণের পরে ত্রুটি",
+      mergeInfo: "আপনি নিয়মিত রেজিস্ট্রেশনের মাধ্যমে একটি নতুন অ্যাকাউন্ট তৈরি করতে পারেন"
     }
   };
-  return translations[language];
+  // Bengali users see English translations for Telegram login
+  const actualLanguage = language === 'bn' ? 'en' : language;
+  return translations[actualLanguage as 'ru' | 'en'];
 };
 
 export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
