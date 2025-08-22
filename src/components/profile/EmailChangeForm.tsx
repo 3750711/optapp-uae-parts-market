@@ -10,6 +10,7 @@ import { useEmailVerification } from '@/hooks/useEmailVerification';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getProfileTranslations } from '@/utils/profileTranslations';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface EmailChangeFormProps {
   currentEmail: string;
@@ -24,7 +25,8 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
   const [isChanging, setIsChanging] = useState(false);
   const { sendVerificationCode, verifyEmailCode, isLoading } = useEmailVerification();
   const { refreshProfile, profile } = useAuth();
-  const t = getProfileTranslations(profile?.user_type || 'buyer');
+  const { language } = useLanguage();
+  const t = getProfileTranslations(language);
 
   const handleSendCode = async () => {
     if (!newEmail || !newEmail.includes('@')) {
