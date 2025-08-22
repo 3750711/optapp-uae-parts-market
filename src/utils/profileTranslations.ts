@@ -502,12 +502,17 @@ export const profileTranslations = {
   }
 };
 
-export const getProfileTranslations = (language?: 'ru' | 'en' | 'bn') => {
-  // If language is provided, use it directly
-  if (language) {
-    return profileTranslations[language] || profileTranslations.en;
+export const getProfileTranslations = (langOrUserType?: string) => {
+  // If it's a language code, use it directly
+  if (langOrUserType === 'ru' || langOrUserType === 'en' || langOrUserType === 'bn') {
+    return profileTranslations[langOrUserType as 'ru' | 'en' | 'bn'];
   }
   
-  // Fallback to English if no language specified
-  return profileTranslations.en;
+  // Backward compatibility: handle user types
+  if (langOrUserType === 'seller') {
+    return profileTranslations.en;
+  }
+  
+  // Default fallback (for buyer, admin, or any other case)
+  return profileTranslations.ru;
 };
