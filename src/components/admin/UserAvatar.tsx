@@ -2,6 +2,8 @@
 import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ProfileType } from '@/components/profile/types';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getProfileTranslations } from '@/utils/profileTranslations';
 
 interface UserAvatarProps {
   user: ProfileType;
@@ -14,8 +16,11 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   size = 'md',
   className = ''
 }) => {
+  const { language } = useLanguage();
+  const t = getProfileTranslations(language);
+  
   const getInitials = (name: string | null | undefined): string => {
-    if (!name) return 'Н/Д';
+    if (!name) return t.noData || 'Н/Д';
     
     const words = name.trim().split(' ');
     if (words.length === 1) {

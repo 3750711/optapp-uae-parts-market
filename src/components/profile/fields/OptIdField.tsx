@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { getProfileTranslations } from "@/utils/profileTranslations";
-import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface OptIdFieldProps {
   control: any;
@@ -22,8 +22,8 @@ export const OptIdField: React.FC<OptIdFieldProps> = ({
   canEditOptId,
   initialValue = ""
 }) => {
-  const { profile } = useAuth();
-  const t = getProfileTranslations(profile?.user_type || 'buyer');
+  const { language } = useLanguage();
+  const t = getProfileTranslations(language);
   
   // Can only edit if: has permission AND the field is currently empty
   const isEditable = canEditOptId && initialValue === "";

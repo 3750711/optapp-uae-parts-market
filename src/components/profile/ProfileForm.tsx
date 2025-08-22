@@ -27,10 +27,12 @@ import { ProfileTextField } from "./fields/ProfileTextField";
 import EmailChangeForm from "./EmailChangeForm";
 import { Save, Edit } from "lucide-react";
 import { getProfileTranslations } from "@/utils/profileTranslations";
+import { useLanguage } from "@/hooks/useLanguage";
 
-const formSchema = z.object({
-  fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
-  email: z.string().email({ message: "Введите корректный email адрес" }),
+// Create schema factory function to use translations
+const createFormSchema = (t: any) => z.object({
+  fullName: z.string().min(2, { message: t.validation.fullNameMin }).optional(),
+  email: z.string().email({ message: t.validation.emailInvalid }),
   phone: z.string().optional(),
   companyName: z.string().optional(),
   telegram: z.string()
@@ -39,14 +41,14 @@ const formSchema = z.object({
       if (!value) return true;
       return /^@[^@]+$/.test(value);
     }, { 
-      message: "Telegram username должен начинаться с одного @ символа" 
+      message: t.validation.telegramInvalid
     }),
   optId: z.string().optional(),
   userType: z.enum(["buyer", "seller", "admin"]).optional(),
-  description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
+  description: z.string().max(500, { message: t.validation.descriptionMax }).optional(),
 });
 
-type FormData = z.infer<typeof formSchema>;
+type FormData = z.infer<ReturnType<typeof createFormSchema>>;
 
 interface ProfileFormProps {
   profile: ProfileType;
@@ -63,10 +65,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 }) => {
   const { user } = useAuth();
   const { isAdmin } = useAdminAccess();
+  const { language } = useLanguage();
   const canEditOptId = (user?.id === profile.id) || isAdmin;
   const isSeller = profile.user_type === 'seller';
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
-  const t = getProfileTranslations(profile.user_type);
+  const t = getProfileTranslations(language);
+  
+  // Create form schema with translations
+  const formSchema = createFormSchema(t);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),

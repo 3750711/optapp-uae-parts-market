@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { normalizeTelegramUsername, validateAndNormalizeTelegramUsername } from "@/utils/telegramNormalization";
 import { getProfileTranslations } from "@/utils/profileTranslations";
-import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface TelegramFieldProps {
   control: any;
@@ -32,8 +32,8 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
   initialValue = ""
 }) => {
   const { isAdmin } = useAdminAccess();
-  const { profile } = useAuth();
-  const t = getProfileTranslations(profile?.user_type || 'buyer');
+  const { language } = useLanguage();
+  const t = getProfileTranslations(language);
   
   // Admins can edit at any time, regular users can always edit now
   const isEditable = true;

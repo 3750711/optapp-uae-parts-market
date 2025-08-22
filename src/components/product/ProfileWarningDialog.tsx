@@ -9,6 +9,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getProfileTranslations } from "@/utils/profileTranslations";
 
 interface ProfileWarningDialogProps {
   open: boolean;
@@ -21,13 +23,16 @@ const ProfileWarningDialog: React.FC<ProfileWarningDialogProps> = ({
   onOpenChange,
   onGoToProfile,
 }) => {
+  const { language } = useLanguage();
+  const t = getProfileTranslations(language);
+  
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Профиль не заполнен</AlertDialogTitle>
+          <AlertDialogTitle>{t.profileIncomplete}</AlertDialogTitle>
           <AlertDialogDescription>
-            Для совершения покупки необходимо указать ваш OPT ID и Telegram в профиле.
+            {t.profileIncompleteDesc}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -35,13 +40,13 @@ const ProfileWarningDialog: React.FC<ProfileWarningDialogProps> = ({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            Отмена
+            {t.cancel}
           </Button>
           <Button
             onClick={onGoToProfile}
             className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
           >
-            Перейти к профилю
+            {t.goToProfile}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

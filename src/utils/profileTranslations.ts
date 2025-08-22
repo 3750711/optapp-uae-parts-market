@@ -151,6 +151,22 @@ export const profileTranslations = {
     storeUpdateError: "Ошибка обновления",
     storeUpdateErrorDesc: "Произошла ошибка при обновлении данных магазина",
     
+    // No data fallback
+    noData: "Н/Д",
+
+    // Profile warning dialog
+    profileIncomplete: "Профиль не заполнен",
+    profileIncompleteDesc: "Для совершения покупки необходимо указать ваш OPT ID и Telegram в профиле.",
+    goToProfile: "Перейти к профилю",
+
+    // Validation messages
+    validation: {
+      fullNameMin: "Имя должно содержать не менее 2 символов",
+      emailInvalid: "Введите корректный email адрес",
+      telegramInvalid: "Telegram username должен начинаться с одного @ символа",
+      descriptionMax: "Описание не должно превышать 500 символов"
+    },
+
     // Image upload translations
     imageUpload: {
       limitExceeded: "Превышен лимит",
@@ -318,6 +334,22 @@ export const profileTranslations = {
     storeUpdateError: "Update Error",
     storeUpdateErrorDesc: "An error occurred while updating store data",
     
+    // No data fallback
+    noData: "N/A",
+
+    // Profile warning dialog
+    profileIncomplete: "Profile Incomplete",
+    profileIncompleteDesc: "To make a purchase, you need to specify your OPT ID and Telegram in your profile.",
+    goToProfile: "Go to Profile",
+
+    // Validation messages
+    validation: {
+      fullNameMin: "Full name must contain at least 2 characters",
+      emailInvalid: "Enter a valid email address",
+      telegramInvalid: "Telegram username must start with a single @ symbol",
+      descriptionMax: "Description must not exceed 500 characters"
+    },
+
     // Image upload translations
     imageUpload: {
       limitExceeded: "Limit Exceeded",
@@ -485,6 +517,22 @@ export const profileTranslations = {
     storeUpdateError: "আপডেট ত্রুটি",
     storeUpdateErrorDesc: "দোকানের তথ্য আপডেট করার সময় একটি ত্রুটি ঘটেছে",
     
+    // No data fallback
+    noData: "তথ্য নেই",
+
+    // Profile warning dialog
+    profileIncomplete: "প্রোফাইল অসম্পূর্ণ",
+    profileIncompleteDesc: "একটি কেনাকাটা করতে, আপনার প্রোফাইলে আপনার OPT ID এবং টেলিগ্রাম উল্লেখ করতে হবে।",
+    goToProfile: "প্রোফাইলে যান",
+
+    // Validation messages
+    validation: {
+      fullNameMin: "পূর্ণ নামে কমপক্ষে ২টি অক্ষর থাকতে হবে",
+      emailInvalid: "একটি বৈধ ইমেইল ঠিকানা লিখুন",
+      telegramInvalid: "টেলিগ্রাম ইউজারনেম একটি @ চিহ্ন দিয়ে শুরু হতে হবে",
+      descriptionMax: "বিবরণ ৫০০ অক্ষরের বেশি হতে পারবে না"
+    },
+
     // Image upload translations
     imageUpload: {
       limitExceeded: "সীমা অতিক্রম",

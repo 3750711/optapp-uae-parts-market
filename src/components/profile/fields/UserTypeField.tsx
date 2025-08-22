@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { getProfileTranslations } from "@/utils/profileTranslations";
-import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface UserTypeFieldProps {
   control: any;
@@ -26,8 +26,8 @@ export const UserTypeField: React.FC<UserTypeFieldProps> = ({
   control,
   readOnlyUserType,
 }) => {
-  const { profile } = useAuth();
-  const t = getProfileTranslations(profile?.user_type || 'buyer');
+  const { language } = useLanguage();
+  const t = getProfileTranslations(language);
 
   return (
     <FormField
