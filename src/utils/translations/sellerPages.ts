@@ -42,6 +42,55 @@ export interface SellerPagesTranslations {
   creatingOrder: string;
   orderCreated: string;
   
+  // SellerCreateOrder - Form sections
+  createOrderForm: {
+    mainOrderInformation: string;
+    buyer: string;
+    orderDetails: string;
+    productTitle: string;
+    productTitlePlaceholder: string;
+    brand: string;
+    brandPlaceholder: string;
+    model: string;
+    modelPlaceholder: string;
+    modelPlaceholderFirst: string;
+    productPrice: string;
+    deliveryCost: string;
+    buyerOptId: string;
+    buyerPlaceholder: string;
+    deliveryMethod: string;
+    numberOfPlaces: string;
+    additionalInfo: string;
+    additionalInfoPlaceholder: string;
+    videos: string;
+    noBuyerProfiles: string;
+    noName: string;
+  };
+  
+  // SellerCreateOrder - Delivery methods
+  deliveryMethods: {
+    selfPickup: string;
+    cargoRf: string;
+    cargoKz: string;
+  };
+  
+  // SellerCreateOrder - Validation and stages
+  orderCreation: {
+    duplicateSubmissionTitle: string;
+    duplicateSubmissionMessage: string;
+    fillRequiredFields: string;
+    fillRequiredFieldsMessage: string;
+    validatingFormData: string;
+    searchingBuyerProfile: string;
+    creatingOrderInDatabase: string;
+    fetchingCreatedOrderData: string;
+    savingVideos: string;
+    sendingNotification: string;
+    orderCreatedSuccessfully: string;
+    defaultCreatingMessage: string;
+    telegramNotificationBackground: string;
+  };
+  
   // SellerPriceOffers
   priceOffers: string;
   managePriceOffers: string;
@@ -347,6 +396,55 @@ const ru: SellerPagesTranslations = {
   creatingOrder: 'Создание заказа',
   orderCreated: 'Заказ создан',
   
+  // SellerCreateOrder - Form sections
+  createOrderForm: {
+    mainOrderInformation: 'Основная информация о заказе',
+    buyer: 'Покупатель',
+    orderDetails: 'Детали заказа',
+    productTitle: 'Название товара *',
+    productTitlePlaceholder: 'Введите название товара...',
+    brand: 'Бренд',
+    brandPlaceholder: 'Выберите бренд...',
+    model: 'Модель',
+    modelPlaceholder: 'Выберите модель...',
+    modelPlaceholderFirst: 'Сначала выберите бренд',
+    productPrice: 'Цена товара *',
+    deliveryCost: 'Стоимость доставки',
+    buyerOptId: 'OPT_ID покупателя *',
+    buyerPlaceholder: 'Выберите покупателя...',
+    deliveryMethod: 'Способ доставки',
+    numberOfPlaces: 'Количество мест *',
+    additionalInfo: 'Дополнительная информация',
+    additionalInfoPlaceholder: 'Введите дополнительную информацию о заказе...',
+    videos: 'Видео',
+    noBuyerProfiles: 'Нет профилей покупателей',
+    noName: 'Без имени'
+  },
+  
+  // SellerCreateOrder - Delivery methods
+  deliveryMethods: {
+    selfPickup: 'Самовывоз',
+    cargoRf: 'Cargo РФ', 
+    cargoKz: 'Cargo KZ'
+  },
+  
+  // SellerCreateOrder - Validation and stages
+  orderCreation: {
+    duplicateSubmissionTitle: 'Заказ уже создается',
+    duplicateSubmissionMessage: 'Пожалуйста, подождите, заказ уже создается',
+    fillRequiredFields: 'Заполните обязательные поля',
+    fillRequiredFieldsMessage: 'Необходимо заполнить название, цену и OPT_ID покупателя',
+    validatingFormData: 'Проверка данных формы...',
+    searchingBuyerProfile: 'Поиск профиля покупателя...',
+    creatingOrderInDatabase: 'Создание заказа в базе данных...',
+    fetchingCreatedOrderData: 'Получение данных созданного заказа...',
+    savingVideos: 'Сохранение видео...',
+    sendingNotification: 'Отправка уведомления...',
+    orderCreatedSuccessfully: 'Заказ успешно создан!',
+    defaultCreatingMessage: 'Создание заказа...',
+    telegramNotificationBackground: 'Уведомление в Telegram будет отправлено в фоновом режиме.'
+  },
+  
   // SellerPriceOffers
   priceOffers: 'Предложения цен',
   managePriceOffers: 'Управляйте предложениями цен на ваши товары',
@@ -650,6 +748,55 @@ const en: SellerPagesTranslations = {
   creatingOrder: 'Creating order',
   orderCreated: 'Order created',
   
+  // SellerCreateOrder - Form sections
+  createOrderForm: {
+    mainOrderInformation: 'Main Order Information',
+    buyer: 'Buyer',
+    orderDetails: 'Order Details',
+    productTitle: 'Product Title *',
+    productTitlePlaceholder: 'Enter product title...',
+    brand: 'Brand',
+    brandPlaceholder: 'Select brand...',
+    model: 'Model',
+    modelPlaceholder: 'Select model...',
+    modelPlaceholderFirst: 'Select brand first',
+    productPrice: 'Product Price *',
+    deliveryCost: 'Delivery Cost',
+    buyerOptId: 'Buyer\'s OPT_ID *',
+    buyerPlaceholder: 'Select buyer...',
+    deliveryMethod: 'Delivery Method',
+    numberOfPlaces: 'Number of Places *',
+    additionalInfo: 'Additional Information',
+    additionalInfoPlaceholder: 'Enter additional order information...',
+    videos: 'Videos',
+    noBuyerProfiles: 'No buyer profiles available',
+    noName: 'No name'
+  },
+  
+  // SellerCreateOrder - Delivery methods
+  deliveryMethods: {
+    selfPickup: 'Self Pickup',
+    cargoRf: 'Cargo RF',
+    cargoKz: 'Cargo KZ'
+  },
+  
+  // SellerCreateOrder - Validation and stages
+  orderCreation: {
+    duplicateSubmissionTitle: 'Order already being created',
+    duplicateSubmissionMessage: 'Please wait, order is already being created',
+    fillRequiredFields: 'Fill in required fields',
+    fillRequiredFieldsMessage: 'You need to fill in the title, price and buyer\'s OPT_ID',
+    validatingFormData: 'Validating form data...',
+    searchingBuyerProfile: 'Searching buyer profile...',
+    creatingOrderInDatabase: 'Creating order in database...',
+    fetchingCreatedOrderData: 'Fetching created order data...',
+    savingVideos: 'Saving videos...',
+    sendingNotification: 'Sending notification...',
+    orderCreatedSuccessfully: 'Order created successfully!',
+    defaultCreatingMessage: 'Creating order...',
+    telegramNotificationBackground: 'Telegram notification will be sent in the background.'
+  },
+  
   // SellerPriceOffers
   priceOffers: 'Price Offers',
   managePriceOffers: 'Manage price offers for your products',
@@ -952,6 +1099,55 @@ const bn: SellerPagesTranslations = {
   fillOrderInfo: 'অর্ডারের তথ্য পূরণ করুন',
   creatingOrder: 'অর্ডার তৈরি হচ্ছে',
   orderCreated: 'অর্ডার তৈরি হয়েছে',
+  
+  // SellerCreateOrder - Form sections
+  createOrderForm: {
+    mainOrderInformation: 'প্রধান অর্ডার তথ্য',
+    buyer: 'ক্রেতা',
+    orderDetails: 'অর্ডারের বিস্তারিত',
+    productTitle: 'পণ্যের শিরোনাম *',
+    productTitlePlaceholder: 'পণ্যের শিরোনাম লিখুন...',
+    brand: 'ব্র্যান্ড',
+    brandPlaceholder: 'ব্র্যান্ড নির্বাচন করুন...',
+    model: 'মডেল',
+    modelPlaceholder: 'মডেল নির্বাচন করুন...',
+    modelPlaceholderFirst: 'প্রথমে ব্র্যান্ড নির্বাচন করুন',
+    productPrice: 'পণ্যের দাম *',
+    deliveryCost: 'ডেলিভারির খরচ',
+    buyerOptId: 'ক্রেতার OPT_ID *',
+    buyerPlaceholder: 'ক্রেতা নির্বাচন করুন...',
+    deliveryMethod: 'ডেলিভারি পদ্ধতি',
+    numberOfPlaces: 'স্থানের সংখ্যা *',
+    additionalInfo: 'অতিরিক্ত তথ্য',
+    additionalInfoPlaceholder: 'অর্ডার সম্পর্কে অতিরিক্ত তথ্য লিখুন...',
+    videos: 'ভিডিও',
+    noBuyerProfiles: 'কোন ক্রেতার প্রোফাইল নেই',
+    noName: 'কোন নাম নেই'
+  },
+  
+  // SellerCreateOrder - Delivery methods
+  deliveryMethods: {
+    selfPickup: 'সেল্ফ পিকআপ',
+    cargoRf: 'কার্গো আরএফ',
+    cargoKz: 'কার্গো কেজেড'
+  },
+  
+  // SellerCreateOrder - Validation and stages
+  orderCreation: {
+    duplicateSubmissionTitle: 'অর্ডার ইতিমধ্যে তৈরি হচ্ছে',
+    duplicateSubmissionMessage: 'অনুগ্রহ করে অপেক্ষা করুন, অর্ডার ইতিমধ্যে তৈরি হচ্ছে',
+    fillRequiredFields: 'প্রয়োজনীয় ক্ষেত্রগুলি পূরণ করুন',
+    fillRequiredFieldsMessage: 'আপনাকে শিরোনাম, দাম এবং ক্রেতার OPT_ID পূরণ করতে হবে',
+    validatingFormData: 'ফর্ম ডেটা যাচাই করা হচ্ছে...',
+    searchingBuyerProfile: 'ক্রেতার প্রোফাইল খোঁজা হচ্ছে...',
+    creatingOrderInDatabase: 'ডেটাবেসে অর্ডার তৈরি করা হচ্ছে...',
+    fetchingCreatedOrderData: 'তৈরি করা অর্ডারের ডেটা আনা হচ্ছে...',
+    savingVideos: 'ভিডিও সংরক্ষণ করা হচ্ছে...',
+    sendingNotification: 'বিজ্ঞপ্তি পাঠানো হচ্ছে...',
+    orderCreatedSuccessfully: 'অর্ডার সফলভাবে তৈরি হয়েছে!',
+    defaultCreatingMessage: 'অর্ডার তৈরি করা হচ্ছে...',
+    telegramNotificationBackground: 'টেলিগ্রাম বিজ্ঞপ্তি ব্যাকগ্রাউন্ডে পাঠানো হবে।'
+  },
   
   // SellerPriceOffers
   priceOffers: 'মূল্য অফার',

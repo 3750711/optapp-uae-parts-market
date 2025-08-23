@@ -17,8 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { toast } from "@/hooks/use-toast";
 import { useLanguage } from '@/hooks/useLanguage';
-import { tPick } from '@/utils/i18n';
-import { sellerPagesTranslations } from '@/utils/translations/sellerPages';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 const SellerCreateOrder = () => {
   const navigate = useNavigate();
@@ -27,7 +26,7 @@ const SellerCreateOrder = () => {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { language } = useLanguage();
-  const t = tPick(sellerPagesTranslations, language);
+  const t = getSellerPagesTranslations(language);
   const [showPreview, setShowPreview] = useState(false);
   const [primaryImage, setPrimaryImage] = useState<string>('');
 
@@ -55,8 +54,8 @@ const SellerCreateOrder = () => {
     timeout: 10000,
     onDuplicateSubmit: () => {
       toast({
-        title: t.creatingOrder,
-        description: "Please wait, order is already being created",
+        title: t.orderCreation.duplicateSubmissionTitle,
+        description: t.orderCreation.duplicateSubmissionMessage,
         variant: "destructive",
       });
     }
@@ -116,8 +115,8 @@ const SellerCreateOrder = () => {
 
     if (!canShowPreview()) {
       toast({
-        title: "Fill in required fields",
-        description: "You need to fill in the title, price and buyer's OPT_ID",
+        title: t.orderCreation.fillRequiredFields,
+        description: t.orderCreation.fillRequiredFieldsMessage,
         variant: "destructive",
       });
       return;
@@ -173,21 +172,21 @@ const SellerCreateOrder = () => {
   const getStageMessage = () => {
     switch (creationStage) {
       case 'validating':
-        return 'Validating form data...';
+        return t.orderCreation.validatingFormData;
       case 'fetching_buyer':
-        return 'Searching buyer profile...';
+        return t.orderCreation.searchingBuyerProfile;
       case 'creating_order':
-        return 'Creating order in database...';
+        return t.orderCreation.creatingOrderInDatabase;
       case 'fetching_order':
-        return 'Fetching created order data...';
+        return t.orderCreation.fetchingCreatedOrderData;
       case 'saving_videos':
-        return 'Saving videos...';
+        return t.orderCreation.savingVideos;
       case 'sending_notification':
-        return 'Sending notification...';
+        return t.orderCreation.sendingNotification;
       case 'completed':
-        return 'Order created successfully!';
+        return t.orderCreation.orderCreatedSuccessfully;
       default:
-        return 'Creating order...';
+        return t.orderCreation.defaultCreatingMessage;
     }
   };
 
@@ -297,7 +296,7 @@ const SellerCreateOrder = () => {
             />
             
             <div>
-              <h3 className="text-lg font-medium mb-4">Videos</h3>
+              <h3 className="text-lg font-medium mb-4">{t.createOrderForm.videos}</h3>
               <CloudinaryVideoUpload
                 videos={videos}
                 onUpload={onVideoUpload}
@@ -323,7 +322,7 @@ const SellerCreateOrder = () => {
                   <Progress value={creationProgress} className="h-2" />
                   {creationStage === 'completed' && (
                     <div className="text-sm text-gray-600">
-                      Telegram notification will be sent in the background.
+                      {t.orderCreation.telegramNotificationBackground}
                     </div>
                   )}
                 </div>

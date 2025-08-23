@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useLazyCarData } from '@/hooks/useLazyCarData';
 import { useLazyProfiles } from '@/hooks/useLazyProfiles';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 interface SellerOrderFormFieldsProps {
   formData: any;
@@ -19,6 +21,9 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
   handleInputChange,
   disabled = false
 }) => {
+  const { language } = useLanguage();
+  const t = getSellerPagesTranslations(language);
+  
   const {
     brands,
     models,
@@ -68,17 +73,17 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Main Order Information</CardTitle>
+          <CardTitle>{t.createOrderForm.mainOrderInformation}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Название товара */}
           <div className="space-y-2">
-            <Label htmlFor="title">Product Title *</Label>
+            <Label htmlFor="title">{t.createOrderForm.productTitle}</Label>
             <Input
               id="title"
               value={formData.title || ''}
               onChange={(e) => handleInputChange('title', e.target.value)}
-              placeholder="Enter product title..."
+              placeholder={t.createOrderForm.productTitlePlaceholder}
               disabled={disabled}
               className="bg-white"
             />
@@ -87,7 +92,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
           {/* Бренд и модель */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="brandId">Brand</Label>
+              <Label htmlFor="brandId">{t.createOrderForm.brand}</Label>
               {isLoadingBrands ? (
                 <Skeleton className="h-10 w-full" />
               ) : (
@@ -98,7 +103,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                   disabled={disabled}
                 >
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Select brand..." />
+                    <SelectValue placeholder={t.createOrderForm.brandPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {brands.map((brand) => (
@@ -112,7 +117,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="modelId">Model</Label>
+              <Label htmlFor="modelId">{t.createOrderForm.model}</Label>
               {isLoadingModels ? (
                 <Skeleton className="h-10 w-full" />
               ) : (
@@ -122,7 +127,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                   disabled={disabled || !formData.brandId}
                 >
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder={formData.brandId ? "Select model..." : "Select brand first"} />
+                    <SelectValue placeholder={formData.brandId ? t.createOrderForm.modelPlaceholder : t.createOrderForm.modelPlaceholderFirst} />
                   </SelectTrigger>
                   <SelectContent>
                     {models.map((model) => (
@@ -139,7 +144,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
           {/* Цена */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="price">Product Price *</Label>
+              <Label htmlFor="price">{t.createOrderForm.productPrice}</Label>
               <Input
                 id="price"
                 type="number"
@@ -155,7 +160,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="delivery_price">Delivery Cost</Label>
+              <Label htmlFor="delivery_price">{t.createOrderForm.deliveryCost}</Label>
               <Input
                 id="delivery_price"
                 type="number"
@@ -175,11 +180,11 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
 
       <Card>
         <CardHeader>
-          <CardTitle>Buyer</CardTitle>
+          <CardTitle>{t.createOrderForm.buyer}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <Label htmlFor="buyerOptId">Buyer's OPT_ID *</Label>
+            <Label htmlFor="buyerOptId">{t.createOrderForm.buyerOptId}</Label>
             {isLoadingBuyers ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -190,14 +195,14 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                 disabled={disabled}
               >
                 <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Select buyer..." />
+                  <SelectValue placeholder={t.createOrderForm.buyerPlaceholder} />
                 </SelectTrigger>
                 <SelectContent>
                   {buyerProfiles
                     .sort((a, b) => (a.opt_id || '').localeCompare(b.opt_id || ''))
                     .map((buyer) => (
                       <SelectItem key={buyer.id} value={buyer.opt_id}>
-                        {buyer.opt_id} - {buyer.full_name || 'No name'}
+                        {buyer.opt_id} - {buyer.full_name || t.createOrderForm.noName}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -205,7 +210,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
             )}
             {buyerProfiles.length === 0 && !isLoadingBuyers && (
               <p className="text-sm text-gray-500 mt-1">
-                No buyer profiles available
+                {t.createOrderForm.noBuyerProfiles}
               </p>
             )}
           </div>
@@ -214,13 +219,13 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
 
       <Card>
         <CardHeader>
-          <CardTitle>Order Details</CardTitle>
+          <CardTitle>{t.createOrderForm.orderDetails}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="deliveryMethod">Delivery Method</Label>
+                <Label htmlFor="deliveryMethod">{t.createOrderForm.deliveryMethod}</Label>
                 <Select
                   value={formData.deliveryMethod || 'cargo_rf'}
                   onValueChange={(value) => handleInputChange('deliveryMethod', value)}
@@ -230,15 +235,15 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="self_pickup">Self Pickup</SelectItem>
-                    <SelectItem value="cargo_rf">Cargo RF</SelectItem>
-                    <SelectItem value="cargo_kz">Cargo KZ</SelectItem>
+                    <SelectItem value="self_pickup">{t.deliveryMethods.selfPickup}</SelectItem>
+                    <SelectItem value="cargo_rf">{t.deliveryMethods.cargoRf}</SelectItem>
+                    <SelectItem value="cargo_kz">{t.deliveryMethods.cargoKz}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="place_number">Number of Places *</Label>
+                <Label htmlFor="place_number">{t.createOrderForm.numberOfPlaces}</Label>
                 <Input
                   id="place_number"
                   type="number"
@@ -253,12 +258,12 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="text_order">Additional Information</Label>
+              <Label htmlFor="text_order">{t.createOrderForm.additionalInfo}</Label>
               <Textarea
                 id="text_order"
                 value={formData.text_order || ''}
                 onChange={(e) => handleInputChange('text_order', e.target.value)}
-                placeholder="Enter additional order information..."
+                placeholder={t.createOrderForm.additionalInfoPlaceholder}
                 rows={3}
                 disabled={disabled}
                 className="bg-white"
