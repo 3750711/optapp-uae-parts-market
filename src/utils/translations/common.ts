@@ -29,7 +29,8 @@ const en = {
     register: 'Register',
     hide: 'Hide',
     restore: 'Restore',
-    apply: 'Apply'
+    apply: 'Apply',
+    select: 'Select'
   },
 
   // Common statuses
@@ -67,7 +68,8 @@ const en = {
     confirmDelete: 'Are you sure you want to delete this item?',
     unsavedChanges: 'You have unsaved changes',
     networkError: 'Network connection error',
-    unauthorized: 'You are not authorized to perform this action'
+    unauthorized: 'You are not authorized to perform this action',
+    noPhoto: 'No Photo'
   },
 
   // Common errors
@@ -117,7 +119,8 @@ const ru = {
     register: 'Зарегистрироваться',
     hide: 'Скрыть',
     restore: 'Восстановить',
-    apply: 'Применить'
+    apply: 'Применить',
+    select: 'Выбрать'
   },
 
   // Common statuses
@@ -155,7 +158,8 @@ const ru = {
     confirmDelete: 'Вы уверены, что хотите удалить этот элемент?',
     unsavedChanges: 'У вас есть несохраненные изменения',
     networkError: 'Ошибка сетевого подключения',
-    unauthorized: 'У вас нет прав для выполнения этого действия'
+    unauthorized: 'У вас нет прав для выполнения этого действия',
+    noPhoto: 'Нет фото'
   },
 
   // Common errors
@@ -205,7 +209,8 @@ const bn = {
     register: 'রেজিস্টার করুন',
     hide: 'লুকান',
     restore: 'পুনরুদ্ধার',
-    apply: 'প্রয়োগ করুন'
+    apply: 'প্রয়োগ করুন',
+    select: 'নির্বাচন করুন'
   },
 
   // Common statuses
@@ -243,7 +248,8 @@ const bn = {
     confirmDelete: 'আপনি কি নিশ্চিত যে আপনি এই আইটেমটি মুছতে চান?',
     unsavedChanges: 'আপনার অসংরক্ষিত পরিবর্তন আছে',
     networkError: 'নেটওয়ার্ক সংযোগ ত্রুটি',
-    unauthorized: 'এই কাজটি সম্পাদন করার জন্য আপনার অনুমতি নেই'
+    unauthorized: 'এই কাজটি সম্পাদন করার জন্য আপনার অনুমতি নেই',
+    noPhoto: 'কোন ছবি নেই'
   },
 
   // Common errors

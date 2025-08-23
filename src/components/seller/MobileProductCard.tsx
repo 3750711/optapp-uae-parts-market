@@ -3,6 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { Eye } from "lucide-react";
 import { Product } from "@/types/product";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getCommonTranslations } from "@/utils/translations/common";
 
 interface MobileProductCardProps {
   product: Product;
@@ -11,6 +13,9 @@ interface MobileProductCardProps {
 }
 
 const MobileProductCard = React.memo(({ product, onSelect, onPreview }: MobileProductCardProps) => {
+  const { language } = useLanguage();
+  const c = getCommonTranslations(language);
+  
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
   };
@@ -29,7 +34,7 @@ const MobileProductCard = React.memo(({ product, onSelect, onPreview }: MobilePr
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
-            <span className="text-xs">No Photo</span>
+            <span className="text-xs">{c.messages.noPhoto}</span>
           </div>
         )}
         
@@ -46,7 +51,7 @@ const MobileProductCard = React.memo(({ product, onSelect, onPreview }: MobilePr
       <div className="p-3 space-y-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           <Badge variant="outline" className="text-xs">
-            Lot: {product.lot_number || 'N/A'}
+            {c.product.lotNumber}: {product.lot_number || c.product.notSpecified}
           </Badge>
           <Badge 
             variant={product.status === 'active' ? 'success' : 'secondary'}
@@ -82,7 +87,7 @@ const MobileProductCard = React.memo(({ product, onSelect, onPreview }: MobilePr
           onClick={() => onSelect(product)}
           className="w-full mt-2 bg-primary text-white py-2 rounded-md text-sm font-medium hover:bg-primary/90 transition-colors"
         >
-          Select
+          {c.buttons.select}
         </button>
       </div>
     </div>
