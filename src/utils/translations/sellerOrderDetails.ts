@@ -8,9 +8,14 @@ interface SellerOrderDetailsTranslations {
   // Product information section
   productInformation: string;
   productName: string;
+  brand: string;
+  model: string;
+  description: string;
   quantity: string;
   unitPrice: string;
   totalPrice: string;
+  deliveryCost: string;
+  placesCount: string;
   
   // Buyer information section
   buyerInformation: string;
@@ -25,11 +30,23 @@ interface SellerOrderDetailsTranslations {
   
   // Status values
   statuses: {
+    created: string;
     pending: string;
+    seller_confirmed: string;
+    admin_confirmed: string;
     confirmed: string;
+    processed: string;
     shipped: string;
     delivered: string;
     cancelled: string;
+  };
+  
+  // Container statuses
+  containerStatuses: {
+    waiting: string;
+    in_transit: string;
+    delivered: string;
+    customs: string;
   };
   
   // Container types
@@ -46,6 +63,26 @@ interface SellerOrderDetailsTranslations {
     air: string;
     land: string;
   };
+  
+  // Media
+  mediaFiles: string;
+  photos: string;
+  videos: string;
+  files: string;
+  open: string;
+  
+  // Delivery
+  deliveryInformation: string;
+  deliveryMethod: string;
+  containerNumber: string;
+  containerStatus: string;
+  
+  // Other
+  selfOrder: string;
+  notSpecified: string;
+  accessDenied: string;
+  checkingAccess: string;
+  error: string;
   
   // Actions
   editOrder: string;
@@ -64,9 +101,14 @@ const ru: SellerOrderDetailsTranslations = {
   
   productInformation: 'Информация о товаре',
   productName: 'Название товара',
+  brand: 'Бренд',
+  model: 'Модель',
+  description: 'Описание',
   quantity: 'Количество',
   unitPrice: 'Цена за единицу',
   totalPrice: 'Общая стоимость',
+  deliveryCost: 'Стоимость доставки',
+  placesCount: 'Количество мест',
   
   buyerInformation: 'Информация о покупателе',
   buyerName: 'Имя покупателя',
@@ -78,11 +120,22 @@ const ru: SellerOrderDetailsTranslations = {
   updatedAt: 'Обновлен',
   
   statuses: {
+    created: 'Создан',
     pending: 'В ожидании',
+    seller_confirmed: 'Подтвержден продавцом',
+    admin_confirmed: 'Подтвержден администратором',
     confirmed: 'Подтвержден',
+    processed: 'В обработке',
     shipped: 'Отправлен',
     delivered: 'Доставлен',
     cancelled: 'Отменен',
+  },
+  
+  containerStatuses: {
+    waiting: 'Ожидание',
+    in_transit: 'В пути',
+    delivered: 'Доставлен',
+    customs: 'На таможне',
   },
   
   containerTypes: {
@@ -97,6 +150,23 @@ const ru: SellerOrderDetailsTranslations = {
     air: 'Авиа',
     land: 'Наземный',
   },
+  
+  mediaFiles: 'Медиафайлы',
+  photos: 'Фотографии',
+  videos: 'Видео',
+  files: 'файлов',
+  open: 'Открыть',
+  
+  deliveryInformation: 'Доставка',
+  deliveryMethod: 'Способ доставки',
+  containerNumber: 'Номер контейнера',
+  containerStatus: 'Статус контейнера',
+  
+  selfOrder: 'Самозаказ',
+  notSpecified: 'Не указан',
+  accessDenied: 'Доступ запрещен',
+  checkingAccess: 'Проверка прав доступа...',
+  error: 'Ошибка',
   
   editOrder: 'Редактировать заказ',
   deleteOrder: 'Удалить заказ',
@@ -113,9 +183,14 @@ const en: SellerOrderDetailsTranslations = {
   
   productInformation: 'Product Information',
   productName: 'Product Name',
+  brand: 'Brand',
+  model: 'Model',
+  description: 'Description',
   quantity: 'Quantity',
   unitPrice: 'Unit Price',
   totalPrice: 'Total Price',
+  deliveryCost: 'Delivery Cost',
+  placesCount: 'Places Count',
   
   buyerInformation: 'Buyer Information',
   buyerName: 'Buyer Name',
@@ -127,11 +202,22 @@ const en: SellerOrderDetailsTranslations = {
   updatedAt: 'Updated At',
   
   statuses: {
+    created: 'Created',
     pending: 'Pending',
+    seller_confirmed: 'Seller Confirmed',
+    admin_confirmed: 'Admin Confirmed',
     confirmed: 'Confirmed',
+    processed: 'Processed',
     shipped: 'Shipped',
     delivered: 'Delivered',
     cancelled: 'Cancelled',
+  },
+  
+  containerStatuses: {
+    waiting: 'Waiting',
+    in_transit: 'In Transit',
+    delivered: 'Delivered',
+    customs: 'Customs',
   },
   
   containerTypes: {
@@ -146,6 +232,23 @@ const en: SellerOrderDetailsTranslations = {
     air: 'Air',
     land: 'Land',
   },
+  
+  mediaFiles: 'Media Files',
+  photos: 'Photos',
+  videos: 'Videos',
+  files: 'files',
+  open: 'Open',
+  
+  deliveryInformation: 'Delivery',
+  deliveryMethod: 'Delivery Method',
+  containerNumber: 'Container Number',
+  containerStatus: 'Container Status',
+  
+  selfOrder: 'Self Order',
+  notSpecified: 'Not specified',
+  accessDenied: 'Access denied',
+  checkingAccess: 'Checking access...',
+  error: 'Error',
   
   editOrder: 'Edit Order',
   deleteOrder: 'Delete Order',
@@ -162,9 +265,14 @@ const bn: SellerOrderDetailsTranslations = {
   
   productInformation: 'পণ্যের তথ্য',
   productName: 'পণ্যের নাম',
+  brand: 'ব্র্যান্ড',
+  model: 'মডেল',
+  description: 'বর্ণনা',
   quantity: 'পরিমাণ',
   unitPrice: 'একক মূল্য',
   totalPrice: 'মোট মূল্য',
+  deliveryCost: 'ডেলিভারি খরচ',
+  placesCount: 'স্থানের সংখ্যা',
   
   buyerInformation: 'ক্রেতার তথ্য',
   buyerName: 'ক্রেতার নাম',
@@ -176,11 +284,22 @@ const bn: SellerOrderDetailsTranslations = {
   updatedAt: 'আপডেট হয়েছে',
   
   statuses: {
+    created: 'তৈরি',
     pending: 'অপেক্ষমাণ',
+    seller_confirmed: 'বিক্রেতা নিশ্চিত',
+    admin_confirmed: 'অ্যাডমিন নিশ্চিত',
     confirmed: 'নিশ্চিত',
+    processed: 'প্রক্রিয়াকরণ',
     shipped: 'পাঠানো হয়েছে',
     delivered: 'বিতরণ করা হয়েছে',
     cancelled: 'বাতিল',
+  },
+  
+  containerStatuses: {
+    waiting: 'অপেক্ষা',
+    in_transit: 'পরিবহনে',
+    delivered: 'বিতরণ',
+    customs: 'শুল্ক',
   },
   
   containerTypes: {
@@ -195,6 +314,23 @@ const bn: SellerOrderDetailsTranslations = {
     air: 'বিমান',
     land: 'ভূমি',
   },
+  
+  mediaFiles: 'মিডিয়া ফাইল',
+  photos: 'ছবি',
+  videos: 'ভিডিও',
+  files: 'ফাইল',
+  open: 'খুলুন',
+  
+  deliveryInformation: 'ডেলিভারি',
+  deliveryMethod: 'ডেলিভারি পদ্ধতি',
+  containerNumber: 'কন্টেইনার নম্বর',
+  containerStatus: 'কন্টেইনার অবস্থা',
+  
+  selfOrder: 'নিজের অর্ডার',
+  notSpecified: 'নির্দিষ্ট নয়',
+  accessDenied: 'প্রবেশাধিকার নেই',
+  checkingAccess: 'অ্যাক্সেস পরীক্ষা...',
+  error: 'ত্রুটি',
   
   editOrder: 'অর্ডার সম্পাদনা',
   deleteOrder: 'অর্ডার মুছুন',

@@ -92,7 +92,7 @@ const SellerOrderDetails = () => {
       <SellerLayout>
         <div className="container mx-auto py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-destructive">Ошибка</h1>
+            <h1 className="text-2xl font-bold text-destructive">{t.error}</h1>
             <p className="text-gray-600 mt-2">{t.orderNotFound}</p>
           </div>
         </div>
@@ -108,7 +108,7 @@ const SellerOrderDetails = () => {
           <div className="flex items-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <span className="text-lg text-muted-foreground">
-              {isAuthLoading ? 'Проверка прав доступа...' : t.loadingOrder}
+              {isAuthLoading ? t.checkingAccess : t.loadingOrder}
             </span>
           </div>
         </div>
@@ -174,6 +174,10 @@ const SellerOrderDetails = () => {
     }
   };
 
+  const getContainerStatusLabel = (status: string) => {
+    return t.containerStatuses[status] || status;
+  };
+
   return (
     <SellerLayout>
       <div className="container mx-auto py-8 max-w-5xl">
@@ -217,7 +221,7 @@ const SellerOrderDetails = () => {
                   {isSelfOrder && (
                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
                       <Star className="h-3 w-3 mr-1" />
-                      Самозаказ
+                      {t.selfOrder}
                     </Badge>
                   )}
                 </div>
@@ -250,12 +254,12 @@ const SellerOrderDetails = () => {
                       <div className="font-medium text-lg">{order.title}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-muted-foreground mb-1">Бренд</div>
-                      <div className="font-medium">{order.brand || 'Не указан'}</div>
+                      <div className="text-sm text-muted-foreground mb-1">{t.brand}</div>
+                      <div className="font-medium">{order.brand || t.notSpecified}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-muted-foreground mb-1">Модель</div>
-                      <div className="font-medium">{order.model || 'Не указана'}</div>
+                      <div className="text-sm text-muted-foreground mb-1">{t.model}</div>
+                      <div className="font-medium">{order.model || t.notSpecified}</div>
                     </div>
                   </div>
                   
@@ -269,7 +273,7 @@ const SellerOrderDetails = () => {
                     </div>
                     {order.delivery_price_confirm && (
                       <div>
-                        <div className="text-sm text-muted-foreground mb-1">Стоимость доставки</div>
+                        <div className="text-sm text-muted-foreground mb-1">{t.deliveryCost}</div>
                         <div className="font-semibold text-lg text-green-600 flex items-center gap-1">
                           <Truck className="h-4 w-4" />
                           ${order.delivery_price_confirm}
@@ -277,7 +281,7 @@ const SellerOrderDetails = () => {
                       </div>
                     )}
                     <div>
-                      <div className="text-sm text-muted-foreground mb-1">Количество мест</div>
+                      <div className="text-sm text-muted-foreground mb-1">{t.placesCount}</div>
                       <div className="font-medium">{order.place_number}</div>
                     </div>
                   </div>
@@ -285,7 +289,7 @@ const SellerOrderDetails = () => {
                 
                 {order.description && (
                   <div className="mt-6 pt-6 border-t">
-                    <div className="text-sm text-muted-foreground mb-2">Описание</div>
+                    <div className="text-sm text-muted-foreground mb-2">{t.description}</div>
                     <div className="bg-muted/30 p-4 rounded-lg">
                       <p className="text-sm whitespace-pre-wrap">{order.description}</p>
                     </div>
@@ -300,9 +304,9 @@ const SellerOrderDetails = () => {
                 <CardContent className="p-6">
                   <div className="flex items-center gap-2 mb-4">
                     <Camera className="h-5 w-5 text-primary" />
-                    <h2 className="text-xl font-semibold">Медиафайлы</h2>
+                    <h2 className="text-xl font-semibold">{t.mediaFiles}</h2>
                     <Badge variant="outline" className="ml-2">
-                      {allImages.length + allVideos.length} файлов
+                      {allImages.length + allVideos.length} {t.files}
                     </Badge>
                   </div>
                   
@@ -310,7 +314,7 @@ const SellerOrderDetails = () => {
                     <div className="mb-6">
                       <div className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
                         <Camera className="h-4 w-4" />
-                        Фотографии ({allImages.length})
+                        {t.photos} ({allImages.length})
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {allImages.map((imageUrl, index) => (
@@ -328,7 +332,7 @@ const SellerOrderDetails = () => {
                                 className="text-xs shadow-lg"
                               >
                                 <Download className="h-3 w-3 mr-1" />
-                                Открыть
+                                {t.open}
                               </Button>
                             </div>
                           </div>
@@ -341,7 +345,7 @@ const SellerOrderDetails = () => {
                     <div>
                       <div className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
                         <Film className="h-4 w-4" />
-                        Видео ({allVideos.length})
+                        {t.videos} ({allVideos.length})
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {allVideos.map((videoUrl, index) => (
@@ -374,12 +378,12 @@ const SellerOrderDetails = () => {
                 <div className="space-y-3">
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">{t.buyerName}</div>
-                    <div className="font-medium">{order.buyer?.full_name || 'Не указано'}</div>
+                    <div className="font-medium">{order.buyer?.full_name || t.notSpecified}</div>
                   </div>
                   
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">{t.buyerOptId}</div>
-                    <div className="font-medium font-mono">{order.buyer?.opt_id || order.buyer_opt_id || 'Не указан'}</div>
+                    <div className="font-medium font-mono">{order.buyer?.opt_id || order.buyer_opt_id || t.notSpecified}</div>
                   </div>
                   
                   {(order.buyer?.telegram || order.telegram_url_buyer) && (
@@ -406,12 +410,12 @@ const SellerOrderDetails = () => {
               <CardContent className="p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Truck className="h-5 w-5 text-primary" />
-                  <h2 className="text-lg font-semibold">Доставка</h2>
+                  <h2 className="text-lg font-semibold">{t.deliveryInformation}</h2>
                 </div>
                 
                 <div className="space-y-3">
                   <div>
-                    <div className="text-sm text-muted-foreground mb-1">Способ доставки</div>
+                    <div className="text-sm text-muted-foreground mb-1">{t.deliveryMethod}</div>
                     <Badge variant="outline" className="text-sm">
                       {getDeliveryMethodLabel(order.delivery_method)}
                     </Badge>
@@ -420,15 +424,15 @@ const SellerOrderDetails = () => {
                   {order.container_number && (
                     <>
                       <div>
-                        <div className="text-sm text-muted-foreground mb-1">Номер контейнера</div>
+                        <div className="text-sm text-muted-foreground mb-1">{t.containerNumber}</div>
                         <div className="font-medium font-mono">{order.container_number}</div>
                       </div>
                       
                       {order.container?.status && (
                         <div>
-                          <div className="text-sm text-muted-foreground mb-1">Статус контейнера</div>
+                          <div className="text-sm text-muted-foreground mb-1">{t.containerStatus}</div>
                           <Badge className={`${getContainerStatusColor(order.container.status)} text-xs`}>
-                            {order.container.status}
+                            {getContainerStatusLabel(order.container.status)}
                           </Badge>
                         </div>
                       )}
