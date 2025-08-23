@@ -23,12 +23,17 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2 } from 'lucide-react';
 import { UserEditFormProps, UserFormValues } from "./types";
 import { createUserFormSchema } from "./schema";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getCommonTranslations } from "@/utils/translations/common";
+import { allowedLocalesFor } from "@/utils/languageVisibility";
 
 interface ExtendedUserEditFormProps extends UserEditFormProps {
   isMobile?: boolean;
 }
 
 export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile = false }: ExtendedUserEditFormProps) => {
+  const { language } = useLanguage();
+  const c = getCommonTranslations(language);
   const userFormSchema = React.useMemo(() => createUserFormSchema(user), [user]);
   
   const form = useForm<UserFormValues>({
@@ -44,6 +49,7 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
       communication_ability: user.communication_ability || 3,
       rating: user.rating?.toString() || "",
       is_trusted_seller: user.is_trusted_seller || false,
+      preferred_locale: (user.preferred_locale as "ru" | "en" | "bn") || 'ru',
     },
   });
 
@@ -240,6 +246,29 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
                     <SelectItem value="pending">Ожидает</SelectItem>
                     <SelectItem value="verified">Подтвержден</SelectItem>
                     <SelectItem value="blocked">Заблокирован</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="preferred_locale"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{c.fields.preferredLanguage}</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
+                      <SelectValue placeholder="Выберите язык" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="ru">{c.languages.ru}</SelectItem>
+                    <SelectItem value="en">{c.languages.en}</SelectItem>
+                    <SelectItem value="bn">{c.languages.bn}</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />

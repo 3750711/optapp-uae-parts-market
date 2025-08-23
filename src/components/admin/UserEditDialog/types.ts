@@ -12,6 +12,7 @@ export interface UserFormValues {
   communication_ability?: number;
   rating?: string;
   is_trusted_seller?: boolean;
+  preferred_locale?: "ru" | "en" | "bn";
 }
 
 export interface UserEditDialogProps {

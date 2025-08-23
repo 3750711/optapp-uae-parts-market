@@ -81,7 +81,15 @@ const en = {
   // Common fields
   fields: {
     price: 'Price',
-    currentStatus: 'Current Status'
+    currentStatus: 'Current Status',
+    preferredLanguage: 'Preferred Language'
+  },
+
+  // Language names
+  languages: {
+    ru: 'Russian',
+    en: 'English',
+    bn: 'Bengali'
   },
 
   // Product fields
@@ -171,7 +179,15 @@ const ru = {
   // Common fields
   fields: {
     price: 'Цена',
-    currentStatus: 'Текущий статус'
+    currentStatus: 'Текущий статус',
+    preferredLanguage: 'Предпочитаемый язык'
+  },
+
+  // Language names
+  languages: {
+    ru: 'Русский',
+    en: 'Английский',
+    bn: 'Бенгальский'
   },
 
   // Product fields
@@ -261,7 +277,15 @@ const bn = {
   // Common fields
   fields: {
     price: 'মূল্য',
-    currentStatus: 'বর্তমান অবস্থা'
+    currentStatus: 'বর্তমান অবস্থা',
+    preferredLanguage: 'পছন্দের ভাষা'
+  },
+
+  // Language names
+  languages: {
+    ru: 'রাশিয়ান',
+    en: 'ইংরেজি',
+    bn: 'বাংলা'
   },
 
   // Product fields
