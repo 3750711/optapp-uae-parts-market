@@ -29,6 +29,8 @@ export interface SellerPagesTranslations {
   manageStore: string;
   viewStore: string;
   storeNotLoaded: string;
+  refreshingData: string;
+  loadingStoreInfo: string;
   
   // SellerListings
   sellerListings: string;
@@ -441,6 +443,8 @@ const ru: SellerPagesTranslations = {
   manageStore: 'Управляйте своим магазином и отслеживайте статистику',
   viewStore: 'Просмотреть магазин',
   storeNotLoaded: 'Не удалось загрузить информацию о магазине',
+  refreshingData: 'Обновление данных',
+  loadingStoreInfo: 'Загружаем информацию о магазине...',
   
   // SellerListings
   sellerListings: 'Товары продавца',
@@ -851,6 +855,8 @@ const en: SellerPagesTranslations = {
   manageStore: 'Manage your store and track statistics',
   viewStore: 'View Store',
   storeNotLoaded: 'Failed to load store information',
+  refreshingData: 'Refreshing Data',
+  loadingStoreInfo: 'Loading store information...',
   
   // SellerListings
   sellerListings: 'Seller Listings',
@@ -1261,6 +1267,8 @@ const bn: SellerPagesTranslations = {
   manageStore: 'আপনার দোকান পরিচালনা করুন এবং পরিসংখ্যান ট্র্যাক করুন',
   viewStore: 'দোকান দেখুন',
   storeNotLoaded: 'দোকানের তথ্য লোড করতে ব্যর্থ',
+  refreshingData: 'ডেটা রিফ্রেশ হচ্ছে',
+  loadingStoreInfo: 'দোকানের তথ্য লোড হচ্ছে...',
   
   // SellerListings
   sellerListings: 'বিক্রেতার তালিকা',

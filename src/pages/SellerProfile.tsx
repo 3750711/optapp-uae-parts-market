@@ -67,8 +67,8 @@ const SellerProfile = () => {
   const handleRetryStore = () => {
     refetchStore();
     toast({
-      title: "Обновление данных",
-      description: "Загружаем информацию о магазине...",
+      title: sp.refreshingData,
+      description: sp.loadingStoreInfo,
     });
   };
 
@@ -91,9 +91,9 @@ const SellerProfile = () => {
             className="mr-4" 
             onClick={handleGoBack}
           >
-            <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+            <ChevronLeft className="h-5 w-5 mr-1" /> {c.buttons.back}
           </Button>
-          <h1 className="text-2xl font-bold">Личный кабинет продавца</h1>
+          <h1 className="text-2xl font-bold">{sp.sellerDashboard}</h1>
         </div>
         
         <div className="space-y-6">
@@ -101,7 +101,7 @@ const SellerProfile = () => {
           {storeError ? (
             <Alert className="border-yellow-200 bg-yellow-50">
               <AlertDescription className="flex items-center justify-between">
-                <span>Не удалось загрузить информацию о магазине</span>
+                <span>{sp.storeNotLoaded}</span>
                 <Button 
                   variant="outline" 
                   size="sm" 
@@ -109,7 +109,7 @@ const SellerProfile = () => {
                   className="ml-4"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Повторить
+                  {sp.retry}
                 </Button>
               </AlertDescription>
             </Alert>
@@ -118,10 +118,10 @@ const SellerProfile = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Store className="h-5 w-5 text-primary" />
-                  Ваш магазин
+                  {sp.yourStore}
                   {storeInfo.verified && (
                     <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                      Проверен
+                      {sp.verified}
                     </span>
                   )}
                 </CardTitle>
@@ -130,12 +130,12 @@ const SellerProfile = () => {
                 <div>
                   <div className="font-medium text-lg">{storeInfo.name}</div>
                   <div className="text-sm text-gray-600">
-                    {storeInfo.description || "Управляйте своим магазином и отслеживайте статистику"}
+                    {storeInfo.description || sp.manageStore}
                   </div>
                 </div>
                 <Button asChild variant="outline">
                   <Link to={`/stores/${storeInfo.id}`}>
-                    Просмотреть магазин
+                    {sp.viewStore}
                   </Link>
                 </Button>
               </CardContent>
