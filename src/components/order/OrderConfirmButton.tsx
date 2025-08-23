@@ -87,7 +87,7 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
           )}
           <span className="text-sm">
             {hasChatScreenshots 
-              ? t.chatScreenshotsUploaded
+              ? `${t.chatScreenshotsUploaded} (${chatScreenshots.length})`
               : t.chatScreenshotsNeeded
             }
           </span>
@@ -110,7 +110,7 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
           )}
           <span className="text-sm">
             {hasSignedProductPhotos 
-              ? t.productPhotosUploaded
+              ? `${t.productPhotosUploaded} (${signedProductPhotos.length})`
               : t.productPhotosNeeded
             }
           </span>

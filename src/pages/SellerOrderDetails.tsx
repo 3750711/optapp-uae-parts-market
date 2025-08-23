@@ -274,28 +274,7 @@ const SellerOrderDetails = () => {
               
               <div className="flex items-center gap-2">
                 {['seller_confirmed', 'admin_confirmed', 'processed', 'shipped', 'delivered'].includes(order.status) && (
-                  <div className="flex items-center gap-2">
-                    {/* Enhanced confirmation button with file counters */}
-                    <Button
-                      onClick={() => setShowConfirmationUpload(true)}
-                      variant="secondary"
-                      size="sm"
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
-                    >
-                      <Camera className="h-4 w-4" />
-                      {t.confirmationPhotos}
-                      <div className="ml-1 flex items-center gap-1">
-                        <span className="text-xs bg-primary-foreground/20 rounded px-1">
-                          {chatScreenshots.length + signedProductPhotos.length} {t.filesCount}
-                        </span>
-                      </div>
-                    </Button>
-                    
-                    {/* Keep existing OrderConfirmButton for backward compatibility */}
-                    {order.status === 'admin_confirmed' && (
-                      <OrderConfirmButton orderId={order.id} />
-                    )}
-                  </div>
+                  <OrderConfirmButton orderId={order.id} />
                 )}
               </div>
             </div>
