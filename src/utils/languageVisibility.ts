@@ -52,9 +52,9 @@ export function getDefaultLanguageFor(
 ): 'ru' | 'en' | 'bn' {
   const allowedLocales = allowedLocalesFor(userRole, pathname);
   
-  // If Bengali is available and user is seller, default to Bengali
-  if (allowedLocales.includes('bn') && userRole === 'seller') {
-    return 'bn';
+  // For sellers, default to English
+  if (userRole === 'seller' && allowedLocales.includes('en')) {
+    return 'en';
   }
   
   // Otherwise default to Russian

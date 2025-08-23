@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/hooks/useLanguage';
-import { isLanguageAllowed } from '@/utils/languageVisibility';
+import { isLanguageAllowed, getDefaultLanguageFor } from '@/utils/languageVisibility';
 
 /**
  * Language provider that enforces language visibility rules
@@ -16,15 +16,22 @@ const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children })
   const { language, changeLanguage } = useLanguage();
 
   useEffect(() => {
-    // Check if current language is allowed for user role and route
+    // Only enforce language restrictions if current language is not allowed
     if (!isLanguageAllowed(language, profile?.user_type || null, location.pathname)) {
-      // Force switch to Russian if language is not allowed
-      changeLanguage('ru');
+      // If user has a saved preferred_locale and it's allowed, use that
+      if (profile?.preferred_locale && 
+          isLanguageAllowed(profile.preferred_locale as 'ru' | 'en' | 'bn', profile.user_type || null, location.pathname)) {
+        changeLanguage(profile.preferred_locale as 'ru' | 'en' | 'bn');
+      } else {
+        // Otherwise use default language for user role
+        const defaultLang = getDefaultLanguageFor(profile?.user_type || null, location.pathname);
+        changeLanguage(defaultLang);
+      }
     }
     
     // Update HTML lang attribute for accessibility and SEO
     document.documentElement.lang = language;
-  }, [profile?.user_type, location.pathname, language, changeLanguage]);
+  }, [profile?.user_type, profile?.preferred_locale, location.pathname, language, changeLanguage]);
 
   return <>{children}</>;
 };
