@@ -9,13 +9,15 @@ interface OrdersSearchBarProps {
   setSearchTerm: (value: string) => void;
   onClear?: () => void;
   placeholder?: string;
+  clearSearchTitle?: string;
 }
 
 const OrdersSearchBar: React.FC<OrdersSearchBarProps> = ({ 
   searchTerm, 
   setSearchTerm, 
   onClear,
-  placeholder = "Search by order number, lot, title, brand, model or seller opt_id..."
+  placeholder = "Search orders...",
+  clearSearchTitle = "Clear search"
 }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -47,7 +49,7 @@ const OrdersSearchBar: React.FC<OrdersSearchBarProps> = ({
             size="icon" 
             className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-gray-100"
             onClick={onClear}
-            title="Clear search"
+            title={clearSearchTitle}
           >
             <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
           </Button>

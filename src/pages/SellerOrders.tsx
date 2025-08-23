@@ -324,6 +324,7 @@ const SellerOrders = () => {
             setSearchTerm={setSearchTerm}
             onClear={handleClearSearch}
             placeholder={t.searchPlaceholder}
+            clearSearchTitle={t.clearSearch}
           />
 
           <div className="flex items-center justify-between gap-4">
