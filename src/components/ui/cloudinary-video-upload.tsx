@@ -5,6 +5,8 @@ import { useCloudinaryVideoUpload } from '@/hooks/useCloudinaryVideoUpload';
 import { cn } from '@/lib/utils';
 import { UploadProgressCard } from '@/components/ui/image-upload/UploadProgressCard';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 interface CloudinaryVideoUploadProps {
   videos: string[];
@@ -36,6 +38,8 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { uploadMultipleVideos, isUploading, uploadProgress, clearProgress } = useCloudinaryVideoUpload();
   const { toast } = useToast();
+  const { language } = useLanguage();
+  const t = getSellerPagesTranslations(language);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || isUploading) return;
@@ -48,8 +52,8 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
     const files = Array.from(e.target.files);
     if (videos.length + files.length > maxVideos) {
       toast({
-        title: "Limit Exceeded",
-        description: `Maximum number of videos: ${maxVideos}`,
+        title: t.videoUpload.limitExceeded,
+        description: `${t.videoUpload.limitExceededMessage}: ${maxVideos}`,
         variant: "destructive",
       });
       return;
@@ -63,16 +67,16 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
       
       if (!isAllowed) {
         toast({
-          title: "Invalid File Format",
-          description: `File "${file.name}" has unsupported format.`,
+          title: t.videoUpload.invalidFileFormat,
+          description: `"${file.name}" ${t.videoUpload.invalidFileFormatMessage}.`,
           variant: "destructive",
         });
         continue;
       }
       if (file.size > MAX_VIDEO_SIZE_BYTES) {
         toast({
-          title: "File Too Large",
-          description: `File "${file.name}" exceeds ${MAX_VIDEO_SIZE_MB}MB.`,
+          title: t.videoUpload.fileTooLarge,
+          description: `"${file.name}" ${t.videoUpload.fileTooLargeMessage} ${MAX_VIDEO_SIZE_MB}${t.videoUpload.maxFileSize}.`,
           variant: "destructive",
         });
         continue;
@@ -130,7 +134,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
           ) : (
             buttonIcon
           )}
-          {isUploading ? 'Uploading to Cloudinary...' : buttonText}
+          {isUploading ? t.videoUpload.uploadingToCloudinary : buttonText}
         </Button>
         
         <input
@@ -203,12 +207,12 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
             {isUploading ? (
               <div className="flex flex-col items-center">
                 <Loader2 className="animate-spin h-6 w-6 mb-2" />
-                <span className="text-xs text-gray-500">Uploading to Cloudinary...</span>
+                <span className="text-xs text-gray-500">{t.videoUpload.uploadingToCloudinary}</span>
               </div>
             ) : (
               <>
                 <div className="text-2xl text-gray-400 font-bold">+</div>
-                <p className="text-xs text-gray-500">Add Video</p>
+                <p className="text-xs text-gray-500">{t.videoUpload.addVideo}</p>
               </>
             )}
           </div>
@@ -233,7 +237,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
       />
       
       <p className="text-xs text-gray-500">
-        Up to {maxVideos} videos. Supported: mp4, mov, avi, webm. Upload via Cloudinary CDN. Maximum 20MB per file.
+        {t.videoUpload.supportedFormats.replace('{maxVideos}', maxVideos.toString())}
       </p>
       
       {videos.length < maxVideos && (
@@ -247,12 +251,12 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
           {isUploading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Uploading to Cloudinary...
+              {t.videoUpload.uploadingToCloudinary}
             </>
           ) : (
             <>
               <Upload className="h-4 w-4" />
-              Choose Videos
+              {t.videoUpload.chooseVideos}
             </>
           )}
         </Button>

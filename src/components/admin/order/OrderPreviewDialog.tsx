@@ -25,6 +25,8 @@ import { Loader2, CheckCircle, Package, User, Camera, X, Truck, MapPin } from 'l
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { CompactMediaGrid } from '@/components/media/CompactMediaGrid';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 interface OrderPreviewDialogProps {
   open: boolean;
@@ -52,6 +54,8 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
   isLoading
 }) => {
   const isMobile = useIsMobile();
+  const { language } = useLanguage();
+  const t = getSellerPagesTranslations(language);
 
   const formatPrice = (price?: string) => {
     if (!price || isNaN(parseFloat(price))) return '0';
@@ -61,13 +65,13 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
   const getDeliveryMethodLabel = (method: string) => {
     switch (method) {
       case 'self_pickup':
-        return 'Self Pickup';
+        return t.deliveryMethods.selfPickup;
       case 'cargo_rf':
-        return 'Cargo RF';
+        return t.deliveryMethods.cargoRf;
       case 'cargo_kz':
-        return 'Cargo KZ';
+        return t.deliveryMethods.cargoKz;
       default:
-        return method || 'Not specified';
+        return method || t.notSpecified;
     }
   };
 
@@ -78,11 +82,11 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         <div className="flex items-center gap-3">
           <CheckCircle className="w-6 h-6 text-blue-600 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-blue-800">Order Preview</h1>
-            <p className="text-sm text-blue-700">Check data before creating</p>
+            <h1 className="text-lg font-bold text-blue-800">{t.orderPreview.title}</h1>
+            <p className="text-sm text-blue-700">{t.orderPreview.description}</p>
           </div>
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            Ready
+            {t.orderPreview.ready}
           </Badge>
         </div>
       </div>
@@ -96,39 +100,39 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2 mb-3">
                 <Package className="h-5 w-5 text-gray-500" />
-                <span className="font-medium">Product</span>
+                <span className="font-medium">{t.orderPreview.product}</span>
               </div>
               
               <div className="space-y-3">
                 <div className="text-lg font-semibold text-gray-900">
-                  {formData.title || 'Not specified'}
+                  {formData.title || t.notSpecified}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <span className="text-gray-500">Brand:</span>
-                    <div className="font-medium mt-1">{formData.brand || 'Not specified'}</div>
+                    <span className="text-gray-500">{t.orderPreview.brand}</span>
+                    <div className="font-medium mt-1">{formData.brand || t.notSpecified}</div>
                   </div>
                   <div>
-                    <span className="text-gray-500">Model:</span>
-                    <div className="font-medium mt-1">{formData.model || 'Not specified'}</div>
+                    <span className="text-gray-500">{t.orderPreview.model}</span>
+                    <div className="font-medium mt-1">{formData.model || t.notSpecified}</div>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-green-600">${formatPrice(formData.price)}</div>
-                    <div className="text-xs text-gray-500">Price</div>
+                    <div className="text-xs text-gray-500">{t.orderPreview.price}</div>
                   </div>
                   {formData.delivery_price && parseFloat(formData.delivery_price) > 0 && (
                     <div className="text-center">
                       <div className="text-lg font-semibold text-orange-600">${formatPrice(formData.delivery_price)}</div>
-                      <div className="text-xs text-gray-500">Delivery</div>
+                      <div className="text-xs text-gray-500">{t.orderPreview.delivery}</div>
                     </div>
                   )}
                   <div className="text-center">
                     <div className="text-lg font-medium">{formData.place_number || 1}</div>
-                    <div className="text-xs text-gray-500">Places</div>
+                    <div className="text-xs text-gray-500">{t.orderPreview.places}</div>
                   </div>
                 </div>
               </div>
@@ -140,16 +144,16 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
             <CardContent className="p-4 space-y-3">
               <div className="flex items-center gap-2 mb-3">
                 <User className="h-5 w-5 text-gray-500" />
-                <span className="font-medium">Participants</span>
+                <span className="font-medium">{t.orderPreview.participants}</span>
               </div>
               
               <div className="space-y-3">
                 {/* Seller */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs text-blue-600 font-medium mb-1">Seller</div>
-                      <div className="font-medium">{selectedSeller?.full_name || 'Not specified'}</div>
+                      <div className="text-xs text-blue-600 font-medium mb-1">{t.orderPreview.seller}</div>
+                      <div className="font-medium">{selectedSeller?.full_name || t.notSpecified}</div>
                     </div>
                     {selectedSeller?.opt_id && (
                       <Badge variant="outline" className="ml-2">
@@ -163,11 +167,11 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
                 <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="text-xs text-green-600 font-medium mb-1">Buyer</div>
-                      <div className="font-medium">{buyerProfile?.full_name || 'Not specified'}</div>
+                      <div className="text-xs text-green-600 font-medium mb-1">{t.orderPreview.buyer}</div>
+                      <div className="font-medium">{buyerProfile?.full_name || t.notSpecified}</div>
                     </div>
                     <Badge variant="outline" className="ml-2">
-                      {formData.buyerOptId || 'Not specified'}
+                      {formData.buyerOptId || t.notSpecified}
                     </Badge>
                   </div>
                 </div>
@@ -194,7 +198,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Camera className="h-5 w-5 text-gray-500" />
-                  <span className="font-medium">Media Files ({images.length + videos.length})</span>
+                  <span className="font-medium">{t.orderPreview.mediaFiles} ({images.length + videos.length})</span>
                   <Badge variant="outline" className="ml-auto">
                     📸 {images.length} • 🎥 {videos.length}
                   </Badge>
@@ -213,7 +217,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
           {formData.text_order && (
             <Card className="border border-gray-200">
               <CardContent className="p-4">
-                <div className="font-medium mb-3">Additional Information</div>
+                <div className="font-medium mb-3">{t.orderPreview.additionalInformation}</div>
                 <div className="bg-gray-50 p-3 rounded-lg max-h-32 overflow-y-auto">
                   <p className="whitespace-pre-wrap text-gray-700 text-sm leading-relaxed">{formData.text_order}</p>
                 </div>
@@ -224,22 +228,22 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
           {/* Summary Stats */}
           <Card className="border border-gray-200 bg-gradient-to-r from-gray-50 to-blue-50">
             <CardContent className="p-4">
-              <div className="font-medium mb-3">Order Summary</div>
+              <div className="font-medium mb-3">{t.orderPreview.orderSummary}</div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Products:</span>
+                  <span className="text-gray-600">{t.orderPreview.products}</span>
                   <span className="font-medium">1</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Places:</span>
+                  <span className="text-gray-600">{t.orderPreview.places}</span>
                   <span className="font-medium">{formData.place_number || 1}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Photos:</span>
+                  <span className="text-gray-600">{t.orderPreview.photos}</span>
                   <span className="font-medium">{images.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Videos:</span>
+                  <span className="text-gray-600">{t.orderPreview.videos}</span>
                   <span className="font-medium">{videos.length}</span>
                 </div>
               </div>
@@ -258,7 +262,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         disabled={isLoading}
         className={isMobile ? "flex-1" : ""}
       >
-        Back
+        {t.orderPreview.backButton}
       </Button>
       <Button 
         onClick={onConfirm} 
@@ -268,12 +272,12 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating...
+            {t.orderPreview.creating}
           </>
         ) : (
           <>
             <CheckCircle className="mr-2 h-4 w-4" />
-            Create Order
+            {t.orderPreview.createOrderButton}
           </>
         )}
       </Button>
@@ -287,9 +291,9 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
           <SheetHeader className="pb-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
-                <SheetTitle>Order Preview</SheetTitle>
+                <SheetTitle>{t.orderPreview.title}</SheetTitle>
                 <SheetDescription>
-                  Check data before creating
+                  {t.orderPreview.description}
                 </SheetDescription>
               </div>
               <SheetClose asChild>
@@ -318,9 +322,9 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl max-h-[90vh] h-[90vh] flex flex-col">
         <DialogHeader className="flex-shrink-0 pb-4">
-          <DialogTitle>Order Preview</DialogTitle>
+          <DialogTitle>{t.orderPreview.title}</DialogTitle>
           <DialogDescription>
-            Check all data before creating the order
+            {t.orderPreview.checkDataBefore}
           </DialogDescription>
         </DialogHeader>
         

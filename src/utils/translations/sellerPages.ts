@@ -294,6 +294,47 @@ export interface SellerPagesTranslations {
   inTransit: string;
   atCustoms: string;
 
+  // Order Preview Dialog
+  orderPreview: {
+    title: string;
+    description: string;
+    ready: string;
+    product: string;
+    participants: string;
+    seller: string;
+    buyer: string;
+    brand: string;
+    model: string;
+    price: string;
+    delivery: string;
+    places: string;
+    mediaFiles: string;
+    additionalInformation: string;
+    orderSummary: string;
+    products: string;
+    photos: string;
+    videos: string;
+    checkDataBefore: string;
+    backButton: string;
+    createOrderButton: string;
+    creating: string;
+  };
+
+  // Video Upload
+  videoUpload: {
+    limitExceeded: string;
+    limitExceededMessage: string;
+    invalidFileFormat: string;
+    invalidFileFormatMessage: string;
+    fileTooLarge: string;
+    fileTooLargeMessage: string;
+    uploadingToCloudinary: string;
+    chooseVideos: string;
+    addVideo: string;
+    supportedFormats: string;
+    maxFileSize: string;
+  };
+
   // Additional keys for new components
   productDetailsTitle?: string;
   productInfoDetails?: {
@@ -690,6 +731,47 @@ const ru: SellerPagesTranslations = {
     sellerContact: 'Связь с продавцом',
   },
   
+  // Order Preview Dialog
+  orderPreview: {
+    title: 'Предпросмотр заказа',
+    description: 'Проверьте данные перед созданием заказа',
+    ready: 'Готов',
+    product: 'Товар',
+    participants: 'Участники',
+    seller: 'Продавец',
+    buyer: 'Покупатель',
+    brand: 'Бренд:',
+    model: 'Модель:',
+    price: 'Цена',
+    delivery: 'Доставка',
+    places: 'Места',
+    mediaFiles: 'Медиафайлы',
+    additionalInformation: 'Дополнительная информация',
+    orderSummary: 'Сводка заказа',
+    products: 'Товары:',
+    photos: 'Фото:',
+    videos: 'Видео:',
+    checkDataBefore: 'Проверьте все данные перед созданием заказа',
+    backButton: 'Назад',
+    createOrderButton: 'Создать заказ',
+    creating: 'Создание...',
+  },
+
+  // Video Upload
+  videoUpload: {
+    limitExceeded: 'Превышен лимит',
+    limitExceededMessage: 'Максимальное количество видео',
+    invalidFileFormat: 'Неверный формат файла',
+    invalidFileFormatMessage: 'имеет неподдерживаемый формат',
+    fileTooLarge: 'Файл слишком большой',
+    fileTooLargeMessage: 'превышает',
+    uploadingToCloudinary: 'Загрузка в Cloudinary...',
+    chooseVideos: 'Выберите видео',
+    addVideo: 'Добавить видео',
+    supportedFormats: 'Поддерживаются: mp4, mov, avi, webm. Загрузка через Cloudinary CDN. Максимум 20МБ на файл.',
+    maxFileSize: 'МБ',
+  },
+
   media: {
     uploadPhotos: 'Загрузить фото',
     uploadVideos: 'Загрузить видео',
@@ -1016,6 +1098,47 @@ const en: SellerPagesTranslations = {
     subtitle: 'Expand your business and attract new customers by becoming part of the leading B2B auto parts marketplace in the UAE.'
   },
   
+  // Order Preview Dialog
+  orderPreview: {
+    title: 'Order Preview',
+    description: 'Check data before creating',
+    ready: 'Ready',
+    product: 'Product',
+    participants: 'Participants',
+    seller: 'Seller',
+    buyer: 'Buyer',
+    brand: 'Brand:',
+    model: 'Model:',
+    price: 'Price',
+    delivery: 'Delivery',
+    places: 'Places',
+    mediaFiles: 'Media Files',
+    additionalInformation: 'Additional Information',
+    orderSummary: 'Order Summary',
+    products: 'Products:',
+    photos: 'Photos:',
+    videos: 'Videos:',
+    checkDataBefore: 'Check all data before creating the order',
+    backButton: 'Back',
+    createOrderButton: 'Create Order',
+    creating: 'Creating...',
+  },
+
+  // Video Upload
+  videoUpload: {
+    limitExceeded: 'Limit Exceeded',
+    limitExceededMessage: 'Maximum number of videos',
+    invalidFileFormat: 'Invalid File Format',
+    invalidFileFormatMessage: 'has unsupported format',
+    fileTooLarge: 'File Too Large',
+    fileTooLargeMessage: 'exceeds',
+    uploadingToCloudinary: 'Uploading to Cloudinary...',
+    chooseVideos: 'Choose Videos',
+    addVideo: 'Add Video',
+    supportedFormats: 'Up to {maxVideos} videos. Supported: mp4, mov, avi, webm. Upload via Cloudinary CDN. Maximum 20MB per file.',
+    maxFileSize: 'MB',
+  },
+
   system: {
     error: 'Error',
     profileIncomplete: 'Profile Incomplete',
@@ -1394,6 +1517,47 @@ const bn: SellerPagesTranslations = {
     sellerContact: 'বিক্রেতা যোগাযোগ',
   },
   
+  // Order Preview Dialog
+  orderPreview: {
+    title: 'অর্ডার প্রিভিউ',
+    description: 'অর্ডার তৈরির আগে ডেটা চেক করুন',
+    ready: 'প্রস্তুত',
+    product: 'পণ্য',
+    participants: 'অংশগ্রহণকারী',
+    seller: 'বিক্রেতা',
+    buyer: 'ক্রেতা',
+    brand: 'ব্র্যান্ড:',
+    model: 'মডেল:',
+    price: 'মূল্য',
+    delivery: 'ডেলিভারি',
+    places: 'স্থান',
+    mediaFiles: 'মিডিয়া ফাইল',
+    additionalInformation: 'অতিরিক্ত তথ্য',
+    orderSummary: 'অর্ডার সারসংক্ষেপ',
+    products: 'পণ্য:',
+    photos: 'ছবি:',
+    videos: 'ভিডিও:',
+    checkDataBefore: 'অর্ডার তৈরির আগে সমস্ত ডেটা চেক করুন',
+    backButton: 'পিছনে',
+    createOrderButton: 'অর্ডার তৈরি করুন',
+    creating: 'তৈরি হচ্ছে...',
+  },
+
+  // Video Upload
+  videoUpload: {
+    limitExceeded: 'সীমা অতিক্রম',
+    limitExceededMessage: 'সর্বোচ্চ ভিডিও সংখ্যা',
+    invalidFileFormat: 'অবৈধ ফাইল ফরম্যাট',
+    invalidFileFormatMessage: 'অসমর্থিত ফরম্যাট রয়েছে',
+    fileTooLarge: 'ফাইল খুব বড়',
+    fileTooLargeMessage: 'অতিক্রম করেছে',
+    uploadingToCloudinary: 'Cloudinary-তে আপলোড হচ্ছে...',
+    chooseVideos: 'ভিডিও বেছে নিন',
+    addVideo: 'ভিডিও যোগ করুন',
+    supportedFormats: 'সর্বোচ্চ {maxVideos} ভিডিও। সমর্থিত: mp4, mov, avi, webm। Cloudinary CDN এর মাধ্যমে আপলোড। প্রতি ফাইলে সর্বোচ্চ 20MB।',
+    maxFileSize: 'MB',
+  },
+
   media: {
     uploadPhotos: 'ছবি আপলোড করুন',
     uploadVideos: 'ভিডিও আপলোড করুন',
