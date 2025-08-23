@@ -168,8 +168,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
   const validateForm = (): boolean => {
     if (!editableData.title.trim()) {
       toast({
-        title: "Validation Error",
-        description: "Product title is required",
+        title: sp.validationError,
+        description: sp.titleRequired,
         variant: "destructive",
       });
       return false;
@@ -177,8 +177,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
 
     if (editableData.price <= 0) {
       toast({
-        title: "Validation Error",
-        description: "Price must be greater than 0",
+        title: sp.validationError,
+        description: sp.priceRequired,
         variant: "destructive",
       });
       return false;
@@ -186,8 +186,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
 
     if (editableData.placeNumber <= 0) {
       toast({
-        title: "Validation Error",
-        description: "Number of places must be greater than 0",
+        title: sp.validationError,
+        description: sp.placesRequired,
         variant: "destructive",
       });
       return false;
@@ -238,8 +238,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
     } catch (error) {
       console.error('Failed to confirm order:', error);
       toast({
-        title: "Error",
-        description: "Failed to confirm order. Please try again.",
+        title: sp.errorTitle,
+        description: sp.orderCreateError,
         variant: "destructive"
       });
     }
@@ -261,28 +261,28 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center">
-        <h3 className={`${isMobile ? 'text-lg' : 'text-lg'} font-semibold`}>Order Information</h3>
+        <h3 className={`${isMobile ? 'text-lg' : 'text-lg'} font-semibold`}>{sp.orderInformation}</h3>
       </div>
 
       {/* Информация о товаре */}
       <Card className={isMobile ? "mx-0" : ""}>
         <CardHeader className={isMobile ? "pb-3" : ""}>
-          <CardTitle className={isMobile ? "text-base" : ""}>Product Information</CardTitle>
+          <CardTitle className={isMobile ? "text-base" : ""}>{sp.productInformation}</CardTitle>
         </CardHeader>
         <CardContent className={`space-y-4 ${isMobile ? 'px-4 pb-4' : ''}`}>
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Title:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.titleLabel}</Label>
               <InlineEditableField
                 value={editableData.title}
                 onSave={(value) => handleFieldUpdate('title', value)}
                 required
-                placeholder="Enter product title"
+                placeholder={sp.enterProductTitle}
                 className="text-base font-medium"
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Price:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.priceLabel}</Label>
               <InlineEditableField
                 value={editableData.price}
                 onSave={(value) => handleFieldUpdate('price', value)}
@@ -293,20 +293,20 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Brand:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.brandLabel}</Label>
               <InlineEditableField
-                value={editableData.brand || 'Not specified'}
+                value={editableData.brand || sp.notSpecified}
                 onSave={(value) => handleFieldUpdate('brand', value)}
-                placeholder="Enter brand"
+                placeholder={sp.enterBrand}
                 className="text-base"
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Model:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.modelLabel}</Label>
               <InlineEditableField
-                value={editableData.model || 'Not specified'}
+                value={editableData.model || sp.notSpecified}
                 onSave={(value) => handleFieldUpdate('model', value)}
-                placeholder="Enter model"
+                placeholder={sp.enterModel}
                 className="text-base"
               />
             </div>
@@ -315,7 +315,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           {/* Изображения товара */}
           {product.product_images && product.product_images.length > 0 && (
             <div>
-              <Label className="text-sm font-medium text-muted-foreground mb-2 block">Product Media:</Label>
+              <Label className="text-sm font-medium text-muted-foreground mb-2 block">{sp.productMedia}</Label>
               <div className={`grid gap-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
                 {product.product_images.map((image, index) => (
                   <div key={index} className="aspect-square">
@@ -335,23 +335,23 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       {/* Параметры заказа */}
       <Card className={isMobile ? "mx-0" : ""}>
         <CardHeader className={isMobile ? "pb-3" : ""}>
-          <CardTitle className={isMobile ? "text-base" : ""}>Order Parameters</CardTitle>
+          <CardTitle className={isMobile ? "text-base" : ""}>{sp.orderParameters}</CardTitle>
         </CardHeader>
         <CardContent className={`space-y-4 ${isMobile ? 'px-4 pb-4' : ''}`}>
           <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Delivery:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.deliveryLabel}</Label>
               <InlineEditableSelect
                 value={editableData.deliveryMethod}
                 onSave={(value) => handleFieldUpdate('deliveryMethod', value)}
                 options={DELIVERY_OPTIONS}
-                placeholder="Select delivery method"
+                placeholder={sp.selectDeliveryMethod}
                 className="text-base"
               />
             </div>
             {editableData.deliveryMethod === 'cargo_rf' && (
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Delivery Price:</Label>
+                <Label className="text-sm font-medium text-muted-foreground">{sp.deliveryPrice}</Label>
                 <InlineEditableField
                   value={editableData.deliveryPrice}
                   onSave={(value) => handleFieldUpdate('deliveryPrice', value)}
@@ -363,7 +363,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
               </div>
             )}
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Number of Places:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.numberOfPlaces}</Label>
               <InlineEditableField
                 value={editableData.placeNumber}
                 onSave={(value) => handleFieldUpdate('placeNumber', value)}
@@ -373,18 +373,18 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
               />
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Total:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.totalLabel}</Label>
               <p className={`${isMobile ? 'text-lg' : 'text-lg'} font-bold text-primary`}>${getTotalPrice()}</p>
             </div>
           </div>
           
           <div>
-            <Label className="text-sm font-medium text-muted-foreground">Additional Information:</Label>
+            <Label className="text-sm font-medium text-muted-foreground">{sp.additionalInformation}</Label>
             <InlineEditableTextarea
               value={editableData.textOrder}
               onSave={(value) => handleFieldUpdate('textOrder', value)}
-              placeholder="Specify additional order information"
-              emptyText="Click to add additional information"
+              placeholder={sp.additionalInfoPlaceholder}
+              emptyText={sp.additionalInfoEmpty}
               className="mt-1"
             />
           </div>
@@ -395,20 +395,20 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         <Card className={isMobile ? "mx-0" : ""}>
           <CardHeader className={isMobile ? "pb-3" : ""}>
-            <CardTitle className={isMobile ? "text-base" : ""}>Seller</CardTitle>
+            <CardTitle className={isMobile ? "text-base" : ""}>{sp.sellerLabel}</CardTitle>
           </CardHeader>
           <CardContent className={`space-y-2 ${isMobile ? 'px-4 pb-4' : ''}`}>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Name:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.nameLabel}</Label>
               <p className="text-base">{seller.full_name}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">OPT ID:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.optIdLabel}</Label>
               <p className="text-base">{seller.opt_id}</p>
             </div>
             {seller.telegram && (
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Telegram:</Label>
+                <Label className="text-sm font-medium text-muted-foreground">{sp.telegramLabel}</Label>
                 <p className="text-base">{seller.telegram}</p>
               </div>
             )}
@@ -417,20 +417,20 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
 
         <Card className={isMobile ? "mx-0" : ""}>
           <CardHeader className={isMobile ? "pb-3" : ""}>
-            <CardTitle className={isMobile ? "text-base" : ""}>Buyer</CardTitle>
+            <CardTitle className={isMobile ? "text-base" : ""}>{sp.buyerLabel}</CardTitle>
           </CardHeader>
           <CardContent className={`space-y-2 ${isMobile ? 'px-4 pb-4' : ''}`}>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">Name:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.nameLabel}</Label>
               <p className="text-base">{buyer.full_name}</p>
             </div>
             <div>
-              <Label className="text-sm font-medium text-muted-foreground">OPT ID:</Label>
+              <Label className="text-sm font-medium text-muted-foreground">{sp.optIdLabel}</Label>
               <p className="text-base">{buyer.opt_id}</p>
             </div>
             {buyer.telegram && (
               <div>
-                <Label className="text-sm font-medium text-muted-foreground">Telegram:</Label>
+                <Label className="text-sm font-medium text-muted-foreground">{sp.telegramLabel}</Label>
                 <p className="text-base">{buyer.telegram}</p>
               </div>
             )}
@@ -447,7 +447,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           className={isMobile ? 'w-full' : ''}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Buyers
+          {sp.backToBuyers}
         </Button>
         
         <Button 
@@ -458,12 +458,12 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
           {isSubmitting ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Creating Order...
+              {sp.creatingOrder}
             </>
           ) : (
             <>
               <CheckCircle className="h-4 w-4 mr-2" />
-              Create Order
+              {sp.createOrder}
             </>
           )}
         </Button>
