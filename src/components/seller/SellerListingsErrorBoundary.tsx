@@ -3,9 +3,11 @@ import React, { Component, ReactNode } from 'react';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { getSellerListingsPageTranslations } from "@/utils/translations/sellerListingsPage";
 
 interface Props {
   children: ReactNode;
+  language?: 'ru' | 'en' | 'bn';
 }
 
 interface State {
@@ -34,18 +36,21 @@ class SellerListingsErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const language = this.props.language || 'ru';
+      const t = getSellerListingsPageTranslations(language);
+      
       return (
         <div className="container mx-auto px-4 py-8">
           <div className="space-y-6">
-            <h1 className="text-3xl font-bold">My Listings</h1>
+            <h1 className="text-3xl font-bold">{t.errorBoundary.title}</h1>
             
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">
                 <div>
-                  <div className="font-medium mb-1">An error occurred</div>
+                  <div className="font-medium mb-1">{t.errorBoundary.errorOccurred}</div>
                   <div className="text-sm">
-                    {this.state.error?.message || 'Unknown error while loading page'}
+                    {this.state.error?.message || t.errorBoundary.unknownError}
                   </div>
                 </div>
                 <Button 
@@ -55,7 +60,7 @@ class SellerListingsErrorBoundary extends Component<Props, State> {
                   className="ml-4"
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh Page
+                  {t.errorBoundary.refreshPage}
                 </Button>
               </AlertDescription>
             </Alert>

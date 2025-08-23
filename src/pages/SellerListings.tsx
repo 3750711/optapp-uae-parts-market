@@ -24,7 +24,7 @@ const SellerListings = () => {
         <link rel="canonical" href="/seller/listings" />
       </Helmet>
       <BackButton className="mb-4" fallback="/seller/dashboard" />
-      <SellerListingsErrorBoundary>
+      <SellerListingsErrorBoundary language={language}>
         <Suspense fallback={<EnhancedSellerListingsSkeleton />}>
           <SellerListingsContent />
         </Suspense>

@@ -48,6 +48,14 @@ export interface SellerListingsPageTranslations {
     byDate: string;
     byPrice: string;
   };
+
+  // Error Boundary
+  errorBoundary: {
+    title: string;
+    errorOccurred: string;
+    unknownError: string;
+    refreshPage: string;
+  };
 }
 
 const ru: SellerListingsPageTranslations = {
@@ -97,6 +105,14 @@ const ru: SellerListingsPageTranslations = {
     sortBy: 'Сортировка',
     byDate: 'По дате',
     byPrice: 'По цене'
+  },
+
+  // Error Boundary
+  errorBoundary: {
+    title: 'Мой МАГАЗИН',
+    errorOccurred: 'Произошла ошибка',
+    unknownError: 'Неизвестная ошибка при загрузке страницы',
+    refreshPage: 'Обновить страницу'
   }
 };
 
@@ -147,6 +163,14 @@ const en: SellerListingsPageTranslations = {
     sortBy: 'Sort by',
     byDate: 'By Date',
     byPrice: 'By Price'
+  },
+
+  // Error Boundary
+  errorBoundary: {
+    title: 'My SHOP',
+    errorOccurred: 'An error occurred',
+    unknownError: 'Unknown error while loading page',
+    refreshPage: 'Refresh Page'
   }
 };
 
@@ -197,6 +221,14 @@ const bn: SellerListingsPageTranslations = {
     sortBy: 'সাজান',
     byDate: 'তারিখ অনুযায়ী',
     byPrice: 'দামের অনুযায়ী'
+  },
+
+  // Error Boundary
+  errorBoundary: {
+    title: 'আমার দোকান',
+    errorOccurred: 'একটি ত্রুটি ঘটেছে',
+    unknownError: 'পৃষ্ঠা লোড করার সময় অজানা ত্রুটি',
+    refreshPage: 'পৃষ্ঠা রিফ্রেশ করুন'
   }
 };
 
