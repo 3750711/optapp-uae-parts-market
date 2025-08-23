@@ -158,6 +158,7 @@ export interface SellerPagesTranslations {
   system?: {
     error: string;
     profileIncomplete: string;
+    profileIncompleteDescription: string;
     userNotAuthorized: string;
     pageError: string;
     pageErrorDescription: string;
@@ -168,6 +169,16 @@ export interface SellerPagesTranslations {
     productPublished: string;
     productSentForModeration: string;
     failedToCreateProduct: string;
+  };
+  
+  // Communication dialog
+  communication?: {
+    connectingToTelegram: string;
+    usingFallbackLink: string;
+    telegramError: string;
+    assistantContact: string;
+    professionalContact: string;
+    sellerContact: string;
   };
   
   // Media section
@@ -344,6 +355,7 @@ const ru: SellerPagesTranslations = {
   system: {
     error: 'Ошибка',
     profileIncomplete: 'Профиль не завершен',
+    profileIncompleteDescription: 'В вашем профиле отсутствует OPT ID. Обратитесь к администратору для его получения.',
     userNotAuthorized: 'Пользователь не авторизован',
     pageError: 'Ошибка страницы',
     pageErrorDescription: 'Произошла ошибка при загрузке страницы. Пожалуйста, попробуйте обновить страницу.',
@@ -354,6 +366,16 @@ const ru: SellerPagesTranslations = {
     productPublished: 'Товар успешно опубликован',
     productSentForModeration: 'Товар отправлен на модерацию',
     failedToCreateProduct: 'Не удалось создать товар. Попробуйте позже.',
+  },
+
+  // Communication dialog
+  communication: {
+    connectingToTelegram: 'Переходим в Telegram к менеджеру',
+    usingFallbackLink: 'Используем резервную ссылку для связи',
+    telegramError: 'Не удалось открыть Telegram. Попробуйте позже.',
+    assistantContact: 'Связь через помощника',
+    professionalContact: 'Связь с профессионалом',
+    sellerContact: 'Связь с продавцом',
   },
   
   media: {
@@ -529,6 +551,7 @@ const en: SellerPagesTranslations = {
   system: {
     error: 'Error',
     profileIncomplete: 'Profile Incomplete',
+    profileIncompleteDescription: 'Your profile is missing an OPT ID. Please contact the administrator to obtain one.',
     userNotAuthorized: 'User not authorized',
     pageError: 'Page Error',
     pageErrorDescription: 'An error occurred while loading the page. Please try refreshing the page.',
@@ -539,6 +562,16 @@ const en: SellerPagesTranslations = {
     productPublished: 'Product successfully published',
     productSentForModeration: 'Product sent for moderation',
     failedToCreateProduct: 'Failed to create product. Please try again later.',
+  },
+
+  // Communication dialog
+  communication: {
+    connectingToTelegram: 'Redirecting to Telegram manager',
+    usingFallbackLink: 'Using fallback link for communication',
+    telegramError: 'Failed to open Telegram. Please try again later.',
+    assistantContact: 'Assistant Contact',
+    professionalContact: 'Professional Contact',
+    sellerContact: 'Seller Contact',
   },
   
   media: {
@@ -714,6 +747,7 @@ const bn: SellerPagesTranslations = {
   system: {
     error: 'ত্রুটি',
     profileIncomplete: 'প্রোফাইল অসম্পূর্ণ',
+    profileIncompleteDescription: 'আপনার প্রোফাইলে OPT ID নেই। এটি পেতে প্রশাসকের সাথে যোগাযোগ করুন।',
     userNotAuthorized: 'ব্যবহারকারী অনুমোদিত নয়',
     pageError: 'পৃষ্ঠা ত্রুটি',
     pageErrorDescription: 'পৃষ্ঠা লোড করার সময় একটি ত্রুটি ঘটেছে। দয়া করে পৃষ্ঠা রিফ্রেশ করার চেষ্টা করুন।',
@@ -724,6 +758,16 @@ const bn: SellerPagesTranslations = {
     productPublished: 'পণ্য সফলভাবে প্রকাশিত',
     productSentForModeration: 'পণ্য পরিমার্জনার জন্য পাঠানো হয়েছে',
     failedToCreateProduct: 'পণ্য তৈরি করতে ব্যর্থ। দয়া করে পরে আবার চেষ্টা করুন।',
+  },
+
+  // Communication dialog
+  communication: {
+    connectingToTelegram: 'টেলিগ্রাম ম্যানেজারের কাছে পুনঃনির্দেশ',
+    usingFallbackLink: 'যোগাযোগের জন্য বিকল্প লিঙ্ক ব্যবহার',
+    telegramError: 'টেলিগ্রাম খুলতে ব্যর্থ। দয়া করে পরে আবার চেষ্টা করুন।',
+    assistantContact: 'সহায়তাকারী যোগাযোগ',
+    professionalContact: 'পেশাদার যোগাযোগ',
+    sellerContact: 'বিক্রেতা যোগাযোগ',
   },
   
   media: {

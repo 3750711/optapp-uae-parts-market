@@ -10,6 +10,8 @@ import { CommunicationWarningDialogProps } from "./communication/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useContactValidation } from "@/hooks/useContactValidation";
 import { useContactAnalytics } from "@/hooks/useContactAnalytics";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 import { CONTACT_CONFIG } from "@/config/contact";
 import { toast } from "sonner";
 
@@ -29,6 +31,8 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   const isMobile = useIsMobile();
   const validation = useContactValidation(sellerContact, contactType);
   const analytics = useContactAnalytics();
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
 
   // Analytics tracking
   useEffect(() => {
@@ -65,7 +69,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
         lotNumber,
       });
       
-      toast.success('Переходим в Telegram к менеджеру');
+      toast.success(sp.communication?.connectingToTelegram || 'Переходим в Telegram к менеджеру');
     } catch (error) {
       console.error('Failed to open Telegram:', error);
       
@@ -73,9 +77,9 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
       const fallbackUrl = CONTACT_CONFIG.TELEGRAM_MANAGER.fallbackUrl;
       try {
         window.open(fallbackUrl, '_blank');
-        toast.info('Используем резервную ссылку для связи');
+        toast.info(sp.communication?.usingFallbackLink || 'Используем резервную ссылку для связи');
       } catch (fallbackError) {
-        toast.error('Не удалось открыть Telegram. Попробуйте позже.');
+        toast.error(sp.communication?.telegramError || 'Не удалось открыть Telegram. Попробуйте позже.');
       }
     }
     
@@ -109,11 +113,11 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
 
   const getDialogTitle = () => {
     if (communicationRating === 1) {
-      return "Связь через помощника";
+      return sp.communication?.assistantContact || "Связь через помощника";
     } else if (communicationRating === 5) {
-      return "Связь с профессионалом";
+      return sp.communication?.professionalContact || "Связь с профессионалом";
     }
-    return "Связь с продавцом";
+    return sp.communication?.sellerContact || "Связь с продавцом";
   };
 
   return (

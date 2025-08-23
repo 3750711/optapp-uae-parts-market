@@ -272,7 +272,7 @@ const SellerAddProduct = () => {
     if (!profile?.opt_id) {
       toast({
         title: sp.system?.profileIncomplete || "Profile Incomplete",
-        description: "Your profile is missing an OPT ID. Please contact the administrator to obtain one.",
+        description: sp.system?.profileIncompleteDescription || "Your profile is missing an OPT ID. Please contact the administrator to obtain one.",
         variant: "destructive",
       });
       return;
