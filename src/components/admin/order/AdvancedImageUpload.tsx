@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Upload, X } from "lucide-react";
 import { useOptimizedImageUpload } from "@/hooks/useOptimizedImageUpload";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 
 interface AdvancedImageUploadProps {
   images: string[];
@@ -28,6 +30,8 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
   maxImages = 25
 }) => {
   const { uploadFiles, uploadQueue, isUploading, cancelUpload, markAsDeleted } = useOptimizedImageUpload();
+  const { language } = useLanguage();
+  const t = getSellerPagesTranslations(language);
 
   console.log('📊 AdvancedImageUpload render:', { 
     imageCount: images.length, 
@@ -143,9 +147,9 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
     <div className="space-y-6">
       {/* Header with upload info */}
       <div className="flex items-center justify-between">
-        <Label className="text-base font-medium">Order Images</Label>
+        <Label className="text-base font-medium">{t.imageUpload.title}</Label>
         <div className="text-sm text-gray-600">
-          📸 {images.length}/{maxImages} images
+          📸 {t.imageUpload.imagesCount.replace('{count}', images.length.toString()).replace('{max}', maxImages.toString())}
         </div>
       </div>
 
@@ -160,12 +164,12 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
         {hasActiveUploads ? (
           <>
             <Upload className="mr-2 h-4 w-4 animate-pulse" />
-            Smart Upload...
+            {t.imageUpload.smartUpload}
           </>
         ) : (
           <>
             <Upload className="mr-2 h-4 w-4" />
-            Upload Photos ({images.length}/{maxImages})
+            {t.imageUpload.uploadPhotos.replace('{count}', images.length.toString()).replace('{max}', maxImages.toString())}
           </>
         )}
       </Button>
@@ -189,7 +193,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
           className="w-full"
         >
           <X className="h-4 w-4 mr-2" />
-          Cancel Upload
+          {t.imageUpload.cancelUpload}
         </Button>
       )}
 
@@ -198,10 +202,10 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between text-sm">
             <span className="text-green-800">
-              ✅ Images Uploaded: {images.length}
+              {t.imageUpload.imagesUploaded.replace('{count}', images.length.toString())}
             </span>
             <span className="text-green-600 text-xs">
-              🧠 Smart Compression: Files &lt;400KB Lossless
+              {t.imageUpload.smartCompressionLossless}
             </span>
           </div>
         </div>
@@ -221,12 +225,12 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       {hasActiveUploads && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-sm text-blue-800">
-            🧠 Smart Compression Active
+            {t.imageUpload.smartCompressionActive}
           </div>
           <div className="text-xs text-blue-600 mt-1">
-            • Files &lt;400KB - No compression (original quality)<br/>
-            • Files 400KB-2MB - Light compression (90% quality)<br/>
-            • Files &gt;2MB - Adaptive compression
+            {t.imageUpload.compressionInfo.lossless}<br/>
+            {t.imageUpload.compressionInfo.light}<br/>
+            {t.imageUpload.compressionInfo.adaptive}
           </div>
         </div>
       )}

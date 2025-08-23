@@ -335,6 +335,23 @@ export interface SellerPagesTranslations {
     maxFileSize: string;
   };
 
+  // Image Upload
+  imageUpload: {
+    title: string;
+    imagesCount: string;
+    smartUpload: string;
+    uploadPhotos: string;
+    cancelUpload: string;
+    imagesUploaded: string;
+    smartCompressionLossless: string;
+    smartCompressionActive: string;
+    compressionInfo: {
+      lossless: string;
+      light: string;
+      adaptive: string;
+    };
+  };
+
   // Additional keys for new components
   productDetailsTitle?: string;
   productInfoDetails?: {
@@ -772,6 +789,23 @@ const ru: SellerPagesTranslations = {
     maxFileSize: 'МБ',
   },
 
+  // Image Upload
+  imageUpload: {
+    title: 'Изображения заказа',
+    imagesCount: '{count}/{max} изображений',
+    smartUpload: 'Умная загрузка...',
+    uploadPhotos: 'Загрузить фото ({count}/{max})',
+    cancelUpload: 'Отменить загрузку',
+    imagesUploaded: '✅ Изображений загружено: {count}',
+    smartCompressionLossless: '🧠 Умное сжатие: файлы <400КБ без потерь',
+    smartCompressionActive: '🧠 Умное сжатие активно',
+    compressionInfo: {
+      lossless: '• Файлы <400КБ - без сжатия (оригинальное качество)',
+      light: '• Файлы 400КБ-2МБ - легкое сжатие (90% качества)',
+      adaptive: '• Файлы >2МБ - адаптивное сжатие'
+    }
+  },
+
   media: {
     uploadPhotos: 'Загрузить фото',
     uploadVideos: 'Загрузить видео',
@@ -1137,6 +1171,23 @@ const en: SellerPagesTranslations = {
     addVideo: 'Add Video',
     supportedFormats: 'Up to {maxVideos} videos. Supported: mp4, mov, avi, webm. Upload via Cloudinary CDN. Maximum 20MB per file.',
     maxFileSize: 'MB',
+  },
+
+  // Image Upload
+  imageUpload: {
+    title: 'Order Images',
+    imagesCount: '{count}/{max} images',
+    smartUpload: 'Smart Upload...',
+    uploadPhotos: 'Upload Photos ({count}/{max})',
+    cancelUpload: 'Cancel Upload',
+    imagesUploaded: '✅ Images Uploaded: {count}',
+    smartCompressionLossless: '🧠 Smart Compression: Files <400KB Lossless',
+    smartCompressionActive: '🧠 Smart Compression Active',
+    compressionInfo: {
+      lossless: '• Files <400KB - No compression (original quality)',
+      light: '• Files 400KB-2MB - Light compression (90% quality)',
+      adaptive: '• Files >2MB - Adaptive compression'
+    }
   },
 
   system: {
@@ -1550,12 +1601,29 @@ const bn: SellerPagesTranslations = {
     invalidFileFormat: 'অবৈধ ফাইল ফরম্যাট',
     invalidFileFormatMessage: 'অসমর্থিত ফরম্যাট রয়েছে',
     fileTooLarge: 'ফাইল খুব বড়',
-    fileTooLargeMessage: 'অতিক্রম করেছে',
+    fileTooLargeMessage: 'অতিক্রম করে',
     uploadingToCloudinary: 'Cloudinary-তে আপলোড হচ্ছে...',
     chooseVideos: 'ভিডিও বেছে নিন',
     addVideo: 'ভিডিও যোগ করুন',
-    supportedFormats: 'সর্বোচ্চ {maxVideos} ভিডিও। সমর্থিত: mp4, mov, avi, webm। Cloudinary CDN এর মাধ্যমে আপলোড। প্রতি ফাইলে সর্বোচ্চ 20MB।',
-    maxFileSize: 'MB',
+    supportedFormats: '{maxVideos} পর্যন্ত ভিডিও। সমর্থিত: mp4, mov, avi, webm। Cloudinary CDN এর মাধ্যমে আপলোড। ফাইল প্রতি সর্বোচ্চ 20MB।',
+    maxFileSize: 'MB'
+  },
+
+  // Image Upload
+  imageUpload: {
+    title: 'অর্ডার ছবি',
+    imagesCount: '{count}/{max} ছবি',
+    smartUpload: 'স্মার্ট আপলোড...',
+    uploadPhotos: 'ছবি আপলোড করুন ({count}/{max})',
+    cancelUpload: 'আপলোড বাতিল করুন',
+    imagesUploaded: '✅ ছবি আপলোড হয়েছে: {count}',
+    smartCompressionLossless: '🧠 স্মার্ট কম্প্রেশন: ফাইল <400KB ক্ষতিহীন',
+    smartCompressionActive: '🧠 স্মার্ট কম্প্রেশন সক্রিয়',
+    compressionInfo: {
+      lossless: '• ফাইল <400KB - কোন সংকোচন নেই (মূল গুণমান)',
+      light: '• ফাইল 400KB-2MB - হালকা সংকোচন (90% গুণমান)',
+      adaptive: '• ফাইল >2MB - অভিযোজিত সংকোচন'
+    }
   },
 
   media: {
@@ -1567,7 +1635,7 @@ const bn: SellerPagesTranslations = {
     photos: 'ছবি',
     videos: 'ভিডিও',
     smartCompression: 'পণ্যের জন্য স্মার্ট কম্প্রেশন',
-    smartCompressionDescription: 'ছোট ফাইল (<400KB) মূল গুণমান বজায় রাখে\nবড় ফাইল বিস্তারিত হারিয়ে না নিয়ে অভিযোজিতভাবে কম্প্রেস করা হয়',
+    smartCompressionDescription: 'ছোট ফাইল (<400KB) মূল গুণমান বজায় রাখে\nবড় ফাইলগুলি বিস্তারিত হারানো ছাড়াই অভিযোজিত সংকোচন হয়',
     uploadedVideos: 'আপলোড করা ভিডিও',
     mediaCount: 'মিডিয়া ফাইল',
     smartQuality: 'স্মার্ট গুণমান',
