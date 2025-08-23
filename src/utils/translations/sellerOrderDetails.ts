@@ -4,6 +4,7 @@ interface SellerOrderDetailsTranslations {
   // Page header
   orderDetails: string;
   orderNumber: string;
+  optId: string;
   
   // Product information section
   productInformation: string;
@@ -105,6 +106,7 @@ interface SellerOrderDetailsTranslations {
 const ru: SellerOrderDetailsTranslations = {
   orderDetails: 'Детали заказа',
   orderNumber: 'Номер заказа',
+  optId: 'OPT ID',
   
   productInformation: 'Информация о товаре',
   productName: 'Название товара',
@@ -193,6 +195,7 @@ const ru: SellerOrderDetailsTranslations = {
 const en: SellerOrderDetailsTranslations = {
   orderDetails: 'Order Details',
   orderNumber: 'Order Number',
+  optId: 'OPT ID',
   
   productInformation: 'Product Information',
   productName: 'Product Name',
@@ -281,6 +284,7 @@ const en: SellerOrderDetailsTranslations = {
 const bn: SellerOrderDetailsTranslations = {
   orderDetails: 'অর্ডারের বিস্তারিত',
   orderNumber: 'অর্ডার নম্বর',
+  optId: 'OPT ID',
   
   productInformation: 'পণ্যের তথ্য',
   productName: 'পণ্যের নাম',

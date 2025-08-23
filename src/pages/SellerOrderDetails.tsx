@@ -14,6 +14,7 @@ import { getSellerOrderDetailsTranslations } from '@/utils/translations/sellerOr
 import { getCommonTranslations } from '@/utils/translations/common';
 import { OrderConfirmButton } from '@/components/order/OrderConfirmButton';
 import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvidenceWizard";
+import { useMobileLayout } from '@/hooks/useMobileLayout';
 
 const SellerOrderDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,7 @@ const SellerOrderDetails = () => {
   const { language } = useLanguage();
   const t = getSellerOrderDetailsTranslations(language);
   const c = getCommonTranslations(language);
+  const { isMobile } = useMobileLayout();
   const [showConfirmationUpload, setShowConfirmationUpload] = useState(false);
 
   // Main order query with buyer/seller info
@@ -237,6 +239,43 @@ const SellerOrderDetails = () => {
             <ArrowLeft className="h-4 w-4" />
             {c.buttons.back}
           </Button>
+        </div>
+
+        {/* OPT ID and Order Number Blocks */}
+        <div className={`mb-8 grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          {/* OPT ID Block */}
+          <Card className="overflow-hidden">
+            <div className="bg-gradient-to-br from-blue-500/10 via-blue-600/5 to-blue-700/10 p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-blue-500/20 rounded-lg">
+                  <User className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground font-medium">{t.optId}</div>
+                  <div className="text-2xl font-bold text-foreground">
+                    {order.buyer_opt_id || t.notSpecified}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Order Number Block */}
+          <Card className="overflow-hidden">
+            <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-primary/15 p-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/20 rounded-lg">
+                  <Package className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground font-medium">{t.orderNumber}</div>
+                  <div className="text-2xl font-bold text-foreground">
+                    № {order.order_number}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Header Card */}
