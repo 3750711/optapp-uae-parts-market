@@ -63,11 +63,58 @@ export interface SellerPagesTranslations {
   selectProductAndBuyer: string;
   selectProduct: string;
   selectBuyer: string;
+  step2Title: string;
+  step2Description: string;
+  step1Title: string;
+  step1Description: string;
   confirmation: string;
-  productsFromInventory: string;
   noProductsInInventory: string;
   noProductsFound: string;
   addProductsFirst: string;
+  tryChangingSearchCriteria: string;
+  productLabel: string;
+  selectBuyerPlaceholder: string;
+  
+  // Order Confirmation
+  orderInformation: string;
+  productInformation: string;
+  orderParameters: string;
+  titleLabel: string;
+  priceLabel: string;
+  brandLabel: string;
+  modelLabel: string;
+  productMedia: string;
+  deliveryLabel: string;
+  deliveryPrice: string;
+  numberOfPlaces: string;
+  totalLabel: string;
+  additionalInformation: string;
+  sellerLabel: string;
+  buyerLabel: string;
+  nameLabel: string;
+  optIdLabel: string;
+  telegramLabel: string;
+  backToBuyers: string;
+  
+  // Validation and messages
+  dataRestored: string;
+  changesRestoredMessage: string;
+  fieldUpdated: string;
+  changesSaved: string;
+  validationError: string;
+  titleRequired: string;
+  priceRequired: string;
+  placesRequired: string;
+  errorTitle: string;
+  orderCreateError: string;
+  notSpecified: string;
+  enterProductTitle: string;
+  enterBrand: string;
+  enterModel: string;
+  selectDeliveryMethod: string;
+  additionalInfoPlaceholder: string;
+  additionalInfoEmpty: string;
+  productsFromInventory: string;
   productSelected: string;
   buyerSelected: string;
   orderCreationError: string;
@@ -76,11 +123,6 @@ export interface SellerPagesTranslations {
   failedToLoadBuyers: string;
   failedToLoadProducts: string;
   notAllDataFilled: string;
-  step1Title: string;
-  step1Description: string;
-  step2Title: string;
-  step2Description: string;
-  selectBuyerPlaceholder: string;
   
   // SellerProductDetail
   productDetail: string;
@@ -140,7 +182,6 @@ export interface SellerPagesTranslations {
   model: string;
   productPrice: string;
   deliveryCost: string;
-  numberOfPlaces: string;
   additionalInfo: string;
   mediaFiles: string;
   photos: string;
@@ -155,7 +196,6 @@ export interface SellerPagesTranslations {
   containerNumber: string;
   containerStatus: string;
   confirmationPhotos: string;
-  notSpecified: string;
   labelInstruction: string;
   
   // Status labels
@@ -300,11 +340,58 @@ const ru: SellerPagesTranslations = {
   selectProductAndBuyer: 'Выберите товар из вашего инвентаря и покупателя для создания заказа',
   selectProduct: 'Товар',
   selectBuyer: 'Покупатель',
+  step2Title: 'Шаг 2: Выберите покупателя',
+  step2Description: 'Товар:',
+  step1Title: 'Шаг 1: Выберите товар',
+  step1Description: 'Выберите товар из вашего инвентаря',
   confirmation: 'Подтверждение',
-  productsFromInventory: 'Товары из вашего инвентаря',
   noProductsInInventory: 'Нет товаров в инвентаре',
   noProductsFound: 'Товары не найдены',
-  addProductsFirst: 'Сначала добавьте товары в свой инвентарь',
+  addProductsFirst: 'Добавьте товары в ваш инвентарь для начала продаж',
+  tryChangingSearchCriteria: 'Попробуйте изменить критерии поиска',
+  productLabel: 'Товар:',
+  selectBuyerPlaceholder: 'Выберите покупателя',
+  
+  // Order Confirmation
+  orderInformation: 'Информация о заказе',
+  productInformation: 'Информация о товаре',
+  orderParameters: 'Параметры заказа',
+  titleLabel: 'Название:',
+  priceLabel: 'Цена:',
+  brandLabel: 'Бренд:',
+  modelLabel: 'Модель:',
+  productMedia: 'Медиа товара:',
+  deliveryLabel: 'Доставка:',
+  deliveryPrice: 'Стоимость доставки:',
+  numberOfPlaces: 'Количество мест:',
+  totalLabel: 'Итого:',
+  additionalInformation: 'Дополнительная информация:',
+  sellerLabel: 'Продавец',
+  buyerLabel: 'Покупатель',
+  nameLabel: 'Имя:',
+  optIdLabel: 'OPT ID:',
+  telegramLabel: 'Telegram:',
+  backToBuyers: 'Назад к покупателям',
+  
+  // Validation and messages
+  dataRestored: 'Данные восстановлены',
+  changesRestoredMessage: 'Ваши изменения были автоматически восстановлены',
+  fieldUpdated: 'Поле обновлено',
+  changesSaved: 'Изменения сохранены',
+  validationError: 'Ошибка валидации',
+  titleRequired: 'Название товара обязательно',
+  priceRequired: 'Цена должна быть больше 0',
+  placesRequired: 'Количество мест должно быть больше 0',
+  errorTitle: 'Ошибка',
+  orderCreateError: 'Не удалось подтвердить заказ. Попробуйте еще раз.',
+  notSpecified: 'Не указано',
+  enterProductTitle: 'Введите название товара',
+  enterBrand: 'Введите бренд',
+  enterModel: 'Введите модель',
+  selectDeliveryMethod: 'Выберите способ доставки',
+  additionalInfoPlaceholder: 'Укажите дополнительную информацию о заказе',
+  additionalInfoEmpty: 'Нажмите, чтобы добавить дополнительную информацию',
+  productsFromInventory: 'Товары из вашего инвентаря',
   productSelected: 'Товар выбран',
   buyerSelected: 'Покупатель выбран',
   orderCreationError: 'Ошибка создания заказа',
@@ -313,11 +400,6 @@ const ru: SellerPagesTranslations = {
   failedToLoadBuyers: 'Не удалось загрузить список покупателей',
   failedToLoadProducts: 'Не удалось загрузить ваши товары',
   notAllDataFilled: 'Не все данные заполнены',
-  step1Title: 'Шаг 1: Выберите товар',
-  step1Description: 'Товары из вашего инвентаря',
-  step2Title: 'Шаг 2: Выберите покупателя',
-  step2Description: 'Выберите покупателя для заказа',
-  selectBuyerPlaceholder: 'Выберите покупателя...',
   
   // SellerProductDetail
   productDetail: 'Детали товара',
@@ -377,7 +459,6 @@ const ru: SellerPagesTranslations = {
   model: 'Модель',
   productPrice: 'Цена товара',
   deliveryCost: 'Стоимость доставки',
-  numberOfPlaces: 'Количество мест',
   additionalInfo: 'Дополнительная информация',
   mediaFiles: 'Медиафайлы',
   photos: 'Фотографии',
@@ -392,7 +473,6 @@ const ru: SellerPagesTranslations = {
   containerNumber: 'Номер контейнера',
   containerStatus: 'Статус контейнера',
   confirmationPhotos: 'Подтверждающие фотографии',
-  notSpecified: 'Не указан',
   labelInstruction: 'Подпишите товар и добавьте фото в заказ',
   
   // Status labels
@@ -535,11 +615,58 @@ const en: SellerPagesTranslations = {
   selectProductAndBuyer: 'Select a product from your inventory and a buyer to create an order',
   selectProduct: 'Product',
   selectBuyer: 'Buyer',
+  step2Title: 'Step 2: Select Buyer',
+  step2Description: 'Product:',
+  step1Title: 'Step 1: Select Product',
+  step1Description: 'Select a product from your inventory',
   confirmation: 'Confirmation',
-  productsFromInventory: 'Products from your inventory',
   noProductsInInventory: 'No products in inventory',
   noProductsFound: 'No products found',
-  addProductsFirst: 'Add products to your inventory first',
+  addProductsFirst: 'Add products to your inventory to start selling',
+  tryChangingSearchCriteria: 'Try changing your search criteria',
+  productLabel: 'Product:',
+  selectBuyerPlaceholder: 'Select buyer',
+  
+  // Order Confirmation
+  orderInformation: 'Order Information',
+  productInformation: 'Product Information',
+  orderParameters: 'Order Parameters',
+  titleLabel: 'Title:',
+  priceLabel: 'Price:',
+  brandLabel: 'Brand:',
+  modelLabel: 'Model:',
+  productMedia: 'Product Media:',
+  deliveryLabel: 'Delivery:',
+  deliveryPrice: 'Delivery Price:',
+  numberOfPlaces: 'Number of Places:',
+  totalLabel: 'Total:',
+  additionalInformation: 'Additional Information:',
+  sellerLabel: 'Seller',
+  buyerLabel: 'Buyer',
+  nameLabel: 'Name:',
+  optIdLabel: 'OPT ID:',
+  telegramLabel: 'Telegram:',
+  backToBuyers: 'Back to Buyers',
+  
+  // Validation and messages
+  dataRestored: 'Data Restored',
+  changesRestoredMessage: 'Your changes have been automatically restored',
+  fieldUpdated: 'Field Updated',
+  changesSaved: 'Changes Saved',
+  validationError: 'Validation Error',
+  titleRequired: 'Product title is required',
+  priceRequired: 'Price must be greater than 0',
+  placesRequired: 'Number of places must be greater than 0',
+  errorTitle: 'Error',
+  orderCreateError: 'Failed to confirm order. Please try again.',
+  notSpecified: 'Not specified',
+  enterProductTitle: 'Enter product title',
+  enterBrand: 'Enter brand',
+  enterModel: 'Enter model',
+  selectDeliveryMethod: 'Select delivery method',
+  additionalInfoPlaceholder: 'Specify additional order information',
+  additionalInfoEmpty: 'Click to add additional information',
+  productsFromInventory: 'Products from your inventory',
   productSelected: 'Product selected',
   buyerSelected: 'Buyer selected',
   orderCreationError: 'Order Creation Error',
@@ -548,11 +675,6 @@ const en: SellerPagesTranslations = {
   failedToLoadBuyers: 'Failed to load buyers list',
   failedToLoadProducts: 'Failed to load your products',
   notAllDataFilled: 'Not all data is filled',
-  step1Title: 'Step 1: Select Product',
-  step1Description: 'Products from your inventory',
-  step2Title: 'Step 2: Select Buyer',
-  step2Description: 'Choose a buyer for the order',
-  selectBuyerPlaceholder: 'Select buyer...',
   
   // SellerProductDetail
   productDetail: 'Product Details',
@@ -612,7 +734,6 @@ const en: SellerPagesTranslations = {
   model: 'Model',
   productPrice: 'Product Price',
   deliveryCost: 'Delivery Cost',
-  numberOfPlaces: 'Number of Places',
   additionalInfo: 'Additional Information',
   mediaFiles: 'Media Files',
   photos: 'Photos',
@@ -627,7 +748,6 @@ const en: SellerPagesTranslations = {
   containerNumber: 'Container Number',
   containerStatus: 'Container Status',
   confirmationPhotos: 'Confirmation Photos',
-  notSpecified: 'Not specified',
   labelInstruction: 'Label the product and add photos to the order',
   
   // Status labels
@@ -770,11 +890,58 @@ const bn: SellerPagesTranslations = {
   selectProductAndBuyer: 'একটি অর্ডার তৈরি করতে আপনার ইনভেন্টরি থেকে একটি পণ্য এবং একজন ক্রেতা নির্বাচন করুন',
   selectProduct: 'পণ্য',
   selectBuyer: 'ক্রেতা',
+  step2Title: 'ধাপ ২: ক্রেতা নির্বাচন',
+  step2Description: 'পণ্য:',
+  step1Title: 'ধাপ ১: পণ্য নির্বাচন',
+  step1Description: 'আপনার ইনভেন্টরি থেকে একটি পণ্য নির্বাচন করুন',
   confirmation: 'নিশ্চিতকরণ',
+  noProductsInInventory: 'ইনভেন্টরিতে কোনো পণ্য নেই',
+  noProductsFound: 'কোনো পণ্য পাওয়া যায়নি',
+  addProductsFirst: 'বিক্রয় শুরু করতে আপনার ইনভেন্টরিতে পণ্য যোগ করুন',
+  tryChangingSearchCriteria: 'অনুসন্ধানের শর্ত পরিবর্তন করে দেখুন',
+  productLabel: 'পণ্য:',
+  selectBuyerPlaceholder: 'ক্রেতা নির্বাচন করুন',
+  
+  // Order Confirmation
+  orderInformation: 'অর্ডারের তথ্য',
+  productInformation: 'পণ্যের তথ্য',
+  orderParameters: 'অর্ডার প্যারামিটার',
+  titleLabel: 'শিরোনাম:',
+  priceLabel: 'মূল্য:',
+  brandLabel: 'ব্র্যান্ড:',
+  modelLabel: 'মডেল:',
+  productMedia: 'পণ্যের মিডিয়া:',
+  deliveryLabel: 'ডেলিভারি:',
+  deliveryPrice: 'ডেলিভারির মূল্য:',
+  numberOfPlaces: 'স্থানের সংখ্যা:',
+  totalLabel: 'মোট:',
+  additionalInformation: 'অতিরিক্ত তথ্য:',
+  sellerLabel: 'বিক্রেতা',
+  buyerLabel: 'ক্রেতা',
+  nameLabel: 'নাম:',
+  optIdLabel: 'OPT ID:',
+  telegramLabel: 'Telegram:',
+  backToBuyers: 'ক্রেতাদের কাছে ফিরে যান',
+  
+  // Validation and messages
+  dataRestored: 'ডেটা পুনরুদ্ধার করা হয়েছে',
+  changesRestoredMessage: 'আপনার পরিবর্তনগুলি স্বয়ংক্রিয়ভাবে পুনরুদ্ধার করা হয়েছে',
+  fieldUpdated: 'ক্ষেত্র আপডেট হয়েছে',
+  changesSaved: 'পরিবর্তনগুলি সংরক্ষিত হয়েছে',
+  validationError: 'বৈধতা ত্রুটি',
+  titleRequired: 'পণ্যের শিরোনাম প্রয়োজন',
+  priceRequired: 'মূল্য ০ এর চেয়ে বেশি হতে হবে',
+  placesRequired: 'স্থানের সংখ্যা ০ এর চেয়ে বেশি হতে হবে',
+  errorTitle: 'ত্রুটি',
+  orderCreateError: 'অর্ডার নিশ্চিত করতে ব্যর্থ। আবার চেষ্টা করুন।',
+  notSpecified: 'নির্দিষ্ট নয়',
+  enterProductTitle: 'পণ্যের শিরোনাম লিখুন',
+  enterBrand: 'ব্র্যান্ড লিখুন',
+  enterModel: 'মডেল লিখুন',
+  selectDeliveryMethod: 'ডেলিভারি পদ্ধতি নির্বাচন করুন',
+  additionalInfoPlaceholder: 'অর্ডার সম্পর্কে অতিরিক্ত তথ্য নির্দিষ্ট করুন',
+  additionalInfoEmpty: 'অতিরিক্ত তথ্য যোগ করতে ক্লিক করুন',
   productsFromInventory: 'আপনার ইনভেন্টরি থেকে পণ্য',
-  noProductsInInventory: 'ইনভেন্টরিতে কোন পণ্য নেই',
-  noProductsFound: 'কোন পণ্য পাওয়া যায়নি',
-  addProductsFirst: 'প্রথমে আপনার ইনভেন্টরিতে পণ্য যোগ করুন',
   productSelected: 'পণ্য নির্বাচিত',
   buyerSelected: 'ক্রেতা নির্বাচিত',
   orderCreationError: 'অর্ডার তৈরির ত্রুটি',
@@ -783,11 +950,6 @@ const bn: SellerPagesTranslations = {
   failedToLoadBuyers: 'ক্রেতাদের তালিকা লোড করতে ব্যর্থ',
   failedToLoadProducts: 'আপনার পণ্য লোড করতে ব্যর্থ',
   notAllDataFilled: 'সব তথ্য পূরণ করা হয়নি',
-  step1Title: 'ধাপ ১: পণ্য নির্বাচন করুন',
-  step1Description: 'আপনার ইনভেন্টরি থেকে পণ্য',
-  step2Title: 'ধাপ ২: ক্রেতা নির্বাচন করুন',
-  step2Description: 'অর্ডারের জন্য একজন ক্রেতা বেছে নিন',
-  selectBuyerPlaceholder: 'ক্রেতা নির্বাচন করুন...',
   
   // SellerProductDetail
   productDetail: 'পণ্যের বিশদ',
@@ -847,7 +1009,6 @@ const bn: SellerPagesTranslations = {
   model: 'মডেল',
   productPrice: 'পণ্যের মূল্য',
   deliveryCost: 'ডেলিভারি খরচ',
-  numberOfPlaces: 'জায়গার সংখ্যা',
   additionalInfo: 'অতিরিক্ত তথ্য',
   mediaFiles: 'মিডিয়া ফাইল',
   photos: 'ছবি',
@@ -862,7 +1023,6 @@ const bn: SellerPagesTranslations = {
   containerNumber: 'কন্টেইনার নম্বর',
   containerStatus: 'কন্টেইনার স্ট্যাটাস',
   confirmationPhotos: 'নিশ্চিতকরণ ছবি',
-  notSpecified: 'নির্দিষ্ট করা হয়নি',
   labelInstruction: 'পণ্যে লেবেল করুন এবং অর্ডারে ছবি যোগ করুন',
   
   // Status labels

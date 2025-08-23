@@ -30,12 +30,12 @@ const BuyerSelectionStep: React.FC<BuyerSelectionStepProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Шаг 3: Выберите покупателя</CardTitle>
+        <CardTitle>Step 3: Select Buyer</CardTitle>
         <CardDescription>
-          Товар: {selectedProduct.title}
+          Product: {selectedProduct.title}
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className="text-xs">
-              Лот: {selectedProduct.lot_number}
+              Lot: {selectedProduct.lot_number}
             </Badge>
             <Badge variant="success" className="text-xs">
               {selectedProduct.status}
@@ -45,10 +45,10 @@ const BuyerSelectionStep: React.FC<BuyerSelectionStepProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <Label htmlFor="buyer">Покупатель</Label>
+          <Label htmlFor="buyer">Buyer</Label>
           <Select onValueChange={onBuyerSelect}>
             <SelectTrigger>
-              <SelectValue placeholder="Выберите покупателя" />
+              <SelectValue placeholder="Select buyer" />
             </SelectTrigger>
             <SelectContent>
               {buyers
@@ -63,7 +63,7 @@ const BuyerSelectionStep: React.FC<BuyerSelectionStepProps> = ({
         </div>
         <div className="mt-6 flex space-x-2">
           <Button variant="outline" onClick={onBackToProducts}>
-            Назад
+            Back
           </Button>
         </div>
       </CardContent>

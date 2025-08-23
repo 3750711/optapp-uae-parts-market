@@ -11,6 +11,8 @@ import { InlineEditableTextarea } from '@/components/ui/InlineEditableTextarea';
 import { InlineEditableSelect } from '@/components/ui/InlineEditableSelect';
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 import SellerOrderPriceConfirmDialog from './SellerOrderPriceConfirmDialog';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 interface Product {
   id: string;
@@ -87,6 +89,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
 }) => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
   const [showPriceConfirmDialog, setShowPriceConfirmDialog] = useState(false);
   const [editableData, setEditableData] = useState<EditableData>({
     title: product.title,
@@ -121,8 +125,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       setEditableData(savedData);
       
       toast({
-        title: "Data Restored",
-        description: "Your changes have been automatically restored",
+        title: sp.dataRestored,
+        description: sp.changesRestoredMessage,
       });
     }
   }, [loadEditableData, editableDataExists, toast]);
@@ -156,8 +160,8 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
     
     // Show success toast for field updates
     toast({
-      title: "Field Updated",
-      description: "Changes Saved",
+      title: sp.fieldUpdated,
+      description: sp.changesSaved,
     });
   };
 

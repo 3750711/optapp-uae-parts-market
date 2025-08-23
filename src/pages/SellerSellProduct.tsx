@@ -499,14 +499,14 @@ const SellerSellProduct = () => {
                   <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
                     {products.length === 0 
-                      ? "No products in inventory"
-                      : "No products found"
+                      ? sp.noProductsInInventory
+                      : sp.noProductsFound
                     }
                   </h3>
                   <p className="text-gray-500">
                     {products.length === 0 
-                      ? "Add products to your inventory to start selling"
-                      : "Try changing your search criteria"
+                      ? sp.addProductsFirst
+                      : sp.tryChangingSearchCriteria
                     }
                   </p>
                 </div>
@@ -538,17 +538,17 @@ const SellerSellProduct = () => {
         {step === 2 && selectedProduct && (
           <Card>
             <CardHeader>
-              <CardTitle>Step 2: Select Buyer</CardTitle>
+              <CardTitle>{sp.step2Title}</CardTitle>
               <CardDescription>
-                Product: {selectedProduct.title}
+                {sp.productLabel} {selectedProduct.title}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Label htmlFor="buyer">Buyer</Label>
+                <Label htmlFor="buyer">{sp.selectBuyer}</Label>
                 <Select onValueChange={handleBuyerSelect}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select buyer" />
+                    <SelectValue placeholder={sp.selectBuyerPlaceholder} />
                   </SelectTrigger>
                   <SelectContent>
                     {buyers
@@ -563,7 +563,7 @@ const SellerSellProduct = () => {
               </div>
               <div className="mt-6 flex space-x-2">
                  <Button variant="outline" onClick={() => setStep(1)}>
-                   Back
+                   {c.buttons.back}
                  </Button>
               </div>
             </CardContent>
