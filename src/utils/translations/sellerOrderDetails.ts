@@ -93,6 +93,13 @@ interface SellerOrderDetailsTranslations {
   orderNotFound: string;
   loadingOrder: string;
   errorLoadingOrder: string;
+  
+  // Confirmation photos
+  confirmationPhotos: string;
+  uploadConfirmationPhotos: string;
+  chatScreenshots: string;
+  signedProductPhotos: string;
+  filesCount: string;
 }
 
 const ru: SellerOrderDetailsTranslations = {
@@ -175,6 +182,12 @@ const ru: SellerOrderDetailsTranslations = {
   orderNotFound: 'Заказ не найден',
   loadingOrder: 'Загрузка заказа...',
   errorLoadingOrder: 'Ошибка загрузки заказа',
+  
+  confirmationPhotos: 'Подтверждающие фото',
+  uploadConfirmationPhotos: 'Загрузить подтверждающие фото',
+  chatScreenshots: 'Скриншоты чата',
+  signedProductPhotos: 'Фото подписанного товара',
+  filesCount: 'файлов',
 };
 
 const en: SellerOrderDetailsTranslations = {
@@ -257,6 +270,12 @@ const en: SellerOrderDetailsTranslations = {
   orderNotFound: 'Order not found',
   loadingOrder: 'Loading order...',
   errorLoadingOrder: 'Error loading order',
+  
+  confirmationPhotos: 'Confirmation Photos',
+  uploadConfirmationPhotos: 'Upload Confirmation Photos',
+  chatScreenshots: 'Chat Screenshots',
+  signedProductPhotos: 'Signed Product Photos',
+  filesCount: 'files',
 };
 
 const bn: SellerOrderDetailsTranslations = {
@@ -339,6 +358,12 @@ const bn: SellerOrderDetailsTranslations = {
   orderNotFound: 'অর্ডার পাওয়া যায়নি',
   loadingOrder: 'অর্ডার লোড হচ্ছে...',
   errorLoadingOrder: 'অর্ডার লোড করতে ত্রুটি',
+  
+  confirmationPhotos: 'নিশ্চিতকরণ ছবি',
+  uploadConfirmationPhotos: 'নিশ্চিতকরণ ছবি আপলোড করুন',
+  chatScreenshots: 'চ্যাট স্ক্রিনশট',
+  signedProductPhotos: 'স্বাক্ষরিত পণ্যের ছবি',
+  filesCount: 'ফাইল',
 };
 
 export const sellerOrderDetailsTranslations: Record<Lang, SellerOrderDetailsTranslations> = {

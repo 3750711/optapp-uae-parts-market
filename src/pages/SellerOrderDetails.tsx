@@ -13,6 +13,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerOrderDetailsTranslations } from '@/utils/translations/sellerOrderDetails';
 import { getCommonTranslations } from '@/utils/translations/common';
 import { OrderConfirmButton } from '@/components/order/OrderConfirmButton';
+import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvidenceWizard";
 
 const SellerOrderDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,7 @@ const SellerOrderDetails = () => {
   const { language } = useLanguage();
   const t = getSellerOrderDetailsTranslations(language);
   const c = getCommonTranslations(language);
+  const [showConfirmationUpload, setShowConfirmationUpload] = useState(false);
 
   // Main order query with buyer/seller info
   const { data: order, isLoading: isOrderLoading, error: orderError } = useQuery({
@@ -87,6 +89,41 @@ const SellerOrderDetails = () => {
     enabled: !!id && !!order
   });
 
+  // Confirmation images queries
+  const { data: chatScreenshots = [] } = useQuery({
+    queryKey: ['confirm-images', id, 'chat_screenshot'],
+    queryFn: async () => {
+      if (!id) return [];
+      
+      const { data, error } = await supabase
+        .from('confirm_images')
+        .select('url')
+        .eq('order_id', id)
+        .eq('category', 'chat_screenshot');
+
+      if (error) throw error;
+      return data?.map(img => img.url) || [];
+    },
+    enabled: !!id && !!order
+  });
+
+  const { data: signedProductPhotos = [] } = useQuery({
+    queryKey: ['confirm-images', id, 'signed_product'],
+    queryFn: async () => {
+      if (!id) return [];
+      
+      const { data, error } = await supabase
+        .from('confirm_images')
+        .select('url')
+        .eq('order_id', id)
+        .eq('category', 'signed_product');
+
+      if (error) throw error;
+      return data?.map(img => img.url) || [];
+    },
+    enabled: !!id && !!order
+  });
+
   if (!id) {
     return (
       <SellerLayout>
@@ -138,6 +175,14 @@ const SellerOrderDetails = () => {
   const isSelfOrder = order.seller_id === order.buyer_id;
   const allVideos = [...(order.video_url || []), ...videos];
   const allImages = [...(order.images || []), ...images];
+
+  const handleConfirmationUploadComplete = () => {
+    setShowConfirmationUpload(false);
+  };
+
+  const handleConfirmationUploadSkip = () => {
+    setShowConfirmationUpload(false);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -228,8 +273,29 @@ const SellerOrderDetails = () => {
               </div>
               
               <div className="flex items-center gap-2">
-                {order.status === 'admin_confirmed' && (
-                  <OrderConfirmButton orderId={order.id} />
+                {['seller_confirmed', 'admin_confirmed', 'processed', 'shipped', 'delivered'].includes(order.status) && (
+                  <div className="flex items-center gap-2">
+                    {/* Enhanced confirmation button with file counters */}
+                    <Button
+                      onClick={() => setShowConfirmationUpload(true)}
+                      variant="secondary"
+                      size="sm"
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
+                    >
+                      <Camera className="h-4 w-4" />
+                      {t.confirmationPhotos}
+                      <div className="ml-1 flex items-center gap-1">
+                        <span className="text-xs bg-primary-foreground/20 rounded px-1">
+                          {chatScreenshots.length + signedProductPhotos.length} {t.filesCount}
+                        </span>
+                      </div>
+                    </Button>
+                    
+                    {/* Keep existing OrderConfirmButton for backward compatibility */}
+                    {order.status === 'admin_confirmed' && (
+                      <OrderConfirmButton orderId={order.id} />
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -444,6 +510,14 @@ const SellerOrderDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Images Upload Dialog */}
+      <OrderConfirmEvidenceWizard
+        open={showConfirmationUpload}
+        orderId={order.id}
+        onComplete={handleConfirmationUploadComplete}
+        onCancel={handleConfirmationUploadSkip}
+      />
     </SellerLayout>
   );
 };
