@@ -4,6 +4,8 @@ import { UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { Form } from "@/components/ui/form";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getFormTranslations } from "@/utils/translations/forms";
 import FormSectionWrapper from './form/FormSectionWrapper';
 import SellerSelectionSection from './form/SellerSelectionSection';
 import BasicInfoSection from "./form/BasicInfoSection";
@@ -78,20 +80,23 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   onImageDelete,
   onUploadStateChange,
 }) => {
+  const { language } = useLanguage();
+  const t = getFormTranslations(language);
+  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {showSellerSelection && sellers.length > 0 && (
-        <FormSectionWrapper title="Seller">
+        <FormSectionWrapper title={t.sections.seller}>
             <SellerSelectionSection form={form} sellers={sellers} />
           </FormSectionWrapper>
         )}
 
-        <FormSectionWrapper title="Basic Information">
+        <FormSectionWrapper title={t.sections.basicInformation}>
           <BasicInfoSection form={form} />
         </FormSectionWrapper>
 
-        <FormSectionWrapper title="Car Information">
+        <FormSectionWrapper title={t.sections.carInformation}>
           <CarInfoSection
             form={form}
             brands={brands}
@@ -101,7 +106,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           />
         </FormSectionWrapper>
         
-        <FormSectionWrapper title="Media Files">
+        <FormSectionWrapper title={t.sections.mediaFiles}>
           <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
             <OptimizedMediaSection 
               imageUrls={imageUrls}
@@ -124,10 +129,10 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Publishing...
+              {t.buttons.publishing}
             </>
           ) : (
-            'Publish'
+            t.buttons.publish
           )}
         </Button>
       </form>

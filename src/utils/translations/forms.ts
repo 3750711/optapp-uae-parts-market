@@ -44,10 +44,15 @@ export interface FormTranslations {
     save: string;
     cancel: string;
     publish: string;
+    publishing: string;
     addImages: string;
     addVideos: string;
     backToDashboard: string;
     refreshPage: string;
+    uploadPhotos: string;
+    uploadVideos: string;
+    cancelUpload: string;
+    smartUpload: string;
   };
   messages: {
     productCreated: string;
@@ -69,6 +74,7 @@ export interface FormTranslations {
     productInformation: string;
     productDescription: string;
     publishProduct: string;
+    seller: string;
   };
   optional: string;
 }
@@ -118,10 +124,15 @@ const formTranslations: Record<Lang, FormTranslations> = {
       save: 'Сохранить',
       cancel: 'Отмена',
       publish: 'Опубликовать',
+      publishing: 'Публикация...',
       addImages: 'Добавить изображения',
       addVideos: 'Добавить видео',
       backToDashboard: 'Назад к панели',
       refreshPage: 'Обновить страницу',
+      uploadPhotos: 'Загрузить фото',
+      uploadVideos: 'Загрузить видео',
+      cancelUpload: 'Отменить загрузку',
+      smartUpload: 'Умная загрузка...',
     },
     messages: {
       productCreated: 'Товар успешно создан',
@@ -143,6 +154,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       productInformation: 'Информация о товаре',
       productDescription: 'Заполните все поля для создания товара. Товар будет отправлен на модерацию.',
       publishProduct: 'Опубликовать товар',
+      seller: 'Продавец',
     },
     optional: '(опционально)',
   },
@@ -190,10 +202,15 @@ const formTranslations: Record<Lang, FormTranslations> = {
       save: 'Save',
       cancel: 'Cancel',
       publish: 'Publish',
+      publishing: 'Publishing...',
       addImages: 'Add Images',
       addVideos: 'Add Videos',
       backToDashboard: 'Back to Dashboard',
       refreshPage: 'Refresh Page',
+      uploadPhotos: 'Upload Photos',
+      uploadVideos: 'Upload Videos',
+      cancelUpload: 'Cancel Upload',
+      smartUpload: 'Smart Upload...',
     },
     messages: {
       productCreated: 'Product successfully created',
@@ -215,6 +232,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       productInformation: 'Product Information',
       productDescription: 'Fill in all fields to create a product. The product will be sent for moderation.',
       publishProduct: 'Publish Product',
+      seller: 'Seller',
     },
     optional: '(optional)',
   },
@@ -262,10 +280,15 @@ const formTranslations: Record<Lang, FormTranslations> = {
       save: 'সংরক্ষণ',
       cancel: 'বাতিল',
       publish: 'প্রকাশ',
+      publishing: 'প্রকাশ করা হচ্ছে...',
       addImages: 'ছবি যোগ করুন',
       addVideos: 'ভিডিও যোগ করুন',
       backToDashboard: 'ড্যাশবোর্ডে ফিরুন',
       refreshPage: 'পৃষ্ঠা রিফ্রেশ করুন',
+      uploadPhotos: 'ছবি আপলোড করুন',
+      uploadVideos: 'ভিডিও আপলোড করুন',
+      cancelUpload: 'আপলোড বাতিল করুন',
+      smartUpload: 'স্মার্ট আপলোড...',
     },
     messages: {
       productCreated: 'পণ্য সফলভাবে তৈরি',
@@ -287,6 +310,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       productInformation: 'পণ্যের তথ্য',
       productDescription: 'একটি পণ্য তৈরি করতে সমস্ত ক্ষেত্র পূরণ করুন। পণ্যটি পরিমার্জনের জন্য পাঠানো হবে।',
       publishProduct: 'পণ্য প্রকাশ করুন',
+      seller: 'বিক্রেতা',
     },
     optional: '(ঐচ্ছিক)',
   },

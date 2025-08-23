@@ -153,6 +153,38 @@ export interface SellerPagesTranslations {
     title: string;
     subtitle: string;
   };
+  
+  // System messages and errors
+  system?: {
+    error: string;
+    profileIncomplete: string;
+    userNotAuthorized: string;
+    pageError: string;
+    pageErrorDescription: string;
+    cloudinaryIntegration: string;
+    sellerDashboardBreadcrumb: string;
+    addProductBreadcrumb: string;
+    publishingProduct: string;
+    productPublished: string;
+    productSentForModeration: string;
+    failedToCreateProduct: string;
+  };
+  
+  // Media section
+  media?: {
+    uploadPhotos: string;
+    uploadVideos: string;
+    smartUpload: string;
+    cancelUpload: string;
+    mediaFiles: string;
+    photos: string;
+    videos: string;
+    smartCompression: string;
+    smartCompressionDescription: string;
+    uploadedVideos: string;
+    mediaCount: string;
+    smartQuality: string;
+  };
 }
 
 const ru: SellerPagesTranslations = {
@@ -307,6 +339,36 @@ const ru: SellerPagesTranslations = {
   register: {
     title: 'Станьте продавцом на',
     subtitle: 'Расширьте свой бизнес и привлеките новых клиентов, став частью ведущего B2B-маркетплейса автозапчастей в ОАЭ.'
+  },
+  
+  system: {
+    error: 'Ошибка',
+    profileIncomplete: 'Профиль не завершен',
+    userNotAuthorized: 'Пользователь не авторизован',
+    pageError: 'Ошибка страницы',
+    pageErrorDescription: 'Произошла ошибка при загрузке страницы. Пожалуйста, попробуйте обновить страницу.',
+    cloudinaryIntegration: 'Интеграция с Cloudinary',
+    sellerDashboardBreadcrumb: 'Панель продавца',
+    addProductBreadcrumb: 'Добавить товар',
+    publishingProduct: 'Публикация товара...',
+    productPublished: 'Товар успешно опубликован',
+    productSentForModeration: 'Товар отправлен на модерацию',
+    failedToCreateProduct: 'Не удалось создать товар. Попробуйте позже.',
+  },
+  
+  media: {
+    uploadPhotos: 'Загрузить фото',
+    uploadVideos: 'Загрузить видео',
+    smartUpload: 'Умная загрузка...',
+    cancelUpload: 'Отменить загрузку',
+    mediaFiles: 'Медиафайлы',
+    photos: 'Фотографии',
+    videos: 'Видео',
+    smartCompression: 'Умное сжатие для товаров',
+    smartCompressionDescription: 'Маленькие файлы (<400КБ) сохраняют исходное качество\nБольшие файлы сжимаются адаптивно без потери деталей',
+    uploadedVideos: 'Загруженные видео',
+    mediaCount: 'Медиафайлы',
+    smartQuality: 'Умное качество',
   },
 };
 
@@ -463,6 +525,36 @@ const en: SellerPagesTranslations = {
     title: 'Become a seller on',
     subtitle: 'Expand your business and attract new customers by becoming part of the leading B2B auto parts marketplace in the UAE.'
   },
+  
+  system: {
+    error: 'Error',
+    profileIncomplete: 'Profile Incomplete',
+    userNotAuthorized: 'User not authorized',
+    pageError: 'Page Error',
+    pageErrorDescription: 'An error occurred while loading the page. Please try refreshing the page.',
+    cloudinaryIntegration: 'Cloudinary integration',
+    sellerDashboardBreadcrumb: 'Seller Dashboard',
+    addProductBreadcrumb: 'Add Product',
+    publishingProduct: 'Publishing product...',
+    productPublished: 'Product successfully published',
+    productSentForModeration: 'Product sent for moderation',
+    failedToCreateProduct: 'Failed to create product. Please try again later.',
+  },
+  
+  media: {
+    uploadPhotos: 'Upload Photos',
+    uploadVideos: 'Upload Videos',
+    smartUpload: 'Smart Upload...',
+    cancelUpload: 'Cancel Upload',
+    mediaFiles: 'Media Files',
+    photos: 'Photos',
+    videos: 'Videos',
+    smartCompression: 'Smart Compression for Products',
+    smartCompressionDescription: 'Small files (<400KB) maintain original quality\nLarge files are compressed adaptively without losing details',
+    uploadedVideos: 'Uploaded Videos',
+    mediaCount: 'Media Files',
+    smartQuality: 'Smart Quality',
+  },
 };
 
 const bn: SellerPagesTranslations = {
@@ -617,6 +709,36 @@ const bn: SellerPagesTranslations = {
   register: {
     title: 'বিক্রেতা হন',
     subtitle: 'ইউএই-এর শীর্ষস্থানীয় B2B অটো পার্টস মার্কেটপ্লেসের অংশ হয়ে আপনার ব্যবসা সম্প্রসারিত করুন এবং নতুন গ্রাহকদের আকর্ষণ করুন।'
+  },
+  
+  system: {
+    error: 'ত্রুটি',
+    profileIncomplete: 'প্রোফাইল অসম্পূর্ণ',
+    userNotAuthorized: 'ব্যবহারকারী অনুমোদিত নয়',
+    pageError: 'পৃষ্ঠা ত্রুটি',
+    pageErrorDescription: 'পৃষ্ঠা লোড করার সময় একটি ত্রুটি ঘটেছে। দয়া করে পৃষ্ঠা রিফ্রেশ করার চেষ্টা করুন।',
+    cloudinaryIntegration: 'Cloudinary ইন্টিগ্রেশন',
+    sellerDashboardBreadcrumb: 'বিক্রেতা ড্যাশবোর্ড',
+    addProductBreadcrumb: 'পণ্য যোগ করুন',
+    publishingProduct: 'পণ্য প্রকাশ করা হচ্ছে...',
+    productPublished: 'পণ্য সফলভাবে প্রকাশিত',
+    productSentForModeration: 'পণ্য পরিমার্জনার জন্য পাঠানো হয়েছে',
+    failedToCreateProduct: 'পণ্য তৈরি করতে ব্যর্থ। দয়া করে পরে আবার চেষ্টা করুন।',
+  },
+  
+  media: {
+    uploadPhotos: 'ছবি আপলোড করুন',
+    uploadVideos: 'ভিডিও আপলোড করুন',
+    smartUpload: 'স্মার্ট আপলোড...',
+    cancelUpload: 'আপলোড বাতিল করুন',
+    mediaFiles: 'মিডিয়া ফাইল',
+    photos: 'ছবি',
+    videos: 'ভিডিও',
+    smartCompression: 'পণ্যের জন্য স্মার্ট কম্প্রেশন',
+    smartCompressionDescription: 'ছোট ফাইল (<400KB) মূল গুণমান বজায় রাখে\nবড় ফাইল বিস্তারিত হারিয়ে না নিয়ে অভিযোজিতভাবে কম্প্রেস করা হয়',
+    uploadedVideos: 'আপলোড করা ভিডিও',
+    mediaCount: 'মিডিয়া ফাইল',
+    smartQuality: 'স্মার্ট গুণমান',
   },
 };
 

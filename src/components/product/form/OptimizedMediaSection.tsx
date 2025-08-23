@@ -7,6 +7,8 @@ import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { useOptimizedImageUpload } from "@/hooks/useOptimizedImageUpload";
 import { useImageDeletionState } from "@/hooks/useImageDeletionState";
 import { useEnhancedMediaUpload } from "@/hooks/useEnhancedMediaUpload";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
 
 interface OptimizedMediaSectionProps {
@@ -34,6 +36,9 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   disabled = false,
   onUploadStateChange
 }) => {
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
+  
   const { uploadFiles, uploadQueue, isUploading, cancelUpload, markAsDeleted } = useOptimizedImageUpload();
   const [fileInputKey, setFileInputKey] = useState(0);
 
@@ -169,7 +174,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
             onClick={() => document.getElementById('optimized-image-input')?.click()}
           >
             <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? 'Smart Upload...' : 'Upload Photos'}
+            {isUploading ? sp.media?.smartUpload || 'Smart Upload...' : sp.media?.uploadPhotos || 'Upload Photos'}
           </Button>
           <input
             key={fileInputKey}
@@ -191,7 +196,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
             maxVideos={2}
             productId={productId}
             showOnlyButton={true}
-            buttonText="Upload Videos"
+            buttonText={sp.media?.uploadVideos || "Upload Videos"}
             buttonIcon={<Video className="h-4 w-4" />}
           />
         </div>
@@ -206,7 +211,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
           className="w-full"
         >
           <X className="h-4 w-4 mr-2" />
-          Cancel Upload
+          {sp.media?.cancelUpload || 'Cancel Upload'}
         </Button>
       )}
 
@@ -215,10 +220,10 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between text-sm">
             <span className="text-green-800">
-              📁 Media Files: {totalMediaCount} (📸 Photos: {imageUrls.length}/30, 🎥 Videos: {videoUrls.length}/2)
+              📁 {sp.media?.mediaCount || 'Media Files'}: {totalMediaCount} (📸 {sp.media?.photos || 'Photos'}: {imageUrls.length}/30, 🎥 {sp.media?.videos || 'Videos'}: {videoUrls.length}/2)
             </span>
             <span className="text-green-600 text-xs">
-              🧠 Smart Quality
+              🧠 {sp.media?.smartQuality || 'Smart Quality'}
             </span>
           </div>
         </div>
@@ -237,7 +242,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       {/* Галерея видео */}
       {videoUrls.length > 0 && (
         <div className="space-y-2">
-          <Label>Uploaded Videos</Label>
+          <Label>{sp.media?.uploadedVideos || 'Uploaded Videos'}</Label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {videoUrls.map((url, index) => (
               <div key={`video-${index}`} className="relative aspect-square rounded-lg overflow-hidden border">
@@ -251,7 +256,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
                   <Video className="w-6 h-6 text-white" />
                 </div>
                 <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
-                  Video
+                  {sp.media?.videos || 'Video'}
                 </div>
                 <button
                   type="button"
@@ -271,11 +276,11 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       {isUploading && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-sm text-blue-800">
-            🧠 Smart Compression for Products
+            🧠 {sp.media?.smartCompression || 'Smart Compression for Products'}
           </div>
           <div className="text-xs text-blue-600 mt-1">
-            • Small files (&lt;400KB) maintain original quality<br/>
-            • Large files are compressed adaptively without losing details
+            {sp.media?.smartCompressionDescription || 
+              '• Small files (<400KB) maintain original quality\n• Large files are compressed adaptively without losing details'}
           </div>
         </div>
       )}

@@ -129,9 +129,9 @@ const SellerAddProduct = () => {
 
   // Breadcrumbs navigation
   const breadcrumbItems = useMemo(() => [
-    { label: "Seller Dashboard", href: "/seller/dashboard" },
-    { label: "Add Product" }
-  ], []);
+    { label: sp.system?.sellerDashboardBreadcrumb || "Seller Dashboard", href: "/seller/dashboard" },
+    { label: sp.system?.addProductBreadcrumb || "Add Product" }
+  ], [sp.system]);
 
   const watchBrandId = form.watch("brandId");
   const watchModelId = form.watch("modelId");
@@ -262,8 +262,8 @@ const SellerAddProduct = () => {
 
     if (!user?.id) {
       toast({
-        title: "Error",
-        description: "User not authorized",
+        title: sp.system?.error || "Error",
+        description: sp.system?.userNotAuthorized || "User not authorized",
         variant: "destructive",
       });
       return;
@@ -271,7 +271,7 @@ const SellerAddProduct = () => {
     
     if (!profile?.opt_id) {
       toast({
-        title: "Profile Incomplete",
+        title: sp.system?.profileIncomplete || "Profile Incomplete",
         description: "Your profile is missing an OPT ID. Please contact the administrator to obtain one.",
         variant: "destructive",
       });
@@ -441,8 +441,8 @@ const SellerAddProduct = () => {
       clearSavedData();
 
       const successMessage = profile?.is_trusted_seller 
-        ? "Product successfully published"
-        : "Product sent for moderation and will be published after review";
+        ? sp.system?.productPublished || "Product successfully published"
+        : sp.system?.productSentForModeration || "Product sent for moderation and will be published after review";
 
       toast({
         title: t.messages.productCreated,
@@ -453,8 +453,8 @@ const SellerAddProduct = () => {
     } catch (error) {
       console.error("💥 Error creating product:", error);
       toast({
-        title: "Error",
-        description: "Failed to create product. Please try again later.",
+        title: sp.system?.error || "Error",
+        description: sp.system?.failedToCreateProduct || "Failed to create product. Please try again later.",
         variant: "destructive",
       });
     }
@@ -556,7 +556,7 @@ const SellerAddProduct = () => {
                     {t.sections.productInformation}
                     <Badge variant="outline" className="text-xs flex items-center gap-1">
                       <Sparkles className="h-3 w-3" />
-                      Cloudinary integration
+                      {sp.system?.cloudinaryIntegration || 'Cloudinary integration'}
                     </Badge>
                   </CardTitle>
                   <CardDescription>
@@ -636,12 +636,12 @@ const SellerAddProduct = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-5 w-5" />
-              Page Error
+              {sp.system?.pageError || 'Page Error'}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              A critical error occurred while loading this page. Please try refreshing the page or contact support.
+              {sp.system?.pageErrorDescription || 'A critical error occurred while loading this page. Please try refreshing the page or contact support.'}
             </p>
             <Button 
               onClick={() => window.location.reload()}
