@@ -57,11 +57,11 @@ const SellerProductDetail = () => {
   // Security check: ensure user is a seller
   useEffect(() => {
     if (profile && profile.user_type !== 'seller') {
-      toast({
-        title: sp.accessDenied,
-        description: "Эта страница доступна только продавцам.",
-        variant: "destructive"
-      });
+          toast({
+            title: sp.accessDenied,
+            description: sp.onlyForSellers,
+            variant: "destructive"
+          });
       navigate('/');
     }
   }, [profile, navigate]);
@@ -141,8 +141,7 @@ const SellerProductDetail = () => {
             <Shield className="h-4 w-4" />
             <AlertTitle>{sp.accessDenied}</AlertTitle>
             <AlertDescription>
-              Вы можете просматривать только свои собственные объявления. 
-              Проверьте правильность ссылки или вернитесь к списку ваших объявлений.
+              {sp.accessDeniedDescription}
             </AlertDescription>
           </Alert>
           <Button variant="default" onClick={handleBack}>

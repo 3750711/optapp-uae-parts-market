@@ -78,7 +78,8 @@ const en = {
 
   // Common fields
   fields: {
-    price: 'Price'
+    price: 'Price',
+    currentStatus: 'Current Status'
   },
 
   // Product fields
@@ -165,7 +166,8 @@ const ru = {
 
   // Common fields
   fields: {
-    price: 'Цена'
+    price: 'Цена',
+    currentStatus: 'Текущий статус'
   },
 
   // Product fields
@@ -252,7 +254,8 @@ const bn = {
 
   // Common fields
   fields: {
-    price: 'মূল্য'
+    price: 'মূল্য',
+    currentStatus: 'বর্তমান অবস্থা'
   },
 
   // Product fields

@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
+import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +35,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const { language } = useLanguage();
   const t = getProductStatusTranslations(language);
+  const sp = getSellerPagesTranslations(language);
 
   // Status update mutation
   const statusMutation = useMutation({
@@ -49,15 +51,15 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       queryClient.invalidateQueries({ queryKey: ['seller-product', product.id] });
       queryClient.invalidateQueries({ queryKey: ['seller-products'] });
       toast({
-        title: t.markSoldDialog.successMessage,
-        description: "Your listing status has been successfully changed.",
+        title: sp.mobileActions.statusUpdated,
+        description: sp.mobileActions.statusUpdateDescription,
       });
       onProductUpdate();
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: t.markSoldDialog.errorMessage,
+        title: sp.error,
+        description: sp.mobileActions.statusUpdateFailed,
         variant: "destructive"
       });
     }
@@ -84,7 +86,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       try {
         await navigator.share({
           title: product.title,
-          text: `Check out this listing: ${product.title}`,
+          text: `${sp.mobileActions.shareText}: ${product.title}`,
           url: window.location.href,
         });
       } catch (error) {
@@ -94,8 +96,8 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       // Fallback: copy to clipboard
       await navigator.clipboard.writeText(window.location.href);
       toast({
-        title: "Link Copied",
-        description: "Listing link copied to clipboard",
+        title: sp.mobileActions.linkCopied,
+        description: sp.mobileActions.linkCopiedDescription,
       });
     }
   };

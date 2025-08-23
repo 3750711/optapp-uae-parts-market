@@ -59,15 +59,15 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
       
       
       toast({
-        title: sp.productActions?.updated || "Статус обновлен",
-        description: "Статус вашего объявления успешно изменен.",
+        title: sp.productActions?.updated || sp.mobileActions.statusUpdated,
+        description: sp.mobileActions.statusUpdateDescription,
       });
       onProductUpdate();
     },
     onError: (error) => {
       toast({
-        title: c.errors?.title || "Ошибка",
-        description: sp.productActions?.updateFailed || "Не удалось обновить статус объявления.",
+        title: sp.error,
+        description: sp.productActions?.updateFailed || sp.mobileActions.statusUpdateFailed,
         variant: "destructive"
       });
     }
@@ -122,7 +122,7 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
         {/* Current Status */}
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-muted-foreground">
-            {sp.containerStatus || 'Текущий статус'}:
+            {c.fields.currentStatus}:
           </span>
           <Badge className={statusInfo.color}>
             {statusInfo.text}

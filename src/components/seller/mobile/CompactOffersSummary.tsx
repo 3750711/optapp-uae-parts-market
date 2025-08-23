@@ -9,6 +9,7 @@ import { formatPrice } from "@/utils/formatPrice";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
+import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 
 interface CompactOffersSummaryProps {
   productId: string;
@@ -20,6 +21,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
   const navigate = useNavigate();
   const { language } = useLanguage();
   const t = getProductStatusTranslations(language);
+  const sp = getSellerPagesTranslations(language);
 
   // Fetch offers for this product
   const { data: offers, isLoading } = useQuery({
@@ -127,7 +129,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
             className="h-8 px-2"
           >
             <Eye className="h-3 w-3 mr-1" />
-            All
+            {sp.compactOffers.all}
           </Button>
         </div>
       </CardHeader>
@@ -172,7 +174,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
                 {getStatusBadge(offer.status)}
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>from {offer.profiles?.full_name || 'Buyer'}</span>
+                <span>{sp.compactOffers.from} {offer.profiles?.full_name || 'Buyer'}</span>
                 <span>{new Date(offer.created_at).toLocaleDateString()}</span>
               </div>
               {offer.message && (
@@ -191,7 +193,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
                 onClick={handleViewOffers}
                 className="text-xs"
               >
-                Show {sortedOffers.length - 7} more offers
+                {sp.compactOffers.showMore} {sortedOffers.length - 7} more offers
               </Button>
             </div>
           )}

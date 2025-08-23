@@ -86,6 +86,37 @@ export interface SellerPagesTranslations {
   productDetail: string;
   productNotFound: string;
   accessDenied: string;
+  accessDeniedDescription: string;
+  lotLabel: string;
+  
+  // ProductDetailAlerts
+  moderationAlert: {
+    pendingTitle: string;
+    pendingDescription: string;
+    pendingDescriptionOwner: string;
+    pendingDescriptionAdmin: string;
+    archivedTitle: string;
+    archivedDescription: string;
+    archivedDescriptionOwner: string;
+    archivedDescriptionAdmin: string;
+  };
+  
+  // Mobile actions
+  mobileActions: {
+    linkCopied: string;
+    linkCopiedDescription: string;
+    shareText: string;
+    statusUpdated: string;
+    statusUpdateDescription: string;
+    statusUpdateFailed: string;
+  };
+  
+  // Compact offers
+  compactOffers: {
+    all: string;
+    from: string;
+    showMore: string;
+  };
   
   // SellerOrderDetails  
   orderDetails: string;
@@ -284,6 +315,37 @@ const ru: SellerPagesTranslations = {
   productDetail: 'Детали товара',
   productNotFound: 'Товар не найден',
   accessDenied: 'Доступ запрещен',
+  accessDeniedDescription: 'Вы можете просматривать только свои собственные объявления. Проверьте правильность ссылки или вернитесь к списку ваших объявлений.',
+  lotLabel: 'Лот',
+  
+  // ProductDetailAlerts
+  moderationAlert: {
+    pendingTitle: 'Объявление на проверке',
+    pendingDescription: 'Это объявление ожидает проверки модераторами.',
+    pendingDescriptionOwner: 'Только вы и администраторы могут его видеть.',
+    pendingDescriptionAdmin: 'Как администратор, вы можете видеть это объявление.',
+    archivedTitle: 'Объявление в архиве',
+    archivedDescription: 'Это объявление находится в архиве.',
+    archivedDescriptionOwner: 'Только вы и администраторы могут его видеть.',
+    archivedDescriptionAdmin: 'Как администратор, вы можете видеть это объявление.',
+  },
+  
+  // Mobile actions
+  mobileActions: {
+    linkCopied: 'Ссылка скопирована',
+    linkCopiedDescription: 'Ссылка на объявление скопирована в буфер обмена',
+    shareText: 'Посмотрите это объявление',
+    statusUpdated: 'Статус обновлен',
+    statusUpdateDescription: 'Статус вашего объявления успешно изменен.',
+    statusUpdateFailed: 'Не удалось обновить статус объявления.',
+  },
+  
+  // Compact offers
+  compactOffers: {
+    all: 'Все',
+    from: 'от',
+    showMore: 'Показать ещё',
+  },
   
   // SellerOrderDetails
   orderDetails: 'Детали заказа',
@@ -480,6 +542,37 @@ const en: SellerPagesTranslations = {
   productDetail: 'Product Detail',
   productNotFound: 'Product not found',
   accessDenied: 'Access denied',
+  accessDeniedDescription: 'You can only view your own listings. Please check the link or return to your listings.',
+  lotLabel: 'Lot',
+  
+  // ProductDetailAlerts
+  moderationAlert: {
+    pendingTitle: 'Listing Under Review',
+    pendingDescription: 'This listing is awaiting moderator review.',
+    pendingDescriptionOwner: 'Only you and administrators can see it.',
+    pendingDescriptionAdmin: 'As an administrator, you can see this listing.',
+    archivedTitle: 'Listing Archived',
+    archivedDescription: 'This listing is archived.',
+    archivedDescriptionOwner: 'Only you and administrators can see it.',
+    archivedDescriptionAdmin: 'As an administrator, you can see this listing.',
+  },
+  
+  // Mobile actions
+  mobileActions: {
+    linkCopied: 'Link Copied',
+    linkCopiedDescription: 'Listing link copied to clipboard',
+    shareText: 'Check out this listing',
+    statusUpdated: 'Status Updated',
+    statusUpdateDescription: 'Your listing status has been successfully changed.',
+    statusUpdateFailed: 'Failed to update listing status.',
+  },
+  
+  // Compact offers
+  compactOffers: {
+    all: 'All',
+    from: 'from',
+    showMore: 'Show more',
+  },
   
   // SellerOrderDetails
   orderDetails: 'Order Details',
@@ -676,6 +769,37 @@ const bn: SellerPagesTranslations = {
   productDetail: 'পণ্যের বিবরণ',
   productNotFound: 'পণ্য পাওয়া যায়নি',
   accessDenied: 'অ্যাক্সেস অস্বীকৃত',
+  accessDeniedDescription: 'আপনি শুধুমাত্র আপনার নিজস্ব তালিকা দেখতে পারেন। অনুগ্রহ করে লিঙ্কটি চেক করুন বা আপনার তালিকায় ফিরে যান।',
+  lotLabel: 'লট',
+  
+  // ProductDetailAlerts
+  moderationAlert: {
+    pendingTitle: 'তালিকা পর্যালোচনাধীন',
+    pendingDescription: 'এই তালিকাটি মডারেটর পর্যালোচনার অপেক্ষায় রয়েছে।',
+    pendingDescriptionOwner: 'শুধুমাত্র আপনি এবং প্রশাসকরা এটি দেখতে পারেন।',
+    pendingDescriptionAdmin: 'প্রশাসক হিসেবে, আপনি এই তালিকাটি দেখতে পারেন।',
+    archivedTitle: 'তালিকা সংরক্ষণাগারভুক্ত',
+    archivedDescription: 'এই তালিকাটি সংরক্ষণাগারভুক্ত।',
+    archivedDescriptionOwner: 'শুধুমাত্র আপনি এবং প্রশাসকরা এটি দেখতে পারেন।',
+    archivedDescriptionAdmin: 'প্রশাসক হিসেবে, আপনি এই তালিকাটি দেখতে পারেন।',
+  },
+  
+  // Mobile actions
+  mobileActions: {
+    linkCopied: 'লিঙ্ক কপি করা হয়েছে',
+    linkCopiedDescription: 'তালিকার লিঙ্ক ক্লিপবোর্ডে কপি করা হয়েছে',
+    shareText: 'এই তালিকাটি দেখুন',
+    statusUpdated: 'স্ট্যাটাস আপডেট হয়েছে',
+    statusUpdateDescription: 'আপনার তালিকার স্ট্যাটাস সফলভাবে পরিবর্তন করা হয়েছে।',
+    statusUpdateFailed: 'তালিকার স্ট্যাটাস আপডেট করতে ব্যর্থ।',
+  },
+  
+  // Compact offers
+  compactOffers: {
+    all: 'সব',
+    from: 'থেকে',
+    showMore: 'আরো দেখান',
+  },
   
   // SellerOrderDetails
   orderDetails: 'অর্ডারের বিবরণ',
