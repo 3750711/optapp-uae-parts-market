@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getProductStatusTranslations } from '@/utils/translations/productStatuses';
 
 import CompactSellerInfo from "./CompactSellerInfo";
 import MobileActionButtons from "./MobileActionButtons";
@@ -50,16 +52,19 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
+  
   const getStatusBadge = () => {
     switch (product.status) {
       case 'pending':
-        return <Badge variant="warning" className="text-xs">На модерации</Badge>;
+        return <Badge variant="warning" className="text-xs">{t.statuses.pending}</Badge>;
       case 'active':
-        return <Badge variant="success" className="text-xs">В наличии</Badge>;
+        return <Badge variant="success" className="text-xs">{t.statuses.active}</Badge>;
       case 'sold':
-        return <Badge variant="info" className="text-xs">Продано</Badge>;
+        return <Badge variant="info" className="text-xs">{t.statuses.sold}</Badge>;
       case 'archived':
-        return <Badge variant="outline" className="text-xs bg-gray-100">Архив</Badge>;
+        return <Badge variant="outline" className="text-xs bg-gray-100">{t.statuses.archived}</Badge>;
       default:
         return null;
     }

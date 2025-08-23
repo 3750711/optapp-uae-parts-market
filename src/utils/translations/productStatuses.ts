@@ -4,6 +4,7 @@ export interface ProductStatusTranslations {
     sold: string;
     archived: string;
     pending: string;
+    unknown: string;
   };
   markSoldDialog: {
     title: string;
@@ -32,7 +33,8 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         active: "Активный",
         sold: "Продан",
         archived: "В архиве",
-        pending: "На рассмотрении"
+        pending: "На рассмотрении",
+        unknown: "Неизвестно"
       },
       markSoldDialog: {
         title: "Подтвердить действие",
@@ -58,7 +60,8 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         active: "Active",
         sold: "Sold",
         archived: "Archived",
-        pending: "Pending"
+        pending: "Pending",
+        unknown: "Unknown"
       },
       markSoldDialog: {
         title: "Confirm Action",
@@ -84,7 +87,8 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         active: "সক্রিয়",
         sold: "বিক্রিত",
         archived: "সংরক্ষণাগারে",
-        pending: "অপেক্ষমাণ"
+        pending: "অপেক্ষমাণ",
+        unknown: "অজানা"
       },
       markSoldDialog: {
         title: "কর্ম নিশ্চিত করুন",

@@ -2,6 +2,8 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Info } from "lucide-react";
 import { Product } from "@/types/product";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getProductStatusTranslations } from '@/utils/translations/productStatuses';
 
 interface MobileCharacteristicsTableProps {
   product: Product;
@@ -10,6 +12,8 @@ interface MobileCharacteristicsTableProps {
 const MobileCharacteristicsTable: React.FC<MobileCharacteristicsTableProps> = ({
   product,
 }) => {
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
   return (
     <Card className="rounded-none border-0 shadow-none mb-2">
       <CardHeader className="pb-3">
@@ -61,9 +65,9 @@ const MobileCharacteristicsTable: React.FC<MobileCharacteristicsTableProps> = ({
             <div>
               <span className="text-muted-foreground block">Статус:</span>
               <span className="font-medium">
-                {product.status === 'active' ? 'В наличии' : 
-                 product.status === 'sold' ? 'Продано' :
-                 product.status === 'pending' ? 'На модерации' : 'Архив'}
+                {product.status === 'active' ? t.statuses.active : 
+                 product.status === 'sold' ? t.statuses.sold :
+                 product.status === 'pending' ? t.statuses.pending : t.statuses.archived}
               </span>
             </div>
           </div>
