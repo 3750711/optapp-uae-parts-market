@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/hooks/useLanguage';
 import { getNotificationTranslations, getNotificationLocale } from '@/utils/notificationTranslations';
 import { 
   ShoppingCart, 
@@ -73,10 +74,11 @@ const getNotificationColor = (type: NotificationType) => {
 const NotificationItemComponent = ({ notification, onClose }: NotificationItemProps) => {
   const { markAsRead, deleteNotification } = useNotifications();
   const { profile } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
 
-  const translations = getNotificationTranslations(profile?.user_type || 'buyer');
-  const locale = getNotificationLocale(profile?.user_type || 'buyer') === 'en' ? enUS : ru;
+  const translations = getNotificationTranslations(language);
+  const locale = getNotificationLocale(language) === 'en' ? enUS : ru;
 
   const handleClick = () => {
     if (!notification.read) {

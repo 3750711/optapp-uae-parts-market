@@ -76,6 +76,11 @@ export interface SellerPagesTranslations {
   failedToLoadBuyers: string;
   failedToLoadProducts: string;
   notAllDataFilled: string;
+  step1Title: string;
+  step1Description: string;
+  step2Title: string;
+  step2Description: string;
+  selectBuyerPlaceholder: string;
   
   // SellerProductDetail
   productDetail: string;
@@ -226,6 +231,11 @@ const ru: SellerPagesTranslations = {
   failedToLoadBuyers: 'Не удалось загрузить список покупателей',
   failedToLoadProducts: 'Не удалось загрузить ваши товары',
   notAllDataFilled: 'Не все данные заполнены',
+  step1Title: 'Шаг 1: Выберите товар',
+  step1Description: 'Товары из вашего инвентаря',
+  step2Title: 'Шаг 2: Выберите покупателя',
+  step2Description: 'Выберите покупателя для заказа',
+  selectBuyerPlaceholder: 'Выберите покупателя...',
   
   // SellerProductDetail
   productDetail: 'Детали товара',
@@ -376,6 +386,11 @@ const en: SellerPagesTranslations = {
   failedToLoadBuyers: 'Failed to load buyers list',
   failedToLoadProducts: 'Failed to load your products',
   notAllDataFilled: 'Not all data is filled',
+  step1Title: 'Step 1: Select Product',
+  step1Description: 'Products from your inventory',
+  step2Title: 'Step 2: Select Buyer',
+  step2Description: 'Choose a buyer for the order',
+  selectBuyerPlaceholder: 'Select buyer...',
   
   // SellerProductDetail
   productDetail: 'Product Detail',
@@ -526,6 +541,11 @@ const bn: SellerPagesTranslations = {
   failedToLoadBuyers: 'ক্রেতাদের তালিকা লোড করতে ব্যর্থ',
   failedToLoadProducts: 'আপনার পণ্য লোড করতে ব্যর্থ',
   notAllDataFilled: 'সব তথ্য পূরণ করা হয়নি',
+  step1Title: 'ধাপ ১: পণ্য নির্বাচন করুন',
+  step1Description: 'আপনার ইনভেন্টরি থেকে পণ্য',
+  step2Title: 'ধাপ ২: ক্রেতা নির্বাচন করুন',
+  step2Description: 'অর্ডারের জন্য একজন ক্রেতা বেছে নিন',
+  selectBuyerPlaceholder: 'ক্রেতা নির্বাচন করুন...',
   
   // SellerProductDetail
   productDetail: 'পণ্যের বিবরণ',

@@ -2,6 +2,7 @@ import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/hooks/useLanguage';
 import { getNotificationTranslations } from '@/utils/notificationTranslations';
 import { CheckCheck, Trash2, Eye, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -16,8 +17,9 @@ interface NotificationDropdownProps {
 
 export const NotificationDropdown = ({ onClose }: NotificationDropdownProps) => {
   const { profile } = useAuth();
+  const { language } = useLanguage();
   const { notifications, unreadCount, markAllAsRead, loading } = useNotifications();
-  const translations = getNotificationTranslations(profile?.user_type || 'buyer');
+  const translations = getNotificationTranslations(language);
 
   if (loading) {
     return (

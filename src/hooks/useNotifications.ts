@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/hooks/useLanguage';
 import { Notification } from '@/types/notification';
 import { toast } from '@/hooks/use-toast';
 import { getNotificationTranslations } from '@/utils/notificationTranslations';
@@ -16,10 +17,12 @@ export const useNotifications = () => {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
 
-  // Get translations based on user type
+  const { language } = useLanguage();
+  
+  // Get translations based on language
   const translations = useMemo(() => {
-    return getNotificationTranslations(profile?.user_type || 'buyer');
-  }, [profile?.user_type]);
+    return getNotificationTranslations(language);
+  }, [language]);
 
   // Optimized fetch notifications with better query
   const fetchNotifications = useCallback(async () => {

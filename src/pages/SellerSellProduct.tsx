@@ -478,9 +478,9 @@ const SellerSellProduct = () => {
         {step === 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>Step 1: Select Product</CardTitle>
+              <CardTitle>{sp.step1Title}</CardTitle>
               <CardDescription>
-                Products from your inventory
+                {sp.step1Description}
               </CardDescription>
             </CardHeader>
             <CardContent>

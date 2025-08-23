@@ -11,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ru, enUS } from 'date-fns/locale';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/hooks/useLanguage';
 import { getNotificationTranslations, getNotificationLocale } from '@/utils/notificationTranslations';
 
 const NotificationsPage = () => {
@@ -18,15 +19,17 @@ const NotificationsPage = () => {
   const { profile } = useAuth();
   const { notifications, unreadCount, markAllAsRead, loading } = useNotifications();
 
-  // Get translations based on user type
+  const { language } = useLanguage();
+  
+  // Get translations based on user language
   const translations = useMemo(() => {
-    return getNotificationTranslations(profile?.user_type || 'buyer');
-  }, [profile?.user_type]);
+    return getNotificationTranslations(language);
+  }, [language]);
 
   // Get locale for date formatting
   const locale = useMemo(() => {
-    return getNotificationLocale(profile?.user_type || 'buyer') === 'en' ? enUS : ru;
-  }, [profile?.user_type]);
+    return getNotificationLocale(language) === 'en' ? enUS : ru;
+  }, [language]);
 
   // Memoized grouped notifications to prevent recalculation on every render
   const groupedNotifications = useMemo(() => {

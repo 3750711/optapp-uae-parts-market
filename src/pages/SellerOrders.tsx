@@ -252,24 +252,26 @@ const SellerOrders = () => {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'created':
-        return 'Created';
+        return t.statusLabels.created;
       case 'seller_confirmed':
-        return 'Confirmed by Seller';
+        return t.statusLabels.seller_confirmed;
       case 'admin_confirmed':
-        return 'Confirmed by Admin';
+        return t.statusLabels.admin_confirmed;
       case 'processed':
-        return 'Processed';
+        return t.statusLabels.processed;
       case 'shipped':
-        return 'Shipped';
+        return t.statusLabels.shipped;
       case 'delivered':
-        return 'Delivered';
+        return t.statusLabels.delivered;
+      case 'cancelled':
+        return t.statusLabels.cancelled;
       default:
         return status;
     }
   };
 
   const getOrderTypeLabel = (type: 'free_order' | 'ads_order') => {
-    return type === 'free_order' ? 'Free Order' : 'Listing Order';
+    return type === 'free_order' ? t.orderTypes.free_order : t.orderTypes.ads_order;
   };
 
   if (isLoading) {
@@ -424,23 +426,23 @@ const SellerOrders = () => {
                     <div className="flex justify-between items-center">
                       <div className="font-medium text-lg">{order.price} $</div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <span className="font-medium">Shipping places:</span>
+                       <span className="font-medium">{t.shippingPlaces}:</span>
                         <span>{order.place_number || 1}</span>
                       </div>
                     </div>
 
                     {order.seller?.opt_status === 'opt_user' && order.delivery_price_confirm && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span className="font-medium">Delivery cost:</span>
+                        <span className="font-medium">{t.deliveryCost}:</span>
                         <span>{order.delivery_price_confirm} $</span>
                       </div>
                     )}
 
                     <div className="space-y-2">
-                      <div className="text-sm font-medium text-muted-foreground">Buyer</div>
+                      <div className="text-sm font-medium text-muted-foreground">{t.buyer}</div>
                       <div className="space-y-1">
                         <Badge variant="outline" className="font-mono">
-                          {order.buyer_opt_id || 'Not specified'}
+                          {order.buyer_opt_id || t.notSpecified}
                         </Badge>
                         {order.buyer?.telegram && (
                           <a
@@ -459,7 +461,7 @@ const SellerOrders = () => {
 
                     {order.text_order && order.text_order.trim() !== "" && (
                       <div className="text-sm text-gray-600 mt-2 border-t pt-2">
-                        <span className="font-medium">Additional information:</span>
+                        <span className="font-medium">{t.additionalInformation}</span>
                         <p className="mt-1 whitespace-pre-wrap line-clamp-3">{order.text_order}</p>
                       </div>
                     )}
@@ -486,7 +488,7 @@ const SellerOrders = () => {
                             }}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
-                            Confirm
+                            {t.confirmButton}
                           </Button>
 
                           <AlertDialog>
@@ -498,14 +500,14 @@ const SellerOrders = () => {
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <X className="h-4 w-4 mr-2" />
-                                Cancel
+                                {t.cancelButton}
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Cancel order?</AlertDialogTitle>
+                                <AlertDialogTitle>{t.cancelOrderTitle}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to cancel this order? This action cannot be undone.
+                                  {t.cancelOrderDescription}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
