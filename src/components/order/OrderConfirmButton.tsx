@@ -36,7 +36,7 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
   });
 
   const { data: chatScreenshots = [] } = useQuery({
-    queryKey: ['chat-screenshots', orderId],
+    queryKey: ['confirm-images', orderId, 'chat_screenshot'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('confirm_images')
@@ -50,7 +50,7 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
   });
 
   const { data: signedProductPhotos = [] } = useQuery({
-    queryKey: ['signed-product-photos', orderId],
+    queryKey: ['confirm-images', orderId, 'signed_product'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('confirm_images')
