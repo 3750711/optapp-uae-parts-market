@@ -340,7 +340,7 @@ const SellerPriceOffers = () => {
                         {sp.orderWillBeCreated}
                       </p>
                       <p className="text-xs text-green-700">
-                        After accepting the offer, order will be created automatically
+                        {sp.offerElements.afterAcceptingMessage}
                       </p>
                     </div>
                   )}
@@ -360,8 +360,8 @@ const SellerPriceOffers = () => {
                   onChange={(e) => setSellerResponse(e.target.value)}
                   placeholder={
                     responseModal.action === "accept"
-                      ? "Thank you for your offer! I accept your price."
-                      : "Unfortunately, I cannot accept this price..."
+                      ? sp.offerElements.acceptPlaceholder
+                      : sp.offerElements.rejectPlaceholder
                   }
                   rows={3}
                 />

@@ -6,6 +6,8 @@ import { GroupedOffer } from '@/hooks/useSellerOffersGrouped';
 import { OfferItem } from './OfferItem';
 import { PriceOffer } from '@/types/price-offer';
 import { formatPrice } from '@/utils/formatPrice';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 interface ProductOffersCardProps {
   groupedOffer: GroupedOffer;
@@ -20,6 +22,8 @@ export const ProductOffersCard: React.FC<ProductOffersCardProps> = ({
 }) => {
   const { product, offers, stats } = groupedOffer;
   const hasPendingOffers = stats.pending > 0;
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
 
   return (
     <Card className={`${hasPendingOffers ? 'border-yellow-200 bg-yellow-50/10' : ''}`}>
@@ -49,7 +53,7 @@ export const ProductOffersCard: React.FC<ProductOffersCardProps> = ({
             </CardTitle>
             
             <div className="text-sm text-muted-foreground">
-              Original Price: <span className="font-semibold">{formatPrice(product.price)}</span>
+              {sp.offerElements.originalPrice}: <span className="font-semibold">{formatPrice(product.price)}</span>
             </div>
             
             {product.description && (
@@ -64,26 +68,26 @@ export const ProductOffersCard: React.FC<ProductOffersCardProps> = ({
         <div className="flex flex-wrap gap-2 mt-4">
           <Badge variant="outline" className="flex items-center gap-1">
             <Package className="h-3 w-3" />
-            {stats.total} Total
+            {stats.total} {sp.offerElements.totalOffers}
           </Badge>
           {stats.pending > 0 && (
             <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-              {stats.pending} Pending
+              {stats.pending} {sp.offerStatuses.pending}
             </Badge>
           )}
           {stats.accepted > 0 && (
             <Badge className="bg-green-100 text-green-800 border-green-200">
-              {stats.accepted} Accepted
+              {stats.accepted} {sp.offerStatuses.accepted}
             </Badge>
           )}
           {stats.rejected > 0 && (
             <Badge className="bg-red-100 text-red-800 border-red-200">
-              {stats.rejected} Rejected
+              {stats.rejected} {sp.offerStatuses.rejected}
             </Badge>
           )}
           {stats.expired > 0 && (
             <Badge variant="secondary">
-              {stats.expired} Expired
+              {stats.expired} {sp.offerStatuses.expired}
             </Badge>
           )}
         </div>
@@ -92,7 +96,7 @@ export const ProductOffersCard: React.FC<ProductOffersCardProps> = ({
       <CardContent>
         <div className="space-y-3">
           <h4 className="font-medium text-sm text-muted-foreground">
-            Price Offers ({offers.length})
+            {sp.offerElements.priceOffersCount} ({offers.length})
           </h4>
           
           <div className="space-y-3">

@@ -6,6 +6,8 @@ import { PriceOffer } from '@/types/price-offer';
 import { formatDistanceToNow } from 'date-fns';
 import { formatPrice } from '@/utils/formatPrice';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 interface OfferItemProps {
   offer: PriceOffer;
@@ -15,19 +17,21 @@ interface OfferItemProps {
 
 export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
   
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Pending</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">{sp.offerStatuses.pending}</Badge>;
       case "accepted":
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Accepted</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200">{sp.offerStatuses.accepted}</Badge>;
       case "rejected":
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Rejected</Badge>;
+        return <Badge className="bg-red-100 text-red-800 border-red-200">{sp.offerStatuses.rejected}</Badge>;
       case "expired":
-        return <Badge variant="secondary">Expired</Badge>;
+        return <Badge variant="secondary">{sp.offerStatuses.expired}</Badge>;
       case "cancelled":
-        return <Badge variant="secondary">Cancelled</Badge>;
+        return <Badge variant="secondary">{sp.offerStatuses.cancelled}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -38,10 +42,10 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
     const now = new Date();
     
     if (expirationTime <= now) {
-      return "Expired";
+      return sp.offerElements.expired;
     }
     
-    return `Expires ${formatDistanceToNow(expirationTime, {
+    return `${sp.offerElements.expires} ${formatDistanceToNow(expirationTime, {
       addSuffix: true,
     })}`;
   };
@@ -83,7 +87,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div>
-            <div className="text-xs text-muted-foreground">Offered Price</div>
+            <div className="text-xs text-muted-foreground">{sp.offerElements.offeredPrice}</div>
             <div className="text-lg font-bold text-green-600">
               {formatPrice(offer.offered_price)}
             </div>
@@ -103,7 +107,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
         <div className="bg-gray-50 rounded p-2 border">
           <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
             <MessageSquare className="h-3 w-3" />
-            Message:
+            {sp.offerElements.message}
           </div>
           <div className="text-sm">{offer.message}</div>
         </div>
@@ -112,7 +116,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
       {/* Seller response */}
       {offer.seller_response && (
         <div className="bg-blue-50 rounded p-2 border border-blue-200">
-          <div className="text-xs text-blue-600 mb-1">Your Response:</div>
+          <div className="text-xs text-blue-600 mb-1">{sp.offerElements.yourResponse}</div>
           <div className="text-sm text-blue-800">{offer.seller_response}</div>
         </div>
       )}
@@ -122,14 +126,14 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
         <div className="bg-green-50 rounded p-2 border border-green-200">
           <div className="text-xs text-green-800 mb-2 flex items-center gap-1">
             <ShoppingCart className="h-3 w-3" />
-            Order Created
+            {sp.offerElements.orderCreated}
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate(`/seller/orders/${offer.order_id}`)}
           >
-            View Order
+            {sp.offerElements.viewOrder}
           </Button>
         </div>
       )}
@@ -138,10 +142,10 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
         <div className="bg-blue-50 rounded p-2 border border-blue-200">
           <div className="text-xs text-blue-800 flex items-center gap-1">
             <RefreshCw className="h-3 w-3 animate-spin" />
-            Creating order...
+            {sp.offerElements.creatingOrder}
           </div>
           <div className="text-xs text-blue-700 mt-1">
-            Order is being created automatically. Refresh the page in a few seconds.
+            {sp.offerElements.orderCreatingMessage}
           </div>
         </div>
       )}
@@ -155,7 +159,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
             className="bg-green-600 hover:bg-green-700 flex-1"
           >
             <Check className="h-3 w-3 mr-1" />
-            Accept
+            {sp.acceptOffer}
           </Button>
           <Button
             variant="outline"
@@ -164,7 +168,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
             className="border-red-200 text-red-700 hover:bg-red-50 flex-1"
           >
             <X className="h-3 w-3 mr-1" />
-            Reject
+            {sp.rejectOffer}
           </Button>
         </div>
       )}

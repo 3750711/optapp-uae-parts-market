@@ -58,6 +58,34 @@ export interface SellerPagesTranslations {
   yourPrice: string;
   offer: string;
   
+  // Price Offer Statuses
+  offerStatuses: {
+    pending: string;
+    accepted: string;
+    rejected: string;
+    expired: string;
+    cancelled: string;
+  };
+  
+  // Price Offer UI Elements
+  offerElements: {
+    originalPrice: string;
+    totalOffers: string;
+    priceOffersCount: string;
+    offeredPrice: string;
+    message: string;
+    yourResponse: string;
+    orderCreated: string;
+    viewOrder: string;
+    creatingOrder: string;
+    orderCreatingMessage: string;
+    expires: string;
+    expired: string;
+    acceptPlaceholder: string;
+    rejectPlaceholder: string;
+    afterAcceptingMessage: string;
+  };
+  
   // SellerSellProduct
   sellProductTitle: string;
   selectProductAndBuyer: string;
@@ -335,6 +363,34 @@ const ru: SellerPagesTranslations = {
   yourPrice: 'Ваша цена',
   offer: 'Предложение',
   
+  // Price Offer Statuses
+  offerStatuses: {
+    pending: 'Ожидает',
+    accepted: 'Принято',
+    rejected: 'Отклонено',
+    expired: 'Истекло',
+    cancelled: 'Отменено',
+  },
+  
+  // Price Offer UI Elements
+  offerElements: {
+    originalPrice: 'Изначальная цена',
+    totalOffers: 'Всего',
+    priceOffersCount: 'Предложения цен',
+    offeredPrice: 'Предложенная цена',
+    message: 'Сообщение:',
+    yourResponse: 'Ваш ответ:',
+    orderCreated: 'Заказ создан',
+    viewOrder: 'Просмотреть заказ',
+    creatingOrder: 'Создание заказа...',
+    orderCreatingMessage: 'Заказ создается автоматически. Обновите страницу через несколько секунд.',
+    expires: 'Истекает',
+    expired: 'Истекло',
+    acceptPlaceholder: 'Спасибо за ваше предложение! Я принимаю вашу цену.',
+    rejectPlaceholder: 'К сожалению, я не могу принять эту цену...',
+    afterAcceptingMessage: 'После принятия предложения заказ будет создан автоматически',
+  },
+  
   // SellerSellProduct
   sellProductTitle: 'Продать товар',
   selectProductAndBuyer: 'Выберите товар из вашего инвентаря и покупателя для создания заказа',
@@ -610,6 +666,34 @@ const en: SellerPagesTranslations = {
   yourPrice: 'Your Price',
   offer: 'Offer',
   
+  // Price Offer Statuses
+  offerStatuses: {
+    pending: 'Pending',
+    accepted: 'Accepted',
+    rejected: 'Rejected',
+    expired: 'Expired',
+    cancelled: 'Cancelled',
+  },
+  
+  // Price Offer UI Elements
+  offerElements: {
+    originalPrice: 'Original Price',
+    totalOffers: 'Total',
+    priceOffersCount: 'Price Offers',
+    offeredPrice: 'Offered Price',
+    message: 'Message:',
+    yourResponse: 'Your Response:',
+    orderCreated: 'Order Created',
+    viewOrder: 'View Order',
+    creatingOrder: 'Creating order...',
+    orderCreatingMessage: 'Order is being created automatically. Refresh the page in a few seconds.',
+    expires: 'Expires',
+    expired: 'Expired',
+    acceptPlaceholder: 'Thank you for your offer! I accept your price.',
+    rejectPlaceholder: 'Unfortunately, I cannot accept this price...',
+    afterAcceptingMessage: 'After accepting the offer, order will be created automatically',
+  },
+  
   // SellerSellProduct
   sellProductTitle: 'Sell Product',
   selectProductAndBuyer: 'Select a product from your inventory and a buyer to create an order',
@@ -884,6 +968,34 @@ const bn: SellerPagesTranslations = {
   reasonForRejection: 'প্রত্যাখ্যানের কারণ (ঐচ্ছিক)',
   yourPrice: 'আপনার মূল্য',
   offer: 'অফার',
+  
+  // Price Offer Statuses
+  offerStatuses: {
+    pending: 'অপেক্ষমাণ',
+    accepted: 'গৃহীত',
+    rejected: 'প্রত্যাখ্যাত',
+    expired: 'মেয়াদ শেষ',
+    cancelled: 'বাতিল',
+  },
+  
+  // Price Offer UI Elements
+  offerElements: {
+    originalPrice: 'মূল মূল্য',
+    totalOffers: 'মোট',
+    priceOffersCount: 'মূল্য অফার',
+    offeredPrice: 'প্রস্তাবিত মূল্য',
+    message: 'বার্তা:',
+    yourResponse: 'আপনার উত্তর:',
+    orderCreated: 'অর্ডার তৈরি হয়েছে',
+    viewOrder: 'অর্ডার দেখুন',
+    creatingOrder: 'অর্ডার তৈরি হচ্ছে...',
+    orderCreatingMessage: 'অর্ডার স্বয়ংক্রিয়ভাবে তৈরি হচ্ছে। কয়েক সেকেন্ড পরে পৃষ্ঠা রিফ্রেশ করুন।',
+    expires: 'মেয়াদ শেষ',
+    expired: 'মেয়াদ শেষ',
+    acceptPlaceholder: 'আপনার প্রস্তাবের জন্য ধন্যবাদ! আমি আপনার মূল্য গ্রহণ করছি।',
+    rejectPlaceholder: 'দুর্ভাগ্যবশত, আমি এই মূল্য গ্রহণ করতে পারি না...',
+    afterAcceptingMessage: 'অফার গ্রহণ করার পর অর্ডার স্বয়ংক্রিয়ভাবে তৈরি হবে',
+  },
   
   // SellerSellProduct
   sellProductTitle: 'পণ্য বিক্রয়',
