@@ -7,6 +7,8 @@ import { Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MobileKeyboardOptimizedDialog } from "@/components/ui/MobileKeyboardOptimizedDialog";
 import TouchOptimizedInput from "@/components/ui/TouchOptimizedInput";
+import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface OrderPriceConfirmDialogProps {
   open: boolean;
@@ -25,6 +27,8 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
 }) => {
   const [price, setPrice] = useState("");
   const [noDiscountConfirmed, setNoDiscountConfirmed] = useState(false);
+  const { language } = useLanguage();
+  const t = getSellerOrdersTranslations(language);
 
   // Reset price and checkbox when dialog opens or currentPrice changes
   useEffect(() => {
@@ -63,15 +67,15 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
     <MobileKeyboardOptimizedDialog 
       open={open} 
       onOpenChange={onOpenChange}
-      title="Order Confirmation"
+      title={t.orderConfirmationTitle}
     >
       <DialogDescription className="mb-4">
-        Confirm or change the order price
+        {t.orderConfirmationDescription}
       </DialogDescription>
       
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="price">Confirm or change price ($)</Label>
+          <Label htmlFor="price">{t.priceLabel}</Label>
           <TouchOptimizedInput
             id="price"
             type="number"
@@ -81,7 +85,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
             step="0.01"
             inputMode="decimal"
             className="text-lg"
-            placeholder="Enter price"
+            placeholder={t.pricePlaceholder}
           />
         </div>
         
@@ -96,7 +100,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
               htmlFor="noDiscount"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              I did not negotiate a discount
+              {t.noDiscountCheckbox}
             </Label>
           </div>
         )}
@@ -109,7 +113,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
           disabled={isSubmitting}
           className="flex-1"
         >
-          Cancel
+          {t.cancel}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -124,10 +128,10 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
           {isSubmitting ? (
             <>
               <Loader2 className="animate-spin w-4 h-4 mr-2" />
-              Confirming...
+              {t.confirming}
             </>
           ) : (
-            <>Confirm</>
+            t.confirm
           )}
         </Button>
       </DialogFooter>

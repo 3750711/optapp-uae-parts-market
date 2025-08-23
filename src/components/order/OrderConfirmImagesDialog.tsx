@@ -12,6 +12,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Check, Camera, MessageSquare, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvidenceWizard";
+import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface OrderConfirmImagesDialogProps {
   orderId: string;
@@ -22,6 +24,8 @@ interface OrderConfirmImagesDialogProps {
 export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderConfirmImagesDialogProps) => {
   const [showWizard, setShowWizard] = useState(false);
   const queryClient = useQueryClient();
+  const { language } = useLanguage();
+  const t = getSellerOrdersTranslations(language);
 
   const { data: chatImages } = useQuery({
     queryKey: ['confirm-images', orderId, 'chat_screenshot'],
@@ -107,7 +111,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
         </div>
       ) : (
         <div className="text-sm text-muted-foreground italic">
-          No {title.toLowerCase()} uploaded yet
+          {t.noEvidenceUploaded} {title.toLowerCase()}
         </div>
       )}
     </div>
@@ -118,7 +122,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>Order Confirmation Evidence</DialogTitle>
+            <DialogTitle>{t.evidenceTitle}</DialogTitle>
           </DialogHeader>
           
           <div className="space-y-6 mt-4">
@@ -126,7 +130,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
             <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
-                <span className="text-sm">Chat Screenshot:</span>
+                <span className="text-sm">{t.chatScreenshotLabel}</span>
                 {hasChatEvidence ? (
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 ) : (
@@ -135,7 +139,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               </div>
               <div className="flex items-center gap-2">
                 <Camera className="h-4 w-4" />
-                <span className="text-sm">Signed Product:</span>
+                <span className="text-sm">{t.signedProductLabel}</span>
                 {hasSignedEvidence ? (
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 ) : (
@@ -147,14 +151,14 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
             {/* Evidence Sections */}
             <div className="grid gap-6">
               {renderEvidenceSection(
-                "Chat Screenshots",
+                t.chatScreenshotsTitle,
                 <MessageSquare className="h-4 w-4" />,
                 chatImages,
                 hasChatEvidence
               )}
               
               {renderEvidenceSection(
-                "Signed Product Photos",
+                t.signedProductTitle,
                 <Camera className="h-4 w-4" />,
                 signedImages,
                 hasSignedEvidence
@@ -162,7 +166,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
 
               {/* Legacy Images (if any) */}
               {hasLegacyEvidence && renderEvidenceSection(
-                "Additional Evidence",
+                t.additionalEvidence,
                 <Check className="h-4 w-4" />,
                 legacyImages,
                 hasLegacyEvidence
@@ -177,7 +181,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
                 className="flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Add More Evidence
+                {t.addMoreEvidence}
               </Button>
             </div>
           </div>

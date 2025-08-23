@@ -71,7 +71,34 @@ const en = {
   goToCatalog: "Go to Catalog",
 
   // Loading
-  loading: "Loading..."
+  loading: "Loading...",
+  loadMore: "Load More",
+
+  // Price Dialog
+  orderConfirmationTitle: "Order Confirmation",
+  orderConfirmationDescription: "Confirm or change the order price",
+  priceLabel: "Confirm or change price ($)",
+  pricePlaceholder: "Enter price",
+  noDiscountCheckbox: "I did not negotiate a discount",
+  cancel: "Cancel",
+  confirm: "Confirm",
+  confirming: "Confirming...",
+
+  // Images Dialog
+  evidenceTitle: "Order Confirmation Evidence",
+  chatScreenshotLabel: "Chat Screenshot:",
+  signedProductLabel: "Signed Product:",
+  chatScreenshotsTitle: "Chat Screenshots",
+  signedProductTitle: "Signed Product Photos", 
+  additionalEvidence: "Additional Evidence",
+  noEvidenceUploaded: "uploaded yet",
+  addMoreEvidence: "Add More Evidence",
+
+  // Confirm Button
+  chatScreenshotsUploaded: "Chat screenshots uploaded",
+  chatScreenshotsNeeded: "Chat screenshots needed",
+  productPhotosUploaded: "Product photos uploaded", 
+  productPhotosNeeded: "Product photos needed"
 };
 
 const ru = {
@@ -144,7 +171,34 @@ const ru = {
   goToCatalog: "Перейти в каталог",
 
   // Loading
-  loading: "Загрузка..."
+  loading: "Загрузка...",
+  loadMore: "Загрузить еще",
+
+  // Price Dialog
+  orderConfirmationTitle: "Подтверждение заказа",
+  orderConfirmationDescription: "Подтвердите или измените цену заказа",
+  priceLabel: "Подтвердите или измените цену ($)",
+  pricePlaceholder: "Введите цену",
+  noDiscountCheckbox: "Я не договаривался о скидке",
+  cancel: "Отменить",
+  confirm: "Подтвердить",
+  confirming: "Подтверждение...",
+
+  // Images Dialog
+  evidenceTitle: "Доказательства подтверждения заказа",
+  chatScreenshotLabel: "Скриншот чата:",
+  signedProductLabel: "Подписанный товар:",
+  chatScreenshotsTitle: "Скриншоты чата",
+  signedProductTitle: "Фото подписанного товара",
+  additionalEvidence: "Дополнительные доказательства",
+  noEvidenceUploaded: "загружено",
+  addMoreEvidence: "Добавить больше доказательств",
+
+  // Confirm Button
+  chatScreenshotsUploaded: "Скриншоты чата загружены",
+  chatScreenshotsNeeded: "Нужны скриншоты чата",
+  productPhotosUploaded: "Фото товара загружены",
+  productPhotosNeeded: "Нужны фото товара"
 };
 
 const bn = {
@@ -217,7 +271,34 @@ const bn = {
   goToCatalog: "ক্যাটালগে যান",
 
   // Loading
-  loading: "লোড হচ্ছে..."
+  loading: "লোড হচ্ছে...",
+  loadMore: "আরো লোড করুন",
+
+  // Price Dialog
+  orderConfirmationTitle: "অর্ডার নিশ্চিতকরণ",
+  orderConfirmationDescription: "অর্ডারের দাম নিশ্চিত করুন বা পরিবর্তন করুন",
+  priceLabel: "দাম নিশ্চিত করুন বা পরিবর্তন করুন ($)",
+  pricePlaceholder: "দাম লিখুন",
+  noDiscountCheckbox: "আমি কোনো ছাড়ের জন্য আলোচনা করিনি",
+  cancel: "বাতিল",
+  confirm: "নিশ্চিত করুন",
+  confirming: "নিশ্চিত করা হচ্ছে...",
+
+  // Images Dialog
+  evidenceTitle: "অর্ডার নিশ্চিতকরণ প্রমাণ",
+  chatScreenshotLabel: "চ্যাট স্ক্রিনশট:",
+  signedProductLabel: "স্বাক্ষরিত পণ্য:",
+  chatScreenshotsTitle: "চ্যাট স্ক্রিনশট",
+  signedProductTitle: "স্বাক্ষরিত পণ্যের ছবি",
+  additionalEvidence: "অতিরিক্ত প্রমাণ",
+  noEvidenceUploaded: "আপলোড হয়েছে",
+  addMoreEvidence: "আরো প্রমাণ যোগ করুন",
+
+  // Confirm Button
+  chatScreenshotsUploaded: "চ্যাট স্ক্রিনশট আপলোড হয়েছে",
+  chatScreenshotsNeeded: "চ্যাট স্ক্রিনশট প্রয়োজন",
+  productPhotosUploaded: "পণ্যের ছবি আপলোড হয়েছে",
+  productPhotosNeeded: "পণ্যের ছবি প্রয়োজন"
 };
 
 export const sellerOrdersTranslations: Record<Lang, typeof en> = { en, ru, bn };

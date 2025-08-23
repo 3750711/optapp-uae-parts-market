@@ -402,7 +402,7 @@ const SellerOrders = () => {
                       <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
                       {order.lot_number_order && (
                         <div className="text-sm text-muted-foreground">
-                          Lot: {order.lot_number_order}
+                          {t.lot} {order.lot_number_order}
                         </div>
                       )}
                     </div>
@@ -471,7 +471,9 @@ const SellerOrders = () => {
                         {getOrderTypeLabel(order.order_created_type)}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
-                        {new Date(order.created_at).toLocaleDateString('en-US')}
+                        {new Date(order.created_at).toLocaleDateString(
+                          language === 'ru' ? 'ru-RU' : language === 'bn' ? 'bn-BD' : 'en-US'
+                        )}
                       </span>
                     </div>
 
@@ -512,7 +514,7 @@ const SellerOrders = () => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
-                                  Cancel
+                                  {t.cancel}
                                 </AlertDialogCancel>
                                 <AlertDialogAction
                                   className="bg-red-600 hover:bg-red-700 text-white"
@@ -521,7 +523,7 @@ const SellerOrders = () => {
                                     cancelOrderMutation.mutate(order.id);
                                   }}
                                 >
-                                  Confirm
+                                  {t.confirm}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -552,10 +554,10 @@ const SellerOrders = () => {
                     {isFetchingNextPage ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Loading...
+                        {t.loading}
                       </>
                     ) : (
-                      'Load More'
+                      t.loadMore
                     )}
                   </Button>
                 </div>
@@ -565,16 +567,16 @@ const SellerOrders = () => {
             <div className="text-center p-4 md:p-8 text-muted-foreground">
               {activeSearchTerm ? (
                 <>
-                  <p className="mb-4">No results found for "{activeSearchTerm}"</p>
+                  <p className="mb-4">{t.noResultsFound} "{activeSearchTerm}"</p>
                   <Button
                     variant="outline"
                     onClick={handleClearSearch}
                   >
-                    Clear search
+                    {t.clearSearch}
                   </Button>
                 </>
               ) : (
-                <p>You don't have any orders yet</p>
+                <p>{t.noOrders}</p>
               )}
             </div>
           )}

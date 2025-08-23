@@ -4,6 +4,8 @@ import { Upload, Check, AlertTriangle, MessageSquare, Package } from "lucide-rea
 import { OrderConfirmImagesDialog } from "@/components/order/OrderConfirmImagesDialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface OrderConfirmButtonProps {
   orderId: string;
@@ -11,6 +13,8 @@ interface OrderConfirmButtonProps {
 
 export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId }) => {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const { language } = useLanguage();
+  const t = getSellerOrdersTranslations(language);
   
   const { data: orderDetails } = useQuery({
     queryKey: ['order-details', orderId],
@@ -83,8 +87,8 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
           )}
           <span className="text-sm">
             {hasChatScreenshots 
-              ? 'Chat screenshots uploaded' 
-              : 'Chat screenshots needed'
+              ? t.chatScreenshotsUploaded
+              : t.chatScreenshotsNeeded
             }
           </span>
         </div>
@@ -106,8 +110,8 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
           )}
           <span className="text-sm">
             {hasSignedProductPhotos 
-              ? 'Product photos uploaded' 
-              : 'Product photos needed'
+              ? t.productPhotosUploaded
+              : t.productPhotosNeeded
             }
           </span>
         </div>
