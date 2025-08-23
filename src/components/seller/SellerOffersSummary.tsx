@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { DollarSign, Clock, TrendingUp, Eye } from "lucide-react";
 import { formatPrice } from "@/utils/formatPrice";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
 interface SellerOffersSummaryProps {
   productId: string;
@@ -16,6 +18,8 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
   productId,
 }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
 
   // Fetch offers for this product
   const { data: offers, isLoading } = useQuery({
@@ -41,7 +45,7 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
-            Предложения цены
+            {t.labels.priceOffers}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -60,12 +64,12 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
-            Предложения цены
+            {t.labels.priceOffers}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Пока нет предложений цены для этого объявления.
+            {t.labels.noOffersYet}
           </p>
         </CardContent>
       </Card>
@@ -95,7 +99,7 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="h-5 w-5" />
-          Предложения цены
+          {t.labels.priceOffers}
         </CardTitle>
         <Button 
           variant="outline" 
@@ -104,7 +108,7 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
           className="flex items-center gap-2"
         >
           <Eye className="h-4 w-4" />
-          Просмотреть все
+          {t.labels.viewAll}
         </Button>
       </CardHeader>
       <CardContent>
@@ -115,7 +119,7 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
               {offers.length}
             </div>
             <div className="text-sm text-muted-foreground">
-              Всего предложений
+              {t.labels.totalOffers}
             </div>
           </div>
           
@@ -124,7 +128,7 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
               {formatPrice(maxOffer)}
             </div>
             <div className="text-sm text-muted-foreground">
-              Максимальная цена
+              {t.labels.maxPrice}
             </div>
           </div>
           
@@ -133,7 +137,7 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
               {formatPrice(avgOffer)}
             </div>
             <div className="text-sm text-muted-foreground">
-              Средняя цена
+              {t.labels.avgPrice}
             </div>
           </div>
           
@@ -142,7 +146,7 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
               {pendingOffers.length}
             </div>
             <div className="text-sm text-muted-foreground">
-              Ожидают ответа
+              {t.labels.waitingResponse}
             </div>
           </div>
         </div>
@@ -152,18 +156,18 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
           {pendingOffers.length > 0 && (
             <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
               <Clock className="h-3 w-3 mr-1" />
-              {pendingOffers.length} ожидают
+              {pendingOffers.length} {t.offerStatuses.pending.toLowerCase()}
             </Badge>
           )}
           {acceptedOffers.length > 0 && (
             <Badge variant="secondary" className="bg-green-100 text-green-800">
               <TrendingUp className="h-3 w-3 mr-1" />
-              {acceptedOffers.length} принято
+              {acceptedOffers.length} {t.offerStatuses.accepted.toLowerCase()}
             </Badge>
           )}
           {rejectedOffers.length > 0 && (
             <Badge variant="secondary" className="bg-red-100 text-red-800">
-              {rejectedOffers.length} отклонено
+              {rejectedOffers.length} {t.offerStatuses.rejected.toLowerCase()}
             </Badge>
           )}
         </div>
@@ -171,7 +175,7 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
         {/* Recent Offers */}
         {pendingOffers.length > 0 && (
           <div>
-            <h4 className="font-medium mb-2">Последние предложения:</h4>
+            <h4 className="font-medium mb-2">{t.labels.latestOffers}</h4>
             <div className="space-y-2">
               {pendingOffers.slice(0, 3).map((offer) => (
                 <div 
@@ -183,7 +187,7 @@ const SellerOffersSummary: React.FC<SellerOffersSummaryProps> = ({
                       {formatPrice(offer.offered_price)}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      от {offer.profiles?.full_name || 'Покупатель'}
+                      {t.labels.from} {offer.profiles?.full_name || 'Покупатель'}
                     </span>
                   </div>
                   <Badge variant="outline" className="text-xs">

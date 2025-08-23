@@ -10,6 +10,7 @@ import { Product } from "@/types/product";
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 import { getCommonTranslations } from '@/utils/translations/common';
+import { getProductStatusTranslations } from '@/utils/translations/productStatuses';
 
 import {
   AlertDialog,
@@ -38,6 +39,7 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
   const { language } = useLanguage();
   const sp = getSellerPagesTranslations(language);
   const c = getCommonTranslations(language);
+  const t = getProductStatusTranslations(language);
   
 
   // Status update mutation
@@ -87,27 +89,27 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
       case 'active':
         return {
           color: "bg-green-100 text-green-800",
-          text: "Активное"
+          text: t.statuses.active
         };
       case 'pending':
         return {
           color: "bg-yellow-100 text-yellow-800",
-          text: "На модерации"
+          text: t.statuses.pending
         };
       case 'sold':
         return {
           color: "bg-blue-100 text-blue-800",
-          text: "Продано"
+          text: t.statuses.sold
         };
       case 'archived':
         return {
           color: "bg-gray-100 text-gray-800",
-          text: "В архиве"
+          text: t.statuses.archived
         };
       default:
         return {
           color: "bg-gray-100 text-gray-800",
-          text: "Неизвестно"
+          text: t.statuses.unknown
         };
     }
   };
@@ -162,10 +164,9 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>{c.buttons.hide || 'Скрыть'} объявление?</AlertDialogTitle>
+                    <AlertDialogTitle>{t.dialogs.hideProduct.title}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Объявление будет помещено в архив и не будет отображаться в поиске.
-                      Вы сможете восстановить его позже.
+                      {t.dialogs.hideProduct.description}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -190,9 +191,9 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Отметить как проданное?</AlertDialogTitle>
+                    <AlertDialogTitle>{t.dialogs.markSold.title}</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Объявление будет помечено как проданное и убрано из активных объявлений.
+                      {t.dialogs.markSold.description}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

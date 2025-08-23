@@ -16,11 +16,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { sellerDashboardTranslations, getSellerDashboardTranslations } from "@/utils/translations/sellerDashboard";
 import { useLanguage } from "@/hooks/useLanguage";
+import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
 const SellerStats = () => {
   const { user, profile } = useAuth();
   const { language } = useLanguage();
   const t = getSellerDashboardTranslations(profile?.user_type === 'seller' ? language : 'ru');
+  const ps = getProductStatusTranslations(profile?.user_type === 'seller' ? language : 'ru');
 
   const { data: stats, isLoading, error, refetch } = useQuery({
     queryKey: ['seller-stats', user?.id],
@@ -87,12 +89,12 @@ const SellerStats = () => {
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6">
           <div className="text-center">
-            <p className="text-red-600 mb-2">{t.stats.errorLoading}</p>
+            <p className="text-red-600 mb-2">{ps.stats.errorLoading}</p>
             <button 
               onClick={() => refetch()}
               className="text-sm text-red-800 underline hover:no-underline"
             >
-              {t.stats.retry}
+              {ps.stats.retry}
             </button>
           </div>
         </CardContent>
@@ -120,70 +122,70 @@ const SellerStats = () => {
 
   const statsCards = [
     {
-      title: "Total Products",
+      title: ps.stats.totalProducts,
       value: stats?.totalProducts || 0,
       icon: Package,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      detail: `${stats?.activeProducts || 0} active`
+      detail: `${stats?.activeProducts || 0} ${ps.stats.active}`
     },
     {
-      title: "Pending",
+      title: ps.stats.pending,
       value: stats?.pendingProducts || 0,
       icon: Clock,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50",
-      detail: "products in review"
+      detail: ps.stats.productsInReview
     },
     {
-      title: "Sold",
+      title: ps.stats.sold,
       value: stats?.soldProducts || 0,
       icon: TrendingUp,
       color: "text-green-600",
       bgColor: "bg-green-50",
-      detail: "products total"
+      detail: ps.stats.productsTotal
     },
     {
-      title: "Total Orders",
+      title: ps.stats.totalOrders,
       value: stats?.totalOrders || 0,
       icon: ShoppingCart,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
-      detail: `${stats?.completedOrders || 0} completed`
+      detail: `${stats?.completedOrders || 0} ${ps.stats.completed}`
     },
     {
-      title: "Active Orders",
+      title: ps.stats.activeOrders,
       value: stats?.pendingOrders || 0,
       icon: Eye,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
-      detail: "in progress"
+      detail: ps.stats.inProgress
     },
     {
-      title: "Total Revenue",
+      title: ps.stats.totalRevenue,
       value: `${(stats?.totalRevenue || 0).toLocaleString()} AED`,
       icon: DollarSign,
       color: "text-green-600",
       bgColor: "bg-green-50",
-      detail: "all time",
+      detail: ps.stats.allTime,
       isRevenue: true
     },
     {
-      title: "This Month",
+      title: ps.stats.thisMonth,
       value: `${(stats?.monthlyRevenue || 0).toLocaleString()} AED`,
       icon: TrendingUp,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
-      detail: `${stats?.recentOrdersCount || 0} orders`,
+      detail: `${stats?.recentOrdersCount || 0} ${ps.stats.orders}`,
       isRevenue: true
     },
     {
-      title: "Average Order",
+      title: ps.stats.averageOrder,
       value: `${(stats?.averageOrderValue || 0).toFixed(0)} AED`,
       icon: DollarSign,
       color: "text-indigo-600",
       bgColor: "bg-indigo-50",
-      detail: "per order",
+      detail: ps.stats.perOrder,
       isRevenue: true
     }
   ];
@@ -191,9 +193,9 @@ const SellerStats = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Statistics</h3>
+        <h3 className="text-lg font-semibold">{ps.stats.statistics}</h3>
         <Badge variant="outline" className="text-xs">
-          {t.stats.lastUpdated}: {new Date().toLocaleTimeString()}
+          {ps.stats.lastUpdated}: {new Date().toLocaleTimeString()}
         </Badge>
       </div>
       
