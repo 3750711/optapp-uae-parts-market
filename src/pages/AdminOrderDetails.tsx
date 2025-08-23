@@ -100,7 +100,7 @@ const AdminOrderDetails = () => {
 
   // Chat screenshots query
   const { data: chatScreenshots = [] } = useQuery({
-    queryKey: ['confirm-images-chat', id],
+    queryKey: ['confirm-images', id, 'chat_screenshot'],
     queryFn: async () => {
       if (!id) return [];
       
@@ -121,7 +121,7 @@ const AdminOrderDetails = () => {
 
   // Signed product photos query
   const { data: signedProductPhotos = [] } = useQuery({
-    queryKey: ['confirm-images-signed', id],
+    queryKey: ['confirm-images', id, 'signed_product'],
     queryFn: async () => {
       if (!id) return [];
       
