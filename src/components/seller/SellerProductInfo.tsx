@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { DollarSign, Package, Eye, Calendar } from "lucide-react";
 import { Product } from "@/types/product";
 import { InlineEditableField } from "@/components/ui/InlineEditableField";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
 interface SellerProductInfoProps {
   product: Product;
@@ -18,16 +20,19 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
   updatePlaceNumber,
   updateDeliveryPrice,
 }) => {
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
+
   const getStatusBadge = () => {
     switch (product.status) {
       case 'pending':
-        return <Badge variant="warning" className="text-xs">Pending Review</Badge>;
+        return <Badge variant="warning" className="text-xs">{t.statuses.pending}</Badge>;
       case 'active':
-        return <Badge variant="success" className="text-xs">Active</Badge>;
+        return <Badge variant="success" className="text-xs">{t.statuses.active}</Badge>;
       case 'sold':
-        return <Badge variant="info" className="text-xs">Sold</Badge>;
+        return <Badge variant="info" className="text-xs">{t.statuses.sold}</Badge>;
       case 'archived':
-        return <Badge variant="outline" className="text-xs bg-gray-100">Archived</Badge>;
+        return <Badge variant="outline" className="text-xs bg-gray-100">{t.statuses.archived}</Badge>;
       default:
         return null;
     }
@@ -37,7 +42,7 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Product Information</CardTitle>
+          <CardTitle className="text-lg font-semibold">{t.labels.productInformation}</CardTitle>
           {getStatusBadge()}
         </div>
       </CardHeader>
@@ -46,7 +51,7 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <DollarSign className="h-4 w-4" />
-            Price
+            {t.labels.price}
           </div>
           <InlineEditableField
             value={product.price}
@@ -65,7 +70,7 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Package className="h-4 w-4" />
-            Number of Places
+            {t.labels.numberOfPlaces}
           </div>
           <InlineEditableField
             value={product.place_number || 1}
@@ -83,7 +88,7 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <DollarSign className="h-4 w-4" />
-              Delivery Price
+              {t.labels.deliveryPrice}
             </div>
             <InlineEditableField
               value={product.delivery_price}
@@ -104,7 +109,7 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Eye className="h-4 w-4" />
-            Views
+            {t.labels.views}
           </div>
           <div className="text-lg font-semibold text-foreground">
             {product.view_count || 0}
@@ -115,7 +120,7 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            Created
+            {t.labels.created}
           </div>
           <div className="text-sm text-muted-foreground">
             {new Date(product.created_at).toLocaleDateString('en-US', {

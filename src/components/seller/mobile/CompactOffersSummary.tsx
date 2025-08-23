@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { DollarSign, Clock, Eye, TrendingUp } from "lucide-react";
 import { formatPrice } from "@/utils/formatPrice";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
 interface CompactOffersSummaryProps {
   productId: string;
@@ -16,6 +18,8 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
   productId,
 }) => {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
 
   // Fetch offers for this product
   const { data: offers, isLoading } = useQuery({
@@ -57,12 +61,12 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            Price Offers
+            {t.labels.priceOffers}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           <p className="text-sm text-muted-foreground">
-            No price offers yet
+            {t.labels.noOffersYet}
           </p>
         </CardContent>
       </Card>
@@ -87,11 +91,11 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      pending: { className: "bg-yellow-100 text-yellow-800", label: "Pending" },
-      accepted: { className: "bg-green-100 text-green-800", label: "Accepted" },
-      rejected: { className: "bg-red-100 text-red-800", label: "Rejected" },
-      expired: { className: "bg-gray-100 text-gray-800", label: "Expired" },
-      cancelled: { className: "bg-gray-100 text-gray-800", label: "Cancelled" },
+      pending: { className: "bg-yellow-100 text-yellow-800", label: t.offerStatuses.pending },
+      accepted: { className: "bg-green-100 text-green-800", label: t.offerStatuses.accepted },
+      rejected: { className: "bg-red-100 text-red-800", label: t.offerStatuses.rejected },
+      expired: { className: "bg-gray-100 text-gray-800", label: t.offerStatuses.expired },
+      cancelled: { className: "bg-gray-100 text-gray-800", label: t.offerStatuses.cancelled },
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
@@ -114,7 +118,7 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <DollarSign className="h-4 w-4" />
-            Price Offers
+            {t.labels.priceOffers}
           </CardTitle>
           <Button 
             variant="ghost" 
@@ -132,17 +136,17 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
         <div className="grid grid-cols-3 gap-3 mb-3">
           <div className="text-center bg-muted p-2 rounded-lg">
             <div className="text-lg font-bold text-primary">{offers.length}</div>
-            <div className="text-xs text-muted-foreground">Total</div>
+            <div className="text-xs text-muted-foreground">{t.labels.total}</div>
           </div>
           
           <div className="text-center bg-muted p-2 rounded-lg">
             <div className="text-lg font-bold text-primary">{formatPrice(maxOffer)}</div>
-            <div className="text-xs text-muted-foreground">Max Price</div>
+            <div className="text-xs text-muted-foreground">{t.labels.maxPrice}</div>
           </div>
           
           <div className="text-center bg-muted p-2 rounded-lg">
             <div className="text-lg font-bold text-secondary">{pendingOffers.length}</div>
-            <div className="text-xs text-muted-foreground">Pending</div>
+            <div className="text-xs text-muted-foreground">{t.offerStatuses.pending}</div>
           </div>
         </div>
 
@@ -151,14 +155,14 @@ const CompactOffersSummary: React.FC<CompactOffersSummaryProps> = ({
           <div className="flex gap-2 mb-3">
             <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 text-xs">
               <Clock className="h-3 w-3 mr-1" />
-              {pendingOffers.length} new
+              {pendingOffers.length} {t.labels.newOffers}
             </Badge>
           </div>
         )}
 
         {/* All Offers - sorted by price */}
         <div className="space-y-2">
-          <div className="text-sm font-medium text-foreground mb-2">All Offers</div>
+          <div className="text-sm font-medium text-foreground mb-2">{t.labels.allOffers}</div>
           {sortedOffers.slice(0, 7).map((offer, index) => (
             <div key={offer.id} className={`p-3 rounded-lg border ${offer.status === 'pending' ? 'bg-green-50 border-green-200' : 'bg-muted/50'}`}>
               <div className="flex items-center justify-between mb-2">

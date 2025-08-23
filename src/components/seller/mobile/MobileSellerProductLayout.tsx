@@ -8,6 +8,8 @@ import CompactOffersSummary from "./CompactOffersSummary";
 import MobileSellerActions from "./MobileSellerActions";
 import { InlineEditableField } from "@/components/ui/InlineEditableField";
 import { InlineEditableTextarea } from "@/components/ui/InlineEditableTextarea";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
 interface MobileSellerProductLayoutProps {
   product: Product;
@@ -43,16 +45,19 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
     return null;
   }
 
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
+
   const getStatusBadge = () => {
     switch (product.status) {
       case 'pending':
-        return <Badge variant="warning" className="text-xs">Pending Review</Badge>;
+        return <Badge variant="warning" className="text-xs">{t.statuses.pending}</Badge>;
       case 'active':
-        return <Badge variant="success" className="text-xs">Active</Badge>;
+        return <Badge variant="success" className="text-xs">{t.statuses.active}</Badge>;
       case 'sold':
-        return <Badge variant="info" className="text-xs">Sold</Badge>;
+        return <Badge variant="info" className="text-xs">{t.statuses.sold}</Badge>;
       case 'archived':
-        return <Badge variant="outline" className="text-xs bg-gray-100">Archived</Badge>;
+        return <Badge variant="outline" className="text-xs bg-gray-100">{t.statuses.archived}</Badge>;
       default:
         return null;
     }
@@ -158,7 +163,7 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-muted p-3 rounded-lg">
               <div className="text-lg font-bold text-primary">{product.view_count || 0}</div>
-              <div className="text-xs text-muted-foreground">Views</div>
+              <div className="text-xs text-muted-foreground">{t.labels.views}</div>
             </div>
             <div className="bg-muted p-3 rounded-lg">
               <InlineEditableField
@@ -170,12 +175,12 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
                 min={1}
                 required
               />
-              <div className="text-xs text-muted-foreground">Places</div>
+              <div className="text-xs text-muted-foreground">{t.labels.places}</div>
             </div>
           </div>
           {product.delivery_price !== null && product.delivery_price !== undefined && (
             <div className="mt-4 bg-muted p-3 rounded-lg">
-              <div className="text-xs text-muted-foreground mb-1">Delivery Price</div>
+              <div className="text-xs text-muted-foreground mb-1">{t.labels.deliveryPrice}</div>
               <InlineEditableField
                 value={product.delivery_price}
                 onSave={updateDeliveryPrice}
@@ -199,7 +204,7 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Package className="h-4 w-4" />
-            Product Description
+            {t.labels.productDescription}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -216,7 +221,7 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
           
           <div className="bg-muted p-3 rounded-lg">
             <div className="text-xs text-muted-foreground">
-              Created: {new Date(product.created_at).toLocaleDateString('en-US')}
+              {t.labels.created}: {new Date(product.created_at).toLocaleDateString('en-US')}
             </div>
           </div>
         </CardContent>

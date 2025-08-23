@@ -6,6 +6,29 @@ export interface ProductStatusTranslations {
     pending: string;
     unknown: string;
   };
+  offerStatuses: {
+    pending: string;
+    accepted: string;
+    rejected: string;
+    expired: string;
+    cancelled: string;
+  };
+  labels: {
+    priceOffers: string;
+    noOffersYet: string;
+    total: string;
+    maxPrice: string;
+    newOffers: string;
+    allOffers: string;
+    productInformation: string;
+    price: string;
+    numberOfPlaces: string;
+    deliveryPrice: string;
+    views: string;
+    created: string;
+    productDescription: string;
+    places: string;
+  };
   markSoldDialog: {
     title: string;
     description: string;
@@ -36,6 +59,29 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         pending: "На рассмотрении",
         unknown: "Неизвестно"
       },
+      offerStatuses: {
+        pending: "В работе",
+        accepted: "Принято",
+        rejected: "Отклонено",
+        expired: "Истекло",
+        cancelled: "Отменено"
+      },
+      labels: {
+        priceOffers: "Предложения цен",
+        noOffersYet: "Пока нет предложений",
+        total: "Всего",
+        maxPrice: "Макс. цена",
+        newOffers: "новых",
+        allOffers: "Все предложения",
+        productInformation: "Информация о товаре",
+        price: "Цена",
+        numberOfPlaces: "Количество мест",
+        deliveryPrice: "Стоимость доставки",
+        views: "Просмотры",
+        created: "Создан",
+        productDescription: "Описание товара",
+        places: "Места"
+      },
       markSoldDialog: {
         title: "Подтвердить действие",
         description: "Вы уверены, что хотите отметить товар как проданный? Это действие нельзя отменить.",
@@ -63,6 +109,29 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         pending: "Pending",
         unknown: "Unknown"
       },
+      offerStatuses: {
+        pending: "Pending",
+        accepted: "Accepted",
+        rejected: "Rejected",
+        expired: "Expired",
+        cancelled: "Cancelled"
+      },
+      labels: {
+        priceOffers: "Price Offers",
+        noOffersYet: "No price offers yet",
+        total: "Total",
+        maxPrice: "Max Price",
+        newOffers: "new",
+        allOffers: "All Offers",
+        productInformation: "Product Information",
+        price: "Price",
+        numberOfPlaces: "Number of Places",
+        deliveryPrice: "Delivery Price",
+        views: "Views",
+        created: "Created",
+        productDescription: "Product Description",
+        places: "Places"
+      },
       markSoldDialog: {
         title: "Confirm Action",
         description: "Are you sure you want to mark this product as sold? This action cannot be undone.",
@@ -89,6 +158,29 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         archived: "সংরক্ষণাগারে",
         pending: "অপেক্ষমাণ",
         unknown: "অজানা"
+      },
+      offerStatuses: {
+        pending: "অপেক্ষমাণ",
+        accepted: "গৃহীত",
+        rejected: "প্রত্যাখ্যাত",
+        expired: "মেয়াদ শেষ",
+        cancelled: "বাতিল"
+      },
+      labels: {
+        priceOffers: "মূল্য প্রস্তাব",
+        noOffersYet: "এখনো কোনো মূল্য প্রস্তাব নেই",
+        total: "মোট",
+        maxPrice: "সর্বোচ্চ মূল্য",
+        newOffers: "নতুন",
+        allOffers: "সব প্রস্তাব",
+        productInformation: "পণ্যের তথ্য",
+        price: "মূল্য",
+        numberOfPlaces: "স্থানের সংখ্যা",
+        deliveryPrice: "ডেলিভারি খরচ",
+        views: "দেখা হয়েছে",
+        created: "তৈরি",
+        productDescription: "পণ্যের বিবরণ",
+        places: "স্থান"
       },
       markSoldDialog: {
         title: "কর্ম নিশ্চিত করুন",
