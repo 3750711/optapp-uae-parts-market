@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,12 +7,13 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle } from 'lucide-react';
+import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle, MessageSquare, CheckCircle2, AlertCircle } from 'lucide-react';
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 
 const AdminOrderDetails = () => {
   const { id } = useParams<{ id: string }>();
   const { user, profile, isLoading: isAuthLoading } = useAuth();
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
 
   // Log AuthContext state for debugging
@@ -97,20 +98,41 @@ const AdminOrderDetails = () => {
     enabled: !!id
   });
 
-  // Confirm images query - dependent on profile being loaded AND user being admin
-  const { data: confirmImages = [] } = useQuery({
-    queryKey: ['confirm-images', id],
+  // Chat screenshots query
+  const { data: chatScreenshots = [] } = useQuery({
+    queryKey: ['confirm-images-chat', id],
     queryFn: async () => {
-      console.log('Fetching confirm images for admin user');
       if (!id) return [];
       
       const { data, error } = await supabase
         .from('confirm_images')
         .select('url')
-        .eq('order_id', id);
+        .eq('order_id', id)
+        .eq('category', 'chat_screenshot');
 
       if (error) {
-        console.error('Confirm images fetch error:', error);
+        console.error('Chat screenshots fetch error:', error);
+        throw error;
+      }
+      return data?.map(img => img.url) || [];
+    },
+    enabled: !!id && !isAuthLoading && profile?.user_type === 'admin'
+  });
+
+  // Signed product photos query
+  const { data: signedProductPhotos = [] } = useQuery({
+    queryKey: ['confirm-images-signed', id],
+    queryFn: async () => {
+      if (!id) return [];
+      
+      const { data, error } = await supabase
+        .from('confirm_images')
+        .select('url')
+        .eq('order_id', id)
+        .eq('category', 'signed_product');
+
+      if (error) {
+        console.error('Signed product photos fetch error:', error);
         throw error;
       }
       return data?.map(img => img.url) || [];
@@ -270,7 +292,35 @@ const AdminOrderDetails = () => {
               
               <div className="flex items-center gap-2">
                 {isAdmin && (
-                  <OrderConfirmImagesDialog orderId={order.id} />
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowConfirmDialog(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Camera className="h-4 w-4" />
+                      Подтверждающие фото
+                      <div className="flex items-center gap-1 ml-2">
+                        <div className="flex items-center gap-1">
+                          <MessageSquare className={`h-3 w-3 ${chatScreenshots.length > 0 ? 'text-green-600' : 'text-muted-foreground'}`} />
+                          <Badge variant={chatScreenshots.length > 0 ? "default" : "secondary"} className="text-xs px-1 h-4">
+                            {chatScreenshots.length}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <CheckCircle2 className={`h-3 w-3 ${signedProductPhotos.length > 0 ? 'text-green-600' : 'text-muted-foreground'}`} />
+                          <Badge variant={signedProductPhotos.length > 0 ? "default" : "secondary"} className="text-xs px-1 h-4">
+                            {signedProductPhotos.length}
+                          </Badge>
+                        </div>
+                      </div>
+                    </Button>
+                    <OrderConfirmImagesDialog 
+                      orderId={order.id} 
+                      open={showConfirmDialog}
+                      onOpenChange={setShowConfirmDialog}
+                    />
+                  </>
                 )}
               </div>
             </div>
