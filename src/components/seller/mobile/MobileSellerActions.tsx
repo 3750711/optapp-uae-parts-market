@@ -6,6 +6,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +32,8 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
 
   // Status update mutation
   const statusMutation = useMutation({
@@ -45,7 +49,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       queryClient.invalidateQueries({ queryKey: ['seller-product', product.id] });
       queryClient.invalidateQueries({ queryKey: ['seller-products'] });
       toast({
-        title: "Status Updated",
+        title: t.markSoldDialog.successMessage,
         description: "Your listing status has been successfully changed.",
       });
       onProductUpdate();
@@ -53,7 +57,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to update listing status.",
+        description: t.markSoldDialog.errorMessage,
         variant: "destructive"
       });
     }
@@ -123,20 +127,20 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
                 style={{ display: product.status === 'active' ? 'flex' : 'none' }}
               >
                 <Archive className="h-4 w-4" />
-                Sold
+                {t.actions.markSoldShort}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Mark as sold?</AlertDialogTitle>
+                <AlertDialogTitle>{t.markSoldDialog.title}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  The listing will be marked as sold and removed from active listings.
+                  {t.markSoldDialog.description}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t.markSoldDialog.cancel}</AlertDialogCancel>
                 <AlertDialogAction onClick={() => handleStatusChange('sold')}>
-                  Mark as Sold
+                  {t.actions.markSold}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -150,7 +154,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
             style={{ display: product.status === 'archived' ? 'flex' : 'none' }}
           >
             <RotateCcw className="h-4 w-4" />
-            Restore
+            {t.actions.restore}
           </Button>
         </div>
       </div>

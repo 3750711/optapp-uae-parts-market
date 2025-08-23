@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
 
 interface ProductStatusChangeDialogProps {
@@ -29,6 +31,8 @@ const ProductStatusChangeDialog = ({
   onStatusChange,
 }: ProductStatusChangeDialogProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
   
 
   const handleMarkAsSold = async () => {
@@ -99,13 +103,13 @@ const ProductStatusChangeDialog = ({
         console.error("⚠️ [ProductStatusChangeDialog] Exception while logging:", logException);
       }
 
-      toast.success("Product status successfully changed to 'Sold'");
+      toast.success(t.markSoldDialog.successMessage);
       console.log(`🎉 [ProductStatusChangeDialog] Product status change completed successfully`);
       
       onStatusChange();
     } catch (error) {
       console.error("❌ [ProductStatusChangeDialog] Error in handleMarkAsSold:", error);
-      toast.error("Error changing product status");
+      toast.error(t.markSoldDialog.errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -116,25 +120,24 @@ const ProductStatusChangeDialog = ({
       <AlertDialogTrigger asChild>
         <Button variant="destructive" size="sm" className="h-10 px-2 text-xs min-w-0 flex-shrink-0 whitespace-nowrap touch-manipulation">
           <Tag className="mr-1 h-3 w-3" />
-          <span className="hidden sm:inline">Mark Sold</span>
-          <span className="sm:hidden">Sold</span>
+          <span className="hidden sm:inline">{t.actions.markSold}</span>
+          <span className="sm:hidden">{t.actions.markSoldShort}</span>
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+          <AlertDialogTitle>{t.markSoldDialog.title}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to mark "{productName}" as sold?
-            This action cannot be undone.
+            {t.markSoldDialog.description.replace('{productName}', `"${productName}"`)}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t.markSoldDialog.cancel}</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleMarkAsSold}
             disabled={isProcessing}
           >
-            {isProcessing ? "Processing..." : "Confirm"}
+            {isProcessing ? t.markSoldDialog.processing : t.markSoldDialog.confirm}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
