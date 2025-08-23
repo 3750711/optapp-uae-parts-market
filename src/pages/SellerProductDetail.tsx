@@ -175,7 +175,7 @@ const SellerProductDetail = () => {
     ? product.product_videos.map(video => video.url) 
     : [];
   
-  const sellerName = product?.seller_name || (profile?.full_name || "Неизвестный продавец");
+  const sellerName = product?.seller_name || (profile?.full_name || sp.unknownSeller);
 
   if (!product) return null;
 

@@ -5,6 +5,8 @@ import { Star, Copy, CheckCheck } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useLanguage } from '@/hooks/useLanguage';
+import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 
 interface SellerBasicInfoProps {
   sellerProfile?: SellerProfile | null;
@@ -25,6 +27,8 @@ export const SellerBasicInfo: React.FC<SellerBasicInfoProps> = ({
   onCopyOptId,
   onShowContactInfo
 }) => {
+  const { language } = useLanguage();
+  const sp = getSellerPagesTranslations(language);
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center">
@@ -33,7 +37,7 @@ export const SellerBasicInfo: React.FC<SellerBasicInfoProps> = ({
           className="text-primary font-medium hover:underline transition-colors flex items-center"
         >
           {seller_name}
-          <span className="text-xs ml-2 text-gray-500">(Открыть профиль)</span>
+          <span className="text-xs ml-2 text-gray-500">{sp.sellerInfo.openProfile}</span>
         </Link>
         {sellerProfile?.opt_status === 'opt_user' && (
           <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium">
@@ -59,7 +63,7 @@ export const SellerBasicInfo: React.FC<SellerBasicInfoProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Копировать OPT ID</p>
+                <p>{sp.sellerInfo.copyOptId}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -72,7 +76,7 @@ export const SellerBasicInfo: React.FC<SellerBasicInfoProps> = ({
             className="text-primary" 
             onClick={onShowContactInfo}
           >
-            Показать OPT ID
+            {sp.sellerInfo.showOptId}
           </Button>
         </div>
       )}

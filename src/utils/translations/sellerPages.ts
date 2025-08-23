@@ -87,7 +87,15 @@ export interface SellerPagesTranslations {
   productNotFound: string;
   accessDenied: string;
   accessDeniedDescription: string;
+  unknownSeller: string;
   lotLabel: string;
+  
+  // Seller Info
+  sellerInfo: {
+    openProfile: string;
+    copyOptId: string;
+    showOptId: string;
+  };
   
   // ProductDetailAlerts
   moderationAlert: {
@@ -316,7 +324,15 @@ const ru: SellerPagesTranslations = {
   productNotFound: 'Товар не найден',
   accessDenied: 'Доступ запрещен',
   accessDeniedDescription: 'Вы можете просматривать только свои собственные объявления. Проверьте правильность ссылки или вернитесь к списку ваших объявлений.',
+  unknownSeller: 'Неизвестный продавец',
   lotLabel: 'Лот',
+  
+  // Seller Info
+  sellerInfo: {
+    openProfile: '(Открыть профиль)',
+    copyOptId: 'Копировать OPT ID',
+    showOptId: 'Показать OPT ID',
+  },
   
   // ProductDetailAlerts
   moderationAlert: {
@@ -539,11 +555,19 @@ const en: SellerPagesTranslations = {
   selectBuyerPlaceholder: 'Select buyer...',
   
   // SellerProductDetail
-  productDetail: 'Product Detail',
+  productDetail: 'Product Details',
   productNotFound: 'Product not found',
-  accessDenied: 'Access denied',
+  accessDenied: 'Access Denied',
   accessDeniedDescription: 'You can only view your own listings. Please check the link or return to your listings.',
+  unknownSeller: 'Unknown Seller',
   lotLabel: 'Lot',
+  
+  // Seller Info
+  sellerInfo: {
+    openProfile: '(Open Profile)',
+    copyOptId: 'Copy OPT ID',
+    showOptId: 'Show OPT ID',
+  },
   
   // ProductDetailAlerts
   moderationAlert: {
@@ -766,11 +790,19 @@ const bn: SellerPagesTranslations = {
   selectBuyerPlaceholder: 'ক্রেতা নির্বাচন করুন...',
   
   // SellerProductDetail
-  productDetail: 'পণ্যের বিবরণ',
+  productDetail: 'পণ্যের বিশদ',
   productNotFound: 'পণ্য পাওয়া যায়নি',
   accessDenied: 'অ্যাক্সেস অস্বীকৃত',
-  accessDeniedDescription: 'আপনি শুধুমাত্র আপনার নিজস্ব তালিকা দেখতে পারেন। অনুগ্রহ করে লিঙ্কটি চেক করুন বা আপনার তালিকায় ফিরে যান।',
+  accessDeniedDescription: 'আপনি শুধুমাত্র আপনার নিজের তালিকা দেখতে পারেন। লিংকটি যাচাই করুন বা আপনার তালিকায় ফিরে যান।',
+  unknownSeller: 'অজানা বিক্রেতা',
   lotLabel: 'লট',
+  
+  // Seller Info
+  sellerInfo: {
+    openProfile: '(প্রোফাইল খুলুন)',
+    copyOptId: 'OPT ID কপি করুন',
+    showOptId: 'OPT ID দেখান',
+  },
   
   // ProductDetailAlerts
   moderationAlert: {
