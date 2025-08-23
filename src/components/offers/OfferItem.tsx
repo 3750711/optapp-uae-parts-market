@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Clock, Check, X, User, MessageSquare, ShoppingCart, RefreshCw } from 'lucide-react';
 import { PriceOffer } from '@/types/price-offer';
 import { formatDistanceToNow } from 'date-fns';
+import { ru, enUS } from 'date-fns/locale';
 import { formatPrice } from '@/utils/formatPrice';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
+import { getNotificationLocale } from '@/utils/notificationTranslations';
 
 interface OfferItemProps {
   offer: PriceOffer;
@@ -19,6 +21,10 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
   const navigate = useNavigate();
   const { language } = useLanguage();
   const sp = getSellerPagesTranslations(language);
+  
+  // Get the appropriate locale for date formatting
+  const localeString = getNotificationLocale(language);
+  const locale = localeString === 'ru' ? ru : enUS;
   
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -47,6 +53,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
     
     return `${sp.offerElements.expires} ${formatDistanceToNow(expirationTime, {
       addSuffix: true,
+      locale,
     })}`;
   };
 
@@ -97,7 +104,7 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
         <div className="text-right">
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            {isPending ? getTimeRemaining(offer.expires_at) : formatDistanceToNow(new Date(offer.updated_at), { addSuffix: true })}
+            {isPending ? getTimeRemaining(offer.expires_at) : formatDistanceToNow(new Date(offer.updated_at), { addSuffix: true, locale })}
           </div>
         </div>
       </div>
