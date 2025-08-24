@@ -333,16 +333,28 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => imageInputRef.current?.click()}
                 disabled={disabled || isUploading || images.length >= maxImages}
-                className="w-full"
+                className="w-full relative"
               >
                 {uploadingType === 'image' ? (
-                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  <>
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    Загрузка фотографий...
+                  </>
                 ) : (
-                  <Upload className="mr-2 h-4 w-4" />
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Загрузить фото
+                  </>
                 )}
-                Загрузить фото
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*,image/heic,image/heif"
+                  onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+                  disabled={disabled}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
               </Button>
               <p className="text-xs text-gray-500">
                 Максимум {maxImages} изображений, до 10MB каждое
@@ -364,16 +376,28 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => videoInputRef.current?.click()}
                 disabled={disabled || isUploading || videos.length >= maxVideos}
-                className="w-full"
+                className="w-full relative"
               >
                 {uploadingType === 'video' ? (
-                  <Loader className="mr-2 h-4 w-4 animate-spin" />
+                  <>
+                    <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    Загрузка видео...
+                  </>
                 ) : (
-                  <Upload className="mr-2 h-4 w-4" />
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Загрузить видео
+                  </>
                 )}
-                Загрузить видео
+                <input
+                  type="file"
+                  multiple
+                  accept="video/*"
+                  onChange={(e) => e.target.files && handleVideoUpload(e.target.files)}
+                  disabled={disabled}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
               </Button>
               <p className="text-xs text-gray-500">
                 Максимум {maxVideos} видео, до 20MB каждое
@@ -383,25 +407,6 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
         </Card>
       </div>
 
-      {/* Hidden file inputs */}
-      <input
-        ref={imageInputRef}
-        type="file"
-        multiple
-        accept="image/*"
-        onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
-        className="hidden"
-        disabled={disabled}
-      />
-      <input
-        ref={videoInputRef}
-        type="file"
-        multiple
-        accept="video/*"
-        onChange={(e) => e.target.files && handleVideoUpload(e.target.files)}
-        className="hidden"
-        disabled={disabled}
-      />
 
       {/* Upload progress */}
       {isUploading && uploadProgress.length > 0 && (
