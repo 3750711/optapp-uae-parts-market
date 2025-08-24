@@ -73,22 +73,20 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
         
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <input
-              type="file"
-              id="image-upload"
-              accept="image/*"
-              multiple
-              onChange={handleImageChange}
-              className="hidden"
-            />
             <Button
               type="button"
               variant="outline"
-              onClick={() => document.getElementById('image-upload')?.click()}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 relative"
             >
               <ImageIcon className="h-4 w-4" />
               Загрузить изображения
+              <input
+                type="file"
+                accept="image/*,image/heic,image/heif"
+                multiple
+                onChange={handleImageChange}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
             </Button>
             <span className="text-sm text-gray-500">
               {images.length}/10 изображений

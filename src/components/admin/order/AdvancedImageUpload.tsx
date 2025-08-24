@@ -157,9 +157,8 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       <Button
         type="button"
         variant="outline"
-        onClick={() => document.getElementById('advanced-image-input')?.click()}
         disabled={disabled || hasActiveUploads || !canUploadMore}
-        className="w-full h-12"
+        className="w-full h-12 relative"
       >
         {hasActiveUploads ? (
           <>
@@ -172,17 +171,15 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
             {t.imageUpload.uploadPhotos.replace('{count}', images.length.toString()).replace('{max}', maxImages.toString())}
           </>
         )}
+        <input
+          type="file"
+          multiple
+          accept="image/*,image/heic,image/heif"
+          onChange={handleFileSelect}
+          disabled={disabled || hasActiveUploads}
+          className="absolute inset-0 opacity-0 cursor-pointer"
+        />
       </Button>
-      
-      <input
-        id="advanced-image-input"
-        type="file"
-        multiple
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-        disabled={disabled || hasActiveUploads}
-      />
 
       {/* Cancel upload button */}
       {hasActiveUploads && (

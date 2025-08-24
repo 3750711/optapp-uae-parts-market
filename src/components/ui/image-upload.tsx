@@ -186,7 +186,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             <Input
               type="file"
               multiple
-              accept="image/*"
+              accept="image/*,image/heic,image/heif"
               onChange={handleUpload}
               disabled={uploading || images.length >= maxImages}
               className="absolute inset-0 opacity-0 cursor-pointer"
