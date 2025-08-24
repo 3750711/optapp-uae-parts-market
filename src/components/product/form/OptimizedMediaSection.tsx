@@ -80,8 +80,17 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 
     const fileArray = Array.from(files);
     
+    const ALLOWED_PHOTO_TYPES = [
+      'image/jpeg',
+      'image/png', 
+      'image/webp',
+      'image/jpg',
+      'image/heic',
+      'image/heif'
+    ];
+
     const validFiles = fileArray.filter(file => {
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith('image/') && !ALLOWED_PHOTO_TYPES.includes(file.type.toLowerCase())) {
         return false;
       }
       if (file.size > 50 * 1024 * 1024) { // 50MB limit
@@ -166,26 +175,35 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       {/* Кнопки загрузки */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-12"
-            disabled={disabled || isUploading || imageUrls.length >= 30}
-            onClick={() => document.getElementById('optimized-image-input')?.click()}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? sp.media?.smartUpload || 'Smart Upload...' : sp.media?.uploadPhotos || 'Upload Photos'}
-          </Button>
-          <input
-            key={fileInputKey}
-            id="optimized-image-input"
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-            disabled={disabled || isUploading}
-          />
+          <div className="relative inline-block w-full">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-12 relative"
+              disabled={disabled || isUploading || imageUrls.length >= 30}
+              onClick={() => {
+                const input = document.getElementById('optimized-image-input') as HTMLInputElement;
+                if (input) {
+                  input.value = "";
+                  input.click();
+                }
+              }}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? sp.media?.smartUpload || 'Smart Upload...' : sp.media?.uploadPhotos || 'Upload Photos'}
+              
+              <input
+                key={fileInputKey}
+                id="optimized-image-input"
+                type="file"
+                multiple
+                accept="image/*,image/heic,image/heif"
+                onChange={handleFileSelect}
+                disabled={disabled || isUploading}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+            </Button>
+          </div>
         </div>
         
         <div className="flex-1">

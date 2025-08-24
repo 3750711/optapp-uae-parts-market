@@ -66,7 +66,14 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   const handleFileSelect = useCallback(async (files: FileList) => {
     const MAX_PHOTO_SIZE_MB = 10;
     const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
-    const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const ALLOWED_PHOTO_TYPES = [
+      'image/jpeg',
+      'image/png', 
+      'image/webp',
+      'image/jpg',
+      'image/heic',
+      'image/heif'
+    ];
 
     if (existingImages.length + files.length > maxImages) {
       if (!disableToast) {
@@ -151,6 +158,10 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   }, [existingImages.length, maxImages, onUploadComplete, uploadFilesBatch, productId, toast, disableToast]);
 
   const handleButtonClick = () => {
+    // Reset input value to ensure change event always fires
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     fileInputRef.current?.click();
   };
 
@@ -176,30 +187,32 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   if (showOnlyButton) {
     return (
       <div className={cn("w-full space-y-4", className)}>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={handleButtonClick}
-          disabled={disabled || isUploading || existingImages.length >= maxImages}
-          className="w-full h-12"
-        >
-          {isUploading ? (
-            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-          ) : (
-            buttonIcon
-          )}
-          {isUploading ? getTranslatedText("Умная загрузка...", "Smart upload...") : (buttonText === "Загрузить фотографии" ? getTranslatedText("Загрузить фотографии", "Upload photos") : buttonText)}
-        </Button>
-        
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-          disabled={disabled}
-        />
+        <div className="relative inline-block w-full">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleButtonClick}
+            disabled={disabled || isUploading || existingImages.length >= maxImages}
+            className="w-full h-12 relative"
+          >
+            {isUploading ? (
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              buttonIcon
+            )}
+            {isUploading ? getTranslatedText("Умная загрузка...", "Smart upload...") : (buttonText === "Загрузить фотографии" ? getTranslatedText("Загрузить фотографии", "Upload photos") : buttonText)}
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,image/heic,image/heif"
+              onChange={handleFileChange}
+              disabled={disabled}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
+          </Button>
+        </div>
 
         {/* Show upload progress */}
         <UploadProgressCard
@@ -293,30 +306,32 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   // Полный компонент (по умолчанию)
   return (
     <div className={cn("space-y-4", className)}>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={handleButtonClick}
-        disabled={disabled || isUploading || existingImages.length >= maxImages}
-        className="w-full h-12"
-      >
-        {isUploading ? (
-          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          buttonIcon
-        )}
-        {isUploading ? getTranslatedText("Умная загрузка...", "Smart upload...") : (buttonText === "Загрузить фотографии" ? getTranslatedText("Загрузить фотографии", "Upload photos") : buttonText)}
-      </Button>
-      
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-        disabled={disabled}
-      />
+      <div className="relative inline-block w-full">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleButtonClick}
+          disabled={disabled || isUploading || existingImages.length >= maxImages}
+          className="w-full h-12 relative"
+        >
+          {isUploading ? (
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            buttonIcon
+          )}
+          {isUploading ? getTranslatedText("Умная загрузка...", "Smart upload...") : (buttonText === "Загрузить фотографии" ? getTranslatedText("Загрузить фотографии", "Upload photos") : buttonText)}
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,image/heic,image/heif"
+            onChange={handleFileChange}
+            disabled={disabled}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+          />
+        </Button>
+      </div>
 
       {/* Show upload progress */}
       <UploadProgressCard
