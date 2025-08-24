@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +12,6 @@ interface RealTimeImageUploadProps {
 const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onDelete }) => {
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useToast();
 
   const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +116,7 @@ const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onD
           </Button>
         </div>
       ) : (
-        <label htmlFor="upload-image" className="cursor-pointer relative block">
+        <label htmlFor="upload-image" className="cursor-pointer">
           <div className="border-2 border-dashed rounded-md p-4 text-center">
             {uploading ? (
               <Loader2 className="h-6 w-6 animate-spin mx-auto" />
@@ -129,11 +128,10 @@ const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onD
             )}
           </div>
           <input
-            ref={fileInputRef}
             type="file"
             id="upload-image"
-            accept="image/*,image/heic,image/heif"
-            className="absolute inset-0 opacity-0 cursor-pointer"
+            accept="image/*"
+            className="hidden"
             onChange={handleFileChange}
             disabled={uploading}
           />

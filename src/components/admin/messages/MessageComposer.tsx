@@ -247,12 +247,22 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
           </Label>
           
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageUpload}
+              className="hidden"
+              id="image-upload"
+              disabled={isUploading}
+            />
             <Button
               type="button"
               variant="outline"
               size="sm"
+              onClick={() => document.getElementById('image-upload')?.click()}
               disabled={isUploading}
-              className="gap-2 w-full sm:w-auto relative"
+              className="gap-2 w-full sm:w-auto"
             >
               {isUploading ? (
                 <>
@@ -265,14 +275,6 @@ const MessageComposer: React.FC<MessageComposerProps> = ({
                   Добавить изображения
                 </>
               )}
-              <input
-                type="file"
-                multiple
-                accept="image/*,image/heic,image/heif"
-                onChange={handleImageUpload}
-                disabled={isUploading}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
             </Button>
             <span className="text-xs text-muted-foreground">
               {getPreviewUrls().length}/10 изображений

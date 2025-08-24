@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Upload, Video, Image, X, Star, StarOff, Eye, RotateCcw, Loader, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useDirectCloudinaryUpload } from "@/hooks/useDirectCloudinaryUpload";
+import { useEnhancedMediaUpload } from "@/hooks/useEnhancedMediaUpload";
 import { diagnoseUploadIssue } from "@/utils/debugUploadHelpers";
 
 interface MediaFile {
@@ -59,9 +59,17 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
   const { 
     isUploading, 
     uploadProgress, 
+    canCancel, 
     uploadFiles, 
+    cancelUpload,
     clearProgress
-  } = useDirectCloudinaryUpload();
+  } = useEnhancedMediaUpload({
+    orderId,
+    maxImageSize: 10 * 1024 * 1024, // 10MB
+    maxVideoSize: 20 * 1024 * 1024, // 20MB
+    compressionQuality: 0.8,
+    batchSize: 3
+  });
 
   // Combine media files for unified gallery
   const allMediaFiles: MediaFile[] = [
@@ -131,7 +139,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     
     try {
       console.log('🖼️ Начинаем загрузку изображений с автоматическим сжатием...');
-      const uploadedUrls = await uploadFiles(fileArray, { productId: orderId });
+      const uploadedUrls = await uploadFiles(fileArray, 'image');
       
       console.log('🖼️ Upload completed:', {
         uploaded: uploadedUrls.length,
@@ -180,7 +188,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     
     try {
       console.log('🎥 Начинаем загрузку видео...');
-      const uploadedUrls = await uploadFiles(fileArray, { productId: orderId });
+      const uploadedUrls = await uploadFiles(fileArray, 'video');
       
       if (uploadedUrls.length > 0) {
         onVideoUpload(uploadedUrls);
@@ -325,28 +333,16 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
               <Button
                 type="button"
                 variant="outline"
+                onClick={() => imageInputRef.current?.click()}
                 disabled={disabled || isUploading || images.length >= maxImages}
-                className="w-full relative"
+                className="w-full"
               >
                 {uploadingType === 'image' ? (
-                  <>
-                    <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    Загрузка фотографий...
-                  </>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Загрузить фото
-                  </>
+                  <Upload className="mr-2 h-4 w-4" />
                 )}
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*,image/heic,image/heif"
-                  onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
-                  disabled={disabled}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
+                Загрузить фото
               </Button>
               <p className="text-xs text-gray-500">
                 Максимум {maxImages} изображений, до 10MB каждое
@@ -368,28 +364,16 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
               <Button
                 type="button"
                 variant="outline"
+                onClick={() => videoInputRef.current?.click()}
                 disabled={disabled || isUploading || videos.length >= maxVideos}
-                className="w-full relative"
+                className="w-full"
               >
                 {uploadingType === 'video' ? (
-                  <>
-                    <Loader className="mr-2 h-4 w-4 animate-spin" />
-                    Загрузка видео...
-                  </>
+                  <Loader className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Загрузить видео
-                  </>
+                  <Upload className="mr-2 h-4 w-4" />
                 )}
-                <input
-                  type="file"
-                  multiple
-                  accept="video/*"
-                  onChange={(e) => e.target.files && handleVideoUpload(e.target.files)}
-                  disabled={disabled}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
+                Загрузить видео
               </Button>
               <p className="text-xs text-gray-500">
                 Максимум {maxVideos} видео, до 20MB каждое
@@ -399,6 +383,25 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
         </Card>
       </div>
 
+      {/* Hidden file inputs */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+        className="hidden"
+        disabled={disabled}
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        multiple
+        accept="video/*"
+        onChange={(e) => e.target.files && handleVideoUpload(e.target.files)}
+        className="hidden"
+        disabled={disabled}
+      />
 
       {/* Upload progress */}
       {isUploading && uploadProgress.length > 0 && (
@@ -407,22 +410,24 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Загрузка и сжатие файлов</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={clearProgress}
-                >
-                  Очистить
-                </Button>
+                {canCancel && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={cancelUpload}
+                  >
+                    Отменить
+                  </Button>
+                )}
               </div>
               {uploadProgress.map((progress) => (
-                <div key={progress.fileId} className="space-y-1">
+                <div key={progress.id} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="truncate">{progress.fileName}</span>
                     <div className="flex items-center gap-2">
-                     {progress.status === 'processing' && (
-                        <span className="text-blue-600">Обработка...</span>
+                      {progress.status === 'compressing' && (
+                        <span className="text-blue-600">Сжатие...</span>
                       )}
                       {progress.status === 'uploading' && (
                         <span className="text-orange-600">Загрузка...</span>

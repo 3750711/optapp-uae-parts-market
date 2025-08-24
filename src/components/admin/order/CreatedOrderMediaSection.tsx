@@ -182,10 +182,19 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-2'}`}>
         {/* Add Photos Button */}
         <div>
+          <input
+            type="file"
+            id={`order-images-${orderId}`}
+            multiple
+            accept="image/*"
+            onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
+            className="hidden"
+          />
           <Button
+            onClick={() => document.getElementById(`order-images-${orderId}`)?.click()}
             disabled={isProcessing}
             variant="outline"
-            className={`w-full ${isMobile ? 'h-12' : 'h-10'} border-dashed border-2 hover:bg-blue-50 relative`}
+            className={`w-full ${isMobile ? 'h-12' : 'h-10'} border-dashed border-2 hover:bg-blue-50`}
           >
             {isImageUploading ? (
               <>
@@ -198,22 +207,24 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
                 Add Photos to Order
               </>
             )}
-            <input
-              type="file"
-              multiple
-              accept="image/*,image/heic,image/heif"
-              onChange={(e) => e.target.files && handleImageUpload(e.target.files)}
-              className="absolute inset-0 opacity-0 cursor-pointer"
-            />
           </Button>
         </div>
 
         {/* Add Videos Button */}
         <div>
+          <input
+            type="file"
+            id={`order-videos-${orderId}`}
+            multiple
+            accept="video/*"
+            onChange={(e) => e.target.files && handleVideoUpload(e.target.files)}
+            className="hidden"
+          />
           <Button
+            onClick={() => document.getElementById(`order-videos-${orderId}`)?.click()}
             disabled={isProcessing}
             variant="outline"
-            className={`w-full ${isMobile ? 'h-12' : 'h-10'} border-dashed border-2 hover:bg-green-50 relative`}
+            className={`w-full ${isMobile ? 'h-12' : 'h-10'} border-dashed border-2 hover:bg-green-50`}
           >
             {isVideoUploading ? (
               <>
@@ -226,13 +237,6 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
                 Add Videos to Order
               </>
             )}
-            <input
-              type="file"
-              multiple
-              accept="video/*"
-              onChange={(e) => e.target.files && handleVideoUpload(e.target.files)}
-              className="absolute inset-0 opacity-0 cursor-pointer"
-            />
           </Button>
         </div>
       </div>
