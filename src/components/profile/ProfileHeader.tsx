@@ -105,10 +105,19 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </Avatar>
             
             {onAvatarUpdate && <div className="absolute bottom-0 right-0">
-                <label htmlFor="avatar-upload" className="flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-r from-optapp-yellow to-yellow-400 text-optapp-dark hover:from-yellow-400 hover:to-yellow-500 cursor-pointer shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                <div className="relative flex items-center justify-center h-10 w-10 rounded-full bg-gradient-to-r from-optapp-yellow to-yellow-400 text-optapp-dark hover:from-yellow-400 hover:to-yellow-500 cursor-pointer shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105">
                   {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
-                </label>
-                <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploading} />
+                  <input 
+                    type="file" 
+                    accept="image/*,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif" 
+                    className="absolute inset-0 opacity-0 cursor-pointer" 
+                    onChange={(e) => {
+                      handleAvatarUpload(e);
+                      e.target.value = "";
+                    }} 
+                    disabled={isUploading} 
+                  />
+                </div>
               </div>}
           </div>
         </div>

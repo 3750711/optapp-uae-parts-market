@@ -116,26 +116,26 @@ const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onD
           </Button>
         </div>
       ) : (
-        <label htmlFor="upload-image" className="cursor-pointer">
-          <div className="border-2 border-dashed rounded-md p-4 text-center">
-            {uploading ? (
-              <Loader2 className="h-6 w-6 animate-spin mx-auto" />
-            ) : (
-              <>
-                <ImageIcon className="h-6 w-6 mx-auto text-gray-400" />
-                <p className="text-sm text-gray-500">Загрузить изображение</p>
-              </>
-            )}
-          </div>
+        <div className="relative border-2 border-dashed rounded-md p-4 text-center cursor-pointer">
+          {uploading ? (
+            <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+          ) : (
+            <>
+              <ImageIcon className="h-6 w-6 mx-auto text-gray-400" />
+              <p className="text-sm text-gray-500">Загрузить изображение</p>
+            </>
+          )}
           <input
             type="file"
-            id="upload-image"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
+            accept="image/*,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif"
+            className="absolute inset-0 opacity-0 cursor-pointer"
+            onChange={(e) => {
+              handleFileChange(e);
+              e.target.value = "";
+            }}
             disabled={uploading}
           />
-        </label>
+        </div>
       )}
     </div>
   );
