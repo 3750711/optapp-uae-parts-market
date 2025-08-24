@@ -8,6 +8,7 @@ import { Upload, X, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ProfileType } from '@/components/profile/types';
 import { useAdminUsersActions } from '@/hooks/useAdminUsersActions';
+import { useDirectCloudinaryUpload } from '@/hooks/useDirectCloudinaryUpload';
 
 interface SendTelegramMessageDialogProps {
   user: ProfileType;
@@ -22,10 +23,10 @@ export const SendTelegramMessageDialog: React.FC<SendTelegramMessageDialogProps>
 }) => {
   const [message, setMessage] = useState('');
   const [images, setImages] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   
   const { sendPersonalTelegramMessage } = useAdminUsersActions();
+  const { uploadFiles, isUploading } = useDirectCloudinaryUpload();
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -36,45 +37,22 @@ export const SendTelegramMessageDialog: React.FC<SendTelegramMessageDialogProps>
       return;
     }
 
-    setUploading(true);
-    const uploadedUrls: string[] = [];
+    const validFiles = Array.from(files).filter(file => {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`Файл ${file.name} слишком большой (максимум 10MB)`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
 
     try {
-      for (const file of Array.from(files)) {
-        if (file.size > 10 * 1024 * 1024) {
-          toast.error(`Файл ${file.name} слишком большой (максимум 10MB)`);
-          continue;
-        }
-
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'ml_default');
-
-        const response = await fetch(
-          'https://api.cloudinary.com/v1_1/dxhvltszd/image/upload',
-          {
-            method: 'POST',
-            body: formData,
-          }
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-          uploadedUrls.push(result.secure_url);
-        } else {
-          toast.error(`Ошибка загрузки файла ${file.name}`);
-        }
-      }
-
+      const uploadedUrls = await uploadFiles(validFiles);
       setImages(prev => [...prev, ...uploadedUrls]);
-      if (uploadedUrls.length > 0) {
-        toast.success(`Загружено изображений: ${uploadedUrls.length}`);
-      }
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Ошибка загрузки изображений');
     } finally {
-      setUploading(false);
       // Reset input
       event.target.value = '';
     }
@@ -112,7 +90,7 @@ export const SendTelegramMessageDialog: React.FC<SendTelegramMessageDialogProps>
     }
   };
 
-  const canSend = message.trim() && !sending && !uploading;
+  const canSend = message.trim() && !sending && !isUploading;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,10 +123,10 @@ export const SendTelegramMessageDialog: React.FC<SendTelegramMessageDialogProps>
               <Button
                 type="button"
                 variant="outline"
-                disabled={uploading || images.length >= 10}
+                disabled={isUploading || images.length >= 10}
                 className="flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg relative w-full"
               >
-                {uploading ? (
+                {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Загрузка...
@@ -164,7 +142,7 @@ export const SendTelegramMessageDialog: React.FC<SendTelegramMessageDialogProps>
                   accept="image/*,image/heic,image/heif"
                   multiple
                   onChange={handleImageUpload}
-                  disabled={uploading || images.length >= 10}
+                  disabled={isUploading || images.length >= 10}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
               </Button>

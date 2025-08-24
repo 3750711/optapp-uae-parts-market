@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Upload, Video, Image, X, Star, StarOff, Eye, RotateCcw, Loader, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEnhancedMediaUpload } from "@/hooks/useEnhancedMediaUpload";
+import { useDirectCloudinaryUpload } from "@/hooks/useDirectCloudinaryUpload";
 import { diagnoseUploadIssue } from "@/utils/debugUploadHelpers";
 
 interface MediaFile {
@@ -59,17 +59,9 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
   const { 
     isUploading, 
     uploadProgress, 
-    canCancel, 
     uploadFiles, 
-    cancelUpload,
     clearProgress
-  } = useEnhancedMediaUpload({
-    orderId,
-    maxImageSize: 10 * 1024 * 1024, // 10MB
-    maxVideoSize: 20 * 1024 * 1024, // 20MB
-    compressionQuality: 0.8,
-    batchSize: 3
-  });
+  } = useDirectCloudinaryUpload();
 
   // Combine media files for unified gallery
   const allMediaFiles: MediaFile[] = [
@@ -139,7 +131,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     
     try {
       console.log('🖼️ Начинаем загрузку изображений с автоматическим сжатием...');
-      const uploadedUrls = await uploadFiles(fileArray, 'image');
+      const uploadedUrls = await uploadFiles(fileArray, { productId: orderId });
       
       console.log('🖼️ Upload completed:', {
         uploaded: uploadedUrls.length,
@@ -188,7 +180,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     
     try {
       console.log('🎥 Начинаем загрузку видео...');
-      const uploadedUrls = await uploadFiles(fileArray, 'video');
+      const uploadedUrls = await uploadFiles(fileArray, { productId: orderId });
       
       if (uploadedUrls.length > 0) {
         onVideoUpload(uploadedUrls);
@@ -415,24 +407,22 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Загрузка и сжатие файлов</span>
-                {canCancel && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={cancelUpload}
-                  >
-                    Отменить
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={clearProgress}
+                >
+                  Очистить
+                </Button>
               </div>
               {uploadProgress.map((progress) => (
-                <div key={progress.id} className="space-y-1">
+                <div key={progress.fileId} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="truncate">{progress.fileName}</span>
                     <div className="flex items-center gap-2">
-                      {progress.status === 'compressing' && (
-                        <span className="text-blue-600">Сжатие...</span>
+                     {progress.status === 'processing' && (
+                        <span className="text-blue-600">Обработка...</span>
                       )}
                       {progress.status === 'uploading' && (
                         <span className="text-orange-600">Загрузка...</span>
