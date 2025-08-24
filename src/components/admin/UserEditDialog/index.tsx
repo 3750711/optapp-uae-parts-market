@@ -33,7 +33,7 @@ import { UserEditForm } from './UserEditForm';
 
 export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps) => {
   const { toast } = useToast();
-  const { checkTokenValidity, forceRefreshSession } = useAuth();
+  const { checkTokenValidity, forceRefreshSession, refreshProfile } = useAuth();
   const isMobile = useIsMobile();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [pendingValues, setPendingValues] = React.useState<UserFormValues | null>(null);
@@ -106,6 +106,14 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
       }
 
       console.log("User updated successfully");
+      
+      // Force profile refresh in AuthContext if this is the current user
+      const currentUser = (await supabase.auth.getUser()).data.user;
+      if (currentUser && user.id === currentUser.id && refreshProfile) {
+        console.log('Refreshing current user profile after admin edit');
+        await refreshProfile();
+      }
+      
       toast({
         title: "Успех",
         description: "Данные пользователя обновлены",

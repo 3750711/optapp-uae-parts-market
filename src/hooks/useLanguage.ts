@@ -19,9 +19,11 @@ export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'ru') => {
       if (profile.preferred_locale) {
         // Use language from profile
         const profileLanguage = profile.preferred_locale as 'ru' | 'en' | 'bn';
+        console.log('useLanguage: Setting language from profile:', profileLanguage, 'for user:', user.id);
         setLanguage(profileLanguage);
       } else {
         // If no preferred_locale, set default and save to profile
+        console.log('useLanguage: No preferred_locale, setting default:', defaultLanguage);
         setLanguage(defaultLanguage);
         if (updateProfile) {
           updateProfile({ preferred_locale: defaultLanguage }).catch(error => 
@@ -32,9 +34,10 @@ export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'ru') => {
     } else if (!user) {
       // For unauthenticated users, use localStorage
       const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+      console.log('useLanguage: Unauthenticated user, using localStorage:', saved || defaultLanguage);
       setLanguage((saved as 'ru' | 'en' | 'bn') || defaultLanguage);
     }
-  }, [user, profile, defaultLanguage, updateProfile]);
+  }, [user, profile, profile?.preferred_locale, defaultLanguage, updateProfile]);
 
   useEffect(() => {
     // Only listen for storage/custom events for unauthenticated users
