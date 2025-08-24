@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Video, Upload, X, Loader2, Play, Film } from 'lucide-react';
 import { useCloudinaryVideoUpload } from '@/hooks/useCloudinaryVideoUpload';
@@ -36,7 +36,6 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
   className,
   disabled = false,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { uploadMultipleVideos, isUploading, uploadProgress, clearProgress } = useCloudinaryVideoUpload();
   const { toast } = useToast();
   const { language } = useLanguage();
@@ -82,7 +81,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
     }
     
     if (validFiles.length === 0) {
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      e.target.value = "";
       return;
     }
 
@@ -95,15 +94,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
     }
 
     // Clear file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleChooseVideos = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    e.target.value = "";
   };
 
   const formatFileSize = (bytes: number) => {
@@ -121,7 +112,6 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
         <Button
           type="button"
           variant="outline"
-          onClick={handleChooseVideos}
           disabled={disabled || isUploading || videos.length >= maxVideos}
           className="w-full h-12 relative"
         >
@@ -135,7 +125,6 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
             type="file"
             accept={getVideoAcceptAttribute()}
             multiple
-            ref={fileInputRef}
             onChange={handleFileChange}
             className="absolute inset-0 opacity-0 cursor-pointer"
             disabled={disabled || isUploading}
@@ -194,10 +183,9 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
         {videos.length < maxVideos && (
           <div 
             className={cn(
-              "border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center aspect-video",
+              "border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center aspect-video relative",
               disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-gray-50"
             )}
-            onClick={disabled ? undefined : handleChooseVideos}
           >
             {isUploading ? (
               <div className="flex flex-col items-center">
@@ -210,19 +198,17 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
                 <p className="text-xs text-gray-500">{t.videoUpload.addVideo}</p>
               </>
             )}
+            <input
+              type="file"
+              accept={getVideoAcceptAttribute()}
+              multiple
+              onChange={handleFileChange}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              disabled={disabled || isUploading}
+            />
           </div>
         )}
       </div>
-      
-        <input
-          type="file"
-          accept={getVideoAcceptAttribute()}
-          multiple
-          className="hidden"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          disabled={disabled || isUploading}
-        />
 
       <UploadProgressCard
         uploadProgress={uploadProgress}
@@ -239,7 +225,6 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
         <Button
           type="button"
           variant="outline"
-          onClick={handleChooseVideos}
           disabled={disabled || isUploading}
           className="flex items-center gap-2 mt-2 w-full md:w-auto relative"
         >
@@ -258,7 +243,6 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
             type="file"
             accept={getVideoAcceptAttribute()}
             multiple
-            ref={fileInputRef}
             onChange={handleFileChange}
             className="absolute inset-0 opacity-0 cursor-pointer"
             disabled={disabled || isUploading}
