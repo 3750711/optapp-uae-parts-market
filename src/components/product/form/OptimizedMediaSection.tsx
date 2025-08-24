@@ -1,5 +1,5 @@
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Upload, Video, X } from "lucide-react";
@@ -10,6 +10,8 @@ import { useEnhancedMediaUpload } from "@/hooks/useEnhancedMediaUpload";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
+import { isAllowedImage, getFileValidationError, getImageAcceptAttribute } from "@/utils/fileValidation";
+import { toast } from "@/hooks/use-toast";
 
 interface OptimizedMediaSectionProps {
   imageUrls: string[];
@@ -40,7 +42,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   const sp = getSellerPagesTranslations(language);
   
   const { uploadFiles, uploadQueue, isUploading, cancelUpload, markAsDeleted } = useOptimizedImageUpload();
-  const [fileInputKey, setFileInputKey] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Enhanced video upload state from hook
   const { isUploading: isVideoUploading } = useEnhancedMediaUpload({
@@ -80,15 +82,30 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 
     const fileArray = Array.from(files);
     
-    const validFiles = fileArray.filter(file => {
-      if (!file.type.startsWith('image/')) {
-        return false;
+    // Enhanced validation with fallback for Telegram Android
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+    
+    fileArray.forEach(file => {
+      if (!isAllowedImage(file)) {
+        errors.push(getFileValidationError(file, 'image'));
+        return;
       }
       if (file.size > 50 * 1024 * 1024) { // 50MB limit
-        return false;
+        errors.push(`"${file.name}" превышает лимит 50MB`);
+        return;
       }
-      return true;
+      validFiles.push(file);
     });
+
+    // Show validation errors
+    if (errors.length > 0) {
+      toast({
+        title: "Ошибка валидации файлов",
+        description: errors.slice(0, 3).join('\n'),
+        variant: "destructive",
+      });
+    }
 
     if (validFiles.length === 0) return;
 
@@ -116,7 +133,10 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       console.error('Error uploading files:', error);
     }
     
-    setFileInputKey(prev => prev + 1);
+    // Reset file input for repeat selections
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
   const handleImageDelete = useCallback(async (url: string) => {
@@ -169,23 +189,21 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
           <Button
             type="button"
             variant="outline"
-            className="w-full h-12"
+            className="w-full h-12 relative"
             disabled={disabled || isUploading || imageUrls.length >= 30}
-            onClick={() => document.getElementById('optimized-image-input')?.click()}
           >
             <Upload className="h-4 w-4 mr-2" />
             {isUploading ? sp.media?.smartUpload || 'Smart Upload...' : sp.media?.uploadPhotos || 'Upload Photos'}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={getImageAcceptAttribute()}
+              onChange={handleFileSelect}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              disabled={disabled || isUploading}
+            />
           </Button>
-          <input
-            key={fileInputKey}
-            id="optimized-image-input"
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-            disabled={disabled || isUploading}
-          />
         </div>
         
         <div className="flex-1">
