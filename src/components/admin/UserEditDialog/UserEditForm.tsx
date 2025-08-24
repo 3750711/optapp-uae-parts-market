@@ -36,6 +36,15 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
   const c = getCommonTranslations(language);
   const userFormSchema = React.useMemo(() => createUserFormSchema(user), [user]);
   
+  // Debug logging for user data
+  console.log('UserEditForm: User data received:', {
+    userId: user.id,
+    full_name: user.full_name,
+    preferred_locale: user.preferred_locale,
+    user_type: user.user_type,
+    rawUserObject: user
+  });
+  
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
@@ -49,7 +58,7 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
       communication_ability: user.communication_ability || 3,
       rating: user.rating?.toString() || "",
       is_trusted_seller: user.is_trusted_seller || false,
-      preferred_locale: (user.preferred_locale as "ru" | "en" | "bn") || 'ru',
+      preferred_locale: user.preferred_locale as "ru" | "en" | "bn" || null,
     },
   });
 
