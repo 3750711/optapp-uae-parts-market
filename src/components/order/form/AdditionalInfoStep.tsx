@@ -37,6 +37,8 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
       );
       onImageUpload(urls);
     }
+    // Reset input
+    e.target.value = "";
   };
 
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,6 +51,8 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
       );
       onVideoUpload(urls);
     }
+    // Reset input
+    e.target.value = "";
   };
 
   return (
@@ -73,22 +77,20 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
         
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <input
-              type="file"
-              id="image-upload"
-              accept="image/*"
-              multiple
-              onChange={handleImageChange}
-              className="hidden"
-            />
             <Button
               type="button"
               variant="outline"
-              onClick={() => document.getElementById('image-upload')?.click()}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 relative"
             >
               <ImageIcon className="h-4 w-4" />
               Загрузить изображения
+              <input
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                multiple
+                onChange={handleImageChange}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
             </Button>
             <span className="text-sm text-gray-500">
               {images.length}/10 изображений
@@ -125,22 +127,20 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
         
         <div className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <input
-              type="file"
-              id="video-upload"
-              accept="video/*"
-              multiple
-              onChange={handleVideoChange}
-              className="hidden"
-            />
             <Button
               type="button"
               variant="outline"
-              onClick={() => document.getElementById('video-upload')?.click()}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 relative"
             >
               <VideoIcon className="h-4 w-4" />
               Загрузить видео
+              <input
+                type="file"
+                accept="video/mp4,video/mov,video/avi,video/webm"
+                multiple
+                onChange={handleVideoChange}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
             </Button>
             <span className="text-sm text-gray-500">
               {videos.length}/3 видео

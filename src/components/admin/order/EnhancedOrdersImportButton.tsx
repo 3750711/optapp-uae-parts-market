@@ -41,9 +41,6 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
   const [fileValidationError, setFileValidationError] = useState<string>('');
 
-  const handleFileSelect = () => {
-    fileInputRef.current?.click();
-  };
 
   const resetProgress = () => {
     setProgress({
@@ -397,20 +394,11 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
   return (
     <>
       <div className="space-y-2">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={handleFileChange}
-          style={{ display: 'none' }}
-        />
-        
         <Button
           variant="outline"
           size="sm"
-          onClick={handleFileSelect}
           disabled={progress.isImporting}
-          className="hover:bg-blue-50 hover:border-blue-300"
+          className="hover:bg-blue-50 hover:border-blue-300 relative"
           title="Загрузить файл Excel для предварительного просмотра"
         >
           {progress.isImporting ? (
@@ -419,6 +407,14 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
             <FileUp className="h-4 w-4 mr-1 text-blue-600" />
           )}
           {progress.isImporting ? 'Обработка...' : 'Импорт из Excel'}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={handleFileChange}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+            disabled={progress.isImporting}
+          />
         </Button>
 
         {fileValidationError && (

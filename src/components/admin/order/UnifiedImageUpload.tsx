@@ -286,9 +286,8 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
       <Button
         type="button"
         variant="outline"
-        onClick={() => document.getElementById('unified-image-input')?.click()}
         disabled={disabled || hasActiveUploads || !canUploadMore}
-        className="w-full"
+        className="w-full relative"
       >
         {hasActiveUploads ? (
           <>
@@ -301,17 +300,15 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
             Загрузить фото ({images.length}/{maxImages})
           </>
         )}
+        <input
+          type="file"
+          multiple
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+          onChange={handleFileSelect}
+          className="absolute inset-0 opacity-0 cursor-pointer"
+          disabled={disabled || hasActiveUploads}
+        />
       </Button>
-      
-      <input
-        id="unified-image-input"
-        type="file"
-        multiple
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-        disabled={disabled || hasActiveUploads}
-      />
 
       {/* Image Gallery */}
       {allItems.length > 0 ? (

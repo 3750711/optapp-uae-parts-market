@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload, X, Camera, Star, StarOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -52,7 +52,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   };
   
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { 
     isUploading, 
     uploadProgress, 
@@ -150,14 +149,12 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     }
   }, [existingImages.length, maxImages, onUploadComplete, uploadFilesBatch, productId, toast, disableToast]);
 
-  const handleButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFileSelect(e.target.files);
     }
+    // Reset input
+    e.target.value = "";
   };
 
   const handleDelete = (url: string) => {
@@ -179,9 +176,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         <Button
           type="button"
           variant="outline"
-          onClick={handleButtonClick}
           disabled={disabled || isUploading || existingImages.length >= maxImages}
-          className="w-full h-12"
+          className="w-full h-12 relative"
         >
           {isUploading ? (
             <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -189,17 +185,15 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             buttonIcon
           )}
           {isUploading ? getTranslatedText("Умная загрузка...", "Smart upload...") : (buttonText === "Загрузить фотографии" ? getTranslatedText("Загрузить фотографии", "Upload photos") : buttonText)}
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+            onChange={handleFileChange}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+            disabled={disabled}
+          />
         </Button>
-        
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-          disabled={disabled}
-        />
 
         {/* Show upload progress */}
         <UploadProgressCard
@@ -296,9 +290,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       <Button
         type="button"
         variant="outline"
-        onClick={handleButtonClick}
         disabled={disabled || isUploading || existingImages.length >= maxImages}
-        className="w-full h-12"
+        className="w-full h-12 relative"
       >
         {isUploading ? (
           <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -306,17 +299,15 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           buttonIcon
         )}
         {isUploading ? getTranslatedText("Умная загрузка...", "Smart upload...") : (buttonText === "Загрузить фотографии" ? getTranslatedText("Загрузить фотографии", "Upload photos") : buttonText)}
+        <input
+          type="file"
+          multiple
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+          onChange={handleFileChange}
+          className="absolute inset-0 opacity-0 cursor-pointer"
+          disabled={disabled}
+        />
       </Button>
-      
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-        disabled={disabled}
-      />
 
       {/* Show upload progress */}
       <UploadProgressCard

@@ -142,20 +142,10 @@ export const SendTelegramMessageDialog: React.FC<SendTelegramMessageDialogProps>
           <div>
             <Label>Изображения (опционально)</Label>
             <div className="mt-2">
-              <Input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageUpload}
-                disabled={uploading || images.length >= 10}
-                className="hidden"
-                id="image-upload"
-              />
-              <Label
-                htmlFor="image-upload"
+              <div
                 className={`
                   flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer
-                  transition-colors
+                  transition-colors relative
                   ${uploading || images.length >= 10
                     ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
                     : 'hover:bg-gray-50 border-gray-300'
@@ -173,7 +163,15 @@ export const SendTelegramMessageDialog: React.FC<SendTelegramMessageDialogProps>
                     Добавить изображения ({images.length}/10)
                   </>
                 )}
-              </Label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  multiple
+                  onChange={handleImageUpload}
+                  disabled={uploading || images.length >= 10}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+              </div>
             </div>
 
             {images.length > 0 && (
