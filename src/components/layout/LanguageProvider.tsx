@@ -23,6 +23,13 @@ const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children })
       pathname: location.pathname
     });
     
+    // Force Russian language for buyers regardless of database value
+    if (profile?.user_type === 'buyer' && language !== 'ru') {
+      console.log('LanguageProvider: Forcing Russian for buyer user type');
+      changeLanguage('ru');
+      return;
+    }
+    
     // Only enforce language restrictions if current language is not allowed
     if (!isLanguageAllowed(language, profile?.user_type || null, location.pathname)) {
       // If user has a saved preferred_locale and it's allowed, use that

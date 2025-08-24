@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileType } from "@/components/profile/types";
+import { allowedLocalesFor } from "@/utils/languageVisibility";
 
 // Мы используем часть ProfileType, чтобы гарантировать наличие нужных полей
 type OriginalUser = Pick<ProfileType, 'id' | 'opt_id'>;
@@ -41,6 +42,18 @@ export const createUserFormSchema = (originalUser: OriginalUser) => z.object({
   ).optional().or(z.literal('')),
   is_trusted_seller: z.boolean().optional(),
   preferred_locale: z.enum(["ru", "en", "bn"]).optional(),
+}).refine((data) => {
+    // Validate that preferred_locale is allowed for the user_type
+    if (data.preferred_locale && data.user_type) {
+        const allowedLanguages = allowedLocalesFor(data.user_type, "/");
+        if (!allowedLanguages.includes(data.preferred_locale)) {
+            return false;
+        }
+    }
+    return true;
+}, {
+    message: "Выбранный язык недоступен для данного типа пользователя",
+    path: ["preferred_locale"],
 }).refine(async (data) => {
     // Проверяем уникальность OPT ID только если он изменился и не пуст
     if (data.opt_id && data.opt_id.trim() !== "" && data.opt_id !== originalUser.opt_id) {

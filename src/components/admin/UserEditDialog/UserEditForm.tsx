@@ -53,6 +53,16 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
     },
   });
 
+  // Watch for user_type changes and auto-reset language to Russian for buyers
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'user_type' && value.user_type === 'buyer') {
+        form.setValue('preferred_locale', 'ru');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   const handleSubmit = async (values: UserFormValues) => {
     await onSubmit(values);
   };
@@ -256,24 +266,40 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
           <FormField
             control={form.control}
             name="preferred_locale"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{c.fields.preferredLanguage}</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
-                      <SelectValue placeholder="Выберите язык" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="ru">{c.languages.ru}</SelectItem>
-                    <SelectItem value="en">{c.languages.en}</SelectItem>
-                    <SelectItem value="bn">{c.languages.bn}</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+            render={({ field }) => {
+              const currentUserType = form.watch("user_type");
+              const allowedLanguages = allowedLocalesFor(currentUserType, "/");
+              
+              return (
+                <FormItem>
+                  <FormLabel>{c.fields.preferredLanguage}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
+                        <SelectValue placeholder="Выберите язык" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {allowedLanguages.includes('ru') && (
+                        <SelectItem value="ru">{c.languages.ru}</SelectItem>
+                      )}
+                      {allowedLanguages.includes('en') && (
+                        <SelectItem value="en">{c.languages.en}</SelectItem>
+                      )}
+                      {allowedLanguages.includes('bn') && (
+                        <SelectItem value="bn">{c.languages.bn}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                  {currentUserType === 'buyer' && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Покупатели могут использовать только русский язык
+                    </p>
+                  )}
+                </FormItem>
+              );
+            }}
           />
 
           <FormField
