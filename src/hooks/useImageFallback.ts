@@ -40,54 +40,64 @@ export const useImageFallback = ({
   const sources = useMemo((): ImageSource[] => {
     const chain: ImageSource[] = [];
 
-    // 1. Try Cloudinary with provided publicId (highest priority)
-    if (cloudinaryPublicId) {
-      chain.push({
-        type: 'cloudinary',
-        url: getCatalogImageUrl('', cloudinaryPublicId, fallbackSrc),
-        priority: 1
-      });
-    }
+    // If we have any Cloudinary data, try Cloudinary first
+    const hasCloudinaryData = cloudinaryPublicId || 
+      (cloudinaryUrl && cloudinaryUrl.includes('cloudinary.com')) ||
+      (src && src.includes('cloudinary.com'));
 
-    // 2. Try extracting publicId from cloudinaryUrl
-    if (cloudinaryUrl && cloudinaryUrl.includes('cloudinary.com')) {
-      const extractedId = extractPublicIdFromUrl(cloudinaryUrl);
-      if (extractedId && extractedId !== cloudinaryPublicId) {
+    if (hasCloudinaryData) {
+      // 1. Try Cloudinary with provided publicId (highest priority)
+      if (cloudinaryPublicId) {
         chain.push({
           type: 'cloudinary',
-          url: getCatalogImageUrl('', extractedId, fallbackSrc),
-          priority: 2
+          url: getCatalogImageUrl('', cloudinaryPublicId, fallbackSrc),
+          priority: 1
         });
+      }
+
+      // 2. Try extracting publicId from cloudinaryUrl
+      if (cloudinaryUrl && cloudinaryUrl.includes('cloudinary.com')) {
+        const extractedId = extractPublicIdFromUrl(cloudinaryUrl);
+        if (extractedId && extractedId !== cloudinaryPublicId) {
+          chain.push({
+            type: 'cloudinary',
+            url: getCatalogImageUrl('', extractedId, fallbackSrc),
+            priority: 2
+          });
+        }
+      }
+
+      // 3. Try extracting publicId from main src if it's Cloudinary
+      if (src && src.includes('cloudinary.com')) {
+        const extractedId = extractPublicIdFromUrl(src);
+        if (extractedId && extractedId !== cloudinaryPublicId) {
+          chain.push({
+            type: 'cloudinary',
+            url: getCatalogImageUrl('', extractedId, fallbackSrc),
+            priority: 3
+          });
+        }
       }
     }
 
-    // 3. Try extracting publicId from main src if it's Cloudinary
-    if (src && src.includes('cloudinary.com')) {
-      const extractedId = extractPublicIdFromUrl(src);
-      if (extractedId && extractedId !== cloudinaryPublicId) {
-        chain.push({
-          type: 'cloudinary',
-          url: getCatalogImageUrl('', extractedId, fallbackSrc),
-          priority: 3
-        });
-      }
-    }
+    // Priority for Supabase URLs (higher priority when no Cloudinary data)
+    const supabasePriority = hasCloudinaryData ? 4 : 1;
 
-    // 4. Try Supabase Storage URLs directly (if not Cloudinary)
+    // 4. Try Supabase Storage URLs directly
     if (src && !src.includes('cloudinary.com') && src !== fallbackSrc) {
       chain.push({
         type: 'supabase',
         url: src,
-        priority: 4
+        priority: supabasePriority
       });
     }
 
-    // 5. Try original cloudinaryUrl as-is
-    if (cloudinaryUrl && cloudinaryUrl !== src) {
+    // 5. Try original cloudinaryUrl as Supabase if not Cloudinary
+    if (cloudinaryUrl && cloudinaryUrl !== src && !cloudinaryUrl.includes('cloudinary.com')) {
       chain.push({
-        type: cloudinaryUrl.includes('cloudinary.com') ? 'cloudinary' : 'supabase',
+        type: 'supabase',
         url: cloudinaryUrl,
-        priority: 5
+        priority: supabasePriority + 1
       });
     }
 
@@ -103,6 +113,16 @@ export const useImageFallback = ({
       arr.findIndex(s => s.url === source.url) === index &&
       !failedSources.has(source.url)
     ).sort((a, b) => a.priority - b.priority);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Image fallback chain:', {
+        src,
+        cloudinaryPublicId,
+        cloudinaryUrl,
+        hasCloudinaryData,
+        sources: uniqueChain
+      });
+    }
 
     return uniqueChain;
   }, [src, cloudinaryPublicId, cloudinaryUrl, fallbackSrc, failedSources]);
