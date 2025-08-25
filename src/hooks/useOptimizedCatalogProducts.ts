@@ -53,9 +53,10 @@ interface UseOptimizedCatalogProductsProps {
   findModelNameById?: (modelId: string | null) => string | null;
 }
 
-// Helper function to safely escape search terms
-const escapeSearchTerm = (term: string): string => {
-  return term.replace(/[%_'"\\]/g, '\\$&');
+// Helper function to safely escape search terms for PostgREST
+const escapePostgRESTTerm = (term: string): string => {
+  // Escape special PostgREST characters: * % " '
+  return term.replace(/[*%"']/g, '\\$&');
 };
 
 // Helper function to normalize Cyrillic characters
@@ -123,30 +124,41 @@ export const useOptimizedCatalogProducts = ({
     if (filters.searchTerm && filters.searchTerm.length >= 2) {
       const searchTerm = filters.searchTerm.trim();
       const normalizedTerm = normalizeText(searchTerm);
-      const escapedTerm = escapeSearchTerm(normalizedTerm);
+      const escapedTerm = escapePostgRESTTerm(normalizedTerm);
+      
+      console.log('🔍 Search term processing:', {
+        original: searchTerm,
+        normalized: normalizedTerm,
+        escaped: escapedTerm
+      });
       
       // Check if search term is purely numeric for lot_number exact match
       const isNumeric = /^\d+$/.test(searchTerm);
       
+      // Build search conditions with correct PostgREST syntax
       let searchConditions: string[] = [];
       
-      // Add text-based searches with null safety
-      searchConditions.push(`title.ilike.%${escapedTerm}%`);
-      searchConditions.push(`brand.ilike.%${escapedTerm}%`);
-      searchConditions.push(`model.ilike.%${escapedTerm}%`);
-      searchConditions.push(`seller_name.ilike.%${escapedTerm}%`);
+      // Add text-based searches with correct PostgREST ilike syntax
+      searchConditions.push(`title.ilike.*${escapedTerm}*`);
+      searchConditions.push(`brand.ilike.*${escapedTerm}*`);
+      searchConditions.push(`model.ilike.*${escapedTerm}*`);
+      searchConditions.push(`seller_name.ilike.*${escapedTerm}*`);
       
       // Only search description if it's not null
-      searchConditions.push(`description.ilike.%${escapedTerm}%`);
+      searchConditions.push(`description.ilike.*${escapedTerm}*`);
       
       // Handle lot_number search - exact match for numbers, text search for mixed
       if (isNumeric) {
         searchConditions.push(`lot_number.eq.${parseInt(searchTerm)}`);
       } else {
-        searchConditions.push(`lot_number::text.ilike.%${escapedTerm}%`);
+        // For non-numeric search terms, don't search lot_number as it's numeric
+        // This prevents unnecessary errors
       }
       
-      query = query.or(searchConditions.join(','));
+      const orCondition = searchConditions.join(',');
+      console.log('🔗 Final OR condition:', orCondition);
+      
+      query = query.or(orCondition);
     }
 
     // Apply brand filter
