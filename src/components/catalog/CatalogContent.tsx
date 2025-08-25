@@ -20,6 +20,7 @@ interface CatalogContentProps {
   handleLoadMore: () => void;
   handleRetry: () => void;
   handleClearAll: () => void;
+  totalProductsCount: number;
 }
 
 const CatalogContent: React.FC<CatalogContentProps> = ({
@@ -35,6 +36,7 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   handleLoadMore,
   handleRetry,
   handleClearAll,
+  totalProductsCount,
 }) => {
   if (isLoading) {
     return (
@@ -71,7 +73,10 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
     return (
       <>
         <div className="mb-4 text-sm text-gray-600">
-          Найдено товаров: {mappedProducts.length}
+          Найдено товаров: {totalProductsCount}
+          {mappedProducts.length < totalProductsCount && 
+            ` (показано ${mappedProducts.length})`
+          }
         </div>
         
         {productChunks.map((chunk, index) => (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { SafeHelmet } from "@/components/seo/SafeHelmet";
-import { useCatalogProducts } from "@/hooks/useCatalogProducts";
+import { useOptimizedCatalogProducts } from "@/hooks/useOptimizedCatalogProducts";
 import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
 import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
@@ -22,7 +22,7 @@ const Catalog: React.FC = () => {
 
   const { addToHistory } = useSearchHistory();
 
-  // Simplified catalog products with AI-only search
+  // Optimized catalog products with simple search
   const {
     searchTerm,
     setSearchTerm,
@@ -40,10 +40,17 @@ const Catalog: React.FC = () => {
     handleClearSearch,
     handleSearch,
     handleSearchSubmit,
-    prefetchNextPage
-  } = useCatalogProducts({
+    totalProductsCount
+  } = useOptimizedCatalogProducts({
     productsPerPage: 24,
   });
+
+  // Create prefetch function for compatibility
+  const prefetchNextPage = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
 
   // Auto-load more products when visible
   React.useEffect(() => {
@@ -165,6 +172,7 @@ const Catalog: React.FC = () => {
           handleLoadMore={handleLoadMore}
           handleRetry={handleRetry}
           handleClearAll={handleClearAll}
+          totalProductsCount={totalProductsCount}
         />
       </div>
     </Layout>

@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { ProductProps } from '@/components/product/ProductCard';
@@ -122,6 +122,57 @@ export const useOptimizedCatalogProducts = ({
     };
     return filtersObj;
   }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
+
+  // Separate query for total count
+  const { data: totalCount, isLoading: isCountLoading } = useQuery({
+    queryKey: ['products-count', filters],
+    queryFn: async () => {
+      try {
+        let countQuery = supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true });
+
+        // Apply same filters as main query
+        if (filters.hideSoldProducts) {
+          countQuery = countQuery.eq('status', 'active');
+        } else {
+          if (filters.isAdmin) {
+            countQuery = countQuery.in('status', ['active', 'sold', 'pending', 'archived']);
+          } else {
+            countQuery = countQuery.in('status', ['active', 'sold']);
+          }
+        }
+
+        if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 3) {
+          const searchTerm = filters.activeSearchTerm.trim();
+          countQuery = countQuery.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
+        }
+
+        if (filters.selectedBrandName) {
+          countQuery = countQuery.eq('brand', filters.selectedBrandName);
+        }
+
+        if (filters.selectedModelName) {
+          countQuery = countQuery.eq('model', filters.selectedModelName);
+        }
+
+        const { count, error } = await countQuery;
+        
+        if (error) {
+          console.error('❌ Count query error:', error);
+          throw new Error(`Count query failed: ${error.message}`);
+        }
+        
+        return count || 0;
+      } catch (error) {
+        console.error('💥 Count loading error:', error);
+        return 0;
+      }
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
   const {
     data,
@@ -334,13 +385,14 @@ export const useOptimizedCatalogProducts = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-    isLoading,
+    isLoading: isLoading || isCountLoading,
     isError,
     error,
     refetch,
     handleClearSearch,
     handleSearch,
     handleSearchSubmit,
+    totalProductsCount: totalCount || mappedProducts.length,
     isActiveFilters: !!(activeSearchTerm || hideSoldProducts || selectedBrandName || selectedModelName)
   };
 };
