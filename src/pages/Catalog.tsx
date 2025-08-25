@@ -121,12 +121,10 @@ const Catalog: React.FC = () => {
           <CatalogSearchAndFilters 
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            activeSearchTerm={activeSearchTerm}
-            onSearchSubmit={handleEnhancedSearchSubmit}
+            onSearch={handleSearch}
             hideSoldProducts={hideSoldProducts}
             setHideSoldProducts={setHideSoldProducts}
             isSearching={isLoading}
-            resultCount={mappedProducts.length}
           />
         </div>
 
