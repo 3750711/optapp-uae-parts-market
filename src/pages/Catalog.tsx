@@ -110,13 +110,14 @@ const Catalog: React.FC = () => {
         description="Browse our wide selection of products."
       />
 
-      <div className="container mx-auto px-4 py-8">
-        <BackButton className="mb-4" fallback="/" />
-        <CatalogBreadcrumb
-          searchQuery={searchTerm}
-        />
+      <div className="container mx-auto px-4 py-4">
+        <BackButton className="mb-3" fallback="/" />
+        
+        <div className="mb-4">
+          <CatalogBreadcrumb searchQuery={searchTerm} />
+        </div>
 
-        <div data-filters-section>
+        <div data-filters-section className="mb-6">
           <SearchControls 
             searchTerm={searchTerm}
             onSearch={handleEnhancedSearch}
@@ -131,7 +132,7 @@ const Catalog: React.FC = () => {
 
         <StickyFilters
           searchQuery={searchTerm}
-          setSearchQuery={() => {}} // Not used in simplified version
+          setSearchQuery={() => {}}
           onClearSearch={handleClearSearch}
           onOpenFilters={() => {
             const filtersSection = document.querySelector('[data-filters-section]');
@@ -140,7 +141,7 @@ const Catalog: React.FC = () => {
             }
           }}
           hasActiveFilters={hasAnyFilters}
-          handleSearchSubmit={(e) => e.preventDefault()} // Not used in simplified version
+          handleSearchSubmit={(e) => e.preventDefault()}
         />
 
         <CatalogContent

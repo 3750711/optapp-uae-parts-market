@@ -49,9 +49,9 @@ const SearchControls: React.FC<SearchControlsProps> = ({
   const hasActiveFilters = !!(searchTerm || hideSoldProducts);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Main search and controls container */}
-      <div className="flex flex-col sm:flex-row gap-3 p-4 rounded-lg bg-card border border-border/50 shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-3 p-3 rounded-lg bg-card border border-border shadow-sm">
         {/* Search input section */}
         <div className="flex-1">
           <form onSubmit={handleSubmit} className="relative">
@@ -111,7 +111,7 @@ const SearchControls: React.FC<SearchControlsProps> = ({
           {searchTerm && (
             <Badge 
               variant="secondary" 
-              className="text-xs px-2 py-1 bg-primary/10 text-primary hover:bg-primary/20 transition-colors duration-200 border-0"
+              className="text-xs px-2 py-1 bg-primary/10 text-primary hover:bg-primary/15 transition-colors duration-200 border-0"
             >
               <span className="max-w-[120px] sm:max-w-[200px] truncate">
                 "{searchTerm}"
@@ -129,12 +129,12 @@ const SearchControls: React.FC<SearchControlsProps> = ({
           {hideSoldProducts && (
             <Badge 
               variant="secondary" 
-              className="text-xs px-2 py-1 bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors duration-200 border-0 dark:bg-orange-900/20 dark:text-orange-300 dark:hover:bg-orange-900/30"
+              className="text-xs px-2 py-1 bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors duration-200 border-0"
             >
               <span>Активные</span>
               <button
                 onClick={onClearSoldFilter}
-                className="ml-1.5 hover:bg-orange-300 dark:hover:bg-orange-700 rounded-full p-0.5 transition-colors duration-200"
+                className="ml-1.5 hover:bg-secondary/60 rounded-full p-0.5 transition-colors duration-200"
                 aria-label="Показать проданные товары"
               >
                 <X className="h-2.5 w-2.5" />

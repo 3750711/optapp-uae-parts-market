@@ -72,11 +72,20 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   if (mappedProducts.length > 0) {
     return (
       <>
-        <div className="mb-4 text-sm text-gray-600">
-          Найдено товаров: {totalProductsCount}
-          {mappedProducts.length < totalProductsCount && 
-            ` (показано ${mappedProducts.length})`
-          }
+        {/* Enhanced product counter */}
+        <div className="mb-6 p-3 bg-muted/30 rounded-lg border border-border/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">
+                Найдено товаров: {totalProductsCount}
+              </h2>
+              {mappedProducts.length < totalProductsCount && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Показано {mappedProducts.length} из {totalProductsCount}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
         
         {productChunks.map((chunk, index) => (
@@ -98,11 +107,11 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
         )}
 
         {(hasNextPage || isFetchingNextPage) && (
-          <div className="mt-12 mb-8 flex flex-col items-center justify-center">
-            <div className="h-16 w-full flex items-center justify-center">
+          <div className="mt-8 mb-6 flex flex-col items-center justify-center">
+            <div className="py-4 w-full flex items-center justify-center">
               {isFetchingNextPage ? (
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-6 h-6 border-2 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+                <div className="flex items-center justify-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="w-5 h-5 border-2 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
                   <span className="text-sm text-muted-foreground">Загрузка товаров...</span>
                 </div>
               ) : (
@@ -110,7 +119,7 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
                   onClick={handleLoadMore} 
                   variant="outline"
                   size="lg"
-                  className="min-w-[140px]"
+                  className="min-w-[140px] hover:bg-primary hover:text-primary-foreground transition-colors"
                 >
                   Загрузить ещё
                 </Button>
@@ -120,8 +129,10 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
         )}
 
         {allProductsLoaded && mappedProducts.length > 0 && (
-          <div className="text-center py-6 text-gray-500">
-            Вы просмотрели все товары
+          <div className="text-center py-6 px-4 bg-muted/20 rounded-lg border border-border/30">
+            <p className="text-muted-foreground font-medium">
+              Вы просмотрели все товары
+            </p>
           </div>
         )}
       </>
@@ -129,17 +140,17 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   }
 
   return (
-    <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+    <div className="text-center py-12 bg-muted/30 rounded-lg border-2 border-dashed border-border">
       <div className="max-w-md mx-auto">
-        <div className="text-gray-400 mb-4">
+        <div className="text-muted-foreground mb-4">
           <svg className="mx-auto h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
-        <h3 className="text-xl font-medium text-gray-900 mb-2">
+        <h3 className="text-xl font-semibold text-foreground mb-2">
           Товары не найдены
         </h3>
-        <p className="text-gray-500 mb-6">
+        <p className="text-muted-foreground mb-6">
           {hasAnyFilters 
             ? "Попробуйте изменить параметры поиска или фильтры" 
             : "В настоящее время товары отсутствуют"
