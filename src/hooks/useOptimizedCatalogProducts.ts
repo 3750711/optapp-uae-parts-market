@@ -120,45 +120,80 @@ export const useOptimizedCatalogProducts = ({
       }
     }
     
-    // Apply search term filters with enhanced security and logic
+    // Apply search term filters with AND logic for multiple words
     if (filters.searchTerm && filters.searchTerm.length >= 2) {
       const searchTerm = filters.searchTerm.trim();
-      const normalizedTerm = normalizeText(searchTerm);
-      const escapedTerm = escapePostgRESTTerm(normalizedTerm);
       
-      console.log('🔍 Search term processing:', {
+      // Split search term into individual words
+      const words = searchTerm.split(/\s+/).filter(word => word.length > 0);
+      
+      console.log('🔍 Multi-word search processing:', {
         original: searchTerm,
-        normalized: normalizedTerm,
-        escaped: escapedTerm
+        words: words,
+        wordCount: words.length
       });
       
-      // Check if search term is purely numeric for lot_number exact match
-      const isNumeric = /^\d+$/.test(searchTerm);
-      
-      // Build search conditions with correct PostgREST syntax
-      let searchConditions: string[] = [];
-      
-      // Add text-based searches with correct PostgREST ilike syntax
-      searchConditions.push(`title.ilike.*${escapedTerm}*`);
-      searchConditions.push(`brand.ilike.*${escapedTerm}*`);
-      searchConditions.push(`model.ilike.*${escapedTerm}*`);
-      searchConditions.push(`seller_name.ilike.*${escapedTerm}*`);
-      
-      // Only search description if it's not null
-      searchConditions.push(`description.ilike.*${escapedTerm}*`);
-      
-      // Handle lot_number search - exact match for numbers, text search for mixed
-      if (isNumeric) {
-        searchConditions.push(`lot_number.eq.${parseInt(searchTerm)}`);
+      if (words.length === 1) {
+        // Single word search - use existing OR logic
+        const word = words[0];
+        const normalizedWord = normalizeText(word);
+        const escapedWord = escapePostgRESTTerm(normalizedWord);
+        
+        const isNumeric = /^\d+$/.test(word);
+        let searchConditions: string[] = [];
+        
+        // Add text-based searches
+        searchConditions.push(`title.ilike.*${escapedWord}*`);
+        searchConditions.push(`brand.ilike.*${escapedWord}*`);
+        searchConditions.push(`model.ilike.*${escapedWord}*`);
+        searchConditions.push(`seller_name.ilike.*${escapedWord}*`);
+        searchConditions.push(`description.ilike.*${escapedWord}*`);
+        
+        // Handle lot_number for numeric terms
+        if (isNumeric) {
+          searchConditions.push(`lot_number.eq.${parseInt(word)}`);
+        }
+        
+        const orCondition = searchConditions.join(',');
+        console.log('🔗 Single word OR condition:', orCondition);
+        
+        query = query.or(orCondition);
       } else {
-        // For non-numeric search terms, don't search lot_number as it's numeric
-        // This prevents unnecessary errors
+        // Multiple words search - use AND logic
+        const wordConditions: string[] = [];
+        
+        for (const word of words) {
+          const normalizedWord = normalizeText(word);
+          const escapedWord = escapePostgRESTTerm(normalizedWord);
+          const isNumeric = /^\d+$/.test(word);
+          
+          // Create OR condition for this word across all fields
+          let wordSearchConditions: string[] = [];
+          wordSearchConditions.push(`title.ilike.*${escapedWord}*`);
+          wordSearchConditions.push(`brand.ilike.*${escapedWord}*`);
+          wordSearchConditions.push(`model.ilike.*${escapedWord}*`);
+          wordSearchConditions.push(`seller_name.ilike.*${escapedWord}*`);
+          wordSearchConditions.push(`description.ilike.*${escapedWord}*`);
+          
+          // Add lot_number search for numeric words
+          if (isNumeric) {
+            wordSearchConditions.push(`lot_number.eq.${parseInt(word)}`);
+          }
+          
+          // Wrap each word's OR conditions in parentheses for AND logic
+          const wordOrCondition = `or(${wordSearchConditions.join(',')})`;
+          wordConditions.push(wordOrCondition);
+          
+          console.log(`🔗 Word "${word}" OR condition:`, wordOrCondition);
+        }
+        
+        // Combine all word conditions with AND
+        const finalAndCondition = wordConditions.join(',');
+        console.log('🔗 Final AND condition:', finalAndCondition);
+        
+        // Apply the AND condition using PostgREST's and() method
+        query = query.and(finalAndCondition);
       }
-      
-      const orCondition = searchConditions.join(',');
-      console.log('🔗 Final OR condition:', orCondition);
-      
-      query = query.or(orCondition);
     }
 
     // Apply brand filter
