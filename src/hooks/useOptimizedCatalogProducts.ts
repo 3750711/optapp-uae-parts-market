@@ -38,7 +38,7 @@ export type ProductType = {
 };
 
 export interface CatalogFilters {
-  activeSearchTerm: string;
+  searchTerm: string;
   hideSoldProducts: boolean;
   selectedBrand?: string | null;
   selectedModel?: string | null;
@@ -53,6 +53,18 @@ interface UseOptimizedCatalogProductsProps {
   findModelNameById?: (modelId: string | null) => string | null;
 }
 
+// Helper function to safely escape search terms
+const escapeSearchTerm = (term: string): string => {
+  return term.replace(/[%_'"\\]/g, '\\$&');
+};
+
+// Helper function to normalize Cyrillic characters
+const normalizeText = (text: string): string => {
+  return text.toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/Ё/g, 'Е');
+};
+
 export const useOptimizedCatalogProducts = ({ 
   productsPerPage = 8, 
   sortBy = 'newest',
@@ -61,9 +73,8 @@ export const useOptimizedCatalogProducts = ({
   findBrandNameById,
   findModelNameById
 }: UseOptimizedCatalogProductsProps = {}) => {
-  // Simplified state management - no debounce
+  // Simplified state management - single search term
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const { toast } = useToast();
   const { isAdmin } = useAdminAccess();
@@ -108,10 +119,34 @@ export const useOptimizedCatalogProducts = ({
       }
     }
     
-    // Apply search term filters - simplified search with minimal length requirement
-    if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 1) {
-      const searchTerm = filters.activeSearchTerm.trim();
-      query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%,lot_number::text.ilike.%${searchTerm}%`);
+    // Apply search term filters with enhanced security and logic
+    if (filters.searchTerm && filters.searchTerm.length >= 2) {
+      const searchTerm = filters.searchTerm.trim();
+      const normalizedTerm = normalizeText(searchTerm);
+      const escapedTerm = escapeSearchTerm(normalizedTerm);
+      
+      // Check if search term is purely numeric for lot_number exact match
+      const isNumeric = /^\d+$/.test(searchTerm);
+      
+      let searchConditions: string[] = [];
+      
+      // Add text-based searches with null safety
+      searchConditions.push(`title.ilike.%${escapedTerm}%`);
+      searchConditions.push(`brand.ilike.%${escapedTerm}%`);
+      searchConditions.push(`model.ilike.%${escapedTerm}%`);
+      searchConditions.push(`seller_name.ilike.%${escapedTerm}%`);
+      
+      // Only search description if it's not null
+      searchConditions.push(`description.ilike.%${escapedTerm}%`);
+      
+      // Handle lot_number search - exact match for numbers, text search for mixed
+      if (isNumeric) {
+        searchConditions.push(`lot_number.eq.${parseInt(searchTerm)}`);
+      } else {
+        searchConditions.push(`lot_number::text.ilike.%${escapedTerm}%`);
+      }
+      
+      query = query.or(searchConditions.join(','));
     }
 
     // Apply brand filter
@@ -129,7 +164,7 @@ export const useOptimizedCatalogProducts = ({
 
   const filters = useMemo(() => {
     const filtersObj = {
-      activeSearchTerm,
+      searchTerm,
       hideSoldProducts,
       selectedBrandName,
       selectedModelName,
@@ -137,7 +172,7 @@ export const useOptimizedCatalogProducts = ({
       isAdmin
     };
     return filtersObj;
-  }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
+  }, [searchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
 
   // Separate query for total count
   const { data: totalCount, isLoading: isCountLoading } = useQuery({
@@ -329,7 +364,6 @@ export const useOptimizedCatalogProducts = ({
 
   const handleClearSearch = useCallback(() => {
     setSearchTerm('');
-    setActiveSearchTerm('');
     if (externalSelectedBrand === undefined) setInternalSelectedBrand(null);
     if (externalSelectedModel === undefined) setInternalSelectedModel(null);
   }, [externalSelectedBrand, externalSelectedModel]);
@@ -337,18 +371,16 @@ export const useOptimizedCatalogProducts = ({
   const handleSearch = useCallback((query: string) => {
     const trimmedQuery = query.trim();
     setSearchTerm(trimmedQuery);
-    setActiveSearchTerm(trimmedQuery);
   }, []);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    handleSearch(searchTerm);
-  }, [searchTerm, handleSearch]);
+    // Search is triggered immediately on setSearchTerm
+  }, []);
 
   return {
     searchTerm,
     setSearchTerm,
-    activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
     selectedBrand,
@@ -369,7 +401,7 @@ export const useOptimizedCatalogProducts = ({
     handleSearch,
     handleSearchSubmit,
     totalProductsCount: totalCount || mappedProducts.length,
-    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || selectedBrandName || selectedModelName)
+    isActiveFilters: !!(searchTerm || hideSoldProducts || selectedBrandName || selectedModelName)
   };
 };
 

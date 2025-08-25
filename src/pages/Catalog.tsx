@@ -25,7 +25,6 @@ const Catalog: React.FC = () => {
   // Simplified catalog products with button-only search
   const {
     searchTerm,
-    activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
     mappedProducts,
@@ -93,7 +92,7 @@ const Catalog: React.FC = () => {
   }, [handleClearSearch, setHideSoldProducts]);
 
   const hasAnyFilters = !!(
-    activeSearchTerm || 
+    searchTerm || 
     hideSoldProducts
   );
 
@@ -115,12 +114,12 @@ const Catalog: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         <BackButton className="mb-4" fallback="/" />
         <CatalogBreadcrumb
-          searchQuery={activeSearchTerm}
+          searchQuery={searchTerm}
         />
 
         <div data-filters-section>
           <CatalogSearchAndFilters 
-            searchTerm={activeSearchTerm}
+            searchTerm={searchTerm}
             onSearch={handleEnhancedSearch}
             hideSoldProducts={hideSoldProducts}
             setHideSoldProducts={setHideSoldProducts}
@@ -130,7 +129,7 @@ const Catalog: React.FC = () => {
 
         {hasAnyFilters && (
           <ActiveFilters
-            searchQuery={activeSearchTerm}
+            searchQuery={searchTerm}
             hideSoldProducts={hideSoldProducts}
             onClearSearch={handleClearSearch}
             onClearSoldFilter={handleClearSoldFilter}
@@ -139,7 +138,7 @@ const Catalog: React.FC = () => {
         )}
 
         <StickyFilters
-          searchQuery={activeSearchTerm}
+          searchQuery={searchTerm}
           setSearchQuery={() => {}} // Not used in simplified version
           onClearSearch={handleClearSearch}
           onOpenFilters={() => {
