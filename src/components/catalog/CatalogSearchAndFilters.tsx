@@ -2,7 +2,6 @@
 import React from 'react';
 import SimpleSearchBar from './SimpleSearchBar';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card } from '@/components/ui/card';
 
 interface CatalogSearchAndFiltersProps {
   searchTerm: string;
@@ -20,30 +19,30 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
   isSearching = false
 }) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <SimpleSearchBar
         initialQuery={searchTerm}
         onSubmit={onSearch}
         isSearching={isSearching}
       />
       
-      {/* Hide sold products filter */}
-      <Card className="p-4">
-        <div className="flex items-center space-x-2">
+      {/* Compact hide sold products filter */}
+      <div className="flex items-center justify-center sm:justify-start">
+        <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-background/50 hover:bg-background/80 transition-colors duration-200 border border-border/50">
           <Checkbox
             id="hide-sold"
             checked={hideSoldProducts}
             onCheckedChange={setHideSoldProducts}
-            className="h-4 w-4"
+            className="h-3.5 w-3.5 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <label
             htmlFor="hide-sold"
-            className="text-sm text-muted-foreground cursor-pointer select-none"
+            className="text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors duration-200"
           >
-            Скрыть проданные товары
+            Скрыть проданные
           </label>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
