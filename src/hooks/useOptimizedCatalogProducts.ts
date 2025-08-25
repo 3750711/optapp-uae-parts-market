@@ -55,8 +55,8 @@ interface UseOptimizedCatalogProductsProps {
 
 // Helper function to safely escape search terms for PostgREST
 const escapePostgRESTTerm = (term: string): string => {
-  // Escape special PostgREST characters: * % " '
-  return term.replace(/[*%"']/g, '\\$&');
+  // Escape special PostgREST pattern characters: * % _ " '
+  return term.replace(/[*%_"']/g, '\\$&');
 };
 
 // Helper function to normalize Cyrillic characters
@@ -121,7 +121,7 @@ export const useOptimizedCatalogProducts = ({
     }
     
     // Apply search term filters with AND logic for multiple words
-    if (filters.searchTerm && filters.searchTerm.length >= 2) {
+    if (filters.searchTerm && filters.searchTerm.length >= 1) {
       const searchTerm = filters.searchTerm.trim();
       
       // Split search term into individual words
@@ -187,12 +187,12 @@ export const useOptimizedCatalogProducts = ({
           console.log(`🔗 Word "${word}" OR condition:`, wordOrCondition);
         }
         
-        // Combine all word conditions with AND
-        const finalAndCondition = wordConditions.join(',');
-        console.log('🔗 Final AND condition:', finalAndCondition);
+        // Combine all word conditions with AND using correct PostgREST syntax
+        const andGroup = `and(${wordConditions.join(',')})`;
+        console.log('🔗 Final AND group for OR:', andGroup);
         
-        // Apply the AND condition using PostgREST's and() method
-        query = query.and(finalAndCondition);
+        // Apply the AND logic using PostgREST's single or() call with and() group
+        query = query.or(andGroup);
       }
     }
 
