@@ -12,6 +12,7 @@ import ProductSkeleton from "@/components/product/ProductSkeleton";
 import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import ProductDetailContent from "@/components/product/ProductDetailContent";
+import { buildProductImages } from "@/utils/productMedia";
 
 import SellerProducts from "@/components/product/SimilarProducts";
 import MobileProductLayout from "@/components/product/mobile/MobileProductLayout";
@@ -215,10 +216,8 @@ const ProductDetail = () => {
     setSelectedImage(url);
   };
   
-  // Extract URLs for components
-  const imageUrls = product.product_images 
-    ? product.product_images.map(img => img.url) 
-    : [];
+  // Extract URLs for components using comprehensive image builder
+  const imageUrls = buildProductImages(product);
   
   const videoUrls = product.product_videos 
     ? product.product_videos.map(video => video.url) 
