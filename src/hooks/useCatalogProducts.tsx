@@ -113,54 +113,18 @@ export const useCatalogProducts = ({
           query = query.neq('status', 'sold');
         }
 
-        // Text search with synonyms across multiple fields
+        // Simple text search across key fields
         const hasSearchTerm = activeSearchTerm && activeSearchTerm.trim().length >= 2;
 
         if (hasSearchTerm) {
-          console.log('🔍 Using text search with synonyms');
+          console.log('🔍 Using simple text search for:', activeSearchTerm);
           
-          const searchWords = activeSearchTerm.trim().toLowerCase().split(/\s+/);
-          const expandedSearchTerms = new Set(searchWords);
+          const searchQuery = activeSearchTerm.trim();
           
-          // Get synonyms for each word
-          for (const word of searchWords) {
-            if (word.length > 1) {
-              try {
-                const { data: synonymsData } = await supabase.rpc('get_search_synonyms', {
-                  search_term: word,
-                  search_language: 'ru'
-                });
-                
-                if (synonymsData && Array.isArray(synonymsData)) {
-                  synonymsData.forEach((synonym: string) => {
-                    if (synonym && synonym.trim()) {
-                      expandedSearchTerms.add(synonym.trim().toLowerCase());
-                    }
-                  });
-                }
-              } catch (synonymError) {
-                console.log('Could not fetch synonyms for:', word, synonymError);
-                // Continue without synonyms if there's an error
-              }
-            }
-          }
-          
-          const allSearchTerms = Array.from(expandedSearchTerms);
-          console.log('Expanded search terms with synonyms:', allSearchTerms);
-          
-          if (allSearchTerms.length === 1) {
-            // Single term: search in title, brand, and model
-            const searchTerm = allSearchTerms[0];
-            query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
-          } else {
-            // Multiple terms: build OR condition for all terms across all fields
-            const conditions = allSearchTerms.map(term => 
-              `title.ilike.%${term}%,brand.ilike.%${term}%,model.ilike.%${term}%`
-            );
-            
-            const combinedCondition = conditions.join(',');
-            query = query.or(combinedCondition);
-          }
+          // Simple OR query across all key fields
+          query = query.or(
+            `title.ilike.%${searchQuery}%,brand.ilike.%${searchQuery}%,model.ilike.%${searchQuery}%,condition.ilike.%${searchQuery}%,seller_name.ilike.%${searchQuery}%`
+          );
         } else {
           // SHOW ALL: No search terms
           console.log('📋 Showing ALL products (no search)');
