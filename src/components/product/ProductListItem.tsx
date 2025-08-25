@@ -2,7 +2,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Eye, Clock, Star, Activity, Loader2 } from 'lucide-react';
+import { Hash, Clock, Star, Activity, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
@@ -263,17 +263,10 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 text-xs text-gray-500">
-                  {product.product_location && (
+                  {product.optid_created && (
                     <div className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      <span>{product.product_location}</span>
-                    </div>
-                  )}
-                  
-                  {product.view_count !== undefined && (
-                    <div className="flex items-center gap-1">
-                      <Eye className="h-3 w-3" />
-                      <span>{product.view_count}</span>
+                      <Hash className="h-3 w-3" />
+                      <span>OPT: {product.optid_created}</span>
                     </div>
                   )}
 

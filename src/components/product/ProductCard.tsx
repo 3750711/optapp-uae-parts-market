@@ -40,6 +40,7 @@ export interface ProductProps {
   product_videos?: Array<{ url: string }>;
   created_at?: string;
   updated_at?: string;
+  optid_created?: string;
 }
 
 interface ProductCardProps {
