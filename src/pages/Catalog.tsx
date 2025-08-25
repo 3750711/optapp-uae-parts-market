@@ -125,6 +125,8 @@ const Catalog: React.FC = () => {
             onSearchSubmit={handleEnhancedSearchSubmit}
             hideSoldProducts={hideSoldProducts}
             setHideSoldProducts={setHideSoldProducts}
+            isSearching={isLoading}
+            resultCount={mappedProducts.length}
           />
         </div>
 
