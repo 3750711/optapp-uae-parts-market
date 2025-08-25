@@ -1,12 +1,11 @@
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { ProductProps } from '@/components/product/ProductCard';
 import { SortOption } from '@/components/catalog/ProductSorting';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
-import { useDebounceValue } from '@/hooks/useDebounceValue';
 
 export type ProductType = {
   id: string;
@@ -52,7 +51,6 @@ interface UseOptimizedCatalogProductsProps {
   externalSelectedModel?: string | null;
   findBrandNameById?: (brandId: string | null) => string | null;
   findModelNameById?: (modelId: string | null) => string | null;
-  debounceTime?: number;
 }
 
 export const useOptimizedCatalogProducts = ({ 
@@ -61,16 +59,14 @@ export const useOptimizedCatalogProducts = ({
   externalSelectedBrand = null,
   externalSelectedModel = null,
   findBrandNameById,
-  findModelNameById,
-  debounceTime = 1000
+  findModelNameById
 }: UseOptimizedCatalogProductsProps = {}) => {
+  // Simplified state management - no debounce
   const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounceValue(searchTerm, debounceTime);
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const { toast } = useToast();
   const { isAdmin } = useAdminAccess();
-  const isInitialRender = useRef(true);
   
   const [internalSelectedBrand, setInternalSelectedBrand] = useState<string | null>(null);
   const [internalSelectedModel, setInternalSelectedModel] = useState<string | null>(null);
@@ -80,17 +76,6 @@ export const useOptimizedCatalogProducts = ({
 
   const selectedBrandName = findBrandNameById ? findBrandNameById(selectedBrand) : selectedBrand;
   const selectedModelName = findModelNameById ? findModelNameById(selectedModel) : selectedModel;
-
-  useEffect(() => {
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
-      return;
-    }
-    
-    if (debouncedSearchTerm !== activeSearchTerm) {
-      setActiveSearchTerm(debouncedSearchTerm);
-    }
-  }, [debouncedSearchTerm, activeSearchTerm]);
 
   const buildSortQuery = (query: any, sortOption: SortOption) => {
     switch (sortOption) {
@@ -123,10 +108,10 @@ export const useOptimizedCatalogProducts = ({
       }
     }
     
-    // Apply search term filters (include all searchable fields)
-    if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 3) {
+    // Apply search term filters - simplified search with minimal length requirement
+    if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 1) {
       const searchTerm = filters.activeSearchTerm.trim();
-      query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,condition.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`);
+      query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`);
     }
 
     // Apply brand filter
@@ -349,14 +334,16 @@ export const useOptimizedCatalogProducts = ({
     if (externalSelectedModel === undefined) setInternalSelectedModel(null);
   }, [externalSelectedBrand, externalSelectedModel]);
 
-  const handleSearch = useCallback(() => {
-    setActiveSearchTerm(searchTerm);
-  }, [searchTerm]);
+  const handleSearch = useCallback((query: string) => {
+    const trimmedQuery = query.trim();
+    setSearchTerm(trimmedQuery);
+    setActiveSearchTerm(trimmedQuery);
+  }, []);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    handleSearch();
-  }, [handleSearch]);
+    handleSearch(searchTerm);
+  }, [searchTerm, handleSearch]);
 
   return {
     searchTerm,

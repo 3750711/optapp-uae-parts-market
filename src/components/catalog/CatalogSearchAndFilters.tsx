@@ -1,12 +1,11 @@
 
 import React from 'react';
-import SimpleSearch from './SimpleSearch';
+import SimpleSearchBar from './SimpleSearchBar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
 
 interface CatalogSearchAndFiltersProps {
   searchTerm: string;
-  setSearchTerm: (term: string) => void;
   onSearch: (query: string) => void;
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
@@ -15,7 +14,6 @@ interface CatalogSearchAndFiltersProps {
 
 const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
   searchTerm,
-  setSearchTerm,
   onSearch,
   hideSoldProducts,
   setHideSoldProducts,
@@ -23,12 +21,10 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <SimpleSearch
-        searchQuery={searchTerm}
-        setSearchQuery={setSearchTerm}
-        onSearch={onSearch}
+      <SimpleSearchBar
+        initialQuery={searchTerm}
+        onSubmit={onSearch}
         isSearching={isSearching}
-        placeholder="Поиск автозапчастей по названию, марке, модели..."
       />
       
       {/* Hide sold products filter */}

@@ -22,10 +22,9 @@ const Catalog: React.FC = () => {
 
   const { addToHistory } = useSearchHistory();
 
-  // Optimized catalog products with simple search
+  // Simplified catalog products with button-only search
   const {
     searchTerm,
-    setSearchTerm,
     activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
@@ -39,7 +38,6 @@ const Catalog: React.FC = () => {
     refetch,
     handleClearSearch,
     handleSearch,
-    handleSearchSubmit,
     totalProductsCount
   } = useOptimizedCatalogProducts({
     productsPerPage: 24,
@@ -75,19 +73,15 @@ const Catalog: React.FC = () => {
   };
 
   const handleSelectFromHistory = useCallback((item: SearchHistoryItem) => {
-    setSearchTerm(item.query);
-    setTimeout(() => {
-      handleSearch();
-    }, 100);
-  }, [handleSearch, setSearchTerm]);
+    handleSearch(item.query);
+  }, [handleSearch]);
 
-  const handleEnhancedSearchSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      addToHistory(searchTerm);
+  const handleEnhancedSearch = useCallback((query: string) => {
+    if (query.trim()) {
+      addToHistory(query);
     }
-    handleSearchSubmit(e);
-  }, [searchTerm, addToHistory, handleSearchSubmit]);
+    handleSearch(query);
+  }, [addToHistory, handleSearch]);
 
   const handleClearSoldFilter = useCallback(() => {
     setHideSoldProducts(false);
@@ -126,9 +120,8 @@ const Catalog: React.FC = () => {
 
         <div data-filters-section>
           <CatalogSearchAndFilters 
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            onSearch={handleSearch}
+            searchTerm={activeSearchTerm}
+            onSearch={handleEnhancedSearch}
             hideSoldProducts={hideSoldProducts}
             setHideSoldProducts={setHideSoldProducts}
             isSearching={isLoading}
@@ -146,8 +139,8 @@ const Catalog: React.FC = () => {
         )}
 
         <StickyFilters
-          searchQuery={searchTerm}
-          setSearchQuery={setSearchTerm}
+          searchQuery={activeSearchTerm}
+          setSearchQuery={() => {}} // Not used in simplified version
           onClearSearch={handleClearSearch}
           onOpenFilters={() => {
             const filtersSection = document.querySelector('[data-filters-section]');
@@ -156,7 +149,7 @@ const Catalog: React.FC = () => {
             }
           }}
           hasActiveFilters={hasAnyFilters}
-          handleSearchSubmit={handleEnhancedSearchSubmit}
+          handleSearchSubmit={(e) => e.preventDefault()} // Not used in simplified version
         />
 
         <CatalogContent
