@@ -50,7 +50,7 @@ export const useImageFallback = ({
       if (cloudinaryPublicId) {
         chain.push({
           type: 'cloudinary',
-          url: getCatalogImageUrl(src, cloudinaryPublicId, fallbackSrc, cloudinaryUrl),
+          url: getCatalogImageUrl('', cloudinaryPublicId, fallbackSrc, cloudinaryUrl),
           priority: 1
         });
       }
@@ -61,7 +61,7 @@ export const useImageFallback = ({
         if (extractedId && extractedId !== cloudinaryPublicId) {
           chain.push({
             type: 'cloudinary',
-            url: getCatalogImageUrl(src, extractedId, fallbackSrc, cloudinaryUrl),
+            url: getCatalogImageUrl('', extractedId, fallbackSrc, cloudinaryUrl),
             priority: 2
           });
         }
@@ -73,7 +73,7 @@ export const useImageFallback = ({
         if (extractedId && extractedId !== cloudinaryPublicId) {
           chain.push({
             type: 'cloudinary',
-            url: getCatalogImageUrl(src, extractedId, fallbackSrc, cloudinaryUrl),
+            url: getCatalogImageUrl(src, extractedId, fallbackSrc, ''),
             priority: 3
           });
         }
