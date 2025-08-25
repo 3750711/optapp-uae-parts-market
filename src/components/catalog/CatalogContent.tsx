@@ -72,21 +72,6 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   if (mappedProducts.length > 0) {
     return (
       <>
-        {/* Enhanced product counter */}
-        <div className="mb-6 p-3 bg-muted/30 rounded-lg border border-border/50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">
-                Найдено товаров: {totalProductsCount}
-              </h2>
-              {mappedProducts.length < totalProductsCount && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Показано {mappedProducts.length} из {totalProductsCount}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
         
         {productChunks.map((chunk, index) => (
           <UnifiedProductGrid 
