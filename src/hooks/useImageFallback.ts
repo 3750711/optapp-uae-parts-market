@@ -20,6 +20,8 @@ interface UseImageFallbackReturn {
   hasError: boolean;
   sourceType: 'cloudinary' | 'supabase' | 'placeholder';
   retry: () => void;
+  handleImageLoad: () => void;
+  handleImageError: () => void;
 }
 
 export const useImageFallback = ({
@@ -73,53 +75,37 @@ export const useImageFallback = ({
 
   const currentSource = sources[currentSourceIndex] || sources[sources.length - 1];
 
-  // Test image loading
-  const testImage = useCallback((url: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = url;
-    });
-  }, []);
-
-  // Load current image
-  useEffect(() => {
-    if (!currentSource?.url) return;
-
-    setIsLoading(true);
+  // Handle image load success
+  const handleImageLoad = useCallback(() => {
+    console.log(`✅ Image loaded successfully: ${currentSource?.type} - ${currentSource?.url}`);
+    setIsLoading(false);
     setHasError(false);
+  }, [currentSource]);
 
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`Trying image source: ${currentSource.type} - ${currentSource.url}`);
+  // Handle image load error
+  const handleImageError = useCallback(() => {
+    console.log(`❌ Image failed to load: ${currentSource?.type} - ${currentSource?.url}`);
+    
+    // Try next source
+    if (currentSourceIndex < sources.length - 1) {
+      console.log(`🔄 Trying next source (${currentSourceIndex + 1}/${sources.length - 1})`);
+      setCurrentSourceIndex(prev => prev + 1);
+    } else {
+      // All sources failed
+      console.log('❌ All image sources failed, showing placeholder');
+      setIsLoading(false);
+      setHasError(true);
     }
+  }, [currentSource, currentSourceIndex, sources.length]);
 
-    testImage(currentSource.url).then((success) => {
-      if (success) {
-        setIsLoading(false);
-        setHasError(false);
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`✅ Image loaded successfully: ${currentSource.type}`);
-        }
-      } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`❌ Image failed to load: ${currentSource.type} - ${currentSource.url}`);
-        }
-        
-        // Try next source
-        if (currentSourceIndex < sources.length - 1) {
-          setCurrentSourceIndex(prev => prev + 1);
-        } else {
-          // All sources failed
-          setIsLoading(false);
-          setHasError(true);
-          if (process.env.NODE_ENV === 'development') {
-            console.log('❌ All image sources failed');
-          }
-        }
-      }
-    });
-  }, [currentSource?.url, currentSourceIndex, sources.length, testImage]);
+  // Initialize loading state when source changes
+  useEffect(() => {
+    if (currentSource?.url) {
+      console.log(`🔍 Attempting to load: ${currentSource.type} - ${currentSource.url}`);
+      setIsLoading(true);
+      setHasError(false);
+    }
+  }, [currentSource?.url]);
 
   // Reset when sources change
   useEffect(() => {
@@ -135,6 +121,8 @@ export const useImageFallback = ({
     isLoading,
     hasError,
     sourceType: currentSource?.type || 'placeholder',
-    retry
+    retry,
+    handleImageLoad,
+    handleImageError
   };
 };

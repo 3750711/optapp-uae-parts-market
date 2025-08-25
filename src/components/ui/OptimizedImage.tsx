@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import CloudinaryImage from './CloudinaryImage';
 import { getCatalogImageUrl } from '@/utils/previewImageUtils';
 import { extractPublicIdFromUrl } from '@/utils/cloudinaryUtils';
@@ -30,10 +30,16 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   cloudinaryUrl,
   size = 'card'
 }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Use enhanced fallback system
-  const { currentSrc, isLoading, hasError, sourceType, retry } = useImageFallback({
+  // Use enhanced fallback system with native event handlers
+  const { 
+    currentSrc, 
+    isLoading, 
+    hasError, 
+    sourceType, 
+    retry,
+    handleImageLoad,
+    handleImageError 
+  } = useImageFallback({
     src,
     cloudinaryPublicId,
     cloudinaryUrl,
@@ -41,50 +47,53 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     size
   });
 
-  const handleImageLoad = useCallback(() => {
-    setIsLoaded(true);
+  const handleLoad = () => {
+    handleImageLoad();
     onLoad?.();
-  }, [onLoad]);
+  };
 
-  const handleImageError = useCallback(() => {
+  const handleError = () => {
+    handleImageError();
     onError?.();
-    // The fallback hook will automatically try the next source
-  }, [onError]);
+  };
 
   return (
     <div className={`relative ${className}`}>
       {/* Loading placeholder */}
-      {(isLoading || !isLoaded) && !priority && (
-        <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
+      {isLoading && !priority && (
+        <div className="absolute inset-0 bg-muted animate-pulse rounded flex items-center justify-center">
+          <div className="text-muted-foreground text-sm">Загрузка...</div>
+        </div>
       )}
       
       {/* Debug indicator for development */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1 py-0.5 rounded z-10">
-          {sourceType}
+        <div className="absolute top-1 left-1 bg-black/80 text-white text-xs px-2 py-1 rounded z-10">
+          {sourceType} - {isLoading ? 'loading' : hasError ? 'error' : 'ready'}
         </div>
       )}
       
       <img
         src={currentSrc}
         alt={alt}
-        className={`${className} object-contain transition-opacity duration-300 ${
-          isLoaded && !hasError ? 'opacity-100' : 'opacity-0'
-        }`}
-        onLoad={handleImageLoad}
-        onError={handleImageError}
+        className={`${className} object-contain transition-opacity duration-300`}
+        onLoad={handleLoad}
+        onError={handleError}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         sizes={sizes}
+        style={{
+          opacity: isLoading || hasError ? 0 : 1
+        }}
       />
       
       {/* Error state with retry */}
       {hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-500">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted text-muted-foreground">
           <span className="text-sm mb-2">Ошибка загрузки</span>
           <button 
             onClick={retry}
-            className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded transition-colors"
+            className="text-xs px-3 py-1 bg-primary text-primary-foreground hover:bg-primary/90 rounded transition-colors"
           >
             Повторить
           </button>
