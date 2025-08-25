@@ -111,6 +111,37 @@ export const useOptimizedCatalogProducts = ({
     }
   };
 
+  const applySearchFilters = (query: any, filters: any) => {
+    // Apply status filters
+    if (filters.hideSoldProducts) {
+      query = query.eq('status', 'active');
+    } else {
+      if (filters.isAdmin) {
+        query = query.in('status', ['active', 'sold', 'pending', 'archived']);
+      } else {
+        query = query.in('status', ['active', 'sold']);
+      }
+    }
+    
+    // Apply search term filters (include all searchable fields)
+    if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 3) {
+      const searchTerm = filters.activeSearchTerm.trim();
+      query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,condition.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`);
+    }
+
+    // Apply brand filter
+    if (filters.selectedBrandName) {
+      query = query.eq('brand', filters.selectedBrandName);
+    }
+
+    // Apply model filter
+    if (filters.selectedModelName) {
+      query = query.eq('model', filters.selectedModelName);
+    }
+    
+    return query;
+  };
+
   const filters = useMemo(() => {
     const filtersObj = {
       activeSearchTerm,
@@ -128,33 +159,14 @@ export const useOptimizedCatalogProducts = ({
     queryKey: ['products-count', filters],
     queryFn: async () => {
       try {
+        console.log('🔢 Executing count query with filters:', filters);
+        
         let countQuery = supabase
           .from('products')
           .select('*', { count: 'exact', head: true });
 
-        // Apply same filters as main query
-        if (filters.hideSoldProducts) {
-          countQuery = countQuery.eq('status', 'active');
-        } else {
-          if (filters.isAdmin) {
-            countQuery = countQuery.in('status', ['active', 'sold', 'pending', 'archived']);
-          } else {
-            countQuery = countQuery.in('status', ['active', 'sold']);
-          }
-        }
-
-        if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 3) {
-          const searchTerm = filters.activeSearchTerm.trim();
-          countQuery = countQuery.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
-        }
-
-        if (filters.selectedBrandName) {
-          countQuery = countQuery.eq('brand', filters.selectedBrandName);
-        }
-
-        if (filters.selectedModelName) {
-          countQuery = countQuery.eq('model', filters.selectedModelName);
-        }
+        // Use shared filter function to ensure identical filtering
+        countQuery = applySearchFilters(countQuery, filters);
 
         const { count, error } = await countQuery;
         
@@ -163,6 +175,7 @@ export const useOptimizedCatalogProducts = ({
           throw new Error(`Count query failed: ${error.message}`);
         }
         
+        console.log('📊 Total count result:', count);
         return count || 0;
       } catch (error) {
         console.error('💥 Count loading error:', error);
@@ -215,32 +228,8 @@ export const useOptimizedCatalogProducts = ({
 
         query = buildSortQuery(query, sortBy);
 
-        // Apply status filters
-        if (filters.hideSoldProducts) {
-          query = query.eq('status', 'active');
-        } else {
-          if (filters.isAdmin) {
-            query = query.in('status', ['active', 'sold', 'pending', 'archived']);
-          } else {
-            query = query.in('status', ['active', 'sold']);
-          }
-        }
-
-        // Улучшенные фильтры поиска с использованием правильных индексов
-        if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 3) {
-          const searchTerm = filters.activeSearchTerm.trim();
-          // Используем GIN индекс для эффективного текстового поиска
-          query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
-        }
-
-        // Используем индексы для фильтрации по бренду и модели
-        if (filters.selectedBrandName) {
-          query = query.eq('brand', filters.selectedBrandName);
-        }
-
-        if (filters.selectedModelName) {
-          query = query.eq('model', filters.selectedModelName);
-        }
+        // Use shared filter function to ensure identical filtering with count query
+        query = applySearchFilters(query, filters);
 
         query = query.range(from, to);
 
