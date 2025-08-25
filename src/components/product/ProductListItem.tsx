@@ -266,7 +266,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   {product.optid_created && (
                     <div className="flex items-center gap-1">
                       <Hash className="h-3 w-3" />
-                      <span>OPT: {product.optid_created}</span>
+                      <span>{product.optid_created}</span>
                     </div>
                   )}
 
