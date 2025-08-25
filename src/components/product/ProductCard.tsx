@@ -67,7 +67,7 @@ const ProductCard = memo(({
   const { user } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
   const navigate = useNavigate();
-  // Remove imageError state - let OptimizedImage handle all fallbacks
+  const [imageError, setImageError] = useState(false);
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -168,11 +168,12 @@ const ProductCard = memo(({
               cloudinaryPublicId={product.cloudinary_public_id}
               cloudinaryUrl={product.cloudinary_url}
             />
-          ) : primaryImage ? (
+          ) : primaryImage && !imageError ? (
             <OptimizedImage
               src={primaryImage.url}
               alt={product.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              onError={() => setImageError(true)}
               cloudinaryPublicId={product.cloudinary_public_id}
               cloudinaryUrl={product.cloudinary_url}
               size="card"

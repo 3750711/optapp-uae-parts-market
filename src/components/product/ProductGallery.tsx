@@ -11,7 +11,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { useLazyImage } from "@/hooks/useLazyImage";
-import OptimizedImage from "@/components/ui/OptimizedImage";
 
 interface ProductGalleryProps {
   images: string[];
@@ -19,8 +18,6 @@ interface ProductGalleryProps {
   title?: string;
   selectedImage?: string;
   onImageClick?: (url: string) => void;
-  cloudinaryPublicId?: string;
-  cloudinaryUrl?: string;
 }
 
 const ProductGallery: React.FC<ProductGalleryProps> = ({ 
@@ -28,9 +25,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   videos = [],
   title = "",
   selectedImage,
-  onImageClick,
-  cloudinaryPublicId,
-  cloudinaryUrl
+  onImageClick
 }) => {
   const isMobile = useIsMobile();
   const allMedia = [...images, ...videos];
@@ -174,14 +169,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                       playsInline
                     />
                   ) : (
-                    <OptimizedImage
+                    <img
                       src={media}
                       alt={title}
                       className="w-full h-full object-contain"
-                      priority={index === 0}
-                      cloudinaryPublicId={cloudinaryPublicId}
-                      cloudinaryUrl={cloudinaryUrl}
-                      size="detail"
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      decoding={index === 0 ? 'sync' : 'async'}
                       onLoad={() => {
                         // Preload next image when current loads
                         if (index < allMedia.length - 1 && !isVideo(allMedia[index + 1])) {
@@ -257,13 +250,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <OptimizedImage
+                  <img
                     src={media}
                     alt={`${title} - изображение ${index + 1}`}
                     className="w-full h-full object-cover"
-                    cloudinaryPublicId={cloudinaryPublicId}
-                    cloudinaryUrl={cloudinaryUrl}
-                    size="thumbnail"
+                    loading="lazy"
+                    decoding="async"
                   />
                 )}
               </div>
@@ -310,13 +302,14 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
 
               {/* Main image */}
               <div className="w-full h-full flex items-center justify-center p-4">
-                <OptimizedImage
+                <img
                   src={allMedia[currentZoomIndex]}
                   alt={title}
                   className="max-w-full max-h-full object-contain"
-                  cloudinaryPublicId={cloudinaryPublicId}
-                  cloudinaryUrl={cloudinaryUrl}
-                  size="detail"
+                  style={{ 
+                    touchAction: 'pinch-zoom',
+                    userSelect: 'none'
+                  }}
                 />
               </div>
 
@@ -356,13 +349,10 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                             globalIndex === currentZoomIndex ? 'border-white' : 'border-gray-400'
                           }`}
                         >
-                          <OptimizedImage
+                          <img
                             src={url}
                             alt=""
                             className="w-full h-full object-cover"
-                            cloudinaryPublicId={cloudinaryPublicId}
-                            cloudinaryUrl={cloudinaryUrl}
-                            size="thumbnail"
                           />
                         </button>
                       );
@@ -400,13 +390,10 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </div>
               
               <div className="relative">
-                <OptimizedImage
+                <img
                   src={allMedia[currentZoomIndex]}
                   alt={title}
                   className="w-full max-h-[70vh] object-contain"
-                  cloudinaryPublicId={cloudinaryPublicId}
-                  cloudinaryUrl={cloudinaryUrl}
-                  size="detail"
                 />
                 
                 {imageUrls.length > 1 && (

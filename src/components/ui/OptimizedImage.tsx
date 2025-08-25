@@ -1,9 +1,8 @@
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import CloudinaryImage from './CloudinaryImage';
 import { getCatalogImageUrl } from '@/utils/previewImageUtils';
 import { extractPublicIdFromUrl } from '@/utils/cloudinaryUtils';
-import { useImageFallback } from '@/hooks/useImageFallback';
 
 interface OptimizedImageProps {
   src: string;
@@ -30,75 +29,66 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   cloudinaryUrl,
   size = 'card'
 }) => {
-  // Use enhanced fallback system with native event handlers
-  const { 
-    currentSrc, 
-    isLoading, 
-    hasError, 
-    sourceType, 
-    retry,
-    handleImageLoad,
-    handleImageError 
-  } = useImageFallback({
-    src,
-    cloudinaryPublicId,
-    cloudinaryUrl,
-    fallbackSrc: '/placeholder.svg',
-    size
-  });
+  const [cloudinaryError, setCloudinaryError] = useState(false);
+  const [nativeError, setNativeError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const handleLoad = () => {
-    handleImageLoad();
-    onLoad?.();
-  };
-
-  const handleError = () => {
-    handleImageError();
+  const handleCloudinaryError = useCallback(() => {
+    setCloudinaryError(true);
     onError?.();
-  };
+  }, [onError]);
+
+  const handleNativeError = useCallback(() => {
+    setNativeError(true);
+    onError?.();
+  }, [onError]);
+
+  const handleImageLoad = useCallback(() => {
+    setIsLoaded(true);
+    onLoad?.();
+  }, [onLoad]);
+
+  // Determine the best public_id to use
+  const workingPublicId = cloudinaryPublicId || 
+    (cloudinaryUrl && cloudinaryUrl.includes('cloudinary.com') ? extractPublicIdFromUrl(cloudinaryUrl) : null) ||
+    (src && src.includes('cloudinary.com') ? extractPublicIdFromUrl(src) : null);
+
+  // Use CloudinaryImage if we have a valid public_id and no errors
+  if (workingPublicId && !cloudinaryError) {
+    return (
+      <CloudinaryImage
+        publicId={workingPublicId}
+        alt={alt}
+        size={size}
+        className={className}
+        priority={priority}
+        onLoad={handleImageLoad}
+        onError={handleCloudinaryError}
+        fallbackSrc="/placeholder.svg"
+      />
+    );
+  }
+
+  // Fallback to regular image with optimized URL (try original src unless native failed)
+  const imageUrl = nativeError
+    ? '/placeholder.svg'
+    : getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
 
   return (
     <div className={`relative ${className}`}>
-      {/* Loading placeholder */}
-      {isLoading && !priority && (
-        <div className="absolute inset-0 bg-muted animate-pulse rounded flex items-center justify-center">
-          <div className="text-muted-foreground text-sm">Загрузка...</div>
-        </div>
+      {!isLoaded && !priority && !nativeError && (
+        <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
       )}
-      
-      {/* Debug indicator for development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-1 left-1 bg-black/80 text-white text-xs px-2 py-1 rounded z-10">
-          {sourceType} - {isLoading ? 'loading' : hasError ? 'error' : 'ready'}
-        </div>
-      )}
-      
       <img
-        src={currentSrc}
+        src={imageUrl}
         alt={alt}
-        className={`${className} object-contain transition-opacity duration-300`}
-        onLoad={handleLoad}
-        onError={handleError}
+        className={`${className} object-contain transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={handleImageLoad}
+        onError={handleNativeError}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         sizes={sizes}
-        style={{
-          opacity: isLoading || hasError ? 0 : 1
-        }}
       />
-      
-      {/* Error state with retry */}
-      {hasError && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted text-muted-foreground">
-          <span className="text-sm mb-2">Ошибка загрузки</span>
-          <button 
-            onClick={retry}
-            className="text-xs px-3 py-1 bg-primary text-primary-foreground hover:bg-primary/90 rounded transition-colors"
-          >
-            Повторить
-          </button>
-        </div>
-      )}
     </div>
   );
 };
