@@ -33,7 +33,7 @@ const SimpleSearchBar: React.FC<SimpleSearchBarProps> = ({
         <Input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Поиск по названию, бренду, модели..."
+          placeholder="Поиск по названию, бренду, модели, описанию, продавцу, номеру лота..."
           className="pl-10 pr-10"
           autoComplete="off"
         />

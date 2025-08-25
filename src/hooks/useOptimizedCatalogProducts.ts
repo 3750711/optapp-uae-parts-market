@@ -111,7 +111,7 @@ export const useOptimizedCatalogProducts = ({
     // Apply search term filters - simplified search with minimal length requirement
     if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 1) {
       const searchTerm = filters.activeSearchTerm.trim();
-      query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%`);
+      query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,seller_name.ilike.%${searchTerm}%,lot_number::text.ilike.%${searchTerm}%`);
     }
 
     // Apply brand filter
