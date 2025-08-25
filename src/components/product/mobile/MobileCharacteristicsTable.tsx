@@ -44,10 +44,6 @@ const MobileCharacteristicsTable: React.FC<MobileCharacteristicsTableProps> = ({
                 <span className="font-medium">{product.lot_number}</span>
               </div>
             )}
-            <div>
-              <span className="text-muted-foreground block">Просмотры:</span>
-              <span className="font-medium">{product.view_count || 0}</span>
-            </div>
           </div>
 
           {/* Right Column */}
