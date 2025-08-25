@@ -148,6 +148,8 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
             title={product.title}
             selectedImage={selectedImage} 
             onImageClick={onImageClick}
+            cloudinaryPublicId={product.cloudinary_public_id}
+            cloudinaryUrl={product.cloudinary_url}
           />
         ) : (
           <div className="aspect-square bg-muted flex items-center justify-center">

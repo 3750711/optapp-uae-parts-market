@@ -35,6 +35,8 @@ const SellerProductContent: React.FC<SellerProductContentProps> = ({
           selectedImage={selectedImage}
           onImageClick={onImageClick}
           title={product.title}
+          cloudinaryPublicId={product.cloudinary_public_id}
+          cloudinaryUrl={product.cloudinary_url}
         />
       </div>
       

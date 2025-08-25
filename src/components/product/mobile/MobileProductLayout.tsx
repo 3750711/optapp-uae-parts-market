@@ -194,6 +194,8 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
           title={product.title}
           selectedImage={selectedImage} 
           onImageClick={onImageClick}
+          cloudinaryPublicId={product.cloudinary_public_id}
+          cloudinaryUrl={product.cloudinary_url}
         />
       </div>
 
