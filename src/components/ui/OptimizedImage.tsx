@@ -3,6 +3,7 @@ import React, { useState, useCallback } from 'react';
 import CloudinaryImage from './CloudinaryImage';
 import { getCatalogImageUrl } from '@/utils/previewImageUtils';
 import { extractPublicIdFromUrl } from '@/utils/cloudinaryUtils';
+import { useImageFallback } from '@/hooks/useImageFallback';
 
 interface OptimizedImageProps {
   src: string;
@@ -29,66 +30,66 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   cloudinaryUrl,
   size = 'card'
 }) => {
-  const [cloudinaryError, setCloudinaryError] = useState(false);
-  const [nativeError, setNativeError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const handleCloudinaryError = useCallback(() => {
-    setCloudinaryError(true);
-    onError?.();
-  }, [onError]);
-
-  const handleNativeError = useCallback(() => {
-    setNativeError(true);
-    onError?.();
-  }, [onError]);
+  // Use enhanced fallback system
+  const { currentSrc, isLoading, hasError, sourceType, retry } = useImageFallback({
+    src,
+    cloudinaryPublicId,
+    cloudinaryUrl,
+    fallbackSrc: '/placeholder.svg',
+    size
+  });
 
   const handleImageLoad = useCallback(() => {
     setIsLoaded(true);
     onLoad?.();
   }, [onLoad]);
 
-  // Determine the best public_id to use
-  const workingPublicId = cloudinaryPublicId || 
-    (cloudinaryUrl && cloudinaryUrl.includes('cloudinary.com') ? extractPublicIdFromUrl(cloudinaryUrl) : null) ||
-    (src && src.includes('cloudinary.com') ? extractPublicIdFromUrl(src) : null);
-
-  // Use CloudinaryImage if we have a valid public_id and no errors
-  if (workingPublicId && !cloudinaryError) {
-    return (
-      <CloudinaryImage
-        publicId={workingPublicId}
-        alt={alt}
-        size={size}
-        className={className}
-        priority={priority}
-        onLoad={handleImageLoad}
-        onError={handleCloudinaryError}
-        fallbackSrc="/placeholder.svg"
-      />
-    );
-  }
-
-  // Fallback to regular image with optimized URL (try original src unless native failed)
-  const imageUrl = nativeError
-    ? '/placeholder.svg'
-    : getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
+  const handleImageError = useCallback(() => {
+    onError?.();
+    // The fallback hook will automatically try the next source
+  }, [onError]);
 
   return (
     <div className={`relative ${className}`}>
-      {!isLoaded && !priority && !nativeError && (
+      {/* Loading placeholder */}
+      {(isLoading || !isLoaded) && !priority && (
         <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
       )}
+      
+      {/* Debug indicator for development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute top-1 left-1 bg-black/60 text-white text-xs px-1 py-0.5 rounded z-10">
+          {sourceType}
+        </div>
+      )}
+      
       <img
-        src={imageUrl}
+        src={currentSrc}
         alt={alt}
-        className={`${className} object-contain transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`${className} object-contain transition-opacity duration-300 ${
+          isLoaded && !hasError ? 'opacity-100' : 'opacity-0'
+        }`}
         onLoad={handleImageLoad}
-        onError={handleNativeError}
+        onError={handleImageError}
         loading={priority ? 'eager' : 'lazy'}
         decoding={priority ? 'sync' : 'async'}
         sizes={sizes}
       />
+      
+      {/* Error state with retry */}
+      {hasError && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 text-gray-500">
+          <span className="text-sm mb-2">Ошибка загрузки</span>
+          <button 
+            onClick={retry}
+            className="text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded transition-colors"
+          >
+            Повторить
+          </button>
+        </div>
+      )}
     </div>
   );
 };

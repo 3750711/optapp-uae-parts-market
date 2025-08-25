@@ -196,10 +196,7 @@ export const getBatchImageUrls = (publicId: string) => {
 // Helper to extract public_id from Cloudinary URL
 export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => {
   try {
-    console.log('🔧 Extracting public_id from URL:', cloudinaryUrl);
-    
     if (!cloudinaryUrl || !cloudinaryUrl.includes('cloudinary.com')) {
-      console.log('❌ Not a Cloudinary URL');
       return null;
     }
     
@@ -210,7 +207,6 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
     const uploadIndex = urlParts.findIndex(part => part === 'upload');
     
     if (uploadIndex === -1) {
-      console.log('❌ No "upload" found in URL');
       return null;
     }
     
@@ -230,14 +226,12 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
           /^g_/.test(part) ||            // gravity parameters
           /^dpr_/.test(part) ||          // device pixel ratio
           /^fl_/.test(part)) {           // flags like progressive
-        console.log('🔄 Skipping transformation parameter:', part);
         publicIdIndex++;
         continue;
       }
       
       // Skip version (starts with 'v' followed by numbers)
       if (/^v\d+$/.test(part)) {
-        console.log('🔄 Skipping version:', part);
         publicIdIndex++;
         continue;
       }
@@ -247,7 +241,6 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
     }
     
     if (publicIdIndex >= urlParts.length) {
-      console.log('❌ No public_id found after transformations');
       return null;
     }
     
@@ -255,16 +248,9 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
     const publicIdWithExtension = urlParts.slice(publicIdIndex).join('/');
     const publicIdFinal = publicIdWithExtension.replace(/\.[^/.]+$/, '');
     
-    console.log('✅ Extracted public_id:', {
-      originalUrl: cloudinaryUrl,
-      publicIdWithExtension,
-      publicIdFinal,
-      skippedParts: urlParts.slice(uploadIndex + 1, publicIdIndex)
-    });
-    
     return publicIdFinal;
   } catch (error) {
-    console.error('❌ Error extracting public_id from URL:', error);
+    console.error('Error extracting public_id from URL:', error);
     return null;
   }
 };
@@ -276,11 +262,6 @@ export const cleanPublicId = (publicId: string): string => {
   // Remove version prefix (v{timestamp}/) if present
   const cleaned = publicId.replace(/^v\d+\//, '');
   
-  console.log('cleanPublicId:', {
-    original: publicId,
-    cleaned
-  });
-  
   return cleaned;
 };
 
@@ -290,16 +271,11 @@ export const isValidPublicId = (publicId: string): boolean => {
   
   // Valid public_id should not contain version prefix
   if (publicId.startsWith('v') && /^v\d+\//.test(publicId)) {
-    console.warn('Invalid public_id with version prefix:', publicId);
     return false;
   }
   
   // Should contain valid characters (letters, numbers, underscores, hyphens, slashes)
   const validFormat = /^[a-zA-Z0-9_/-]+$/.test(publicId);
-  
-  if (!validFormat) {
-    console.warn('Invalid public_id format:', publicId);
-  }
   
   return validFormat;
 };
