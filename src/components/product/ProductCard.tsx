@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useNavigate } from "react-router-dom";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+import { useDeliveryLogic } from "@/hooks/useDeliveryLogic";
 
 export interface ProductProps {
   id: string;
@@ -68,6 +69,11 @@ const ProductCard = memo(({
   const { hasAdminAccess } = useAdminAccess();
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
+  
+  // Use centralized delivery logic
+  const { shouldShowDeliveryPrice } = useDeliveryLogic({
+    deliveryPrice: product.delivery_price
+  });
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -266,10 +272,10 @@ const ProductCard = memo(({
             )}
             
             {/* Delivery Price */}
-            {product.delivery_price && product.delivery_price > 0 && (
+            {shouldShowDeliveryPrice && (
               <div className="flex items-center justify-between">
                 <span className="font-medium">Доставка:</span>
-                <span>{formatPrice(product.delivery_price)}</span>
+                <span>{formatPrice(product.delivery_price!)}</span>
               </div>
             )}
           </div>

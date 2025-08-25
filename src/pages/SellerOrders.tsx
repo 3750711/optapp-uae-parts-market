@@ -432,7 +432,7 @@ const SellerOrders = () => {
                       </div>
                     </div>
 
-                    {order.seller?.opt_status === 'opt_user' && order.delivery_price_confirm && (
+                    {order.delivery_price_confirm && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <span className="font-medium">{t.deliveryCost}:</span>
                         <span>{order.delivery_price_confirm} $</span>

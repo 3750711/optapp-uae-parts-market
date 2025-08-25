@@ -95,8 +95,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 
   // Мемоизируем вычисляемые значения для оптимизации производительности
   const showDeliveryPrice = useMemo(() => 
-    profile?.opt_status === 'opt_user' && deliveryMethod === 'cargo_rf',
-    [profile?.opt_status, deliveryMethod]
+    Boolean(product.delivery_price && product.delivery_price > 0),
+    [product.delivery_price]
   );
 
   const totalPrice = useMemo(() => {
