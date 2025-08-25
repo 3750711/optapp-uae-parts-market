@@ -4,9 +4,8 @@ import { useOptimizedCatalogProducts } from "@/hooks/useOptimizedCatalogProducts
 import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
 import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
-import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
-import CatalogSearchAndFilters from "@/components/catalog/CatalogSearchAndFilters";
+import SearchControls from "@/components/catalog/SearchControls";
 import CatalogContent from "@/components/catalog/CatalogContent";
 import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
@@ -118,24 +117,17 @@ const Catalog: React.FC = () => {
         />
 
         <div data-filters-section>
-          <CatalogSearchAndFilters 
+          <SearchControls 
             searchTerm={searchTerm}
             onSearch={handleEnhancedSearch}
             hideSoldProducts={hideSoldProducts}
             setHideSoldProducts={setHideSoldProducts}
             isSearching={isLoading}
-          />
-        </div>
-
-        {hasAnyFilters && (
-          <ActiveFilters
-            searchQuery={searchTerm}
-            hideSoldProducts={hideSoldProducts}
             onClearSearch={handleClearSearch}
             onClearSoldFilter={handleClearSoldFilter}
             onClearAll={handleClearAll}
           />
-        )}
+        </div>
 
         <StickyFilters
           searchQuery={searchTerm}
