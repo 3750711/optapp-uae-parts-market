@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useDebounceSearch } from '@/hooks/useDebounceSearch';
+
 
 import type { ProductProps } from '@/components/product/ProductCard';
 
@@ -55,8 +55,6 @@ export const useCatalogProducts = ({
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
 
-  // Debounce search for better performance
-  const debouncedSearchTerm = useDebounceSearch(activeSearchTerm, 500);
 
   const {
     data,
@@ -69,7 +67,7 @@ export const useCatalogProducts = ({
     refetch
   } = useInfiniteQuery({
     queryKey: ['products-infinite', {
-      debouncedSearchTerm,
+      activeSearchTerm,
       hideSoldProducts,
       sortBy
     }],
@@ -77,7 +75,6 @@ export const useCatalogProducts = ({
       try {
         const timer = performance.mark('catalog-query-start');
         console.log('[Catalog] Starting query for page:', pageParam, {
-          debouncedSearchTerm,
           activeSearchTerm,
           hideSoldProducts,
           productsPerPage
@@ -117,12 +114,12 @@ export const useCatalogProducts = ({
         }
 
         // Text search with synonyms across multiple fields
-        const hasSearchTerm = debouncedSearchTerm && debouncedSearchTerm.trim().length >= 2;
+        const hasSearchTerm = activeSearchTerm && activeSearchTerm.trim().length >= 2;
 
         if (hasSearchTerm) {
           console.log('🔍 Using text search with synonyms');
           
-          const searchWords = debouncedSearchTerm.trim().toLowerCase().split(/\s+/);
+          const searchWords = activeSearchTerm.trim().toLowerCase().split(/\s+/);
           const expandedSearchTerms = new Set(searchWords);
           
           // Get synonyms for each word

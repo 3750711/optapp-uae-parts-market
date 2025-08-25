@@ -38,12 +38,7 @@ const EnhancedInstantSearch: React.FC<EnhancedInstantSearchProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
-    // Instant search - trigger search immediately
-    if (value.trim().length > 0) {
-      const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-      handleSearchSubmit(fakeEvent);
-    }
+    // Only update search query for suggestions, no auto-search
   };
 
   const handleFocus = () => {
@@ -93,8 +88,13 @@ const EnhancedInstantSearch: React.FC<EnhancedInstantSearchProps> = ({
               value={searchQuery}
               onChange={handleInputChange}
               onFocus={handleFocus}
-              placeholder="Поиск автозапчастей... (мгновенный поиск)"
-              className="pl-10 pr-20 h-12 text-base bg-background border-input"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearchSubmit(e as any);
+                }
+              }}
+              placeholder="Введите запрос и нажмите 'Найти'"
+              className="pl-10 pr-32 h-12 text-base bg-background border-input"
             />
             
             {/* Action buttons */}
@@ -111,6 +111,15 @@ const EnhancedInstantSearch: React.FC<EnhancedInstantSearchProps> = ({
                   <X className="h-4 w-4" />
                 </Button>
               )}
+              <Button
+                type="button"
+                onClick={(e) => handleSearchSubmit(e as any)}
+                size="sm"
+                className="h-8 px-3 ml-1"
+                title="Найти"
+              >
+                Найти
+              </Button>
             </div>
           </div>
 
