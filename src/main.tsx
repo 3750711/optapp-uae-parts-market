@@ -59,24 +59,29 @@ const handleGlobalError = (event: ErrorEvent) => {
   if (event.error?.message?.includes('Loading chunk') || 
       event.error?.message?.includes('dynamically imported module')) {
     
-    // Безопасная очистка кешей с проверкой типов
-    const clearCachesAndReload = async () => {
+    // Soft recovery instead of immediate reload
+    console.log('🔄 Detected chunk loading error, attempting soft recovery...');
+    
+    const trySoftRecover = async () => {
       try {
-        if (typeof window !== 'undefined' && 'caches' in window && window.caches) {
-          const names = await window.caches.keys();
-          await Promise.all(names.map(name => window.caches.delete(name)));
+        // Try to update SW registration first
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            await registration.update();
+          }
         }
-        } catch (error) {
-        // Silently handle cache clearing errors
-      } finally {
-        // Безопасная перезагрузка страницы
-        if (typeof window !== 'undefined' && window.location) {
-          window.location.reload();
-        }
+      } catch (error) {
+        console.warn('SW update failed during recovery:', error);
       }
+      
+      // Show recoverable error banner instead of immediate reload
+      window.dispatchEvent(new CustomEvent('app:recoverable-chunk-error', {
+        detail: { message: event.error?.message }
+      }));
     };
     
-    clearCachesAndReload();
+    trySoftRecover();
   }
 };
 

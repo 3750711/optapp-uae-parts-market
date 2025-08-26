@@ -68,20 +68,49 @@ export const useFormAutosave = ({ key, data, delay = 30000, enabled = true }: Au
     hasUnsavedChanges.current = false;
   }, [key]);
 
-  // Warning before leaving page
+  // Warning before leaving page - PWA-optimized
   useEffect(() => {
     if (!enabled) return;
 
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    const saveDraft = () => {
       if (hasUnsavedChanges.current) {
-        event.preventDefault();
-        event.returnValue = 'У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?';
+        try {
+          const serializedData = JSON.stringify(data);
+          localStorage.setItem(`autosave_${key}`, serializedData);
+          localStorage.setItem(`autosave_${key}_timestamp`, Date.now().toString());
+          console.log(`Emergency save triggered for key: ${key}`);
+        } catch (error) {
+          console.error('Emergency save failed:', error);
+        }
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [enabled]);
+    // Import PWA detection dynamically to avoid circular deps
+    import('@/utils/pwaOptimizations').then(({ isPWAMode }) => {
+      // In PWA/mobile - only use pagehide to preserve bfcache
+      if (isPWAMode()) {
+        window.addEventListener('pagehide', saveDraft);
+        return () => window.removeEventListener('pagehide', saveDraft);
+      }
+
+      // In desktop - can use beforeunload if really needed
+      const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+        if (hasUnsavedChanges.current) {
+          event.preventDefault();
+          event.returnValue = 'У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?';
+        }
+        saveDraft();
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('pagehide', saveDraft); // Backup for all cases
+      
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('pagehide', saveDraft);
+      };
+    });
+  }, [enabled, data, key]);
 
   return {
     loadSavedData,

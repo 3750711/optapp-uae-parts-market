@@ -96,13 +96,14 @@ class PWAServiceWorkerManager implements ServiceWorkerManager {
   }
 
   private notifyUpdateAvailable(): void {
-    // Auto-activate update in background without user notification
-    console.log('🔄 SW: Auto-activating update in background...');
+    console.log('🔄 PWA: SW update detected');
+    this.updateAvailable = true;
     
-    // Small delay to ensure smooth transition
-    setTimeout(() => {
-      this.activateUpdate();
-    }, 2000);
+    // Dispatch event for UI notification - NO auto-activation
+    window.dispatchEvent(new CustomEvent('sw-update-available'));
+    
+    // Remove auto-activation to prevent mid-session controller changes
+    // User must confirm update through UI banner
   }
 
   // Force activate new service worker

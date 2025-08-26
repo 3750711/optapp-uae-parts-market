@@ -108,35 +108,60 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle navigation requests - Stale-while-revalidate with offline fallback
+  // Handle navigation requests - Network-first with preload for version consistency
   if (request.mode === 'navigate') {
     event.respondWith(
       (async () => {
-        const cache = await caches.open(CACHE_NAME);
-        const cached = await cache.match('/');
-        
-        const networkPromise = fetch(request)
-          .then(async (res) => {
-            if (res && res.ok) {
-              await cache.put('/', res.clone());
-            }
-            return res;
-          })
-          .catch(async () => {
-            // Network failed - use cached or offline page
-            return cached || (await cache.match('/offline.html'));
-          });
+        try {
+          // 1) Navigation Preload gives fast network response if available
+          const preload = ('navigationPreload' in self.registration)
+            ? await event.preloadResponse
+            : null;
+          if (preload) return preload;
 
-        // Return cached immediately if available (PWA optimization)
-        return cached || networkPromise;
+          // 2) Network first to avoid HTML/chunk version mismatch
+          const res = await fetch(request);
+          if (res && res.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put('/', res.clone());
+          }
+          return res;
+        } catch {
+          // 3) Fallback to cache/offline page only when network fails
+          const cache = await caches.open(CACHE_NAME);
+          return (await cache.match('/')) || (await cache.match('/offline.html'));
+        }
       })()
     );
     return;
   }
 
-  // Handle Vite assets (/assets/*.js|css|fonts|images) - Cache first for offline
+  // Handle JS assets - Network-first to prevent chunk version mismatch
+  const isJS = url.origin === self.location.origin && /^\/assets\/.+\.js$/.test(url.pathname);
+  if (isJS) {
+    event.respondWith(
+      (async () => {
+        try {
+          const res = await fetch(request); // Network first prevents chunk mismatch
+          if (res && res.ok) {
+            const cache = await caches.open(STATIC_CACHE_NAME);
+            await cache.put(request, res.clone());
+          }
+          return res;
+        } catch {
+          // Fallback to cache only when network fails
+          const cache = await caches.open(STATIC_CACHE_NAME);
+          const cached = await cache.match(request);
+          return cached || new Response('', { status: 504, statusText: 'Offline JS not cached' });
+        }
+      })()
+    );
+    return;
+  }
+
+  // Handle other Vite assets (CSS, fonts, images) - Cache first is safe
   const isViteAsset = url.origin === self.location.origin &&
-                      /^\/assets\/.+\.(?:js|css|woff2?|ttf|png|jpg|jpeg|svg|webp|ico|gif)$/.test(url.pathname);
+                      /^\/assets\/.+\.(?:css|woff2?|ttf|png|jpg|jpeg|svg|webp|ico|gif)$/.test(url.pathname);
   
   if (isViteAsset) {
     event.respondWith(
@@ -145,7 +170,6 @@ self.addEventListener('fetch', (event) => {
         const cached = await cache.match(request);
         
         if (cached) {
-          console.log('⚡ SW: Serving Vite asset from cache:', url.pathname);
           return cached;
         }
         
@@ -153,12 +177,9 @@ self.addEventListener('fetch', (event) => {
           const res = await fetch(request);
           if (res && res.ok) {
             await cache.put(request, res.clone());
-            console.log('📦 SW: Cached Vite asset:', url.pathname);
           }
           return res;
         } catch {
-          // Offline and not in cache - critical for chunk loading failures
-          console.warn('❌ SW: Vite asset not available offline:', url.pathname);
           return new Response('', { status: 504, statusText: 'Offline - Asset Not Cached' });
         }
       })()

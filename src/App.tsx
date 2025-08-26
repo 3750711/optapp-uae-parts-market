@@ -17,6 +17,7 @@ import { PWAIndicators } from "@/components/PWAIndicators";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
+import { UpdatePrompt } from "@/components/UpdatePrompt";
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,17 +94,18 @@ const App = () => {
               <RealtimeProvider>
                 <BrowserRouter>
                   <LanguageProvider>
-                    <TooltipProvider>
-                    <Toaster />
-                    <RouteChangeOverlay />
-                     <Suspense fallback={<RouteLoader />}>
-                       <AppRoutes />
-                        <PWAIndicators 
-                          showOfflineIndicator={false} 
-                          showInstallStatus={false} 
-                     />
-                     </Suspense>
-                   </TooltipProvider>
+                     <TooltipProvider>
+                     <Toaster />
+                     <RouteChangeOverlay />
+                     <UpdatePrompt />
+                      <Suspense fallback={<RouteLoader />}>
+                        <AppRoutes />
+                         <PWAIndicators 
+                           showOfflineIndicator={false} 
+                           showInstallStatus={false} 
+                      />
+                      </Suspense>
+                    </TooltipProvider>
                  </LanguageProvider>
                  </BrowserRouter>
               </RealtimeProvider>
