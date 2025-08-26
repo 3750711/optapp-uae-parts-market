@@ -119,33 +119,44 @@ export const usePWAOptimizedAutosave = ({
     }
   }, [data, enabled, filterData, debouncedSave, effectiveDelay, isPWA]);
 
-  // Register with PWA lifecycle manager
+  // Register with PWA lifecycle manager for visibility changes with mobile optimization
   useEffect(() => {
     if (!enabled) return;
-
-    const unregister = pwaLifecycleManager.register(`autosave_${key}`, {
-      onVisibilityChange: (isHidden) => {
+    
+    const unregister = pwaLifecycleManager.register(`autosave-${key}`, {
+      onVisibilityChange: (isHidden: boolean) => {
         if (isHidden && hasUnsavedChanges) {
-          console.log(`🏠 PWA: Saving ${key} on visibility change`);
+          console.log(`📱 PWA visibility changed to hidden, saving ${key} immediately`);
           saveNow();
         }
       },
       onPageHide: () => {
         if (hasUnsavedChanges) {
-          console.log(`🏠 PWA: Saving ${key} on page hide`);
+          console.log(`📱 PWA page hiding, saving ${key} immediately`);
           saveNow();
         }
       },
       onFreeze: () => {
         if (hasUnsavedChanges) {
-          console.log(`🏠 PWA: Saving ${key} on freeze`);
+          console.log(`❄️ PWA frozen, saving ${key} immediately`);
           saveNow();
         }
-      }
+      },
+      onBlur: () => {
+        // Additional save on blur for mobile browsers
+        if (hasUnsavedChanges && (navigator.userAgent.includes('Mobile') || navigator.userAgent.includes('iPhone'))) {
+          console.log(`📱 Mobile blur detected, saving ${key} immediately`);
+          saveNow();
+        }
+      },
+      // Optimize for mobile with shorter debounce and less aggressive fast-switching detection
+      debounceDelay: navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad') ? 100 : 300,
+      skipFastSwitching: true,
+      enableBfcacheOptimization: true
     });
 
     return unregister;
-  }, [key, enabled, hasUnsavedChanges, saveNow]);
+  }, [key, enabled, saveNow, hasUnsavedChanges]);
 
   // Load saved data
   const loadSavedData = useCallback(() => {

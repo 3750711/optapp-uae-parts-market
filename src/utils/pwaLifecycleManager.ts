@@ -14,28 +14,39 @@ class PWALifecycleManager {
   private bfcacheBlocked = false;
   
   constructor() {
-    this.detectPWA();
+    this.isPWA = this.detectPWA();
     this.initializeOnce();
   }
 
-  private detectPWA() {
-    if (typeof window === 'undefined') return;
+  private detectPWA(): boolean {
+    // Enhanced PWA detection with iOS and mobile optimization
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                        ('standalone' in window.navigator && window.navigator.standalone === true);
     
-    // Detect PWA mode
-    this.isPWA = 
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.matchMedia('(display-mode: window-controls-overlay)').matches ||
-      // @ts-ignore - iOS Safari PWA detection
-      (window.navigator as any).standalone === true ||
-      document.referrer.includes('android-app://');
-      
-    console.log('🏠 PWA Detection:', { isPWA: this.isPWA });
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    const isTelegramWebView = /TelegramWebView/.test(navigator.userAgent);
+    
+    const hasPWAFeatures = ('serviceWorker' in navigator) ||
+                          (document.querySelector('link[rel="manifest"]') !== null);
+    
+    // Consider iOS devices and Telegram WebView as PWA-like for optimization
+    return isStandalone || (isIOSDevice && hasPWAFeatures) || isTelegramWebView;
   }
 
   private initializeOnce() {
     if (this.isInitialized || typeof window === 'undefined') return;
     
     this.isInitialized = true;
+    
+    // Detect device capabilities for better mobile handling
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isTelegramWebView = /TelegramWebView/.test(navigator.userAgent);
+    
+    // Use shorter debounce for mobile devices to be more responsive
+    const effectiveDebounce = (isIOSDevice || isTelegramWebView) ? 150 : (this.isPWA ? 400 : 200);
     
     // Optimized visibility handler with PWA-specific logic
     const debouncedVisibilityHandler = debounce((isHidden: boolean) => {
@@ -68,7 +79,7 @@ class PWALifecycleManager {
           }
         });
       }
-    }, this.isPWA ? 400 : 200);
+    }, effectiveDebounce);
 
     // Centralized visibility change handler
     document.addEventListener('visibilitychange', () => {
@@ -88,7 +99,7 @@ class PWALifecycleManager {
             options.onFocus?.();
           });
         }
-      }, this.isPWA ? 200 : 100);
+      }, effectiveDebounce);
     }, { passive: true });
 
     window.addEventListener('blur', () => {
@@ -99,10 +110,10 @@ class PWALifecycleManager {
             options.onBlur?.();
           });
         }
-      }, this.isPWA ? 200 : 100);
+      }, effectiveDebounce);
     }, { passive: true });
 
-    // PWA-optimized page hide handler
+    // PWA-optimized page hide handler - critical for iOS bfcache
     window.addEventListener('pagehide', (event) => {
       // For PWA with bfcache, minimize operations to avoid blocking
       if (this.isPWA && event.persisted) {
@@ -122,7 +133,7 @@ class PWALifecycleManager {
           options.onPageHide?.();
         });
       }
-    }, { passive: true });
+    }, { passive: false }); // Not passive for critical saves
 
     // Bfcache restoration handler
     window.addEventListener('pageshow', (event) => {
@@ -146,7 +157,7 @@ class PWALifecycleManager {
         this.listeners.forEach((options) => {
           options.onFreeze?.();
         });
-      }, { passive: true });
+      }, { passive: false }); // Not passive for critical saves
 
       document.addEventListener('resume', () => {
         console.log('🏠 PWA: Page resumed');
@@ -159,6 +170,14 @@ class PWALifecycleManager {
 
     // Bfcache monitoring
     this.monitorBfcache();
+    
+    console.log('🔄 PWA Lifecycle Manager: Event listeners initialized', {
+      isPWA: this.isPWA,
+      isIOSDevice,
+      isTelegramWebView,
+      effectiveDebounce,
+      listeners: 7
+    });
   }
 
   private monitorBfcache() {

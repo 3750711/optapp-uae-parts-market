@@ -85,15 +85,17 @@ export const useFormAutosave = ({ key, data, delay = 30000, enabled = true }: Au
       }
     };
 
-    // Import PWA detection dynamically to avoid circular deps
-    import('@/utils/pwaOptimizations').then(({ isPWAMode }) => {
+    // Import PWA utilities dynamically to avoid circular deps
+    import('@/utils/bfcacheUtils').then(({ shouldAvoidBeforeUnload }) => {
+      const avoidBeforeUnload = shouldAvoidBeforeUnload();
+      
       // In PWA/mobile - only use pagehide to preserve bfcache
-      if (isPWAMode()) {
-        window.addEventListener('pagehide', saveDraft);
+      if (avoidBeforeUnload) {
+        window.addEventListener('pagehide', saveDraft, { passive: false });
         return () => window.removeEventListener('pagehide', saveDraft);
       }
 
-      // In desktop - can use beforeunload if really needed
+      // In desktop - can use beforeunload with pagehide backup
       const handleBeforeUnload = (event: BeforeUnloadEvent) => {
         if (hasUnsavedChanges.current) {
           event.preventDefault();
@@ -103,7 +105,7 @@ export const useFormAutosave = ({ key, data, delay = 30000, enabled = true }: Au
       };
 
       window.addEventListener('beforeunload', handleBeforeUnload);
-      window.addEventListener('pagehide', saveDraft); // Backup for all cases
+      window.addEventListener('pagehide', saveDraft, { passive: false }); // Backup for all cases
       
       return () => {
         window.removeEventListener('beforeunload', handleBeforeUnload);

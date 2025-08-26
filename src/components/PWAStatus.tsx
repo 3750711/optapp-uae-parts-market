@@ -1,5 +1,6 @@
 import React from 'react';
 import { pwaLifecycleManager } from '@/utils/pwaLifecycleManager';
+import { logBfcacheStatus } from '@/utils/bfcacheUtils';
 
 export const PWAStatus: React.FC = () => {
   const [status, setStatus] = React.useState(pwaLifecycleManager.getPWAStatus());
@@ -8,6 +9,9 @@ export const PWAStatus: React.FC = () => {
     const interval = setInterval(() => {
       setStatus(pwaLifecycleManager.getPWAStatus());
     }, 1000);
+
+    // Log bfcache status on mount for debugging
+    logBfcacheStatus();
 
     return () => clearInterval(interval);
   }, []);

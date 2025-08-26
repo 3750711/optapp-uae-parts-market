@@ -37,20 +37,7 @@ const AdminSellProduct = () => {
   } = useAdminSellProductState();
   const isMobile = useIsMobile();
   
-  // Simple page refresh protection
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      // Show warning if user has selected a product or is in progress
-      if (state.selectedProduct && !state.createdOrder) {
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [state.selectedProduct, state.createdOrder]);
+  // Removed beforeunload to prevent iOS Safari bfcache blocking
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
   const { executeWithRetry, isRetrying } = useRetryMechanism();
   const { toast } = useToast();
