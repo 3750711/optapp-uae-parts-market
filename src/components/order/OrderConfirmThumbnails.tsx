@@ -50,8 +50,8 @@ export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: Orde
 
     if (images.length === 0) {
       return (
-        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded border border-dashed border-muted-foreground/30 flex items-center justify-center shrink-0">
-          <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-muted-foreground/50" />
+        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded border border-dashed border-muted-foreground/30 flex items-center justify-center shrink-0">
+          <X className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-muted-foreground/50" />
         </div>
       );
     }
@@ -59,7 +59,7 @@ export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: Orde
     return (
       <div className="flex items-center gap-1">
         {visibleImages.map((url, index) => (
-          <div key={index} className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded overflow-hidden border shrink-0">
+          <div key={index} className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 rounded overflow-hidden border shrink-0">
             <img
               src={url}
               alt={`${category} ${index + 1}`}
@@ -114,7 +114,7 @@ export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: Orde
           size="sm"
           onClick={onViewPhotos}
           disabled={!hasAnyImages}
-          className="flex-1 h-7 sm:h-8 text-xs sm:text-sm"
+          className="h-6 text-xs px-3"
         >
           <span className="truncate">Показать фото</span>
           {hasAnyImages && (
@@ -127,7 +127,7 @@ export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: Orde
           variant="default"
           size="sm"
           onClick={onUpload}
-          className="flex-1 h-7 sm:h-8 text-xs sm:text-sm"
+          className="h-6 text-xs px-3"
         >
           Загрузить
         </Button>
