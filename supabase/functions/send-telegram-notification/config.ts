@@ -13,7 +13,7 @@ export const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
 // Order notifications go to the original group
 export const ORDER_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID_ORDERS') || '-4749346030'; 
 // Product notifications go to the new group
-export const PRODUCT_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || '-1004623601047';
+export const PRODUCT_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || '-2804153717';
 
 // Minimum number of images required to send a notification
 export const MIN_IMAGES_REQUIRED = 1;
