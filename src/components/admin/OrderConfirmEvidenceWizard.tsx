@@ -64,7 +64,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('order_number, buyer_opt_id, title')
+        .select('order_number, buyer_opt_id, title, price')
         .eq('id', orderId)
         .single();
       
@@ -233,6 +233,18 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 <div className="text-yellow-700 font-medium text-xs sm:text-sm">ORDER NUMBER:</div>
                 <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
                   #{orderData.order_number || 'NOT SPECIFIED'}
+                </div>
+              </div>
+              <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                <div className="text-yellow-700 font-medium text-xs sm:text-sm">PRODUCT NAME:</div>
+                <div className="font-bold text-yellow-900 text-base sm:text-lg truncate">
+                  {orderData.title || 'NOT SPECIFIED'}
+                </div>
+              </div>
+              <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                <div className="text-yellow-700 font-medium text-xs sm:text-sm">PRICE:</div>
+                <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                  ${Number(orderData.price || 0).toLocaleString()}
                 </div>
               </div>
             </div>
