@@ -44,6 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [hydrating, setHydrating] = useState(true);
 
   // AbortController для отмены предыдущих запросов профиля
   const abortControllerRef = React.useRef<AbortController | null>(null);
@@ -54,7 +55,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return profile.user_type === 'admin';
   }, [profile?.user_type]);
 
-  const fetchUserProfile = async (userId: string, retryCount = 0): Promise<void> => {
+  const fetchUserProfile = async (userId: string, retryCount = 0, skipCache = false): Promise<void> => {
+    // Проверяем кэш профиля для PWA оптимизации
+    if (!skipCache && typeof window !== 'undefined') {
+      const cachedProfile = sessionStorage.getItem(`profile_${userId}`);
+      if (cachedProfile) {
+        try {
+          const profile = JSON.parse(cachedProfile);
+          const cacheTime = parseInt(sessionStorage.getItem(`profile_${userId}_time`) || '0');
+          // Используем кэш до 2 минут
+          if (Date.now() - cacheTime < 2 * 60 * 1000) {
+            console.log("👤 AuthContext: Using cached profile");
+            setProfile(profile);
+            return;
+          }
+        } catch (error) {
+          console.warn("👤 AuthContext: Invalid cached profile, fetching fresh");
+        }
+      }
+    }
+
     // Отменяем предыдущий запрос
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -92,6 +112,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("👤 AuthContext: Profile fetched successfully");
         setProfile(data);
         setProfileError(null);
+        
+        // Кэшируем профиль для PWA
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(`profile_${userId}`, JSON.stringify(data));
+          sessionStorage.setItem(`profile_${userId}_time`, Date.now().toString());
+        }
       }
     } catch (error: any) {
       // Игнорируем ошибки отмены
@@ -123,6 +149,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log("🔧 AuthContext: useEffect triggered");
     
+    // Проверяем восстановление из bfcache
+    const isBfcacheRestore = typeof window !== 'undefined' && 
+      (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type === 'back_forward';
+
     // Проверяем начальную сессию
     const checkInitialSession = async () => {
       try {
@@ -142,7 +172,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSession(session);
           setUser(session.user);
-          await fetchUserProfile(session.user.id);
+          // При bfcache восстановлении не перезапрашиваем профиль сразу
+          if (isBfcacheRestore) {
+            console.log("👤 AuthContext: bfcache restore detected, using cache");
+            await fetchUserProfile(session.user.id, 0, false);
+          } else {
+            await fetchUserProfile(session.user.id, 0, true);
+          }
         } else {
           console.log("🔧 AuthContext: No user found, clearing state");
           setSession(null);
@@ -156,6 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null);
       } finally {
         setIsLoading(false);
+        setHydrating(false);
       }
     };
 
@@ -174,6 +211,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (session?.user) {
         setUser(session.user);
+        // Избегаем лишних запросов при TOKEN_REFRESHED в PWA
+        if (event === 'TOKEN_REFRESHED' && profile?.id === session.user.id) {
+          console.log("👤 AuthContext: Token refreshed, keeping existing profile");
+          return;
+        }
         // Используем setTimeout чтобы избежать deadlock в onAuthStateChange
         setTimeout(() => {
           fetchUserProfile(session.user.id);

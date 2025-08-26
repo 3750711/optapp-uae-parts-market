@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { ResponsiveOrdersView } from "@/components/admin/order/ResponsiveOrdersView";
@@ -17,10 +18,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useAdminOrdersState } from "@/hooks/useAdminOrdersState";
 import { useOrderActions } from "@/hooks/useOrderActions";
 import { AdminOrdersErrorBoundary } from "@/components/error/AdminOrdersErrorBoundary";
+import { useAdminPWALifecycle } from "@/admin/_shared/AdminPWALifecycle";
 
 const AdminOrders = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const {
     searchTerm,
@@ -42,6 +45,11 @@ const AdminOrders = () => {
     handleSelectAll,
     handleClearSelection,
   } = useAdminOrdersState();
+
+  // PWA-оптимизированное управление жизненным циклом
+  useAdminPWALifecycle('admin-orders', () => {
+    queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
+  });
 
   const handleSearchClick = () => {
     handleSearch();

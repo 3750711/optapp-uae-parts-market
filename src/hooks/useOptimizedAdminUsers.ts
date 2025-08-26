@@ -144,8 +144,8 @@ export const useOptimizedAdminUsers = (filters: UseOptimizedAdminUsersProps) => 
         pendingUsersCount: pendingUsersCount || 0
       };
     },
-    staleTime: 2 * 60 * 1000, // Уменьшено до 2 минут для более актуальных данных
-    gcTime: 5 * 60 * 1000, // 5 минут в памяти
+    staleTime: 5 * 60 * 1000, // 5 минут для админских данных
+    gcTime: 10 * 60 * 1000, // 10 минут в памяти
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
       // Не повторяем запросы при rate limiting

@@ -153,7 +153,8 @@ export const useOptimizedOrdersQuery = ({
         hasPreviousPage
       };
     },
-    staleTime: 1000 * 60, // 1 минута
-    gcTime: 1000 * 60 * 5, // 5 минут
+    staleTime: 5 * 60 * 1000, // 5 минут для админских данных
+    gcTime: 10 * 60 * 1000, // 10 минут
+    refetchOnWindowFocus: false, // отключаем рефетч по фокусу в админке
   });
 };

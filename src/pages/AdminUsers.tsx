@@ -15,12 +15,18 @@ import { useAdminUsersState } from '@/hooks/useAdminUsersState';
 import { useAdminUsersActions } from '@/hooks/useAdminUsersActions';
 import { useOptimizedAdminUsers } from '@/hooks/useOptimizedAdminUsers';
 import { AdminUsersContent } from '@/components/admin/AdminUsersContent';
+import { useAdminPWALifecycle } from "@/admin/_shared/AdminPWALifecycle";
 
 const AdminUsers = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(600);
+  
+  // PWA-оптимизированное управление жизненным циклом
+  useAdminPWALifecycle('admin-users', () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'users-optimized'] });
+  });
   
   // Custom hooks for state and actions
   const {
