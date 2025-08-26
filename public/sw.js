@@ -94,6 +94,13 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // CRITICAL: Never cache or intercept Supabase requests
+  // This prevents auth token refresh conflicts
+  if (url.hostname.endsWith('.supabase.co')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   // Handle API requests - Network first with offline fallback
   if (url.pathname.startsWith('/api/') || url.hostname !== self.location.hostname) {
     event.respondWith(

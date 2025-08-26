@@ -33,21 +33,8 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     authMethod: profile?.auth_method
   }), [user, profile, isLoading, isAdmin, isProfileLoading]);
 
-  // КРИТИЧНО: Проверка завершенности профиля для админов (переносим из ProfileCompletionRedirect)
-  React.useEffect(() => {
-    if (authState.hasUser && authState.hasProfile && !authState.profileCompleted && authState.authMethod !== 'telegram') {
-      console.log("🔄 AdminRoute: Incomplete admin profile detected", {
-        userId: authState.userId,
-        profileCompleted: authState.profileCompleted,
-        authMethod: authState.authMethod,
-        currentPath: location.pathname,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Для админов с незавершенным профилем - оставляем на текущей странице, но логируем
-      // Админы могут работать с незавершенным профилем для управления системой
-    }
-  }, [authState.hasUser, authState.hasProfile, authState.profileCompleted, authState.authMethod, authState.userId, location.pathname]);
+  // Admins can work with incomplete profiles for system management
+  // No profile completion blocking for admin routes
 
   devLog('🔍 AdminRoute state:', authState);
 
