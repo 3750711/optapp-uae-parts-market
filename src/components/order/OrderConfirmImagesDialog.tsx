@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -138,12 +139,14 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
-          <DialogHeader>
-            <DialogTitle>{t.evidenceTitle}</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6 mt-4">
+        <DialogContent className="max-w-4xl max-h-[80vh] p-0">
+          <div className="flex flex-col h-full">
+            <DialogHeader className="px-6 py-4 border-b shrink-0">
+              <DialogTitle>{t.evidenceTitle}</DialogTitle>
+            </DialogHeader>
+            
+            <ScrollArea className="flex-1 px-6">
+              <div className="space-y-6 py-4">
             {/* Admin Order Information - For verification against photos */}
             {profile?.user_type === 'admin' && orderData && (
               <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border-2 border-yellow-300 rounded-xl p-4 mb-6">
@@ -237,6 +240,8 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
                 {t.addMoreEvidence}
               </Button>
             </div>
+              </div>
+            </ScrollArea>
           </div>
         </DialogContent>
       </Dialog>
