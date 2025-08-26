@@ -1,14 +1,16 @@
 import React from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, Package, X, Plus } from "lucide-react";
+import { MessageSquare, Package, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface OrderConfirmThumbnailsProps {
   orderId: string;
-  onClick: () => void;
+  onViewPhotos?: () => void;
+  onUpload: () => void;
 }
 
-export const OrderConfirmThumbnails = ({ orderId, onClick }: OrderConfirmThumbnailsProps) => {
+export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: OrderConfirmThumbnailsProps) => {
   const { data: chatImages = [] } = useQuery({
     queryKey: ['confirm-images', orderId, 'chat_screenshot'],
     queryFn: async () => {
@@ -75,9 +77,7 @@ export const OrderConfirmThumbnails = ({ orderId, onClick }: OrderConfirmThumbna
   };
 
   return (
-    <div 
-      className="border rounded-lg p-2 cursor-pointer hover:bg-muted/50 transition-colors"
-      onClick={onClick}
+    <div className="border rounded-lg p-2"
     >
       <div className="grid grid-cols-2 gap-2">
         {/* Chat Screenshots Section */}
@@ -107,21 +107,30 @@ export const OrderConfirmThumbnails = ({ orderId, onClick }: OrderConfirmThumbna
         </div>
       </div>
 
-      {/* Status Indicator with counts */}
-      <div className="flex items-center justify-between mt-2 pt-2 border-t border-muted/30">
-        <div className="flex items-center gap-2 text-xs">
-          <div className={`font-medium ${
-            hasAnyImages ? 'text-green-600' : 'text-muted-foreground'
-          }`}>
-            {hasAnyImages ? 'Есть подтверждения' : 'Нет подтверждений'}
-          </div>
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-muted/30">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onViewPhotos}
+          disabled={!hasAnyImages}
+          className="flex-1 h-7 text-xs"
+        >
+          Показать фото
           {hasAnyImages && (
-            <div className="text-muted-foreground">
+            <span className="ml-1 text-xs text-muted-foreground">
               ({chatImages.length + productImages.length})
-            </div>
+            </span>
           )}
-        </div>
-        <Plus className="h-3 w-3 text-muted-foreground" />
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={onUpload}
+          className="flex-1 h-7 text-xs"
+        >
+          Загрузить
+        </Button>
       </div>
     </div>
   );

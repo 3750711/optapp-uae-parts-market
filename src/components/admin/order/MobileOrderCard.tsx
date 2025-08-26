@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { OrderConfirmEvidenceWizard } from '@/components/admin/OrderConfirmEvidenceWizard';
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 import { OrderConfirmThumbnails } from '@/components/order/OrderConfirmThumbnails';
+import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 
 interface MobileOrderCardProps {
   order: Order;
@@ -40,6 +41,7 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
   onQuickAction
 }) => {
   const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
+  const [isViewImagesDialogOpen, setIsViewImagesDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   
   const { data: confirmImages = [] } = useQuery({
@@ -254,8 +256,12 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
           {/* Confirmation Photos Thumbnails */}
           <OrderConfirmThumbnails
             orderId={order.id}
-            onClick={() => {
-              console.log(`Photo thumbnails clicked for order #${order.order_number}`);
+            onViewPhotos={() => {
+              console.log(`View photos clicked for order #${order.order_number}`);
+              setIsViewImagesDialogOpen(true);
+            }}
+            onUpload={() => {
+              console.log(`Upload photos clicked for order #${order.order_number}`);
               setIsConfirmImagesDialogOpen(true);
             }}
           />
@@ -267,6 +273,12 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
         orderId={order.id}
         onComplete={handlePhotoUploadComplete}
         onCancel={handlePhotoUploadCancel}
+      />
+      
+      <OrderConfirmImagesDialog
+        orderId={order.id}
+        open={isViewImagesDialogOpen}
+        onOpenChange={setIsViewImagesDialogOpen}
       />
     </Card>
   );
