@@ -144,8 +144,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
             <DialogTitle>{t.evidenceTitle}</DialogTitle>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 pr-2">
-            <div className="space-y-6 py-4">
+          <ScrollArea className="flex-1 pr-2 py-4">
             {/* Admin Order Information - For verification against photos */}
             {profile?.user_type === 'admin' && orderData && (
               <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border-2 border-yellow-300 rounded-xl p-4 mb-6">
@@ -181,53 +180,53 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               </div>
             )}
 
-            {/* Status Overview */}
-            <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                <span className="text-sm">{t.chatScreenshotLabel}</span>
-                {hasChatEvidence ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                ) : (
-                  <AlertCircle className="h-4 w-4 text-orange-500" />
+            <div className="space-y-6">
+              {/* Status Overview */}
+              <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  <span className="text-sm">{t.chatScreenshotLabel}</span>
+                  {hasChatEvidence ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-orange-500" />
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
+                  <span className="text-sm">{t.signedProductLabel}</span>
+                  {hasSignedEvidence ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-orange-500" />
+                  )}
+                </div>
+              </div>
+
+              {/* Evidence Sections */}
+              <div className="grid gap-6">
+                {renderEvidenceSection(
+                  t.chatScreenshotsTitle,
+                  <MessageSquare className="h-4 w-4" />,
+                  chatImages,
+                  hasChatEvidence
+                )}
+                
+                {renderEvidenceSection(
+                  t.signedProductTitle,
+                  <Camera className="h-4 w-4" />,
+                  signedImages,
+                  hasSignedEvidence
+                )}
+
+                {/* Legacy Images (if any) */}
+                {hasLegacyEvidence && renderEvidenceSection(
+                  t.additionalEvidence,
+                  <Check className="h-4 w-4" />,
+                  legacyImages,
+                  hasLegacyEvidence
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                <span className="text-sm">{t.signedProductLabel}</span>
-                {hasSignedEvidence ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                ) : (
-                  <AlertCircle className="h-4 w-4 text-orange-500" />
-                )}
-              </div>
-            </div>
-
-            {/* Evidence Sections */}
-            <div className="grid gap-6">
-              {renderEvidenceSection(
-                t.chatScreenshotsTitle,
-                <MessageSquare className="h-4 w-4" />,
-                chatImages,
-                hasChatEvidence
-              )}
-              
-              {renderEvidenceSection(
-                t.signedProductTitle,
-                <Camera className="h-4 w-4" />,
-                signedImages,
-                hasSignedEvidence
-              )}
-
-              {/* Legacy Images (if any) */}
-              {hasLegacyEvidence && renderEvidenceSection(
-                t.additionalEvidence,
-                <Check className="h-4 w-4" />,
-                legacyImages,
-                hasLegacyEvidence
-              )}
-            </div>
-
             </div>
           </ScrollArea>
           
