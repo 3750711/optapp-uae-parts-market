@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/ui/stepper";
-import { Loader2, Upload, Check, ArrowRight, ArrowLeft, Plus } from "lucide-react";
+import { Loader2, Upload, Check, ArrowRight, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -30,7 +30,6 @@ import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImage
 import { useConfirmationUpload } from "./useConfirmationUpload";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
-import { OrderConfirmImagesDialog } from "@/components/order/OrderConfirmImagesDialog";
 
 interface OrderConfirmEvidenceWizardProps {
   open: boolean;
@@ -58,9 +57,6 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   const [step2Images, setStep2Images] = useState<string[]>([]);
   const [step1Confirmed, setStep1Confirmed] = useState(false);
   const [isLoadingStepData, setIsLoadingStepData] = useState(true);
-  
-  // Evidence dialog state
-  const [showEvidenceDialog, setShowEvidenceDialog] = useState(false);
 
   // Fetch order data
   const { data: orderData, isLoading: isLoadingOrder } = useQuery({
@@ -353,17 +349,6 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
   const ActionButtons = () => (
     <div className="flex gap-2 w-full">
-      {/* Add More Evidence Button */}
-      <Button
-        onClick={() => setShowEvidenceDialog(true)}
-        variant="outline"
-        disabled={currentHook.isUploading}
-        className="flex items-center gap-2"
-      >
-        <Plus className="h-4 w-4" />
-        Add More Evidence
-      </Button>
-      
       {/* Back button */}
       {currentStep === 'signed_product' && (
         <Button 
@@ -495,13 +480,6 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           <ActionButtons />
         </DialogFooter>
       </DialogContent>
-      
-      {/* Evidence Images Dialog */}
-      <OrderConfirmImagesDialog
-        orderId={orderId}
-        open={showEvidenceDialog}
-        onOpenChange={setShowEvidenceDialog}
-      />
     </Dialog>
   );
 };
