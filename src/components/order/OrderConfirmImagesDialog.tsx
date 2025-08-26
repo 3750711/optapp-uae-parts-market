@@ -231,20 +231,6 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               </div>
             </div>
           </ScrollArea>
-          
-          {/* DialogFooter with Add More Evidence Button */}
-          <div className="pt-4 border-t mt-auto">
-            <div className="flex justify-center">
-              <Button
-                onClick={() => setShowWizard(true)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                {t.addMoreEvidence}
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 
