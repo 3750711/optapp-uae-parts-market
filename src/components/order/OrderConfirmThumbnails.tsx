@@ -50,8 +50,8 @@ export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: Orde
 
     if (images.length === 0) {
       return (
-        <div className="w-6 h-6 rounded border border-dashed border-muted-foreground/30 flex items-center justify-center shrink-0">
-          <X className="h-3 w-3 text-muted-foreground/50" />
+        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded border border-dashed border-muted-foreground/30 flex items-center justify-center shrink-0">
+          <X className="h-2.5 w-2.5 sm:h-3 sm:w-3 text-muted-foreground/50" />
         </div>
       );
     }
@@ -59,7 +59,7 @@ export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: Orde
     return (
       <div className="flex items-center gap-1">
         {visibleImages.map((url, index) => (
-          <div key={index} className="w-5 h-5 rounded overflow-hidden border shrink-0">
+          <div key={index} className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded overflow-hidden border shrink-0">
             <img
               src={url}
               alt={`${category} ${index + 1}`}
@@ -77,48 +77,48 @@ export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: Orde
   };
 
   return (
-    <div className="border rounded-lg p-2"
+    <div className="border rounded-lg p-2 sm:p-3"
     >
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         {/* Chat Screenshots Section */}
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 lg:col-span-2">
           <div className="shrink-0">
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
           </div>
           <div className="flex items-center gap-1 min-w-0 flex-1">
             {renderThumbnails(chatImages, 'Chat screenshot')}
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground hidden sm:block lg:hidden xl:block">
             Чат
           </div>
         </div>
 
         {/* Product Photos Section */}
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 lg:col-span-2">
           <div className="shrink-0">
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
           </div>
           <div className="flex items-center gap-1 min-w-0 flex-1">
             {renderThumbnails(productImages, 'Product photo')}
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground hidden sm:block lg:hidden xl:block">
             Товар
           </div>
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-muted/30">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2 mt-2 pt-2 border-t border-muted/30">
         <Button
           variant="outline"
           size="sm"
           onClick={onViewPhotos}
           disabled={!hasAnyImages}
-          className="flex-1 h-7 text-xs"
+          className="flex-1 h-7 sm:h-8 text-xs sm:text-sm"
         >
-          Показать фото
+          <span className="truncate">Показать фото</span>
           {hasAnyImages && (
-            <span className="ml-1 text-xs text-muted-foreground">
+            <span className="ml-1 text-xs text-muted-foreground hidden sm:inline">
               ({chatImages.length + productImages.length})
             </span>
           )}
@@ -127,7 +127,7 @@ export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: Orde
           variant="default"
           size="sm"
           onClick={onUpload}
-          className="flex-1 h-7 text-xs"
+          className="flex-1 h-7 sm:h-8 text-xs sm:text-sm"
         >
           Загрузить
         </Button>

@@ -11,6 +11,8 @@ import { OrderCreationTypeBadge } from '@/components/order/OrderCreationTypeBadg
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { CompactOrderInfo } from './CompactOrderInfo';
 import { ResendNotificationButton } from './ResendNotificationButton';
+import { OrderConfirmThumbnails } from '@/components/order/OrderConfirmThumbnails';
+import { OrderConfirmEvidenceWizard } from '@/components/admin/OrderConfirmEvidenceWizard';
 
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
@@ -46,6 +48,8 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
   onDelete,
   onViewDetails 
 }) => {
+  const [isViewImagesDialogOpen, setIsViewImagesDialogOpen] = useState(false);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   
   
@@ -218,7 +222,11 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
         )}
 
         <div className="border-t pt-3">
-          <OrderConfirmImagesDialog orderId={order.id} />
+          <OrderConfirmThumbnails
+            orderId={order.id}
+            onViewPhotos={() => setIsViewImagesDialogOpen(true)}
+            onUpload={() => setIsUploadDialogOpen(true)}
+          />
         </div>
       </CardContent>
       
@@ -263,6 +271,21 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
         </Button>
       </div>
 
+      <OrderConfirmImagesDialog
+        orderId={order.id}
+        open={isViewImagesDialogOpen}
+        onOpenChange={setIsViewImagesDialogOpen}
+      />
+      
+      <OrderConfirmEvidenceWizard
+        orderId={order.id}
+        open={isUploadDialogOpen}
+        onComplete={() => {
+          setIsUploadDialogOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['confirm-images', order.id] });
+        }}
+        onCancel={() => setIsUploadDialogOpen(false)}
+      />
     </Card>
   );
 };
