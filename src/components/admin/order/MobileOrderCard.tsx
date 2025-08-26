@@ -158,7 +158,7 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
 
         {/* Status Block - Отдельный блок для статуса */}
         <div className="flex items-center justify-between">
-          <EnhancedOrderStatusBadge status={order.status} size="sm" />
+          <EnhancedOrderStatusBadge status={order.status} size="sm" compact={true} />
         </div>
 
         {/* Product Info Block */}
