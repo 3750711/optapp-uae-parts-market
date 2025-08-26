@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || '7251106221:AAE3UaXbAejz1SzkhknDTrsASjpe-glhL0s';
-const PRODUCT_GROUP_CHAT_ID = '-2804153717';
+const PRODUCT_GROUP_CHAT_ID = '-1002804153717';
 const MIN_IMAGES_REQUIRED = 1;
 const MAX_IMAGES_PER_GROUP = 10;
 
