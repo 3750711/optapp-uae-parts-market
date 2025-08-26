@@ -18,6 +18,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderConfirmEvidenceWizard } from '@/components/admin/OrderConfirmEvidenceWizard';
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
+import { OrderConfirmThumbnails } from '@/components/order/OrderConfirmThumbnails';
 
 interface MobileOrderCardProps {
   order: Order;
@@ -250,34 +251,14 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
             )}
           </div>
           
-          {/* Photo Button Row - Always visible and prominent */}
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              className={`h-7 px-3 text-xs shrink-0 ${
-                confirmImages.length > 0 
-                  ? 'text-green-600 border-green-200 bg-green-50 hover:bg-green-100 hover:text-green-700' 
-                  : 'border-gray-200 hover:bg-gray-50'
-              }`}
-              onClick={() => {
-                console.log(`Photo button clicked for order #${order.order_number}`);
-                setIsConfirmImagesDialogOpen(true);
-              }}
-            >
-              {confirmImages.length > 0 ? (
-                <>
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Подтверждающие фото ({confirmImages.length})
-                </>
-              ) : (
-                <>
-                  <Camera className="h-3 w-3 mr-1" />
-                  Загрузить подтверждающие фото
-                </>
-              )}
-            </Button>
-          </div>
+          {/* Confirmation Photos Thumbnails */}
+          <OrderConfirmThumbnails
+            orderId={order.id}
+            onClick={() => {
+              console.log(`Photo thumbnails clicked for order #${order.order_number}`);
+              setIsConfirmImagesDialogOpen(true);
+            }}
+          />
         </div>
       </CardContent>
       
