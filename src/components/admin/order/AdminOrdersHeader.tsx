@@ -10,7 +10,7 @@ import { RefreshCw, Search, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "./SortingControls";
 import { Database } from "@/integrations/supabase/types";
-import DateRangeFilter, { DateRange } from "@/components/admin/filters/DateRangeFilter";
+
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -28,8 +28,6 @@ interface AdminOrdersHeaderProps {
   onRefetch: () => void;
   totalCount?: number;
   isFetching?: boolean;
-  dateRange: DateRange;
-  onDateRangeChange: (range: DateRange) => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
 }
@@ -87,10 +85,6 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
           Найти
         </Button>
         
-        <DateRangeFilter
-          value={props.dateRange}
-          onChange={props.onDateRangeChange}
-        />
         <Select value={props.statusFilter} onValueChange={props.onStatusFilterChange}>
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Статус" />

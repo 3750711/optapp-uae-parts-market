@@ -8,7 +8,7 @@ import { Search, X, Filter, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "./SortingControls";
 import { Database } from "@/integrations/supabase/types";
-import DateRangeFilter, { DateRange } from "@/components/admin/filters/DateRangeFilter";
+
 import {
   Dialog,
   DialogContent,
@@ -41,8 +41,6 @@ interface MobileAdminOrdersHeaderProps {
   onRefetch: () => void;
   totalCount: number;
   isFetching?: boolean;
-  dateRange: DateRange;
-  onDateRangeChange: (range: DateRange) => void;
   onClearFilters: () => void;
   hasActiveFilters: boolean;
 }
@@ -61,8 +59,6 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
   onRefetch,
   totalCount,
   isFetching,
-  dateRange,
-  onDateRangeChange,
   onClearFilters,
   hasActiveFilters
 }) => {
@@ -76,7 +72,7 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
     }
   };
 
-  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (activeSearchTerm ? 1 : 0) + (dateRange.from || dateRange.to ? 1 : 0);
+  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (activeSearchTerm ? 1 : 0);
 
   return (
     <CardHeader className="space-y-3 pb-4">
@@ -155,11 +151,6 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
               </SheetHeader>
 
               <div className="space-y-6">
-                <DateRangeFilter
-                  value={dateRange}
-                  onChange={onDateRangeChange}
-                />
-                
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Статус заказа</label>
                   <Select value={statusFilter} onValueChange={onStatusFilterChange}>

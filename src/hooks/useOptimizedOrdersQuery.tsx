@@ -34,7 +34,7 @@ interface UseOptimizedOrdersQueryParams {
   pageSize: number;
   sortField?: string;
   sortDirection?: 'asc' | 'desc';
-  dateRange: { from: Date | null, to: Date | null };
+  dateRange?: { from: Date | null, to: Date | null };
 }
 
 interface OrdersResponse {
@@ -51,7 +51,7 @@ export const useOptimizedOrdersQuery = ({
   pageSize,
   sortField = 'created_at',
   sortDirection = 'desc',
-  dateRange,
+  dateRange = { from: null, to: null },
 }: UseOptimizedOrdersQueryParams) => {
   return useQuery({
     queryKey: ['admin-orders-optimized', statusFilter, searchTerm, page, pageSize, sortField, sortDirection, dateRange],

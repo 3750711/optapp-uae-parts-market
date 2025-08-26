@@ -25,18 +25,17 @@ const AdminOrders = () => {
   const {
     searchTerm,
     setSearchTerm,
+    activeSearchTerm,
     currentPage,
     selectedOrders,
     statusFilter,
     sortField,
     sortDirection,
     pageSize,
-    dateRange,
     handleSearch,
     clearSearch,
     clearFilters,
     handlePageChange,
-    handleDateRangeChange,
     handleStatusFilterChange,
     handleSortChange,
     handleSelectOrder,
@@ -44,16 +43,16 @@ const AdminOrders = () => {
     handleClearSelection,
   } = useAdminOrdersState();
 
-  const [activeSearchTerm, setActiveSearchTerm] = useState('');
-
   const handleSearchClick = () => {
-    setActiveSearchTerm(searchTerm);
     handleSearch();
   };
 
   const handleClearSearch = () => {
     clearSearch();
-    setActiveSearchTerm('');
+  };
+
+  const handleClearFilters = () => {
+    clearFilters();
   };
 
   const { data, isLoading, error, refetch, isFetching } = useOptimizedOrdersQuery({
@@ -63,7 +62,7 @@ const AdminOrders = () => {
     pageSize,
     sortField,
     sortDirection,
-    dateRange,
+    
   });
 
   const orders = data?.data || [];
@@ -71,7 +70,7 @@ const AdminOrders = () => {
   const hasNextPage = data?.hasNextPage || false;
   const hasPreviousPage = data?.hasPreviousPage || false;
 
-  const hasActiveFilters = statusFilter !== 'all' || !!activeSearchTerm || !!dateRange.from || !!dateRange.to;
+  const hasActiveFilters = statusFilter !== 'all' || !!activeSearchTerm;
 
   const {
     selectedOrder,
@@ -138,9 +137,7 @@ const AdminOrders = () => {
               onRefetch={refetch}
               totalCount={0}
               isFetching={isFetching}
-              dateRange={dateRange}
-              onDateRangeChange={handleDateRangeChange}
-              onClearFilters={clearFilters}
+              onClearFilters={handleClearFilters}
               hasActiveFilters={hasActiveFilters}
             />
             <CardContent className="p-6">
@@ -171,9 +168,7 @@ const AdminOrders = () => {
               onRefetch={refetch}
               totalCount={totalCount}
               isFetching={isFetching}
-              dateRange={dateRange}
-              onDateRangeChange={handleDateRangeChange}
-              onClearFilters={clearFilters}
+              onClearFilters={handleClearFilters}
               hasActiveFilters={hasActiveFilters}
             />
             
