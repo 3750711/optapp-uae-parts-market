@@ -81,6 +81,13 @@ export const useConfirmationUpload = (
       return;
     }
 
+    // Validate category limits (8 images per category)
+    if (category && confirmImages.length > 8) {
+      setUploadError(`Maximum 8 images allowed per category. You have ${confirmImages.length} images.`);
+      toast.error(`Maximum 8 images allowed per category`);
+      return;
+    }
+
     try {
       setIsSaving(true);
       setUploadError(null);
