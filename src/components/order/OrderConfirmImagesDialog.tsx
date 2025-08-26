@@ -144,8 +144,9 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
             <DialogTitle>{t.evidenceTitle}</DialogTitle>
           </DialogHeader>
           
-          <ScrollArea className="flex-1 pr-2 py-4">
-            {/* Admin Order Information - For verification against photos */}
+          <ScrollArea className="flex-1 pr-2">
+            <div className="py-4">
+              {/* Admin Order Information - For verification against photos */}
             {profile?.user_type === 'admin' && orderData && (
               <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border-2 border-yellow-300 rounded-xl p-4 mb-6">
                 <div className="text-yellow-800 font-bold mb-3 text-sm uppercase tracking-wide">
@@ -226,6 +227,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
                   legacyImages,
                   hasLegacyEvidence
                 )}
+              </div>
               </div>
             </div>
           </ScrollArea>
