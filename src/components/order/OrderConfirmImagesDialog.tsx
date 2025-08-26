@@ -14,6 +14,7 @@ import { Check, Camera, MessageSquare, CheckCircle, AlertCircle, Plus } from 'lu
 import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvidenceWizard";
 import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface OrderConfirmImagesDialogProps {
   orderId: string;
@@ -25,7 +26,24 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
   const [showWizard, setShowWizard] = useState(false);
   const queryClient = useQueryClient();
   const { language } = useLanguage();
+  const { profile } = useAuth();
   const t = getSellerOrdersTranslations(language);
+
+  // Query for order data (for admin info)
+  const { data: orderData } = useQuery({
+    queryKey: ['order-details', orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('order_number, buyer_opt_id, title, price')
+        .eq('id', orderId)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: profile?.user_type === 'admin'
+  });
 
   const { data: chatImages } = useQuery({
     queryKey: ['confirm-images', orderId, 'chat_screenshot'],
@@ -126,6 +144,41 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
           </DialogHeader>
           
           <div className="space-y-6 mt-4">
+            {/* Admin Order Information - For verification against photos */}
+            {profile?.user_type === 'admin' && orderData && (
+              <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border-2 border-yellow-300 rounded-xl p-4 mb-6">
+                <div className="text-yellow-800 font-bold mb-3 text-sm uppercase tracking-wide">
+                  Order Information - For Photo Verification
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-xs sm:text-sm">BUYER'S OPT ID:</div>
+                    <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                      {orderData.buyer_opt_id || 'NOT SPECIFIED'}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-xs sm:text-sm">ORDER NUMBER:</div>
+                    <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                      #{orderData.order_number || 'NOT SPECIFIED'}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-xs sm:text-sm">PRODUCT NAME:</div>
+                    <div className="font-bold text-yellow-900 text-base sm:text-lg truncate">
+                      {orderData.title || 'NOT SPECIFIED'}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-xs sm:text-sm">PRICE:</div>
+                    <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                      ${Number(orderData.price || 0).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Status Overview */}
             <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-2">
