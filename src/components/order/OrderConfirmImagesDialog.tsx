@@ -139,14 +139,13 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl sm:max-h-[90vh] max-h-[85vh] p-0 flex flex-col">
-          <div className="flex flex-col flex-1">
-            <DialogHeader className="px-6 py-4 border-b shrink-0">
-              <DialogTitle>{t.evidenceTitle}</DialogTitle>
-            </DialogHeader>
-            
-            <ScrollArea className="flex-1 px-6 pr-2">
-              <div className="space-y-6 py-4">
+        <DialogContent className="max-w-4xl sm:max-w-4xl max-w-[95vw] sm:max-h-[90vh] max-h-[85vh] p-3 sm:p-6 flex flex-col">
+          <DialogHeader className="pb-4 border-b shrink-0">
+            <DialogTitle>{t.evidenceTitle}</DialogTitle>
+          </DialogHeader>
+          
+          <ScrollArea className="flex-1 pr-2">
+            <div className="space-y-6 py-4">
             {/* Admin Order Information - For verification against photos */}
             {profile?.user_type === 'admin' && orderData && (
               <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border-2 border-yellow-300 rounded-xl p-4 mb-6">
@@ -229,8 +228,12 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               )}
             </div>
 
-            {/* Add More Evidence Button */}
-            <div className="flex justify-center pt-4 border-t">
+            </div>
+          </ScrollArea>
+          
+          {/* DialogFooter with Add More Evidence Button */}
+          <div className="pt-4 border-t mt-auto">
+            <div className="flex justify-center">
               <Button
                 onClick={() => setShowWizard(true)}
                 variant="outline"
@@ -240,8 +243,6 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
                 {t.addMoreEvidence}
               </Button>
             </div>
-              </div>
-            </ScrollArea>
           </div>
         </DialogContent>
       </Dialog>
