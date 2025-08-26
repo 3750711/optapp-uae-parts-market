@@ -139,7 +139,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl sm:max-w-4xl max-w-[95vw] sm:max-h-[90vh] max-h-[85vh] p-3 sm:p-6 flex flex-col">
+        <DialogContent className="sm:max-w-4xl max-w-[95vw] sm:max-h-[90vh] max-h-[85vh] p-3 sm:p-6 flex flex-col">
           <DialogHeader className="pb-4 border-b shrink-0">
             <DialogTitle>{t.evidenceTitle}</DialogTitle>
           </DialogHeader>
