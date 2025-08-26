@@ -139,13 +139,13 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[80vh] p-0">
-          <div className="flex flex-col h-full">
+        <DialogContent className="max-w-4xl sm:max-h-[90vh] max-h-[85vh] p-0 flex flex-col">
+          <div className="flex flex-col flex-1">
             <DialogHeader className="px-6 py-4 border-b shrink-0">
               <DialogTitle>{t.evidenceTitle}</DialogTitle>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 px-6">
+            <ScrollArea className="flex-1 px-6 pr-2">
               <div className="space-y-6 py-4">
             {/* Admin Order Information - For verification against photos */}
             {profile?.user_type === 'admin' && orderData && (
