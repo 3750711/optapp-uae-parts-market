@@ -7,15 +7,26 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Check, Camera, MessageSquare, CheckCircle, AlertCircle, Plus } from 'lucide-react';
+import { Check, Camera, MessageSquare, CheckCircle, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvidenceWizard";
 import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface OrderConfirmImagesDialogProps {
   orderId: string;
@@ -25,10 +36,14 @@ interface OrderConfirmImagesDialogProps {
 
 export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderConfirmImagesDialogProps) => {
   const [showWizard, setShowWizard] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ url: string; category: string } | null>(null);
   const queryClient = useQueryClient();
   const { language } = useLanguage();
   const { profile } = useAuth();
+  const { toast } = useToast();
   const t = getSellerOrdersTranslations(language);
+
+  const isAdmin = profile?.user_type === 'admin';
 
   // Query for order data (for admin info)
   const { data: orderData } = useQuery({
@@ -99,16 +114,50 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
     queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
   };
 
+  const handleImageDelete = async (url: string, category: string) => {
+    try {
+      const { error } = await supabase
+        .from('confirm_images')
+        .delete()
+        .eq('order_id', orderId)
+        .eq('url', url)
+        .eq('category', category === 'legacy' ? null : category);
+
+      if (error) throw error;
+
+      // Invalidate all related queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
+      
+      toast({
+        title: "Успешно",
+        description: "Изображение удалено",
+      });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить изображение",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmDelete = (url: string, category: string) => {
+    setDeleteConfirm({ url, category });
+  };
+
   const renderEvidenceSection = (
     title: string,
     icon: React.ReactNode,
     images: string[] | undefined,
-    hasEvidence: boolean
+    hasEvidence: boolean,
+    category: string
   ) => (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         {icon}
         <h3 className="font-medium text-sm">{title}</h3>
+        <span className="text-xs text-muted-foreground">({images?.length || 0})</span>
         {hasEvidence ? (
           <CheckCircle className="h-4 w-4 text-green-600" />
         ) : (
@@ -119,12 +168,24 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
       {hasEvidence ? (
         <div className="grid grid-cols-2 gap-2">
           {images?.map((url, index) => (
-            <div key={index} className="relative aspect-square">
+            <div key={index} className="relative aspect-square group">
               <img
                 src={url}
                 alt={`${title} ${index + 1}`}
                 className="w-full h-full object-cover rounded-lg border"
               />
+              {isAdmin && (
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => confirmDelete(url, category)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -210,14 +271,16 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
                 t.chatScreenshotsTitle,
                 <MessageSquare className="h-4 w-4" />,
                 chatImages,
-                hasChatEvidence
+                hasChatEvidence,
+                'chat_screenshot'
               )}
               
               {renderEvidenceSection(
                 t.signedProductTitle,
                 <Camera className="h-4 w-4" />,
                 signedImages,
-                hasSignedEvidence
+                hasSignedEvidence,
+                'signed_product'
               )}
 
               {/* Legacy Images (if any) */}
@@ -225,7 +288,8 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
                 t.additionalEvidence,
                 <Check className="h-4 w-4" />,
                 legacyImages,
-                hasLegacyEvidence
+                hasLegacyEvidence,
+                'legacy'
               )}
             </div>
 
@@ -253,6 +317,32 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
         onComplete={handleWizardComplete}
         onCancel={() => setShowWizard(false)}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Удалить изображение?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Изображение будет навсегда удалено из системы.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteConfirm) {
+                  handleImageDelete(deleteConfirm.url, deleteConfirm.category);
+                  setDeleteConfirm(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Удалить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
