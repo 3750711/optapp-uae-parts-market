@@ -1,0 +1,22 @@
+{
+  "name": "order-media-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for uploading order media to Cloudinary",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js",
+    "dev": "nodemon bot.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.12.2",
+    "axios": "^1.6.0",
+    "cloudinary": "^1.41.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

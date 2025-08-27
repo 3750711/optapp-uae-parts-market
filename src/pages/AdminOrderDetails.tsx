@@ -7,8 +7,9 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle, MessageSquare, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle, MessageSquare, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
+import { OrderTelegramMedia } from '@/components/order/OrderTelegramMedia';
 
 const AdminOrderDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -315,6 +316,20 @@ const AdminOrderDetails = () => {
                         </div>
                       </div>
                     </Button>
+                    <Button
+                      variant="outline"
+                      asChild
+                      className="flex items-center gap-2"
+                    >
+                      <a
+                        href={`https://t.me/your_bot_username?start=order_${order.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Send className="h-4 w-4" />
+                        📷 Загрузить из Telegram
+                      </a>
+                    </Button>
                     <OrderConfirmImagesDialog 
                       orderId={order.id} 
                       open={showConfirmDialog}
@@ -388,6 +403,11 @@ const AdminOrderDetails = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Telegram Media */}
+            {isAdmin && (
+              <OrderTelegramMedia orderId={order.id} />
+            )}
 
             {(allImages.length > 0 || allVideos.length > 0) && (
               <Card>
