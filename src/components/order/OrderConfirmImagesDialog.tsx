@@ -153,45 +153,65 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
     hasEvidence: boolean,
     category: string
   ) => (
-    <div className="space-y-2 xs:space-y-3">
-      <div className="flex items-center gap-1.5 xs:gap-2 flex-wrap">
-        {icon}
-        <h3 className="font-medium text-xs xs:text-sm">{title}</h3>
-        <span className="text-xs text-muted-foreground">({images?.length || 0})</span>
-        {hasEvidence ? (
-          <CheckCircle className="h-3 w-3 xs:h-4 xs:w-4 text-green-600" />
-        ) : (
-          <AlertCircle className="h-3 w-3 xs:h-4 xs:w-4 text-orange-500" />
-        )}
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {icon}
+          <h3 className="font-medium text-xs xs:text-sm">{title}</h3>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="text-xs text-muted-foreground">({images?.length || 0})</span>
+          {hasEvidence ? (
+            <CheckCircle className="h-3 w-3 xs:h-4 xs:w-4 text-green-600" />
+          ) : (
+            <AlertCircle className="h-3 w-3 xs:h-4 xs:w-4 text-orange-500" />
+          )}
+        </div>
       </div>
       
       {hasEvidence ? (
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 xs:gap-2 sm:gap-3">
+        <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 xs:gap-2">
           {images?.map((url, index) => (
-            <div key={index} className="relative aspect-square group">
-              <img
-                src={url}
-                alt={`${title} ${index + 1}`}
-                className="w-full h-full object-cover rounded-md xs:rounded-lg border"
-                loading="lazy"
-              />
+            <div key={index} className="relative group">
+              <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+                <img
+                  src={url}
+                  alt={`${title} ${index + 1}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              </div>
               {isAdmin && (
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-md xs:rounded-lg flex items-center justify-center touch-none">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => confirmDelete(url, category)}
-                    className="h-7 w-7 xs:h-8 xs:w-8 p-0 touch-auto"
-                  >
-                    <Trash2 className="h-3 w-3 xs:h-4 xs:w-4" />
-                  </Button>
-                </div>
+                <>
+                  {/* Always visible delete button on mobile */}
+                  <div className="absolute top-1 right-1 xs:opacity-0 xs:group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => confirmDelete(url, category)}
+                      className="h-6 w-6 xs:h-7 xs:w-7 p-0 rounded-full shadow-lg"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  {/* Hover overlay for desktop */}
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hidden xs:flex items-center justify-center">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => confirmDelete(url, category)}
+                      className="h-8 w-8 p-0 rounded-full"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </>
               )}
             </div>
           ))}
         </div>
       ) : (
-        <div className="text-xs xs:text-sm text-muted-foreground italic">
+        <div className="text-xs text-muted-foreground italic p-4 text-center bg-muted/30 rounded-lg">
           {t.noEvidenceUploaded} {title.toLowerCase()}
         </div>
       )}
@@ -201,42 +221,43 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[95vw] xs:w-[90vw] sm:w-[85vw] md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[95vh] xs:max-h-[90vh] sm:max-h-[85vh] p-0 flex flex-col">
+        <DialogContent className="w-full max-w-[475px]:w-full xs:w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl xl:max-w-5xl h-[100dvh] max-w-[475px]:h-[100dvh] xs:max-h-[95vh] sm:max-h-[90vh] p-0 flex flex-col overflow-hidden">
           <div className="flex flex-col flex-1">
-            <DialogHeader className="px-3 xs:px-4 sm:px-6 py-2 xs:py-3 sm:py-4 border-b shrink-0">
-              <DialogTitle className="text-base xs:text-lg sm:text-xl">{t.evidenceTitle}</DialogTitle>
+            <DialogHeader className="px-2 xs:px-3 sm:px-4 py-2 xs:py-3 border-b shrink-0 bg-background/95 backdrop-blur-sm sticky top-0 z-10">
+              <DialogTitle className="text-sm xs:text-base sm:text-lg font-semibold text-center">{t.evidenceTitle}</DialogTitle>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 min-h-0 overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <div className="space-y-3 xs:space-y-4 sm:space-y-6 px-3 xs:px-4 sm:px-6 py-2 xs:py-3 sm:py-4 pb-safe">
+            <ScrollArea className="flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch', overflowY: 'auto' }}>
+              <div className="space-y-2 xs:space-y-3 sm:space-y-4 px-2 xs:px-3 sm:px-4 py-2 xs:py-3 pb-[env(safe-area-inset-bottom,1rem)]">
             {/* Admin Order Information - For verification against photos */}
             {profile?.user_type === 'admin' && orderData && (
-              <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border border-yellow-300 rounded-lg p-1.5 xs:p-2 sm:p-3 mb-2 xs:mb-3">
-                <div className="text-yellow-800 font-bold mb-1.5 xs:mb-2 text-xs uppercase tracking-wide">
-                  Order Information - For Photo Verification
+              <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border border-yellow-300 rounded-lg p-2 xs:p-3 mb-2">
+                <div className="text-yellow-800 font-bold mb-2 text-xs uppercase tracking-wide flex items-center gap-1">
+                  <span>Order Info</span>
+                  <span className="text-[10px] font-normal">(For Verification)</span>
                 </div>
-                <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-1.5 xs:gap-2">
-                  <div className="bg-white rounded-md xs:rounded-lg p-1.5 xs:p-2 border border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-xs">BUYER'S OPT ID:</div>
-                    <div className="font-bold text-yellow-900 tracking-wider text-xs xs:text-sm sm:text-base break-all">
+                <div className="grid grid-cols-1 gap-1.5">
+                  <div className="bg-white rounded p-1.5 border border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">BUYER OPT ID:</div>
+                    <div className="font-bold text-yellow-900 text-xs break-all">
                       {orderData.buyer_opt_id || 'NOT SPECIFIED'}
                     </div>
                   </div>
-                  <div className="bg-white rounded-md xs:rounded-lg p-1.5 xs:p-2 border border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-xs">ORDER NUMBER:</div>
-                    <div className="font-bold text-yellow-900 tracking-wider text-xs xs:text-sm sm:text-base">
+                  <div className="bg-white rounded p-1.5 border border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">ORDER #:</div>
+                    <div className="font-bold text-yellow-900 text-xs">
                       #{orderData.order_number || 'NOT SPECIFIED'}
                     </div>
                   </div>
-                  <div className="bg-white rounded-md xs:rounded-lg p-1.5 xs:p-2 border border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-xs">PRODUCT NAME:</div>
-                    <div className="font-bold text-yellow-900 text-xs sm:text-sm truncate">
+                  <div className="bg-white rounded p-1.5 border border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">PRODUCT:</div>
+                    <div className="font-bold text-yellow-900 text-xs line-clamp-2">
                       {orderData.title || 'NOT SPECIFIED'}
                     </div>
                   </div>
-                  <div className="bg-white rounded-md xs:rounded-lg p-1.5 xs:p-2 border border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-xs">PRICE:</div>
-                    <div className="font-bold text-yellow-900 tracking-wider text-xs xs:text-sm sm:text-base">
+                  <div className="bg-white rounded p-1.5 border border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">PRICE:</div>
+                    <div className="font-bold text-yellow-900 text-xs">
                       ${Number(orderData.price || 0).toLocaleString()}
                     </div>
                   </div>
@@ -245,29 +266,39 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
             )}
 
             {/* Status Overview */}
-            <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-4 p-2 xs:p-3 sm:p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                <span className="text-sm">{t.chatScreenshotLabel}</span>
-                {hasChatEvidence ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                ) : (
-                  <AlertCircle className="h-4 w-4 text-orange-500" />
-                )}
+            <div className="grid grid-cols-1 gap-2 p-2 xs:p-3 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-blue-600" />
+                  <span className="text-xs xs:text-sm font-medium">{t.chatScreenshotLabel}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">({chatImages?.length || 0})</span>
+                  {hasChatEvidence ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-orange-500" />
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4" />
-                <span className="text-sm">{t.signedProductLabel}</span>
-                {hasSignedEvidence ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                ) : (
-                  <AlertCircle className="h-4 w-4 text-orange-500" />
-                )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Camera className="h-4 w-4 text-purple-600" />
+                  <span className="text-xs xs:text-sm font-medium">{t.signedProductLabel}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">({signedImages?.length || 0})</span>
+                  {hasSignedEvidence ? (
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <AlertCircle className="h-4 w-4 text-orange-500" />
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Evidence Sections */}
-            <div className="grid gap-3 xs:gap-4 sm:gap-6">
+            <div className="space-y-3 xs:space-y-4">
               {renderEvidenceSection(
                 t.chatScreenshotsTitle,
                 <MessageSquare className="h-3 w-3 xs:h-4 xs:w-4" />,
@@ -294,15 +325,14 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               )}
             </div>
 
-            {/* Add More Evidence Button */}
-            <div className="flex justify-center pt-3 xs:pt-4 border-t mt-2 xs:mt-3 sm:mt-4">
+            {/* Add More Evidence Button - Sticky on mobile */}
+            <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t p-2 xs:p-3 mt-4 -mx-2 xs:-mx-3 sm:-mx-4">
               <Button
                 onClick={() => setShowWizard(true)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1.5 xs:gap-2 h-8 xs:h-9 sm:h-10 px-3 xs:px-4 text-xs xs:text-sm touch-auto"
+                variant="default"
+                className="w-full flex items-center justify-center gap-2 h-10 xs:h-11 text-sm font-medium"
               >
-                <Plus className="h-3 w-3 xs:h-4 xs:w-4" />
+                <Plus className="h-4 w-4" />
                 {t.addMoreEvidence}
               </Button>
             </div>
