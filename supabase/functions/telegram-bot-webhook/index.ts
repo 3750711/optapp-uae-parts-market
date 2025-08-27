@@ -98,9 +98,21 @@ serve(async (req) => {
     const cloudinaryCloudName = Deno.env.get('CLOUDINARY_CLOUD_NAME');
     const cloudinaryApiKey = Deno.env.get('CLOUDINARY_API_KEY');
     const cloudinaryApiSecret = Deno.env.get('CLOUDINARY_API_SECRET');
+    const cloudinaryUploadPreset = Deno.env.get('CLOUDINARY_UPLOAD_PRESET');
 
+    // Validate all required environment variables
     if (!supabaseUrl || !supabaseServiceKey || !telegramBotToken) {
-      throw new Error('Missing required environment variables');
+      throw new Error('Missing required Supabase/Telegram environment variables');
+    }
+
+    if (!cloudinaryCloudName || !cloudinaryApiKey || !cloudinaryApiSecret || !cloudinaryUploadPreset) {
+      console.error('Missing Cloudinary environment variables:', {
+        CLOUDINARY_CLOUD_NAME: !!cloudinaryCloudName,
+        CLOUDINARY_API_KEY: !!cloudinaryApiKey,
+        CLOUDINARY_API_SECRET: !!cloudinaryApiSecret,
+        CLOUDINARY_UPLOAD_PRESET: !!cloudinaryUploadPreset
+      });
+      throw new Error('Missing required Cloudinary environment variables');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -194,7 +206,8 @@ serve(async (req) => {
           activeOrderId, 
           cloudinaryCloudName!, 
           cloudinaryApiKey!, 
-          cloudinaryApiSecret!
+          cloudinaryApiSecret!,
+          cloudinaryUploadPreset!
         );
 
         // Save to database
@@ -308,24 +321,27 @@ async function uploadToCloudinary(
   orderId: string,
   cloudName: string,
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
+  uploadPreset: string
 ): Promise<string> {
   const formData = new FormData();
   const file = new File([fileBuffer], `order_${orderId}_${Date.now()}.jpg`, { type: 'image/jpeg' });
   
   formData.append('file', file);
-  formData.append('upload_preset', 'ml_default');
+  formData.append('upload_preset', uploadPreset);
   formData.append('folder', `orders/${orderId}`);
   formData.append('resource_type', 'image');
   
   // Generate signature for secure upload
   const timestamp = Math.round(Date.now() / 1000);
-  const paramsToSign = `folder=orders/${orderId}&timestamp=${timestamp}&upload_preset=ml_default`;
+  const paramsToSign = `folder=orders/${orderId}&timestamp=${timestamp}&upload_preset=${uploadPreset}`;
   const signature = await generateSignature(paramsToSign, apiSecret);
   
   formData.append('api_key', apiKey);
   formData.append('timestamp', timestamp.toString());
   formData.append('signature', signature);
+
+  console.log('Uploading to Cloudinary with preset:', uploadPreset);
 
   const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
     method: 'POST',
@@ -334,10 +350,12 @@ async function uploadToCloudinary(
 
   if (!response.ok) {
     const error = await response.text();
+    console.error('Cloudinary upload error:', error);
     throw new Error(`Cloudinary upload failed: ${error}`);
   }
 
   const result = await response.json();
+  console.log('Cloudinary upload successful:', result.secure_url);
   return result.secure_url;
 }
 
