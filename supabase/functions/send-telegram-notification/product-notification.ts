@@ -35,6 +35,7 @@ export async function handleProductNotification(productId: string, notificationT
     'OptSeller_Vlad',
     'LocalSeller_Ali',
     'Faruknose', 
+    'Faruk',
     'faiznose',
     'LocalSeller_Jahangir',
     'LocalSeller_Pochemy',
