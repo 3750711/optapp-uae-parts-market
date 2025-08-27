@@ -51,8 +51,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   const isSeller = profile?.user_type === 'seller';
 
   // Photo type selection state (admin only)
-  const [enableChatScreenshot, setEnableChatScreenshot] = useState(true);
-  const [enableSignedProduct, setEnableSignedProduct] = useState(true);
+  const [selectedUploadType, setSelectedUploadType] = useState<'chat' | 'signed' | null>(null);
 
   // Checkbox states for mandatory confirmations
   const [additionalPhotosConfirmed, setAdditionalPhotosConfirmed] = useState(false);
@@ -75,11 +74,11 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   const isImageOnlyMode = variant === 'chat-proof-only';
   
   // Determine which types are enabled (admin override or default behavior)
-  const shouldShowChatScreenshot = isAdmin ? enableChatScreenshot : true;
-  const shouldShowSignedProduct = isAdmin ? enableSignedProduct : true;
+  const shouldShowChatScreenshot = isAdmin ? selectedUploadType === 'chat' : true;
+  const shouldShowSignedProduct = isAdmin ? selectedUploadType === 'signed' : true;
   
   // Validate at least one type is selected
-  const hasValidSelection = isAdmin ? (enableChatScreenshot || enableSignedProduct) : true;
+  const hasValidSelection = isAdmin ? selectedUploadType !== null : true;
 
   // Handle skip attempts when confirmations are required
   const handleSkipAttempt = () => {
@@ -146,9 +145,9 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
     
     // For admin with selective types
     if (isAdmin) {
-      let chatValid = !enableChatScreenshot || conversationScreenshotConfirmed;
-      let productValid = !enableSignedProduct || additionalPhotosConfirmed;
-      return chatValid && productValid;
+      if (selectedUploadType === 'chat') return conversationScreenshotConfirmed;
+      if (selectedUploadType === 'signed') return additionalPhotosConfirmed;
+      return false;
     }
     
     // Default behavior for non-admin
@@ -182,49 +181,84 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
       {/* Admin Photo Type Selection */}
       {isAdmin && isComponentReady && !sessionLost && !isImageOnlyMode && (
         <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-4">
             <FileSignature className="h-5 w-5 text-blue-600" />
-            <h3 className="font-medium text-blue-900">Select Photo Types to Upload</h3>
+            <h3 className="font-medium text-blue-900">Select Upload Type</h3>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-blue-100">
-              <Checkbox
-                id="enable-chat-screenshot"
-                checked={enableChatScreenshot}
-                onCheckedChange={(checked) => setEnableChatScreenshot(checked === true)}
-              />
-              <div className="space-y-1">
-                <label 
-                  htmlFor="enable-chat-screenshot"
-                  className="text-sm font-medium text-gray-900 cursor-pointer flex items-center gap-2"
-                >
-                  <Camera className="h-4 w-4 text-blue-600" />
-                  Chat Screenshots
-                </label>
-                <p className="text-xs text-gray-600">Screenshots of conversation with buyer</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Button 1 - Chat Screenshots */}
+            <button
+              onClick={() => setSelectedUploadType('chat')}
+              className={`relative p-4 rounded-lg border-2 transition-all duration-200 ${
+                selectedUploadType === 'chat'
+                  ? 'border-blue-500 bg-blue-100 shadow-md scale-105'
+                  : 'border-blue-200 bg-white hover:border-blue-300 hover:shadow-sm'
+              }`}
+            >
+              <div className="absolute top-2 right-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold ${
+                  selectedUploadType === 'chat'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }`}>
+                  1
+                </div>
               </div>
-            </div>
-            <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-blue-100">
-              <Checkbox
-                id="enable-signed-product"
-                checked={enableSignedProduct}
-                onCheckedChange={(checked) => setEnableSignedProduct(checked === true)}
-              />
-              <div className="space-y-1">
-                <label 
-                  htmlFor="enable-signed-product"
-                  className="text-sm font-medium text-gray-900 cursor-pointer flex items-center gap-2"
-                >
-                  <FileSignature className="h-4 w-4 text-green-600" />
-                  Signed Product Photos
-                </label>
-                <p className="text-xs text-gray-600">Photos showing product with signature/confirmation</p>
+              <div className="flex flex-col items-start space-y-2 pr-10">
+                <div className="flex items-center gap-2">
+                  <Camera className={`h-5 w-5 ${
+                    selectedUploadType === 'chat' ? 'text-blue-600' : 'text-blue-500'
+                  }`} />
+                  <span className={`font-medium ${
+                    selectedUploadType === 'chat' ? 'text-blue-900' : 'text-gray-900'
+                  }`}>
+                    Chat Screenshots
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 text-left">
+                  Screenshots of conversation with buyer
+                </p>
               </div>
-            </div>
+            </button>
+
+            {/* Button 2 - Signed Product Photos */}
+            <button
+              onClick={() => setSelectedUploadType('signed')}
+              className={`relative p-4 rounded-lg border-2 transition-all duration-200 ${
+                selectedUploadType === 'signed'
+                  ? 'border-green-500 bg-green-100 shadow-md scale-105'
+                  : 'border-green-200 bg-white hover:border-green-300 hover:shadow-sm'
+              }`}
+            >
+              <div className="absolute top-2 right-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold ${
+                  selectedUploadType === 'signed'
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-200 text-gray-600'
+                }`}>
+                  2
+                </div>
+              </div>
+              <div className="flex flex-col items-start space-y-2 pr-10">
+                <div className="flex items-center gap-2">
+                  <FileSignature className={`h-5 w-5 ${
+                    selectedUploadType === 'signed' ? 'text-green-600' : 'text-green-500'
+                  }`} />
+                  <span className={`font-medium ${
+                    selectedUploadType === 'signed' ? 'text-green-900' : 'text-gray-900'
+                  }`}>
+                    Signed Product Photos
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600 text-left">
+                  Photos showing product with signature/confirmation
+                </p>
+              </div>
+            </button>
           </div>
           {!hasValidSelection && (
-            <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-              Please select at least one photo type to continue.
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <span className="font-medium">Please select an upload type:</span> Press button <strong>1</strong> or <strong>2</strong> to continue.
             </div>
           )}
         </div>
