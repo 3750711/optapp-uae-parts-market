@@ -322,7 +322,7 @@ const AdminOrderDetails = () => {
                       className="flex items-center gap-2"
                     >
                       <a
-                        href={`https://t.me/your_bot_username?start=order_${order.id}`}
+                        href={`https://t.me/${import.meta.env.VITE_TG_BOT_USERNAME}?start=order_${order.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
