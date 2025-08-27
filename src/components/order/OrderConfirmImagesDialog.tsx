@@ -207,8 +207,8 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               <DialogTitle className="text-base xs:text-lg sm:text-xl">{t.evidenceTitle}</DialogTitle>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 px-3 xs:px-4 sm:px-6 pr-1 xs:pr-2" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <div className="space-y-3 xs:space-y-4 sm:space-y-6 py-2 xs:py-3 sm:py-4 pb-safe">
+            <ScrollArea className="flex-1 min-h-0 overflow-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="space-y-3 xs:space-y-4 sm:space-y-6 px-3 xs:px-4 sm:px-6 py-2 xs:py-3 sm:py-4 pb-safe">
             {/* Admin Order Information - For verification against photos */}
             {profile?.user_type === 'admin' && orderData && (
               <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border border-yellow-300 rounded-lg p-1.5 xs:p-2 sm:p-3 mb-2 xs:mb-3">
