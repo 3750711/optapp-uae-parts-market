@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Camera, MessageSquare, AlertTriangle } from 'lucide-react';
 
 interface OrderTelegramMediaProps {
   orderId: string;
@@ -20,6 +20,8 @@ interface OrderMedia {
 }
 
 export const OrderTelegramMedia: React.FC<OrderTelegramMediaProps> = ({ orderId }) => {
+  const queryClient = useQueryClient();
+  
   const { data: mediaFiles, refetch, isLoading } = useQuery({
     queryKey: ['order_media', orderId],
     queryFn: async () => {
@@ -57,11 +59,16 @@ export const OrderTelegramMedia: React.FC<OrderTelegramMediaProps> = ({ orderId 
     };
   }, [orderId, refetch]);
 
+  const telegramBotUrl = `https://t.me/Optnewads_bot?start=order_${orderId}`;
+
   if (isLoading) {
     return (
-      <Card>
+      <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Медиа из Telegram</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Camera className="h-5 w-5" />
+            Telegram Photos
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">Загрузка...</p>
@@ -71,21 +78,54 @@ export const OrderTelegramMedia: React.FC<OrderTelegramMediaProps> = ({ orderId 
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium">Медиа из Telegram</CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refetch()}
-            className="h-8 w-8 p-0"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
+    <Card className="mt-4">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardTitle className="flex items-center gap-2">
+          <Camera className="h-5 w-5" />
+          Telegram Photos
+        </CardTitle>
+        <Button 
+          onClick={() => {
+            queryClient.invalidateQueries({ 
+              queryKey: ['order-media', orderId] 
+            });
+          }}
+          variant="outline" 
+          size="sm"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+          <div className="flex items-start gap-3">
+            <MessageSquare className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-900 mb-2">Как загрузить фотографии через Telegram:</h4>
+              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                <li>Нажмите кнопку "📷 Upload from Telegram" ниже</li>
+                <li><strong>Обязательно</strong> отправьте команду боту в <strong>личном чате</strong></li>
+                <li>Затем отправляйте фотографии в тот же <strong>личный чат с ботом</strong></li>
+                <li>Не отправляйте фотографии в групповые чаты!</li>
+              </ol>
+              <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-sm">
+                <AlertTriangle className="h-4 w-4 inline mr-1" />
+                <strong>Важно:</strong> Фотографии работают только в личных сообщениях с ботом, не в группах.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a 
+          href={telegramBotUrl}
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Camera className="h-4 w-4" />
+          📷 Upload from Telegram
+        </a>
+
         {!mediaFiles || mediaFiles.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Фото из Telegram не найдены

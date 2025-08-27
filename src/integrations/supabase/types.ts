@@ -1646,6 +1646,30 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_user_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          order_id: string
+          user_id: number
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id: string
+          user_id: number
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id?: string
+          user_id?: number
+        }
+        Relationships: []
+      }
       user_favorites: {
         Row: {
           created_at: string
@@ -1849,6 +1873,10 @@ export type Database = {
         Returns: undefined
       }
       cleanup_expired_password_reset_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      cleanup_expired_telegram_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

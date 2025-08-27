@@ -45,8 +45,45 @@ interface TelegramDocument {
   file_size?: number;
 }
 
-// Store user sessions (in production, use database or Redis)
-const userSessions = new Map<number, string>();
+// Database functions for user sessions
+async function storeUserSession(supabase: any, userId: number, orderId: string) {
+  // Clean up expired sessions first
+  await supabase.from('telegram_user_sessions').delete().lt('expires_at', new Date().toISOString());
+  
+  // Delete existing session for this user
+  await supabase.from('telegram_user_sessions').delete().eq('user_id', userId);
+  
+  // Insert new session
+  const { error } = await supabase
+    .from('telegram_user_sessions')
+    .insert({
+      user_id: userId,
+      order_id: orderId
+    });
+    
+  if (error) {
+    console.error('Error storing user session:', error);
+    throw error;
+  }
+}
+
+async function getUserSession(supabase: any, userId: number): Promise<string | null> {
+  // Clean up expired sessions first
+  await supabase.from('telegram_user_sessions').delete().lt('expires_at', new Date().toISOString());
+  
+  const { data, error } = await supabase
+    .from('telegram_user_sessions')
+    .select('order_id')
+    .eq('user_id', userId)
+    .gt('expires_at', new Date().toISOString())
+    .single();
+    
+  if (error || !data) {
+    return null;
+  }
+  
+  return data.order_id;
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -80,44 +117,73 @@ serve(async (req) => {
 
     const userId = message.from.id;
     const chatId = message.chat.id;
+    const chatType = message.chat.type;
 
-    // Handle /start command with order_ID
+    // Log chat information for debugging
+    console.log(`Chat info: ID=${chatId}, Type=${chatType}, User=${userId}`);
+
+    // Handle /start command with order_ID (only in private chats)
     if (message.text?.startsWith('/start order_')) {
+      // Only process /start commands in private chats
+      if (chatType !== 'private') {
+        console.log(`Ignoring /start command from non-private chat: ${chatType}`);
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const orderId = message.text.replace('/start order_', '');
-      console.log(`User ${userId} linked to order ${orderId}`);
+      console.log(`User ${userId} linked to order ${orderId} in private chat`);
       
-      // Store user session
-      userSessions.set(userId, orderId);
-      
-      // Send confirmation message
-      await sendTelegramMessage(telegramBotToken, chatId, 
-        `✅ Привет! Теперь ты можешь отправлять фотографии для заказа #${orderId}.\n\nПросто отправь фотографии в этот чат, и они автоматически сохранятся в системе.`
-      );
+      try {
+        // Store user session in database
+        await storeUserSession(supabase, userId, orderId);
+        
+        // Send confirmation message
+        await sendTelegramMessage(telegramBotToken, chatId, 
+          `✅ Привет! Теперь ты можешь отправлять фотографии для заказа #${orderId}.\n\nПросто отправь фотографии в этот чат, и они автоматически сохранятся в системе.`
+        );
+      } catch (error) {
+        console.error('Error storing user session:', error);
+        await sendTelegramMessage(telegramBotToken, chatId, 
+          '❌ Произошла ошибка при привязке к заказу. Попробуйте еще раз.'
+        );
+      }
       
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Handle photos
+    // Handle photos (only in private chats)
     if (message.photo && message.photo.length > 0) {
-      const activeOrderId = userSessions.get(userId);
-      
-      if (!activeOrderId) {
-        await sendTelegramMessage(telegramBotToken, chatId, 
-          '❌ Сначала нужно перейти по ссылке из админки для привязки к заказу.'
-        );
+      // Only process photos from private chats
+      if (chatType !== 'private') {
+        console.log(`Ignoring photo from non-private chat: ${chatType} (Chat ID: ${chatId})`);
         return new Response(JSON.stringify({ ok: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // Get the highest resolution photo
-      const bestPhoto = message.photo.reduce((prev, current) => 
-        (current.file_size || 0) > (prev.file_size || 0) ? current : prev
-      );
-
+      console.log(`Processing photo from user ${userId} in private chat`);
+      
       try {
+        const activeOrderId = await getUserSession(supabase, userId);
+        
+        if (!activeOrderId) {
+          await sendTelegramMessage(telegramBotToken, chatId, 
+            '❌ Сначала нужно перейти по ссылке из админки для привязки к заказу.\n\nВы получите ссылку в личном сообщении от администратора.'
+          );
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // Get the highest resolution photo
+        const bestPhoto = message.photo.reduce((prev, current) => 
+          (current.file_size || 0) > (prev.file_size || 0) ? current : prev
+        );
+
         // Download photo from Telegram
         const fileUrl = await getTelegramFileUrl(telegramBotToken, bestPhoto.file_id);
         const photoBuffer = await downloadTelegramFile(fileUrl);
@@ -165,11 +231,14 @@ serve(async (req) => {
       });
     }
 
-    // Handle other messages
-    if (message.text) {
+    // Handle other messages (only respond in private chats)
+    if (message.text && chatType === 'private') {
       await sendTelegramMessage(telegramBotToken, chatId, 
-        'Привет! Чтобы загрузить фотографии, сначала перейдите по ссылке из админки.'
+        'Привет! Чтобы загрузить фотографии, сначала перейдите по ссылке из админки.\n\nВы получите ссылку в личном сообщении от администратора.'
       );
+    } else if (message.text) {
+      // Log messages from groups but don't respond
+      console.log(`Ignoring text message from non-private chat: ${chatType} (Chat ID: ${chatId})`);
     }
 
     return new Response(JSON.stringify({ ok: true }), {
