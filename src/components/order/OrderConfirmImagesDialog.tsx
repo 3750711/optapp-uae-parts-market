@@ -210,32 +210,32 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               <div className="space-y-6 py-4">
             {/* Admin Order Information - For verification against photos */}
             {profile?.user_type === 'admin' && orderData && (
-              <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border-2 border-yellow-300 rounded-xl p-4 mb-6">
-                <div className="text-yellow-800 font-bold mb-3 text-sm uppercase tracking-wide">
+              <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border border-yellow-300 rounded-lg p-2 mb-3">
+                <div className="text-yellow-800 font-bold mb-2 text-xs uppercase tracking-wide">
                   Order Information - For Photo Verification
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-xs sm:text-sm">BUYER'S OPT ID:</div>
-                    <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                  <div className="bg-white rounded-lg p-1 sm:p-2 border border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-xs">BUYER'S OPT ID:</div>
+                    <div className="font-bold text-yellow-900 tracking-wider text-sm sm:text-base">
                       {orderData.buyer_opt_id || 'NOT SPECIFIED'}
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-xs sm:text-sm">ORDER NUMBER:</div>
-                    <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                  <div className="bg-white rounded-lg p-1 sm:p-2 border border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-xs">ORDER NUMBER:</div>
+                    <div className="font-bold text-yellow-900 tracking-wider text-sm sm:text-base">
                       #{orderData.order_number || 'NOT SPECIFIED'}
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-xs sm:text-sm">PRODUCT NAME:</div>
-                    <div className="font-bold text-yellow-900 text-base sm:text-lg truncate">
+                  <div className="bg-white rounded-lg p-1 sm:p-2 border border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-xs">PRODUCT NAME:</div>
+                    <div className="font-bold text-yellow-900 text-xs sm:text-sm truncate">
                       {orderData.title || 'NOT SPECIFIED'}
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg p-2 sm:p-3 border-2 border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-xs sm:text-sm">PRICE:</div>
-                    <div className="font-bold text-yellow-900 tracking-wider text-lg sm:text-2xl">
+                  <div className="bg-white rounded-lg p-1 sm:p-2 border border-yellow-300">
+                    <div className="text-yellow-700 font-medium text-xs">PRICE:</div>
+                    <div className="font-bold text-yellow-900 tracking-wider text-sm sm:text-base">
                       ${Number(orderData.price || 0).toLocaleString()}
                     </div>
                   </div>
