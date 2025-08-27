@@ -457,6 +457,44 @@ export type Database = {
           },
         ]
       }
+      order_media: {
+        Row: {
+          created_at: string | null
+          file_type: string
+          file_url: string
+          id: string
+          order_id: string
+          source: string | null
+          uploaded_by: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          file_type?: string
+          file_url: string
+          id?: string
+          order_id: string
+          source?: string | null
+          uploaded_by?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          file_type?: string
+          file_url?: string
+          id?: string
+          order_id?: string
+          source?: string | null
+          uploaded_by?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_media_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_shipments: {
         Row: {
           container_number: string | null
