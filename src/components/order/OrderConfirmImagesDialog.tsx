@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Check, Camera, MessageSquare, CheckCircle, AlertCircle, Plus, Trash2, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -43,6 +49,17 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
   const { profile } = useAuth();
   const { toast } = useToast();
   const t = getSellerOrdersTranslations(language);
+  const isMobile = useIsMobile();
+
+  // Block body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    }
+  }, [open]);
 
   const isAdmin = profile?.user_type === 'admin';
 
@@ -246,141 +263,153 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
     </div>
   );
 
+  const MainContent = () => (
+    <div className="space-y-2 xs:space-y-3 sm:space-y-4 px-4 py-3">
+      {/* Admin Order Information - For verification against photos */}
+      {profile?.user_type === 'admin' && orderData && (
+        <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border border-yellow-300 rounded-lg p-2 xs:p-3 mb-2">
+          <div className="text-yellow-800 font-bold mb-2 text-xs uppercase tracking-wide flex items-center gap-1">
+            <span>Order Info</span>
+            <span className="text-[10px] font-normal">(For Verification)</span>
+          </div>
+          <div className="grid grid-cols-1 gap-1.5">
+            <div className="bg-white rounded p-1.5 border border-yellow-300">
+              <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">BUYER OPT ID:</div>
+              <div className="font-bold text-yellow-900 text-xs break-all">
+                {orderData.buyer_opt_id || 'NOT SPECIFIED'}
+              </div>
+            </div>
+            <div className="bg-white rounded p-1.5 border border-yellow-300">
+              <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">ORDER #:</div>
+              <div className="font-bold text-yellow-900 text-xs">
+                #{orderData.order_number || 'NOT SPECIFIED'}
+              </div>
+            </div>
+            <div className="bg-white rounded p-1.5 border border-yellow-300">
+              <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">PRODUCT:</div>
+              <div className="font-bold text-yellow-900 text-xs line-clamp-2">
+                {orderData.title || 'NOT SPECIFIED'}
+              </div>
+            </div>
+            <div className="bg-white rounded p-1.5 border border-yellow-300">
+              <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">PRICE:</div>
+              <div className="font-bold text-yellow-900 text-xs">
+                ${Number(orderData.price || 0).toLocaleString()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Overview */}
+      <div className="grid grid-cols-1 gap-2 p-2 xs:p-3 bg-muted/50 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-blue-600" />
+            <span className="text-xs xs:text-sm font-medium">{t.chatScreenshotLabel}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">({chatImages?.length || 0})</span>
+            {hasChatEvidence ? (
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+            )}
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Camera className="h-4 w-4 text-purple-600" />
+            <span className="text-xs xs:text-sm font-medium">{t.signedProductLabel}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-muted-foreground">({signedImages?.length || 0})</span>
+            {hasSignedEvidence ? (
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            ) : (
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Evidence Sections */}
+      <div className="space-y-3 xs:space-y-4">
+        {renderEvidenceSection(
+          t.chatScreenshotsTitle,
+          <MessageSquare className="h-3 w-3 xs:h-4 xs:w-4" />,
+          chatImages,
+          hasChatEvidence,
+          'chat_screenshot'
+        )}
+        
+        {renderEvidenceSection(
+          t.signedProductTitle,
+          <Camera className="h-3 w-3 xs:h-4 xs:w-4" />,
+          signedImages,
+          hasSignedEvidence,
+          'signed_product'
+        )}
+
+        {/* Legacy Images (if any) */}
+        {hasLegacyEvidence && renderEvidenceSection(
+          t.additionalEvidence,
+          <Check className="h-3 w-3 xs:h-4 xs:w-4" />,
+          legacyImages,
+          hasLegacyEvidence,
+          'legacy'
+        )}
+      </div>
+    </div>
+  );
+
+  const ActionFooter = () => (
+    <div className="border-t bg-background/95 backdrop-blur-sm p-4">
+      <Button
+        onClick={() => setShowWizard(true)}
+        variant="default"
+        className="w-full flex items-center justify-center gap-2 h-11 text-sm font-medium"
+      >
+        <Plus className="h-4 w-4" />
+        {t.addMoreEvidence}
+      </Button>
+    </div>
+  );
+
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-full max-w-[475px]:w-full xs:w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl xl:max-w-5xl h-[100dvh] max-w-[475px]:h-[100dvh] xs:max-h-[95vh] sm:max-h-[90vh] p-0 flex flex-col overflow-hidden">
-          <div className="flex flex-col flex-1">
-            <DialogHeader className="px-2 xs:px-3 sm:px-4 py-2 xs:py-3 border-b shrink-0 bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <DialogTitle className="text-sm xs:text-base sm:text-lg font-semibold text-center">{t.evidenceTitle}</DialogTitle>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onOpenChange?.(false)}
-                  className="h-8 w-8 p-0 rounded-full shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+      {isMobile ? (
+        <Sheet open={open} onOpenChange={onOpenChange}>
+          <SheetContent 
+            side="bottom" 
+            className="max-h-[calc(100dvh-env(safe-area-inset-top)-1rem)] flex flex-col p-0"
+          >
+            <SheetHeader className="px-4 py-3 border-b shrink-0">
+              <SheetTitle className="text-center">{t.evidenceTitle}</SheetTitle>
+            </SheetHeader>
+            
+            <div className="overflow-y-auto overscroll-contain grow">
+              <MainContent />
+            </div>
+            
+            <ActionFooter />
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent className="w-[min(100vw-1rem,900px)] max-h-[calc(100dvh-2rem)] flex flex-col p-0">
+            <DialogHeader className="px-4 py-3 border-b shrink-0">
+              <DialogTitle className="text-center">{t.evidenceTitle}</DialogTitle>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch', overflowY: 'auto' }}>
-              <div className="space-y-2 xs:space-y-3 sm:space-y-4 px-2 xs:px-3 sm:px-4 py-2 xs:py-3 pb-[env(safe-area-inset-bottom,1rem)]">
-            {/* Admin Order Information - For verification against photos */}
-            {profile?.user_type === 'admin' && orderData && (
-              <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border border-yellow-300 rounded-lg p-2 xs:p-3 mb-2">
-                <div className="text-yellow-800 font-bold mb-2 text-xs uppercase tracking-wide flex items-center gap-1">
-                  <span>Order Info</span>
-                  <span className="text-[10px] font-normal">(For Verification)</span>
-                </div>
-                <div className="grid grid-cols-1 gap-1.5">
-                  <div className="bg-white rounded p-1.5 border border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">BUYER OPT ID:</div>
-                    <div className="font-bold text-yellow-900 text-xs break-all">
-                      {orderData.buyer_opt_id || 'NOT SPECIFIED'}
-                    </div>
-                  </div>
-                  <div className="bg-white rounded p-1.5 border border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">ORDER #:</div>
-                    <div className="font-bold text-yellow-900 text-xs">
-                      #{orderData.order_number || 'NOT SPECIFIED'}
-                    </div>
-                  </div>
-                  <div className="bg-white rounded p-1.5 border border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">PRODUCT:</div>
-                    <div className="font-bold text-yellow-900 text-xs line-clamp-2">
-                      {orderData.title || 'NOT SPECIFIED'}
-                    </div>
-                  </div>
-                  <div className="bg-white rounded p-1.5 border border-yellow-300">
-                    <div className="text-yellow-700 font-medium text-[10px] xs:text-xs">PRICE:</div>
-                    <div className="font-bold text-yellow-900 text-xs">
-                      ${Number(orderData.price || 0).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Status Overview */}
-            <div className="grid grid-cols-1 gap-2 p-2 xs:p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-blue-600" />
-                  <span className="text-xs xs:text-sm font-medium">{t.chatScreenshotLabel}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">({chatImages?.length || 0})</span>
-                  {hasChatEvidence ? (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-orange-500" />
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Camera className="h-4 w-4 text-purple-600" />
-                  <span className="text-xs xs:text-sm font-medium">{t.signedProductLabel}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">({signedImages?.length || 0})</span>
-                  {hasSignedEvidence ? (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-orange-500" />
-                  )}
-                </div>
-              </div>
+            <div className="overflow-y-auto overscroll-contain grow">
+              <MainContent />
             </div>
-
-            {/* Evidence Sections */}
-            <div className="space-y-3 xs:space-y-4">
-              {renderEvidenceSection(
-                t.chatScreenshotsTitle,
-                <MessageSquare className="h-3 w-3 xs:h-4 xs:w-4" />,
-                chatImages,
-                hasChatEvidence,
-                'chat_screenshot'
-              )}
-              
-              {renderEvidenceSection(
-                t.signedProductTitle,
-                <Camera className="h-3 w-3 xs:h-4 xs:w-4" />,
-                signedImages,
-                hasSignedEvidence,
-                'signed_product'
-              )}
-
-              {/* Legacy Images (if any) */}
-              {hasLegacyEvidence && renderEvidenceSection(
-                t.additionalEvidence,
-                <Check className="h-3 w-3 xs:h-4 xs:w-4" />,
-                legacyImages,
-                hasLegacyEvidence,
-                'legacy'
-              )}
-            </div>
-
-            {/* Add More Evidence Button - Sticky on mobile */}
-            <div className="sticky bottom-0 bg-background/95 backdrop-blur-sm border-t p-2 xs:p-3 mt-4 -mx-2 xs:-mx-3 sm:-mx-4">
-              <Button
-                onClick={() => setShowWizard(true)}
-                variant="default"
-                className="w-full flex items-center justify-center gap-2 h-10 xs:h-11 text-sm font-medium"
-              >
-                <Plus className="h-4 w-4" />
-                {t.addMoreEvidence}
-              </Button>
-            </div>
-              </div>
-            </ScrollArea>
-          </div>
-        </DialogContent>
-      </Dialog>
+            
+            <ActionFooter />
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Evidence Upload Wizard */}
       <OrderConfirmEvidenceWizard
@@ -392,7 +421,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
 
       {/* Image Zoom Modal */}
       <Dialog open={!!zoomImage} onOpenChange={() => setZoomImage(null)}>
-        <DialogContent className="w-full max-w-6xl max-h-[95vh] p-0 overflow-hidden bg-black/95">
+        <DialogContent className="w-[min(100vw-1rem,1200px)] max-h-[calc(100dvh-2rem)] p-0 overflow-hidden bg-black/95">
           {zoomImage && (
             <div className="relative flex flex-col h-full">
               {/* Header */}
