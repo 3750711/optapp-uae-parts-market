@@ -153,36 +153,37 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
     hasEvidence: boolean,
     category: string
   ) => (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
+    <div className="space-y-2 xs:space-y-3">
+      <div className="flex items-center gap-1.5 xs:gap-2 flex-wrap">
         {icon}
-        <h3 className="font-medium text-sm">{title}</h3>
+        <h3 className="font-medium text-xs xs:text-sm">{title}</h3>
         <span className="text-xs text-muted-foreground">({images?.length || 0})</span>
         {hasEvidence ? (
-          <CheckCircle className="h-4 w-4 text-green-600" />
+          <CheckCircle className="h-3 w-3 xs:h-4 xs:w-4 text-green-600" />
         ) : (
-          <AlertCircle className="h-4 w-4 text-orange-500" />
+          <AlertCircle className="h-3 w-3 xs:h-4 xs:w-4 text-orange-500" />
         )}
       </div>
       
       {hasEvidence ? (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 xs:gap-2 sm:gap-3">
           {images?.map((url, index) => (
             <div key={index} className="relative aspect-square group">
               <img
                 src={url}
                 alt={`${title} ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg border"
+                className="w-full h-full object-cover rounded-md xs:rounded-lg border"
+                loading="lazy"
               />
               {isAdmin && (
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-md xs:rounded-lg flex items-center justify-center touch-none">
                   <Button
                     size="sm"
                     variant="destructive"
                     onClick={() => confirmDelete(url, category)}
-                    className="h-8 w-8 p-0"
+                    className="h-7 w-7 xs:h-8 xs:w-8 p-0 touch-auto"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3 xs:h-4 xs:w-4" />
                   </Button>
                 </div>
               )}
@@ -190,7 +191,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
           ))}
         </div>
       ) : (
-        <div className="text-sm text-muted-foreground italic">
+        <div className="text-xs xs:text-sm text-muted-foreground italic">
           {t.noEvidenceUploaded} {title.toLowerCase()}
         </div>
       )}
@@ -200,42 +201,42 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl sm:max-h-[90vh] max-h-[85vh] p-0 flex flex-col">
+        <DialogContent className="w-[95vw] xs:w-[90vw] sm:w-[85vw] md:max-w-3xl lg:max-w-4xl xl:max-w-5xl max-h-[95vh] xs:max-h-[90vh] sm:max-h-[85vh] p-0 flex flex-col">
           <div className="flex flex-col flex-1">
-            <DialogHeader className="px-6 py-4 border-b shrink-0">
-              <DialogTitle>{t.evidenceTitle}</DialogTitle>
+            <DialogHeader className="px-3 xs:px-4 sm:px-6 py-2 xs:py-3 sm:py-4 border-b shrink-0">
+              <DialogTitle className="text-base xs:text-lg sm:text-xl">{t.evidenceTitle}</DialogTitle>
             </DialogHeader>
             
-            <ScrollArea className="flex-1 px-6 pr-2">
-              <div className="space-y-6 py-4">
+            <ScrollArea className="flex-1 px-3 xs:px-4 sm:px-6 pr-1 xs:pr-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+              <div className="space-y-3 xs:space-y-4 sm:space-y-6 py-2 xs:py-3 sm:py-4 pb-safe">
             {/* Admin Order Information - For verification against photos */}
             {profile?.user_type === 'admin' && orderData && (
-              <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border border-yellow-300 rounded-lg p-2 mb-3">
-                <div className="text-yellow-800 font-bold mb-2 text-xs uppercase tracking-wide">
+              <div className="bg-gradient-to-br from-yellow-100 to-amber-50 border border-yellow-300 rounded-lg p-1.5 xs:p-2 sm:p-3 mb-2 xs:mb-3">
+                <div className="text-yellow-800 font-bold mb-1.5 xs:mb-2 text-xs uppercase tracking-wide">
                   Order Information - For Photo Verification
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                  <div className="bg-white rounded-lg p-1 sm:p-2 border border-yellow-300">
+                <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-1.5 xs:gap-2">
+                  <div className="bg-white rounded-md xs:rounded-lg p-1.5 xs:p-2 border border-yellow-300">
                     <div className="text-yellow-700 font-medium text-xs">BUYER'S OPT ID:</div>
-                    <div className="font-bold text-yellow-900 tracking-wider text-sm sm:text-base">
+                    <div className="font-bold text-yellow-900 tracking-wider text-xs xs:text-sm sm:text-base break-all">
                       {orderData.buyer_opt_id || 'NOT SPECIFIED'}
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg p-1 sm:p-2 border border-yellow-300">
+                  <div className="bg-white rounded-md xs:rounded-lg p-1.5 xs:p-2 border border-yellow-300">
                     <div className="text-yellow-700 font-medium text-xs">ORDER NUMBER:</div>
-                    <div className="font-bold text-yellow-900 tracking-wider text-sm sm:text-base">
+                    <div className="font-bold text-yellow-900 tracking-wider text-xs xs:text-sm sm:text-base">
                       #{orderData.order_number || 'NOT SPECIFIED'}
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg p-1 sm:p-2 border border-yellow-300">
+                  <div className="bg-white rounded-md xs:rounded-lg p-1.5 xs:p-2 border border-yellow-300">
                     <div className="text-yellow-700 font-medium text-xs">PRODUCT NAME:</div>
                     <div className="font-bold text-yellow-900 text-xs sm:text-sm truncate">
                       {orderData.title || 'NOT SPECIFIED'}
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg p-1 sm:p-2 border border-yellow-300">
+                  <div className="bg-white rounded-md xs:rounded-lg p-1.5 xs:p-2 border border-yellow-300">
                     <div className="text-yellow-700 font-medium text-xs">PRICE:</div>
-                    <div className="font-bold text-yellow-900 tracking-wider text-sm sm:text-base">
+                    <div className="font-bold text-yellow-900 tracking-wider text-xs xs:text-sm sm:text-base">
                       ${Number(orderData.price || 0).toLocaleString()}
                     </div>
                   </div>
@@ -244,7 +245,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
             )}
 
             {/* Status Overview */}
-            <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+            <div className="flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-4 p-2 xs:p-3 sm:p-4 bg-muted/50 rounded-lg">
               <div className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
                 <span className="text-sm">{t.chatScreenshotLabel}</span>
@@ -266,10 +267,10 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
             </div>
 
             {/* Evidence Sections */}
-            <div className="grid gap-6">
+            <div className="grid gap-3 xs:gap-4 sm:gap-6">
               {renderEvidenceSection(
                 t.chatScreenshotsTitle,
-                <MessageSquare className="h-4 w-4" />,
+                <MessageSquare className="h-3 w-3 xs:h-4 xs:w-4" />,
                 chatImages,
                 hasChatEvidence,
                 'chat_screenshot'
@@ -277,7 +278,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               
               {renderEvidenceSection(
                 t.signedProductTitle,
-                <Camera className="h-4 w-4" />,
+                <Camera className="h-3 w-3 xs:h-4 xs:w-4" />,
                 signedImages,
                 hasSignedEvidence,
                 'signed_product'
@@ -286,7 +287,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               {/* Legacy Images (if any) */}
               {hasLegacyEvidence && renderEvidenceSection(
                 t.additionalEvidence,
-                <Check className="h-4 w-4" />,
+                <Check className="h-3 w-3 xs:h-4 xs:w-4" />,
                 legacyImages,
                 hasLegacyEvidence,
                 'legacy'
@@ -294,13 +295,14 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
             </div>
 
             {/* Add More Evidence Button */}
-            <div className="flex justify-center pt-4 border-t">
+            <div className="flex justify-center pt-3 xs:pt-4 border-t mt-2 xs:mt-3 sm:mt-4">
               <Button
                 onClick={() => setShowWizard(true)}
                 variant="outline"
-                className="flex items-center gap-2"
+                size="sm"
+                className="flex items-center gap-1.5 xs:gap-2 h-8 xs:h-9 sm:h-10 px-3 xs:px-4 text-xs xs:text-sm touch-auto"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3 w-3 xs:h-4 xs:w-4" />
                 {t.addMoreEvidence}
               </Button>
             </div>
