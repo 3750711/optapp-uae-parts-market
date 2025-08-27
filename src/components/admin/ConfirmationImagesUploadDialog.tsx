@@ -1,7 +1,7 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, SkipForward, Check, X } from "lucide-react";
+import { Loader2, Upload, SkipForward, Check, X, Camera, FileSignature } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,21 +46,49 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   onCancel,
   variant = 'full',
 }) => {
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const isMobile = useIsMobile();
   const isSeller = profile?.user_type === 'seller';
+
+  // Photo type selection state (admin only)
+  const [enableChatScreenshot, setEnableChatScreenshot] = useState(true);
+  const [enableSignedProduct, setEnableSignedProduct] = useState(true);
 
   // Checkbox states for mandatory confirmations
   const [additionalPhotosConfirmed, setAdditionalPhotosConfirmed] = useState(false);
   const [conversationScreenshotConfirmed, setConversationScreenshotConfirmed] = useState(false);
   const [chatProofConfirmed, setChatProofConfirmed] = useState(false);
 
+  // Block body scroll when modal is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open]);
+
   const isImageOnlyMode = variant === 'chat-proof-only';
+  
+  // Determine which types are enabled (admin override or default behavior)
+  const shouldShowChatScreenshot = isAdmin ? enableChatScreenshot : true;
+  const shouldShowSignedProduct = isAdmin ? enableSignedProduct : true;
+  
+  // Validate at least one type is selected
+  const hasValidSelection = isAdmin ? (enableChatScreenshot || enableSignedProduct) : true;
 
   // Handle skip attempts when confirmations are required
   const handleSkipAttempt = () => {
+    if (!hasValidSelection) {
+      toast.error("Please select at least one photo type");
+      return;
+    }
     if (totalFiles > 0 && !canSave) {
-      toast.error("Please confirm both required confirmations before saving");
+      toast.error("Please confirm all required confirmations before saving");
       return;
     }
     onSkip();
@@ -106,11 +134,28 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   } = useConfirmationUpload(open, orderId, onComplete, isImageOnlyMode ? 'images-only' : 'all');
 
   const totalFiles = confirmImages.length + confirmVideos.length;
-  const isDisabled = !isComponentReady || sessionLost || isUploading;
-  const canSave = isImageOnlyMode 
-    ? confirmImages.length > 0 && chatProofConfirmed
-    : additionalPhotosConfirmed && conversationScreenshotConfirmed && totalFiles > 0;
-  const isSkipDisabled = isUploading || (totalFiles > 0 && !canSave);
+  const isDisabled = !isComponentReady || sessionLost || isUploading || !hasValidSelection;
+  
+  // Dynamic validation based on selected types
+  const canSave = (() => {
+    if (!hasValidSelection || totalFiles === 0) return false;
+    
+    if (isImageOnlyMode) {
+      return confirmImages.length > 0 && chatProofConfirmed;
+    }
+    
+    // For admin with selective types
+    if (isAdmin) {
+      let chatValid = !enableChatScreenshot || conversationScreenshotConfirmed;
+      let productValid = !enableSignedProduct || additionalPhotosConfirmed;
+      return chatValid && productValid;
+    }
+    
+    // Default behavior for non-admin
+    return additionalPhotosConfirmed && conversationScreenshotConfirmed;
+  })();
+  
+  const isSkipDisabled = isUploading || (totalFiles > 0 && !canSave) || !hasValidSelection;
 
   // Prevent accidental closing during upload
   const handleOpenChange = (newOpen: boolean) => {
@@ -133,6 +178,57 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
         onReset={handleReset}
         isSeller={isSeller}
       />
+
+      {/* Admin Photo Type Selection */}
+      {isAdmin && isComponentReady && !sessionLost && !isImageOnlyMode && (
+        <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <FileSignature className="h-5 w-5 text-blue-600" />
+            <h3 className="font-medium text-blue-900">Select Photo Types to Upload</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-blue-100">
+              <Checkbox
+                id="enable-chat-screenshot"
+                checked={enableChatScreenshot}
+                onCheckedChange={(checked) => setEnableChatScreenshot(checked === true)}
+              />
+              <div className="space-y-1">
+                <label 
+                  htmlFor="enable-chat-screenshot"
+                  className="text-sm font-medium text-gray-900 cursor-pointer flex items-center gap-2"
+                >
+                  <Camera className="h-4 w-4 text-blue-600" />
+                  Chat Screenshots
+                </label>
+                <p className="text-xs text-gray-600">Screenshots of conversation with buyer</p>
+              </div>
+            </div>
+            <div className="flex items-start space-x-3 p-3 bg-white rounded-lg border border-blue-100">
+              <Checkbox
+                id="enable-signed-product"
+                checked={enableSignedProduct}
+                onCheckedChange={(checked) => setEnableSignedProduct(checked === true)}
+              />
+              <div className="space-y-1">
+                <label 
+                  htmlFor="enable-signed-product"
+                  className="text-sm font-medium text-gray-900 cursor-pointer flex items-center gap-2"
+                >
+                  <FileSignature className="h-4 w-4 text-green-600" />
+                  Signed Product Photos
+                </label>
+                <p className="text-xs text-gray-600">Photos showing product with signature/confirmation</p>
+              </div>
+            </div>
+          </div>
+          {!hasValidSelection && (
+            <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+              Please select at least one photo type to continue.
+            </div>
+          )}
+        </div>
+      )}
 
       {isComponentReady && !sessionLost && (
         <>
@@ -188,7 +284,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           />
 
           {/* Mandatory confirmation checkboxes */}
-          {totalFiles > 0 && (
+          {totalFiles > 0 && hasValidSelection && (
             <div className="space-y-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
               <div className="text-sm font-medium text-orange-800">
                 {isImageOnlyMode ? "Required confirmation before saving:" : "Required confirmations before saving:"}
@@ -210,33 +306,39 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                 </div>
               ) : (
                 <>
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="additional-photos"
-                      checked={additionalPhotosConfirmed}
-                      onCheckedChange={(checked) => setAdditionalPhotosConfirmed(checked === true)}
-                    />
-                    <label 
-                      htmlFor="additional-photos"
-                      className="text-sm text-orange-700 leading-relaxed cursor-pointer"
-                    >
-                      {t.additionalPhotosLabel}
-                    </label>
-                  </div>
+                  {/* Show chat screenshot confirmation only if enabled */}
+                  {shouldShowSignedProduct && (
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="additional-photos"
+                        checked={additionalPhotosConfirmed}
+                        onCheckedChange={(checked) => setAdditionalPhotosConfirmed(checked === true)}
+                      />
+                      <label 
+                        htmlFor="additional-photos"
+                        className="text-sm text-orange-700 leading-relaxed cursor-pointer"
+                      >
+                        {t.additionalPhotosLabel}
+                      </label>
+                    </div>
+                  )}
 
-                  <div className="flex items-start space-x-3">
-                    <Checkbox
-                      id="conversation-screenshot"
-                      checked={conversationScreenshotConfirmed}
-                      onCheckedChange={(checked) => setConversationScreenshotConfirmed(checked === true)}
-                    />
-                    <label 
-                      htmlFor="conversation-screenshot"
-                      className="text-sm text-orange-700 leading-relaxed cursor-pointer"
-                    >
-                      {t.conversationScreenshotLabel}
-                    </label>
-                  </div>
+                  {/* Show signed product confirmation only if enabled */}
+                  {shouldShowChatScreenshot && (
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="conversation-screenshot"
+                        checked={conversationScreenshotConfirmed}
+                        onCheckedChange={(checked) => setConversationScreenshotConfirmed(checked === true)}
+                      />
+                      <label 
+                        htmlFor="conversation-screenshot"
+                        className="text-sm text-orange-700 leading-relaxed cursor-pointer"
+                      >
+                        {t.conversationScreenshotLabel}
+                      </label>
+                    </div>
+                  )}
                 </>
               )}
             </div>
