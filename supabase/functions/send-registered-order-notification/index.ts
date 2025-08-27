@@ -18,7 +18,8 @@ console.log('Environment variables check:');
 console.log('- SUPABASE_URL exists:', !!Deno.env.get('SUPABASE_URL'));
 console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
 console.log('- TELEGRAM_BOT_TOKEN exists:', !!BOT_TOKEN);
-console.log('- REGISTERED_GROUP_CHAT_ID:', REGISTERED_GROUP_CHAT_ID);
+console.log('- TELEGRAM_GROUP_CHAT_ID_REGISTERED exists:', !!Deno.env.get('TELEGRAM_GROUP_CHAT_ID_REGISTERED'));
+console.log('- REGISTERED_GROUP_CHAT_ID (effective):', REGISTERED_GROUP_CHAT_ID);
 
 serve(async (req) => {
   console.log('=== REGISTERED ORDER NOTIFICATION CALLED ===');
