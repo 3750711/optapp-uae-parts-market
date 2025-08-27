@@ -13,7 +13,7 @@ export const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
 // Order notifications go to the original group
 export const ORDER_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID_ORDERS') || '-4749346030'; 
 // Registered order notifications go to the registered group
-export const REGISTERED_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID_REGISTERED') || '-2024698284';
+export const REGISTERED_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID_REGISTERED') || '-1002024698284';
 // Product notifications go to the new group
 export const PRODUCT_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || '-1002804153717';
 
