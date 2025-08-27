@@ -238,10 +238,10 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
         try {
           await logTelegramNotification(supabaseClient, {
             function_name: 'send-telegram-notification',
-            notification_type: 'order_created',
+            notification_type: notificationType === 'registered' ? 'order_registered' : 'order_created',
             recipient_type: 'group',
-            recipient_identifier: ORDER_GROUP_CHAT_ID,
-            recipient_name: 'Order Group',
+            recipient_identifier: targetGroupId,
+            recipient_name: groupName,
             message_text: messageText,
             status: 'sent',
             telegram_message_id: mediaResult.result?.[0]?.message_id?.toString(),
@@ -362,7 +362,7 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({
-                chat_id: ORDER_GROUP_CHAT_ID,
+                chat_id: targetGroupId,
                 media: mediaItems
               }),
             });
@@ -432,7 +432,7 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  chat_id: ORDER_GROUP_CHAT_ID,
+                  chat_id: targetGroupId,
                   media: smallerItems
                 }),
               });
@@ -450,10 +450,10 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
           try {
             await logTelegramNotification(supabaseClient, {
               function_name: 'send-telegram-notification',
-              notification_type: 'order_created_additional',
+              notification_type: notificationType === 'registered' ? 'order_registered_additional' : 'order_created_additional',
               recipient_type: 'group',
-              recipient_identifier: ORDER_GROUP_CHAT_ID,
-              recipient_name: 'Order Group',
+              recipient_identifier: targetGroupId,
+              recipient_name: groupName,
               message_text: remainingCaption,
               status: 'sent',
               telegram_message_id: mediaGroupResult?.result?.[0]?.message_id?.toString(),
