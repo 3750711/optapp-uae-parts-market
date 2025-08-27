@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/ui/stepper";
-import { Loader2, Upload, Check, ArrowRight, ArrowLeft } from "lucide-react";
+import { Loader2, Upload, Check, ArrowRight, ArrowLeft, Camera, FileSignature } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,6 +51,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
   // Current step state
   const [currentStep, setCurrentStep] = useState<StepId>('chat_confirmation');
+  const [selectedStepOverride, setSelectedStepOverride] = useState<StepId | null>(null);
   
   // Step completion tracking
   const [step1Images, setStep1Images] = useState<string[]>([]);
@@ -106,9 +107,14 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
         setStep1Images(chatImages);
         setStep2Images(signedImages);
         
-        // Auto-advance to step 2 if step 1 is completed
-        if (chatImages.length > 0 && signedImages.length === 0) {
+        // For non-admin users: Auto-advance to step 2 if step 1 is completed
+        if (profile?.user_type !== 'admin' && chatImages.length > 0 && signedImages.length === 0) {
           setCurrentStep('signed_product');
+        }
+        
+        // For admin users: use override or default to first step
+        if (profile?.user_type === 'admin') {
+          setCurrentStep(selectedStepOverride || 'chat_confirmation');
         }
       } catch (error) {
         console.error('Error loading existing data:', error);
@@ -204,6 +210,53 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     }
   };
 
+  const AdminTypeSelector = () => {
+    if (profile?.user_type !== 'admin') return null;
+    
+    return (
+      <div className="border-b pb-4 mb-4">
+        <h3 className="text-sm font-medium mb-3">Select Upload Type</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant={selectedStepOverride === 'chat_confirmation' ? 'default' : 'outline'}
+            onClick={() => {
+              setSelectedStepOverride('chat_confirmation');
+              setCurrentStep('chat_confirmation');
+            }}
+            className="relative h-auto p-4 flex flex-col items-start text-left"
+          >
+            <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+              1
+            </div>
+            <Camera className="h-5 w-5 mb-2 text-blue-500" />
+            <div className="font-medium">Chat Screenshots</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {step1Images.length > 0 ? `${step1Images.length} uploaded` : 'Not uploaded'}
+            </div>
+          </Button>
+          
+          <Button
+            variant={selectedStepOverride === 'signed_product' ? 'default' : 'outline'}
+            onClick={() => {
+              setSelectedStepOverride('signed_product');
+              setCurrentStep('signed_product');
+            }}
+            className="relative h-auto p-4 flex flex-col items-start text-left"
+          >
+            <div className="absolute top-2 right-2 w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+              2
+            </div>
+            <FileSignature className="h-5 w-5 mb-2 text-green-500" />
+            <div className="font-medium">Signed Product</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {step2Images.length > 0 ? `${step2Images.length} uploaded` : 'Not uploaded'}
+            </div>
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   const StepContent = () => {
     if (isLoadingStepData) {
       return (
@@ -216,6 +269,9 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
     return (
       <div className="space-y-4">
+        {/* Admin Type Selector */}
+        <AdminTypeSelector />
+        
         {/* Order Information for Labeling - Always shown at top */}
         {!isLoadingOrder && orderData && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
@@ -347,54 +403,33 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     );
   };
 
-  const ActionButtons = () => (
-    <div className="flex gap-2 w-full">
-      {/* Back button */}
-      {currentStep === 'signed_product' && (
-        <Button 
-          variant="outline"
-          onClick={handleBack}
-          disabled={currentHook.isUploading}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-      )}
-
-      {/* Next/Finish button */}
-      {currentStep === 'chat_confirmation' ? (
-        <Button
-          onClick={handleNext}
-          disabled={!canSaveCurrentStep || currentHook.isUploading}
-          className="bg-primary hover:bg-primary/90 flex items-center gap-2 flex-1"
-        >
-          {currentHook.isUploading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              Save & Next
-              <ArrowRight className="h-4 w-4" />
-            </>
-          )}
-        </Button>
-      ) : (
-        <div className="flex gap-2 flex-1">
+  const ActionButtons = () => {
+    // For admin with specific step override, show Save & Close button
+    if (profile?.user_type === 'admin' && selectedStepOverride) {
+      return (
+        <div className="flex gap-2 w-full">
           <Button
-            onClick={handleSkip}
             variant="outline"
-            disabled={currentHook.isUploading || step1Images.length === 0}
-            className="flex items-center gap-2"
+            onClick={() => {
+              setSelectedStepOverride(null);
+              setCurrentStep('chat_confirmation');
+            }}
+            disabled={currentHook.isUploading}
           >
-            Skip Later
+            Cancel
           </Button>
           <Button
-            onClick={handleFinish}
-            disabled={!canSaveCurrentStep || currentHook.isUploading || step1Images.length === 0}
-            className="bg-green-600 hover:bg-green-700 flex items-center gap-2 flex-1"
+            onClick={async () => {
+              try {
+                await currentHook.handleSaveMedia();
+                toast.success(`${selectedStepOverride === 'chat_confirmation' ? 'Chat screenshots' : 'Signed product photos'} saved successfully`);
+                onComplete();
+              } catch (error) {
+                toast.error('Failed to save');
+              }
+            }}
+            disabled={!canSaveCurrentStep || currentHook.isUploading}
+            className="bg-primary hover:bg-primary/90 flex items-center gap-2 flex-1"
           >
             {currentHook.isUploading ? (
               <>
@@ -404,14 +439,81 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
             ) : (
               <>
                 <Check className="h-4 w-4" />
-                Finish
+                Save & Close
               </>
             )}
           </Button>
         </div>
-      )}
-    </div>
-  );
+      );
+    }
+    
+    // Regular flow for non-admin or admin without override
+    return (
+      <div className="flex gap-2 w-full">
+        {/* Back button */}
+        {currentStep === 'signed_product' && (
+          <Button 
+            variant="outline"
+            onClick={handleBack}
+            disabled={currentHook.isUploading}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+        )}
+
+        {/* Next/Finish button */}
+        {currentStep === 'chat_confirmation' ? (
+          <Button
+            onClick={handleNext}
+            disabled={!canSaveCurrentStep || currentHook.isUploading}
+            className="bg-primary hover:bg-primary/90 flex items-center gap-2 flex-1"
+          >
+            {currentHook.isUploading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                Save & Next
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        ) : (
+          <div className="flex gap-2 flex-1">
+            <Button
+              onClick={handleSkip}
+              variant="outline"
+              disabled={currentHook.isUploading || step1Images.length === 0}
+              className="flex items-center gap-2"
+            >
+              Skip Later
+            </Button>
+            <Button
+              onClick={handleFinish}
+              disabled={!canSaveCurrentStep || currentHook.isUploading || step1Images.length === 0}
+              className="bg-green-600 hover:bg-green-700 flex items-center gap-2 flex-1"
+            >
+              {currentHook.isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  Finish
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (isMobile) {
     return (
@@ -435,10 +537,12 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
             </SheetDescription>
           </SheetHeader>
 
-          {/* Stepper */}
-          <div className="px-4 py-3 border-b">
-            <Stepper steps={steps} />
-          </div>
+          {/* Stepper - hidden for admin with specific override */}
+          {!(profile?.user_type === 'admin' && selectedStepOverride) && (
+            <div className="px-4 py-3 border-b">
+              <Stepper steps={steps} />
+            </div>
+          )}
           
           <ScrollArea className="flex-1 px-4">
             <div className="py-2">
@@ -467,10 +571,12 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           </DialogDescription>
         </DialogHeader>
 
-        {/* Stepper */}
-        <div className="py-4 border-b">
-          <Stepper steps={steps} />
-        </div>
+        {/* Stepper - hidden for admin with specific override */}
+        {!(profile?.user_type === 'admin' && selectedStepOverride) && (
+          <div className="py-4 border-b">
+            <Stepper steps={steps} />
+          </div>
+        )}
 
         <ScrollArea className="flex-1 pr-2">
           <StepContent />
