@@ -13,7 +13,7 @@
 
 // Handler for order notifications
 
-import { BOT_TOKEN, ORDER_GROUP_CHAT_ID, ORDER_BASE_URL } from "./config.ts";
+import { BOT_TOKEN, ORDER_GROUP_CHAT_ID, REGISTERED_GROUP_CHAT_ID, ORDER_BASE_URL } from "./config.ts";
 import { waitBetweenBatches } from "./telegram-api.ts";
 import { logTelegramNotification } from "../shared/telegram-logger.ts";
 
@@ -22,8 +22,14 @@ import { logTelegramNotification } from "../shared/telegram-logger.ts";
  * IMPORTANT: This function is critical for business operations
  * and has been thoroughly tested. Modify with extreme caution.
  */
-export async function handleOrderNotification(orderData: any, supabaseClient: any, corsHeaders: Record<string, string>) {
-  console.log('Processing order notification, order #:', orderData.order_number);
+export async function handleOrderNotification(orderData: any, supabaseClient: any, corsHeaders: Record<string, string>, notificationType: string = 'regular') {
+  console.log('Processing order notification, order #:', orderData.order_number, 'type:', notificationType);
+  
+  // Determine target group based on notification type
+  const targetGroupId = notificationType === 'registered' ? REGISTERED_GROUP_CHAT_ID : ORDER_GROUP_CHAT_ID;
+  const groupName = notificationType === 'registered' ? 'Registered Orders Group' : 'Order Group';
+  
+  console.log('Target group:', targetGroupId, '(' + groupName + ')');
   
   try {
     // Prepare order notification message with the updated format according to requirements
@@ -170,7 +176,7 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: ORDER_GROUP_CHAT_ID,
+          chat_id: targetGroupId,
           media: mediaItems
         }),
       });
@@ -187,7 +193,7 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            chat_id: ORDER_GROUP_CHAT_ID,
+            chat_id: targetGroupId,
             text: messageText,
             parse_mode: 'HTML'
           }),
@@ -205,10 +211,10 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
           try {
             await logTelegramNotification(supabaseClient, {
               function_name: 'send-telegram-notification',
-              notification_type: 'order_created',
+              notification_type: notificationType === 'registered' ? 'order_registered' : 'order_created',
               recipient_type: 'group',
-              recipient_identifier: ORDER_GROUP_CHAT_ID,
-              recipient_name: 'Order Group',
+              recipient_identifier: targetGroupId,
+              recipient_name: groupName,
               message_text: messageText,
               status: 'sent',
               telegram_message_id: textResult.result?.message_id?.toString(),
@@ -262,7 +268,7 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: ORDER_GROUP_CHAT_ID,
+          chat_id: targetGroupId,
           text: messageText,
           parse_mode: 'HTML'
         }),
@@ -281,10 +287,10 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
       try {
         await logTelegramNotification(supabaseClient, {
           function_name: 'send-telegram-notification',
-          notification_type: 'order_created',
+          notification_type: notificationType === 'registered' ? 'order_registered' : 'order_created',
           recipient_type: 'group',
-          recipient_identifier: ORDER_GROUP_CHAT_ID,
-          recipient_name: 'Order Group',
+          recipient_identifier: targetGroupId,
+          recipient_name: groupName,
           message_text: messageText,
           status: 'sent',
           telegram_message_id: textResult.result?.message_id?.toString(),

@@ -52,8 +52,9 @@ serve(async (req) => {
     console.log('Received request data:', reqData);
 
     // Handle different request types
-    if (reqData.order && (reqData.action === 'create' || reqData.action === 'status_change' || reqData.action === 'resend')) {
-      return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders);
+    if (reqData.order && (reqData.action === 'create' || reqData.action === 'status_change' || reqData.action === 'resend' || reqData.action === 'registered')) {
+      const notificationType = reqData.action === 'registered' ? 'registered' : 'regular';
+      return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders, notificationType);
     } else if (reqData.productId) {
       return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders);
     } else {
