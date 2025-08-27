@@ -190,7 +190,7 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
       </div>
       
       {hasEvidence ? (
-        <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 xs:gap-2">
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 xs:gap-1.5">
           {images?.map((url, index) => (
             <div key={index} className="relative group">
               <div 

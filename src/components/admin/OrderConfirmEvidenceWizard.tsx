@@ -287,7 +287,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   onUploadComplete={step1Hook.handleImagesUpload}
                   existingImages={step1Hook.confirmImages}
                   onImageDelete={step1Hook.handleImageDelete}
-                  maxImages={3}
+                  maxImages={8}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
                 />
 
@@ -327,7 +327,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   onUploadComplete={step2Hook.handleImagesUpload}
                   existingImages={step2Hook.confirmImages}
                   onImageDelete={step2Hook.handleImageDelete}
-                  maxImages={3}
+                  maxImages={8}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
                 />
 
