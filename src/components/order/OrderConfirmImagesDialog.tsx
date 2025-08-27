@@ -21,7 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Check, Camera, MessageSquare, CheckCircle, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { Check, Camera, MessageSquare, CheckCircle, AlertCircle, Plus, Trash2, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvidenceWizard";
 import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -37,6 +37,7 @@ interface OrderConfirmImagesDialogProps {
 export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderConfirmImagesDialogProps) => {
   const [showWizard, setShowWizard] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ url: string; category: string } | null>(null);
+  const [zoomImage, setZoomImage] = useState<{ url: string; images: string[]; currentIndex: number; title: string } | null>(null);
   const queryClient = useQueryClient();
   const { language } = useLanguage();
   const { profile } = useAuth();
@@ -146,6 +147,25 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
     setDeleteConfirm({ url, category });
   };
 
+  const handleImageZoom = (url: string, images: string[], title: string) => {
+    const currentIndex = images.findIndex(img => img === url);
+    setZoomImage({ url, images, currentIndex, title });
+  };
+
+  const navigateZoomImage = (direction: 'prev' | 'next') => {
+    if (!zoomImage) return;
+    
+    const newIndex = direction === 'prev' 
+      ? Math.max(0, zoomImage.currentIndex - 1)
+      : Math.min(zoomImage.images.length - 1, zoomImage.currentIndex + 1);
+    
+    setZoomImage({
+      ...zoomImage,
+      url: zoomImage.images[newIndex],
+      currentIndex: newIndex
+    });
+  };
+
   const renderEvidenceSection = (
     title: string,
     icon: React.ReactNode,
@@ -173,36 +193,44 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
         <div className="grid grid-cols-2 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 xs:gap-2">
           {images?.map((url, index) => (
             <div key={index} className="relative group">
-              <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+              <div 
+                className="aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer"
+                onClick={() => handleImageZoom(url, images, title)}
+              >
                 <img
                   src={url}
                   alt={`${title} ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform hover:scale-105"
                   loading="lazy"
                 />
               </div>
+              
+              {/* Zoom overlay */}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => handleImageZoom(url, images, title)}
+                  className="h-8 w-8 p-0 rounded-full bg-white/90 hover:bg-white text-black"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+              </div>
+              
               {isAdmin && (
                 <>
                   {/* Always visible delete button on mobile */}
-                  <div className="absolute top-1 right-1 xs:opacity-0 xs:group-hover:opacity-100 transition-opacity">
+                  <div className="absolute top-1 right-1 xs:opacity-0 xs:group-hover:opacity-100 transition-opacity z-10">
                     <Button
                       size="sm"
                       variant="destructive"
-                      onClick={() => confirmDelete(url, category)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmDelete(url, category);
+                      }}
                       className="h-6 w-6 xs:h-7 xs:w-7 p-0 rounded-full shadow-lg"
                     >
                       <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  {/* Hover overlay for desktop */}
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hidden xs:flex items-center justify-center">
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => confirmDelete(url, category)}
-                      className="h-8 w-8 p-0 rounded-full"
-                    >
-                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </>
@@ -224,7 +252,19 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
         <DialogContent className="w-full max-w-[475px]:w-full xs:w-[95vw] sm:w-[90vw] md:max-w-3xl lg:max-w-4xl xl:max-w-5xl h-[100dvh] max-w-[475px]:h-[100dvh] xs:max-h-[95vh] sm:max-h-[90vh] p-0 flex flex-col overflow-hidden">
           <div className="flex flex-col flex-1">
             <DialogHeader className="px-2 xs:px-3 sm:px-4 py-2 xs:py-3 border-b shrink-0 bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-              <DialogTitle className="text-sm xs:text-base sm:text-lg font-semibold text-center">{t.evidenceTitle}</DialogTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <DialogTitle className="text-sm xs:text-base sm:text-lg font-semibold text-center">{t.evidenceTitle}</DialogTitle>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onOpenChange?.(false)}
+                  className="h-8 w-8 p-0 rounded-full shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </DialogHeader>
             
             <ScrollArea className="flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch', overflowY: 'auto' }}>
@@ -349,6 +389,87 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
         onComplete={handleWizardComplete}
         onCancel={() => setShowWizard(false)}
       />
+
+      {/* Image Zoom Modal */}
+      <Dialog open={!!zoomImage} onOpenChange={() => setZoomImage(null)}>
+        <DialogContent className="w-full max-w-6xl max-h-[95vh] p-0 overflow-hidden bg-black/95">
+          {zoomImage && (
+            <div className="relative flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 bg-black/50 backdrop-blur-sm text-white">
+                <div className="flex-1">
+                  <h3 className="font-medium text-sm">{zoomImage.title}</h3>
+                  <p className="text-xs text-white/70">
+                    {zoomImage.currentIndex + 1} из {zoomImage.images.length}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setZoomImage(null)}
+                  className="h-8 w-8 p-0 rounded-full text-white hover:bg-white/20"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Image Container */}
+              <div className="flex-1 flex items-center justify-center p-4 relative">
+                <img
+                  src={zoomImage.url}
+                  alt={`${zoomImage.title} ${zoomImage.currentIndex + 1}`}
+                  className="max-w-full max-h-full object-contain"
+                />
+
+                {/* Navigation Buttons */}
+                {zoomImage.images.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigateZoomImage('prev')}
+                      disabled={zoomImage.currentIndex === 0}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 p-0 rounded-full bg-black/50 text-white hover:bg-black/70 disabled:opacity-30"
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigateZoomImage('next')}
+                      disabled={zoomImage.currentIndex === zoomImage.images.length - 1}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 p-0 rounded-full bg-black/50 text-white hover:bg-black/70 disabled:opacity-30"
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {/* Image Indicator Dots */}
+              {zoomImage.images.length > 1 && (
+                <div className="flex justify-center gap-1 p-4">
+                  {zoomImage.images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setZoomImage({
+                        ...zoomImage,
+                        url: zoomImage.images[index],
+                        currentIndex: index
+                      })}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        index === zoomImage.currentIndex 
+                          ? 'bg-white' 
+                          : 'bg-white/40 hover:bg-white/60'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
