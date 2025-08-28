@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
       public_id: item.public_id,
       file_type: item.type,
       uploaded_by: uploadedBy,
-      source: 'admin'
+      source: 'web'
     }));
 
     const { data, error } = await supabase
@@ -174,8 +174,18 @@ Deno.serve(async (req) => {
     console.log(`Successfully attached ${mediaItems.length} media items to order ${orderId}`);
 
     return new Response(
-      JSON.stringify({ success: true, data, count: mediaItems.length }),
-      { status: 200, headers: corsHeaders }
+      JSON.stringify({ 
+        success: true, 
+        inserted: mediaItems.length,
+        data 
+      }),
+      { 
+        status: 200, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
 
   } catch (error) {

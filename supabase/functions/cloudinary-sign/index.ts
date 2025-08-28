@@ -105,8 +105,17 @@ Deno.serve(async (req) => {
 
     if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
       console.error('Missing Cloudinary credentials');
+      const missing = [];
+      if (!CLOUD_NAME) missing.push('CLOUDINARY_CLOUD_NAME');
+      if (!API_KEY) missing.push('CLOUDINARY_API_KEY');
+      if (!API_SECRET) missing.push('CLOUDINARY_API_SECRET');
+      
       return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Server configuration error', 
+          missing 
+        }),
         { status: 500, headers: corsHeaders }
       );
     }
@@ -120,7 +129,7 @@ Deno.serve(async (req) => {
     const signatureString = `folder=${folder}&public_id=${public_id}&timestamp=${timestamp}`;
     const signature = await sha1(signatureString + API_SECRET);
 
-    const response: SignResponse = {
+    const signatureData: SignResponse = {
       cloud_name: CLOUD_NAME,
       api_key: API_KEY,
       timestamp,
@@ -128,6 +137,12 @@ Deno.serve(async (req) => {
       public_id,
       signature,
       upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
+    };
+
+    // Return canonical contract: {success: true, data: {...}}
+    const response = {
+      success: true,
+      data: signatureData
     };
 
     console.log('Generated Cloudinary signature for orderId:', orderId);

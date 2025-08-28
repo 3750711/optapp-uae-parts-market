@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, X, Pause, Play } from "lucide-react";
 import { useDirectCloudinaryUpload } from "@/hooks/useDirectCloudinaryUpload";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
+import { CloudinaryUploadProgress } from "@/components/ui/CloudinaryUploadProgress";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 
@@ -32,12 +33,14 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
   const { 
     uploadFiles, 
     uploadQueue, 
+    persistentQueue,
     isUploading, 
     isPaused,
     pauseUpload,
     resumeUpload,
     cancelUpload, 
-    markAsDeleted 
+    markAsDeleted,
+    networkProfile
   } = useDirectCloudinaryUpload();
   const { language } = useLanguage();
   const t = getSellerPagesTranslations(language);
@@ -195,8 +198,21 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
         />
       </Button>
 
-      {/* Upload controls */}
-      {(hasActiveUploads || hasPausedUploads) && (
+      {/* Upload progress component */}
+      {uploadQueue.length > 0 && (
+        <CloudinaryUploadProgress
+          uploadQueue={uploadQueue}
+          isUploading={isUploading}
+          isPaused={isPaused}
+          networkProfile={networkProfile}
+          onPause={pauseUpload}
+          onResume={() => orderId && resumeUpload({ orderId })}
+          onCancel={cancelUpload}
+        />
+      )}
+
+      {/* Upload controls - simplified since CloudinaryUploadProgress handles controls */}
+      {(hasActiveUploads || hasPausedUploads) && uploadQueue.length === 0 && (
         <div className="flex gap-2">
           {hasActiveUploads && !isPaused && (
             <Button
@@ -272,10 +288,10 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
         </div>
       )}
 
-      {/* Network info */}
-      {hasActiveUploads && (
+      {/* Network info - now handled by CloudinaryUploadProgress */}
+      {hasActiveUploads && uploadQueue.length === 0 && (
         <div className="text-xs text-muted-foreground text-center">
-          Используется профиль сжатия для {(navigator as any).connection?.effectiveType || '4g'} сети
+          Используется профиль сжатия для {networkProfile.effectiveType || '4g'} сети
         </div>
       )}
     </div>

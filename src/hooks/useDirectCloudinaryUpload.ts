@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { indexedDBQueue, type QueueItem } from '@/utils/indexedDBQueue';
 
 interface UploadItem {
   id: string;
@@ -15,6 +16,7 @@ interface UploadItem {
   originalSize: number;
   compressedSize?: number;
   abortController?: AbortController;
+  orderId?: string; // Added for IndexedDB persistence
 }
 
 interface NetworkProfile {
@@ -134,6 +136,72 @@ export const useDirectCloudinaryUpload = () => {
   const processedHashes = useRef(new Set<string>());
   const compressionSemaphore = useRef(new Semaphore(1)); // Limit compression to prevent memory issues
   const worker = useRef<Worker | null>(null);
+  const [persistentQueue, setPersistentQueue] = useState<QueueItem[]>([]);
+
+  // Initialize and restore queue from IndexedDB
+  useEffect(() => {
+    const initQueue = async () => {
+      try {
+        await indexedDBQueue.init();
+        const storedItems = await indexedDBQueue.getAllItems();
+        
+        // Filter out completed items older than 24 hours
+        const validItems = storedItems.filter(item => {
+          const age = Date.now() - item.createdAt;
+          const isOld = age > 24 * 60 * 60 * 1000; // 24 hours
+          const isCompleted = ['success', 'deleted'].includes(item.status);
+          return !(isOld && isCompleted);
+        });
+        
+        setPersistentQueue(validItems);
+        
+        // Clean up old completed items
+        await indexedDBQueue.clearCompleted();
+        
+        console.log(`📦 Restored ${validItems.length} items from persistent queue`);
+      } catch (error) {
+        console.error('Failed to initialize IndexedDB queue:', error);
+      }
+    };
+    
+    initQueue();
+  }, []);
+
+  // Sync upload queue to IndexedDB
+  const syncToIndexedDB = useCallback(async (item: UploadItem) => {
+    if (!item.orderId) return;
+    
+    try {
+      // Check if item exists in IndexedDB
+      const existingItems = await indexedDBQueue.getAllItems();
+      const existingItem = existingItems.find(i => i.id === item.id);
+      
+      if (existingItem) {
+        await indexedDBQueue.updateItem(item.id, {
+          status: item.status,
+          progress: item.progress,
+          error: item.error,
+          finalUrl: item.finalUrl,
+          publicId: item.publicId,
+          compressedSize: item.compressedSize
+        });
+      } else {
+        await indexedDBQueue.addItem({
+          orderId: item.orderId,
+          file: item.file,
+          status: item.status,
+          progress: item.progress,
+          originalSize: item.originalSize,
+          compressedSize: item.compressedSize,
+          finalUrl: item.finalUrl,
+          publicId: item.publicId,
+          error: item.error
+        });
+      }
+    } catch (error) {
+      console.error('Failed to sync item to IndexedDB:', error);
+    }
+  }, []);
 
   // Initialize worker
   const initWorker = useCallback(() => {
@@ -340,37 +408,45 @@ export const useDirectCloudinaryUpload = () => {
 
     try {
       // Signing phase
+      const updatedItem1 = { ...item, status: 'signing' as const, progress: 5 };
       setUploadQueue(prev => prev.map(i => 
-        i.id === item.id ? { ...i, status: 'signing', progress: 5 } : i
+        i.id === item.id ? updatedItem1 : i
       ));
+      await syncToIndexedDB(updatedItem1);
 
       const signature = await getCloudinarySignature(options.orderId);
 
       // Upload phase
+      const updatedItem2 = { ...item, status: 'uploading' as const, progress: 10 };
       setUploadQueue(prev => prev.map(i => 
-        i.id === item.id ? { ...i, status: 'uploading', progress: 10 } : i
+        i.id === item.id ? updatedItem2 : i
       ));
+      await syncToIndexedDB(updatedItem2);
 
       const result = await uploadToCloudinary(
         item.compressedFile || item.file,
         signature,
-        (progress) => {
+        async (progress) => {
+          const updatedItem = { ...item, progress: Math.max(10, progress) };
           setUploadQueue(prev => prev.map(i => 
-            i.id === item.id ? { ...i, progress: Math.max(10, progress) } : i
+            i.id === item.id ? updatedItem : i
           ));
+          await syncToIndexedDB(updatedItem);
         },
         item.abortController!
       );
 
+      const successItem = { 
+        ...item, 
+        status: 'success' as const, 
+        progress: 100,
+        finalUrl: result.url,
+        publicId: result.publicId
+      };
       setUploadQueue(prev => prev.map(i => 
-        i.id === item.id ? { 
-          ...i, 
-          status: 'success', 
-          progress: 100,
-          finalUrl: result.url,
-          publicId: result.publicId
-        } : i
+        i.id === item.id ? successItem : i
       ));
+      await syncToIndexedDB(successItem);
 
       return result;
     } catch (error) {
@@ -390,9 +466,11 @@ export const useDirectCloudinaryUpload = () => {
         await new Promise(resolve => setTimeout(resolve, delay));
         return uploadSingleFile(item, options, networkProfile, retryCount + 1);
       } else {
+        const errorItem = { ...item, status: 'error' as const, error: errorMessage };
         setUploadQueue(prev => prev.map(i => 
-          i.id === item.id ? { ...i, status: 'error', error: errorMessage } : i
+          i.id === item.id ? errorItem : i
         ));
+        await syncToIndexedDB(errorItem);
         throw error;
       }
     }
@@ -462,10 +540,16 @@ export const useDirectCloudinaryUpload = () => {
       status: 'pending',
       blobUrl: URL.createObjectURL(file),
       originalSize: file.size,
-      abortController: new AbortController()
+      abortController: new AbortController(),
+      orderId: options.orderId // Add orderId for IndexedDB persistence
     }));
 
     setUploadQueue(prev => [...prev, ...initialQueue]);
+
+    // Sync initial items to IndexedDB
+    for (const item of initialQueue) {
+      await syncToIndexedDB(item);
+    }
 
     try {
       // Step 1: Compress images in parallel (limited by compression semaphore)
@@ -656,12 +740,14 @@ export const useDirectCloudinaryUpload = () => {
   return {
     uploadFiles,
     uploadQueue,
+    persistentQueue,
     isUploading,
     isPaused,
     pauseUpload,
     resumeUpload,
     cancelUpload,
     markAsDeleted,
-    cleanup
+    cleanup,
+    networkProfile: getNetworkProfile()
   };
 };
