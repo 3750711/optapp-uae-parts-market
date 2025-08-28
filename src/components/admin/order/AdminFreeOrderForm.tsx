@@ -507,6 +507,7 @@ useEffect(() => {
   }
 
   const isFormDisabled = isLoading || !canSubmit;
+  const isImageUploadDisabled = isLoading; // Image upload should only be disabled during order creation
 
   return (
     <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
@@ -575,7 +576,7 @@ useEffect(() => {
             <OrderImageUpload
               onImagesChange={onImagesUpload}
               maxImages={25}
-              disabled={isFormDisabled}
+              disabled={isImageUploadDisabled}
               existingImages={images}
               sessionId={sessionId}
             />
@@ -588,7 +589,7 @@ useEffect(() => {
               onUpload={onVideoUpload}
               onDelete={onVideoDelete}
               maxVideos={5}
-              disabled={isFormDisabled}
+              disabled={isImageUploadDisabled}
             />
           </div>
         </div>

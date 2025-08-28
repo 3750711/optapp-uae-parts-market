@@ -199,13 +199,13 @@ export const useStagedCloudinaryUpload = () => {
       let worker: Worker;
       
       try {
-        // Use proper Vite syntax for Worker instantiation
+        // Use proper Vite syntax for Worker instantiation (no type: 'module' for .js files)
         worker = new Worker(
-          new URL('../workers/smart-image-compress.worker.js', import.meta.url), 
-          { type: 'module' }
+          new URL('../workers/smart-image-compress.worker.js', import.meta.url)
         );
+        console.log('✅ Worker created successfully');
       } catch (workerError) {
-        console.error('Failed to create worker:', workerError);
+        console.error('❌ Failed to create worker:', workerError);
         resolve({ ok: false, code: 'WORKER_CREATION_FAILED' });
         return;
       }
@@ -397,9 +397,13 @@ export const useStagedCloudinaryUpload = () => {
                       i.id === item.id ? { ...i, isHeic: true } : i
                     ));
                   }
-                } catch (workerError) {
-                  console.warn('Worker compression failed, using original:', workerError);
-                }
+                 } catch (workerError) {
+                   console.warn('🔧 Worker compression failed, using original file:', {
+                     error: workerError,
+                     fileName: item.file.name,
+                     fileSize: item.file.size
+                   });
+                 }
               }
 
               // Step 2b: Upload
