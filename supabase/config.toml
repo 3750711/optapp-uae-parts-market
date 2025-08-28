@@ -105,6 +105,12 @@ verify_jwt = true
 [functions.telegram-bot-webhook]
 verify_jwt = false
 
+[functions.cloudinary-sign]
+verify_jwt = true
+
+[functions.attach-order-media]
+verify_jwt = true
+
 [analytics]
 enabled = false
 port = 54327

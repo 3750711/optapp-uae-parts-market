@@ -26,6 +26,7 @@ export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isOrderCreated, setIsOrderCreated] = useState(false);
+  const [tempOrderId] = useState(() => `temp_${crypto.randomUUID()}`);
   const isMobile = useIsMobile();
 
   const {
@@ -558,6 +559,7 @@ useEffect(() => {
               onImagesUpload={onImagesUpload}
               onImageDelete={onImageDelete}
               onSetPrimaryImage={() => {}}
+              orderId={tempOrderId}
               disabled={isFormDisabled}
               maxImages={25}
             />

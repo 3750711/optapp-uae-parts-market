@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -576,7 +576,7 @@ export const useDirectCloudinaryUpload = () => {
   }, [uploadQueue]);
 
   // Pause/resume on visibility change
-  useState(() => {
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && isUploading) {
         pauseUpload();
@@ -589,7 +589,7 @@ export const useDirectCloudinaryUpload = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       cleanup();
     };
-  });
+  }, [isUploading, pauseUpload, cleanup]);
 
   return {
     uploadFiles,
