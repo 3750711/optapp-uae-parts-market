@@ -18,7 +18,8 @@ const sha1 = async (text: string): Promise<string> => {
 };
 
 interface SignRequest {
-  orderId: string;
+  orderId?: string;
+  sessionId?: string;
 }
 
 interface SignResponse {
@@ -89,11 +90,24 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { orderId }: SignRequest = await req.json();
+    const { orderId, sessionId }: SignRequest = await req.json();
 
-    if (!orderId) {
+    // Validate that either orderId or sessionId is provided and is valid UUID
+    const isValidUUID = (str: string) => 
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+
+    let targetId: string;
+    let folder: string;
+    
+    if (orderId && isValidUUID(orderId)) {
+      targetId = orderId;
+      folder = `orders/${orderId}`;
+    } else if (sessionId && isValidUUID(sessionId)) {
+      targetId = sessionId;
+      folder = `staging/${sessionId}`;
+    } else {
       return new Response(
-        JSON.stringify({ error: 'Missing orderId' }),
+        JSON.stringify({ error: 'Provide either valid orderId or sessionId (UUID v4)' }),
         { status: 400, headers: corsHeaders }
       );
     }
@@ -122,8 +136,7 @@ Deno.serve(async (req) => {
 
     // Generate signature parameters
     const timestamp = Math.floor(Date.now() / 1000);
-    const folder = `orders/${orderId}`;
-    const public_id = `o_${orderId}_${timestamp}_${crypto.randomUUID().slice(0, 8)}`;
+    const public_id = `o_${targetId}_${timestamp}_${crypto.randomUUID().slice(0, 8)}`;
 
     // Create signature string (alphabetically sorted parameters)
     const signatureString = `folder=${folder}&public_id=${public_id}&timestamp=${timestamp}`;
@@ -145,7 +158,7 @@ Deno.serve(async (req) => {
       data: signatureData
     };
 
-    console.log('Generated Cloudinary signature for orderId:', orderId);
+    console.log('Generated Cloudinary signature for targetId:', targetId, 'folder:', folder);
 
     return new Response(
       JSON.stringify(response),

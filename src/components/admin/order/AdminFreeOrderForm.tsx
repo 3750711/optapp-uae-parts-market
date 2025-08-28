@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
-import AdvancedImageUpload from './AdvancedImageUpload';
+import { StagedImageUpload } from './StagedImageUpload';
+import { useStagedCloudinaryUpload } from '@/hooks/useStagedCloudinaryUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { OrderPreviewDialog } from './OrderPreviewDialog';
@@ -26,8 +27,9 @@ export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isOrderCreated, setIsOrderCreated] = useState(false);
-  const [tempOrderId] = useState(() => `temp_${crypto.randomUUID()}`);
+  const [sessionId] = useState(() => crypto.randomUUID());
   const isMobile = useIsMobile();
+  const { attachToOrder } = useStagedCloudinaryUpload();
 
   const {
     // Form data
@@ -239,8 +241,24 @@ useEffect(() => {
   if (createdOrder) {
     setIsOrderCreated(true);
     clearSavedData();
+    
+    // Attach staged images if any
+    if (images.length > 0) {
+      attachToOrder(createdOrder.id)
+        .then(() => {
+          console.log('✅ Staged images attached to order:', createdOrder.id);
+        })
+        .catch((error) => {
+          console.error('❌ Failed to attach staged images:', error);
+          toast({
+            title: "Предупреждение",
+            description: "Заказ создан, но не удалось привязать изображения",
+            variant: "destructive",
+          });
+        });
+    }
   }
-}, [createdOrder, clearSavedData]);
+}, [createdOrder, clearSavedData, attachToOrder, images, toast]);
 
 // Отслеживание состояния загрузки
 useEffect(() => {
@@ -554,14 +572,10 @@ useEffect(() => {
         <div className="space-y-6">
           <div>
             <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Изображения</h3>
-            <AdvancedImageUpload
-              images={images}
-              onImagesUpload={onImagesUpload}
-              onImageDelete={onImageDelete}
-              onSetPrimaryImage={() => {}}
-              orderId={tempOrderId}
-              disabled={isFormDisabled}
+            <StagedImageUpload
+              onImagesChange={onImagesUpload}
               maxImages={25}
+              disabled={isFormDisabled}
             />
           </div>
 
