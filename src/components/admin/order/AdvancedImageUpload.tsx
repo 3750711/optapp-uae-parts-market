@@ -2,8 +2,8 @@
 import React, { useCallback } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Upload, X } from "lucide-react";
-import { useOptimizedImageUpload } from "@/hooks/useOptimizedImageUpload";
+import { Upload, X, Pause, Play } from "lucide-react";
+import { useDirectCloudinaryUpload } from "@/hooks/useDirectCloudinaryUpload";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
@@ -29,7 +29,16 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
   disabled = false,
   maxImages = 25
 }) => {
-  const { uploadFiles, uploadQueue, isUploading, cancelUpload, markAsDeleted } = useOptimizedImageUpload();
+  const { 
+    uploadFiles, 
+    uploadQueue, 
+    isUploading, 
+    isPaused,
+    pauseUpload,
+    resumeUpload,
+    cancelUpload, 
+    markAsDeleted 
+  } = useDirectCloudinaryUpload();
   const { language } = useLanguage();
   const t = getSellerPagesTranslations(language);
 
@@ -41,9 +50,9 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0 || !orderId) return;
 
-    console.log('📁 Files selected for advanced upload:', files.length);
+    console.log('📁 Files selected for direct upload:', files.length);
 
     const fileArray = Array.from(files);
     
@@ -71,33 +80,36 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       return;
     }
 
+    if (!orderId) {
+      console.error('⚠️ No orderId provided for upload');
+      return;
+    }
+
     try {
-      console.log('🚀 Starting advanced upload with smart compression:', validImageFiles.length, 'files');
+      console.log('🚀 Starting direct Cloudinary upload:', validImageFiles.length, 'files');
       
-      // Информация о размерах файлов
+      // Log file information
       validImageFiles.forEach(file => {
         const sizeKB = Math.round(file.size / 1024);
         const willCompress = file.size >= 400 * 1024; // 400KB threshold
         console.log(`📋 File: ${file.name} (${sizeKB}KB) - ${willCompress ? 'WILL COMPRESS' : 'NO COMPRESSION'}`);
       });
 
-      // Используем умное сжатие из хука (без принудительных опций)
+      // Use direct upload with adaptive compression
       const uploadedUrls = await uploadFiles(validImageFiles, {
-        productId: orderId,
-        maxConcurrent: 1,
+        orderId,
         disableToast: false
-        // Убираем compressionOptions - хук сам определит нужно ли сжимать
       });
       
       if (uploadedUrls.length > 0) {
-        console.log('✅ Advanced upload completed:', uploadedUrls);
+        console.log('✅ Direct upload completed:', uploadedUrls);
         const newImages = [...images, ...uploadedUrls];
         onImagesUpload(newImages);
       } else {
         console.warn('⚠️ No images were successfully uploaded');
       }
     } catch (error) {
-      console.error('💥 Error in advanced upload:', error);
+      console.error('💥 Error in direct upload:', error);
     }
     
     // Reset input
@@ -140,15 +152,16 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
 
   const canUploadMore = images.length < maxImages;
   const hasActiveUploads = uploadQueue.some(item => 
-    ['pending', 'compressing', 'uploading'].includes(item.status)
+    ['pending', 'compressing', 'signing', 'uploading'].includes(item.status)
   );
+  const hasPausedUploads = uploadQueue.some(item => item.status === 'paused');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain">
       {/* Header with upload info */}
       <div className="flex items-center justify-between">
         <Label className="text-base font-medium">{t.imageUpload.title}</Label>
-        <div className="text-sm text-gray-600">
+        <div className="text-sm text-muted-foreground">
           📸 {t.imageUpload.imagesCount.replace('{count}', images.length.toString()).replace('{max}', maxImages.toString())}
         </div>
       </div>
@@ -157,13 +170,13 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       <Button
         type="button"
         variant="outline"
-        disabled={disabled || hasActiveUploads || !canUploadMore}
+        disabled={disabled || (hasActiveUploads && !isPaused) || !canUploadMore}
         className="w-full h-12 relative"
       >
-        {hasActiveUploads ? (
+        {hasActiveUploads && !isPaused ? (
           <>
             <Upload className="mr-2 h-4 w-4 animate-pulse" />
-            {t.imageUpload.smartUpload}
+            Загрузка...
           </>
         ) : (
           <>
@@ -174,35 +187,62 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
         <input
           type="file"
           multiple
-          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+          accept="image/*"
+          capture="environment"
           onChange={handleFileSelect}
           className="absolute inset-0 opacity-0 cursor-pointer"
-          disabled={disabled || hasActiveUploads}
+          disabled={disabled || (hasActiveUploads && !isPaused) || !orderId}
         />
       </Button>
 
-      {/* Cancel upload button */}
-      {hasActiveUploads && (
-        <Button
-          type="button"
-          variant="destructive"
-          onClick={cancelUpload}
-          className="w-full"
-        >
-          <X className="h-4 w-4 mr-2" />
-          {t.imageUpload.cancelUpload}
-        </Button>
+      {/* Upload controls */}
+      {(hasActiveUploads || hasPausedUploads) && (
+        <div className="flex gap-2">
+          {hasActiveUploads && !isPaused && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={pauseUpload}
+              className="flex-1"
+            >
+              <Pause className="h-4 w-4 mr-2" />
+              Пауза
+            </Button>
+          )}
+          
+          {(isPaused || hasPausedUploads) && orderId && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => resumeUpload({ orderId })}
+              className="flex-1"
+            >
+              <Play className="h-4 w-4 mr-2" />
+              Продолжить
+            </Button>
+          )}
+          
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={cancelUpload}
+            className="flex-1"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Отменить
+          </Button>
+        </div>
       )}
 
-      {/* Smart compression info */}
+      {/* Upload success info */}
       {images.length > 0 && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+        <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-green-800">
-              {t.imageUpload.imagesUploaded.replace('{count}', images.length.toString())}
+            <span className="text-success-foreground">
+              ✅ Загружено {images.length} фотографий
             </span>
-            <span className="text-green-600 text-xs">
-              {t.imageUpload.smartCompressionLossless}
+            <span className="text-success-foreground/70 text-xs">
+              Автосжатие WebP
             </span>
           </div>
         </div>
@@ -220,15 +260,22 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
 
       {/* Upload progress info */}
       {hasActiveUploads && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="text-sm text-blue-800">
-            {t.imageUpload.smartCompressionActive}
+        <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+          <div className="text-sm text-primary-foreground">
+            📡 Прямая загрузка в Cloudinary
           </div>
-          <div className="text-xs text-blue-600 mt-1">
-            {t.imageUpload.compressionInfo.lossless}<br/>
-            {t.imageUpload.compressionInfo.light}<br/>
-            {t.imageUpload.compressionInfo.adaptive}
+          <div className="text-xs text-primary-foreground/70 mt-1">
+            • Адаптивное сжатие по сети<br/>
+            • WebP формат для экономии трафика<br/>
+            • Автоматические ретраи при ошибках
           </div>
+        </div>
+      )}
+
+      {/* Network info */}
+      {hasActiveUploads && (
+        <div className="text-xs text-muted-foreground text-center">
+          Используется профиль сжатия для {(navigator as any).connection?.effectiveType || '4g'} сети
         </div>
       )}
     </div>

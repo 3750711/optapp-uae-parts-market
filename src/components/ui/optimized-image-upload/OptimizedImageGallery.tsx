@@ -6,7 +6,7 @@ interface UploadItem {
   id: string;
   file: File;
   progress: number;
-  status: 'pending' | 'compressing' | 'uploading' | 'success' | 'error' | 'deleted';
+  status: 'pending' | 'compressing' | 'signing' | 'uploading' | 'success' | 'error' | 'deleted' | 'paused';
   blobUrl?: string;
   finalUrl?: string;
   originalSize: number;
@@ -60,7 +60,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     }
     
     // Показываем элементы в процессе загрузки
-    if (item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading') {
+    if (['pending', 'compressing', 'signing', 'uploading', 'paused'].includes(item.status)) {
       return true;
     }
     
@@ -142,8 +142,12 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
         return 'Deleted';
       case 'compressing':
         return 'Compressing';
+      case 'signing':
+        return 'Signing';
       case 'uploading':
         return 'Uploading';
+      case 'paused':
+        return 'Paused';
       default:
         return 'Processing';
     }
@@ -157,6 +161,8 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
         return 'bg-red-500 bg-opacity-90 text-white';
       case 'deleted':
         return 'bg-red-500 bg-opacity-90 text-white';
+      case 'paused':
+        return 'bg-yellow-500 bg-opacity-90 text-white';
       default:
         return 'bg-white bg-opacity-90 text-gray-800';
     }
