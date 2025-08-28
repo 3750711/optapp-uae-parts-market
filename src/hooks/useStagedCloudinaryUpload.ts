@@ -199,9 +199,10 @@ export const useStagedCloudinaryUpload = () => {
       let worker: Worker;
       
       try {
-        // Use proper Vite syntax for Worker instantiation (no type: 'module' for .js files)
+        // Use proper Vite syntax for Worker instantiation with ES module support
         worker = new Worker(
-          new URL('../workers/smart-image-compress.worker.js', import.meta.url)
+          new URL('../workers/smart-image-compress.worker.js', import.meta.url),
+          { type: 'module' }
         );
         console.log('✅ Worker created successfully');
       } catch (workerError) {
@@ -220,16 +221,30 @@ export const useStagedCloudinaryUpload = () => {
         worker.terminate();
         const result = e.data;
         
-        if (result.error || result.code) {
-          resolve({ ok: false, code: result.error || result.code });
-        } else {
+        if (result.ok) {
+          console.log('✅ Worker compression successful:', {
+            originalSize: result.original?.size || file.size,
+            compressedSize: result.size,
+            compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A'
+          });
           resolve({
             ok: true,
             blob: result.blob,
-            mime: result.blob?.type,
-            originalSize: result.originalSize,
-            compressedSize: result.compressedSize,
+            mime: result.mime,
+            originalSize: result.original?.size || file.size,
+            compressedSize: result.size,
             compressionMs: result.compressionMs
+          });
+        } else {
+          console.warn('⚠️ Worker compression failed:', {
+            code: result.code,
+            message: result.message,
+            fileName: file.name
+          });
+          resolve({ 
+            ok: false, 
+            code: result.code || 'COMPRESSION_FAILED',
+            originalSize: file.size
           });
         }
       };
@@ -237,18 +252,18 @@ export const useStagedCloudinaryUpload = () => {
       worker.onerror = (error) => {
         clearTimeout(timeout);
         worker.terminate();
-        console.error('Worker error:', error);
-        resolve({ ok: false, code: 'WORKER_ERROR' });
+        console.error('❌ Worker error:', error);
+        resolve({ ok: false, code: 'WORKER_ERROR', originalSize: file.size });
       };
       
-      // Send compression task
+      // Send compression task with updated API
       try {
         worker.postMessage({
-          id: crypto.randomUUID(),
           file,
           maxSide: 1600,
-          quality: 0.82,
-          format: 'jpeg'
+          jpegQuality: 0.82,
+          prefer: 'jpeg',
+          twoPass: true
         });
       } catch (postError) {
         clearTimeout(timeout);
@@ -384,18 +399,32 @@ export const useStagedCloudinaryUpload = () => {
                   const compressionResult = await compressInWorker(item.file);
                   
                   if (compressionResult.ok && compressionResult.blob) {
+                    // Successfully compressed
                     finalFile = new File([compressionResult.blob], 
                       item.file.name.replace(/\.[^/.]+$/, '.jpg'), 
-                      { type: compressionResult.mime || 'image/jpeg' });
+                      { type: compressionResult.blob.type || 'image/jpeg' });
                     
                     setUploadItems(prev => prev.map(i => 
                       i.id === item.id ? { ...i, compressedSize: finalFile.size, progress: 30 } : i
                     ));
-                  } else if (compressionResult.code === 'UNSUPPORTED_HEIC') {
-                    // Mark as HEIC for original upload
-                    setUploadItems(prev => prev.map(i => 
-                      i.id === item.id ? { ...i, isHeic: true } : i
-                    ));
+                    
+                    console.log(`✅ Compressed ${item.file.name}: ${item.file.size} → ${finalFile.size} bytes`);
+                  } else {
+                    // Compression failed, handle specific errors
+                    if (compressionResult.code === 'UNSUPPORTED_HEIC') {
+                      console.log('📱 HEIC file detected, uploading original for server conversion');
+                      setUploadItems(prev => prev.map(i => 
+                        i.id === item.id ? { ...i, isHeic: true } : i
+                      ));
+                    } else if (compressionResult.code === 'DECODE_FAILED') {
+                      console.warn('🖼️ Image decode failed, uploading original:', item.file.name);
+                    } else {
+                      console.warn('⚠️ Compression failed, uploading original:', {
+                        code: compressionResult.code,
+                        fileName: item.file.name,
+                        fileSize: item.file.size
+                      });
+                    }
                   }
                  } catch (workerError) {
                    console.warn('🔧 Worker compression failed, using original file:', {
@@ -403,6 +432,7 @@ export const useStagedCloudinaryUpload = () => {
                      fileName: item.file.name,
                      fileSize: item.file.size
                    });
+                   // Use original file as fallback
                  }
               }
 

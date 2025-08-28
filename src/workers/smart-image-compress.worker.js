@@ -1,197 +1,284 @@
-// Smart Image Compression Worker - JavaScript version for Vite compatibility
-// Two-pass compression to hit specific file size targets
+/* eslint-disable no-restricted-globals */
 
-// Check for OffscreenCanvas support
-const hasOffscreenCanvas = typeof OffscreenCanvas !== 'undefined';
+// === Public API ===
+// postMessage({ file, maxSide?: number=1600, jpegQuality?: number=0.82, prefer?: 'jpeg'|'webp'='jpeg',
+//               targetBytes?: number, twoPass?: boolean=true })
+// Ответ: { ok:true, blob, mime, width, height, original: {width,height,size}, size } | { ok:false, code, message }
 
-// EXIF orientation correction
-const getOrientation = async (file) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const view = new DataView(e.target?.result);
-      if (view.getUint16(0, false) !== 0xFFD8) return resolve(1);
-      
-      const length = view.byteLength;
-      let offset = 2;
-      
-      while (offset < length) {
-        const marker = view.getUint16(offset, false);
-        offset += 2;
-        
-        if (marker === 0xFFE1) {
-          const little = view.getUint16(offset + 4, false) === 0x4949;
-          offset += view.getUint16(offset, false);
-          const tiffOffset = view.getUint32(offset + 4, little) + offset + 4;
-          const tags = view.getUint16(tiffOffset, little);
-          
-          for (let i = 0; i < tags; i++) {
-            const tagOffset = tiffOffset + i * 12 + 2;
-            if (view.getUint16(tagOffset, little) === 0x0112) {
-              return resolve(view.getUint16(tagOffset + 8, little));
-            }
-          }
-        } else if ((marker & 0xFF00) !== 0xFF00) break;
-        else offset += view.getUint16(offset, false);
-      }
-      resolve(1);
-    };
-    reader.readAsArrayBuffer(file.slice(0, 64 * 1024));
-  });
-};
-
-// Apply orientation correction to canvas
-const applyOrientation = (ctx, orientation, width, height) => {
-  switch (orientation) {
-    case 2: ctx.transform(-1, 0, 0, 1, width, 0); break;
-    case 3: ctx.transform(-1, 0, 0, -1, width, height); break;
-    case 4: ctx.transform(1, 0, 0, -1, 0, height); break;
-    case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;
-    case 6: ctx.transform(0, 1, -1, 0, height, 0); break;
-    case 7: ctx.transform(0, -1, -1, 0, height, width); break;
-    case 8: ctx.transform(0, -1, 1, 0, 0, width); break;
-  }
-};
-
-// Compress with specific settings with transferable optimization
-const compressWithSettings = async (file, maxSide, quality, format, orientation) => {
-  if (hasOffscreenCanvas) {
-    // Create bitmap from file
-    const bitmap = await createImageBitmap(file);
-    const { width, height } = bitmap;
-    
-    // Calculate new dimensions
-    const scale = Math.min(1, maxSide / Math.max(width, height));
-    const newWidth = Math.round(width * scale);
-    const newHeight = Math.round(height * scale);
-    
-    const shouldRotate = orientation >= 5 && orientation <= 8;
-    
-    // Create canvas with corrected dimensions
-    const canvas = new OffscreenCanvas(
-      shouldRotate ? newHeight : newWidth,
-      shouldRotate ? newWidth : newHeight
-    );
-    const ctx = canvas.getContext('2d');
-    
-    // Apply orientation correction
-    applyOrientation(ctx, orientation, newWidth, newHeight);
-    
-    // Draw and compress
-    ctx.drawImage(bitmap, 0, 0, newWidth, newHeight);
-    bitmap.close(); // Free memory immediately
-    
-    const blob = await canvas.convertToBlob({
-      type: `image/${format}`,
-      quality: quality
-    });
-    
-    return blob;
-  } else {
-    // Improved fallback using basic canvas
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Calculate dimensions
-        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        
-        // Apply orientation and draw
-        applyOrientation(ctx, orientation, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Convert to blob
-        canvas.toBlob(resolve, `image/${format}`, quality);
-      };
-      img.onerror = () => resolve(file); // Fallback to original
-      img.src = URL.createObjectURL(file);
-    });
-  }
-};
-
-// HEIC/HEIF format detection (improved)
-function isHeicFormat(file) {
-  const heicTypes = ['image/heic', 'image/heif'];
-  if (heicTypes.includes(file.type)) return true;
-  
-  const name = file.name.toLowerCase();
-  if (name.endsWith('.heic') || name.endsWith('.heif')) return true;
-  
-  // Additional MIME type variants
-  if (file.type.includes('heic') || file.type.includes('heif')) return true;
-  
-  return false;
-}
-
-// Optimized single-pass compression with HEIC handling
-const smartCompress = async (task) => {
-  const { id, file, maxSide = 1600, quality = 0.82, format = 'jpeg' } = task;
-  const startTime = performance.now();
-  
+self.onmessage = async (e) => {
+  const p = e.data || {};
   try {
-    // Early HEIC/HEIF detection and rejection
-    if (isHeicFormat(file)) {
-      console.log(`❌ HEIC/HEIF format detected: ${file.name}`);
-      return {
-        id,
-        ok: false,
-        code: 'UNSUPPORTED_HEIC',
-        originalSize: file.size,
-        compressedSize: 0,
-        compressionMs: performance.now() - startTime,
-        passes: 0,
-        error: 'HEIC/HEIF format not supported in browser'
-      };
+    const file = p.file;
+    if (!file) return postError('NO_FILE', 'No file provided');
+
+    const type = (file.type || '').toLowerCase();
+
+    // HEIC/HEIF не декодируется в браузерах → явно сообщаем
+    if (type.includes('heic') || type.includes('heif')) {
+      return self.postMessage({ ok: false, code: 'UNSUPPORTED_HEIC', message: 'HEIC/HEIF is not supported in browser' });
     }
 
-    const orientation = await getOrientation(file);
-    
-    // Single optimized pass with aggressive settings
-    const blob = await compressWithSettings(
-      file,
-      maxSide,
-      quality,
-      format,
-      orientation
-    );
-    
-    const compressionMs = performance.now() - startTime;
-    
-    return {
-      id,
-      ok: true,
-      blob,
-      originalSize: file.size,
-      compressedSize: blob.size,
-      compressionMs: Math.round(compressionMs),
-      passes: 1,
-      method: 'smart'
-    };
-  } catch (error) {
-    console.error(`❌ Compression failed for ${file.name}:`, error);
-    
-    return {
-      id,
-      ok: false,
-      originalSize: file.size,
-      compressedSize: 0,
-      compressionMs: performance.now() - startTime,
-      passes: 0,
-      method: 'original',
-      error: error.message
-    };
+    const maxSide = clampInt(p.maxSide, 256, 8192, 1600);
+    const jpegQuality = clampFloat(p.jpegQuality, 0.5, 0.95, 0.82);
+    const prefer = (p.prefer === 'webp') ? 'webp' : 'jpeg';
+    const targetBytes = isFiniteNumber(p.targetBytes) ? Math.max(10_000, Math.floor(p.targetBytes)) : null;
+    const twoPass = p.twoPass !== false; // по умолчанию включен
+
+    // Прочитаем ArrayBuffer один раз (для EXIF)
+    const buf = await file.arrayBuffer().catch(() => null);
+    const orientation = buf ? safeReadExifOrientation(buf) : 1;
+
+    // Декодируем в bitmap/img
+    const decoded = await decodeImage(file).catch(() => null);
+    if (!decoded) throw new Error('DECODE_FAILED');
+
+    // Первая попытка: оценочный энкод с заданным качеством/стороной
+    const pass1 = await renderAndEncode(decoded, orientation, { maxSide, prefer, jpegQuality });
+    if (!targetBytes || !twoPass) {
+      return self.postMessage({ ok: true, ...pass1 });
+    }
+
+    // Если целевой размер задан — подгон по размеру (второй проход)
+    const tuned = await tuneToTarget(decoded, orientation, pass1, { targetBytes, prefer, jpegQuality, maxSide });
+    return self.postMessage({ ok: true, ...tuned });
+
+  } catch (err) {
+    postError('PROCESSING_FAILED', err);
   }
 };
 
-// Worker message handler
-self.onmessage = async (e) => {
-  const task = e.data;
-  const result = await smartCompress(task);
-  
-  // Send result back
-  self.postMessage(result);
-};
+// ============== helpers ==============
+
+function clampInt(v, min, max, dflt) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return dflt;
+  return Math.min(max, Math.max(min, Math.floor(n)));
+}
+function clampFloat(v, min, max, dflt) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return dflt;
+  return Math.min(max, Math.max(min, n));
+}
+function isFiniteNumber(v) { return typeof v === 'number' && Number.isFinite(v); }
+
+function postError(code, err) {
+  const msg = (err && err.message) ? err.message : String(err || code);
+  self.postMessage({ ok: false, code, message: msg });
+}
+
+// ---- EXIF (safe) ----
+// Возвращает 1..8 или 1 при любой проблеме. НИКОГДА не бросает исключение.
+function safeReadExifOrientation(arrayBuffer) {
+  try {
+    const view = new DataView(arrayBuffer);
+    const len = view.byteLength;
+    // JPEG начинается с FFD8
+    if (len < 4 || getU16(view, 0, false) !== 0xFFD8) return 1;
+
+    let offset = 2;
+    while (offset + 4 <= len) {
+      const marker = getU16(view, offset, false); offset += 2;
+      if ((marker & 0xFF00) !== 0xFF00) break; // не маркер
+      if (offset + 2 > len) break;
+      const size = getU16(view, offset, false); offset += 2;
+      if (size < 2 || offset + (size - 2) > len) { offset = len; break; }
+
+      if (marker === 0xFFE1 && size >= 10) { // APP1
+        const start = offset;
+        // 'Exif\0\0'
+        if (start + 6 <= len && getU32(view, start, false) === 0x45786966) {
+          const tiff = start + 6;
+          if (tiff + 8 <= len) {
+            const little = (getU16(view, tiff, false) === 0x4949);
+            const ifd0 = tiff + getU32(view, tiff + 4, little);
+            if (ifd0 + 2 <= len) {
+              const entries = getU16(view, ifd0, little);
+              for (let i = 0; i < entries; i++) {
+                const entry = ifd0 + 2 + i * 12;
+                if (entry + 12 > len) break;
+                const tag = getU16(view, entry, little);
+                if (tag === 0x0112) { // Orientation
+                  const valOff = entry + 8;
+                  if (valOff + 2 <= len) {
+                    const ori = getU16(view, valOff, little);
+                    if (ori >= 1 && ori <= 8) return ori;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      offset = offset + (size - 2);
+    }
+  } catch (_) { /* ignore */ }
+  return 1;
+}
+function getU16(view, off, little) {
+  if (off + 2 > view.byteLength) throw new RangeError('U16 OOB');
+  return view.getUint16(off, little);
+}
+function getU32(view, off, little) {
+  if (off + 4 > view.byteLength) throw new RangeError('U32 OOB');
+  return view.getUint32(off, little);
+}
+
+// ---- decode with fallbacks ----
+async function decodeImage(file) {
+  // createImageBitmap может зависнуть в WebView → даём таймаут
+  const url = URL.createObjectURL(file);
+  try {
+    const bmp = await withTimeout(createImageBitmap({ src: url }), 3000).catch(() => null);
+    if (bmp) return bmp;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+  // Фолбэк через <img>
+  return await decodeViaImg(file);
+}
+function decodeViaImg(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+    img.src = url;
+  });
+}
+function withTimeout(promise, ms) {
+  return new Promise((res, rej) => {
+    const t = setTimeout(() => rej(new Error('TIMEOUT')), ms);
+    promise.then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); });
+  });
+}
+
+// ---- render & encode ----
+async function renderAndEncode(src, orientation, { maxSide, prefer, jpegQuality }) {
+  const srcW = src.width, srcH = src.height;
+  const rotated = orientation >= 5 && orientation <= 8;
+  const inW = rotated ? srcH : srcW;
+  const inH = rotated ? srcW : srcH;
+  const scale = Math.min(1, maxSide / Math.max(inW, inH));
+  const outW = Math.max(1, Math.round(inW * scale));
+  const outH = Math.max(1, Math.round(inH * scale));
+
+  // 1) OffscreenCanvas
+  if (typeof OffscreenCanvas !== 'undefined') {
+    try {
+      const canvas = new OffscreenCanvas(outW, outH);
+      const ctx = canvas.getContext('2d', { alpha: false });
+      drawOriented(ctx, src, orientation, outW, outH);
+
+      const mimes = prefer === 'webp'
+        ? ['image/webp', 'image/jpeg', 'image/png']
+        : ['image/jpeg', 'image/webp', 'image/png'];
+
+      for (const m of mimes) {
+        try {
+          const blob = await canvas.convertToBlob({ type: m, quality: m.includes('jpeg') ? jpegQuality : undefined });
+          if (blob && blob.size) return buildResult(blob, srcW, srcH, outW, outH, m);
+        } catch (_) {}
+      }
+    } catch (_) {}
+  }
+
+  // 2) HTMLCanvasElement fallback
+  const canvas = createHtmlCanvas(outW, outH);
+  const ctx = canvas.getContext('2d', { alpha: false });
+  drawOriented(ctx, src, orientation, outW, outH);
+
+  const mimes = prefer === 'webp'
+    ? ['image/webp', 'image/jpeg', 'image/png']
+    : ['image/jpeg', 'image/webp', 'image/png'];
+
+  const blob = await toBlobSafe(canvas, mimes, jpegQuality);
+  if (!blob) throw new Error('ENCODE_FAILED');
+
+  return buildResult(blob, srcW, srcH, outW, outH, blob.type || (prefer === 'webp' ? 'image/webp' : 'image/jpeg'));
+}
+
+function drawOriented(ctx, src, orientation, w, h) {
+  ctx.save();
+  switch (orientation) {
+    case 2: ctx.translate(w, 0); ctx.scale(-1, 1); break;
+    case 3: ctx.translate(w, h); ctx.rotate(Math.PI); break;
+    case 4: ctx.translate(0, h); ctx.scale(1, -1); break;
+    case 5: ctx.rotate(0.5 * Math.PI); ctx.scale(1, -1); ctx.translate(0, -w); [w, h] = [h, w]; break;
+    case 6: ctx.rotate(0.5 * Math.PI); ctx.translate(0, -h); [w, h] = [h, w]; break;
+    case 7: ctx.rotate(0.5 * Math.PI); ctx.translate(w, -h); ctx.scale(-1, 1); [w, h] = [h, w]; break;
+    case 8: ctx.rotate(-0.5 * Math.PI); ctx.translate(-w, 0); [w, h] = [h, w]; break;
+  }
+  ctx.drawImage(src, 0, 0, w, h);
+  ctx.restore();
+}
+
+function createHtmlCanvas(w, h) {
+  // В воркере HTMLCanvasElement может отсутствовать — но мы в этом блоке уже не в воркере OffscreenCanvas
+  const c = new OffscreenCanvas ? new OffscreenCanvas(w, h) : (() => {
+    const el = new (self.HTMLCanvasElement || OffscreenCanvas)(w, h); return el;
+  })();
+  if (c.width !== w) c.width = w;
+  if (c.height !== h) c.height = h;
+  return c;
+}
+
+function toBlobSafe(canvas, mimes, jpegQuality) {
+  return new Promise(async (resolve) => {
+    for (const m of mimes) {
+      try {
+        if (canvas.convertToBlob) {
+          const b = await canvas.convertToBlob({ type: m, quality: m.includes('jpeg') ? jpegQuality : undefined });
+          if (b) return resolve(b);
+        }
+        // Если это настоящий HTMLCanvasElement
+        if (typeof canvas.toBlob === 'function') {
+          let settled = false;
+          const timer = setTimeout(() => { if (!settled) { settled = true; resolve(null); } }, 3000);
+          canvas.toBlob((b) => { if (!settled) { settled = true; clearTimeout(timer); resolve(b || null); } }, m, m.includes('jpeg') ? jpegQuality : undefined);
+          return; // ждём callback
+        }
+      } catch (_) {}
+    }
+    resolve(null);
+  });
+}
+
+function buildResult(blob, inW, inH, outW, outH, mime) {
+  return {
+    blob,
+    mime,
+    width: outW,
+    height: outH,
+    original: { width: inW, height: inH, size: undefined },
+    size: blob.size
+  };
+}
+
+// ---- two-pass tuning (target size) ----
+async function tuneToTarget(src, orientation, firstPass, opts) {
+  const { targetBytes, prefer, jpegQuality, maxSide } = opts;
+  // Если уже в целевом диапазоне (±15%) — принимаем
+  if (within(firstPass.size, targetBytes, 0.15)) return firstPass;
+
+  // Подгоняем качеством и стороной
+  let q = jpegQuality;
+  let side = maxSide;
+  for (let i = 0; i < 3; i++) {
+    // если слишком большой → снижаем качество и чуть уменьшаем сторону
+    if (firstPass.size > targetBytes) {
+      q = Math.max(0.6, q - 0.08);
+      side = Math.max(720, Math.round(side * 0.9));
+    } else {
+      // слишком маленький → чуть поднимаем качество (не выше 0.9)
+      q = Math.min(0.9, q + 0.06);
+    }
+    const pass = await renderAndEncode(src, orientation, { maxSide: side, prefer, jpegQuality: q });
+    if (within(pass.size, targetBytes, 0.15)) return pass;
+    firstPass = pass;
+  }
+  return firstPass;
+}
+function within(value, target, tol) {
+  const d = Math.abs(value - target);
+  return d <= target * tol;
+}
