@@ -138,21 +138,57 @@ export const useDirectCloudinaryUpload = () => {
   // Initialize worker
   const initWorker = useCallback(() => {
     if (!worker.current) {
-      worker.current = new Worker(new URL('../workers/image-compress.worker.ts', import.meta.url), {
-        type: 'module'
-      });
+      try {
+        console.log('🔧 Initializing WebWorker for image compression');
+        worker.current = new Worker(new URL('../workers/image-compress.worker.ts', import.meta.url), {
+          type: 'module'
+        });
+        
+        worker.current.onerror = (error) => {
+          console.error('❌ WebWorker error:', error);
+        };
+        
+        console.log('✅ WebWorker initialized successfully');
+      } catch (error) {
+        console.error('❌ Failed to initialize WebWorker:', error);
+        throw new Error('Failed to initialize image compression worker');
+      }
     }
     return worker.current;
   }, []);
 
   // Get Cloudinary signature
   const getCloudinarySignature = useCallback(async (orderId: string): Promise<CloudinarySignature> => {
+    console.log('🔐 Getting Cloudinary signature for orderId:', orderId);
+    
     const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
       body: { orderId }
     });
     
-    if (error) throw new Error(error.message);
-    if (!data.success && data.error) throw new Error(data.error);
+    if (error) {
+      console.error('❌ Signature error:', error);
+      throw new Error(error.message);
+    }
+    
+    if (!data) {
+      console.error('❌ No signature data received');
+      throw new Error('No signature data received');
+    }
+    
+    // Validate required fields
+    const requiredFields = ['cloud_name', 'api_key', 'signature', 'timestamp', 'upload_url'];
+    for (const field of requiredFields) {
+      if (!data[field]) {
+        console.error(`❌ Missing required field in signature: ${field}`);
+        throw new Error(`Missing required field: ${field}`);
+      }
+    }
+    
+    console.log('✅ Signature received successfully:', {
+      cloud_name: data.cloud_name,
+      folder: data.folder,
+      public_id: data.public_id
+    });
     
     return data;
   }, []);
@@ -210,6 +246,12 @@ export const useDirectCloudinaryUpload = () => {
     onProgress: (progress: number) => void,
     abortController: AbortController
   ): Promise<{ url: string; publicId: string }> => {
+    console.log('☁️ Starting direct upload to Cloudinary:', {
+      fileName: file.name,
+      fileSize: file.size,
+      uploadUrl: signature.upload_url
+    });
+    
     return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append('file', file);
@@ -231,24 +273,39 @@ export const useDirectCloudinaryUpload = () => {
       
       // Success
       xhr.onload = () => {
+        console.log('📡 Cloudinary upload response:', xhr.status, xhr.statusText);
+        
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const response = JSON.parse(xhr.responseText);
+            console.log('✅ Upload successful:', {
+              secure_url: response.secure_url,
+              public_id: response.public_id
+            });
+            
             resolve({
               url: response.secure_url,
               publicId: response.public_id
             });
           } catch (error) {
+            console.error('❌ Failed to parse Cloudinary response:', xhr.responseText);
             reject(new Error('Invalid response from Cloudinary'));
           }
         } else {
+          console.error('❌ Upload failed:', xhr.status, xhr.statusText, xhr.responseText);
           reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
         }
       };
       
       // Error
-      xhr.onerror = () => reject(new Error('Network error during upload'));
-      xhr.ontimeout = () => reject(new Error('Upload timeout'));
+      xhr.onerror = () => {
+        console.error('❌ Network error during upload to Cloudinary');
+        reject(new Error('Network error during upload'));
+      };
+      xhr.ontimeout = () => {
+        console.error('❌ Upload timeout to Cloudinary');
+        reject(new Error('Upload timeout'));
+      };
       
       // Abort handling
       abortController.signal.addEventListener('abort', () => {
