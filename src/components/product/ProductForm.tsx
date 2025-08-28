@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Save, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { normalizeDecimal } from "@/utils/number";
 import { 
   Select, 
   SelectContent, 
@@ -65,7 +66,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   return (
     <form
       onSubmit={onSubmit}
-      className={`flex flex-col ${isMobile ? "gap-1 sm:gap-2" : "gap-1 sm:gap-2"}`}
+      className={`mobile-form flex flex-col ${isMobile ? "gap-2 sm:gap-3 pb-24" : "gap-2 sm:gap-3"} overscroll-contain`}
     >
       <label htmlFor="title" className="text-xs sm:text-sm font-medium">Название товара</label>
       <Input
@@ -82,7 +83,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         id="price"
         type="number"
         value={formData.price}
-        onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+        onChange={(e) => setFormData({ ...formData, price: normalizeDecimal(e.target.value) })}
         placeholder="Цена"
         className="h-8 sm:h-8"
         disabled={!isCreator}
@@ -131,7 +132,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         type="number"
         min="1"
         value={formData.place_number}
-        onChange={(e) => setFormData({ ...formData, place_number: parseInt(e.target.value) || 1 })}
+        onChange={(e) => setFormData({ ...formData, place_number: Math.max(1, Math.round(normalizeDecimal(e.target.value))) })}
         placeholder="Количество мест для отправки"
         className="h-8 sm:h-8"
         disabled={!isCreator}
@@ -155,7 +156,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
         value={formData.delivery_price}
         onChange={(e) => setFormData({ 
           ...formData, 
-          delivery_price: parseFloat(e.target.value) || 0 
+          delivery_price: normalizeDecimal(e.target.value)
         })}
         placeholder="Стоимость доставки"
         className="h-8 sm:h-8"
@@ -163,30 +164,30 @@ const ProductForm: React.FC<ProductFormProps> = ({
       />
 
       {isMobile ? (
-        <div className="fixed bottom-0 left-0 w-full bg-white z-40 border-t flex justify-between p-2 gap-1 rounded-none shadow-xl">
+        <div className="sticky-footer fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-sm border-t flex justify-between p-3 gap-2 z-50">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
             disabled={isLoading}
-            className="h-9 flex-1 text-xs"
+            className="h-10 flex-1 text-sm mobile-touch-target"
           >
-            <X className="h-4 w-4 mr-1" />
+            <X className="h-4 w-4 mr-2" />
             Отмена
           </Button>
           <Button
             type="submit"
-            className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-9 flex-1 text-xs"
+            className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-10 flex-1 text-sm mobile-touch-target"
             disabled={isLoading || !isCreator}
           >
             {isLoading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Сохранение...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-1" />
+                <Save className="h-4 w-4 mr-2" />
                 Сохранить
               </>
             )}

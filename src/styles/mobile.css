@@ -1,0 +1,76 @@
+/* Mobile-optimized utilities for forms and viewport issues */
+
+/* Safe height utilities that work across mobile browsers */
+.safe-height {
+  min-height: 100vh; /* Fallback */
+  min-height: 100dvh; /* Dynamic viewport height */
+  min-height: 100svh; /* Small viewport height as secondary fallback */
+}
+
+.safe-screen {
+  height: 100vh; /* Fallback */
+  height: 100dvh; /* Dynamic viewport height */
+  height: 100svh; /* Small viewport height as secondary fallback */
+}
+
+/* Mobile form containers that handle keyboard properly */
+.mobile-form {
+  max-height: calc(100dvh - 2rem);
+  max-height: calc(100vh - 2rem); /* Fallback */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sticky footer for mobile forms */
+.sticky-footer {
+  position: sticky;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid hsl(var(--border));
+  z-index: 10;
+}
+
+/* Prevent background scrolling when modal/form is open */
+.prevent-scroll {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Mobile-optimized input focus */
+.mobile-input:focus {
+  /* Prevent zoom on iOS */
+  font-size: 16px;
+  transform: none;
+}
+
+/* Telegram WebView specific optimizations */
+@media screen and (max-width: 480px) {
+  /* Ensure forms are always accessible */
+  .telegram-form {
+    padding-bottom: env(keyboard-inset-height, 0px);
+    transition: padding-bottom 0.3s ease;
+  }
+  
+  /* Better touch targets */
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Android keyboard handling */
+@supports (height: 100dvh) {
+  .mobile-form {
+    max-height: calc(100dvh - 2rem);
+  }
+  
+  .safe-height {
+    min-height: 100dvh;
+  }
+  
+  .safe-screen {
+    height: 100dvh;
+  }
+}

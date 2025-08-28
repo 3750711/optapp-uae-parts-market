@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Edit3, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import { normalizeDecimal } from '@/utils/number';
 
 interface EditableOrderFormProps {
   product: {
@@ -510,7 +511,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
               min="0"
               step="0.01"
               value={editableData.price}
-              onChange={(e) => updateField('price', parseFloat(e.target.value) || 0)}
+              onChange={(e) => updateField('price', normalizeDecimal(e.target.value))}
               placeholder="0.00"
               disabled={isSubmitting}
             />
@@ -545,7 +546,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
                 min="0"
                 step="0.01"
                 value={editableData.deliveryPrice}
-                onChange={(e) => updateField('deliveryPrice', parseFloat(e.target.value) || 0)}
+                onChange={(e) => updateField('deliveryPrice', normalizeDecimal(e.target.value))}
                 placeholder="0.00"
                 disabled={isSubmitting}
               />
@@ -560,7 +561,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
               type="number"
               min="1"
               value={editableData.placeNumber}
-              onChange={(e) => updateField('placeNumber', parseInt(e.target.value) || 1)}
+              onChange={(e) => updateField('placeNumber', Math.max(1, Math.round(normalizeDecimal(e.target.value))))}
               disabled={isSubmitting}
             />
           </div>

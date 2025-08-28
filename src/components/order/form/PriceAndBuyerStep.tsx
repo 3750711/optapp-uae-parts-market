@@ -10,6 +10,7 @@ import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderFormData } from '@/hooks/useOrderForm';
 import { debounce } from '@/utils/debounce';
+import { normalizeDecimal } from '@/utils/number';
 
 interface PriceAndBuyerStepProps {
   formData: OrderFormData;
@@ -108,7 +109,7 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
     const hints = [];
     
     if (fieldName === 'price' && value) {
-      const price = parseFloat(value);
+      const price = normalizeDecimal(value);
       if (price > 1000) {
         hints.push({
           type: 'trend' as const,

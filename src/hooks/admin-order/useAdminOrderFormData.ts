@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { OrderFormData } from '@/types/order';
+import { normalizeDecimal } from '@/utils/number';
 
 const initialFormData: OrderFormData = {
   title: '',
@@ -25,9 +26,20 @@ export const useAdminOrderFormData = () => {
 
   const handleInputChange = useCallback((field: string, value: string) => {
     console.log(`🔄 Form field changed: ${field} = ${value}`);
+    let processedValue = value;
+    
+    // Special handling for numeric fields
+    if (['price', 'delivery_price', 'place_number'].includes(field)) {
+      if (field === 'place_number') {
+        processedValue = Math.max(1, Math.round(normalizeDecimal(value))).toString();
+      } else {
+        processedValue = normalizeDecimal(value).toString();
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: processedValue
     }));
   }, []);
 

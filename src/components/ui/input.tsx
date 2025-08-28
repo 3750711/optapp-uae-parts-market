@@ -7,6 +7,13 @@ export interface InputProps
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {
+    // Mobile-optimized attributes for number inputs
+    const mobileAttrs = type === 'number' ? {
+      inputMode: props.inputMode ?? 'decimal' as const,
+      step: props.step ?? 'any',
+      pattern: props.pattern ?? '[0-9]*[.,]?[0-9]*'
+    } : {};
+
     return (
       <input
         type={type}
@@ -15,6 +22,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           className
         )}
         ref={ref}
+        {...mobileAttrs}
         {...props}
       />
     )
