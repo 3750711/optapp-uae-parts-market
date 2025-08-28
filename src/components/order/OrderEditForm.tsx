@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { normalizeDecimal } from '@/utils/number';
 
 interface OrderEditFormProps {
   order: {
@@ -51,7 +52,7 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
           title: formData.title,
           brand: formData.brand,
           model: formData.model,
-          price: parseFloat(formData.price.toString()),
+          price: normalizeDecimal(formData.price),
         })
         .eq('id', order.id)
         .eq('status', 'created')
@@ -114,7 +115,7 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
           id="price"
           type="number"
           value={formData.price}
-          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
+          onChange={(e) => setFormData({ ...formData, price: normalizeDecimal(e.target.value) })}
           required
           min="0"
           step="0.01"

@@ -9,6 +9,7 @@ import { MobileKeyboardOptimizedDialog } from "@/components/ui/MobileKeyboardOpt
 import TouchOptimizedInput from "@/components/ui/TouchOptimizedInput";
 import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
 import { useLanguage } from '@/hooks/useLanguage';
+import { normalizeDecimal } from '@/utils/number';
 
 interface OrderPriceConfirmDialogProps {
   open: boolean;
@@ -48,7 +49,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
   };
 
   const handleSubmit = () => {
-    const numPrice = parseFloat(price);
+    const numPrice = normalizeDecimal(price);
     if (isNaN(numPrice) || numPrice <= 0) {
       return;
     }
@@ -61,7 +62,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
     onConfirm(numPrice);
   };
 
-  const isPriceUnchanged = parseFloat(price) === currentPrice;
+  const isPriceUnchanged = normalizeDecimal(price) === currentPrice;
 
   return (
     <MobileKeyboardOptimizedDialog 
@@ -120,8 +121,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
           className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
           disabled={
             isSubmitting || 
-            parseFloat(price) <= 0 || 
-            isNaN(parseFloat(price)) ||
+            normalizeDecimal(price) <= 0 ||
             (isPriceUnchanged && !noDiscountConfirmed)
           }
         >

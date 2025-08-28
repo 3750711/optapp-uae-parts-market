@@ -23,13 +23,14 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileType } from '@/components/profile/types';
+import { normalizeDecimal } from '@/utils/number';
 
 const formSchema = z.object({
   rating: z
     .string()
     .refine(
       (val) => {
-        const num = parseFloat(val);
+        const num = normalizeDecimal(val);
         return !isNaN(num) && num >= 0 && num <= 5;
       },
       { message: "Рейтинг должен быть от 0 до 5" }
@@ -54,7 +55,7 @@ export const UserRatingDialog = ({ user, trigger, onSuccess }: UserRatingDialogP
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const rating = parseFloat(values.rating);
+    const rating = normalizeDecimal(values.rating);
     
     const { error } = await supabase
       .from('profiles')

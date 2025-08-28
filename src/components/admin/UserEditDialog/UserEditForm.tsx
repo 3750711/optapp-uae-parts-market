@@ -26,6 +26,7 @@ import { createUserFormSchema } from "./schema";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getCommonTranslations } from "@/utils/translations/common";
 import { allowedLocalesFor } from "@/utils/languageVisibility";
+import { normalizeDecimal } from '@/utils/number';
 
 interface ExtendedUserEditFormProps extends UserEditFormProps {
   isMobile?: boolean;
@@ -196,7 +197,7 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
               <FormItem>
                 <FormLabel>Способность к коммуникации</FormLabel>
                 <Select 
-                  onValueChange={(value) => field.onChange(parseInt(value))} 
+                  onValueChange={(value) => field.onChange(normalizeDecimal(value))} 
                   defaultValue={field.value?.toString() || "3"}
                 >
                   <FormControl>

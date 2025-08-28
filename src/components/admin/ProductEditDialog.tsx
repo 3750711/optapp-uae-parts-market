@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { MobileOptimizedImageUpload } from '@/components/ui/MobileOptimizedImageUpload';
 import { Loader2 } from 'lucide-react';
+import { normalizeDecimal } from '@/utils/number';
 
 const editProductSchema = z.object({
   title: z.string().min(1, 'Название обязательно'),
@@ -115,14 +116,14 @@ export const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
         .from('products')
         .update({
           title: values.title,
-          price: parseFloat(values.price),
+          price: normalizeDecimal(values.price),
           brand: values.brand,
           model: values.model || null,
           description: values.description || null,
           condition: values.condition,
           status: values.status,
-          place_number: parseInt(values.place_number),
-          delivery_price: values.delivery_price ? parseFloat(values.delivery_price) : 0,
+          place_number: normalizeDecimal(values.place_number),
+          delivery_price: values.delivery_price ? normalizeDecimal(values.delivery_price) : 0,
         })
         .eq('id', product.id);
 

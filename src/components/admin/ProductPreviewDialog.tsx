@@ -24,6 +24,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Truck, Users, X, Package, DollarSign, User, Camera, CheckCircle, Play, Image as ImageIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { normalizeDecimal, formatPrice } from '@/utils/number';
 
 interface ProductData {
   title: string;
@@ -60,9 +61,10 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
     return null;
   }
   
-  const formatPrice = (price?: string) => {
-    if (!price || isNaN(parseFloat(price))) return '0';
-    return parseFloat(price).toLocaleString('ru-RU');
+  const formatPriceDisplay = (price?: string) => {
+    if (!price) return '0';
+    const num = normalizeDecimal(price);
+    return num.toLocaleString('ru-RU');
   };
 
   const getBrandDisplay = () => {
@@ -162,12 +164,12 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
           {/* Financial info in grid */}
           <div className="grid grid-cols-3 gap-3 text-sm">
             <div className="text-center">
-              <div className="text-lg font-bold text-green-600">${formatPrice(productData.price)}</div>
+              <div className="text-lg font-bold text-green-600">${formatPriceDisplay(productData.price)}</div>
               <div className="text-xs text-gray-500">Цена</div>
             </div>
-            {productData.deliveryPrice && parseFloat(productData.deliveryPrice) > 0 && (
+            {productData.deliveryPrice && normalizeDecimal(productData.deliveryPrice) > 0 && (
               <div className="text-center">
-                <div className="text-sm font-semibold">${formatPrice(productData.deliveryPrice)}</div>
+                <div className="text-sm font-semibold">${formatPriceDisplay(productData.deliveryPrice)}</div>
                 <div className="text-xs text-gray-500">Доставка</div>
               </div>
             )}

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Check, X, Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { normalizeDecimal } from '@/utils/number';
 
 interface InlineEditableFieldProps {
   value: string | number;
@@ -67,7 +68,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
 
     try {
       const valueToSave = type === 'number' || type === 'price' 
-        ? parseFloat(editValue) || 0 
+        ? normalizeDecimal(editValue)
         : editValue.trim();
       
       await onSave(valueToSave);

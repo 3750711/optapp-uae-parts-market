@@ -21,6 +21,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import * as XLSX from 'xlsx';
+import { normalizeDecimal } from '@/utils/number';
 
 // Define DateRange type to match the library's type
 interface DateRange {
@@ -82,7 +83,7 @@ const ProductSearchFilters: React.FC<ProductSearchFiltersProps> = ({
   // Загрузка диапазона цен из товаров для настройки слайдера и начальные значения фильтров
   useEffect(() => {
     if (products.length > 0) {
-      const prices = products.map(p => parseFloat(p.price)).filter(Boolean);
+      const prices = products.map(p => normalizeDecimal(p.price)).filter(Boolean);
       if (prices.length > 0) {
         const max = Math.max(...prices, 1000);
         setMaxPrice(max);
