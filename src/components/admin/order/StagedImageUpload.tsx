@@ -77,7 +77,13 @@ export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
             <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
               <div className="flex-1">
                 <div className="text-sm font-medium truncate">{item.file.name}</div>
-                <div className="text-xs text-gray-500 capitalize">{item.status}</div>
+                <div className="text-xs text-muted-foreground capitalize">
+                  {item.status === 'compressing' ? 'Сжатие...' : 
+                   item.status === 'uploading' ? 'Загрузка...' : 
+                   item.status === 'success' ? 'Готово' :
+                   item.status === 'error' ? 'Ошибка' : 'Ожидание'}
+                  {item.metadata?.heic && ' (HEIC - отправлен оригинал)'}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 {item.status === 'error' && item.error && (
@@ -86,7 +92,7 @@ export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
                 {item.status !== 'error' && (
                   <div className="text-sm text-gray-600">{item.progress}%</div>
                 )}
-                {item.status === 'pending' || item.status === 'signing' || item.status === 'uploading' ? (
+                {item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading' ? (
                   <Loader className="h-4 w-4 animate-spin text-blue-500" />
                 ) : item.status === 'success' ? (
                   <div className="h-4 w-4 bg-green-500 rounded-full" />

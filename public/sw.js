@@ -94,6 +94,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Don't cache worker files - always fetch from network
+  if (/\bworker\b.*\.js$/.test(url.pathname) || url.pathname.includes('smart-image-compress.worker')) {
+    return; // Let it pass to network
+  }
+
   // Skip caching for upload endpoints and external APIs
   const isUploadEndpoint = url.pathname.startsWith('/api/') || 
                           url.hostname.includes('cloudinary.com') ||

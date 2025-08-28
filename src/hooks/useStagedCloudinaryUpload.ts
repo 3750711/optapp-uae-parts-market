@@ -13,6 +13,14 @@ interface StagedUploadItem {
   isHeic?: boolean;
   originalSize?: number;
   compressedSize?: number;
+  metadata?: {
+    width?: number;
+    height?: number;
+    size?: number;
+    mime?: string;
+    fallback?: string;
+    heic?: boolean;
+  };
 }
 
 interface CloudinarySignature {
@@ -193,13 +201,12 @@ export const useStagedCloudinaryUpload = () => {
     return data.data;
   }, []);
 
-  // Compress image in worker
+  // Compress image in worker with improved API
   const compressInWorker = useCallback(async (file: File): Promise<CompressionResult> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       let worker: Worker;
       
       try {
-        // Use proper Vite syntax for Worker instantiation with ES module support
         worker = new Worker(
           new URL('../workers/smart-image-compress.worker.js', import.meta.url),
           { type: 'module' }
@@ -256,14 +263,14 @@ export const useStagedCloudinaryUpload = () => {
         resolve({ ok: false, code: 'WORKER_ERROR', originalSize: file.size });
       };
       
-      // Send compression task with updated API
+      // Send compression task with proper API
       try {
         worker.postMessage({
           file,
           maxSide: 1600,
           jpegQuality: 0.82,
           prefer: 'jpeg',
-          twoPass: true
+          twoPass: false
         });
       } catch (postError) {
         clearTimeout(timeout);
@@ -405,27 +412,53 @@ export const useStagedCloudinaryUpload = () => {
                       { type: compressionResult.blob.type || 'image/jpeg' });
                     
                     setUploadItems(prev => prev.map(i => 
-                      i.id === item.id ? { ...i, compressedSize: finalFile.size, progress: 30 } : i
+                      i.id === item.id ? { 
+                        ...i, 
+                        compressedSize: finalFile.size, 
+                        progress: 30,
+                        metadata: {
+                          width: compressionResult.originalSize,
+                          height: compressionResult.compressedSize,
+                          size: finalFile.size,
+                          mime: compressionResult.mime
+                        }
+                      } : i
                     ));
                     
                     console.log(`✅ Compressed ${item.file.name}: ${item.file.size} → ${finalFile.size} bytes`);
-                  } else {
-                    // Compression failed, handle specific errors
-                    if (compressionResult.code === 'UNSUPPORTED_HEIC') {
-                      console.log('📱 HEIC file detected, uploading original for server conversion');
-                      setUploadItems(prev => prev.map(i => 
-                        i.id === item.id ? { ...i, isHeic: true } : i
-                      ));
-                    } else if (compressionResult.code === 'DECODE_FAILED') {
-                      console.warn('🖼️ Image decode failed, uploading original:', item.file.name);
                     } else {
-                      console.warn('⚠️ Compression failed, uploading original:', {
-                        code: compressionResult.code,
-                        fileName: item.file.name,
-                        fileSize: item.file.size
-                      });
+                      // Compression failed, handle specific errors
+                      if (compressionResult.code === 'UNSUPPORTED_HEIC') {
+                        console.log('📱 HEIC file detected, uploading original for server conversion');
+                        setUploadItems(prev => prev.map(i => 
+                          i.id === item.id ? { 
+                            ...i, 
+                            isHeic: true,
+                            metadata: { heic: true }
+                          } : i
+                        ));
+                      } else if (compressionResult.code === 'DECODE_FAILED') {
+                        console.warn('🖼️ Image decode failed, uploading original:', item.file.name);
+                        setUploadItems(prev => prev.map(i => 
+                          i.id === item.id ? { 
+                            ...i,
+                            metadata: { fallback: 'decode-failed' }
+                          } : i
+                        ));
+                      } else {
+                        console.warn('⚠️ Compression failed, uploading original:', {
+                          code: compressionResult.code,
+                          fileName: item.file.name,
+                          fileSize: item.file.size
+                        });
+                        setUploadItems(prev => prev.map(i => 
+                          i.id === item.id ? { 
+                            ...i,
+                            metadata: { fallback: 'compression-failed' }
+                          } : i
+                        ));
+                      }
                     }
-                  }
                  } catch (workerError) {
                    console.warn('🔧 Worker compression failed, using original file:', {
                      error: workerError,
