@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Card } from '@/components/ui/card';
-import { Upload, X, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Upload, X, AlertCircle, CheckCircle, Loader2, Clock, XCircle } from 'lucide-react';
 import { useUnifiedImageUpload } from '@/hooks/useUnifiedImageUpload';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import type { CompressionResult } from '@/workers/types';
@@ -96,16 +96,41 @@ export const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-success" />;
-      case 'error':
-        return <AlertCircle className="h-4 w-4 text-destructive" />;
+      case 'pending':
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
       case 'compressing':
-      case 'signing':
+        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
       case 'uploading':
-        return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
+        return <Upload className="h-4 w-4 animate-pulse text-blue-500" />;
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'cancelled':
+        return <X className="h-4 w-4 text-gray-500" />;
       default:
-        return null;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'ожидание';
+      case 'compressing':
+        return 'сжатие';
+      case 'signing':
+        return 'подпись';
+      case 'uploading':
+        return 'загрузка';
+      case 'success':
+        return 'завершено';
+      case 'error':
+        return 'ошибка';
+      case 'cancelled':
+        return 'отменено';
+      default:
+        return status;
     }
   };
 
@@ -115,7 +140,7 @@ export const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
     const ratio = ((result.originalSize - result.compressedSize) / result.originalSize) * 100;
     return (
       <div className="text-xs text-muted-foreground">
-        {Math.round(ratio)}% smaller • {result.method} • {result.compressionMs}ms
+        {Math.round(ratio)}% меньше • {result.method} • {result.compressionMs}мс
       </div>
     );
   };
@@ -148,12 +173,12 @@ export const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
       >
         <div className="flex flex-col items-center justify-center text-center">
           <Upload className="h-10 w-10 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">Upload Images</h3>
+          <h3 className="text-lg font-medium mb-2">Загрузка изображений</h3>
           <p className="text-sm text-muted-foreground mb-2">
-            Drag and drop images here, or click to select files
+            Перетащите изображения сюда или нажмите для выбора файлов
           </p>
           <p className="text-xs text-muted-foreground">
-            Max {maxImages} images • Up to {Math.round(maxFileSize / (1024 * 1024))}MB each
+            Макс. {maxImages} изображений • До {Math.round(maxFileSize / (1024 * 1024))}МБ каждое
           </p>
         </div>
       </Card>
@@ -163,11 +188,11 @@ export const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Network: {networkProfile.effectiveType} • 
-            Speed: {Math.round(networkProfile.bytesPerSecond / 1024)}KB/s • 
-            RTT: {networkProfile.rtt}ms
+            Сеть: {networkProfile.effectiveType} • 
+            Скорость: {Math.round(networkProfile.bytesPerSecond / 1024)}КБ/с • 
+            Задержка: {networkProfile.rtt}мс
             {compressionMetrics.successfulCompressions > 0 && (
-              <> • Avg compression: {Math.round(compressionMetrics.averageCompressionRatio * 100)}%</>
+              <> • Ср. сжатие: {Math.round(compressionMetrics.averageCompressionRatio * 100)}%</>
             )}
           </AlertDescription>
         </Alert>
@@ -177,15 +202,15 @@ export const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
       {uploadQueue.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="text-sm font-medium">Upload Progress</h4>
+            <h4 className="text-sm font-medium">Прогресс загрузки</h4>
             <div className="flex gap-2">
               {isUploading && (
                 <Button size="sm" variant="outline" onClick={cancelUpload}>
-                  Cancel
+                  Отменить
                 </Button>
               )}
               <Button size="sm" variant="outline" onClick={clearCompleted}>
-                Clear Completed
+                Очистить завершенные
               </Button>
             </div>
           </div>
@@ -200,7 +225,7 @@ export const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
                       {item.file.name}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {Math.round(item.file.size / 1024)}KB • {item.status}
+                      {Math.round(item.file.size / 1024)}КБ • {getStatusText(item.status)}
                     </div>
                     {getCompressionInfo(item.compressionResult)}
                   </div>
@@ -223,19 +248,19 @@ export const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
       {/* Diagnostics Panel */}
       {showDiagnostics && (
         <Card className="p-4">
-          <h4 className="text-sm font-medium mb-3">System Diagnostics</h4>
+          <h4 className="text-sm font-medium mb-3">Системная диагностика</h4>
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div>
-              <div className="font-medium">Worker Status</div>
-              <div>Smart: {workerStats.smartAvailable ? '✅' : '❌'}</div>
-              <div>Stable: {workerStats.stableAvailable ? '✅' : '❌'}</div>
-              <div>Active: {workerStats.busyWorkers}/{workerStats.totalWorkers}</div>
+              <div className="font-medium">Статус Worker'ов</div>
+              <div>Умный: {workerStats.smartAvailable ? '✅' : '❌'}</div>
+              <div>Стабильный: {workerStats.stableAvailable ? '✅' : '❌'}</div>
+              <div>Активных: {workerStats.busyWorkers}/{workerStats.totalWorkers}</div>
             </div>
             <div>
-              <div className="font-medium">Performance</div>
-              <div>Success Rate: {Math.round((compressionMetrics.successfulCompressions / Math.max(compressionMetrics.totalFiles, 1)) * 100)}%</div>
-              <div>Avg Time: {Math.round(compressionMetrics.averageCompressionTime)}ms</div>
-              <div>Device: {workerStats.capabilities.isLowEndDevice ? 'Low-end' : 'Standard'}</div>
+              <div className="font-medium">Производительность</div>
+              <div>Успешность: {Math.round((compressionMetrics.successfulCompressions / Math.max(compressionMetrics.totalFiles, 1)) * 100)}%</div>
+              <div>Ср. время: {Math.round(compressionMetrics.averageCompressionTime)}мс</div>
+              <div>Устройство: {workerStats.capabilities.isLowEndDevice ? 'Слабое' : 'Стандартное'}</div>
             </div>
           </div>
         </Card>
