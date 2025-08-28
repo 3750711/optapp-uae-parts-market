@@ -577,6 +577,7 @@ useEffect(() => {
               maxImages={25}
               disabled={isFormDisabled}
               existingImages={images}
+              sessionId={sessionId}
             />
           </div>
 

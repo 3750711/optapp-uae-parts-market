@@ -1,23 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { UnifiedImageUpload } from '@/components/ui/UnifiedImageUpload';
+import { useStagedCloudinaryUpload } from '@/hooks/useStagedCloudinaryUpload';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import LoadingSpinner from '@/components/loading/LoadingSpinner';
 
 interface OrderImageUploadProps {
   onImagesChange: (urls: string[]) => void;
   maxImages?: number;
   disabled?: boolean;
   existingImages?: string[];
+  sessionId: string;
 }
 
 export const OrderImageUpload: React.FC<OrderImageUploadProps> = ({
   onImagesChange,
   maxImages = 25,
   disabled = false,
-  existingImages = []
+  existingImages = [],
+  sessionId
 }) => {
   const [allImages, setAllImages] = useState<string[]>(existingImages);
+  const { uploadFiles, uploadItems, isUploading } = useStagedCloudinaryUpload();
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Sync with external changes
   useEffect(() => {
@@ -29,9 +34,21 @@ export const OrderImageUpload: React.FC<OrderImageUploadProps> = ({
     onImagesChange(allImages);
   }, [allImages, onImagesChange]);
 
-  const handleImagesUploaded = (newUrls: string[]) => {
-    console.log('📸 OrderImageUpload: New images uploaded:', newUrls);
-    setAllImages(prev => [...prev, ...newUrls]);
+  const handleImagesUploaded = async (files: File[]) => {
+    if (disabled || files.length === 0) return;
+
+    console.log('📸 OrderImageUpload: Starting upload of', files.length, 'files');
+    
+    try {
+      const newUrls = await uploadFiles(files);
+      console.log('📸 OrderImageUpload: Upload completed:', newUrls);
+      
+      if (newUrls.length > 0) {
+        setAllImages(prev => [...prev, ...newUrls]);
+      }
+    } catch (error) {
+      console.error('❌ OrderImageUpload: Upload failed:', error);
+    }
   };
 
   const handleRemoveImage = (urlToRemove: string) => {
@@ -84,14 +101,85 @@ export const OrderImageUpload: React.FC<OrderImageUploadProps> = ({
 
       {/* Upload Component */}
       {canUploadMore && (
-        <div>
-          <UnifiedImageUpload
-            onImagesUploaded={handleImagesUploaded}
-            maxImages={remainingSlots}
-            maxFileSize={10 * 1024 * 1024} // 10MB
-            disabled={disabled}
-            showDiagnostics={false}
-          />
+        <div className="space-y-4">
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              isDragOver 
+                ? 'border-primary bg-primary/5' 
+                : disabled 
+                ? 'border-muted-foreground/25 bg-muted/50' 
+                : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-primary/5'
+            }`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (!disabled) setIsDragOver(true);
+            }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDragOver(false);
+              if (!disabled) {
+                const files = Array.from(e.dataTransfer.files).filter(file => 
+                  file.type.startsWith('image/')
+                );
+                if (files.length > 0) {
+                  handleImagesUploaded(files.slice(0, remainingSlots));
+                }
+              }
+            }}
+          >
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              className="hidden"
+              id="image-upload"
+              disabled={disabled || isUploading}
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  const files = Array.from(e.target.files);
+                  handleImagesUploaded(files.slice(0, remainingSlots));
+                  e.target.value = '';
+                }
+              }}
+            />
+            
+            {isUploading ? (
+              <div className="space-y-3">
+                <LoadingSpinner size="lg" />
+                <div className="space-y-2">
+                  <p className="font-medium text-foreground">Загрузка изображений...</p>
+                  {uploadItems.map((item, index) => (
+                    <div key={item.id} className="text-sm text-muted-foreground">
+                      Файл {index + 1}: {item.status === 'compressing' && 'Сжатие...'}
+                      {item.status === 'signing' && 'Получение подписи...'}
+                      {item.status === 'uploading' && `Загрузка... ${item.progress}%`}
+                      {item.status === 'success' && '✅ Готово'}
+                      {item.status === 'error' && `❌ Ошибка: ${item.error}`}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Upload className="h-12 w-12 mx-auto text-muted-foreground" />
+                <div className="space-y-1">
+                  <p className="text-lg font-medium text-foreground">
+                    Перетащите изображения или{' '}
+                    <label htmlFor="image-upload" className="text-primary cursor-pointer hover:underline">
+                      выберите файлы
+                    </label>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Можно загрузить еще {remainingSlots} {remainingSlots === 1 ? 'изображение' : 'изображений'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Максимальный размер файла: 10 МБ
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
