@@ -94,8 +94,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle API requests - Network first with offline fallback
-  if (url.pathname.startsWith('/api/') || url.hostname !== self.location.hostname) {
+  // Skip caching for upload endpoints and external APIs
+  const isUploadEndpoint = url.pathname.startsWith('/api/') || 
+                          url.hostname.includes('cloudinary.com') ||
+                          url.hostname.includes('supabase.co') ||
+                          url.hostname.includes('supabase.in') ||
+                          (url.hostname !== self.location.hostname && request.method === 'POST');
+  
+  if (isUploadEndpoint) {
+    // Never cache uploads or external API calls - pass through directly
+    return;
+  }
+
+  // Handle other external APIs - Network first with offline fallback
+  if (url.hostname !== self.location.hostname) {
     event.respondWith(
       fetch(request)
         .catch(() => {

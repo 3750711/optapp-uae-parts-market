@@ -53,9 +53,10 @@ const applyOrientation = (ctx, orientation, width, height) => {
   }
 };
 
-// Compress with specific settings  
+// Compress with specific settings with transferable optimization
 const compressWithSettings = async (file, maxSide, quality, format, orientation) => {
   if (hasOffscreenCanvas) {
+    // Create bitmap from file
     const bitmap = await createImageBitmap(file);
     const { width, height } = bitmap;
     
@@ -78,15 +79,37 @@ const compressWithSettings = async (file, maxSide, quality, format, orientation)
     
     // Draw and compress
     ctx.drawImage(bitmap, 0, 0, newWidth, newHeight);
-    bitmap.close();
+    bitmap.close(); // Free memory immediately
     
-    return await canvas.convertToBlob({
+    const blob = await canvas.convertToBlob({
       type: `image/${format}`,
       quality: quality
     });
+    
+    return blob;
   } else {
-    // Fallback - return original file if no OffscreenCanvas
-    return file;
+    // Improved fallback using basic canvas
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calculate dimensions
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        
+        // Apply orientation and draw
+        applyOrientation(ctx, orientation, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to blob
+        canvas.toBlob(resolve, `image/${format}`, quality);
+      };
+      img.onerror = () => resolve(file); // Fallback to original
+      img.src = URL.createObjectURL(file);
+    });
   }
 };
 

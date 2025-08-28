@@ -170,11 +170,11 @@ export const useOptimizedCloudinaryUpload = () => {
           return;
         }
 
-        // Create worker with correct Vite syntax
-        workerRef.current = new Worker(
-          new URL('../workers/smart-image-compress.worker.js', import.meta.url),
-          { type: 'module' }
-        );
+    // Create worker with correct Vite syntax and remove problematic type module option
+    workerRef.current = new Worker(
+      new URL('../workers/smart-image-compress.worker.ts', import.meta.url),
+      { type: 'module' }  // Now using TS worker with proper module support
+    );
         
         // Simple worker availability check without fake test
         workerRef.current.onmessage = () => {
