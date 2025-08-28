@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ImportPreviewDialog, ImportPreviewData, ImportOptions, ImportRow } from './ImportPreviewDialog';
 import { validateImportRow, buildUsersCache, createMissingUser, validateExcelFile } from './ImportValidationUtils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { normalizeDecimal } from '@/utils/number';
 
 interface EnhancedOrdersImportButtonProps {
   onImportComplete?: () => void;
@@ -307,16 +308,16 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
 
         try {
           const row = importRow.data;
-          const excelOrderNumber = parseInt(row[columnMapping.orderNumber] || '0');
+          const excelOrderNumber = normalizeDecimal(row[columnMapping.orderNumber] || '0');
           
           const orderData: any = {
             title: row[columnMapping.title] || 'Импорт из Excel',
-            price: parseFloat(row[columnMapping.price] || '0'),
+            price: normalizeDecimal(row[columnMapping.price] || '0'),
             brand: row[columnMapping.brand] || '',
             model: row[columnMapping.model] || '',
-            place_number: parseInt(row[columnMapping.places] || '1'),
+            place_number: normalizeDecimal(row[columnMapping.places] || '1'),
             text_order: row[columnMapping.description] || '',
-            delivery_price_confirm: parseFloat(row[columnMapping.deliveryPrice] || '0'),
+            delivery_price_confirm: normalizeDecimal(row[columnMapping.deliveryPrice] || '0'),
             status: 'created' as const,
             order_created_type: 'free_order' as const,
             delivery_method: 'cargo_rf' as const,

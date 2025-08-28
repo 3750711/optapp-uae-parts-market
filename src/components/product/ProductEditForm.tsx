@@ -9,6 +9,7 @@ import ProductMediaManager from "@/components/product/ProductMediaManager";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProductFormState } from "./form/ProductFormState";
 import { useProductImageHandlers } from "./form/ProductImageHandlers";
+import { normalizeDecimal } from "@/utils/number";
 
 interface ProductEditFormProps {
   product: Product;
@@ -29,13 +30,13 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
   const [formData, setFormData] = React.useState({
     title: product.title,
-    price: typeof product.price === "string" ? parseFloat(product.price) : product.price,
+    price: typeof product.price === "string" ? normalizeDecimal(product.price) : product.price,
     description: product.description || "",
     brand: product.brand || "",
     model: product.model || "",
     place_number: product.place_number || 1,
     delivery_price: typeof product.delivery_price === "string" 
-      ? parseFloat(product.delivery_price) 
+      ? normalizeDecimal(product.delivery_price) 
       : product.delivery_price || 0,
   });
 

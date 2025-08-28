@@ -17,6 +17,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
+import { normalizeDecimal } from '@/utils/number';
 
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 import { usePWALifecycle } from '@/hooks/usePWALifecycle';
