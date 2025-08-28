@@ -113,62 +113,76 @@ const compressWithSettings = async (file, maxSide, quality, format, orientation)
   }
 };
 
-// Optimized single-pass compression (faster approach)
+// HEIC/HEIF format detection (improved)
+function isHeicFormat(file) {
+  const heicTypes = ['image/heic', 'image/heif'];
+  if (heicTypes.includes(file.type)) return true;
+  
+  const name = file.name.toLowerCase();
+  if (name.endsWith('.heic') || name.endsWith('.heif')) return true;
+  
+  // Additional MIME type variants
+  if (file.type.includes('heic') || file.type.includes('heif')) return true;
+  
+  return false;
+}
+
+// Optimized single-pass compression with HEIC handling
 const smartCompress = async (task) => {
+  const { id, file, maxSide = 1600, quality = 0.82, format = 'jpeg' } = task;
   const startTime = performance.now();
   
   try {
-    const orientation = await getOrientation(task.file);
-    
-    // More aggressive initial settings based on target size
-    let currentMaxSide = task.baseMaxSide;
-    let currentQuality = task.baseQuality;
-    
-    // Pre-adjust settings based on file size vs target size ratio
-    const sizeRatio = task.file.size / task.targetSize;
-    
-    if (sizeRatio > 3) {
-      // Large file - be aggressive immediately
-      currentMaxSide = Math.min(currentMaxSide, 1024);
-      currentQuality = Math.min(currentQuality, 0.72);
-    } else if (sizeRatio > 1.5) {
-      // Medium oversizing - moderate compression
-      currentQuality = Math.min(currentQuality, 0.78);
+    // Early HEIC/HEIF detection and rejection
+    if (isHeicFormat(file)) {
+      console.log(`❌ HEIC/HEIF format detected: ${file.name}`);
+      return {
+        id,
+        ok: false,
+        code: 'UNSUPPORTED_HEIC',
+        originalSize: file.size,
+        compressedSize: 0,
+        compressionMs: performance.now() - startTime,
+        passes: 0,
+        error: 'HEIC/HEIF format not supported in browser'
+      };
     }
+
+    const orientation = await getOrientation(file);
     
-    // Single optimized pass
+    // Single optimized pass with aggressive settings
     const blob = await compressWithSettings(
-      task.file,
-      currentMaxSide,
-      currentQuality,
-      task.format,
+      file,
+      maxSide,
+      quality,
+      format,
       orientation
     );
     
     const compressionMs = performance.now() - startTime;
     
     return {
-      id: task.id,
+      id,
+      ok: true,
       blob,
-      originalSize: task.file.size,
+      originalSize: file.size,
       compressedSize: blob.size,
       compressionMs: Math.round(compressionMs),
       passes: 1,
-      finalMaxSide: currentMaxSide,
-      finalQuality: currentQuality
+      method: 'smart'
     };
   } catch (error) {
-    console.warn('Worker compression failed, returning original file:', error);
+    console.error(`❌ Compression failed for ${file.name}:`, error);
+    
     return {
-      id: task.id,
-      blob: task.file,
-      originalSize: task.file.size,
-      compressedSize: task.file.size,
+      id,
+      ok: false,
+      originalSize: file.size,
+      compressedSize: 0,
       compressionMs: performance.now() - startTime,
       passes: 0,
-      finalMaxSide: task.baseMaxSide,
-      finalQuality: task.baseQuality,
-      error: error instanceof Error ? error.message : 'Compression failed'
+      method: 'original',
+      error: error.message
     };
   }
 };

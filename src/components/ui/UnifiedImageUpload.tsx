@@ -226,6 +226,7 @@ export const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {Math.round(item.file.size / 1024)}КБ • {getStatusText(item.status)}
+                      {item.isHeic && ' • HEIC'}
                     </div>
                     {getCompressionInfo(item.compressionResult)}
                   </div>

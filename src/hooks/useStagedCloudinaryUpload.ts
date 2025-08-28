@@ -6,10 +6,13 @@ interface StagedUploadItem {
   id: string;
   file: File;
   progress: number;
-  status: 'pending' | 'signing' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'compressing' | 'signing' | 'uploading' | 'success' | 'error';
   error?: string;
   url?: string;
   publicId?: string;
+  isHeic?: boolean;
+  originalSize?: number;
+  compressedSize?: number;
 }
 
 interface CloudinarySignature {
@@ -20,6 +23,22 @@ interface CloudinarySignature {
   public_id: string;
   signature: string;
   upload_url: string;
+}
+
+interface BatchSignResponse {
+  success: boolean;
+  data: CloudinarySignature[];
+  count: number;
+}
+
+interface CompressionResult {
+  ok: boolean;
+  blob?: Blob;
+  code?: string;
+  mime?: string;
+  originalSize?: number;
+  compressedSize?: number;
+  compressionMs?: number;
 }
 
 // IndexedDB for storing staged URLs
@@ -156,32 +175,76 @@ export const useStagedCloudinaryUpload = () => {
     return newSessionId;
   }, [sessionId]);
 
-  // Get Cloudinary signature for staging
-  const getSignature = useCallback(async (currentSessionId: string): Promise<CloudinarySignature> => {
+  // Get batch Cloudinary signatures for staging
+  const getBatchSignatures = useCallback(async (currentSessionId: string, count: number): Promise<CloudinarySignature[]> => {
     const { data: { session } } = await supabase.auth.getSession();
     
-    const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
-      body: JSON.stringify({ sessionId: currentSessionId }),
+    const { data, error } = await supabase.functions.invoke('cloudinary-sign-batch', {
+      body: JSON.stringify({ sessionId: currentSessionId, count }),
       headers: {
         'content-type': 'application/json',
         ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
       }
     });
     
-    if (error) throw new Error(error.message || 'Signature request failed');
-    if (!data) throw new Error('No signature data received');
+    if (error) throw new Error(error.message || 'Batch signature request failed');
+    if (!data?.success || !data?.data) throw new Error('Invalid batch signature response');
     
-    const payload = data.success ? data.data : data;
-    if (!payload?.signature) throw new Error('Invalid signature response');
-    
-    return payload;
+    return data.data;
   }, []);
 
-  // Upload to Cloudinary
+  // Compress image in worker
+  const compressInWorker = useCallback(async (file: File): Promise<CompressionResult> => {
+    return new Promise((resolve, reject) => {
+      const worker = new Worker('/src/workers/smart-image-compress.worker.js');
+      
+      const timeout = setTimeout(() => {
+        worker.terminate();
+        reject(new Error('Worker compression timeout'));
+      }, 30000);
+      
+      worker.onmessage = (e) => {
+        clearTimeout(timeout);
+        worker.terminate();
+        const result = e.data;
+        
+        if (result.error) {
+          resolve({ ok: false, code: result.error });
+        } else {
+          resolve({
+            ok: true,
+            blob: result.blob,
+            mime: result.blob?.type,
+            originalSize: result.originalSize,
+            compressedSize: result.compressedSize,
+            compressionMs: result.compressionMs
+          });
+        }
+      };
+      
+      worker.onerror = (error) => {
+        clearTimeout(timeout);
+        worker.terminate();
+        reject(error);
+      };
+      
+      // Send compression task
+      worker.postMessage({
+        id: crypto.randomUUID(),
+        file,
+        maxSide: 1600,
+        quality: 0.82,
+        format: 'jpeg'
+      });
+    });
+  }, []);
+
+  // Upload to Cloudinary with retry logic
   const uploadToCloudinary = useCallback(async (
     file: File,
     signature: CloudinarySignature,
-    onProgress: (progress: number) => void
+    onProgress: (progress: number) => void,
+    retryCount = 0
   ): Promise<{ url: string; publicId: string }> => {
     return new Promise((resolve, reject) => {
       const formData = new FormData();
@@ -213,20 +276,42 @@ export const useStagedCloudinaryUpload = () => {
             reject(new Error('Invalid Cloudinary response'));
           }
         } else {
-          reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+          // Retry logic for temporary failures
+          if (retryCount < 2 && (xhr.status >= 500 || xhr.status === 429)) {
+            const delay = Math.pow(1.5, retryCount) * 2000;
+            setTimeout(() => {
+              uploadToCloudinary(file, signature, onProgress, retryCount + 1)
+                .then(resolve)
+                .catch(reject);
+            }, delay);
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+          }
         }
       };
       
-      xhr.onerror = () => reject(new Error('Network error'));
+      xhr.onerror = () => {
+        if (retryCount < 2) {
+          const delay = Math.pow(1.5, retryCount) * 2000;
+          setTimeout(() => {
+            uploadToCloudinary(file, signature, onProgress, retryCount + 1)
+              .then(resolve)
+              .catch(reject);
+          }, delay);
+        } else {
+          reject(new Error('Network error'));
+        }
+      };
+      
       xhr.ontimeout = () => reject(new Error('Upload timeout'));
       
       xhr.open('POST', signature.upload_url);
-      xhr.timeout = 60000;
+      xhr.timeout = 120000; // 120 second timeout
       xhr.send(formData);
     });
   }, []);
 
-  // Upload files to staging
+  // Upload files to staging with optimized architecture
   const uploadFiles = useCallback(async (files: File[]): Promise<string[]> => {
     if (files.length === 0) return [];
     
@@ -234,96 +319,147 @@ export const useStagedCloudinaryUpload = () => {
     const currentSessionId = await initSession();
     const newUrls: string[] = [];
     
-    // Create upload items
+    // Create upload items with HEIC detection
     const items: StagedUploadItem[] = files.map((file, index) => ({
       id: `upload-${Date.now()}-${index}`,
       file,
       progress: 0,
-      status: 'pending'
+      status: 'pending',
+      isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
+              file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif'),
+      originalSize: file.size
     }));
     
     setUploadItems(items);
 
     try {
-      // Upload each file
-      for (const item of items) {
-        try {
-          // Update status to signing
-          setUploadItems(prev => prev.map(i => 
-            i.id === item.id ? { ...i, status: 'signing', progress: 10 } : i
-          ));
+      // Step 1: Get batch signatures
+      const signatures = await getBatchSignatures(currentSessionId, files.length);
+      
+      // Step 2: Process files with controlled parallelism (max 3 concurrent)
+      const uploadWithLimit = async () => {
+        const results: string[] = [];
+        const inProgress = new Set<Promise<void>>();
+        
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          const signature = signatures[i];
+          
+          // Wait if we have too many concurrent uploads
+          if (inProgress.size >= 3) {
+            await Promise.race(inProgress);
+          }
+          
+          const uploadPromise = (async () => {
+            try {
+              let finalFile = item.file;
+              
+              // Step 2a: Compress non-HEIC files
+              if (!item.isHeic) {
+                setUploadItems(prev => prev.map(i => 
+                  i.id === item.id ? { ...i, status: 'compressing', progress: 10 } : i
+                ));
 
-          const signature = await getSignature(currentSessionId);
+                try {
+                  const compressionResult = await compressInWorker(item.file);
+                  
+                  if (compressionResult.ok && compressionResult.blob) {
+                    finalFile = new File([compressionResult.blob], 
+                      item.file.name.replace(/\.[^/.]+$/, '.jpg'), 
+                      { type: compressionResult.mime || 'image/jpeg' });
+                    
+                    setUploadItems(prev => prev.map(i => 
+                      i.id === item.id ? { ...i, compressedSize: finalFile.size, progress: 30 } : i
+                    ));
+                  } else if (compressionResult.code === 'UNSUPPORTED_HEIC') {
+                    // Mark as HEIC for original upload
+                    setUploadItems(prev => prev.map(i => 
+                      i.id === item.id ? { ...i, isHeic: true } : i
+                    ));
+                  }
+                } catch (workerError) {
+                  console.warn('Worker compression failed, using original:', workerError);
+                }
+              }
 
-          // Update status to uploading
-          setUploadItems(prev => prev.map(i => 
-            i.id === item.id ? { ...i, status: 'uploading', progress: 20 } : i
-          ));
-
-          const result = await uploadToCloudinary(
-            item.file,
-            signature,
-            (progress) => {
+              // Step 2b: Upload
               setUploadItems(prev => prev.map(i => 
-                i.id === item.id ? { ...i, progress: Math.max(20, progress) } : i
+                i.id === item.id ? { ...i, status: 'uploading', progress: 50 } : i
+              ));
+
+              const result = await uploadToCloudinary(
+                finalFile,
+                signature,
+                (progress) => {
+                  const adjustedProgress = 50 + Math.round(progress * 0.5);
+                  setUploadItems(prev => prev.map(i => 
+                    i.id === item.id ? { ...i, progress: adjustedProgress } : i
+                  ));
+                }
+              );
+
+              // Update to success
+              setUploadItems(prev => prev.map(i => 
+                i.id === item.id ? { 
+                  ...i, 
+                  status: 'success', 
+                  progress: 100,
+                  url: result.url,
+                  publicId: result.publicId
+                } : i
+              ));
+
+              results[i] = result.url;
+
+              // Add to staged URLs and save to IndexedDB
+              setStagedUrls(prev => {
+                const updated = [...prev, result.url];
+                stagingDB.saveSession(currentSessionId, updated);
+                return updated;
+              });
+
+            } catch (error) {
+              console.error(`Upload failed for ${item.file.name}:`, error);
+              
+              setUploadItems(prev => prev.map(i => 
+                i.id === item.id ? { 
+                  ...i, 
+                  status: 'error', 
+                  error: error instanceof Error ? error.message : 'Upload failed'
+                } : i
               ));
             }
-          );
-
-          // Update to success
-          setUploadItems(prev => prev.map(i => 
-            i.id === item.id ? { 
-              ...i, 
-              status: 'success', 
-              progress: 100,
-              url: result.url,
-              publicId: result.publicId
-            } : i
-          ));
-
-          newUrls.push(result.url);
-        } catch (error) {
-          // Update to error
-          setUploadItems(prev => prev.map(i => 
-            i.id === item.id ? { 
-              ...i, 
-              status: 'error', 
-              error: error instanceof Error ? error.message : 'Upload failed'
-            } : i
-          ));
+          })();
           
-          console.error(`Upload failed for ${item.file.name}:`, error);
+          inProgress.add(uploadPromise);
+          uploadPromise.finally(() => inProgress.delete(uploadPromise));
         }
-      }
+        
+        // Wait for all uploads to complete
+        await Promise.allSettled(Array.from(inProgress));
+        return results.filter(Boolean);
+      };
 
-      // Update staged URLs and save to IndexedDB
-      const updatedUrls = [...stagedUrls, ...newUrls];
-      setStagedUrls(updatedUrls);
+      const completedUrls = await uploadWithLimit();
       
-      if (newUrls.length > 0) {
-        try {
-          await stagingDB.saveSession(currentSessionId, updatedUrls);
-        } catch (error) {
-          console.error('Failed to save to IndexedDB:', error);
-        }
-
+      if (completedUrls.length > 0) {
         toast({
           title: "Файлы загружены",
-          description: `Загружено ${newUrls.length} из ${files.length} файлов в промежуточное хранилище`,
+          description: `Загружено ${completedUrls.length} из ${files.length} файлов`,
         });
       }
 
-      if (newUrls.length < files.length) {
+      if (completedUrls.length < files.length) {
         toast({
           title: "Частичная загрузка",
-          description: `${files.length - newUrls.length} файлов не удалось загрузить`,
+          description: `${files.length - completedUrls.length} файлов не удалось загрузить`,
           variant: "destructive",
         });
       }
 
-      return newUrls;
+      return completedUrls;
     } catch (error) {
-      console.error('Staging upload failed:', error);
+      console.error('Optimized upload failed:', error);
       toast({
         title: "Ошибка загрузки",
         description: "Произошла ошибка при загрузке файлов",
@@ -332,10 +468,9 @@ export const useStagedCloudinaryUpload = () => {
       return [];
     } finally {
       setIsUploading(false);
-      // Clear upload items after delay
       setTimeout(() => setUploadItems([]), 5000);
     }
-  }, [initSession, getSignature, uploadToCloudinary, stagedUrls, toast]);
+  }, [initSession, getBatchSignatures, compressInWorker, uploadToCloudinary, stagedUrls, toast]);
 
   // Attach staged URLs to real order
   const attachToOrder = useCallback(async (orderId: string): Promise<void> => {

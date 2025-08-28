@@ -99,8 +99,8 @@ Deno.serve(async (req) => {
     // Parse request body
     const { orderId, sessionId, count = 5 }: BatchSignRequest = await req.json();
 
-    // Validate count (1-2 for optimization)
-    const signatureCount = Math.max(1, Math.min(2, count));
+    // Validate count (1-10 for batch efficiency)
+    const signatureCount = Math.max(1, Math.min(10, count));
 
     // Validate that either orderId or sessionId is provided and is valid UUID
     const isValidUUID = (str: string) => 

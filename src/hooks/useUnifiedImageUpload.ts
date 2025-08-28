@@ -15,6 +15,9 @@ interface UploadItem {
   publicId?: string;
   compressionResult?: CompressionResult;
   abortController: AbortController;
+  isHeic?: boolean;
+  originalSize?: number;
+  compressedSize?: number;
 }
 
 interface CloudinarySignature {
