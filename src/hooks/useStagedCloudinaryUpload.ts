@@ -196,11 +196,23 @@ export const useStagedCloudinaryUpload = () => {
   // Compress image in worker
   const compressInWorker = useCallback(async (file: File): Promise<CompressionResult> => {
     return new Promise((resolve, reject) => {
-      const worker = new Worker('/src/workers/smart-image-compress.worker.js');
+      let worker: Worker;
+      
+      try {
+        // Use proper Vite syntax for Worker instantiation
+        worker = new Worker(
+          new URL('../workers/smart-image-compress.worker.js', import.meta.url), 
+          { type: 'module' }
+        );
+      } catch (workerError) {
+        console.error('Failed to create worker:', workerError);
+        resolve({ ok: false, code: 'WORKER_CREATION_FAILED' });
+        return;
+      }
       
       const timeout = setTimeout(() => {
         worker.terminate();
-        reject(new Error('Worker compression timeout'));
+        resolve({ ok: false, code: 'WORKER_TIMEOUT' });
       }, 30000);
       
       worker.onmessage = (e) => {
@@ -208,8 +220,8 @@ export const useStagedCloudinaryUpload = () => {
         worker.terminate();
         const result = e.data;
         
-        if (result.error) {
-          resolve({ ok: false, code: result.error });
+        if (result.error || result.code) {
+          resolve({ ok: false, code: result.error || result.code });
         } else {
           resolve({
             ok: true,
@@ -225,17 +237,25 @@ export const useStagedCloudinaryUpload = () => {
       worker.onerror = (error) => {
         clearTimeout(timeout);
         worker.terminate();
-        reject(error);
+        console.error('Worker error:', error);
+        resolve({ ok: false, code: 'WORKER_ERROR' });
       };
       
       // Send compression task
-      worker.postMessage({
-        id: crypto.randomUUID(),
-        file,
-        maxSide: 1600,
-        quality: 0.82,
-        format: 'jpeg'
-      });
+      try {
+        worker.postMessage({
+          id: crypto.randomUUID(),
+          file,
+          maxSide: 1600,
+          quality: 0.82,
+          format: 'jpeg'
+        });
+      } catch (postError) {
+        clearTimeout(timeout);
+        worker.terminate();
+        console.error('Failed to post message to worker:', postError);
+        resolve({ ok: false, code: 'WORKER_POST_FAILED' });
+      }
     });
   }, []);
 
