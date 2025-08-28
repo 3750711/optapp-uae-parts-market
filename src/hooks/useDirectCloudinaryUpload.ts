@@ -487,9 +487,18 @@ export const useDirectCloudinaryUpload = () => {
       type: 'photo' as const
     }));
 
+    // Get current session for JWT
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('No authentication session found');
+    }
+
     const { data: saveResp, error: saveErr } = await supabase.functions.invoke('attach-order-media', {
       body: JSON.stringify({ order_id: orderId, items }),
-      headers: { 'content-type': 'application/json' }
+      headers: { 
+        'content-type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      }
     });
 
     if (saveErr) throw new Error('Edge Function call failed: ' + saveErr.message);

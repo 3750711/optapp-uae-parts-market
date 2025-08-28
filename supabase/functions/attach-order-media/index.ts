@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     // Only allow POST requests
     if (req.method !== 'POST') {
       return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
+        JSON.stringify({ success: false, error: 'Method not allowed' }),
         { status: 405, headers: corsHeaders }
       );
     }
@@ -46,15 +46,23 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
+        JSON.stringify({ success: false, error: 'Missing authorization header' }),
         { status: 401, headers: corsHeaders }
       );
     }
 
-    // Create Supabase client to verify JWT and check admin role
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    // Get environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
+      console.error('Missing environment variables:', { supabaseUrl: !!supabaseUrl, supabaseAnonKey: !!supabaseAnonKey, serviceRoleKey: !!serviceRoleKey });
+      return new Response(
+        JSON.stringify({ success: false, error: 'Server configuration error', detail: 'Missing environment variables' }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
     
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
@@ -65,8 +73,9 @@ Deno.serve(async (req) => {
     // Verify user is authenticated and is admin
     const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
     if (authError || !user) {
+      console.error('Authentication error:', authError);
       return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
+        JSON.stringify({ success: false, error: 'Invalid authentication', detail: authError?.message }),
         { status: 401, headers: corsHeaders }
       );
     }
@@ -78,20 +87,44 @@ Deno.serve(async (req) => {
       .eq('id', user.id)
       .single();
 
-    if (profileError || profile?.user_type !== 'admin') {
+    if (profileError) {
+      console.error('Profile lookup error:', profileError);
       return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
+        JSON.stringify({ success: false, error: 'Profile lookup failed', detail: profileError.message }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    if (profile?.user_type !== 'admin') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Admin access required' }),
         { status: 403, headers: corsHeaders }
       );
     }
 
     // Parse request body (support both new batch format and legacy single file)
-    const payload = await req.json();
+    let payload;
+    try {
+      payload = await req.json();
+      console.log('Received payload:', payload);
+    } catch (error) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid JSON in request body', detail: error.message }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
     
     // Validate Cloudinary URLs
     const CLOUD_NAME = Deno.env.get('CLOUDINARY_CLOUD_NAME');
+    if (!CLOUD_NAME) {
+      console.error('Missing CLOUDINARY_CLOUD_NAME environment variable');
+      return new Response(
+        JSON.stringify({ success: false, error: 'Server configuration error', detail: 'Missing Cloudinary configuration' }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
     const validateCloudinaryUrl = (url: string): boolean => {
-      if (!CLOUD_NAME) return false;
       return url.startsWith(`https://res.cloudinary.com/${CLOUD_NAME}/`) || 
              url.startsWith(`https://cloudinary.com/${CLOUD_NAME}/`);
     };
@@ -122,7 +155,9 @@ Deno.serve(async (req) => {
     if (!orderId || !mediaItems || mediaItems.length === 0) {
       return new Response(
         JSON.stringify({ 
-          error: 'Missing or invalid fields. Required: order_id, items (array)' 
+          success: false,
+          error: 'Missing or invalid fields. Required: order_id, items (array)',
+          detail: `Received: order_id=${orderId}, items_length=${mediaItems?.length}`
         }),
         { status: 400, headers: corsHeaders }
       );
@@ -132,14 +167,22 @@ Deno.serve(async (req) => {
     for (const item of mediaItems) {
       if (!item.url || item.type !== 'photo') {
         return new Response(
-          JSON.stringify({ error: 'Invalid item: url and type:"photo" required' }),
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid item: url and type:"photo" required',
+            detail: `Item: ${JSON.stringify(item)}`
+          }),
           { status: 400, headers: corsHeaders }
         );
       }
       
       if (!validateCloudinaryUrl(item.url)) {
         return new Response(
-          JSON.stringify({ error: 'Invalid URL: only Cloudinary URLs allowed' }),
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid URL: only Cloudinary URLs allowed',
+            detail: `URL: ${item.url}`
+          }),
           { status: 400, headers: corsHeaders }
         );
       }
@@ -164,9 +207,18 @@ Deno.serve(async (req) => {
       .select();
 
     if (error) {
-      console.error('Database error:', error);
+      console.error('Database error:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       return new Response(
-        JSON.stringify({ error: 'Failed to save media to database' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to save media to database',
+          detail: `${error.code}: ${error.message}`
+        }),
         { status: 500, headers: corsHeaders }
       );
     }
@@ -191,7 +243,11 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Edge function error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        success: false, 
+        error: 'Internal server error',
+        detail: error instanceof Error ? error.message : 'Unknown error'
+      }),
       { status: 500, headers: corsHeaders }
     );
   }
