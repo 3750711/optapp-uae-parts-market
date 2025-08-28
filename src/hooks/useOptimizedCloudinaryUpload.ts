@@ -162,37 +162,40 @@ export const useOptimizedCloudinaryUpload = () => {
   useEffect(() => {
     const initWorker = async () => {
       try {
-        workerRef.current = new Worker('/src/workers/smart-image-compress.worker.js', { type: 'module' });
+        // Check OffscreenCanvas support first
+        if (typeof OffscreenCanvas === 'undefined') {
+          console.log('OffscreenCanvas not supported, using edge function fallback');
+          setWorkerAvailable(false);
+          setUseEdgeFallback(true);
+          return;
+        }
+
+        // Create worker with correct Vite syntax
+        workerRef.current = new Worker(
+          new URL('../workers/smart-image-compress.worker.js', import.meta.url),
+          { type: 'module' }
+        );
         
-        // Test worker functionality
-        const testResult = await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Worker test timeout')), 2000);
-          
-          const handleMessage = (e) => {
-            clearTimeout(timeout);
-            workerRef.current?.removeEventListener('message', handleMessage);
-            resolve(e.data);
-          };
-          
-          workerRef.current?.addEventListener('message', handleMessage);
-          
-          // Send test task
-          const testFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
-          workerRef.current?.postMessage({
-            id: 'test',
-            file: testFile,
-            baseMaxSide: 1024,
-            baseQuality: 0.8,
-            targetSize: 100000,
-            format: 'webp',
-            networkType: 'wifi'
-          });
-        });
-        
-        if (testResult) {
+        // Simple worker availability check without fake test
+        workerRef.current.onmessage = () => {
           setWorkerAvailable(true);
           console.log('Smart compression worker initialized successfully');
-        }
+        };
+        
+        workerRef.current.onerror = (error) => {
+          console.warn('Worker error, using edge function fallback:', error);
+          setWorkerAvailable(false);
+          setUseEdgeFallback(true);
+          if (workerRef.current) {
+            workerRef.current.terminate();
+            workerRef.current = null;
+          }
+        };
+
+        // Set worker as available after creation
+        setWorkerAvailable(true);
+        console.log('Smart compression worker created successfully');
+        
       } catch (error) {
         console.warn('Worker initialization failed, using edge function fallback:', error);
         setWorkerAvailable(false);
@@ -268,39 +271,30 @@ export const useOptimizedCloudinaryUpload = () => {
     return signature;
   }, [getBatchSignatures]);
 
-  // Fallback compression using edge function
+  // Fallback compression using browser-image-compression
   const compressWithEdgeFunction = useCallback(async (file: File): Promise<{ blob: Blob; compressionMs: number; passes: number }> => {
     const startTime = performance.now();
-    const { data: { session } } = await supabase.auth.getSession();
     
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('maxSizeKB', '400'); // Conservative target
-    formData.append('quality', '0.78');
+    try {
+      // Use browser-image-compression as fallback
+      const { compressImage } = await import('@/utils/imageCompression');
+      const compressedFile = await compressImage(file, 1920, 1920, 0.78);
+      const compressionMs = performance.now() - startTime;
 
-    const { data, error } = await supabase.functions.invoke('compress-image', {
-      body: formData,
-      headers: {
-        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
-      }
-    });
-
-    if (error || !data?.success) {
-      throw new Error(error?.message || 'Edge function compression failed');
+      return {
+        blob: compressedFile,
+        compressionMs: Math.round(compressionMs),
+        passes: 1
+      };
+    } catch (error) {
+      console.error('Browser compression fallback failed:', error);
+      // Return original file as last resort
+      return {
+        blob: file,
+        compressionMs: 0,
+        passes: 0
+      };
     }
-
-    // Download compressed image
-    const response = await fetch(data.compressedUrl);
-    if (!response.ok) throw new Error('Failed to download compressed image');
-    
-    const blob = await response.blob();
-    const compressionMs = performance.now() - startTime;
-
-    return {
-      blob,
-      compressionMs: Math.round(compressionMs),
-      passes: 1
-    };
   }, []);
 
   // Smart compression with fallback

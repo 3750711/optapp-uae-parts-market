@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
-import { OptimizedStagedImageUpload } from './OptimizedStagedImageUpload';
+import { StagedImageUpload } from './StagedImageUpload';
 import { useStagedCloudinaryUpload } from '@/hooks/useStagedCloudinaryUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
@@ -572,7 +572,7 @@ useEffect(() => {
         <div className="space-y-6">
           <div>
             <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Изображения</h3>
-            <OptimizedStagedImageUpload
+            <StagedImageUpload
               onImagesChange={onImagesUpload}
               maxImages={25}
               disabled={isFormDisabled}
