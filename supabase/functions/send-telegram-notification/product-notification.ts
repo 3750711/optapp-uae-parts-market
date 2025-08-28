@@ -25,23 +25,23 @@ import { logTelegramNotification } from "../shared/telegram-logger.ts";
 export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>) {
   // List of local Telegram accounts that should show their real username
   const localTelegramAccounts = [
-    'OptSeller_Anton',
-    'OptSeller_Georgii',
-    'IgorD_OptSeller',
-    'OptSeller_IgorK',
-    'Pavel_optuae',
-    'SanSanichUAE',
+    'optseller_anton',
+    'optseller_georgii',
+    'igord_optseller',
+    'optseller_igork',
+    'pavel_optuae',
+    'sansanichuae',
     'dmotrii_st',
-    'OptSeller_Vlad',
-    'LocalSeller_Ali',
-    'Faruknose', 
-    'Faruk',
+    'optseller_vlad',
+    'localseller_ali',
+    'faruknose', 
+    'faruk',
     'faiznose',
-    'LocalSeller_Jahangir',
-    'LocalSeller_Pochemy',
-    'LocalSeller_Rakib',
-    'LocalSeller_Sharif',
-    'LocalSeller_Younus'
+    'localseller_jahangir',
+    'localseller_pochemy',
+    'localseller_rakib',
+    'localseller_sharif',
+    'localseller_younus'
   ];
 
   // Function to determine which Telegram to display in notifications
@@ -49,10 +49,10 @@ export async function handleProductNotification(productId: string, notificationT
     if (!telegram) return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
     
     // Remove @ symbol if present for comparison
-    const cleanTelegram = telegram.replace('@', '');
+    const cleanTelegram = telegram.replace('@', '').toLowerCase();
     
     if (localTelegramAccounts.includes(cleanTelegram)) {
-      return `@${cleanTelegram}`;
+      return `@${telegram.replace('@', '')}`;
     }
     return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
   };
