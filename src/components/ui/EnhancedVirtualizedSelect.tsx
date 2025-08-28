@@ -38,7 +38,7 @@ const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = ({
   onOpenChange
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
-  const debouncedSearchTerm = useDebounceValue(searchTerm, 2000);
+  const debouncedSearchTerm = useDebounceValue(searchTerm, 300);
 
   const isSearching = searchTerm !== debouncedSearchTerm;
 
@@ -91,9 +91,12 @@ const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = ({
         </div>
         <div className="max-h-[250px] overflow-y-auto">
           {isSearching ? (
-            <p className="p-4 text-center text-sm text-muted-foreground">
-              Поиск...
-            </p>
+            <div className="p-4 text-center">
+              <div className="inline-flex items-center space-x-2 text-sm text-muted-foreground">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                <span>Поиск...</span>
+              </div>
+            </div>
           ) : filteredOptions.length > 0 ? (
             filteredOptions.map((option) => (
               <SelectItem 
@@ -105,7 +108,7 @@ const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = ({
             ))
           ) : (
             <p className="p-4 text-center text-sm text-muted-foreground">
-              Ничего не найдено
+              {searchTerm.trim() ? "Ничего не найдено" : "Нет доступных опций"}
             </p>
           )}
         </div>

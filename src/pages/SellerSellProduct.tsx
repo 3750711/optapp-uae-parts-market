@@ -42,6 +42,20 @@ const SellerSellProduct = () => {
   const sp = getSellerPagesTranslations(language);
   const c = getCommonTranslations(language);
   
+  // Diagnostic logging for LocalSeller_Rakib
+  const isDiagnosticUser = user?.id === '2687c2ac-c91f-4d3f-b331-7e2c46b3cf92';
+  
+  useEffect(() => {
+    if (isDiagnosticUser) {
+      console.log('🔍 LocalSeller_Rakib diagnostic: Component initialized', { 
+        userId: user?.id, 
+        profileType: profile?.user_type,
+        currentRoute: '/seller/sell-product',
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [isDiagnosticUser, user?.id, profile?.user_type]);
+  
   // State management
   const [step, setStep] = useState(1);
   const [buyers, setBuyers] = useState<BuyerProfile[]>([]);
@@ -223,9 +237,33 @@ const SellerSellProduct = () => {
   }, [products]);
 
   const handleProductSelect = useCallback((product: Product) => {
-    setSelectedProduct(product);
-    setStep(2);
-  }, []);
+    try {
+      if (isDiagnosticUser) {
+        console.log('🔍 LocalSeller_Rakib diagnostic: Product selected', { 
+          productId: product.id,
+          productTitle: product.title,
+          step: 'product_selection',
+          timestamp: new Date().toISOString()
+        });
+      }
+      setSelectedProduct(product);
+      setStep(2);
+    } catch (error) {
+      console.error('Error in handleProductSelect:', error);
+      if (isDiagnosticUser) {
+        console.log('🚨 LocalSeller_Rakib diagnostic: Error in product selection', { 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          productId: product?.id,
+          timestamp: new Date().toISOString()
+        });
+      }
+      toast({
+        title: "Selection Error",
+        description: "Failed to select product. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [isDiagnosticUser]);
 
   const handleProductPreview = useCallback((product: Product) => {
     setPreviewProduct(product);
@@ -233,10 +271,48 @@ const SellerSellProduct = () => {
   }, []);
 
   const handleBuyerSelect = useCallback((buyerId: string) => {
-    const buyer = buyers.find(b => b.id === buyerId);
-    setSelectedBuyer(buyer || null);
-    setStep(3);
-  }, [buyers]);
+    try {
+      if (isDiagnosticUser) {
+        console.log('🔍 LocalSeller_Rakib diagnostic: Buyer selection initiated', { 
+          buyerId,
+          step: 'buyer_selection',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      const buyer = buyers.find(b => b.id === buyerId);
+      if (!buyer) {
+        throw new Error('Buyer not found');
+      }
+      
+      if (isDiagnosticUser) {
+        console.log('🔍 LocalSeller_Rakib diagnostic: Buyer selected successfully', { 
+          buyerId,
+          buyerName: buyer.full_name,
+          buyerOptId: buyer.opt_id,
+          step: 'buyer_selection_success',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      setSelectedBuyer(buyer);
+      setStep(3);
+    } catch (error) {
+      console.error('Error in handleBuyerSelect:', error);
+      if (isDiagnosticUser) {
+        console.log('🚨 LocalSeller_Rakib diagnostic: Error in buyer selection', { 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          buyerId,
+          timestamp: new Date().toISOString()
+        });
+      }
+      toast({
+        title: "Selection Error", 
+        description: "Failed to select buyer. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [buyers, isDiagnosticUser]);
 
   // Keyboard shortcuts handlers
   const handleKeyboardCancel = useCallback(() => {
@@ -279,6 +355,17 @@ const SellerSellProduct = () => {
       return;
     }
 
+    if (isDiagnosticUser) {
+      console.log('🔍 LocalSeller_Rakib diagnostic: Order creation started', { 
+        productId: selectedProduct.id,
+        buyerId: selectedBuyer.id,
+        deliveryMethod: orderData.deliveryMethod,
+        price: orderData.price,
+        step: 'order_creation_start',
+        timestamp: new Date().toISOString()
+      });
+    }
+
     console.log("Creating order with data:", {
       seller: profile,
       product: selectedProduct,
@@ -315,6 +402,14 @@ const SellerSellProduct = () => {
         p_delivery_price_confirm: orderData.deliveryPrice || null
       };
 
+      if (isDiagnosticUser) {
+        console.log('🔍 LocalSeller_Rakib diagnostic: RPC payload prepared', { 
+          payload: orderPayload,
+          step: 'rpc_payload_ready',
+          timestamp: new Date().toISOString()
+        });
+      }
+
       console.log("RPC payload:", orderPayload);
 
       const { data: orderId, error: orderError } = await supabase
@@ -322,7 +417,22 @@ const SellerSellProduct = () => {
 
       if (orderError) {
         console.error("Error creating order:", orderError);
+        if (isDiagnosticUser) {
+          console.log('🚨 LocalSeller_Rakib diagnostic: RPC error', { 
+            error: orderError,
+            step: 'rpc_error',
+            timestamp: new Date().toISOString()
+          });
+        }
         throw orderError;
+      }
+
+      if (isDiagnosticUser) {
+        console.log('🔍 LocalSeller_Rakib diagnostic: Order created successfully', { 
+          orderId,
+          step: 'order_creation_success',
+          timestamp: new Date().toISOString()
+        });
       }
 
       console.log("Order created with ID:", orderId);
@@ -353,6 +463,16 @@ const SellerSellProduct = () => {
     } catch (error) {
       console.error("Error creating order:", error);
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      
+      if (isDiagnosticUser) {
+        console.log('🚨 LocalSeller_Rakib diagnostic: Order creation failed', { 
+          error: errorMessage,
+          errorObject: error,
+          step: 'order_creation_error',
+          timestamp: new Date().toISOString()
+        });
+      }
+      
       toast({
         title: sp.orderCreationError,
         description: `Details: ${errorMessage}`,
@@ -360,6 +480,13 @@ const SellerSellProduct = () => {
       });
     } finally {
       setIsCreatingOrder(false);
+      
+      if (isDiagnosticUser) {
+        console.log('🔍 LocalSeller_Rakib diagnostic: Order creation completed', { 
+          step: 'order_creation_end',
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   };
 
