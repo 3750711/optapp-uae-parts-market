@@ -155,11 +155,56 @@ export const useOptimizedCloudinaryUpload = () => {
   const workerRef = useRef<Worker | null>(null);
   const activeUploadsRef = useRef<Set<string>>(new Set());
 
-  // Initialize smart compression worker
+  // Initialize smart compression worker with fallback  
+  const [workerAvailable, setWorkerAvailable] = useState(false);
+  const [useEdgeFallback, setUseEdgeFallback] = useState(false);
+
   useEffect(() => {
-    workerRef.current = new Worker('/src/workers/smart-image-compress.worker.ts', { type: 'module' });
-    
-    // Initialize network profile
+    const initWorker = async () => {
+      try {
+        workerRef.current = new Worker('/src/workers/smart-image-compress.worker.js', { type: 'module' });
+        
+        // Test worker functionality
+        const testResult = await new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Worker test timeout')), 2000);
+          
+          const handleMessage = (e) => {
+            clearTimeout(timeout);
+            workerRef.current?.removeEventListener('message', handleMessage);
+            resolve(e.data);
+          };
+          
+          workerRef.current?.addEventListener('message', handleMessage);
+          
+          // Send test task
+          const testFile = new File(['test'], 'test.jpg', { type: 'image/jpeg' });
+          workerRef.current?.postMessage({
+            id: 'test',
+            file: testFile,
+            baseMaxSide: 1024,
+            baseQuality: 0.8,
+            targetSize: 100000,
+            format: 'webp',
+            networkType: 'wifi'
+          });
+        });
+        
+        if (testResult) {
+          setWorkerAvailable(true);
+          console.log('Smart compression worker initialized successfully');
+        }
+      } catch (error) {
+        console.warn('Worker initialization failed, using edge function fallback:', error);
+        setWorkerAvailable(false);
+        setUseEdgeFallback(true);
+        if (workerRef.current) {
+          workerRef.current.terminate();
+          workerRef.current = null;
+        }
+      }
+    };
+
+    initWorker();
     initializeProfile();
     
     return () => {
@@ -190,8 +235,8 @@ export const useOptimizedCloudinaryUpload = () => {
     return newSessionId;
   }, [sessionId]);
 
-  // Get batch signatures from new endpoint
-  const getBatchSignatures = useCallback(async (currentSessionId: string, count: number = 5): Promise<CloudinarySignature[]> => {
+  // Get simplified batch signatures (max 2 signatures at once)  
+  const getBatchSignatures = useCallback(async (currentSessionId: string, count: number = 2): Promise<CloudinarySignature[]> => {
     const { data: { session } } = await supabase.auth.getSession();
     
     const { data, error } = await supabase.functions.invoke('cloudinary-sign-batch', {
@@ -208,10 +253,10 @@ export const useOptimizedCloudinaryUpload = () => {
     return data.data;
   }, []);
 
-  // Get next signature from pool, refill if needed
+  // Get next signature from pool, refill if needed (simplified)
   const getNextSignature = useCallback(async (currentSessionId: string): Promise<CloudinarySignature> => {
     if (signaturePoolRef.current.length === 0) {
-      const newSignatures = await getBatchSignatures(currentSessionId, 5);
+      const newSignatures = await getBatchSignatures(currentSessionId, 2); // Just 2 signatures
       signaturePoolRef.current = newSignatures;
     }
     
@@ -223,47 +268,106 @@ export const useOptimizedCloudinaryUpload = () => {
     return signature;
   }, [getBatchSignatures]);
 
-  // Smart compression using worker
-  const compressFile = useCallback(async (file: File, targetSize: number): Promise<{ blob: Blob; compressionMs: number; passes: number }> => {
-    const compressionProfile = getCompressionProfile();
+  // Fallback compression using edge function
+  const compressWithEdgeFunction = useCallback(async (file: File): Promise<{ blob: Blob; compressionMs: number; passes: number }> => {
+    const startTime = performance.now();
+    const { data: { session } } = await supabase.auth.getSession();
     
-    return new Promise((resolve, reject) => {
-      if (!workerRef.current) {
-        reject(new Error('Compression worker not available'));
-        return;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('maxSizeKB', '400'); // Conservative target
+    formData.append('quality', '0.78');
+
+    const { data, error } = await supabase.functions.invoke('compress-image', {
+      body: formData,
+      headers: {
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
       }
-      
-      const taskId = crypto.randomUUID();
-      
-      const handleMessage = (e: MessageEvent) => {
-        if (e.data.id === taskId) {
-          workerRef.current?.removeEventListener('message', handleMessage);
-          
-          if (e.data.error) {
-            reject(new Error(e.data.error));
-          } else {
-            resolve({
-              blob: e.data.blob,
-              compressionMs: e.data.compressionMs,
-              passes: e.data.passes
-            });
-          }
-        }
-      };
-      
-      workerRef.current.addEventListener('message', handleMessage);
-      
-      workerRef.current.postMessage({
-        id: taskId,
-        file,
-        baseMaxSide: compressionProfile.maxSide,
-        baseQuality: compressionProfile.quality,
-        targetSize,
-        format: 'webp',
-        networkType: networkProfile.type
-      });
     });
-  }, [getCompressionProfile, networkProfile.type]);
+
+    if (error || !data?.success) {
+      throw new Error(error?.message || 'Edge function compression failed');
+    }
+
+    // Download compressed image
+    const response = await fetch(data.compressedUrl);
+    if (!response.ok) throw new Error('Failed to download compressed image');
+    
+    const blob = await response.blob();
+    const compressionMs = performance.now() - startTime;
+
+    return {
+      blob,
+      compressionMs: Math.round(compressionMs),
+      passes: 1
+    };
+  }, []);
+
+  // Smart compression with fallback
+  const compressFile = useCallback(async (file: File, targetSize: number): Promise<{ blob: Blob; compressionMs: number; passes: number }> => {
+    // Try worker first if available
+    if (workerAvailable && workerRef.current && !useEdgeFallback) {
+      try {
+        const compressionProfile = getCompressionProfile();
+        
+        return new Promise((resolve, reject) => {
+          const taskId = crypto.randomUUID();
+          const timeout = setTimeout(() => {
+            console.warn('Worker timeout, switching to edge function');
+            setUseEdgeFallback(true);
+            reject(new Error('Worker timeout'));
+          }, 10000);
+          
+          const handleMessage = (e: MessageEvent) => {
+            if (e.data.id === taskId) {
+              clearTimeout(timeout);
+              workerRef.current?.removeEventListener('message', handleMessage);
+              
+              if (e.data.error) {
+                console.warn('Worker error, switching to edge function:', e.data.error);
+                setUseEdgeFallback(true);
+                reject(new Error(e.data.error));
+              } else {
+                resolve({
+                  blob: e.data.blob,
+                  compressionMs: e.data.compressionMs,
+                  passes: e.data.passes
+                });
+              }
+            }
+          };
+          
+          workerRef.current!.addEventListener('message', handleMessage);
+          
+          workerRef.current!.postMessage({
+            id: taskId,
+            file,
+            baseMaxSide: compressionProfile.maxSide,
+            baseQuality: compressionProfile.quality,
+            targetSize,
+            format: 'webp',
+            networkType: networkProfile.type
+          });
+        });
+      } catch (error) {
+        console.warn('Worker compression failed, using edge function:', error);
+        setUseEdgeFallback(true);
+      }
+    }
+    
+    // Fallback to edge function or when worker unavailable
+    try {
+      return await compressWithEdgeFunction(file);
+    } catch (edgeError) {
+      console.error('Both worker and edge compression failed, using original file:', edgeError);
+      // Last resort - return original file
+      return {
+        blob: file,
+        compressionMs: 0,
+        passes: 0
+      };
+    }
+  }, [workerAvailable, useEdgeFallback, getCompressionProfile, networkProfile.type, compressWithEdgeFunction]);
 
   // Upload to Cloudinary with retry logic
   const uploadToCloudinary = useCallback(async (
