@@ -27,14 +27,17 @@ export const RATE_LIMITS = {
 // This is a security compromise but necessary for the Telegram widget's internal eval() calls
 export const CSP_DIRECTIVES = {
   'default-src': ["'self'"],
-  'img-src': ["'self'", "https://res.cloudinary.com", "https://cdn.gpteng.co", "https://c.clarity.ms", "https://*.supabase.co", "data:"],
-  'connect-src': ["'self'", "https://*.supabase.co", "wss://*.supabase.co", "https://cdn.gpteng.co", "https://*.clarity.ms", "https://telegram.org"],
+  'img-src': ["'self'", "https://res.cloudinary.com", "https://cdn.gpteng.co", "https://c.clarity.ms", "https://*.supabase.co", "data:", "blob:"],
+  'connect-src': ["'self'", "https://*.supabase.co", "wss://*.supabase.co", "https://api.cloudinary.com", "https://cdn.gpteng.co", "https://*.clarity.ms", "https://telegram.org"],
   'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://scripts.clarity.ms", "https://telegram.org"],
   'script-src-elem': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://scripts.clarity.ms", "https://telegram.org"],
   'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
   'font-src': ["'self'", "data:", "https://fonts.gstatic.com"],
   'frame-src': ["https://oauth.telegram.org"],
   'frame-ancestors': ["'none'"],
+  'worker-src': ["'self'", "blob:"],
+  'media-src': ["'self'", "https://res.cloudinary.com", "data:", "blob:"],
+  'form-action': ["'self'", "https://api.cloudinary.com"],
 } as const;
 
 // Security headers configuration
