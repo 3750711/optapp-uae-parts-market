@@ -464,6 +464,7 @@ export type Database = {
           file_url: string
           id: string
           order_id: string
+          public_id: string | null
           source: string | null
           uploaded_by: number | null
         }
@@ -473,6 +474,7 @@ export type Database = {
           file_url: string
           id?: string
           order_id: string
+          public_id?: string | null
           source?: string | null
           uploaded_by?: number | null
         }
@@ -482,6 +484,7 @@ export type Database = {
           file_url?: string
           id?: string
           order_id?: string
+          public_id?: string | null
           source?: string | null
           uploaded_by?: number | null
         }

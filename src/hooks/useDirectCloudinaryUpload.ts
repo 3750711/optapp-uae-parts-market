@@ -161,13 +161,21 @@ export const useDirectCloudinaryUpload = () => {
   const getCloudinarySignature = useCallback(async (orderId: string): Promise<CloudinarySignature> => {
     console.log('🔐 Getting Cloudinary signature for orderId:', orderId);
     
+    // Get current session for JWT token
+    const { data: { session } } = await supabase.auth.getSession();
+    
     const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
-      body: { orderId }
+      body: JSON.stringify({ orderId }),
+      headers: {
+        'content-type': 'application/json',
+        // Pass JWT token for admin authorization
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+      }
     });
     
     if (error) {
       console.error('❌ Signature error:', error);
-      throw new Error(error.message);
+      throw new Error(error.message || 'cloudinary-sign call failed');
     }
     
     if (!data) {
@@ -175,22 +183,22 @@ export const useDirectCloudinaryUpload = () => {
       throw new Error('No signature data received');
     }
     
-    // Validate required fields
-    const requiredFields = ['cloud_name', 'api_key', 'signature', 'timestamp', 'upload_url'];
-    for (const field of requiredFields) {
-      if (!data[field]) {
-        console.error(`❌ Missing required field in signature: ${field}`);
-        throw new Error(`Missing required field: ${field}`);
-      }
+    // Support both response formats: {success, data} OR direct object
+    const payload = data;
+    const sign = payload?.success ? payload.data : payload;
+    
+    if (!sign?.timestamp || !sign?.signature || !sign?.folder || !sign?.public_id || !sign?.api_key || !sign?.cloud_name) {
+      console.error('❌ Bad payload:', payload);
+      throw new Error('cloudinary-sign returned invalid payload');
     }
     
     console.log('✅ Signature received successfully:', {
-      cloud_name: data.cloud_name,
-      folder: data.folder,
-      public_id: data.public_id
+      cloud_name: sign.cloud_name,
+      folder: sign.folder,
+      public_id: sign.public_id
     });
     
-    return data;
+    return sign;
   }, []);
 
   // Compress image using WebWorker
@@ -401,16 +409,13 @@ export const useDirectCloudinaryUpload = () => {
       type: 'photo' as const
     }));
 
-    const { error } = await supabase.functions.invoke('attach-order-media', {
-      body: {
-        order_id: orderId,
-        items
-      }
+    const { data: saveResp, error: saveErr } = await supabase.functions.invoke('attach-order-media', {
+      body: JSON.stringify({ order_id: orderId, items }),
+      headers: { 'content-type': 'application/json' }
     });
 
-    if (error) {
-      throw new Error(`Database save failed: ${error.message}`);
-    }
+    if (saveErr) throw new Error('Edge Function call failed: ' + saveErr.message);
+    if (!saveResp?.success) throw new Error('Database save failed: ' + (saveResp?.error || 'unknown'));
   }, []);
 
   // Main upload function
