@@ -6,7 +6,6 @@ import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
 import { useStagedCloudinaryUpload } from '@/hooks/useStagedCloudinaryUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
-import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { TelegramOrderParser } from './TelegramOrderParser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,7 +23,6 @@ import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 import { usePWALifecycle } from '@/hooks/usePWALifecycle';
 
 export const AdminFreeOrderForm = () => {
-  const [showPreview, setShowPreview] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isOrderCreated, setIsOrderCreated] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
@@ -368,7 +366,8 @@ useEffect(() => {
     });
   };
 
-  const handleCreateOrderClick = () => {
+  const handleCreateOrderClick = (e: React.FormEvent) => {
+    e.preventDefault();
     console.log('🔍 Checking form validation:', {
       title: formData.title,
       price: formData.price,
@@ -385,12 +384,8 @@ useEffect(() => {
       });
       return;
     }
-    setShowPreview(true);
-  };
 
-  const handleConfirmOrder = (e: React.FormEvent) => {
-    console.log('🎯 AdminFreeOrderForm: handleConfirmOrder called');
-    e.preventDefault();
+    console.log('🎯 AdminFreeOrderForm: Starting order creation');
     
     // Log current form state and images
     console.log('🎯 AdminFreeOrderForm: Form state before submission', {
@@ -407,7 +402,6 @@ useEffect(() => {
       console.error('🎯 AdminFreeOrderForm: Invalid image URLs detected:', invalidImages);
     }
     
-    setShowPreview(false);
     setIsCreating(true);
     guardedSubmit(async () => {
       try {
@@ -429,9 +423,6 @@ useEffect(() => {
     resetForm();
   };
 
-  const handleBackToEdit = () => {
-    setShowPreview(false);
-  };
 
   const canShowPreview = () => {
     const isValid = formData.title && 
@@ -650,19 +641,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Order Preview Dialog */}
-      <OrderPreviewDialog
-        open={showPreview}
-        onOpenChange={setShowPreview}
-        formData={formData}
-        images={images}
-        videos={videos}
-        selectedSeller={selectedSeller}
-        buyerProfile={getBuyerProfile()}
-        onConfirm={handleConfirmOrder}
-        onBack={handleBackToEdit}
-        isLoading={isLoading}
-      />
     </div>
   );
 };
