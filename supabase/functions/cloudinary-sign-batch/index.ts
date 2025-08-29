@@ -20,7 +20,8 @@ const sha1 = async (text: string): Promise<string> => {
 interface BatchSignRequest {
   orderId?: string;
   sessionId?: string;
-  count?: number; // Number of signatures to generate (default 5, max 10)
+  publicIds?: string[]; // List of specific public IDs to sign
+  count?: number; // Number of signatures to generate (default 5, max 10) - fallback only
 }
 
 interface SignatureData {
@@ -97,10 +98,20 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { orderId, sessionId, count = 5 }: BatchSignRequest = await req.json();
+    const { orderId, sessionId, publicIds, count = 5 }: BatchSignRequest = await req.json();
 
-    // Validate count (1-10 for batch efficiency)
-    const signatureCount = Math.max(1, Math.min(10, count));
+    // Use provided publicIds if available, otherwise generate count signatures
+    let targetPublicIds: string[] = [];
+    if (publicIds && Array.isArray(publicIds) && publicIds.length > 0) {
+      // Validate and use provided publicIds
+      targetPublicIds = publicIds.filter(id => typeof id === 'string' && id.trim().length > 0);
+    } else {
+      // Fallback to count-based generation (max 10 for batch efficiency)
+      const signatureCount = Math.max(1, Math.min(10, count));
+      for (let i = 0; i < signatureCount; i++) {
+        targetPublicIds.push(`product_${crypto.randomUUID().replace(/-/g, '_')}`);
+      }
+    }
 
     // Validate that either orderId or sessionId is provided and is valid UUID
     const isValidUUID = (str: string) => 
@@ -138,13 +149,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate multiple signatures
+    // Generate signatures for the target publicIds
     const signatures: SignatureData[] = [];
     const baseTimestamp = Math.floor(Date.now() / 1000);
     
-    for (let i = 0; i < signatureCount; i++) {
+    for (let i = 0; i < targetPublicIds.length; i++) {
       const timestamp = baseTimestamp + i; // Ensure unique timestamps
-      const public_id = `product_${crypto.randomUUID().replace(/-/g, '_')}`;
+      const public_id = targetPublicIds[i];
 
       // Create signature string (alphabetically sorted parameters)
       const signatureString = `folder=${folder}&public_id=${public_id}&timestamp=${timestamp}`;
@@ -164,10 +175,10 @@ Deno.serve(async (req) => {
     const response: BatchSignResponse = {
       success: true,
       data: signatures,
-      count: signatureCount
+      count: signatures.length
     };
 
-    console.log(`Generated ${signatureCount} Cloudinary signatures for targetId: ${targetId}, folder: ${folder}`);
+    console.log(`Generated ${signatures.length} Cloudinary signatures for targetId: ${targetId}, folder: ${folder}`);
 
     return new Response(
       JSON.stringify(response),

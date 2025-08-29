@@ -185,14 +185,14 @@ export const useStagedCloudinaryUpload = () => {
     return newSessionId;
   }, [sessionId]);
 
-  // Get batch Cloudinary signatures for staging
-  const getBatchSignatures = useCallback(async (currentSessionId: string, count: number): Promise<CloudinarySignature[]> => {
+  // Get batch Cloudinary signatures for staging with publicIds
+  const getBatchSignatures = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
     const { data: { session } } = await supabase.auth.getSession();
     
-    console.log(`🔐 Requesting ${count} Cloudinary signatures for session: ${currentSessionId}`);
+    console.log(`🔐 Requesting Cloudinary signatures for ${publicIds.length} specific IDs, session: ${currentSessionId}`);
     
     const { data, error } = await supabase.functions.invoke('cloudinary-sign-batch', {
-      body: JSON.stringify({ sessionId: currentSessionId, count }),
+      body: JSON.stringify({ sessionId: currentSessionId, publicIds }),
       headers: {
         'content-type': 'application/json',
         ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
@@ -210,7 +210,7 @@ export const useStagedCloudinaryUpload = () => {
     }
     
     const signatures = data.data;
-    console.log(`✅ Received ${signatures.length} signatures (requested ${count})`);
+    console.log(`✅ Received ${signatures.length} signatures (requested ${publicIds.length})`);
     
     // Validate each signature has required fields
     for (let i = 0; i < signatures.length; i++) {
@@ -225,13 +225,13 @@ export const useStagedCloudinaryUpload = () => {
   }, []);
 
   // Get single Cloudinary signature as fallback
-  const getSingleSignature = useCallback(async (currentSessionId: string, publicId?: string): Promise<CloudinarySignature> => {
+  const getSingleSignature = useCallback(async (currentSessionId: string, publicId: string): Promise<CloudinarySignature> => {
     const { data: { session } } = await supabase.auth.getSession();
     
     console.log(`🔐 Requesting single Cloudinary signature for session: ${currentSessionId}`);
     
-    const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
-      body: JSON.stringify({ sessionId: currentSessionId }),
+    const { data, error } = await supabase.functions.invoke('cloudinary-sign-batch', {
+      body: JSON.stringify({ sessionId: currentSessionId, publicIds: [publicId] }),
       headers: {
         'content-type': 'application/json',
         ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
@@ -248,7 +248,13 @@ export const useStagedCloudinaryUpload = () => {
       throw new Error('Invalid single signature response');
     }
     
-    const signature = data.data;
+    const signatures = data.data;
+    if (!signatures || signatures.length === 0) {
+      console.error('❌ No signature received in response');
+      throw new Error('No signature received');
+    }
+    
+    const signature = signatures[0];
     if (!signature.api_key || !signature.signature || !signature.timestamp || !signature.public_id) {
       console.error('❌ Invalid single signature data:', signature);
       throw new Error('Invalid single signature data');
@@ -418,6 +424,61 @@ export const useStagedCloudinaryUpload = () => {
     });
   }, []);
 
+  // Chunked batch signature function
+  const signBatchChunked = useCallback(async (publicIds: string[], currentSessionId: string): Promise<Map<string, CloudinarySignature>> => {
+    const CHUNK_SIZE = 8;
+    const chunks: string[][] = [];
+    
+    // Split publicIds into chunks
+    for (let i = 0; i < publicIds.length; i += CHUNK_SIZE) {
+      chunks.push(publicIds.slice(i, i + CHUNK_SIZE));
+    }
+    
+    console.log(`🔗 Splitting ${publicIds.length} signatures into ${chunks.length} chunks of max ${CHUNK_SIZE}`);
+    
+    // Process chunks in parallel
+    const results = await Promise.allSettled(
+      chunks.map(async (chunkIds) => {
+        try {
+          return await getBatchSignatures(currentSessionId, chunkIds);
+        } catch (error) {
+          console.warn(`⚠️ Chunk signing failed for ${chunkIds.length} IDs:`, error);
+          return [];
+        }
+      })
+    );
+    
+    // Collect all successful signatures into a Map by public_id
+    const signatureMap = new Map<string, CloudinarySignature>();
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        for (const sig of result.value) {
+          if (sig?.public_id && sig?.signature) {
+            signatureMap.set(sig.public_id, sig);
+          }
+        }
+      }
+    }
+    
+    console.log(`✅ Collected ${signatureMap.size}/${publicIds.length} signatures from chunked requests`);
+    return signatureMap;
+  }, [getBatchSignatures]);
+
+  // Ensure signature function with lazy loading
+  const ensureSignature = useCallback(async (publicId: string, currentSessionId: string, signatureMap: Map<string, CloudinarySignature>): Promise<CloudinarySignature> => {
+    // Check if we already have this signature
+    const existing = signatureMap.get(publicId);
+    if (existing) {
+      return existing;
+    }
+    
+    // Fetch single signature and cache it
+    console.log(`🔐 Lazy-loading signature for publicId: ${publicId}`);
+    const signature = await getSingleSignature(currentSessionId, publicId);
+    signatureMap.set(publicId, signature);
+    return signature;
+  }, [getSingleSignature]);
+
   // Upload files to staging with optimized architecture
   const uploadFiles = useCallback(async (files: File[]): Promise<string[]> => {
     if (files.length === 0) return [];
@@ -426,285 +487,161 @@ export const useStagedCloudinaryUpload = () => {
     const currentSessionId = await initSession();
     const newUrls: string[] = [];
     
-  // Detect network condition for adaptive optimization
-  const getNetworkType = () => {
-    const connection = (navigator as any).connection;
-    if (!connection) return '4g';
-    return connection.effectiveType || '4g';
-  };
+    // Detect network condition for adaptive optimization
+    const getNetworkType = () => {
+      const connection = (navigator as any).connection;
+      if (!connection) return '4g';
+      return connection.effectiveType || '4g';
+    };
 
-  const networkType = getNetworkType();
-  const isSlowNetwork = /(2g|slow-2g|3g)/.test(networkType);
-  const parallelism = isSlowNetwork ? 2 : 3;
-  const quality = isSlowNetwork ? 0.75 : 0.82;
-  const maxSide = isSlowNetwork ? 1400 : 1600;
+    const networkType = getNetworkType();
+    const isSlowNetwork = /(2g|slow-2g|3g)/.test(networkType);
+    const parallelism = isSlowNetwork ? 2 : 3;
+    const quality = isSlowNetwork ? 0.75 : 0.82;
+    const maxSide = isSlowNetwork ? 1400 : 1600;
 
-  console.log(`📱 Network: ${networkType}, parallelism: ${parallelism}, quality: ${quality}`);
+    console.log(`📱 Network: ${networkType}, parallelism: ${parallelism}, quality: ${quality}`);
 
-  // Create upload items with stable UUID-based IDs and HEIC detection
-  const items: StagedUploadItem[] = files.map((file) => ({
-    id: crypto.randomUUID(),
-    file,
-    progress: 0,
-    status: 'pending',
-    isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
-            file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif'),
-    originalSize: file.size
-  }));
+    // Create upload items with stable UUID-based public IDs and HEIC detection
+    const items: StagedUploadItem[] = files.map((file) => {
+      const publicId = `product_${crypto.randomUUID().replace(/-/g, '_')}`;
+      return {
+        id: crypto.randomUUID(), // Different from publicId for internal tracking
+        file,
+        progress: 0,
+        status: 'pending',
+        publicId, // Store the stable publicId for signing
+        isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
+                file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif'),
+        originalSize: file.size
+      };
+    });
     
     setUploadItems(items);
 
     try {
-      // Step 1: Generate stable UUID-based public IDs for each file
-      const stableIds = items.map(item => 
-        `product_${crypto.randomUUID().replace(/-/g, '_')}`
+      // Pre-fetch signatures in chunks (don't await - start parallel with compression)
+      const signaturePrefetch = signBatchChunked(
+        items.map(item => item.publicId!), 
+        currentSessionId
       );
-      
-      // Step 2: Get batch signatures
-      let signatures: CloudinarySignature[] = [];
-      try {
-        signatures = await getBatchSignatures(currentSessionId, files.length);
+
+      // Run pool for parallel processing
+      const runPool = async <T>(concurrency: number, items: T[], processor: (item: T) => Promise<void>) => {
+        const promises: Promise<void>[] = [];
+        let index = 0;
         
-        // Verify we got the expected number of signatures
-        if (signatures.length !== files.length) {
-          console.warn(`⚠️ Signature count mismatch: expected ${files.length}, got ${signatures.length}`);
-          throw new Error(`Signature count mismatch: expected ${files.length}, got ${signatures.length}`);
-        }
-      } catch (batchError) {
-        console.error('❌ Batch signature failed, falling back to individual signatures:', batchError);
-        toast({
-          title: "Предупреждение",
-          description: "Получение подписей пакетом не удалось, переключаемся на индивидуальные запросы",
-          variant: "default"
-        });
-        
-        // Fallback to individual signatures
-        signatures = [];
-        for (let i = 0; i < files.length; i++) {
-          try {
-            const signature = await getSingleSignature(currentSessionId, stableIds[i]);
-            signatures.push(signature);
-          } catch (singleError) {
-            console.error(`❌ Failed to get signature for file ${i}:`, singleError);
-            throw new Error(`Failed to get signature for file ${i}: ${singleError.message}`);
-          }
-        }
-      }
-      
-      // Create signature map for safe lookup
-      const signatureMap = new Map<number, CloudinarySignature>();
-      signatures.forEach((sig, index) => {
-        if (sig && sig.api_key && sig.signature) {
-          signatureMap.set(index, sig);
-        }
-      });
-      
-      console.log(`📋 Created signature map with ${signatureMap.size} valid signatures for ${files.length} files`);
-      
-      // Step 3: Process files with adaptive parallelism based on network
-      const uploadWithLimit = async () => {
-        const results: string[] = [];
-        const inProgress = new Set<Promise<void>>();
-        
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          
-          // Wait if we have too many concurrent uploads (adaptive based on network)
-          if (inProgress.size >= parallelism) {
-            await Promise.race(inProgress);
-          }
-          
-          const uploadPromise = (async () => {
+        const worker = async () => {
+          while (index < items.length) {
+            const currentIndex = index++;
+            const item = items[currentIndex];
             try {
-              let finalFile = item.file;
-              
-              // Step 2a: Compress non-HEIC files
-              if (!item.isHeic) {
-                setUploadItems(prev => prev.map(i => 
-                  i.id === item.id ? { ...i, status: 'compressing', progress: 10 } : i
-                ));
-
-                try {
-                  const compressionResult = await compressInWorker(item.file, maxSide, quality);
-                  
-                  if (compressionResult.ok && compressionResult.blob) {
-                    // Successfully compressed
-                    finalFile = new File([compressionResult.blob], 
-                      item.file.name.replace(/\.[^/.]+$/, '.jpg'), 
-                      { type: compressionResult.blob.type || 'image/jpeg' });
-                    
-                    setUploadItems(prev => prev.map(i => 
-                      i.id === item.id ? { 
-                        ...i, 
-                        compressedSize: finalFile.size, 
-                        progress: 30,
-                        metadata: {
-                          width: compressionResult.originalSize,
-                          height: compressionResult.compressedSize,
-                          size: finalFile.size,
-                          mime: compressionResult.mime,
-                          networkType,
-                          quality
-                        }
-                      } : i
-                    ));
-                    
-                    console.log(`✅ Compressed ${item.file.name}: ${item.file.size} → ${finalFile.size} bytes`);
-                    } else {
-                      // Compression failed, handle specific errors
-                      if (compressionResult.code === 'UNSUPPORTED_HEIC') {
-                        console.log('📱 HEIC file detected, uploading original for server conversion');
-                        setUploadItems(prev => prev.map(i => 
-                          i.id === item.id ? { 
-                            ...i, 
-                            isHeic: true,
-                            metadata: { heic: true, networkType }
-                          } : i
-                        ));
-                      } else if (compressionResult.code === 'DECODE_FAILED') {
-                        console.warn('🖼️ Image decode failed, uploading original:', item.file.name);
-                        setUploadItems(prev => prev.map(i => 
-                          i.id === item.id ? { 
-                            ...i,
-                            metadata: { fallback: 'decode-failed', networkType }
-                          } : i
-                        ));
-                      } else {
-                        console.warn('⚠️ Compression failed, uploading original:', {
-                          code: compressionResult.code,
-                          fileName: item.file.name,
-                          fileSize: item.file.size
-                        });
-                        setUploadItems(prev => prev.map(i => 
-                          i.id === item.id ? { 
-                            ...i,
-                            metadata: { fallback: 'compression-failed', networkType }
-                          } : i
-                        ));
-                      }
-                    }
-                 } catch (workerError) {
-                   console.warn('🔧 Worker compression failed, using original file:', {
-                     error: workerError,
-                     fileName: item.file.name,
-                     fileSize: item.file.size
-                   });
-                   // Use original file as fallback
-                 }
-              }
-
-              // Step 2b: Get signature for this file
-              let signature = signatureMap.get(i);
-              
-              if (!signature) {
-                console.warn(`⚠️ No signature found for file ${i} (${item.file.name}), requesting fallback signature`);
-                setUploadItems(prev => prev.map(it => 
-                  it.id === item.id ? { ...it, status: 'signing', progress: 40 } : it
-                ));
-                
-                try {
-                  signature = await getSingleSignature(currentSessionId, stableIds[i]);
-                  signatureMap.set(i, signature);
-                  console.log(`✅ Got fallback signature for file ${i}`);
-                } catch (fallbackError) {
-                  console.error(`❌ Fallback signature failed for file ${i}:`, fallbackError);
-                  throw new Error(`Failed to get signature for ${item.file.name}: ${fallbackError.message}`);
-                }
-              }
-              
-              // Validate signature before upload
-              if (!signature.api_key || !signature.signature || !signature.timestamp) {
-                throw new Error(`Invalid signature data for ${item.file.name}: missing required fields`);
-              }
-
-              // Step 2c: Upload
-              setUploadItems(prev => prev.map(it => 
-                it.id === item.id ? { ...it, status: 'uploading', progress: 50 } : it
-              ));
-
-              const result = await uploadToCloudinary(
-                finalFile,
-                signature,
-                (progress) => {
-                  const adjustedProgress = 50 + Math.round(progress * 0.5);
-                  setUploadItems(prev => prev.map(it => 
-                    it.id === item.id ? { ...it, progress: adjustedProgress } : it
-                  ));
-                }
-              );
-
-              // Update to success
-              setUploadItems(prev => prev.map(i => 
-                i.id === item.id ? { 
-                  ...i, 
-                  status: 'success', 
-                  progress: 100,
-                  url: result.url,
-                  publicId: result.publicId
-                } : i
-              ));
-
-              results[i] = result.url;
-
-              // Add to staged URLs and save to IndexedDB
-              setStagedUrls(prev => {
-                const updated = [...prev, result.url];
-                stagingDB.saveSession(currentSessionId, updated);
-                return updated;
-              });
-
-            } catch (uploadError) {
-              console.error(`❌ Upload failed for file ${i} (${item.file.name}):`, uploadError);
-              
-              setUploadItems(prev => prev.map(it => 
-                it.id === item.id ? { 
-                  ...it, 
-                  status: 'error', 
-                  error: uploadError instanceof Error ? uploadError.message : 'Upload failed'
-                } : it
-              ));
-              
-              // Add error details for debugging
-              if (uploadError instanceof Error) {
-                if (uploadError.message.includes('signature')) {
-                  console.error(`📋 Signature issue for file ${i}:`, {
-                    hasSignature: !!signatureMap.get(i),
-                    signatureFields: signatureMap.get(i) ? Object.keys(signatureMap.get(i)!) : 'none',
-                    fileName: item.file.name,
-                    stableId: stableIds[i]
-                  });
-                }
-              }
+              await processor(item);
+            } catch (error) {
+              console.error(`❌ Pool worker failed for item ${currentIndex}:`, error);
             }
-          })();
-          
-          inProgress.add(uploadPromise);
-          uploadPromise.finally(() => inProgress.delete(uploadPromise));
+          }
+        };
+        
+        // Start worker promises
+        for (let i = 0; i < Math.min(concurrency, items.length); i++) {
+          promises.push(worker());
         }
         
-        // Wait for all uploads to complete
-        await Promise.allSettled(Array.from(inProgress));
-        return results.filter(Boolean);
+        await Promise.all(promises);
       };
 
-      const completedUrls = await uploadWithLimit();
+      // Get signature map (this should complete quickly due to chunking)
+      const signatureMap = await signaturePrefetch;
+
+      // Process files with adaptive parallelism
+      await runPool(parallelism, items, async (item) => {
+        try {
+          // Step 1: Compression (skip small files and HEIC)
+          const shouldCompress = !item.isHeic && item.file.size > 300_000; // Skip files under 300KB
+          let processedFile = item.file;
+          
+          if (shouldCompress) {
+            item.status = 'compressing';
+            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+            
+            const compressionResult = await compressInWorker(item.file, maxSide, quality);
+            if (compressionResult.ok && compressionResult.blob) {
+              // Always create JPEG file for consistency
+              processedFile = new File(
+                [compressionResult.blob], 
+                item.file.name.replace(/\.\w+$/i, '.jpg'), 
+                { type: 'image/jpeg' }
+              );
+              item.compressedSize = compressionResult.compressedSize;
+            } else {
+              console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
+            }
+          }
+
+          // Step 2: Ensure signature
+          item.status = 'signing';
+          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+          
+          const signature = await ensureSignature(item.publicId!, currentSessionId, signatureMap);
+          
+          // Validate signature
+          const requiredFields = ['api_key', 'timestamp', 'signature', 'upload_url', 'cloud_name', 'public_id'];
+          for (const field of requiredFields) {
+            if (!(field in signature)) {
+              throw new Error(`Signature missing required field: ${field}`);
+            }
+          }
+
+          // Step 3: Upload with retry
+          item.status = 'uploading';
+          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+          
+          const result = await uploadToCloudinary(
+            processedFile,
+            signature,
+            (progress) => {
+              item.progress = progress;
+              setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
+            }
+          );
+          
+          item.status = 'success';
+          item.url = result.url;
+          newUrls.push(result.url);
+          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
+          
+        } catch (error) {
+          console.error(`❌ Upload failed for ${item.file.name}:`, error);
+          item.status = 'error';
+          item.error = error instanceof Error ? error.message : 'Upload failed';
+          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, error: item.error } : p));
+        }
+      });
+
+      // Add to staged URLs and save to IndexedDB
+      setStagedUrls(prev => {
+        const updated = [...prev, ...newUrls];
+        stagingDB.saveSession(currentSessionId, updated);
+        return updated;
+      });
       
-      if (completedUrls.length > 0) {
+      if (newUrls.length > 0) {
         toast({
           title: "Файлы загружены",
-          description: `Загружено ${completedUrls.length} из ${files.length} файлов`,
+          description: `Загружено ${newUrls.length} из ${files.length} файлов`,
         });
       }
 
-      if (completedUrls.length < files.length) {
+      if (newUrls.length < files.length) {
         toast({
           title: "Частичная загрузка",
-          description: `${files.length - completedUrls.length} файлов не удалось загрузить`,
+          description: `${files.length - newUrls.length} файлов не удалось загрузить`,
           variant: "destructive",
         });
       }
 
-      return completedUrls;
+      return newUrls;
     } catch (error) {
       console.error('Optimized upload failed:', error);
       toast({
@@ -717,7 +654,7 @@ export const useStagedCloudinaryUpload = () => {
       setIsUploading(false);
       setTimeout(() => setUploadItems([]), 5000);
     }
-  }, [initSession, getBatchSignatures, compressInWorker, uploadToCloudinary, stagedUrls, toast]);
+  }, [initSession, signBatchChunked, ensureSignature, compressInWorker, uploadToCloudinary, stagedUrls, toast]);
 
   // Attach staged URLs to real order
   const attachToOrder = useCallback(async (orderId: string): Promise<void> => {
