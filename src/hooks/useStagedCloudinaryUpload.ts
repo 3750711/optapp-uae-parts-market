@@ -20,6 +20,8 @@ interface StagedUploadItem {
     mime?: string;
     fallback?: string;
     heic?: boolean;
+    networkType?: string;
+    quality?: number;
   };
 }
 
@@ -256,8 +258,8 @@ export const useStagedCloudinaryUpload = () => {
     return signature;
   }, []);
 
-  // Compress image in worker with improved API
-  const compressInWorker = useCallback(async (file: File): Promise<CompressionResult> => {
+  // Compress image in worker with adaptive parameters
+  const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82): Promise<CompressionResult> => {
     return new Promise((resolve) => {
       let worker: Worker;
       
@@ -318,12 +320,12 @@ export const useStagedCloudinaryUpload = () => {
         resolve({ ok: false, code: 'WORKER_ERROR', originalSize: file.size });
       };
       
-      // Send compression task with proper API
+      // Send compression task with adaptive parameters
       try {
         worker.postMessage({
           file,
-          maxSide: 1600,
-          jpegQuality: 0.82,
+          maxSide,
+          jpegQuality: quality,
           prefer: 'jpeg',
           twoPass: false
         });
@@ -373,9 +375,13 @@ export const useStagedCloudinaryUpload = () => {
             reject(new Error('Invalid Cloudinary response'));
           }
         } else {
-          // Retry logic for temporary failures
+          // Enhanced retry logic with exponential backoff and jitter
           if (retryCount < 2 && (xhr.status >= 500 || xhr.status === 429)) {
-            const delay = Math.pow(1.5, retryCount) * 2000;
+            const baseDelay = Math.pow(1.5, retryCount) * 1500;
+            const jitter = Math.random() * 400; // 0-400ms jitter
+            const delay = baseDelay + jitter;
+            
+            console.log(`⏳ Retrying upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
             setTimeout(() => {
               uploadToCloudinary(file, signature, onProgress, retryCount + 1)
                 .then(resolve)
@@ -389,7 +395,11 @@ export const useStagedCloudinaryUpload = () => {
       
       xhr.onerror = () => {
         if (retryCount < 2) {
-          const delay = Math.pow(1.5, retryCount) * 2000;
+          const baseDelay = Math.pow(1.6, retryCount) * 1500;
+          const jitter = Math.random() * 400;
+          const delay = baseDelay + jitter;
+          
+          console.log(`🔄 Network error, retrying in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
           setTimeout(() => {
             uploadToCloudinary(file, signature, onProgress, retryCount + 1)
               .then(resolve)
@@ -416,23 +426,38 @@ export const useStagedCloudinaryUpload = () => {
     const currentSessionId = await initSession();
     const newUrls: string[] = [];
     
-    // Create upload items with HEIC detection
-    const items: StagedUploadItem[] = files.map((file, index) => ({
-      id: `upload-${Date.now()}-${index}`,
-      file,
-      progress: 0,
-      status: 'pending',
-      isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
-              file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif'),
-      originalSize: file.size
-    }));
+  // Detect network condition for adaptive optimization
+  const getNetworkType = () => {
+    const connection = (navigator as any).connection;
+    if (!connection) return '4g';
+    return connection.effectiveType || '4g';
+  };
+
+  const networkType = getNetworkType();
+  const isSlowNetwork = /(2g|slow-2g|3g)/.test(networkType);
+  const parallelism = isSlowNetwork ? 2 : 3;
+  const quality = isSlowNetwork ? 0.75 : 0.82;
+  const maxSide = isSlowNetwork ? 1400 : 1600;
+
+  console.log(`📱 Network: ${networkType}, parallelism: ${parallelism}, quality: ${quality}`);
+
+  // Create upload items with stable UUID-based IDs and HEIC detection
+  const items: StagedUploadItem[] = files.map((file) => ({
+    id: crypto.randomUUID(),
+    file,
+    progress: 0,
+    status: 'pending',
+    isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
+            file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif'),
+    originalSize: file.size
+  }));
     
     setUploadItems(items);
 
     try {
-      // Step 1: Generate stable public IDs for each file
+      // Step 1: Generate stable UUID-based public IDs for each file
       const stableIds = items.map(item => 
-        `product_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        `product_${crypto.randomUUID().replace(/-/g, '_')}`
       );
       
       // Step 2: Get batch signatures
@@ -476,7 +501,7 @@ export const useStagedCloudinaryUpload = () => {
       
       console.log(`📋 Created signature map with ${signatureMap.size} valid signatures for ${files.length} files`);
       
-      // Step 3: Process files with controlled parallelism (max 3 concurrent)
+      // Step 3: Process files with adaptive parallelism based on network
       const uploadWithLimit = async () => {
         const results: string[] = [];
         const inProgress = new Set<Promise<void>>();
@@ -484,8 +509,8 @@ export const useStagedCloudinaryUpload = () => {
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
           
-          // Wait if we have too many concurrent uploads
-          if (inProgress.size >= 3) {
+          // Wait if we have too many concurrent uploads (adaptive based on network)
+          if (inProgress.size >= parallelism) {
             await Promise.race(inProgress);
           }
           
@@ -500,7 +525,7 @@ export const useStagedCloudinaryUpload = () => {
                 ));
 
                 try {
-                  const compressionResult = await compressInWorker(item.file);
+                  const compressionResult = await compressInWorker(item.file, maxSide, quality);
                   
                   if (compressionResult.ok && compressionResult.blob) {
                     // Successfully compressed
@@ -517,7 +542,9 @@ export const useStagedCloudinaryUpload = () => {
                           width: compressionResult.originalSize,
                           height: compressionResult.compressedSize,
                           size: finalFile.size,
-                          mime: compressionResult.mime
+                          mime: compressionResult.mime,
+                          networkType,
+                          quality
                         }
                       } : i
                     ));
@@ -531,7 +558,7 @@ export const useStagedCloudinaryUpload = () => {
                           i.id === item.id ? { 
                             ...i, 
                             isHeic: true,
-                            metadata: { heic: true }
+                            metadata: { heic: true, networkType }
                           } : i
                         ));
                       } else if (compressionResult.code === 'DECODE_FAILED') {
@@ -539,7 +566,7 @@ export const useStagedCloudinaryUpload = () => {
                         setUploadItems(prev => prev.map(i => 
                           i.id === item.id ? { 
                             ...i,
-                            metadata: { fallback: 'decode-failed' }
+                            metadata: { fallback: 'decode-failed', networkType }
                           } : i
                         ));
                       } else {
@@ -551,7 +578,7 @@ export const useStagedCloudinaryUpload = () => {
                         setUploadItems(prev => prev.map(i => 
                           i.id === item.id ? { 
                             ...i,
-                            metadata: { fallback: 'compression-failed' }
+                            metadata: { fallback: 'compression-failed', networkType }
                           } : i
                         ));
                       }

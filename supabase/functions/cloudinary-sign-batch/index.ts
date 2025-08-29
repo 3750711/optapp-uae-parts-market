@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
     
     for (let i = 0; i < signatureCount; i++) {
       const timestamp = baseTimestamp + i; // Ensure unique timestamps
-      const public_id = `o_${targetId}_${timestamp}_${crypto.randomUUID().slice(0, 8)}`;
+      const public_id = `product_${crypto.randomUUID().replace(/-/g, '_')}`;
 
       // Create signature string (alphabetically sorted parameters)
       const signatureString = `folder=${folder}&public_id=${public_id}&timestamp=${timestamp}`;

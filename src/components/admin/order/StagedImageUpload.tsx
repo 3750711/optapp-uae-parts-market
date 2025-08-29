@@ -79,25 +79,42 @@ export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
                 <div className="text-sm font-medium truncate">{item.file.name}</div>
                 <div className="text-xs text-muted-foreground capitalize">
                   {item.status === 'compressing' ? 'Сжатие...' : 
-                   item.status === 'uploading' ? 'Загрузка...' : 
+                   item.status === 'uploading' ? `Загрузка ${item.progress}%` : 
                    item.status === 'success' ? 'Готово' :
                    item.status === 'error' ? 'Ошибка' : 'Ожидание'}
-                  {item.metadata?.heic && ' (HEIC - отправлен оригинал)'}
+                  {item.metadata?.heic && ' • HEIC: оригинал загружен'}
+                  {item.metadata?.networkType && ` • ${item.metadata.networkType.toUpperCase()}`}
                 </div>
+                {item.compressedSize && item.originalSize && (
+                  <div className="text-xs text-green-600">
+                    Сжато на {Math.round((1 - item.compressedSize / item.originalSize) * 100)}%
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {item.status === 'error' && item.error && (
-                  <span className="text-xs text-red-600">{item.error}</span>
+                  <span className="text-xs text-red-600 max-w-24 truncate" title={item.error}>
+                    {item.error}
+                  </span>
                 )}
-                {item.status !== 'error' && (
-                  <div className="text-sm text-gray-600">{item.progress}%</div>
+                {item.status === 'uploading' && (
+                  <div className="w-16 bg-gray-200 rounded-full h-1.5">
+                    <div 
+                      className="bg-blue-500 h-1.5 rounded-full transition-all duration-300" 
+                      style={{ width: `${item.progress}%` }}
+                    />
+                  </div>
                 )}
                 {item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading' ? (
                   <Loader className="h-4 w-4 animate-spin text-blue-500" />
                 ) : item.status === 'success' ? (
-                  <div className="h-4 w-4 bg-green-500 rounded-full" />
+                  <div className="h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
+                    <div className="h-2 w-2 bg-white rounded-full" />
+                  </div>
                 ) : (
-                  <div className="h-4 w-4 bg-red-500 rounded-full" />
+                  <div className="h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
+                    <div className="h-1 w-1 bg-white rounded-full" />
+                  </div>
                 )}
               </div>
             </div>
@@ -172,11 +189,33 @@ export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
         </div>
       )}
 
-      {/* Info Alert */}
+      {/* Info Alert with statistics */}
       {stagedUrls.length > 0 && (
         <Alert>
           <AlertDescription>
             Изображения загружены в промежуточное хранилище. После создания заказа они будут автоматически привязаны к нему.
+            {uploadItems.length > 0 && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                {(() => {
+                  const totalOriginal = uploadItems.reduce((sum, item) => sum + (item.originalSize || 0), 0);
+                  const totalCompressed = uploadItems.reduce((sum, item) => sum + (item.compressedSize || 0), 0);
+                  const savings = totalOriginal > 0 ? Math.round((1 - totalCompressed / totalOriginal) * 100) : 0;
+                  const networkType = uploadItems[0]?.metadata?.networkType;
+                  
+                  return (
+                    <>
+                      {totalOriginal > 0 && (
+                        <span>
+                          Экономия места: {savings}% • 
+                          {Math.round(totalOriginal / 1024 / 1024 * 10) / 10}MB → {Math.round(totalCompressed / 1024 / 1024 * 10) / 10}MB
+                        </span>
+                      )}
+                      {networkType && <span> • Сеть: {networkType.toUpperCase()}</span>}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}
