@@ -27,7 +27,11 @@ self.onmessage = async (e) => {
     });
     
     if (ENABLE_HEIC_WASM && isHeicFile) {
-      console.log('🎯 Smart Compress: HEIC file detected, creating HEIC worker...');
+      console.log('🎯 Smart Compress: HEIC file detected, creating HEIC worker...', {
+        fileName: name,
+        fileSize: `${Math.round(file.size / 1024)}KB`,
+        enableWasm: ENABLE_HEIC_WASM
+      });
       try {
         const workerStart = Date.now();
         const heicWorker = new Worker(new URL('./heic2jpeg.worker.js', import.meta.url), { type: 'classic' });
@@ -40,7 +44,11 @@ self.onmessage = async (e) => {
             console.log('📨 Smart Compress: HEIC worker response received', {
               success: ev.data.ok,
               workerTime: `${workerTime}ms`,
-              resultSize: ev.data.blob?.size
+              resultSize: ev.data.blob?.size ? `${Math.round(ev.data.blob.size / 1024)}KB` : 'unknown',
+              dimensions: ev.data.width && ev.data.height ? `${ev.data.width}x${ev.data.height}` : 'unknown',
+              compressionRatio: file.size && ev.data.blob?.size 
+                ? `${Math.round((1 - ev.data.blob.size / file.size) * 100)}% compression` 
+                : 'unknown'
             });
             resolve(ev.data); 
           };
@@ -48,7 +56,13 @@ self.onmessage = async (e) => {
         });
         
         if (res && res.ok && res.blob) {
-          console.log('🎉 Smart Compress: HEIC conversion successful, returning JPEG');
+          console.log('🎉 Smart Compress: HEIC conversion successful, returning JPEG', {
+            originalFormat: 'HEIC',
+            newFormat: 'JPEG',
+            originalSize: `${Math.round(file.size / 1024)}KB`,
+            newSize: `${Math.round(res.blob.size / 1024)}KB`,
+            dimensions: `${res.width}x${res.height}`
+          });
           // Return ready JPEG — rest of pipeline unchanged
           return self.postMessage({
             ok: true,
@@ -64,13 +78,16 @@ self.onmessage = async (e) => {
         // If failed — soft report to frontend for bypass
         console.warn('⚠️ Smart Compress: HEIC conversion failed, will bypass', {
           error: res?.message || 'heic wasm fail',
-          fallbackToBrowser: true
+          fallbackToBrowser: true,
+          originalFile: name
         });
         return self.postMessage({ ok: false, code: 'UNSUPPORTED_HEIC', message: res?.message || 'heic wasm fail' });
       } catch (err) {
         console.error('💥 Smart Compress: HEIC worker exception', {
           error: String(err?.message || err),
-          fallbackToBrowser: true
+          fallbackToBrowser: true,
+          originalFile: name,
+          fileSize: `${Math.round(file.size / 1024)}KB`
         });
         return self.postMessage({ ok: false, code: 'UNSUPPORTED_HEIC', message: String(err?.message || err) });
       }

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useUploadUIAdapter } from "./useUploadUIAdapter";
+import { generateThumbnailUrl } from "@/utils/cloudinaryUtils";
+import { isHeicFile, logHeicProcessing, getHeicStatusMessage } from "@/utils/heicProcessingUtils";
 
 type Props = {
   max?: number;
@@ -39,19 +41,11 @@ export default function SimplePhotoUploader({
       files: files.map(f => ({ name: f.name, type: f.type, size: f.size }))
     });
     
-    // Check for HEIC files specifically
-    const heicFiles = files.filter(file => 
-      file.type.toLowerCase().includes('heic') || 
-      file.type.toLowerCase().includes('heif') || 
-      file.name.toLowerCase().endsWith('.heic') ||
-      file.name.toLowerCase().endsWith('.heif')
-    );
+    // Improved HEIC detection and logging
+    const heicFiles = files.filter(isHeicFile);
     
     if (heicFiles.length > 0) {
-      console.log('📸 SimplePhotoUploader: HEIC files detected', { 
-        count: heicFiles.length,
-        files: heicFiles.map(f => ({ name: f.name, type: f.type, size: f.size }))
-      });
+      heicFiles.forEach(file => logHeicProcessing('detected', file));
     }
     
     if (files.length) uploadFiles?.(files);
@@ -100,27 +94,33 @@ export default function SimplePhotoUploader({
             key={it.id}
             className="relative rounded-xl border border-border bg-card overflow-hidden"
           >
-            {/* Мини-превью: thumbUrl или обычный src; не режем — object-contain */}
+            {/* Оптимизированное превью: thumbnail URL для быстрой загрузки */}
             {it.cloudinaryUrl || it.thumbUrl ? (
               <img
-                src={it.cloudinaryUrl || it.thumbUrl}
+                src={it.cloudinaryUrl ? generateThumbnailUrl(it.cloudinaryUrl) : it.thumbUrl}
                 alt=""
                 loading="lazy"
-                className="w-full aspect-square object-contain bg-muted"
+                className="w-full aspect-square object-cover bg-muted"
               />
             ) : (
               <div className="w-full aspect-square grid place-items-center text-xs text-muted-foreground bg-muted">
-                {it.originalFile?.name || "Загрузка..."}
+                {it.originalFile ? getHeicStatusMessage(it.status, it.originalFile.name) : "Загрузка..."}
               </div>
             )}
 
             {/* Прогресс / статус-оверлей (большие пальцы, мобайл) */}
             {it.status !== "completed" && !it.cloudinaryUrl && (
               <figcaption
-                className="absolute inset-0 bg-black/40 text-white text-[11px] sm:text-xs
+                 className="absolute inset-0 bg-black/40 text-white text-[11px] sm:text-xs
                            grid place-items-center p-2"
               >
-                {it.status === "uploading" ? `${Math.round(it.progress || 0)}%` : statusLabel(it.status)}
+                {it.status === "uploading" 
+                  ? `${Math.round(it.progress || 0)}%` 
+                  : (it.originalFile && isHeicFile(it.originalFile) 
+                      ? getHeicStatusMessage(it.status, it.originalFile.name)
+                      : statusLabel(it.status)
+                    )
+                }
               </figcaption>
             )}
 

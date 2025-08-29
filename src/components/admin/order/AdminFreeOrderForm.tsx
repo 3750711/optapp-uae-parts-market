@@ -27,7 +27,7 @@ export const AdminFreeOrderForm = () => {
   const [isOrderCreated, setIsOrderCreated] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
   const isMobile = useIsMobile();
-  const { attachToOrder } = useStagedCloudinaryUpload();
+  const { attachToOrder, stagedUrls, initSession } = useStagedCloudinaryUpload();
 
   const {
     // Form data
@@ -101,7 +101,9 @@ export const AdminFreeOrderForm = () => {
         valid: url && typeof url === 'string' && url.includes('cloudinary')
       }))
     });
-    const filteredUrls = [...images, ...urls].filter(u => u && u.trim() !== '');
+    // Объединяем существующие, новые и staged URLs
+    const allUrls = [...images, ...urls, ...stagedUrls];
+    const filteredUrls = allUrls.filter(u => u && u.trim() !== '');
     const uniqueUrls = Array.from(new Set(filteredUrls));
     setAllImages(uniqueUrls);
   };
@@ -131,51 +133,71 @@ const { loadSavedData, clearSavedData, saveNow, hasUnsavedChanges } = useOptimiz
   excludeFields: []
 });
 
-// Восстановление черновика при монтировании (до 24 часов) — сначала бренд, потом модель
+// Восстановление черновика и staged URLs при монтировании 
 useEffect(() => {
-  try {
-    const saved = loadSavedData();
-    if (saved) {
-      const savedForm = saved.formData || {} as Record<string, string>;
+  const restoreData = async () => {
+    try {
+      // Инициализируем session для восстановления staged URLs
+      await initSession();
+      
+      const saved = loadSavedData();
+      if (saved) {
+        const savedForm = saved.formData || {} as Record<string, string>;
 
-      // Включаем загрузку брендов и моделей
-      enableBrandsLoading();
+        // Включаем загрузку брендов и моделей
+        enableBrandsLoading();
 
-      // 1) Применяем простые поля, кроме brand/model
-      const skipKeys = new Set(['brandId', 'brand', 'modelId', 'model']);
-      Object.entries(savedForm).forEach(([k, v]) => {
-        if (typeof v === 'string' && !skipKeys.has(k)) {
-          handleInputChange(k, v);
+        // 1) Применяем простые поля, кроме brand/model
+        const skipKeys = new Set(['brandId', 'brand', 'modelId', 'model']);
+        Object.entries(savedForm).forEach(([k, v]) => {
+          if (typeof v === 'string' && !skipKeys.has(k)) {
+            handleInputChange(k, v);
+          }
+        });
+
+        // 2) Бренд — ID и название
+        if (typeof savedForm.brandId === 'string' && savedForm.brandId) {
+          handleInputChange('brandId', savedForm.brandId);
         }
-      });
+        if (typeof savedForm.brand === 'string' && savedForm.brand) {
+          handleInputChange('brand', savedForm.brand);
+        }
 
-      // 2) Бренд — ID и название
-      if (typeof savedForm.brandId === 'string' && savedForm.brandId) {
-        handleInputChange('brandId', savedForm.brandId);
-      }
-      if (typeof savedForm.brand === 'string' && savedForm.brand) {
-        handleInputChange('brand', savedForm.brand);
-      }
+        // 3) Модель — ID и название (после установки бренда)
+        if (typeof savedForm.modelId === 'string' && savedForm.modelId) {
+          handleInputChange('modelId', savedForm.modelId);
+        }
+        if (typeof savedForm.model === 'string' && savedForm.model) {
+          handleInputChange('model', savedForm.model);
+        }
 
-      // 3) Модель — ID и название (после установки бренда)
-      if (typeof savedForm.modelId === 'string' && savedForm.modelId) {
-        handleInputChange('modelId', savedForm.modelId);
-      }
-      if (typeof savedForm.model === 'string' && savedForm.model) {
-        handleInputChange('model', savedForm.model);
-      }
+        // 4) Медиа из автосохранения
+        if (Array.isArray(saved.images)) setAllImages(saved.images);
+        if (Array.isArray(saved.videos)) setVideos(saved.videos);
 
-      // 4) Медиа
-      if (Array.isArray(saved.images)) setAllImages(saved.images);
-      if (Array.isArray(saved.videos)) setVideos(saved.videos);
-
-      console.log('✅ Черновик формы восстановлен (упорядоченное применение brand/model)');
+        console.log('✅ Черновик формы восстановлен (упорядоченное применение brand/model)');
+      }
+    } catch (e) {
+      console.error('❌ Ошибка восстановления черновика:', e);
     }
-  } catch (e) {
-    console.error('❌ Ошибка восстановления черновика:', e);
-  }
+  };
+  
+  restoreData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
+
+// Синхронизация staged URLs с images state
+useEffect(() => {
+  if (stagedUrls.length > 0) {
+    console.log('📸 AdminFreeOrderForm: Синхронизация staged URLs', { stagedUrls });
+    // Объединяем существующие images с staged URLs
+    const allUrls = [...images, ...stagedUrls];
+    const uniqueUrls = Array.from(new Set(allUrls.filter(u => u && u.trim() !== '')));
+    if (uniqueUrls.length !== images.length || !uniqueUrls.every(url => images.includes(url))) {
+      setAllImages(uniqueUrls);
+    }
+  }
+}, [stagedUrls, images, setAllImages]);
 
   // PWA lifecycle management for autosave
   const { isPWA, forceSave } = usePWALifecycle('admin-free-order-autosave', {
