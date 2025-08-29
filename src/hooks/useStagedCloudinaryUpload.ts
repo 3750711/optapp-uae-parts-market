@@ -517,7 +517,14 @@ export const useStagedCloudinaryUpload = () => {
       };
     });
     
-    setUploadItems(items);
+    // Append new items to existing ones, avoiding duplicates based on file name and size
+    setUploadItems(prev => {
+      const existingFiles = new Set(prev.map(item => `${item.file.name}-${item.file.size}`));
+      const newItems = items.filter(item => 
+        !existingFiles.has(`${item.file.name}-${item.file.size}`)
+      );
+      return [...prev, ...newItems];
+    });
 
     try {
       // Pre-fetch signatures in chunks (don't await - start parallel with compression)
