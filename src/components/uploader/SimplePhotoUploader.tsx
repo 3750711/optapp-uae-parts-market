@@ -19,10 +19,16 @@ export default function SimplePhotoUploader({
 
   // дергаем onChange/onComplete только по успешным
   useEffect(() => {
-    const ok = items.filter((i: any) => i.status === "completed" || i.cloudinaryUrl);
-    onChange?.(ok.map((i: any) => i.cloudinaryUrl).filter(Boolean));
-    if (items.length && items.every((i: any) => i.status === "completed" || i.status === "error")) {
-      onComplete?.(ok.map((i: any) => i.cloudinaryUrl).filter(Boolean));
+    const ok = items.filter((i: any) => i.status === "completed" && i.cloudinaryUrl);
+    const okUrls = ok.map((i: any) => i.cloudinaryUrl).filter(Boolean);
+    
+    if (okUrls.length > 0) {
+      onChange?.(okUrls);
+    }
+    
+    // Вызываем onComplete только когда все файлы завершены (успешно или с ошибкой)
+    if (items.length > 0 && items.every((i: any) => i.status === "completed" || i.status === "error")) {
+      onComplete?.(okUrls);
     }
   }, [items, onChange, onComplete]);
 
