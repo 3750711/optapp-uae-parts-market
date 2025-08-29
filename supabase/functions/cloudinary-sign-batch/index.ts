@@ -100,14 +100,25 @@ Deno.serve(async (req) => {
     // Parse request body
     const { orderId, sessionId, publicIds, count = 5 }: BatchSignRequest = await req.json();
 
+    // Log incoming request details for debugging
+    console.log('Batch sign request details:', {
+      orderId,
+      sessionId,
+      publicIdsCount: publicIds ? publicIds.length : 0,
+      publicIdsProvided: !!publicIds,
+      countFallback: count
+    });
+
     // Use provided publicIds if available, otherwise generate count signatures
     let targetPublicIds: string[] = [];
     if (publicIds && Array.isArray(publicIds) && publicIds.length > 0) {
       // Validate and use provided publicIds
       targetPublicIds = publicIds.filter(id => typeof id === 'string' && id.trim().length > 0);
+      console.log(`Using provided publicIds: ${targetPublicIds.length} signatures requested`);
     } else {
-      // Fallback to count-based generation (max 10 for batch efficiency)
-      const signatureCount = Math.max(1, Math.min(10, count));
+      // Fallback to count-based generation (removed artificial limit)
+      const signatureCount = Math.max(1, count);
+      console.log(`Generating ${signatureCount} random publicIds as fallback`);
       for (let i = 0; i < signatureCount; i++) {
         targetPublicIds.push(`product_${crypto.randomUUID().replace(/-/g, '_')}`);
       }
