@@ -91,13 +91,13 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
         console.log('🎯 useOptimizedOrderSubmission: Calling admin_create_order RPC');
         
         const { data: orderId, error: orderError } = await supabase
-          .rpc('admin_create_order', {
+          .rpc('admin_create_order_v2', {
             p_title: formData.title,
             p_price: parseFloat(formData.price),
             p_place_number: parseInt(formData.place_number) || 1,
             p_seller_id: formData.sellerId,
             p_order_seller_name: null, // Будет установлено автоматически триггером
-            p_seller_opt_id: null, // Будет установлено автоматически триггером
+            p_seller_opt_id: null, // Будет установлено автоматически триггером  
             p_buyer_id: buyerProfile.id,
             p_brand: formData.brand || '',
             p_model: formData.model || '',

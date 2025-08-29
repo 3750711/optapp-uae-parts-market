@@ -77,22 +77,18 @@ export const useSellerOrderSubmission = (): SellerOrderSubmissionResult => {
       setProgress(60);
 
       const { data: orderId, error: orderError } = await supabase
-        .rpc('seller_create_order', {
+        .rpc('seller_create_order_v2', {
           p_title: formData.title,
           p_price: parseFloat(formData.price),
           p_place_number: parseInt(formData.place_number) || 1,
-          p_order_seller_name: null, // Будет установлено автоматически
-          p_buyer_id: buyerProfile.id,
+          p_buyer_opt_id: formData.buyerOptId,
           p_brand: formData.brand || '',
           p_model: formData.model || '',
-          p_status: 'seller_confirmed',
-          p_order_created_type: 'free_order',
-          p_telegram_url_order: null,
-          p_images: images,
-          p_videos: videos,
-          p_product_id: null,
           p_delivery_method: formData.deliveryMethod || 'cargo_rf',
           p_text_order: formData.text_order || null,
+          p_telegram_url_order: null,
+          p_images: images,
+          p_product_id: null,
           p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null
         });
 

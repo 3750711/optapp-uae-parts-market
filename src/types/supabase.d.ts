@@ -34,6 +34,26 @@ interface CustomRPCFunctions {
     p_updates: Record<string, any>;
   }) => { success: boolean; message: string };
 
+  admin_create_order_v2: (args: {
+    p_title: string;
+    p_price: number;
+    p_place_number: number;
+    p_seller_id: string;
+    p_order_seller_name: string | null;
+    p_seller_opt_id: string | null;
+    p_buyer_id: string;
+    p_brand: string;
+    p_model: string;
+    p_status: 'created' | 'seller_confirmed' | 'processed' | 'cancelled';
+    p_order_created_type: 'free_order' | 'from_product';
+    p_telegram_url_order: string | null;
+    p_images: string[];
+    p_product_id: string | null;
+    p_delivery_method: 'self_pickup' | 'cargo_rf' | 'delivery';
+    p_text_order: string | null;
+    p_delivery_price_confirm: number | null;
+  }) => string; // Returns UUID
+
   seller_create_order: (args: {
     p_title: string;
     p_price: number;
@@ -53,6 +73,21 @@ interface CustomRPCFunctions {
     p_text_order: string | null;
     p_delivery_price_confirm: number | null;
     p_videos?: string[];
+  }) => string; // Returns UUID
+
+  seller_create_order_v2: (args: {
+    p_title: string;
+    p_price: number;
+    p_place_number: number;
+    p_buyer_opt_id: string;
+    p_brand: string;
+    p_model: string;
+    p_delivery_method: 'self_pickup' | 'cargo_rf' | 'delivery';
+    p_text_order: string | null;
+    p_telegram_url_order: string | null;
+    p_images?: string[];
+    p_product_id?: string | null;
+    p_delivery_price_confirm?: number | null;
   }) => string; // Returns UUID
 
   admin_delete_specific_user: (args: {
