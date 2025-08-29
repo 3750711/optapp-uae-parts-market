@@ -151,7 +151,39 @@ export default function SimplePhotoUploader({
         ))}
       </div>
 
-      {/* 3) Кнопка «Добавить ещё» (видна всегда) */}
+      {/* 3) Upload Progress Summary */}
+      {items.length > 0 && (
+        <div className="bg-muted/30 rounded-lg p-3">
+          <div className="grid gap-2 text-sm text-muted-foreground">
+            <div className="flex justify-between">
+              <span>Всего файлов:</span>
+              <span className="font-medium">{items.length}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Загружено:</span>
+              <span className="font-medium text-success">
+                {items.filter(item => item.status === 'completed').length}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>В процессе:</span>
+              <span className="font-medium text-primary">
+                {items.filter(item => ['pending', 'compressing', 'signing', 'uploading'].includes(item.status)).length}
+              </span>
+            </div>
+            {items.filter(item => item.status === 'error').length > 0 && (
+              <div className="flex justify-between">
+                <span>Ошибки:</span>
+                <span className="font-medium text-destructive">
+                  {items.filter(item => item.status === 'error').length}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 4) Кнопка «Добавить ещё» (видна всегда) */}
       <div className="pt-1">
         <button
           type="button"

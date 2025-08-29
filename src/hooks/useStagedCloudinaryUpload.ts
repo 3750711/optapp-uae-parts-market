@@ -166,23 +166,6 @@ export const useStagedCloudinaryUpload = () => {
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Initialize session ID and restore from IndexedDB
-  const initSession = useCallback(async () => {
-    if (sessionId) return sessionId;
-    
-    const newSessionId = crypto.randomUUID();
-    setSessionId(newSessionId);
-    
-    try {
-      // Clean up old sessions first
-      await stagingDB.clearOldSessions();
-    } catch (error) {
-      console.error('Failed to initialize staging session:', error);
-    }
-    
-    return newSessionId;
-  }, [sessionId]);
-
   // Load existing session data on mount
   const loadSession = useCallback(async (sessionId: string) => {
     try {
@@ -195,6 +178,28 @@ export const useStagedCloudinaryUpload = () => {
       console.error('Failed to load staging session:', error);
     }
   }, []);
+
+  // Initialize session ID and restore from IndexedDB
+  const initSession = useCallback(async () => {
+    if (sessionId) return sessionId;
+    
+    const newSessionId = crypto.randomUUID();
+    setSessionId(newSessionId);
+    
+    try {
+      // Clean up old sessions first
+      await stagingDB.clearOldSessions();
+      
+      // CRITICAL FIX: Load existing session data after setting session ID
+      await loadSession(newSessionId);
+      
+      console.log('🔄 Session initialized and data restored:', { sessionId: newSessionId });
+    } catch (error) {
+      console.error('Failed to initialize staging session:', error);
+    }
+    
+    return newSessionId;
+  }, [sessionId, loadSession]);
 
   // Initialize session and load data on mount
   useEffect(() => {
@@ -674,16 +679,26 @@ export const useStagedCloudinaryUpload = () => {
                   compressionRatio: `${Math.round((1 - (compressionResult.compressedSize || 0) / item.file.size) * 100)}% сжатие`
                 });
               }
+            } else if (item.isHeic && compressionResult.code?.includes('HEIC')) {
+              // Add HEIC fallback: if conversion fails, try to upload original file
+              console.warn('🔄 HEIC conversion failed, trying original file upload', {
+                fileName: item.file.name,
+                error: compressionResult.code
+              });
+              
+              toast({
+                title: "Внимание",
+                description: `HEIC файл ${item.file.name} будет загружен без конвертации`,
+                variant: "destructive",
+              });
+              
+              // Keep original file but warn user
+              item.compressedSize = item.file.size;
+              item.wasHeicConverted = false;
             } else {
-              // Enhanced HEIC error logging
-              if (item.isHeic) {
-                console.error(`❌ HEIC Processing [${Date.now()}]: Ошибка конвертации`, {
-                  fileName: item.file.name,
-                  error: compressionResult.code || 'Неизвестная ошибка',
-                  fallback: 'Файл будет загружен как есть'
-                });
-              }
+              // Enhanced error logging for other compression failures
               console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
+              item.compressedSize = item.file.size;
             }
           }
 
