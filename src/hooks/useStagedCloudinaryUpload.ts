@@ -356,7 +356,7 @@ export const useStagedCloudinaryUpload = () => {
     });
   }, []);
 
-  // Upload to Cloudinary with retry logic
+  // Upload to Cloudinary via Edge Function (unified approach to avoid CORS)
   const uploadToCloudinary = useCallback(async (
     file: File,
     signature: CloudinarySignature,
@@ -364,82 +364,80 @@ export const useStagedCloudinaryUpload = () => {
     wasHeicConverted: boolean = false,
     retryCount = 0
   ): Promise<{ url: string; publicId: string }> => {
-    // For HEIC-converted files, use Edge Function to avoid CORS issues
-    if (wasHeicConverted) {
-      return uploadViaEdgeFunction(file, signature, onProgress);
+    try {
+      console.log('📤 Uploading via Edge Function:', {
+        fileName: file.name,
+        fileSize: file.size,
+        publicId: signature.public_id,
+        wasHeicConverted
+      });
+
+      // Convert file to base64
+      const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64 = result.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = error => reject(error);
+        });
+      };
+
+      const fileData = await fileToBase64(file);
+      onProgress(10);
+
+      console.log('☁️ Calling cloudinary-upload Edge Function...');
+      
+      const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
+        body: { 
+          fileData,
+          fileName: file.name,
+          customPublicId: signature.public_id
+        }
+      });
+
+      onProgress(90);
+
+      if (error) {
+        console.error('❌ Edge Function error:', error);
+        throw new Error(error.message || 'Failed to upload via Edge Function');
+      }
+
+      if (data?.success && data?.mainImageUrl) {
+        console.log('✅ Edge Function upload SUCCESS:', {
+          publicId: data.publicId,
+          url: data.mainImageUrl
+        });
+        
+        onProgress(100);
+        
+        return {
+          url: data.mainImageUrl,
+          publicId: data.publicId || signature.public_id
+        };
+      } else {
+        console.error('❌ Edge Function upload failed:', data?.error);
+        throw new Error(data?.error || 'Unknown error occurred in Edge Function');
+      }
+    } catch (error) {
+      console.error('💥 Exception in uploadToCloudinary:', error);
+      
+      // Retry logic with exponential backoff
+      if (retryCount < 2) {
+        const baseDelay = Math.pow(1.5, retryCount) * 1500;
+        const jitter = Math.random() * 400;
+        const delay = baseDelay + jitter;
+        
+        console.log(`🔄 Retrying upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return uploadToCloudinary(file, signature, onProgress, wasHeicConverted, retryCount + 1);
+      }
+      
+      throw new Error(error instanceof Error ? error.message : 'Upload failed');
     }
-
-    return new Promise((resolve, reject) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('api_key', signature.api_key);
-      formData.append('timestamp', signature.timestamp.toString());
-      formData.append('folder', signature.folder);
-      formData.append('public_id', signature.public_id);
-      formData.append('signature', signature.signature);
-
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          onProgress(progress);
-        }
-      };
-      
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            resolve({
-              url: response.secure_url,
-              publicId: response.public_id
-            });
-          } catch (error) {
-            reject(new Error('Invalid Cloudinary response'));
-          }
-          } else {
-            // Enhanced retry logic with exponential backoff and jitter
-            if (retryCount < 2 && (xhr.status >= 500 || xhr.status === 429)) {
-              const baseDelay = Math.pow(1.5, retryCount) * 1500;
-              const jitter = Math.random() * 400; // 0-400ms jitter
-              const delay = baseDelay + jitter;
-              
-              console.log(`⏳ Retrying upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
-              setTimeout(() => {
-                uploadToCloudinary(file, signature, onProgress, wasHeicConverted, retryCount + 1)
-                  .then(resolve)
-                  .catch(reject);
-              }, delay);
-            } else {
-              reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
-            }
-          }
-      };
-      
-      xhr.onerror = () => {
-        if (retryCount < 2) {
-          const baseDelay = Math.pow(1.6, retryCount) * 1500;
-          const jitter = Math.random() * 400;
-          const delay = baseDelay + jitter;
-          
-          console.log(`🔄 Network error, retrying in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
-          setTimeout(() => {
-            uploadToCloudinary(file, signature, onProgress, wasHeicConverted, retryCount + 1)
-              .then(resolve)
-              .catch(reject);
-          }, delay);
-        } else {
-          reject(new Error('Network error'));
-        }
-      };
-      
-      xhr.ontimeout = () => reject(new Error('Upload timeout'));
-      
-      xhr.open('POST', signature.upload_url);
-      xhr.timeout = 120000; // 120 second timeout
-      xhr.send(formData);
-    });
   }, []);
 
   // Chunked batch signature function
