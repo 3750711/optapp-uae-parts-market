@@ -32,7 +32,13 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
 
   const api = useMemo(() => ({
     items,
-    uploadFiles: (files: File[]) => uploadFiles?.(files),
+    uploadFiles: (files: File[]) => {
+      console.log('📸 useUploadUIAdapter: uploadFiles wrapper called', { 
+        fileCount: files?.length || 0,
+        files: files?.map(f => ({ name: f.name, type: f.type, size: f.size }))
+      });
+      return uploadFiles?.(files);
+    },
     removeItem: (id: string) => {
       // Пробуем удаление из uploadItems по ID и из stagedUrls по URL
       removeUploadItem?.(id);

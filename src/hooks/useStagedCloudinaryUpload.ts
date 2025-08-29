@@ -529,6 +529,11 @@ export const useStagedCloudinaryUpload = () => {
 
   // Upload files to staging with optimized architecture
   const uploadFiles = useCallback(async (files: File[]): Promise<string[]> => {
+    console.log('📸 useStagedCloudinaryUpload: uploadFiles called', { 
+      fileCount: files?.length || 0,
+      files: files?.map(f => ({ name: f.name, type: f.type, size: f.size }))
+    });
+    
     if (files.length === 0) return [];
     
     setIsUploading(true);

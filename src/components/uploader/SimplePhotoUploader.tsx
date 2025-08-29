@@ -34,6 +34,26 @@ export default function SimplePhotoUploader({
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    console.log('📸 SimplePhotoUploader: Files selected', { 
+      fileCount: files.length,
+      files: files.map(f => ({ name: f.name, type: f.type, size: f.size }))
+    });
+    
+    // Check for HEIC files specifically
+    const heicFiles = files.filter(file => 
+      file.type.toLowerCase().includes('heic') || 
+      file.type.toLowerCase().includes('heif') || 
+      file.name.toLowerCase().endsWith('.heic') ||
+      file.name.toLowerCase().endsWith('.heif')
+    );
+    
+    if (heicFiles.length > 0) {
+      console.log('📸 SimplePhotoUploader: HEIC files detected', { 
+        count: heicFiles.length,
+        files: heicFiles.map(f => ({ name: f.name, type: f.type, size: f.size }))
+      });
+    }
+    
     if (files.length) uploadFiles?.(files);
     // сбрасываем value, чтобы можно было выбрать те же файлы повторно
     e.currentTarget.value = "";
