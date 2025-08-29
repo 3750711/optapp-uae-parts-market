@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from 'uuid';
+import { uploadViaEdgeFunction } from './uploadViaEdgeFunction';
 import { useToast } from '@/hooks/use-toast';
 
 interface StagedUploadItem {
@@ -13,6 +15,7 @@ interface StagedUploadItem {
   isHeic?: boolean;
   originalSize?: number;
   compressedSize?: number;
+  wasHeicConverted?: boolean;
   metadata?: {
     width?: number;
     height?: number;
@@ -49,6 +52,7 @@ interface CompressionResult {
   originalSize?: number;
   compressedSize?: number;
   compressionMs?: number;
+  wasHeicConverted?: boolean;
 }
 
 // IndexedDB for storing staged URLs
@@ -295,7 +299,8 @@ export const useStagedCloudinaryUpload = () => {
           console.log('✅ Worker compression successful:', {
             originalSize: result.original?.size || file.size,
             compressedSize: result.size,
-            compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A'
+            compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A',
+            wasHeicConverted: result.wasHeicConverted
           });
           resolve({
             ok: true,
@@ -303,7 +308,8 @@ export const useStagedCloudinaryUpload = () => {
             mime: result.mime,
             originalSize: result.original?.size || file.size,
             compressedSize: result.size,
-            compressionMs: result.compressionMs
+            compressionMs: result.compressionMs,
+            wasHeicConverted: result.wasHeicConverted
           });
         } else {
           console.warn('⚠️ Worker compression failed:', {
@@ -355,8 +361,14 @@ export const useStagedCloudinaryUpload = () => {
     file: File,
     signature: CloudinarySignature,
     onProgress: (progress: number) => void,
+    wasHeicConverted: boolean = false,
     retryCount = 0
   ): Promise<{ url: string; publicId: string }> => {
+    // For HEIC-converted files, use Edge Function to avoid CORS issues
+    if (wasHeicConverted) {
+      return uploadViaEdgeFunction(file, signature, onProgress);
+    }
+
     return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append('file', file);
@@ -386,23 +398,23 @@ export const useStagedCloudinaryUpload = () => {
           } catch (error) {
             reject(new Error('Invalid Cloudinary response'));
           }
-        } else {
-          // Enhanced retry logic with exponential backoff and jitter
-          if (retryCount < 2 && (xhr.status >= 500 || xhr.status === 429)) {
-            const baseDelay = Math.pow(1.5, retryCount) * 1500;
-            const jitter = Math.random() * 400; // 0-400ms jitter
-            const delay = baseDelay + jitter;
-            
-            console.log(`⏳ Retrying upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
-            setTimeout(() => {
-              uploadToCloudinary(file, signature, onProgress, retryCount + 1)
-                .then(resolve)
-                .catch(reject);
-            }, delay);
           } else {
-            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+            // Enhanced retry logic with exponential backoff and jitter
+            if (retryCount < 2 && (xhr.status >= 500 || xhr.status === 429)) {
+              const baseDelay = Math.pow(1.5, retryCount) * 1500;
+              const jitter = Math.random() * 400; // 0-400ms jitter
+              const delay = baseDelay + jitter;
+              
+              console.log(`⏳ Retrying upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
+              setTimeout(() => {
+                uploadToCloudinary(file, signature, onProgress, wasHeicConverted, retryCount + 1)
+                  .then(resolve)
+                  .catch(reject);
+              }, delay);
+            } else {
+              reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+            }
           }
-        }
       };
       
       xhr.onerror = () => {
@@ -413,7 +425,7 @@ export const useStagedCloudinaryUpload = () => {
           
           console.log(`🔄 Network error, retrying in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
           setTimeout(() => {
-            uploadToCloudinary(file, signature, onProgress, retryCount + 1)
+            uploadToCloudinary(file, signature, onProgress, wasHeicConverted, retryCount + 1)
               .then(resolve)
               .catch(reject);
           }, delay);
@@ -596,6 +608,8 @@ export const useStagedCloudinaryUpload = () => {
                 { type: 'image/jpeg' }
               );
               item.compressedSize = compressionResult.compressedSize;
+              // Track if this was converted from HEIC
+              item.wasHeicConverted = compressionResult.wasHeicConverted;
             } else {
               console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
             }
@@ -625,7 +639,8 @@ export const useStagedCloudinaryUpload = () => {
             (progress) => {
               item.progress = progress;
               setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
-            }
+            },
+            item.wasHeicConverted
           );
           
           item.status = 'success';

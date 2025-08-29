@@ -33,7 +33,8 @@ self.onmessage = async (e) => {
             width: res.width,
             height: res.height,
             size: res.blob.size,
-            original: { width: undefined, height: undefined, size: file.size }
+            original: { width: undefined, height: undefined, size: file.size },
+            wasHeicConverted: true
           });
         }
         // If failed — soft report to frontend for bypass
