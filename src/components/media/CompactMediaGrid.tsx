@@ -3,7 +3,7 @@ import React, { useState, memo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Image as ImageIcon, Eye, X, Trash2 } from 'lucide-react';
+import { Play, Image as ImageIcon, Eye, X, Trash2, Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CompactMediaGridProps {
@@ -29,26 +29,71 @@ const CompactMediaThumbnail = memo(({
   onDelete?: () => void;
   showDelete?: boolean;
 }) => {
+  const [imageError, setImageError] = React.useState(false);
+  const [imageLoading, setImageLoading] = React.useState(true);
   const isMobile = useIsMobile();
   const size = isMobile ? 'w-12 h-12' : 'w-16 h-16';
+
+  // Validate URL
+  const isValidUrl = url && url.trim().length > 0;
   
+  const handleImageLoad = () => {
+    setImageLoading(false);
+    setImageError(false);
+  };
+
+  const handleImageError = () => {
+    setImageLoading(false);
+    setImageError(true);
+    console.warn(`Failed to load image: ${url}`);
+  };
+  
+  if (!isValidUrl) {
+    return (
+      <div className={`${size} rounded border overflow-hidden bg-muted flex-shrink-0 relative group`}>
+        <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+          <ImageIcon className="w-4 h-4 mb-1" />
+          <span className="text-xs">Нет URL</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`${size} rounded border overflow-hidden bg-gray-100 flex-shrink-0 relative group`}>
+    <div className={`${size} rounded border overflow-hidden bg-muted flex-shrink-0 relative group`}>
       <div 
         className="w-full h-full cursor-pointer hover:scale-105 transition-transform"
         onClick={onClick}
       >
         {type === 'image' ? (
           <>
-            <img
-              src={url}
-              alt={`Изображение ${index + 1}`}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <Eye className="w-3 h-3 text-white" />
-            </div>
+            {imageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {imageError ? (
+              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
+                <ImageIcon className="w-4 h-4 mb-1" />
+                <span className="text-xs">Ошибка</span>
+              </div>
+            ) : (
+              <>
+                <img
+                  src={url}
+                  alt={`Изображение ${index + 1}`}
+                  className={`w-full h-full object-cover transition-opacity duration-200 ${
+                    imageLoading ? 'opacity-0' : 'opacity-100'
+                  }`}
+                  loading="lazy"
+                  onLoad={handleImageLoad}
+                  onError={handleImageError}
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <Eye className="w-3 h-3 text-white" />
+                </div>
+              </>
+            )}
           </>
         ) : (
           <>
@@ -57,6 +102,7 @@ const CompactMediaThumbnail = memo(({
               className="w-full h-full object-cover"
               preload="metadata"
               muted
+              onError={() => console.warn(`Failed to load video: ${url}`)}
             />
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
               <Play className="w-3 h-3 text-white" />
@@ -77,7 +123,7 @@ const CompactMediaThumbnail = memo(({
             e.stopPropagation();
             onDelete();
           }}
-          className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white rounded-bl w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-0 right-0 bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-bl w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
         >
           <X className="w-3 h-3" />
         </button>
@@ -205,12 +251,12 @@ export const CompactMediaGrid: React.FC<CompactMediaGridProps> = memo(({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
-              <ImageIcon className="w-4 h-4 text-gray-500" />
+              <ImageIcon className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm font-medium">{images.length}</span>
             </div>
             {videos.length > 0 && (
               <div className="flex items-center gap-1">
-                <Play className="w-4 h-4 text-gray-500" />
+                <Play className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm font-medium">{videos.length}</span>
               </div>
             )}
@@ -239,13 +285,13 @@ export const CompactMediaGrid: React.FC<CompactMediaGridProps> = memo(({
           
           {hiddenCount > 0 && (
             <div 
-              className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded border bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors`}
+              className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded border bg-muted flex items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors`}
               onClick={() => {
                 setCurrentViewIndex(maxPreviewItems);
                 setViewerOpen(true);
               }}
             >
-              <span className="text-xs font-medium text-gray-600">+{hiddenCount}</span>
+              <span className="text-xs font-medium text-muted-foreground">+{hiddenCount}</span>
             </div>
           )}
         </div>
