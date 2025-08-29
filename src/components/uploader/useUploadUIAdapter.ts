@@ -34,13 +34,21 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
     items,
     uploadFiles: (files: File[]) => uploadFiles?.(files),
     removeItem: (id: string) => {
-      // Пробуем оба метода удаления
+      // Пробуем удаление из uploadItems по ID и из stagedUrls по URL
       removeUploadItem?.(id);
-      removeStagedUrl?.(id);
+      // Для stagedUrls ищем URL в items и удаляем
+      const item = items.find(i => i.id === id);
+      if (item?.cloudinaryUrl) {
+        removeStagedUrl?.(item.cloudinaryUrl);
+      }
     },
     retryItem: (id: string) => retryItem?.(id),
     attachToOrder,
-  }), [items, uploadFiles, removeUploadItem, removeStagedUrl, retryItem, attachToOrder]);
+    // Добавляем функцию для очистки всех элементов
+    clearItems: () => {
+      hook.clearStaging?.();
+    }
+  }), [items, uploadFiles, removeUploadItem, removeStagedUrl, retryItem, attachToOrder, hook]);
 
   return api;
 }

@@ -652,7 +652,8 @@ export const useStagedCloudinaryUpload = () => {
       return [];
     } finally {
       setIsUploading(false);
-      setTimeout(() => setUploadItems([]), 5000);
+      // Don't auto-clear uploadItems to prevent photos from disappearing
+      // Items will be managed through UI interactions instead
     }
   }, [initSession, signBatchChunked, ensureSignature, compressInWorker, uploadToCloudinary, stagedUrls, toast]);
 
@@ -692,6 +693,11 @@ export const useStagedCloudinaryUpload = () => {
     }
   }, [stagedUrls, sessionId]);
 
+  // Remove upload item by ID
+  const removeUploadItem = useCallback((itemId: string) => {
+    setUploadItems(prev => prev.filter(item => item.id !== itemId));
+  }, []);
+
   // Remove staged URL
   const removeStagedUrl = useCallback(async (url: string) => {
     const updatedUrls = stagedUrls.filter(u => u !== url);
@@ -730,6 +736,7 @@ export const useStagedCloudinaryUpload = () => {
     uploadFiles,
     attachToOrder,
     removeStagedUrl,
+    removeUploadItem,
     clearStaging,
     initSession
   };
