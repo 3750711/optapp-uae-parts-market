@@ -9,16 +9,20 @@ interface RetryConfig {
 }
 
 const DEFAULT_CONFIG: RetryConfig = {
-  maxAttempts: 5,
-  baseDelayMs: 500,
-  maxDelayMs: 7000,
+  maxAttempts: 3, // Reduced for Advisory Lock (faster than table locks)
+  baseDelayMs: 100, // Faster retry for Advisory Lock
+  maxDelayMs: 2000, // Reduced max delay
   lockErrorPatterns: [
     'could not obtain lock',
     'lock timeout', 
     'deadlock',
     'concurrent',
     'transaction deadlock',
-    'lock_timeout'
+    'lock_timeout',
+    'duplicate key value',
+    'violates unique constraint',
+    'orders_order_number_uniq', // Our specific constraint
+    'unique constraint violation'
   ]
 };
 
@@ -34,7 +38,7 @@ export const useRetryWithBackoff = () => {
   }, []);
 
   const calculateDelay = useCallback((attemptNumber: number): number => {
-    // Exponential backoff: 500ms, 1s, 2s, 4s, 7s (capped)
+    // Exponential backoff: 100ms, 200ms, 400ms, 800ms, 2s (capped)
     const delay = Math.min(
       DEFAULT_CONFIG.baseDelayMs * Math.pow(2, attemptNumber),
       DEFAULT_CONFIG.maxDelayMs

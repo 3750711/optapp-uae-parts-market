@@ -1991,10 +1991,6 @@ export type Database = {
           | { p_opt_id: string }
         Returns: string
       }
-      get_next_order_number: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
       get_product_content_for_embedding: {
         Args: { product_id: string }
         Returns: string
