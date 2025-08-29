@@ -53,18 +53,26 @@ export const logHeicProcessing = (stage: 'detected' | 'converting' | 'success' |
 };
 
 export const getHeicStatusMessage = (status: string, fileName?: string): string => {
+  const fileInfo = fileName ? ` (${fileName.substring(0, 20)}${fileName.length > 20 ? '...' : ''})` : '';
+  const isHeic = fileName?.toLowerCase().match(/\.(heic|heif)$/i);
+  
   switch (status) {
+    case 'pending':
+      return isHeic ? `Подготовка HEIC файла${fileInfo}` : `Ожидание${fileInfo}`;
     case 'compressing':
-      return fileName?.toLowerCase().match(/\.(heic|heif)$/i) 
-        ? 'Конвертация HEIC → JPEG...' 
-        : 'Компрессия...';
+      return isHeic 
+        ? `Конвертируем HEIC в JPEG${fileInfo}` 
+        : `Сжатие изображения${fileInfo}`;
+    case 'signing':
+      return `Получаем разрешение${fileInfo}`;
     case 'uploading':
-      return 'Загрузка JPEG...';
+      return isHeic ? `Загружаем JPEG${fileInfo}` : `Загрузка${fileInfo}`;  
+    case 'completed':
     case 'success':
-      return 'JPEG готов ✅';
+      return isHeic ? `HEIC конвертирован ✅` : `Готово ✅`;
     case 'error':
-      return 'Ошибка конвертации ❌';
+      return isHeic ? `Ошибка HEIC ❌` : `Ошибка ❌`;
     default:
-      return 'Обработка...';
+      return isHeic ? `Обработка HEIC${fileInfo}` : `Обработка${fileInfo}`;  
   }
 };

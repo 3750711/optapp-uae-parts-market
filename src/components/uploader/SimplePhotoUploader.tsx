@@ -94,10 +94,13 @@ export default function SimplePhotoUploader({
             key={it.id}
             className="relative rounded-xl border border-border bg-card overflow-hidden"
           >
-            {/* Оптимизированное превью: thumbnail URL для быстрой загрузки */}
+            {/* Оптимизированное превью: thumbnail URL для всех изображений */}
             {it.cloudinaryUrl || it.thumbUrl ? (
               <img
-                src={it.cloudinaryUrl ? generateThumbnailUrl(it.cloudinaryUrl) : it.thumbUrl}
+                src={it.cloudinaryUrl 
+                  ? generateThumbnailUrl(it.cloudinaryUrl) 
+                  : (it.thumbUrl?.includes('cloudinary') ? generateThumbnailUrl(it.thumbUrl) : it.thumbUrl)
+                }
                 alt=""
                 loading="lazy"
                 className="w-full aspect-square object-cover bg-muted"

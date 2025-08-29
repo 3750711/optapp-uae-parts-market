@@ -41,11 +41,21 @@ self.onmessage = async (e) => {
           heicWorker.onmessage = (ev) => { 
             heicWorker.terminate(); 
             const workerTime = Date.now() - workerStart;
-            console.log(`⚙️ HEIC Processing [${Date.now()}]: Конвертация в процессе...`, {
-              fileName: name,
-              status: 'Используется WASM библиотека для конвертации',
-              workerTime: `${workerTime}ms`
-            });
+            if (ev.data.ok) {
+              console.log(`✅ HEIC Processing [${Date.now()}]: Конвертация завершена успешно`, {
+                fileName: name,
+                status: 'HEIC успешно конвертирован в JPEG',
+                workerTime: `${workerTime}ms`,
+                resultSize: ev.data.blob?.size ? `${Math.round(ev.data.blob.size / 1024)}KB` : 'unknown'
+              });
+            } else {
+              console.log(`❌ HEIC Processing [${Date.now()}]: Ошибка конвертации`, {
+                fileName: name,
+                status: 'Не удалось конвертировать HEIC файл',
+                workerTime: `${workerTime}ms`,
+                error: ev.data.message || 'Unknown error'
+              });
+            }
             console.log('📨 Smart Compress: HEIC worker response received', {
               success: ev.data.ok,
               workerTime: `${workerTime}ms`,
@@ -57,7 +67,7 @@ self.onmessage = async (e) => {
             });
             resolve(ev.data); 
           };
-          heicWorker.postMessage({ file, maxSide: p.maxSide ?? 1600, quality: p.jpegQuality ?? 0.82, timeoutMs: 5000 });
+          heicWorker.postMessage({ file, maxSide: p.maxSide ?? 1600, quality: p.jpegQuality ?? 0.82, timeoutMs: 10000 });
         });
         
         if (res && res.ok && res.blob) {

@@ -317,7 +317,7 @@ export const useStagedCloudinaryUpload = () => {
       const timeout = setTimeout(() => {
         worker.terminate();
         resolve({ ok: false, code: 'WORKER_TIMEOUT' });
-      }, 30000);
+      }, isHeicFile ? 60000 : 30000); // 60s for HEIC, 30s for other files
       
       worker.onmessage = (e) => {
         clearTimeout(timeout);
