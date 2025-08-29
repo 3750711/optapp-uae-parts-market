@@ -94,7 +94,15 @@ export const AdminFreeOrderForm = () => {
   });
 
   const onImagesUpload = (urls: string[]) => {
-    console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
+    console.log('📸 AdminFreeOrderForm: onImagesUpload called', {
+      urlCount: urls.length,
+      urls: urls,
+      urlsValid: urls.every(url => url && typeof url === 'string' && url.trim() !== ''),
+      urlsPreview: urls.map(url => ({ 
+        url: url?.substring(0, 100) + '...', 
+        valid: url && typeof url === 'string' && url.includes('cloudinary')
+      }))
+    });
     setAllImages(urls);
   };
 
@@ -379,13 +387,32 @@ useEffect(() => {
   };
 
   const handleConfirmOrder = (e: React.FormEvent) => {
+    console.log('🎯 AdminFreeOrderForm: handleConfirmOrder called');
     e.preventDefault();
+    
+    // Log current form state and images
+    console.log('🎯 AdminFreeOrderForm: Form state before submission', {
+      formData,
+      allImages: images.length,
+      allVideos: videos.length,
+      imageUrls: images,
+      videoUrls: videos
+    });
+    
+    // Validate image URLs
+    const invalidImages = images.filter(url => !url || typeof url !== 'string' || url.trim() === '');
+    if (invalidImages.length > 0) {
+      console.error('🎯 AdminFreeOrderForm: Invalid image URLs detected:', invalidImages);
+    }
+    
     setShowPreview(false);
     setIsCreating(true);
     guardedSubmit(async () => {
       try {
+        console.log('🎯 AdminFreeOrderForm: Calling originalHandleSubmit');
         await originalHandleSubmit(e);
       } catch (error) {
+        console.error('🎯 AdminFreeOrderForm: Error in originalHandleSubmit:', error);
         setIsCreating(false);
         throw error;
       }

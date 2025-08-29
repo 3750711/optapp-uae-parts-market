@@ -71,7 +71,21 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
       setStage('Создание заказа...');
       setProgress(60);
 
-      const { data: orderId, error: orderError } = await supabase
+      // Validate and log image data before submission
+      console.log('🎯 useOptimizedOrderSubmission: Preparing order creation', {
+        formData,
+        images: images,
+        videos: videos,
+        imagesCount: images.length,
+        videosCount: videos.length,
+        imagesValid: images.every(url => url && typeof url === 'string' && url.trim() !== ''),
+        videosValid: videos.every(url => url && typeof url === 'string' && url.trim() !== ''),
+        deduplicatedImages: deduplicateArray(images),
+        deduplicatedVideos: deduplicateArray(videos)
+      });
+
+      // Add timeout to prevent hanging
+      const orderCreationPromise = supabase
         .rpc('admin_create_order', {
           p_title: formData.title,
           p_price: parseFloat(formData.price),
@@ -93,12 +107,30 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
           p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null
         });
 
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Order creation timeout after 30 seconds')), 30000);
+      });
+
+      console.log('🎯 useOptimizedOrderSubmission: Calling admin_create_order RPC');
+      const { data: orderId, error: orderError } = await Promise.race([
+        orderCreationPromise,
+        timeoutPromise
+      ]) as { data: any; error: any };
+
       if (orderError) {
         console.error('❌ Order creation error:', orderError);
+        console.error('❌ Error details:', {
+          message: orderError.message,
+          details: orderError.details,
+          hint: orderError.hint,
+          code: orderError.code
+        });
         throw new Error(orderError.message || 'Ошибка при создании заказа');
       }
 
       if (!orderId) {
+        console.error('❌ Order ID is null/undefined');
         throw new Error('Заказ не был создан');
       }
 

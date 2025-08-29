@@ -48,6 +48,18 @@ BEGIN
   RAISE LOG 'p_images array length: %', COALESCE(array_length(p_images, 1), 0);
   RAISE LOG 'p_images content: %', p_images;
   RAISE LOG 'p_delivery_price_confirm: %', p_delivery_price_confirm;
+  
+  -- Детальное логирование изображений
+  IF p_images IS NOT NULL AND array_length(p_images, 1) > 0 THEN
+    FOR i IN 1..array_length(p_images, 1) LOOP
+      RAISE LOG 'admin_create_order image[%]: %', i, p_images[i];
+      IF p_images[i] IS NULL OR TRIM(p_images[i]) = '' THEN
+        RAISE LOG 'admin_create_order WARNING: Empty or null image at index %', i;
+      END IF;
+    END LOOP;
+  ELSE
+    RAISE LOG 'admin_create_order: No images provided';
+  END IF;
   RAISE LOG 'p_delivery_method: %', p_delivery_method;
   RAISE LOG 'p_product_id: %', p_product_id;
 
@@ -186,6 +198,8 @@ AS $$
 DECLARE
   next_number INTEGER;
 BEGIN
+  RAISE LOG 'get_next_order_number: Starting order number generation';
+  
   -- Проверяем, что пользователь является администратором или продавцом
   IF NOT EXISTS (
     SELECT 1 FROM profiles 
@@ -195,13 +209,16 @@ BEGIN
     RAISE EXCEPTION 'Only authenticated users can use this function';
   END IF;
 
-  -- Блокируем таблицу для предотвращения конкурентного доступа
-  LOCK TABLE public.orders IN ACCESS EXCLUSIVE MODE;
-  
-  -- Получаем максимальный номер заказа и добавляем 1
+  RAISE LOG 'get_next_order_number: User permissions verified';
+
+  -- Используем более мягкую блокировку вместо ACCESS EXCLUSIVE MODE
+  -- Получаем максимальный номер заказа и увеличиваем на 1 с блокировкой строк
   SELECT COALESCE(MAX(order_number), 0) + 1 
   INTO next_number 
-  FROM public.orders;
+  FROM public.orders
+  FOR UPDATE;
+  
+  RAISE LOG 'get_next_order_number: Generated order number %', next_number;
   
   RETURN next_number;
 END;
