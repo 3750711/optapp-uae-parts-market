@@ -187,6 +187,8 @@ export const useStagedCloudinaryUpload = () => {
   const getBatchSignatures = useCallback(async (currentSessionId: string, count: number): Promise<CloudinarySignature[]> => {
     const { data: { session } } = await supabase.auth.getSession();
     
+    console.log(`🔐 Requesting ${count} Cloudinary signatures for session: ${currentSessionId}`);
+    
     const { data, error } = await supabase.functions.invoke('cloudinary-sign-batch', {
       body: JSON.stringify({ sessionId: currentSessionId, count }),
       headers: {
@@ -195,10 +197,63 @@ export const useStagedCloudinaryUpload = () => {
       }
     });
     
-    if (error) throw new Error(error.message || 'Batch signature request failed');
-    if (!data?.success || !data?.data) throw new Error('Invalid batch signature response');
+    if (error) {
+      console.error('❌ Batch signature request failed:', error);
+      throw new Error(error.message || 'Batch signature request failed');
+    }
     
-    return data.data;
+    if (!data?.success || !data?.data) {
+      console.error('❌ Invalid batch signature response:', data);
+      throw new Error('Invalid batch signature response');
+    }
+    
+    const signatures = data.data;
+    console.log(`✅ Received ${signatures.length} signatures (requested ${count})`);
+    
+    // Validate each signature has required fields
+    for (let i = 0; i < signatures.length; i++) {
+      const sig = signatures[i];
+      if (!sig || !sig.api_key || !sig.signature || !sig.timestamp || !sig.public_id) {
+        console.error(`❌ Invalid signature at index ${i}:`, sig);
+        throw new Error(`Invalid signature data at index ${i}`);
+      }
+    }
+    
+    return signatures;
+  }, []);
+
+  // Get single Cloudinary signature as fallback
+  const getSingleSignature = useCallback(async (currentSessionId: string, publicId?: string): Promise<CloudinarySignature> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    console.log(`🔐 Requesting single Cloudinary signature for session: ${currentSessionId}`);
+    
+    const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
+      body: JSON.stringify({ sessionId: currentSessionId }),
+      headers: {
+        'content-type': 'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+      }
+    });
+    
+    if (error) {
+      console.error('❌ Single signature request failed:', error);
+      throw new Error(error.message || 'Single signature request failed');
+    }
+    
+    if (!data?.success || !data?.data) {
+      console.error('❌ Invalid single signature response:', data);
+      throw new Error('Invalid single signature response');
+    }
+    
+    const signature = data.data;
+    if (!signature.api_key || !signature.signature || !signature.timestamp || !signature.public_id) {
+      console.error('❌ Invalid single signature data:', signature);
+      throw new Error('Invalid single signature data');
+    }
+    
+    console.log(`✅ Received single signature for public_id: ${signature.public_id}`);
+    return signature;
   }, []);
 
   // Compress image in worker with improved API
@@ -375,17 +430,59 @@ export const useStagedCloudinaryUpload = () => {
     setUploadItems(items);
 
     try {
-      // Step 1: Get batch signatures
-      const signatures = await getBatchSignatures(currentSessionId, files.length);
+      // Step 1: Generate stable public IDs for each file
+      const stableIds = items.map(item => 
+        `product_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      );
       
-      // Step 2: Process files with controlled parallelism (max 3 concurrent)
+      // Step 2: Get batch signatures
+      let signatures: CloudinarySignature[] = [];
+      try {
+        signatures = await getBatchSignatures(currentSessionId, files.length);
+        
+        // Verify we got the expected number of signatures
+        if (signatures.length !== files.length) {
+          console.warn(`⚠️ Signature count mismatch: expected ${files.length}, got ${signatures.length}`);
+          throw new Error(`Signature count mismatch: expected ${files.length}, got ${signatures.length}`);
+        }
+      } catch (batchError) {
+        console.error('❌ Batch signature failed, falling back to individual signatures:', batchError);
+        toast({
+          title: "Предупреждение",
+          description: "Получение подписей пакетом не удалось, переключаемся на индивидуальные запросы",
+          variant: "default"
+        });
+        
+        // Fallback to individual signatures
+        signatures = [];
+        for (let i = 0; i < files.length; i++) {
+          try {
+            const signature = await getSingleSignature(currentSessionId, stableIds[i]);
+            signatures.push(signature);
+          } catch (singleError) {
+            console.error(`❌ Failed to get signature for file ${i}:`, singleError);
+            throw new Error(`Failed to get signature for file ${i}: ${singleError.message}`);
+          }
+        }
+      }
+      
+      // Create signature map for safe lookup
+      const signatureMap = new Map<number, CloudinarySignature>();
+      signatures.forEach((sig, index) => {
+        if (sig && sig.api_key && sig.signature) {
+          signatureMap.set(index, sig);
+        }
+      });
+      
+      console.log(`📋 Created signature map with ${signatureMap.size} valid signatures for ${files.length} files`);
+      
+      // Step 3: Process files with controlled parallelism (max 3 concurrent)
       const uploadWithLimit = async () => {
         const results: string[] = [];
         const inProgress = new Set<Promise<void>>();
         
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
-          const signature = signatures[i];
           
           // Wait if we have too many concurrent uploads
           if (inProgress.size >= 3) {
@@ -469,9 +566,33 @@ export const useStagedCloudinaryUpload = () => {
                  }
               }
 
-              // Step 2b: Upload
-              setUploadItems(prev => prev.map(i => 
-                i.id === item.id ? { ...i, status: 'uploading', progress: 50 } : i
+              // Step 2b: Get signature for this file
+              let signature = signatureMap.get(i);
+              
+              if (!signature) {
+                console.warn(`⚠️ No signature found for file ${i} (${item.file.name}), requesting fallback signature`);
+                setUploadItems(prev => prev.map(it => 
+                  it.id === item.id ? { ...it, status: 'signing', progress: 40 } : it
+                ));
+                
+                try {
+                  signature = await getSingleSignature(currentSessionId, stableIds[i]);
+                  signatureMap.set(i, signature);
+                  console.log(`✅ Got fallback signature for file ${i}`);
+                } catch (fallbackError) {
+                  console.error(`❌ Fallback signature failed for file ${i}:`, fallbackError);
+                  throw new Error(`Failed to get signature for ${item.file.name}: ${fallbackError.message}`);
+                }
+              }
+              
+              // Validate signature before upload
+              if (!signature.api_key || !signature.signature || !signature.timestamp) {
+                throw new Error(`Invalid signature data for ${item.file.name}: missing required fields`);
+              }
+
+              // Step 2c: Upload
+              setUploadItems(prev => prev.map(it => 
+                it.id === item.id ? { ...it, status: 'uploading', progress: 50 } : it
               ));
 
               const result = await uploadToCloudinary(
@@ -479,8 +600,8 @@ export const useStagedCloudinaryUpload = () => {
                 signature,
                 (progress) => {
                   const adjustedProgress = 50 + Math.round(progress * 0.5);
-                  setUploadItems(prev => prev.map(i => 
-                    i.id === item.id ? { ...i, progress: adjustedProgress } : i
+                  setUploadItems(prev => prev.map(it => 
+                    it.id === item.id ? { ...it, progress: adjustedProgress } : it
                   ));
                 }
               );
@@ -505,16 +626,28 @@ export const useStagedCloudinaryUpload = () => {
                 return updated;
               });
 
-            } catch (error) {
-              console.error(`Upload failed for ${item.file.name}:`, error);
+            } catch (uploadError) {
+              console.error(`❌ Upload failed for file ${i} (${item.file.name}):`, uploadError);
               
-              setUploadItems(prev => prev.map(i => 
-                i.id === item.id ? { 
-                  ...i, 
+              setUploadItems(prev => prev.map(it => 
+                it.id === item.id ? { 
+                  ...it, 
                   status: 'error', 
-                  error: error instanceof Error ? error.message : 'Upload failed'
-                } : i
+                  error: uploadError instanceof Error ? uploadError.message : 'Upload failed'
+                } : it
               ));
+              
+              // Add error details for debugging
+              if (uploadError instanceof Error) {
+                if (uploadError.message.includes('signature')) {
+                  console.error(`📋 Signature issue for file ${i}:`, {
+                    hasSignature: !!signatureMap.get(i),
+                    signatureFields: signatureMap.get(i) ? Object.keys(signatureMap.get(i)!) : 'none',
+                    fileName: item.file.name,
+                    stableId: stableIds[i]
+                  });
+                }
+              }
             }
           })();
           
