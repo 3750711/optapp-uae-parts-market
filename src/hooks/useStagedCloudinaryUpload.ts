@@ -270,6 +270,18 @@ export const useStagedCloudinaryUpload = () => {
 
   // Compress image in worker with adaptive parameters
   const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82, enableHeicWasm = true): Promise<CompressionResult> => {
+    const fileId = Math.random().toString(36).slice(2, 8);
+    const isHeicFile = /\.(heic|heif)$/i.test(file.name) || /image\/(heic|heif)/i.test(file.type);
+    
+    console.log('🎯 UI Upload: Starting compression', {
+      fileId,
+      fileName: file.name,
+      fileSize: file.size,
+      isHeicFile,
+      heicWasmEnabled: enableHeicWasm,
+      compressionParams: { maxSide, quality }
+    });
+    
     return new Promise((resolve) => {
       let worker: Worker;
       
@@ -278,9 +290,9 @@ export const useStagedCloudinaryUpload = () => {
           new URL('../workers/smart-image-compress.worker.js', import.meta.url),
           { type: 'module' }
         );
-        console.log('✅ Worker created successfully');
+        console.log('✅ UI Upload: Worker created successfully for file', fileId);
       } catch (workerError) {
-        console.error('❌ Failed to create worker:', workerError);
+        console.error('❌ UI Upload: Failed to create worker for file', fileId, workerError);
         resolve({ ok: false, code: 'WORKER_CREATION_FAILED' });
         return;
       }
@@ -296,11 +308,14 @@ export const useStagedCloudinaryUpload = () => {
         const result = e.data;
         
         if (result.ok) {
-          console.log('✅ Worker compression successful:', {
+          console.log('🎉 UI Upload: Compression successful', {
+            fileId,
             originalSize: result.original?.size || file.size,
             compressedSize: result.size,
             compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A',
-            wasHeicConverted: result.wasHeicConverted
+            wasHeicConverted: result.wasHeicConverted,
+            isHeicFile,
+            finalMime: result.mime
           });
           resolve({
             ok: true,
@@ -312,10 +327,12 @@ export const useStagedCloudinaryUpload = () => {
             wasHeicConverted: result.wasHeicConverted
           });
         } else {
-          console.warn('⚠️ Worker compression failed:', {
+          console.warn('⚠️ UI Upload: Compression failed', {
+            fileId,
+            fileName: file.name,
             code: result.code,
             message: result.message,
-            fileName: file.name
+            wasHeicAttempt: isHeicFile
           });
           resolve({ 
             ok: false, 
@@ -328,7 +345,12 @@ export const useStagedCloudinaryUpload = () => {
       worker.onerror = (error) => {
         clearTimeout(timeout);
         worker.terminate();
-        console.error('❌ Worker error:', error);
+        console.error('💥 UI Upload: Worker error', {
+          fileId,
+          fileName: file.name,
+          error,
+          wasHeicAttempt: isHeicFile
+        });
         resolve({ ok: false, code: 'WORKER_ERROR', originalSize: file.size });
       };
       
@@ -338,6 +360,13 @@ export const useStagedCloudinaryUpload = () => {
       const canUseHeicWasm = enableHeicWasm && !isOldTgWV && (navigator.hardwareConcurrency || 4) >= 4;
 
       // Send compression task with adaptive parameters
+      console.log('📤 UI Upload: Sending compression task to worker', {
+        fileId,
+        canUseHeicWasm,
+        isOldTgWV: /Telegram\/[0-8]\./i.test(navigator.userAgent || ''),
+        hardwareConcurrency: navigator.hardwareConcurrency || 4
+      });
+      
       try {
         worker.postMessage({
           file,
@@ -350,7 +379,10 @@ export const useStagedCloudinaryUpload = () => {
       } catch (postError) {
         clearTimeout(timeout);
         worker.terminate();
-        console.error('Failed to post message to worker:', postError);
+        console.error('💥 UI Upload: Failed to post message to worker', {
+          fileId,
+          error: postError
+        });
         resolve({ ok: false, code: 'WORKER_POST_FAILED' });
       }
     });

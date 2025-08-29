@@ -17,14 +17,38 @@ self.onmessage = async (e) => {
     const ENABLE_HEIC_WASM = p.enableHeicWasm !== false;
     
     // If HEIC/HEIF → switch to helper worker
-    if (ENABLE_HEIC_WASM && (type.includes('heic') || type.includes('heif') || /\.hei[cf]$/.test(name))) {
+    const isHeicFile = type.includes('heic') || type.includes('heif') || /\.hei[cf]$/.test(name);
+    console.log('🔍 Smart Compress: File analysis', {
+      fileName: name,
+      fileType: type,
+      fileSize: file.size,
+      isHeicFile,
+      heicWasmEnabled: ENABLE_HEIC_WASM
+    });
+    
+    if (ENABLE_HEIC_WASM && isHeicFile) {
+      console.log('🎯 Smart Compress: HEIC file detected, creating HEIC worker...');
       try {
+        const workerStart = Date.now();
         const heicWorker = new Worker(new URL('./heic2jpeg.worker.js', import.meta.url), { type: 'classic' });
+        console.log('✅ Smart Compress: HEIC worker created, sending conversion task');
+        
         const res = await new Promise((resolve) => {
-          heicWorker.onmessage = (ev) => { heicWorker.terminate(); resolve(ev.data); };
+          heicWorker.onmessage = (ev) => { 
+            heicWorker.terminate(); 
+            const workerTime = Date.now() - workerStart;
+            console.log('📨 Smart Compress: HEIC worker response received', {
+              success: ev.data.ok,
+              workerTime: `${workerTime}ms`,
+              resultSize: ev.data.blob?.size
+            });
+            resolve(ev.data); 
+          };
           heicWorker.postMessage({ file, maxSide: p.maxSide ?? 1600, quality: p.jpegQuality ?? 0.82, timeoutMs: 5000 });
         });
+        
         if (res && res.ok && res.blob) {
+          console.log('🎉 Smart Compress: HEIC conversion successful, returning JPEG');
           // Return ready JPEG — rest of pipeline unchanged
           return self.postMessage({
             ok: true,
@@ -38,8 +62,16 @@ self.onmessage = async (e) => {
           });
         }
         // If failed — soft report to frontend for bypass
+        console.warn('⚠️ Smart Compress: HEIC conversion failed, will bypass', {
+          error: res?.message || 'heic wasm fail',
+          fallbackToBrowser: true
+        });
         return self.postMessage({ ok: false, code: 'UNSUPPORTED_HEIC', message: res?.message || 'heic wasm fail' });
       } catch (err) {
+        console.error('💥 Smart Compress: HEIC worker exception', {
+          error: String(err?.message || err),
+          fallbackToBrowser: true
+        });
         return self.postMessage({ ok: false, code: 'UNSUPPORTED_HEIC', message: String(err?.message || err) });
       }
     }
