@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { OrderFormData } from '@/types/order';
 import { deduplicateArray } from '@/utils/deduplication';
+import { useRetryWithBackoff } from '@/hooks/useRetryWithBackoff';
 
 interface OptimizedOrderSubmissionResult {
   isLoading: boolean;
@@ -25,6 +26,7 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
   const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [retryLastOperation, setRetryLastOperation] = useState<(() => void) | null>(null);
+  const { executeWithRetry, isRetrying, currentAttempt } = useRetryWithBackoff();
 
   const clearError = useCallback(() => {
     setError(null);
@@ -67,8 +69,8 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
 
       console.log('✅ Buyer found:', buyerProfile);
 
-      // Stage 2: Создание заказа через admin_create_order
-      setStage('Создание заказа...');
+      // Stage 2: Создание заказа с retry логикой
+      setStage(currentAttempt > 0 ? `Создание заказа (попытка ${currentAttempt})...` : 'Создание заказа...');
       setProgress(60);
 
       // Validate and log image data before submission
@@ -84,55 +86,49 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
         deduplicatedVideos: deduplicateArray(videos)
       });
 
-      // Add timeout to prevent hanging
-      const orderCreationPromise = supabase
-        .rpc('admin_create_order', {
-          p_title: formData.title,
-          p_price: parseFloat(formData.price),
-          p_place_number: parseInt(formData.place_number) || 1,
-          p_seller_id: formData.sellerId,
-          p_order_seller_name: null, // Будет установлено автоматически триггером
-          p_seller_opt_id: null, // Будет установлено автоматически триггером
-          p_buyer_id: buyerProfile.id,
-          p_brand: formData.brand || '',
-          p_model: formData.model || '',
-          p_status: 'created',
-          p_order_created_type: 'free_order',
-          p_telegram_url_order: null,
-          p_images: deduplicateArray(images),
-          p_videos: deduplicateArray(videos),
-          p_product_id: null,
-          p_delivery_method: formData.deliveryMethod,
-          p_text_order: formData.text_order || null,
-          p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null
-        });
+      // Use retry mechanism for order creation
+      const orderId = await executeWithRetry(async () => {
+        console.log('🎯 useOptimizedOrderSubmission: Calling admin_create_order RPC');
+        
+        const { data: orderId, error: orderError } = await supabase
+          .rpc('admin_create_order', {
+            p_title: formData.title,
+            p_price: parseFloat(formData.price),
+            p_place_number: parseInt(formData.place_number) || 1,
+            p_seller_id: formData.sellerId,
+            p_order_seller_name: null, // Будет установлено автоматически триггером
+            p_seller_opt_id: null, // Будет установлено автоматически триггером
+            p_buyer_id: buyerProfile.id,
+            p_brand: formData.brand || '',
+            p_model: formData.model || '',
+            p_status: 'created',
+            p_order_created_type: 'free_order',
+            p_telegram_url_order: null,
+            p_images: deduplicateArray(images),
+            p_product_id: null,
+            p_delivery_method: formData.deliveryMethod,
+            p_text_order: formData.text_order || null,
+            p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null
+          });
 
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Order creation timeout after 30 seconds')), 30000);
-      });
+        if (orderError) {
+          console.error('❌ Order creation error:', orderError);
+          console.error('❌ Error details:', {
+            message: orderError.message,
+            details: orderError.details,
+            hint: orderError.hint,
+            code: orderError.code
+          });
+          throw new Error(orderError.message || 'Ошибка при создании заказа');
+        }
 
-      console.log('🎯 useOptimizedOrderSubmission: Calling admin_create_order RPC');
-      const { data: orderId, error: orderError } = await Promise.race([
-        orderCreationPromise,
-        timeoutPromise
-      ]) as { data: any; error: any };
+        if (!orderId) {
+          console.error('❌ Order ID is null/undefined');
+          throw new Error('Заказ не был создан');
+        }
 
-      if (orderError) {
-        console.error('❌ Order creation error:', orderError);
-        console.error('❌ Error details:', {
-          message: orderError.message,
-          details: orderError.details,
-          hint: orderError.hint,
-          code: orderError.code
-        });
-        throw new Error(orderError.message || 'Ошибка при создании заказа');
-      }
-
-      if (!orderId) {
-        console.error('❌ Order ID is null/undefined');
-        throw new Error('Заказ не был создан');
-      }
+        return orderId;
+      }, 'создание заказа');
 
       console.log('✅ Order created with ID:', orderId);
 
@@ -168,23 +164,27 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
     } catch (error: any) {
       console.error('💥 Order submission error:', error);
       const errorMessage = error.message || 'Произошла ошибка при создании заказа';
+      
       setError(errorMessage);
       
-      // Set retry function
+      // Set retry function for manual retry if automatic retries failed
       setRetryLastOperation(() => () => {
         handleSubmit(formData, images, videos);
       });
       
-      toast({
-        title: "Ошибка создания заказа",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Only show toast if we're not in the middle of automatic retries
+      if (!isRetrying) {
+        toast({
+          title: "Ошибка создания заказа",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
       setStage('');
     }
-  }, []);
+  }, [executeWithRetry, currentAttempt, isRetrying]);
 
   return {
     isLoading,

@@ -198,28 +198,23 @@ AS $$
 DECLARE
   next_number INTEGER;
 BEGIN
-  RAISE LOG 'get_next_order_number: Starting order number generation';
+  RAISE LOG 'get_next_order_number: Starting order number generation with table locking';
   
-  -- Проверяем, что пользователь является администратором или продавцом
-  IF NOT EXISTS (
-    SELECT 1 FROM profiles 
-    WHERE id = auth.uid() 
-    AND user_type IN ('admin', 'seller', 'buyer')
-  ) THEN
-    RAISE EXCEPTION 'Only authenticated users can use this function';
-  END IF;
-
-  RAISE LOG 'get_next_order_number: User permissions verified';
-
-  -- Используем более мягкую блокировку вместо ACCESS EXCLUSIVE MODE
-  -- Получаем максимальный номер заказа и увеличиваем на 1 с блокировкой строк
+  -- Lock the entire orders table to prevent race conditions
+  -- SHARE ROW EXCLUSIVE allows SELECT but blocks INSERT/UPDATE from other transactions
+  LOCK TABLE public.orders IN SHARE ROW EXCLUSIVE MODE;
+  
+  -- Use MAX+1 logic to handle gaps and manual changes
   SELECT COALESCE(MAX(order_number), 0) + 1 
   INTO next_number 
-  FROM public.orders
-  FOR UPDATE;
+  FROM public.orders;
   
-  RAISE LOG 'get_next_order_number: Generated order number %', next_number;
+  RAISE LOG 'get_next_order_number: Generated order number % with table locking', next_number;
   
   RETURN next_number;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE LOG 'Error in get_next_order_number: %', SQLERRM;
+    RAISE;
 END;
 $$;
