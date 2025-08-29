@@ -11,8 +11,36 @@ self.onmessage = async (e) => {
     if (!file) return postError('NO_FILE', 'No file provided');
 
     const type = (file.type || '').toLowerCase();
-    if (type.includes('heic') || type.includes('heif')) {
-      return self.postMessage({ ok: false, code: 'UNSUPPORTED_HEIC', message: 'HEIC/HEIF is not supported in browser' });
+    const name = (file.name || '').toLowerCase();
+    
+    // Feature flag: enable HEIC→JPEG only if allowed
+    const ENABLE_HEIC_WASM = p.enableHeicWasm !== false;
+    
+    // If HEIC/HEIF → switch to helper worker
+    if (ENABLE_HEIC_WASM && (type.includes('heic') || type.includes('heif') || /\.hei[cf]$/.test(name))) {
+      try {
+        const heicWorker = new Worker(new URL('./heic2jpeg.worker.js', import.meta.url), { type: 'classic' });
+        const res = await new Promise((resolve) => {
+          heicWorker.onmessage = (ev) => { heicWorker.terminate(); resolve(ev.data); };
+          heicWorker.postMessage({ file, maxSide: p.maxSide ?? 1600, quality: p.jpegQuality ?? 0.82, timeoutMs: 5000 });
+        });
+        if (res && res.ok && res.blob) {
+          // Return ready JPEG — rest of pipeline unchanged
+          return self.postMessage({
+            ok: true,
+            blob: res.blob,
+            mime: 'image/jpeg',
+            width: res.width,
+            height: res.height,
+            size: res.blob.size,
+            original: { width: undefined, height: undefined, size: file.size }
+          });
+        }
+        // If failed — soft report to frontend for bypass
+        return self.postMessage({ ok: false, code: 'UNSUPPORTED_HEIC', message: res?.message || 'heic wasm fail' });
+      } catch (err) {
+        return self.postMessage({ ok: false, code: 'UNSUPPORTED_HEIC', message: String(err?.message || err) });
+      }
     }
 
     const maxSide = clampInt(p.maxSide, 256, 8192, 1600);

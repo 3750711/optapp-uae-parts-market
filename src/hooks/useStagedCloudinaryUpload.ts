@@ -265,7 +265,7 @@ export const useStagedCloudinaryUpload = () => {
   }, []);
 
   // Compress image in worker with adaptive parameters
-  const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82): Promise<CompressionResult> => {
+  const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82, enableHeicWasm = true): Promise<CompressionResult> => {
     return new Promise((resolve) => {
       let worker: Worker;
       
@@ -326,6 +326,11 @@ export const useStagedCloudinaryUpload = () => {
         resolve({ ok: false, code: 'WORKER_ERROR', originalSize: file.size });
       };
       
+      // Detect device capabilities for HEIC WASM
+      const ua = navigator.userAgent || '';
+      const isOldTgWV = /Telegram\/[0-8]\./i.test(ua);
+      const canUseHeicWasm = enableHeicWasm && !isOldTgWV && (navigator.hardwareConcurrency || 4) >= 4;
+
       // Send compression task with adaptive parameters
       try {
         worker.postMessage({
@@ -333,7 +338,8 @@ export const useStagedCloudinaryUpload = () => {
           maxSide,
           jpegQuality: quality,
           prefer: 'jpeg',
-          twoPass: false
+          twoPass: false,
+          enableHeicWasm: canUseHeicWasm
         });
       } catch (postError) {
         clearTimeout(timeout);
@@ -564,15 +570,24 @@ export const useStagedCloudinaryUpload = () => {
       // Process files with adaptive parallelism
       await runPool(parallelism, items, async (item) => {
         try {
-          // Step 1: Compression (skip small files and HEIC)
-          const shouldCompress = !item.isHeic && item.file.size > 300_000; // Skip files under 300KB
-          let processedFile = item.file;
-          
-          if (shouldCompress) {
+            // Step 1: Compression (skip small files and HEIC)
+            const shouldCompress = !item.isHeic && item.file.size > 300_000; // Skip files under 300KB
+            let processedFile = item.file;
+            
+            // Log HEIC detection for telemetry
+            if (/heic|heif/i.test(item.file.type) || /\.hei[cf]$/i.test(item.file.name)) {
+              console.log(`[HEIC][${Date.now()}] HEIC detected:`, { 
+                name: item.file.name, 
+                size: item.file.size,
+                type: item.file.type 
+              });
+            }
+            
+            if (shouldCompress) {
             item.status = 'compressing';
             setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
             
-            const compressionResult = await compressInWorker(item.file, maxSide, quality);
+            const compressionResult = await compressInWorker(item.file, maxSide, quality, true);
             if (compressionResult.ok && compressionResult.blob) {
               // Always create JPEG file for consistency
               processedFile = new File(
