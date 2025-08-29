@@ -18,6 +18,23 @@ const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onD
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check if this is a HEIC file
+    const isHeic = file.type.toLowerCase().includes('heic') || 
+                   file.type.toLowerCase().includes('heif') || 
+                   file.name.toLowerCase().endsWith('.heic') ||
+                   file.name.toLowerCase().endsWith('.heif');
+
+    console.log('📸 RealTimeImageUpload: File selected', { 
+      name: file.name, 
+      type: file.type, 
+      size: file.size,
+      isHeic 
+    });
+
+    if (isHeic) {
+      console.log('📸 RealTimeImageUpload: HEIC file detected - will use Supabase direct upload');
+    }
+
     setUploading(true);
 
     try {
