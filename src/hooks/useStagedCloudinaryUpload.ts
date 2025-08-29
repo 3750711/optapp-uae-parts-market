@@ -174,13 +174,7 @@ export const useStagedCloudinaryUpload = () => {
     setSessionId(newSessionId);
     
     try {
-      // Try to restore previous session data
-      const savedUrls = await stagingDB.getSession(newSessionId);
-      if (savedUrls) {
-        setStagedUrls(savedUrls);
-      }
-      
-      // Clean up old sessions
+      // Clean up old sessions first
       await stagingDB.clearOldSessions();
     } catch (error) {
       console.error('Failed to initialize staging session:', error);
@@ -188,6 +182,29 @@ export const useStagedCloudinaryUpload = () => {
     
     return newSessionId;
   }, [sessionId]);
+
+  // Load existing session data on mount
+  const loadSession = useCallback(async (sessionId: string) => {
+    try {
+      const savedUrls = await stagingDB.getSession(sessionId);
+      if (savedUrls && savedUrls.length > 0) {
+        console.log('🔄 Restoring staged URLs from IndexedDB:', { count: savedUrls.length, sessionId });
+        setStagedUrls(savedUrls);
+      }
+    } catch (error) {
+      console.error('Failed to load staging session:', error);
+    }
+  }, []);
+
+  // Initialize session and load data on mount
+  useEffect(() => {
+    const initAndLoad = async () => {
+      const currentSessionId = await initSession();
+      await loadSession(currentSessionId);
+    };
+    
+    initAndLoad();
+  }, []);
 
   // Get batch Cloudinary signatures for staging with publicIds
   const getBatchSignatures = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
@@ -617,16 +634,18 @@ export const useStagedCloudinaryUpload = () => {
       // Process files with adaptive parallelism
       await runPool(parallelism, items, async (item) => {
         try {
-            // Step 1: Compression (skip small files and HEIC)
-            const shouldCompress = !item.isHeic && item.file.size > 300_000; // Skip files under 300KB
+            // Step 1: Compression and HEIC conversion
+            // HEIC files MUST always be processed for conversion, regardless of size
+            const shouldCompress = item.isHeic || item.file.size > 300_000;
             let processedFile = item.file;
             
-            // Log HEIC detection for telemetry
-            if (/heic|heif/i.test(item.file.type) || /\.hei[cf]$/i.test(item.file.name)) {
-              console.log(`[HEIC][${Date.now()}] HEIC detected:`, { 
-                name: item.file.name, 
-                size: item.file.size,
-                type: item.file.type 
+            // Enhanced HEIC detection and logging
+            if (item.isHeic || /heic|heif/i.test(item.file.type) || /\.hei[cf]$/i.test(item.file.name)) {
+              console.log(`🔄 HEIC Processing [${Date.now()}]: Файл HEIC обнаружен`, {
+                fileName: item.file.name,
+                fileSize: `${Math.round(item.file.size / 1024)}KB`,
+                fileType: item.file.type,
+                status: 'Начинается конвертация в JPEG...'
               });
             }
             
@@ -645,7 +664,25 @@ export const useStagedCloudinaryUpload = () => {
               item.compressedSize = compressionResult.compressedSize;
               // Track if this was converted from HEIC
               item.wasHeicConverted = compressionResult.wasHeicConverted;
+              
+              // Enhanced HEIC success logging
+              if (item.isHeic && compressionResult.wasHeicConverted) {
+                console.log(`✅ HEIC Processing [${Date.now()}]: Успешная конвертация HEIC → JPEG`, {
+                  fileName: item.file.name,
+                  originalSize: `${Math.round(item.file.size / 1024)}KB`,
+                  convertedSize: `${Math.round(compressionResult.compressedSize || 0 / 1024)}KB`,
+                  compressionRatio: `${Math.round((1 - (compressionResult.compressedSize || 0) / item.file.size) * 100)}% сжатие`
+                });
+              }
             } else {
+              // Enhanced HEIC error logging
+              if (item.isHeic) {
+                console.error(`❌ HEIC Processing [${Date.now()}]: Ошибка конвертации`, {
+                  fileName: item.file.name,
+                  error: compressionResult.code || 'Неизвестная ошибка',
+                  fallback: 'Файл будет загружен как есть'
+                });
+              }
               console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
             }
           }

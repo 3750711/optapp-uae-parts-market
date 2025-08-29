@@ -171,11 +171,34 @@ useEffect(() => {
           handleInputChange('model', savedForm.model);
         }
 
-        // 4) Медиа из автосохранения
-        if (Array.isArray(saved.images)) setAllImages(saved.images);
+        // 4) Медиа из автосохранения - объединяем с staged URLs
+        let restoredImages: string[] = [];
+        if (Array.isArray(saved.images)) {
+          restoredImages = [...saved.images];
+        }
+        
+        // Добавляем staged URLs к восстановленным изображениям
+        if (stagedUrls.length > 0) {
+          console.log('🔄 Restoring images from staged URLs:', { count: stagedUrls.length });
+          restoredImages = [...restoredImages, ...stagedUrls];
+        }
+        
+        // Удаляем дубликаты и устанавливаем
+        const uniqueImages = Array.from(new Set(restoredImages.filter(u => u && u.trim() !== '')));
+        if (uniqueImages.length > 0) {
+          setAllImages(uniqueImages);
+        }
+        
         if (Array.isArray(saved.videos)) setVideos(saved.videos);
 
-        console.log('✅ Черновик формы восстановлен (упорядоченное применение brand/model)');
+        console.log('✅ Черновик формы восстановлен (упорядоченное применение brand/model)', {
+          imagesCount: uniqueImages.length,
+          stagedUrlsCount: stagedUrls.length
+        });
+      } else if (stagedUrls.length > 0) {
+        // Если нет сохраненных данных, но есть staged URLs - восстанавливаем их
+        console.log('🔄 No saved form data, but restoring staged URLs:', { count: stagedUrls.length });
+        setAllImages(stagedUrls);
       }
     } catch (e) {
       console.error('❌ Ошибка восстановления черновика:', e);
@@ -186,14 +209,25 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
-// Синхронизация staged URLs с images state
+// Синхронизация staged URLs с images state (с улучшенной логикой)
 useEffect(() => {
   if (stagedUrls.length > 0) {
-    console.log('📸 AdminFreeOrderForm: Синхронизация staged URLs', { stagedUrls });
-    // Объединяем существующие images с staged URLs
+    console.log('📸 AdminFreeOrderForm: Синхронизация staged URLs', { 
+      stagedUrlsCount: stagedUrls.length,
+      currentImagesCount: images.length 
+    });
+    
+    // Объединяем существующие images с staged URLs, избегая дубликатов
     const allUrls = [...images, ...stagedUrls];
     const uniqueUrls = Array.from(new Set(allUrls.filter(u => u && u.trim() !== '')));
+    
+    // Обновляем только если есть новые URL'ы или изменения
     if (uniqueUrls.length !== images.length || !uniqueUrls.every(url => images.includes(url))) {
+      console.log('📸 AdminFreeOrderForm: Updating images with staged URLs:', {
+        before: images.length,
+        after: uniqueUrls.length,
+        newUrls: uniqueUrls.filter(url => !images.includes(url))
+      });
       setAllImages(uniqueUrls);
     }
   }

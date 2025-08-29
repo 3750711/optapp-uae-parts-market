@@ -41,6 +41,11 @@ self.onmessage = async (e) => {
           heicWorker.onmessage = (ev) => { 
             heicWorker.terminate(); 
             const workerTime = Date.now() - workerStart;
+            console.log(`⚙️ HEIC Processing [${Date.now()}]: Конвертация в процессе...`, {
+              fileName: name,
+              status: 'Используется WASM библиотека для конвертации',
+              workerTime: `${workerTime}ms`
+            });
             console.log('📨 Smart Compress: HEIC worker response received', {
               success: ev.data.ok,
               workerTime: `${workerTime}ms`,
