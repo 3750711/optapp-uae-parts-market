@@ -103,7 +103,9 @@ export const AdminFreeOrderForm = () => {
         valid: url && typeof url === 'string' && url.includes('cloudinary')
       }))
     });
-    setAllImages(urls);
+    const filteredUrls = [...images, ...urls].filter(u => u && u.trim() !== '');
+    const uniqueUrls = Array.from(new Set(filteredUrls));
+    setAllImages(uniqueUrls);
   };
 
   const onImageDelete = (url: string) => {
