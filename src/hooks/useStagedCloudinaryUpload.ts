@@ -185,31 +185,33 @@ export const useStagedCloudinaryUpload = () => {
     return newSessionId;
   }, [sessionId]);
 
-  // Get batch Cloudinary signatures for staging with publicIds
+  // Get batch Cloudinary signatures using public cloudinary-sign function
   const getBatchSignatures = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
     console.log(`🔐 Requesting Cloudinary signatures for ${publicIds.length} specific IDs, session: ${currentSessionId}`);
     
-    const { data, error } = await supabase.functions.invoke('cloudinary-sign-batch', {
-      body: JSON.stringify({ sessionId: currentSessionId, publicIds }),
-      headers: {
-        'content-type': 'application/json',
-        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+    // Use Promise.all to call cloudinary-sign for each publicId in parallel
+    const signaturePromises = publicIds.map(async (publicId) => {
+      const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
+        body: JSON.stringify({ sessionId: currentSessionId }),
+        headers: {
+          'content-type': 'application/json'
+        }
+      });
+      
+      if (error) {
+        console.error(`❌ Signature request failed for ${publicId}:`, error);
+        throw new Error(error.message || 'Signature request failed');
       }
+      
+      if (!data?.success || !data?.data) {
+        console.error(`❌ Invalid signature response for ${publicId}:`, data);
+        throw new Error('Invalid signature response');
+      }
+      
+      return data.data;
     });
     
-    if (error) {
-      console.error('❌ Batch signature request failed:', error);
-      throw new Error(error.message || 'Batch signature request failed');
-    }
-    
-    if (!data?.success || !data?.data) {
-      console.error('❌ Invalid batch signature response:', data);
-      throw new Error('Invalid batch signature response');
-    }
-    
-    const signatures = data.data;
+    const signatures = await Promise.all(signaturePromises);
     console.log(`✅ Received ${signatures.length} signatures (requested ${publicIds.length})`);
     
     // Validate each signature has required fields
@@ -224,17 +226,14 @@ export const useStagedCloudinaryUpload = () => {
     return signatures;
   }, []);
 
-  // Get single Cloudinary signature as fallback
+  // Get single Cloudinary signature using public cloudinary-sign function
   const getSingleSignature = useCallback(async (currentSessionId: string, publicId: string): Promise<CloudinarySignature> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
     console.log(`🔐 Requesting single Cloudinary signature for session: ${currentSessionId}`);
     
-    const { data, error } = await supabase.functions.invoke('cloudinary-sign-batch', {
-      body: JSON.stringify({ sessionId: currentSessionId, publicIds: [publicId] }),
+    const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
+      body: JSON.stringify({ sessionId: currentSessionId }),
       headers: {
-        'content-type': 'application/json',
-        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {})
+        'content-type': 'application/json'
       }
     });
     
@@ -248,13 +247,7 @@ export const useStagedCloudinaryUpload = () => {
       throw new Error('Invalid single signature response');
     }
     
-    const signatures = data.data;
-    if (!signatures || signatures.length === 0) {
-      console.error('❌ No signature received in response');
-      throw new Error('No signature received');
-    }
-    
-    const signature = signatures[0];
+    const signature = data.data;
     if (!signature.api_key || !signature.signature || !signature.timestamp || !signature.public_id) {
       console.error('❌ Invalid single signature data:', signature);
       throw new Error('Invalid single signature data');
