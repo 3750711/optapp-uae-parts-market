@@ -12,7 +12,6 @@ import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormField
 import AdvancedImageUpload from "@/components/admin/order/AdvancedImageUpload";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
-import { OrderPreviewDialog } from "@/components/admin/order/OrderPreviewDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { toast } from "@/hooks/use-toast";
@@ -27,7 +26,6 @@ const SellerCreateOrder = () => {
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = getSellerPagesTranslations(language);
-  const [showPreview, setShowPreview] = useState(false);
   const [primaryImage, setPrimaryImage] = useState<string>('');
 
   const {
@@ -103,17 +101,18 @@ const SellerCreateOrder = () => {
     console.log("Product data received:", productData);
   };
 
-  // Show preview when "Create Order" is clicked
-  const handleCreateOrderClick = () => {
-    console.log('🔍 Checking form validation for seller:', {
+  // Create order directly when button is clicked
+  const handleCreateOrderClick = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('🔍 Validating seller form:', {
       title: formData.title,
       price: formData.price,
       sellerId: formData.sellerId,
-      buyerOptId: formData.buyerOptId,
-      formData: formData
+      buyerOptId: formData.buyerOptId
     });
 
-    if (!canShowPreview()) {
+    // Validate required fields
+    if (!formData.title || !formData.price || !formData.buyerOptId) {
       toast({
         title: t.orderCreation.fillRequiredFields,
         description: t.orderCreation.fillRequiredFieldsMessage,
@@ -121,37 +120,10 @@ const SellerCreateOrder = () => {
       });
       return;
     }
-    setShowPreview(true);
-  };
 
-  // Confirm order creation from preview
-  const handleConfirmOrder = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowPreview(false);
     guardedSubmit(async () => {
       await originalHandleSubmit(e);
     });
-  };
-
-  // Go back to editing from preview
-  const handleBackToEdit = () => {
-    setShowPreview(false);
-  };
-
-  // Validate form for preview - check seller form requirements
-  const canShowPreview = () => {
-    const isValid = formData.title && 
-                   formData.price && 
-                   formData.buyerOptId; // Only need buyer OPT_ID for sellers
-    
-    console.log('🔍 Seller form validation result:', {
-      title: !!formData.title,
-      price: !!formData.price,
-      buyerOptId: !!formData.buyerOptId,
-      isValid: isValid
-    });
-    
-    return isValid;
   };
 
   // Get buyer profile for preview
@@ -339,7 +311,7 @@ const SellerCreateOrder = () => {
                   {t.cancel}
                 </Button>
                 <Button
-                  type="button"
+                  type="submit"
                   onClick={handleCreateOrderClick}
                   disabled={isFormDisabled}
                   className={isMobile ? "min-h-[44px]" : ""}
@@ -351,19 +323,6 @@ const SellerCreateOrder = () => {
           </CardFooter>
         </Card>
 
-        {/* Order Preview Dialog */}
-        <OrderPreviewDialog
-          open={showPreview}
-          onOpenChange={setShowPreview}
-          formData={formData}
-          images={images}
-          videos={videos}
-          selectedSeller={getSellerProfile()}
-          buyerProfile={getBuyerProfile()}
-          onConfirm={handleConfirmOrder}
-          onBack={handleBackToEdit}
-          isLoading={isLoading}
-        />
       </div>
     </div>
   );

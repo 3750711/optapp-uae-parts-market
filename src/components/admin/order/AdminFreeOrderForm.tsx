@@ -6,7 +6,6 @@ import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
 import { useStagedCloudinaryUpload } from '@/hooks/useStagedCloudinaryUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
-import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { TelegramOrderParser } from './TelegramOrderParser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,7 +23,6 @@ import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 import { usePWALifecycle } from '@/hooks/usePWALifecycle';
 
 export const AdminFreeOrderForm = () => {
-  const [showPreview, setShowPreview] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isOrderCreated, setIsOrderCreated] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
@@ -358,16 +356,18 @@ useEffect(() => {
     });
   };
 
-  const handleCreateOrderClick = () => {
-    console.log('🔍 Checking form validation:', {
+  const handleCreateOrderClick = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log('🔍 Validating admin form:', {
       title: formData.title,
       price: formData.price,
       sellerId: formData.sellerId,
       buyerOptId: formData.buyerOptId,
-      formData: formData
+      brandId: formData.brandId
     });
 
-    if (!canShowPreview()) {
+    // Validate required fields
+    if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId || !formData.brandId) {
       toast({
         title: "Заполните обязательные поля",
         description: "Необходимо заполнить название, цену, бренд, продавца и OPT_ID покупателя",
@@ -375,12 +375,7 @@ useEffect(() => {
       });
       return;
     }
-    setShowPreview(true);
-  };
 
-  const handleConfirmOrder = (e: React.FormEvent) => {
-    e.preventDefault();
-    setShowPreview(false);
     setIsCreating(true);
     guardedSubmit(async () => {
       try {
@@ -400,28 +395,6 @@ useEffect(() => {
     resetForm();
   };
 
-  const handleBackToEdit = () => {
-    setShowPreview(false);
-  };
-
-  const canShowPreview = () => {
-    const isValid = formData.title && 
-                   formData.price && 
-                   formData.sellerId && 
-                   formData.buyerOptId &&
-                   formData.brandId;
-    
-    console.log('🔍 Form validation result:', {
-      title: !!formData.title,
-      price: !!formData.price,
-      sellerId: !!formData.sellerId,
-      buyerOptId: !!formData.buyerOptId,
-      brandId: !!formData.brandId,
-      isValid: isValid
-    });
-    
-    return isValid;
-  };
 
   const getBuyerProfile = () => {
     return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
@@ -621,19 +594,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* Order Preview Dialog */}
-      <OrderPreviewDialog
-        open={showPreview}
-        onOpenChange={setShowPreview}
-        formData={formData}
-        images={images}
-        videos={videos}
-        selectedSeller={selectedSeller}
-        buyerProfile={getBuyerProfile()}
-        onConfirm={handleConfirmOrder}
-        onBack={handleBackToEdit}
-        isLoading={isLoading}
-      />
     </div>
   );
 };
