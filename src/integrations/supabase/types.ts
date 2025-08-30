@@ -2047,16 +2047,14 @@ export type Database = {
         Returns: string[]
       }
       get_seller_daily_statistics: {
-        Args: { p_end_date?: string; p_start_date?: string }
+        Args: { end_date?: string; start_date?: string }
         Returns: {
-          avg_order_value: number
-          date: string
-          opt_id: string
           orders_created: number
           products_created: number
           seller_id: string
           seller_name: string
-          total_order_value: number
+          seller_opt_id: string
+          total_revenue: number
         }[]
       }
       gtrgm_compress: {
