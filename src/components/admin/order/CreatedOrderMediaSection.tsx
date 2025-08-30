@@ -14,8 +14,8 @@ interface CreatedOrderMediaSectionProps {
   orderId: string;
   images: string[];
   videos: string[];
-  onImagesUpdate: (updater: string[] | ((prev: string[]) => string[])) => void;
-  onVideosUpdate: (updater: string[] | ((prev: string[]) => string[])) => void;
+  onImagesUpdate: (newImages: string[]) => void;
+  onVideosUpdate: (newVideos: string[]) => void;
 }
 
 export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> = ({
@@ -49,16 +49,23 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       const uploadedUrls = await uploadFiles(fileArray);
 
       if (uploadedUrls.length > 0) {
-        onImagesUpdate((prev: string[]) => {
-          const merged = Array.from(new Set([...prev, ...uploadedUrls]));
-          void updateOrderMedia(merged, videos); // не блокируем UI
-          return merged;
-        });
+        const newImages = [...images, ...uploadedUrls];
         
-        toast({
-          title: "Photos Added",
-          description: `Added ${uploadedUrls.length} photos to order`,
-        });
+        // Обновляем локальное состояние
+        onImagesUpdate(newImages);
+        
+        // Сохраняем в базу данных
+        const saved = await updateOrderMedia(newImages, videos);
+        
+        if (saved) {
+          toast({
+            title: "Photos Added",
+            description: `Added ${uploadedUrls.length} photos to order`,
+          });
+        } else {
+          // Откатываем локальное состояние при ошибке сохранения
+          onImagesUpdate(images);
+        }
       }
     } catch (error) {
       console.error('❌ Error uploading images:', error);
@@ -84,16 +91,23 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       const uploadedUrls = results.filter(Boolean);
       
       if (uploadedUrls.length > 0) {
-        onVideosUpdate((prev: string[]) => {
-          const merged = Array.from(new Set([...prev, ...uploadedUrls]));
-          void updateOrderMedia(images, merged); // не блокируем UI
-          return merged;
-        });
+        const newVideos = [...videos, ...uploadedUrls];
         
-        toast({
-          title: "Videos Added",
-          description: `Added ${uploadedUrls.length} videos to order`,
-        });
+        // Обновляем локальное состояние
+        onVideosUpdate(newVideos);
+        
+        // Сохраняем в базу данных
+        const saved = await updateOrderMedia(images, newVideos);
+        
+        if (saved) {
+          toast({
+            title: "Videos Added",
+            description: `Added ${uploadedUrls.length} videos to order`,
+          });
+        } else {
+          // Откатываем локальное состояние при ошибке сохранения
+          onVideosUpdate(videos);
+        }
       }
     } catch (error) {
       console.error('❌ Error uploading videos:', error);
@@ -108,29 +122,43 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
   };
 
   const handleImageDelete = async (urlToDelete: string) => {
-    onImagesUpdate((prev: string[]) => {
-      const filtered = prev.filter(img => img !== urlToDelete);
-      void updateOrderMedia(filtered, videos);
-      return filtered;
-    });
+    const newImages = images.filter(url => url !== urlToDelete);
     
-    toast({
-      title: "Photo Deleted",
-      description: "Photo removed from order",
-    });
+    // Обновляем локальное состояние
+    onImagesUpdate(newImages);
+    
+    // Сохраняем в базу данных
+    const saved = await updateOrderMedia(newImages, videos);
+    
+    if (saved) {
+      toast({
+        title: "Photo Deleted",
+        description: "Photo removed from order",
+      });
+    } else {
+      // Откатываем локальное состояние при ошибке
+      onImagesUpdate(images);
+    }
   };
 
   const handleVideoDelete = async (urlToDelete: string) => {
-    onVideosUpdate((prev: string[]) => {
-      const filtered = prev.filter(video => video !== urlToDelete);
-      void updateOrderMedia(images, filtered);
-      return filtered;
-    });
+    const newVideos = videos.filter(url => url !== urlToDelete);
     
-    toast({
-      title: "Video Deleted",
-      description: "Video removed from order",
-    });
+    // Обновляем локальное состояние
+    onVideosUpdate(newVideos);
+    
+    // Сохраняем в базу данных
+    const saved = await updateOrderMedia(images, newVideos);
+    
+    if (saved) {
+      toast({
+        title: "Video Deleted",
+        description: "Video removed from order",
+      });
+    } else {
+      // Откатываем локальное состояние при ошибке
+      onVideosUpdate(videos);
+    }
   };
 
   const totalMediaCount = images.length + videos.length;

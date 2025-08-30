@@ -1,7 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { useUploadUIAdapter } from "./useUploadUIAdapter";
-import { generateThumbnailUrl } from "@/utils/cloudinaryUtils";
-
 
 type Props = {
   max?: number;
@@ -36,14 +34,6 @@ export default function SimplePhotoUploader({
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    console.log('📸 SimplePhotoUploader: Files selected', { 
-      fileCount: files.length,
-      files: files.map(f => ({ name: f.name, type: f.type, size: f.size }))
-    });
-    
-    // Simple file logging
-    console.log('📸 Files to upload:', files.map(f => ({ name: f.name, type: f.type, size: f.size })));
-    
     if (files.length) uploadFiles?.(files);
     // сбрасываем value, чтобы можно было выбрать те же файлы повторно
     e.currentTarget.value = "";
@@ -68,6 +58,8 @@ export default function SimplePhotoUploader({
           type="file"
           accept="image/*"
           multiple
+          // мобильная камера по умолчанию
+          capture="environment"
           className="hidden"
           onChange={onPick}
         />
@@ -88,33 +80,27 @@ export default function SimplePhotoUploader({
             key={it.id}
             className="relative rounded-xl border border-border bg-card overflow-hidden"
           >
-            {/* Оптимизированное превью: thumbnail URL для всех изображений */}
+            {/* Мини-превью: thumbUrl или обычный src; не режем — object-contain */}
             {it.cloudinaryUrl || it.thumbUrl ? (
               <img
-                src={it.cloudinaryUrl 
-                  ? generateThumbnailUrl(it.cloudinaryUrl) 
-                  : (it.thumbUrl?.includes('cloudinary') ? generateThumbnailUrl(it.thumbUrl) : it.thumbUrl)
-                }
+                src={it.cloudinaryUrl || it.thumbUrl}
                 alt=""
                 loading="lazy"
-                className="w-full aspect-square object-cover bg-muted"
+                className="w-full aspect-square object-contain bg-muted"
               />
             ) : (
               <div className="w-full aspect-square grid place-items-center text-xs text-muted-foreground bg-muted">
-                {it.originalFile ? statusLabel(it.status) : "Загрузка..."}
+                {it.originalFile?.name || "Загрузка..."}
               </div>
             )}
 
             {/* Прогресс / статус-оверлей (большие пальцы, мобайл) */}
             {it.status !== "completed" && !it.cloudinaryUrl && (
               <figcaption
-                 className="absolute inset-0 bg-black/40 text-white text-[11px] sm:text-xs
+                className="absolute inset-0 bg-black/40 text-white text-[11px] sm:text-xs
                            grid place-items-center p-2"
               >
-                {it.status === "uploading" 
-                  ? `${Math.round(it.progress || 0)}%` 
-                  : statusLabel(it.status)
-                }
+                {it.status === "uploading" ? `${Math.round(it.progress || 0)}%` : statusLabel(it.status)}
               </figcaption>
             )}
 
@@ -142,39 +128,7 @@ export default function SimplePhotoUploader({
         ))}
       </div>
 
-      {/* 3) Upload Progress Summary */}
-      {items.length > 0 && (
-        <div className="bg-muted/30 rounded-lg p-3">
-          <div className="grid gap-2 text-sm text-muted-foreground">
-            <div className="flex justify-between">
-              <span>Всего файлов:</span>
-              <span className="font-medium">{items.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Загружено:</span>
-              <span className="font-medium text-success">
-                {items.filter(item => item.status === 'completed').length}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span>В процессе:</span>
-              <span className="font-medium text-primary">
-                {items.filter(item => ['pending', 'compressing', 'signing', 'uploading'].includes(item.status)).length}
-              </span>
-            </div>
-            {items.filter(item => item.status === 'error').length > 0 && (
-              <div className="flex justify-between">
-                <span>Ошибки:</span>
-                <span className="font-medium text-destructive">
-                  {items.filter(item => item.status === 'error').length}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 4) Кнопка «Добавить ещё» (видна всегда) */}
+      {/* 3) Кнопка «Добавить ещё» (видна всегда) */}
       <div className="pt-1">
         <button
           type="button"

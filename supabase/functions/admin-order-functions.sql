@@ -48,18 +48,6 @@ BEGIN
   RAISE LOG 'p_images array length: %', COALESCE(array_length(p_images, 1), 0);
   RAISE LOG 'p_images content: %', p_images;
   RAISE LOG 'p_delivery_price_confirm: %', p_delivery_price_confirm;
-  
-  -- Детальное логирование изображений
-  IF p_images IS NOT NULL AND array_length(p_images, 1) > 0 THEN
-    FOR i IN 1..array_length(p_images, 1) LOOP
-      RAISE LOG 'admin_create_order image[%]: %', i, p_images[i];
-      IF p_images[i] IS NULL OR TRIM(p_images[i]) = '' THEN
-        RAISE LOG 'admin_create_order WARNING: Empty or null image at index %', i;
-      END IF;
-    END LOOP;
-  ELSE
-    RAISE LOG 'admin_create_order: No images provided';
-  END IF;
   RAISE LOG 'p_delivery_method: %', p_delivery_method;
   RAISE LOG 'p_product_id: %', p_product_id;
 
@@ -198,23 +186,23 @@ AS $$
 DECLARE
   next_number INTEGER;
 BEGIN
-  RAISE LOG 'get_next_order_number: Starting order number generation with table locking';
+  -- Проверяем, что пользователь является администратором или продавцом
+  IF NOT EXISTS (
+    SELECT 1 FROM profiles 
+    WHERE id = auth.uid() 
+    AND user_type IN ('admin', 'seller', 'buyer')
+  ) THEN
+    RAISE EXCEPTION 'Only authenticated users can use this function';
+  END IF;
+
+  -- Блокируем таблицу для предотвращения конкурентного доступа
+  LOCK TABLE public.orders IN ACCESS EXCLUSIVE MODE;
   
-  -- Lock the entire orders table to prevent race conditions
-  -- SHARE ROW EXCLUSIVE allows SELECT but blocks INSERT/UPDATE from other transactions
-  LOCK TABLE public.orders IN SHARE ROW EXCLUSIVE MODE;
-  
-  -- Use MAX+1 logic to handle gaps and manual changes
+  -- Получаем максимальный номер заказа и добавляем 1
   SELECT COALESCE(MAX(order_number), 0) + 1 
   INTO next_number 
   FROM public.orders;
   
-  RAISE LOG 'get_next_order_number: Generated order number % with table locking', next_number;
-  
   RETURN next_number;
-EXCEPTION
-  WHEN OTHERS THEN
-    RAISE LOG 'Error in get_next_order_number: %', SQLERRM;
-    RAISE;
 END;
 $$;

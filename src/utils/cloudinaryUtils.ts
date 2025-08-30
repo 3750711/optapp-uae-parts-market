@@ -32,26 +32,6 @@ export const buildCloudinaryUrl = (publicId: string, transformations: Cloudinary
   return `${baseUrl}/${transformString}${publicId}`;
 };
 
-// Generate thumbnail URL from full Cloudinary URL for previews
-export const generateThumbnailUrl = (cloudinaryUrl: string): string => {
-  if (!cloudinaryUrl) return '';
-  
-  // Extract public ID from URL
-  const publicId = extractPublicIdFromUrl(cloudinaryUrl);
-  if (!publicId) return cloudinaryUrl; // Return original if can't extract
-  
-  // Generate optimized thumbnail (150x150, low quality for fast loading)
-  return buildCloudinaryUrl(publicId, {
-    width: 150,
-    height: 150,
-    crop: 'fill',
-    gravity: 'auto',
-    quality: 'auto:low',
-    format: 'auto',
-    dpr: 'auto'
-  });
-};
-
 // Helper to extract version from Cloudinary URL
 export const extractVersionFromUrl = (cloudinaryUrl: string): string | null => {
   try {

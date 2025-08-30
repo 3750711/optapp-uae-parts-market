@@ -11,20 +11,8 @@ self.onmessage = async (e) => {
     if (!file) return postError('NO_FILE', 'No file provided');
 
     const type = (file.type || '').toLowerCase();
-    const name = (file.name || '').toLowerCase();
-    
-    // Skip HEIC files - they should be handled upstream
-    const isHeicFile = type.includes('heic') || type.includes('heif') || /\.hei[cf]$/.test(name);
-    console.log('🔍 Smart Compress: File analysis', {
-      fileName: name,
-      fileType: type,
-      fileSize: file.size,
-      isHeicFile
-    });
-    
-    if (isHeicFile) {
-      console.log('⚠️ Smart Compress: HEIC file detected, skipping compression');
-      return postError('HEIC_NOT_SUPPORTED', 'HEIC files should be handled upstream');
+    if (type.includes('heic') || type.includes('heif')) {
+      return self.postMessage({ ok: false, code: 'UNSUPPORTED_HEIC', message: 'HEIC/HEIF is not supported in browser' });
     }
 
     const maxSide = clampInt(p.maxSide, 256, 8192, 1600);

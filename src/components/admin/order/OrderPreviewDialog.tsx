@@ -204,12 +204,11 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
                   </Badge>
                 </div>
                 
-            <CompactMediaGrid
-              key={`${images.length}:${videos.length}:${images.join('|').slice(0,200)}`}
-              images={images}
-              videos={videos}
-              maxPreviewItems={isMobile ? 20 : 30}
-            />
+                <CompactMediaGrid 
+                  images={images} 
+                  videos={videos}
+                  maxPreviewItems={isMobile ? 20 : 30}
+                />
               </CardContent>
             </Card>
           )}

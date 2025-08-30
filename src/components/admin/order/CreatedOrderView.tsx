@@ -32,20 +32,6 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   const [currentImages, setCurrentImages] = useState(images);
   const [currentVideos, setCurrentVideos] = useState(videos);
 
-  const handleImagesUpdate = (updater: string[] | ((prev: string[]) => string[])) => {
-    setCurrentImages(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      return Array.from(new Set(next));
-    });
-  };
-
-  const handleVideosUpdate = (updater: string[] | ((prev: string[]) => string[])) => {
-    setCurrentVideos(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      return Array.from(new Set(next));
-    });
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ru-RU', {
       year: 'numeric',
@@ -98,6 +84,17 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
 
   const buyerInfo = getBuyerDisplayInfo();
 
+  const handleImagesUpdate = (newImages: string[]) => {
+    setCurrentImages(newImages);
+    // TODO: Here you could update the order in the database
+    console.log('📸 Order images updated:', newImages);
+  };
+
+  const handleVideosUpdate = (newVideos: string[]) => {
+    setCurrentVideos(newVideos);
+    // TODO: Here you could update the order in the database
+    console.log('🎥 Order videos updated:', newVideos);
+  };
 
   return (
     <div className={`space-y-4 ${isMobile ? 'pb-24' : ''}`}>

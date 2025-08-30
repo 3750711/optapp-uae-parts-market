@@ -111,9 +111,6 @@ verify_jwt = true
 [functions.attach-order-media]
 verify_jwt = true
 
-[functions.convert-heic]
-verify_jwt = false
-
 [analytics]
 enabled = false
 port = 54327

@@ -1,7 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from 'uuid';
-import { uploadViaEdgeFunction } from './uploadViaEdgeFunction';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface StagedUploadItem {
@@ -12,6 +10,7 @@ interface StagedUploadItem {
   error?: string;
   url?: string;
   publicId?: string;
+  isHeic?: boolean;
   originalSize?: number;
   compressedSize?: number;
   metadata?: {
@@ -20,6 +19,7 @@ interface StagedUploadItem {
     size?: number;
     mime?: string;
     fallback?: string;
+    heic?: boolean;
     networkType?: string;
     quality?: number;
   };
@@ -162,20 +162,6 @@ export const useStagedCloudinaryUpload = () => {
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-
-  // Load existing session data on mount
-  const loadSession = useCallback(async (sessionId: string) => {
-    try {
-      const savedUrls = await stagingDB.getSession(sessionId);
-      if (savedUrls && savedUrls.length > 0) {
-        console.log('🔄 Restoring staged URLs from IndexedDB:', { count: savedUrls.length, sessionId });
-        setStagedUrls(savedUrls);
-      }
-    } catch (error) {
-      console.error('Failed to load staging session:', error);
-    }
-  }, []);
-
   // Initialize session ID and restore from IndexedDB
   const initSession = useCallback(async () => {
     if (sessionId) return sessionId;
@@ -184,29 +170,20 @@ export const useStagedCloudinaryUpload = () => {
     setSessionId(newSessionId);
     
     try {
-      // Clean up old sessions first
+      // Try to restore previous session data
+      const savedUrls = await stagingDB.getSession(newSessionId);
+      if (savedUrls) {
+        setStagedUrls(savedUrls);
+      }
+      
+      // Clean up old sessions
       await stagingDB.clearOldSessions();
-      
-      // CRITICAL FIX: Load existing session data after setting session ID
-      await loadSession(newSessionId);
-      
-      console.log('🔄 Session initialized and data restored:', { sessionId: newSessionId });
     } catch (error) {
       console.error('Failed to initialize staging session:', error);
     }
     
     return newSessionId;
-  }, [sessionId, loadSession]);
-
-  // Initialize session and load data on mount
-  useEffect(() => {
-    const initAndLoad = async () => {
-      const currentSessionId = await initSession();
-      await loadSession(currentSessionId);
-    };
-    
-    initAndLoad();
-  }, []);
+  }, [sessionId]);
 
   // Get batch Cloudinary signatures for staging with publicIds
   const getBatchSignatures = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
@@ -287,33 +264,8 @@ export const useStagedCloudinaryUpload = () => {
     return signature;
   }, []);
 
-
   // Compress image in worker with adaptive parameters
   const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82): Promise<CompressionResult> => {
-    const fileId = Math.random().toString(36).slice(2, 8);
-    const isHeicFile = /\.(heic|heif)$/i.test(file.name) || /image\/(heic|heif)/i.test(file.type);
-    
-    console.log('🎯 UI Upload: Starting compression', {
-      fileId,
-      fileName: file.name,
-      fileSize: file.size,
-      isHeicFile,
-      compressionParams: { maxSide, quality }
-    });
-
-    // For HEIC files, skip compression and upload directly to Cloudinary
-    if (isHeicFile) {
-      console.log('📱 HEIC Processing: Skipping compression, will upload directly to Cloudinary');
-      return {
-        ok: true,
-        blob: file,
-        mime: file.type || 'image/heic',
-        originalSize: file.size,
-        compressedSize: file.size
-      };
-    }
-    
-    // Regular image compression for non-HEIC files
     return new Promise((resolve) => {
       let worker: Worker;
       
@@ -322,9 +274,9 @@ export const useStagedCloudinaryUpload = () => {
           new URL('../workers/smart-image-compress.worker.js', import.meta.url),
           { type: 'module' }
         );
-        console.log('✅ UI Upload: Worker created successfully for file', fileId);
+        console.log('✅ Worker created successfully');
       } catch (workerError) {
-        console.error('❌ UI Upload: Failed to create worker for file', fileId, workerError);
+        console.error('❌ Failed to create worker:', workerError);
         resolve({ ok: false, code: 'WORKER_CREATION_FAILED' });
         return;
       }
@@ -332,7 +284,7 @@ export const useStagedCloudinaryUpload = () => {
       const timeout = setTimeout(() => {
         worker.terminate();
         resolve({ ok: false, code: 'WORKER_TIMEOUT' });
-      }, 30000); // 30s for regular image compression
+      }, 30000);
       
       worker.onmessage = (e) => {
         clearTimeout(timeout);
@@ -340,13 +292,10 @@ export const useStagedCloudinaryUpload = () => {
         const result = e.data;
         
         if (result.ok) {
-          console.log('🎉 UI Upload: Compression successful', {
-            fileId,
+          console.log('✅ Worker compression successful:', {
             originalSize: result.original?.size || file.size,
             compressedSize: result.size,
-            compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A',
-            isHeicFile,
-            finalMime: result.mime
+            compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A'
           });
           resolve({
             ok: true,
@@ -357,12 +306,10 @@ export const useStagedCloudinaryUpload = () => {
             compressionMs: result.compressionMs
           });
         } else {
-          console.warn('⚠️ UI Upload: Compression failed', {
-            fileId,
-            fileName: file.name,
+          console.warn('⚠️ Worker compression failed:', {
             code: result.code,
             message: result.message,
-            wasHeicFile: isHeicFile
+            fileName: file.name
           });
           resolve({ 
             ok: false, 
@@ -375,119 +322,106 @@ export const useStagedCloudinaryUpload = () => {
       worker.onerror = (error) => {
         clearTimeout(timeout);
         worker.terminate();
-        console.error('💥 UI Upload: Worker error', {
-          fileId,
-          fileName: file.name,
-          error,
-          wasHeicFile: isHeicFile
-        });
+        console.error('❌ Worker error:', error);
         resolve({ ok: false, code: 'WORKER_ERROR', originalSize: file.size });
       };
       
-      // Send compression task for regular images
-      console.log('📤 UI Upload: Sending compression task to worker', { fileId });
-      
+      // Send compression task with adaptive parameters
       try {
         worker.postMessage({
           file,
           maxSide,
           jpegQuality: quality,
           prefer: 'jpeg',
-          twoPass: false,
-          enableHeicWasm: false // Always false for regular compression
+          twoPass: false
         });
       } catch (postError) {
         clearTimeout(timeout);
         worker.terminate();
-        console.error('💥 UI Upload: Failed to post message to worker', {
-          fileId,
-          error: postError
-        });
+        console.error('Failed to post message to worker:', postError);
         resolve({ ok: false, code: 'WORKER_POST_FAILED' });
       }
     });
   }, []);
 
-  // Upload to Cloudinary via Edge Function (unified approach to avoid CORS)
+  // Upload to Cloudinary with retry logic
   const uploadToCloudinary = useCallback(async (
     file: File,
     signature: CloudinarySignature,
     onProgress: (progress: number) => void,
     retryCount = 0
   ): Promise<{ url: string; publicId: string }> => {
-    try {
-      console.log('📤 Uploading via Edge Function:', {
-        fileName: file.name,
-        fileSize: file.size,
-        publicId: signature.public_id
-      });
+    return new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', signature.api_key);
+      formData.append('timestamp', signature.timestamp.toString());
+      formData.append('folder', signature.folder);
+      formData.append('public_id', signature.public_id);
+      formData.append('signature', signature.signature);
 
-      // Convert file to base64
-      const fileToBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => {
-            const result = reader.result as string;
-            const base64 = result.split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = error => reject(error);
-        });
-      };
-
-      const fileData = await fileToBase64(file);
-      onProgress(10);
-
-      console.log('☁️ Calling cloudinary-upload Edge Function...');
+      const xhr = new XMLHttpRequest();
       
-      const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
-        body: { 
-          fileData,
-          fileName: file.name,
-          customPublicId: signature.public_id
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          onProgress(progress);
         }
-      });
-
-      onProgress(90);
-
-      if (error) {
-        console.error('❌ Edge Function error:', error);
-        throw new Error(error.message || 'Failed to upload via Edge Function');
-      }
-
-      if (data?.success && data?.mainImageUrl) {
-        console.log('✅ Edge Function upload SUCCESS:', {
-          publicId: data.publicId,
-          url: data.mainImageUrl
-        });
-        
-        onProgress(100);
-        
-        return {
-          url: data.mainImageUrl,
-          publicId: data.publicId || signature.public_id
-        };
-      } else {
-        console.error('❌ Edge Function upload failed:', data?.error);
-        throw new Error(data?.error || 'Unknown error occurred in Edge Function');
-      }
-    } catch (error) {
-      console.error('💥 Exception in uploadToCloudinary:', error);
+      };
       
-      // Retry logic with exponential backoff
-      if (retryCount < 2) {
-        const baseDelay = Math.pow(1.5, retryCount) * 1500;
-        const jitter = Math.random() * 400;
-        const delay = baseDelay + jitter;
-        
-        console.log(`🔄 Retrying upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return uploadToCloudinary(file, signature, onProgress, retryCount + 1);
-      }
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve({
+              url: response.secure_url,
+              publicId: response.public_id
+            });
+          } catch (error) {
+            reject(new Error('Invalid Cloudinary response'));
+          }
+        } else {
+          // Enhanced retry logic with exponential backoff and jitter
+          if (retryCount < 2 && (xhr.status >= 500 || xhr.status === 429)) {
+            const baseDelay = Math.pow(1.5, retryCount) * 1500;
+            const jitter = Math.random() * 400; // 0-400ms jitter
+            const delay = baseDelay + jitter;
+            
+            console.log(`⏳ Retrying upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
+            setTimeout(() => {
+              uploadToCloudinary(file, signature, onProgress, retryCount + 1)
+                .then(resolve)
+                .catch(reject);
+            }, delay);
+          } else {
+            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+          }
+        }
+      };
       
-      throw new Error(error instanceof Error ? error.message : 'Upload failed');
-    }
+      xhr.onerror = () => {
+        if (retryCount < 2) {
+          const baseDelay = Math.pow(1.6, retryCount) * 1500;
+          const jitter = Math.random() * 400;
+          const delay = baseDelay + jitter;
+          
+          console.log(`🔄 Network error, retrying in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
+          setTimeout(() => {
+            uploadToCloudinary(file, signature, onProgress, retryCount + 1)
+              .then(resolve)
+              .catch(reject);
+          }, delay);
+        } else {
+          reject(new Error('Network error'));
+        }
+      };
+      
+      xhr.ontimeout = () => reject(new Error('Upload timeout'));
+      
+      xhr.open('POST', signature.upload_url);
+      xhr.timeout = 120000; // 120 second timeout
+      xhr.send(formData);
+    });
   }, []);
 
   // Chunked batch signature function
@@ -547,11 +481,6 @@ export const useStagedCloudinaryUpload = () => {
 
   // Upload files to staging with optimized architecture
   const uploadFiles = useCallback(async (files: File[]): Promise<string[]> => {
-    console.log('📸 useStagedCloudinaryUpload: uploadFiles called', { 
-      fileCount: files?.length || 0,
-      files: files?.map(f => ({ name: f.name, type: f.type, size: f.size }))
-    });
-    
     if (files.length === 0) return [];
     
     setIsUploading(true);
@@ -573,7 +502,7 @@ export const useStagedCloudinaryUpload = () => {
 
     console.log(`📱 Network: ${networkType}, parallelism: ${parallelism}, quality: ${quality}`);
 
-    // Create upload items with stable UUID-based public IDs
+    // Create upload items with stable UUID-based public IDs and HEIC detection
     const items: StagedUploadItem[] = files.map((file) => {
       const publicId = `product_${crypto.randomUUID().replace(/-/g, '_')}`;
       return {
@@ -582,6 +511,8 @@ export const useStagedCloudinaryUpload = () => {
         progress: 0,
         status: 'pending',
         publicId, // Store the stable publicId for signing
+        isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
+                file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif'),
         originalSize: file.size
       };
     });
@@ -633,34 +564,27 @@ export const useStagedCloudinaryUpload = () => {
       // Process files with adaptive parallelism
       await runPool(parallelism, items, async (item) => {
         try {
-            // Step 1: Compression for files over 300KB
-            const shouldCompress = item.file.size > 300_000;
-            let processedFile = item.file;
+          // Step 1: Compression (skip small files and HEIC)
+          const shouldCompress = !item.isHeic && item.file.size > 300_000; // Skip files under 300KB
+          let processedFile = item.file;
+          
+          if (shouldCompress) {
+            item.status = 'compressing';
+            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
             
-            if (shouldCompress) {
-              item.status = 'compressing';
-              setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
-              
-              const compressionResult = await compressInWorker(item.file, maxSide, quality);
-              if (compressionResult.ok && compressionResult.blob) {
-                processedFile = new File(
-                  [compressionResult.blob], 
-                  item.file.name, 
-                  { type: compressionResult.mime || item.file.type }
-                );
-                item.compressedSize = compressionResult.compressedSize;
-                
-                console.log('✅ Compression successful', {
-                  fileName: item.file.name,
-                  originalSize: `${Math.round(item.file.size / 1024)}KB`,
-                  compressedSize: `${Math.round(compressionResult.compressedSize || 0 / 1024)}KB`,
-                  compressionRatio: `${Math.round((1 - (compressionResult.compressedSize || 0) / item.file.size) * 100)}% reduction`
-                });
-              } else {
-                console.warn(`⚠️ Compression failed for ${item.file.name}, uploading original:`, compressionResult.code);
-                // Continue with original file
-              }
+            const compressionResult = await compressInWorker(item.file, maxSide, quality);
+            if (compressionResult.ok && compressionResult.blob) {
+              // Always create JPEG file for consistency
+              processedFile = new File(
+                [compressionResult.blob], 
+                item.file.name.replace(/\.\w+$/i, '.jpg'), 
+                { type: 'image/jpeg' }
+              );
+              item.compressedSize = compressionResult.compressedSize;
+            } else {
+              console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
             }
+          }
 
           // Step 2: Ensure signature
           item.status = 'signing';
@@ -810,7 +734,6 @@ export const useStagedCloudinaryUpload = () => {
     
     setSessionId(null);
   }, [sessionId]);
-
 
   return {
     sessionId,

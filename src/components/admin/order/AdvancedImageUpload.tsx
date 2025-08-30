@@ -191,6 +191,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
           type="file"
           multiple
           accept="image/*"
+          capture="environment"
           onChange={handleFileSelect}
           className="absolute inset-0 opacity-0 cursor-pointer"
           disabled={disabled || (hasActiveUploads && !isPaused) || !orderId}

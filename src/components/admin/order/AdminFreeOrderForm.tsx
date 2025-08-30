@@ -6,6 +6,7 @@ import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
 import { useStagedCloudinaryUpload } from '@/hooks/useStagedCloudinaryUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
+import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { TelegramOrderParser } from './TelegramOrderParser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,11 +24,12 @@ import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 import { usePWALifecycle } from '@/hooks/usePWALifecycle';
 
 export const AdminFreeOrderForm = () => {
+  const [showPreview, setShowPreview] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isOrderCreated, setIsOrderCreated] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
   const isMobile = useIsMobile();
-  const { attachToOrder, stagedUrls, initSession } = useStagedCloudinaryUpload();
+  const { attachToOrder } = useStagedCloudinaryUpload();
 
   const {
     // Form data
@@ -92,20 +94,8 @@ export const AdminFreeOrderForm = () => {
   });
 
   const onImagesUpload = (urls: string[]) => {
-    console.log('📸 AdminFreeOrderForm: onImagesUpload called', {
-      urlCount: urls.length,
-      urls: urls,
-      urlsValid: urls.every(url => url && typeof url === 'string' && url.trim() !== ''),
-      urlsPreview: urls.map(url => ({ 
-        url: url?.substring(0, 100) + '...', 
-        valid: url && typeof url === 'string' && url.includes('cloudinary')
-      }))
-    });
-    // Объединяем существующие, новые и staged URLs
-    const allUrls = [...images, ...urls, ...stagedUrls];
-    const filteredUrls = allUrls.filter(u => u && u.trim() !== '');
-    const uniqueUrls = Array.from(new Set(filteredUrls));
-    setAllImages(uniqueUrls);
+    console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
+    setAllImages(urls);
   };
 
   const onImageDelete = (url: string) => {
@@ -133,105 +123,51 @@ const { loadSavedData, clearSavedData, saveNow, hasUnsavedChanges } = useOptimiz
   excludeFields: []
 });
 
-// Восстановление черновика и staged URLs при монтировании 
+// Восстановление черновика при монтировании (до 24 часов) — сначала бренд, потом модель
 useEffect(() => {
-  const restoreData = async () => {
-    try {
-      // Инициализируем session для восстановления staged URLs
-      await initSession();
-      
-      const saved = loadSavedData();
-      if (saved) {
-        const savedForm = saved.formData || {} as Record<string, string>;
+  try {
+    const saved = loadSavedData();
+    if (saved) {
+      const savedForm = saved.formData || {} as Record<string, string>;
 
-        // Включаем загрузку брендов и моделей
-        enableBrandsLoading();
+      // Включаем загрузку брендов и моделей
+      enableBrandsLoading();
 
-        // 1) Применяем простые поля, кроме brand/model
-        const skipKeys = new Set(['brandId', 'brand', 'modelId', 'model']);
-        Object.entries(savedForm).forEach(([k, v]) => {
-          if (typeof v === 'string' && !skipKeys.has(k)) {
-            handleInputChange(k, v);
-          }
-        });
+      // 1) Применяем простые поля, кроме brand/model
+      const skipKeys = new Set(['brandId', 'brand', 'modelId', 'model']);
+      Object.entries(savedForm).forEach(([k, v]) => {
+        if (typeof v === 'string' && !skipKeys.has(k)) {
+          handleInputChange(k, v);
+        }
+      });
 
-        // 2) Бренд — ID и название
-        if (typeof savedForm.brandId === 'string' && savedForm.brandId) {
-          handleInputChange('brandId', savedForm.brandId);
-        }
-        if (typeof savedForm.brand === 'string' && savedForm.brand) {
-          handleInputChange('brand', savedForm.brand);
-        }
-
-        // 3) Модель — ID и название (после установки бренда)
-        if (typeof savedForm.modelId === 'string' && savedForm.modelId) {
-          handleInputChange('modelId', savedForm.modelId);
-        }
-        if (typeof savedForm.model === 'string' && savedForm.model) {
-          handleInputChange('model', savedForm.model);
-        }
-
-        // 4) Медиа из автосохранения - объединяем с staged URLs
-        let restoredImages: string[] = [];
-        if (Array.isArray(saved.images)) {
-          restoredImages = [...saved.images];
-        }
-        
-        // Добавляем staged URLs к восстановленным изображениям
-        if (stagedUrls.length > 0) {
-          console.log('🔄 Restoring images from staged URLs:', { count: stagedUrls.length });
-          restoredImages = [...restoredImages, ...stagedUrls];
-        }
-        
-        // Удаляем дубликаты и устанавливаем
-        const uniqueImages = Array.from(new Set(restoredImages.filter(u => u && u.trim() !== '')));
-        if (uniqueImages.length > 0) {
-          setAllImages(uniqueImages);
-        }
-        
-        if (Array.isArray(saved.videos)) setVideos(saved.videos);
-
-        console.log('✅ Черновик формы восстановлен (упорядоченное применение brand/model)', {
-          imagesCount: uniqueImages.length,
-          stagedUrlsCount: stagedUrls.length
-        });
-      } else if (stagedUrls.length > 0) {
-        // Если нет сохраненных данных, но есть staged URLs - восстанавливаем их
-        console.log('🔄 No saved form data, but restoring staged URLs:', { count: stagedUrls.length });
-        setAllImages(stagedUrls);
+      // 2) Бренд — ID и название
+      if (typeof savedForm.brandId === 'string' && savedForm.brandId) {
+        handleInputChange('brandId', savedForm.brandId);
       }
-    } catch (e) {
-      console.error('❌ Ошибка восстановления черновика:', e);
+      if (typeof savedForm.brand === 'string' && savedForm.brand) {
+        handleInputChange('brand', savedForm.brand);
+      }
+
+      // 3) Модель — ID и название (после установки бренда)
+      if (typeof savedForm.modelId === 'string' && savedForm.modelId) {
+        handleInputChange('modelId', savedForm.modelId);
+      }
+      if (typeof savedForm.model === 'string' && savedForm.model) {
+        handleInputChange('model', savedForm.model);
+      }
+
+      // 4) Медиа
+      if (Array.isArray(saved.images)) setAllImages(saved.images);
+      if (Array.isArray(saved.videos)) setVideos(saved.videos);
+
+      console.log('✅ Черновик формы восстановлен (упорядоченное применение brand/model)');
     }
-  };
-  
-  restoreData();
+  } catch (e) {
+    console.error('❌ Ошибка восстановления черновика:', e);
+  }
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
-
-// Синхронизация staged URLs с images state (с улучшенной логикой)
-useEffect(() => {
-  if (stagedUrls.length > 0) {
-    console.log('📸 AdminFreeOrderForm: Синхронизация staged URLs', { 
-      stagedUrlsCount: stagedUrls.length,
-      currentImagesCount: images.length 
-    });
-    
-    // Объединяем существующие images с staged URLs, избегая дубликатов
-    const allUrls = [...images, ...stagedUrls];
-    const uniqueUrls = Array.from(new Set(allUrls.filter(u => u && u.trim() !== '')));
-    
-    // Обновляем только если есть новые URL'ы или изменения
-    if (uniqueUrls.length !== images.length || !uniqueUrls.every(url => images.includes(url))) {
-      console.log('📸 AdminFreeOrderForm: Updating images with staged URLs:', {
-        before: images.length,
-        after: uniqueUrls.length,
-        newUrls: uniqueUrls.filter(url => !images.includes(url))
-      });
-      setAllImages(uniqueUrls);
-    }
-  }
-}, [stagedUrls, images, setAllImages]);
 
   // PWA lifecycle management for autosave
   const { isPWA, forceSave } = usePWALifecycle('admin-free-order-autosave', {
@@ -422,8 +358,7 @@ useEffect(() => {
     });
   };
 
-  const handleCreateOrderClick = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateOrderClick = () => {
     console.log('🔍 Checking form validation:', {
       title: formData.title,
       price: formData.price,
@@ -440,31 +375,17 @@ useEffect(() => {
       });
       return;
     }
+    setShowPreview(true);
+  };
 
-    console.log('🎯 AdminFreeOrderForm: Starting order creation');
-    
-    // Log current form state and images
-    console.log('🎯 AdminFreeOrderForm: Form state before submission', {
-      formData,
-      allImages: images.length,
-      allVideos: videos.length,
-      imageUrls: images,
-      videoUrls: videos
-    });
-    
-    // Validate image URLs
-    const invalidImages = images.filter(url => !url || typeof url !== 'string' || url.trim() === '');
-    if (invalidImages.length > 0) {
-      console.error('🎯 AdminFreeOrderForm: Invalid image URLs detected:', invalidImages);
-    }
-    
+  const handleConfirmOrder = (e: React.FormEvent) => {
+    e.preventDefault();
+    setShowPreview(false);
     setIsCreating(true);
     guardedSubmit(async () => {
       try {
-        console.log('🎯 AdminFreeOrderForm: Calling originalHandleSubmit');
         await originalHandleSubmit(e);
       } catch (error) {
-        console.error('🎯 AdminFreeOrderForm: Error in originalHandleSubmit:', error);
         setIsCreating(false);
         throw error;
       }
@@ -479,6 +400,9 @@ useEffect(() => {
     resetForm();
   };
 
+  const handleBackToEdit = () => {
+    setShowPreview(false);
+  };
 
   const canShowPreview = () => {
     const isValid = formData.title && 
@@ -697,6 +621,19 @@ useEffect(() => {
         </div>
       )}
 
+      {/* Order Preview Dialog */}
+      <OrderPreviewDialog
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        formData={formData}
+        images={images}
+        videos={videos}
+        selectedSeller={selectedSeller}
+        buyerProfile={getBuyerProfile()}
+        onConfirm={handleConfirmOrder}
+        onBack={handleBackToEdit}
+        isLoading={isLoading}
+      />
     </div>
   );
 };

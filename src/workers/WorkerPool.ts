@@ -20,29 +20,21 @@ export class WorkerPool {
 
   async initWorker(type: 'smart' | 'stable'): Promise<Worker | null> {
     try {
-      let worker: Worker;
+      let workerUrl: string;
+      let options: WorkerOptions = {};
 
       if (type === 'smart') {
-        // Try inline worker first to avoid network issues
-        try {
-          const SmartWorkerCtor = await import('../workers/smart-image-compress.worker.js?worker&inline');
-          worker = new SmartWorkerCtor.default();
-          console.log('✅ Smart worker created with inline import');
-        } catch (inlineError) {
-          console.warn('⚠️ Inline worker failed, trying URL fallback:', inlineError);
-          worker = new Worker(new URL('../workers/smart-image-compress.worker.js', import.meta.url));
-        }
+        // Smart worker - fix initialization based on file type
+        workerUrl = '../workers/smart-image-compress.worker.js';
+        // Remove { type: 'module' } for .js files to prevent module error
+        options = {};
       } else {
-        // Stable worker fallback
-        try {
-          const StableWorkerCtor = await import('../workers/image-compress.worker.ts?worker&inline');
-          worker = new StableWorkerCtor.default();
-          console.log('✅ Stable worker created with inline import');
-        } catch (inlineError) {
-          console.warn('⚠️ Inline worker failed, trying URL fallback:', inlineError);
-          worker = new Worker(new URL('../workers/image-compress.worker.ts', import.meta.url), { type: 'module' });
-        }
+        // Stable worker - keep module type for .ts files
+        workerUrl = '../workers/image-compress.worker.ts';
+        options = { type: 'module' };
       }
+
+      const worker = new Worker(new URL(workerUrl, import.meta.url), options);
       
       // Test worker with timeout
       const isWorking = await this.testWorker(worker, type === 'smart' ? 3000 : 5000);
@@ -157,7 +149,7 @@ export class WorkerPool {
     resolve: (result: CompressionResult) => void,
     reject: (error: Error) => void
   ): void {
-    const timeout = task.targetSize ? 45000 : 30000; // Increased timeouts for stability
+    const timeout = task.targetSize ? 15000 : 8000; // Longer timeout for smart compression
     const timer = setTimeout(() => {
       this.releaseWorker(worker);
       reject(new Error('Worker timeout'));

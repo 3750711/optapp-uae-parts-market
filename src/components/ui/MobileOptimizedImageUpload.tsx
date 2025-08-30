@@ -63,26 +63,9 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   } = useMobileOptimizedUpload();
 
   const handleFileSelect = useCallback(async (files: FileList) => {
-    console.log('📸 MobileOptimizedImageUpload: Starting file selection', { fileCount: files.length });
-    
     const MAX_PHOTO_SIZE_MB = 10;
     const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
-    const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/heic', 'image/heif', 'image/avif'];
-    
-    // Check for HEIC files specifically
-    const heicFiles = Array.from(files).filter(file => 
-      file.type.toLowerCase().includes('heic') || 
-      file.type.toLowerCase().includes('heif') || 
-      file.name.toLowerCase().endsWith('.heic') ||
-      file.name.toLowerCase().endsWith('.heif')
-    );
-    
-    if (heicFiles.length > 0) {
-      console.log('📸 MobileOptimizedImageUpload: HEIC files detected', { 
-        count: heicFiles.length,
-        files: heicFiles.map(f => ({ name: f.name, type: f.type, size: f.size }))
-      });
-    }
+    const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
 
     if (existingImages.length + files.length > maxImages) {
       if (!disableToast) {
@@ -205,7 +188,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           <input
             type="file"
             multiple
-            accept="image/*,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
             onChange={handleFileChange}
             className="absolute inset-0 opacity-0 cursor-pointer"
             disabled={disabled}
@@ -319,7 +302,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         <input
           type="file"
           multiple
-          accept="image/*,image/heic,image/heif,image/avif,.jpg,.jpeg,.png,.webp,.heic,.heif,.avif"
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
           onChange={handleFileChange}
           className="absolute inset-0 opacity-0 cursor-pointer"
           disabled={disabled}
