@@ -250,11 +250,11 @@ const SellerCreateOrder = () => {
             />
             
             <div>
-              <h3 className="text-lg font-medium mb-4">Изображения</h3>
+              <h3 className="text-lg font-medium mb-4">{t.media.photos}</h3>
               <SimplePhotoUploader
                 onChange={onImagesUpload}
                 max={25}
-                buttonText="Загрузить фото"
+                language={language}
               />
             </div>
             

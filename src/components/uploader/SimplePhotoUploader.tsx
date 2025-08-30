@@ -1,21 +1,30 @@
 import React, { useEffect, useRef } from "react";
 import { useUploadUIAdapter } from "./useUploadUIAdapter";
+import { Lang } from "@/types/i18n";
+import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 
 type Props = {
   max?: number;
   onChange?: (okItems: any[]) => void;
   onComplete?: (okItems: any[]) => void;
   buttonText?: string;
+  language?: Lang;
 };
 
 export default function SimplePhotoUploader({
   max = 20,
   onChange,
   onComplete,
-  buttonText = "Загрузить фото",
+  buttonText,
+  language = 'ru',
 }: Props) {
   const { items, uploadFiles, removeItem, retryItem } = useUploadUIAdapter({ max, onChange, onComplete });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const t = getSellerPagesTranslations(language);
+  
+  // Get localized button text with fallback
+  const uploadButtonText = buttonText || t.media.uploadPhotos;
+  const addMoreText = t.media.uploadPhotos;
 
   // дергаем onChange/onComplete только по успешным
   useEffect(() => {
@@ -48,10 +57,10 @@ export default function SimplePhotoUploader({
         <button
           type="button"
           onClick={handleAddMore}
-          className="w-full sm:w-auto h-12 px-4 rounded-xl border border-border hover:bg-accent/50 active:scale-[.99]
+                   className="w-full sm:w-auto h-12 px-4 rounded-xl border border-border hover:bg-accent/50 active:scale-[.99]
                      transition text-sm sm:text-base bg-background text-foreground"
         >
-          {buttonText}
+          {uploadButtonText}
         </button>
         <input
           ref={fileInputRef}
@@ -88,7 +97,7 @@ export default function SimplePhotoUploader({
               />
             ) : (
               <div className="w-full aspect-square grid place-items-center text-xs text-muted-foreground bg-muted">
-                {it.originalFile?.name || "Загрузка..."}
+                {it.originalFile?.name || t.loading}
               </div>
             )}
 
@@ -98,7 +107,7 @@ export default function SimplePhotoUploader({
                 className="absolute inset-0 bg-black/40 text-white text-[11px] sm:text-xs
                            grid place-items-center p-2"
               >
-                {it.status === "uploading" ? `${Math.round(it.progress || 0)}%` : statusLabel(it.status)}
+                {it.status === "uploading" ? `${Math.round(it.progress || 0)}%` : statusLabel(it.status, t)}
               </figcaption>
             )}
 
@@ -110,16 +119,16 @@ export default function SimplePhotoUploader({
                   onClick={() => retryItem?.(it.id)}
                   className="px-2 py-1 rounded-md text-[11px] sm:text-xs bg-white/90 hover:bg-white transition-colors"
                 >
-                  Повторить
+                  {t.retry}
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => removeItem?.(it.id)}
                 className="px-2 py-1 rounded-md text-[11px] sm:text-xs bg-white/90 hover:bg-white transition-colors"
-                aria-label="Удалить фото"
+                aria-label={t.delete}
               >
-                Удалить
+                {t.delete}
               </button>
             </div>
           </figure>
@@ -133,19 +142,23 @@ export default function SimplePhotoUploader({
           onClick={handleAddMore}
           className="w-full sm:w-auto h-11 px-4 rounded-xl border border-border hover:bg-accent/50 text-sm bg-background text-foreground transition-colors"
         >
-          Добавить ещё
+          {addMoreText}
         </button>
       </div>
     </div>
   );
 }
 
-function statusLabel(s: string) {
-  switch (s) {
-    case "pending": return "Ожидание…";
-    case "compressing": return "Компрессия…";
-    case "signing": return "Подпись…";
-    case "uploading": return "Загрузка…";
-    default: return "Обработка…";
-  }
+// Status labels with translations
+const getStatusLabels = (t: any) => ({
+  pending: `${t.loading}…`,
+  compressing: `${t.loading}…`,
+  signing: `${t.loading}…`,
+  uploading: `${t.loading}…`,
+  default: `${t.loading}…`
+});
+
+function statusLabel(s: string, t: any) {
+  const labels = getStatusLabels(t);
+  return labels[s as keyof typeof labels] || labels.default;
 }
