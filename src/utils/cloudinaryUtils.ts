@@ -198,71 +198,53 @@ export const getBatchImageUrls = (publicId: string) => {
 // Helper to extract public_id from Cloudinary URL
 export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => {
   try {
-    console.log('🔧 Extracting public_id from URL:', cloudinaryUrl);
-    
     if (!cloudinaryUrl || !cloudinaryUrl.includes('cloudinary.com')) {
-      console.log('❌ Not a Cloudinary URL');
       return null;
     }
     
     // Remove query parameters if any
     const cleanUrl = cloudinaryUrl.split('?')[0];
     
-    const urlParts = cleanUrl.split('/');
-    const uploadIndex = urlParts.findIndex(part => part === 'upload');
+    // Use regex to extract public_id more reliably
+    // Pattern: https://res.cloudinary.com/{cloud}/image/upload/{transformations}/{public_id}
+    const cloudinaryPattern = /https?:\/\/res\.cloudinary\.com\/[^\/]+\/(?:image|video|raw)\/upload\/(?:.*?\/)?(.+?)(?:\.[a-zA-Z0-9]+)?$/;
     
-    if (uploadIndex === -1) {
-      console.log('❌ No "upload" found in URL');
+    const match = cleanUrl.match(cloudinaryPattern);
+    if (!match || !match[1]) {
       return null;
     }
     
-    // Start looking for public_id after upload
-    let publicIdIndex = uploadIndex + 1;
+    let potentialPublicId = match[1];
     
-    // Skip transformation parameters and version
-    while (publicIdIndex < urlParts.length) {
-      const part = urlParts[publicIdIndex];
+    // Split by '/' to process segments
+    const segments = potentialPublicId.split('/');
+    
+    // Find the first segment that looks like a folder/path (not transformations)
+    let publicIdStartIndex = 0;
+    
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
       
-      // Skip transformation parameters (contain commas or contain common transformation patterns)
-      if (part.includes(',') || 
-          /^[wh]_\d+/.test(part) ||     // width/height parameters
-          /^c_/.test(part) ||            // crop parameters
-          /^q_/.test(part) ||            // quality parameters
-          /^f_/.test(part) ||            // format parameters
-          /^g_/.test(part) ||            // gravity parameters
-          /^dpr_/.test(part) ||          // device pixel ratio
-          /^fl_/.test(part)) {           // flags like progressive
-        console.log('🔄 Skipping transformation parameter:', part);
-        publicIdIndex++;
-        continue;
+      // Check if this segment contains transformation parameters
+      const isTransformation = 
+        segment.includes(',') ||                    // Multiple transformations like "f_webp,q_auto:good,c_fill,w_1200,h_1200"
+        /^[a-z]_/.test(segment) ||                 // Single transformations like "w_400", "f_auto"
+        /^v\d+$/.test(segment);                    // Version like "v123456789"
+      
+      if (isTransformation) {
+        publicIdStartIndex = i + 1;
+      } else {
+        // This looks like the start of the actual path
+        break;
       }
-      
-      // Skip version (starts with 'v' followed by numbers)
-      if (/^v\d+$/.test(part)) {
-        console.log('🔄 Skipping version:', part);
-        publicIdIndex++;
-        continue;
-      }
-      
-      // This should be the start of public_id
-      break;
     }
     
-    if (publicIdIndex >= urlParts.length) {
-      console.log('❌ No public_id found after transformations');
+    if (publicIdStartIndex >= segments.length) {
       return null;
     }
     
-    // Join remaining parts as public_id and remove file extension
-    const publicIdWithExtension = urlParts.slice(publicIdIndex).join('/');
-    const publicIdFinal = publicIdWithExtension.replace(/\.[^/.]+$/, '');
-    
-    console.log('✅ Extracted public_id:', {
-      originalUrl: cloudinaryUrl,
-      publicIdWithExtension,
-      publicIdFinal,
-      skippedParts: urlParts.slice(uploadIndex + 1, publicIdIndex)
-    });
+    // Join remaining segments to form public_id
+    const publicIdFinal = segments.slice(publicIdStartIndex).join('/');
     
     return publicIdFinal;
   } catch (error) {
