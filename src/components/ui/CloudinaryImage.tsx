@@ -27,9 +27,9 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
 
   // Size configurations for different use cases
   const sizeConfig = {
-    thumbnail: { width: 150, height: 150, quality: 'auto:low' },
-    card: { width: 400, height: 300, quality: 'auto:low' },
-    detail: { width: 800, height: 600, quality: 'auto:good' }
+    thumbnail: { width: 150, quality: 'auto:low' },
+    card: { width: 400, quality: 'auto:low' },
+    detail: { width: 800, quality: 'auto:good' }
   };
 
   const config = sizeConfig[size];
@@ -39,8 +39,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     const baseUrl = 'https://res.cloudinary.com/dcuziurrb/image/upload';
     const transformations = [
       `w_${config.width}`,
-      `h_${config.height}`,
-      `c_fill`,
+      `c_limit`,
       `q_${config.quality}`,
       `f_${format}`,
       'fl_progressive'

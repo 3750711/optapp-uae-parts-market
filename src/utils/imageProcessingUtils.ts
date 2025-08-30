@@ -110,9 +110,9 @@ export const getImageVariants = (publicId: string) => {
 
   return {
     original: `https://res.cloudinary.com/dcuziurrb/image/upload/${publicId}`,
-    main: `https://res.cloudinary.com/dcuziurrb/image/upload/q_auto:low,f_auto,c_limit,w_1920,h_1920/${publicId}`, // ~400KB
-    thumbnail: `https://res.cloudinary.com/dcuziurrb/image/upload/w_150,h_150,q_auto:low,f_auto,c_fill/${publicId}`,
-    card: `https://res.cloudinary.com/dcuziurrb/image/upload/w_400,h_300,q_auto:low,f_auto,c_fill/${publicId}`,
-    detail: `https://res.cloudinary.com/dcuziurrb/image/upload/w_800,h_600,q_auto:low,f_auto,c_fit/${publicId}`
+    main: `https://res.cloudinary.com/dcuziurrb/image/upload/q_auto:low,f_auto,c_limit,w_1920/${publicId}`, // ~400KB
+    thumbnail: `https://res.cloudinary.com/dcuziurrb/image/upload/w_150,q_auto:low,f_auto,c_limit/${publicId}`,
+    card: `https://res.cloudinary.com/dcuziurrb/image/upload/w_400,q_auto:low,f_auto,c_limit/${publicId}`,
+    detail: `https://res.cloudinary.com/dcuziurrb/image/upload/w_800,q_auto:low,f_auto,c_limit/${publicId}`
   };
 };

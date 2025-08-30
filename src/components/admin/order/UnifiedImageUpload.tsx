@@ -322,7 +322,7 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
                   <img
                     src={item.url}
                     alt="Image"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain bg-muted"
                     loading="lazy"
                   />
 

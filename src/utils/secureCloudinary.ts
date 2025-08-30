@@ -114,7 +114,7 @@ class SecureCloudinaryService {
     let transformation = `q_${quality},f_${format}`;
     
     if (width || height) {
-      transformation += `,w_${width || 'auto'},h_${height || 'auto'},c_fill`;
+      transformation += `,w_${width || 'auto'},c_limit`;
     }
 
     return `https://res.cloudinary.com/${this.config.cloudName}/image/upload/${transformation}/${publicId}`;
@@ -131,7 +131,7 @@ class SecureCloudinaryService {
     let transformation = `q_${quality}`;
     
     if (width || height) {
-      transformation += `,w_${width || 'auto'},h_${height || 'auto'},c_fill`;
+      transformation += `,w_${width || 'auto'},c_limit`;
     }
 
     return `https://res.cloudinary.com/${this.config.cloudName}/video/upload/${transformation}/${publicId}`;

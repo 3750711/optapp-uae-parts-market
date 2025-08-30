@@ -243,7 +243,7 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
               <div key={`video-${index}`} className="relative aspect-square rounded-lg overflow-hidden border">
                 <video 
                   src={url} 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-muted"
                   preload="metadata"
                   muted
                 />

@@ -182,7 +182,7 @@ export const AdminProductImagesManager = ({
             <img 
               src={url} 
               alt={`Фото ${index + 1}`} 
-              className="w-full h-full object-cover" 
+              className="w-full h-full object-contain bg-muted" 
             />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
               {onPrimaryImageChange && (
