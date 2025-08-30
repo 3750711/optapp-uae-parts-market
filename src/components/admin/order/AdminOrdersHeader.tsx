@@ -1,12 +1,13 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileAdminOrdersHeader } from './MobileAdminOrdersHeader';
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Search, X } from "lucide-react";
+import { RefreshCw, Search, X, BarChart3 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "./SortingControls";
 import { Database } from "@/integrations/supabase/types";
@@ -34,6 +35,7 @@ interface AdminOrdersHeaderProps {
 
 export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   if (isMobile) {
     return <MobileAdminOrdersHeader {...props} totalCount={props.totalCount || 0} />;
@@ -57,6 +59,15 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
             </Badge>
           )}
         </div>
+        
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/admin/seller-statistics')}
+          className="flex items-center gap-2"
+        >
+          <BarChart3 className="h-4 w-4" />
+          Статистика продавцов
+        </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
