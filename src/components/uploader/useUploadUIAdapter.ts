@@ -14,10 +14,18 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
 
   // Helper function to detect HEIC files
   const isHeicFile = (file: File): boolean => {
-    return file.name.toLowerCase().endsWith('.heic') || 
-           file.name.toLowerCase().endsWith('.heif') ||
-           file.type.toLowerCase().includes('heic') ||
-           file.type.toLowerCase().includes('heif');
+    const isHeic = file.name.toLowerCase().endsWith('.heic') || 
+                   file.name.toLowerCase().endsWith('.heif') ||
+                   file.type.toLowerCase().includes('heic') ||
+                   file.type.toLowerCase().includes('heif') ||
+                   file.type === 'image/heic' || 
+                   file.type === 'image/heif';
+    
+    if (isHeic) {
+      console.log(`📱 HEIC file detected: ${file.name} (${file.type})`);
+    }
+    
+    return isHeic;
   };
 
   // Мягкое извлечение полей из хука useStagedCloudinaryUpload

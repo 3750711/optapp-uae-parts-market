@@ -135,22 +135,34 @@ Deno.serve(async (req) => {
 
     const cloudinaryResult: CloudinaryResponse = await uploadResponse!.json();
     
-    // Generate unified main image URL - all formats converted to WebP
-    const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_webp,q_auto:good,c_fill,w_1200,h_1200/${cloudinaryResult.public_id}`;
+    // Clean the public_id by removing version prefix and file extension
+    const cleanPublicId = cloudinaryResult.public_id
+      .replace(/^v\d+\//, '') // Remove version prefix like v1234567890/
+      .replace(/\.[^/.]+$/, ''); // Remove file extension like .heic, .jpg, etc.
+    
+    console.log(`🧹 Cleaned public_id: "${cloudinaryResult.public_id}" → "${cleanPublicId}"`);
+    
+    // Generate unified main image URL - all formats converted to WebP with transformations
+    const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_webp,q_auto:good,c_fill,w_1200,h_1200/${cleanPublicId}`;
     
     const estimatedCompressedSize = Math.round(cloudinaryResult.bytes * 0.35); // WebP compression estimate
     
     console.log(`✅ Image processed successfully: ${file.name}`);
     console.log(`📊 Original: ${Math.round(file.size / 1024)}KB → Compressed: ~${Math.round(estimatedCompressedSize / 1024)}KB`);
     console.log(`🌐 WebP URL: ${mainImageUrl}`);
+    
+    // Log the file format conversion for HEIC debugging
+    if (file.name.toLowerCase().includes('.heic') || file.type.includes('heic')) {
+      console.log(`📱 HEIC conversion: ${file.name} (${file.type}) → WebP format`);
+    }
 
     const response: UploadResponse = {
       success: true,
-      publicId: cloudinaryResult.public_id,
+      publicId: cleanPublicId, // Return the cleaned public_id
       mainImageUrl,
       originalSize: cloudinaryResult.bytes,
       compressedSize: estimatedCompressedSize,
-      format: cloudinaryResult.format
+      format: 'webp' // Always WebP after processing
     };
 
     return new Response(JSON.stringify(response), {

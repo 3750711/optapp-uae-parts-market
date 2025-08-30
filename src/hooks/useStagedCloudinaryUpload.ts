@@ -512,7 +512,8 @@ export const useStagedCloudinaryUpload = () => {
         status: 'pending',
         publicId, // Store the stable publicId for signing
         isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
-                file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif'),
+                file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif') ||
+                file.type.includes('heic') || file.type.includes('heif'),
         originalSize: file.size
       };
     });
@@ -566,6 +567,8 @@ export const useStagedCloudinaryUpload = () => {
         try {
           // For HEIC files, upload directly to Edge Function (handles conversion)
           if (item.isHeic) {
+            console.log(`📱 Processing HEIC file: ${item.file.name} (${item.file.type}), size: ${Math.round(item.file.size / 1024)}KB`);
+            
             item.status = 'uploading';
             setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
             
@@ -577,6 +580,8 @@ export const useStagedCloudinaryUpload = () => {
                 setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
               }
             );
+            
+            console.log(`✅ HEIC file processed successfully: ${item.file.name} → ${result.url}`);
             
             item.status = 'success';
             item.url = result.url;
