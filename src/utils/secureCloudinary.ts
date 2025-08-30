@@ -114,8 +114,11 @@ class SecureCloudinaryService {
     let transformation = `q_${quality},f_${format}`;
     
     if (width || height) {
-      transformation += `,w_${width || 'auto'},h_${height || 'auto'},c_fill`;
+      transformation += `,w_${width || 'auto'},h_${height || 'auto'},c_limit`;
     }
+    
+    // Add automatic orientation correction
+    transformation += ',angle_auto_right';
 
     return `https://res.cloudinary.com/${this.config.cloudName}/image/upload/${transformation}/${publicId}`;
   }

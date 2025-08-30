@@ -90,8 +90,8 @@ Deno.serve(async (req) => {
     
     // Special transformation for HEIC files to ensure conversion to JPEG
     const transformation = isHeicFile 
-      ? 'f_jpg,q_auto:good,c_limit,w_1600' 
-      : 'q_auto:good,f_auto,c_limit,w_1200,h_1200';
+      ? 'f_jpg,q_auto:good,c_limit,w_1600,angle_auto_right' 
+      : 'q_auto:good,f_auto,c_limit,w_1200,h_1200,angle_auto_right';
     cloudinaryFormData.append('transformation', transformation);
 
     // Generate signature
@@ -139,8 +139,8 @@ Deno.serve(async (req) => {
     
     // Generate optimized main image URL with proper transformation
     const mainImageUrl = isHeicFile
-      ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_jpg,q_auto:good,c_limit,w_1600/${cloudinaryResult.public_id}`
-      : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:good,f_auto,c_limit,w_1200,h_1200/${cloudinaryResult.public_id}`;
+      ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_jpg,q_auto:good,c_limit,w_1600,angle_auto_right/${cloudinaryResult.public_id}`
+      : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:good,f_auto,c_limit,w_1200,h_1200,angle_auto_right/${cloudinaryResult.public_id}`;
     const estimatedCompressedSize = Math.round(cloudinaryResult.bytes * 0.4);
 
     const response: UploadResponse = {
