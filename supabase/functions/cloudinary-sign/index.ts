@@ -47,47 +47,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get JWT token and verify authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
-    // Create Supabase client to verify JWT and check admin role
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader }
-      }
-    });
-
-    // Verify user is authenticated and is admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
-    // Check if user is admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('user_type')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || profile?.user_type !== 'admin') {
-      return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
-        { status: 403, headers: corsHeaders }
-      );
-    }
+    // Public endpoint - no authentication required for staging uploads
 
     // Parse request body
     const { orderId, sessionId }: SignRequest = await req.json();

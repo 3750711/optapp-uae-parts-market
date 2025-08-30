@@ -4,7 +4,7 @@ const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
 export interface CloudinaryTransformation {
   width?: number;
   height?: number;
-  crop?: 'fill' | 'fit' | 'scale' | 'crop' | 'auto';
+  crop?: 'fill' | 'fit' | 'scale' | 'crop' | 'auto' | 'limit';
   gravity?: 'auto' | 'center' | 'face' | 'faces';
   quality?: 'auto' | 'auto:low' | 'auto:good' | 'auto:best' | number;
   format?: 'auto' | 'webp' | 'jpg' | 'png' | 'avif';
@@ -52,7 +52,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
     thumbnail: {
       width: 150,
       height: 150,
-      crop: 'fill',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'webp',
@@ -62,7 +62,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
     card: {
       width: 400,
       height: 300,
-      crop: 'fill',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'webp',
@@ -72,7 +72,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
     detail: {
       width: 800,
       height: 600,
-      crop: 'fit',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:good',
       format: 'webp',
@@ -82,7 +82,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
     compressed: {
       width: 600,
       height: 450,
-      crop: 'fill',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'webp'
@@ -99,7 +99,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
     thumbnail: {
       width: 150,
       height: 150,
-      crop: 'fill',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'webp',
@@ -109,7 +109,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
     card: {
       width: 400,
       height: 300,
-      crop: 'fill',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'webp',
@@ -119,7 +119,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
     detail: {
       width: 800,
       height: 600,
-      crop: 'fit',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:good',
       format: 'webp',
@@ -129,7 +129,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
     compressed: {
       width: 600,
       height: 450,
-      crop: 'fill',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'webp'
@@ -145,7 +145,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
     mobile: buildCloudinaryUrl(publicId, {
       width: 400,
       height: 300,
-      crop: 'fit',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'webp',
@@ -154,7 +154,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
     tablet: buildCloudinaryUrl(publicId, {
       width: 600,
       height: 450,
-      crop: 'fit',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'webp',
@@ -163,7 +163,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
     desktop: buildCloudinaryUrl(publicId, {
       width: 800,
       height: 600,
-      crop: 'fit',
+      crop: 'limit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'webp',
@@ -177,7 +177,7 @@ export const getCompressedImageUrl = (publicId: string): string => {
   return buildCloudinaryUrl(publicId, {
     width: 600,
     height: 450,
-    crop: 'fill',
+    crop: 'limit',
     gravity: 'auto',
     quality: 'auto:low',
     format: 'webp'

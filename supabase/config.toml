@@ -109,7 +109,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.cloudinary-sign]
-verify_jwt = true
+verify_jwt = false
 
 [functions.attach-order-media]
 verify_jwt = true

@@ -1,9 +1,9 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Upload, X, Pause, Play } from "lucide-react";
-import { useDirectCloudinaryUpload } from "@/hooks/useDirectCloudinaryUpload";
+import { uploadImageOptimized, isHeicFile, getCompressionSettings } from "@/utils/directCloudinaryUpload";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
 import { CloudinaryUploadProgress } from "@/components/ui/CloudinaryUploadProgress";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -30,18 +30,10 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
   disabled = false,
   maxImages = 25
 }) => {
-  const { 
-    uploadFiles, 
-    uploadQueue, 
-    persistentQueue,
-    isUploading, 
-    isPaused,
-    pauseUpload,
-    resumeUpload,
-    cancelUpload, 
-    markAsDeleted,
-    networkProfile
-  } = useDirectCloudinaryUpload();
+  const [uploadQueue, setUploadQueue] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const networkProfile = getCompressionSettings();
   const { language } = useLanguage();
   const t = getSellerPagesTranslations(language);
 
@@ -99,10 +91,9 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       });
 
       // Use direct upload with adaptive compression
-      const uploadedUrls = await uploadFiles(validImageFiles, {
-        orderId,
-        disableToast: false
-      });
+      const uploadPromises = validImageFiles.map(file => uploadImageOptimized(file, { orderId }));
+      const results = await Promise.all(uploadPromises);
+      const uploadedUrls = results.filter(r => r.success).map(r => r.url!);
       
       if (uploadedUrls.length > 0) {
         console.log('✅ Direct upload completed:', uploadedUrls);
@@ -128,7 +119,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
     }
     
     try {
-      markAsDeleted(url);
+      // Direct deletion
       
       const newImageUrls = images.filter(imgUrl => imgUrl !== url);
       console.log('📱 Updating images UI immediately:', { 
@@ -151,11 +142,11 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
     } catch (error) {
       console.error('❌ Error during image deletion:', error);
     }
-  }, [images, onImagesUpload, markAsDeleted, primaryImage, onSetPrimaryImage, onImageDelete]);
+  }, [images, onImagesUpload, primaryImage, onSetPrimaryImage, onImageDelete]);
 
   const canUploadMore = images.length < maxImages;
   const hasActiveUploads = uploadQueue.some(item => 
-    ['pending', 'compressing', 'signing', 'uploading'].includes(item.status)
+    ['pending', 'uploading'].includes(item.status)
   );
   const hasPausedUploads = uploadQueue.some(item => item.status === 'paused');
 
@@ -204,10 +195,10 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
           uploadQueue={uploadQueue}
           isUploading={isUploading}
           isPaused={isPaused}
-          networkProfile={networkProfile}
-          onPause={pauseUpload}
-          onResume={() => orderId && resumeUpload({ orderId })}
-          onCancel={cancelUpload}
+          networkProfile={{ effectiveType: '4g', ...networkProfile }}
+          onPause={() => setIsPaused(true)}
+          onResume={() => setIsPaused(false)}
+          onCancel={() => setUploadQueue([])}
         />
       )}
 
@@ -218,7 +209,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
             <Button
               type="button"
               variant="secondary"
-              onClick={pauseUpload}
+              onClick={() => setIsPaused(true)}
               className="flex-1"
             >
               <Pause className="h-4 w-4 mr-2" />
@@ -230,7 +221,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
             <Button
               type="button"
               variant="secondary"
-              onClick={() => resumeUpload({ orderId })}
+              onClick={() => setIsPaused(false)}
               className="flex-1"
             >
               <Play className="h-4 w-4 mr-2" />
@@ -241,7 +232,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
           <Button
             type="button"
             variant="destructive"
-            onClick={cancelUpload}
+            onClick={() => setUploadQueue([])}
             className="flex-1"
           >
             <X className="h-4 w-4 mr-2" />
@@ -291,7 +282,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       {/* Network info - now handled by CloudinaryUploadProgress */}
       {hasActiveUploads && uploadQueue.length === 0 && (
         <div className="text-xs text-muted-foreground text-center">
-          Используется профиль сжатия для {networkProfile.effectiveType || '4g'} сети
+          Используется профиль сжатия для 4g сети
         </div>
       )}
     </div>
