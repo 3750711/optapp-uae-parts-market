@@ -755,6 +755,21 @@ export const useStagedCloudinaryUpload = () => {
     setSessionId(null);
   }, [sessionId]);
 
+  // Restore staged URLs from saved data (for autosave sync)
+  const restoreStagedUrls = useCallback(async (urls: string[]) => {
+    if (urls.length === 0) return;
+    
+    const currentSessionId = await initSession();
+    setStagedUrls(urls);
+    
+    try {
+      await stagingDB.saveSession(currentSessionId, urls);
+      console.log('✅ Restored staged URLs from autosave:', urls.length, 'images');
+    } catch (error) {
+      console.error('❌ Failed to save restored URLs to IndexedDB:', error);
+    }
+  }, [initSession]);
+
   return {
     sessionId,
     stagedUrls,
@@ -765,6 +780,7 @@ export const useStagedCloudinaryUpload = () => {
     removeStagedUrl,
     removeUploadItem,
     clearStaging,
+    restoreStagedUrls,
     initSession
   };
 };

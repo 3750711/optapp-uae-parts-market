@@ -27,7 +27,7 @@ export const AdminFreeOrderForm = () => {
   const [isOrderCreated, setIsOrderCreated] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
   const isMobile = useIsMobile();
-  const { attachToOrder } = useStagedCloudinaryUpload();
+  const { attachToOrder, restoreStagedUrls, clearStaging } = useStagedCloudinaryUpload();
 
   const {
     // Form data
@@ -156,7 +156,11 @@ useEffect(() => {
       }
 
       // 4) Медиа
-      if (Array.isArray(saved.images)) setAllImages(saved.images);
+      if (Array.isArray(saved.images)) {
+        setAllImages(saved.images);
+        // Sync with staged uploads for persistence
+        restoreStagedUrls(saved.images);
+      }
       if (Array.isArray(saved.videos)) setVideos(saved.videos);
 
       console.log('✅ Черновик формы восстановлен (упорядоченное применение brand/model)');
@@ -245,6 +249,8 @@ useEffect(() => {
       attachToOrder(createdOrder.id)
         .then(() => {
           console.log('✅ Staged images attached to order:', createdOrder.id);
+          // Clear staged uploads after successful attachment
+          clearStaging();
         })
         .catch((error) => {
           console.error('❌ Failed to attach staged images:', error);
@@ -254,9 +260,12 @@ useEffect(() => {
             variant: "destructive",
           });
         });
+    } else {
+      // Clear staged uploads even if no images to attach
+      clearStaging();
     }
   }
-}, [createdOrder, clearSavedData, attachToOrder, images, toast]);
+}, [createdOrder, clearSavedData, attachToOrder, images, toast, clearStaging]);
 
 // Отслеживание состояния загрузки
 useEffect(() => {
@@ -392,6 +401,7 @@ useEffect(() => {
     setIsCreating(false);
     setIsOrderCreated(false);
     clearSavedData();
+    clearStaging();
     resetForm();
   };
 
