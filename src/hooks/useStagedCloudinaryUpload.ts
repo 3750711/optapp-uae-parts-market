@@ -826,25 +826,48 @@ export const useStagedCloudinaryUpload = () => {
                 });
               }
             } else if (item.isHeic && compressionResult.code?.includes('HEIC')) {
-              // Add HEIC fallback: if conversion fails, try to upload original file
-              console.warn('🔄 HEIC conversion failed, trying original file upload', {
+              // Try server-side HEIC conversion as fallback
+              console.warn('🔄 HEIC worker failed, trying server conversion', {
                 fileName: item.file.name,
                 error: compressionResult.code
               });
               
               toast({
-                title: "Внимание",
-                description: `HEIC файл ${item.file.name} будет загружен без конвертации`,
-                variant: "destructive",
+                title: "Конвертация HEIC",
+                description: `Конвертируем ${item.file.name} на сервере...`,
               });
               
-              // Keep original file but warn user
-              item.compressedSize = item.file.size;
-              item.wasHeicConverted = false;
+              try {
+                const convertedFile = await convertHeicOnServer(item.file);
+                processedFile = convertedFile;
+                item.compressedSize = convertedFile.size;
+                item.wasHeicConverted = true;
+                
+                toast({
+                  title: "Успех",
+                  description: `HEIC файл ${item.file.name} успешно сконвертирован`,
+                });
+              } catch (serverError) {
+                console.error('💥 Server HEIC conversion failed:', serverError);
+                throw new Error(`HEIC conversion failed: ${compressionResult.code}`);
+              }
             } else {
-              // Enhanced error logging for other compression failures
-              console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
-              item.compressedSize = item.file.size;
+              // Try server-side compression as fallback for other failures
+              console.warn(`⚠️ Compression failed for ${item.file.name}, trying server fallback:`, compressionResult.code);
+              
+              try {
+                const compressedFile = await compressOnServer(item.file);
+                processedFile = compressedFile;
+                item.compressedSize = compressedFile.size;
+                
+                toast({
+                  title: "Сжатие на сервере",
+                  description: `${item.file.name} обработан на сервере`,
+                });
+              } catch (serverError) {
+                console.error('💥 Server compression also failed:', serverError);
+                throw new Error('Both client and server compression failed');
+              }
             }
           }
 
@@ -997,6 +1020,91 @@ export const useStagedCloudinaryUpload = () => {
     
     setSessionId(null);
   }, [sessionId]);
+
+  // Server-side HEIC conversion fallback
+  const convertHeicOnServer = useCallback(async (file: File): Promise<File> => {
+    console.log('🌐 Converting HEIC on server:', file.name);
+    
+    // Convert file to base64
+    const arrayBuffer = await file.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    
+    const { data, error } = await supabase.functions.invoke('convert-heic', {
+      body: {
+        fileData: base64,
+        fileName: file.name,
+        maxSide: 1600,
+        quality: 0.82
+      }
+    });
+    
+    if (error || !data?.success) {
+      throw new Error(data?.error || 'Server HEIC conversion failed');
+    }
+    
+    // Convert base64 back to File
+    const binaryString = atob(data.data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    return new File([bytes], data.fileName, { type: data.mimeType });
+  }, []);
+
+  // Server-side compression fallback
+  const compressOnServer = useCallback(async (file: File): Promise<File> => {
+    console.log('🌐 Compressing on server:', file.name);
+    
+    // Upload file temporarily to get URL for compression
+    const tempFileName = `temp-${Date.now()}-${file.name}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('order-images')
+      .upload(tempFileName, file);
+    
+    if (uploadError) {
+      throw new Error(`Temp upload failed: ${uploadError.message}`);
+    }
+    
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('order-images')
+      .getPublicUrl(tempFileName);
+    
+    try {
+      // Compress via Edge Function
+      const { data, error } = await supabase.functions.invoke('compress-image', {
+        body: {
+          imageUrl: publicUrl,
+          maxSizeKB: 400,
+          quality: 0.8,
+          maxWidth: 1600,
+          maxHeight: 1600
+        }
+      });
+      
+      if (error || !data?.success) {
+        throw new Error(data?.error || 'Server compression failed');
+      }
+      
+      // Download compressed image
+      const compressedResponse = await fetch(data.compressedUrl);
+      if (!compressedResponse.ok) {
+        throw new Error('Failed to download compressed image');
+      }
+      
+      const compressedBlob = await compressedResponse.blob();
+      const compressedFile = new File([compressedBlob], file.name.replace(/\.\w+$/, '.webp'), {
+        type: 'image/webp'
+      });
+      
+      return compressedFile;
+      
+    } finally {
+      // Clean up temp file
+      supabase.storage.from('order-images').remove([tempFileName]);
+    }
+  }, []);
 
   return {
     sessionId,

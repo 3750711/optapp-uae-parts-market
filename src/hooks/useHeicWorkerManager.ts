@@ -25,14 +25,20 @@ export const useHeicWorkerManager = (): HeicWorkerManager => {
       return initPromiseRef.current;
     }
 
-    initPromiseRef.current = new Promise((resolve, reject) => {
+    initPromiseRef.current = new Promise(async (resolve, reject) => {
       try {
         console.log('🔧 HEIC Manager: Initializing HEIC worker...');
         
-        const worker = new Worker(
-          new URL('../workers/heic2jpeg.worker.js', import.meta.url),
-          { type: 'module' }
-        );
+        // Try inline worker first to avoid network issues
+        let worker: Worker;
+        try {
+          const HeicWorkerCtor = await import('../workers/heic2jpeg.worker.js?worker&inline');
+          worker = new HeicWorkerCtor.default();
+          console.log('✅ HEIC worker created with inline import');
+        } catch (inlineError) {
+          console.warn('⚠️ HEIC inline worker failed, trying URL fallback:', inlineError);
+          worker = new Worker(new URL('../workers/heic2jpeg.worker.js', import.meta.url));
+        }
 
         let initTimeout: NodeJS.Timeout;
         

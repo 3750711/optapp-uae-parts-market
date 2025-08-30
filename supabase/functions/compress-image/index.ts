@@ -8,11 +8,24 @@ const corsHeaders = {
 }
 
 interface CompressImageRequest {
-  imageUrl: string
+  imageUrl?: string
+  fileData?: string
+  fileName?: string
   maxSizeKB?: number
   quality?: number
   maxWidth?: number
   maxHeight?: number
+}
+
+interface CompressImageResponse {
+  success: boolean
+  compressedUrl?: string
+  originalSize?: number
+  compressedSize?: number
+  compressionRatio?: number
+  quality?: number
+  dimensions?: { width: number; height: number }
+  error?: string
 }
 
 serve(async (req) => {
@@ -29,21 +42,37 @@ serve(async (req) => {
 
     const { 
       imageUrl, 
+      fileData,
+      fileName,
       maxSizeKB = 400, 
       quality = 0.8,
       maxWidth = 1920,
       maxHeight = 1920 
     }: CompressImageRequest = await req.json()
 
-    console.log(`Starting compression for image: ${imageUrl}`)
+    let imageBuffer: ArrayBuffer;
+    let originalFileName = fileName || 'image';
 
-    // Fetch the original image
-    const imageResponse = await fetch(imageUrl)
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`)
+    if (fileData) {
+      // Handle direct file data (base64)
+      console.log(`Starting compression for direct file data: ${originalFileName}`)
+      const binaryString = atob(fileData);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      imageBuffer = bytes.buffer;
+    } else if (imageUrl) {
+      // Handle URL-based compression
+      console.log(`Starting compression for image: ${imageUrl}`)
+      const imageResponse = await fetch(imageUrl)
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image: ${imageResponse.statusText}`)
+      }
+      imageBuffer = await imageResponse.arrayBuffer()
+    } else {
+      throw new Error('Either imageUrl or fileData must be provided')
     }
-
-    const imageBuffer = await imageResponse.arrayBuffer()
     const originalSize = imageBuffer.byteLength
 
     console.log(`Original image size: ${(originalSize / 1024).toFixed(2)} KB`)
@@ -102,12 +131,12 @@ serve(async (req) => {
 
     // Generate unique filename
     const timestamp = Date.now()
-    const fileName = `compressed-${timestamp}.webp`
+    const outputFileName = `compressed-${timestamp}.webp`
 
     // Upload compressed image to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('order-images')
-      .upload(fileName, compressedBlob, {
+      .upload(outputFileName, compressedBlob, {
         contentType: 'image/webp',
         cacheControl: '3600',
         upsert: false
@@ -120,38 +149,36 @@ serve(async (req) => {
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
       .from('order-images')
-      .getPublicUrl(fileName)
+      .getPublicUrl(outputFileName)
 
     console.log(`Successfully compressed and uploaded: ${publicUrl}`)
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        compressedUrl: publicUrl,
-        originalSize: originalSize,
-        compressedSize: finalSize,
-        compressionRatio: Math.round((1 - finalSize / originalSize) * 100),
-        quality: currentQuality,
-        dimensions: { width, height }
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    )
+    const response: CompressImageResponse = {
+      success: true,
+      compressedUrl: publicUrl,
+      originalSize: originalSize,
+      compressedSize: finalSize,
+      compressionRatio: Math.round((1 - finalSize / originalSize) * 100),
+      quality: currentQuality,
+      dimensions: { width, height }
+    };
+
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200
+    })
 
   } catch (error) {
     console.error('Compression error:', error)
     
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
-    )
+    const errorResponse: CompressImageResponse = {
+      success: false,
+      error: error.message
+    };
+
+    return new Response(JSON.stringify(errorResponse), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500
+    })
   }
 })
