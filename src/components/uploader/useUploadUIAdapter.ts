@@ -29,20 +29,26 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
   };
 
   // Мягкое извлечение полей из хука useStagedCloudinaryUpload
-  const items = (hook.persistedItems ?? []).map((item: any) => {
-    let thumbUrl = item.cloudinaryThumbUrl || item.cloudinaryUrl;
+  const items = (hook.uploadItems ?? []).map((item: any) => {
+    let thumbUrl = item.thumbUrl;
     
     // Create preview URL if it doesn't exist
-    if (!thumbUrl) {
-      if (item.localPreviewDataUrl) {
-        // Use stored preview dataURL
-        thumbUrl = item.localPreviewDataUrl;
-      } else if (item.isHeic) {
-        // For HEIC files without preview, use placeholder
-        thumbUrl = "/placeholder-heic.svg";
+    if (!thumbUrl && item.file) {
+      if (isHeicFile(item.file)) {
+        // For HEIC files, try to generate Cloudinary preview if we have a URL
+        if (item.url) {
+          const publicId = extractPublicIdFromUrl(item.url);
+          if (publicId) {
+            thumbUrl = getProductImageUrl(publicId, 'thumbnail');
+          } else {
+            thumbUrl = "/placeholder-heic.svg"; // Fallback placeholder
+          }
+        } else {
+          thumbUrl = "/placeholder-heic.svg"; // This should be a placeholder image
+        }
       } else {
-        // Fallback placeholder for any other cases
-        thumbUrl = "/placeholder.svg";
+        // Create blob URL for regular files
+        thumbUrl = URL.createObjectURL(item.file);
       }
     }
     
@@ -50,13 +56,13 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
       ...item,
       thumbUrl,
       // Правильное имя файла  
-      originalFile: { name: item.originalName || 'Unknown' },
+      originalFile: { name: item.file?.name || 'Unknown' },
       // Правильный URL после загрузки 
-      cloudinaryUrl: item.cloudinaryUrl,
+      cloudinaryUrl: item.url,
       // Статус в правильном формате
-      status: item.status === 'completed' ? 'completed' : item.status,
+      status: item.status === 'success' ? 'completed' : item.status,
       // Add HEIC flag for UI handling
-      isHeic: item.isHeic || false
+      isHeic: item.file ? isHeicFile(item.file) : false
     };
   });
   
@@ -65,21 +71,14 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
   const removeStagedUrl = hook.removeStagedUrl;
   const retryItem = null; // пока не реализован в оригинальном хуке
   const attachToOrder = hook.attachToOrder;
-  const initSession = hook.initSession;
 
   const api = useMemo(() => ({
     items,
-    uploadFiles: async (files: File[]) => {
-      // Инициализируем сессию для IndexedDB persistence
-      if (initSession) {
-        await initSession();
-      }
-      return uploadFiles?.(files);
-    },
+    uploadFiles: (files: File[]) => uploadFiles?.(files),
     removeItem: (id: string) => {
-      // Remove from persistent items first
+      // Пробуем удаление из uploadItems по ID и из stagedUrls по URL
       removeUploadItem?.(id);
-      // Also remove from staged URLs by matching the item
+      // Для stagedUrls ищем URL в items и удаляем
       const item = items.find(i => i.id === id);
       if (item?.cloudinaryUrl) {
         removeStagedUrl?.(item.cloudinaryUrl);
@@ -91,7 +90,7 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
     clearItems: () => {
       hook.clearStaging?.();
     }
-  }), [items, uploadFiles, removeUploadItem, removeStagedUrl, retryItem, attachToOrder, hook, initSession]);
+  }), [items, uploadFiles, removeUploadItem, removeStagedUrl, retryItem, attachToOrder, hook]);
 
   return api;
 }
