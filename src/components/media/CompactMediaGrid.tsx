@@ -43,7 +43,7 @@ const CompactMediaThumbnail = memo(({
             <img
               src={url}
               alt={`Изображение ${index + 1}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               loading="lazy"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -146,7 +146,7 @@ const FullScreenViewer = memo(({
                   onClick={() => onIndexChange(index)}
                 >
                   {item.type === 'image' ? (
-                    <img src={item.url} alt="" className="w-full h-full object-cover" />
+                    <img src={item.url} alt="" className="w-full h-full object-contain" />
                   ) : (
                     <div className="w-full h-full bg-black flex items-center justify-center relative">
                       <video src={item.url} className="w-full h-full object-cover" preload="metadata" muted />
