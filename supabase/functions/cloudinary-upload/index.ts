@@ -45,7 +45,6 @@ Deno.serve(async (req) => {
     let file: File | null = null;
     let productId: string | undefined;
     let customPublicId: string | undefined;
-    let isHeicFile = false;
 
     const contentType = req.headers.get('content-type') || '';
     
@@ -73,15 +72,7 @@ Deno.serve(async (req) => {
       throw new Error('No file provided');
     }
 
-    // Detect HEIC files
-    isHeicFile = file.name.toLowerCase().endsWith('.heic') || 
-                 file.name.toLowerCase().endsWith('.heif') ||
-                 file.type.toLowerCase().includes('heic') ||
-                 file.type.toLowerCase().includes('heif');
-    
-    if (isHeicFile) {
-      console.log(`🔄 HEIC file detected: ${file.name} (${file.type}), size: ${Math.round(file.size / 1024)}KB`);
-    }
+    console.log(`📸 Processing image: ${file.name} (${file.type}), size: ${Math.round(file.size / 1024)}KB`);
 
     // Generate optimized public_id
     const timestamp = Date.now();
@@ -95,16 +86,11 @@ Deno.serve(async (req) => {
     cloudinaryFormData.append('public_id', publicId);
     cloudinaryFormData.append('folder', 'products');
     
-    // Optimized transformation based on file type
-    const transformation = isHeicFile 
-      ? 'f_webp,q_auto:good,c_fill,w_1200,h_1200'  // Force WebP for HEIC with fill crop
-      : 'q_auto:good,f_auto,c_limit,w_1200,h_1200'; // Standard transformation for other files
-    
+    // Unified transformation for all image formats - convert everything to WebP
+    const transformation = 'f_webp,q_auto:good,c_fill,w_1200,h_1200';
     cloudinaryFormData.append('transformation', transformation);
     
-    if (isHeicFile) {
-      console.log(`🎯 Applying HEIC transformation: ${transformation}`);
-    }
+    console.log(`🎯 Applying unified WebP transformation: ${transformation}`);
 
     // Generate signature
     const stringToSign = `folder=products&public_id=${publicId}&timestamp=${Math.round(timestamp / 1000)}&transformation=${transformation}${apiSecret}`;
@@ -149,18 +135,14 @@ Deno.serve(async (req) => {
 
     const cloudinaryResult: CloudinaryResponse = await uploadResponse!.json();
     
-    // Generate optimized main image URL based on file type
-    const mainImageUrl = isHeicFile
-      ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_webp,q_auto:good,c_fill,w_1200,h_1200/${cloudinaryResult.public_id}`
-      : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:good,f_auto,c_limit,w_1200,h_1200/${cloudinaryResult.public_id}`;
+    // Generate unified main image URL - all formats converted to WebP
+    const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_webp,q_auto:good,c_fill,w_1200,h_1200/${cloudinaryResult.public_id}`;
     
-    const estimatedCompressedSize = Math.round(cloudinaryResult.bytes * (isHeicFile ? 0.3 : 0.4)); // HEIC compresses better
+    const estimatedCompressedSize = Math.round(cloudinaryResult.bytes * 0.35); // WebP compression estimate
     
-    if (isHeicFile) {
-      console.log(`✅ HEIC file processed successfully: ${file.name}`);
-      console.log(`📊 Original: ${Math.round(file.size / 1024)}KB → Compressed: ~${Math.round(estimatedCompressedSize / 1024)}KB`);
-      console.log(`🌐 WebP URL: ${mainImageUrl}`);
-    }
+    console.log(`✅ Image processed successfully: ${file.name}`);
+    console.log(`📊 Original: ${Math.round(file.size / 1024)}KB → Compressed: ~${Math.round(estimatedCompressedSize / 1024)}KB`);
+    console.log(`🌐 WebP URL: ${mainImageUrl}`);
 
     const response: UploadResponse = {
       success: true,

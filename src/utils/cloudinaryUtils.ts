@@ -43,15 +43,10 @@ export const extractVersionFromUrl = (cloudinaryUrl: string): string | null => {
   }
 };
 
-// Check if the public_id indicates a HEIC file
-const isHeicFile = (publicId: string): boolean => {
-  return publicId.toLowerCase().includes('heic') || publicId.toLowerCase().includes('heif');
-};
+// All images are now processed as WebP, no need for format detection
 
-// Predefined transformations for different use cases
+// Predefined transformations for different use cases - all images are WebP
 export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 'detail' | 'compressed' = 'card'): string => {
-  const isHeic = isHeicFile(publicId);
-  
   const transformations: Record<string, CloudinaryTransformation> = {
     // ~30KB thumbnail for very small previews
     thumbnail: {
@@ -60,7 +55,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: isHeic ? 'webp' : 'auto',
+      format: 'webp',
       dpr: 'auto'
     },
     // ~100KB card - optimized for catalog listings
@@ -70,7 +65,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: isHeic ? 'webp' : 'auto',
+      format: 'webp',
       dpr: 'auto'
     },
     // ~300KB detail for product pages
@@ -80,7 +75,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       crop: 'fit',
       gravity: 'auto',
       quality: 'auto:good',
-      format: isHeic ? 'webp' : 'auto',
+      format: 'webp',
       dpr: 'auto'
     },
     // ~200KB compressed (main storage format)
@@ -90,17 +85,15 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: isHeic ? 'webp' : 'auto'
+      format: 'webp'
     }
   };
   
   return buildCloudinaryUrl(publicId, transformations[size]);
 };
 
-// Predefined transformations for order images
+// Predefined transformations for order images - all images are WebP
 export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 'detail' | 'compressed' = 'card'): string => {
-  const isHeic = isHeicFile(publicId);
-  
   const transformations: Record<string, CloudinaryTransformation> = {
     // ~30KB thumbnail for very small previews
     thumbnail: {
@@ -109,7 +102,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: isHeic ? 'webp' : 'auto',
+      format: 'webp',
       dpr: 'auto'
     },
     // ~100KB card - optimized for catalog listings
@@ -119,7 +112,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: isHeic ? 'webp' : 'auto',
+      format: 'webp',
       dpr: 'auto'
     },
     // ~300KB detail for product pages
@@ -129,7 +122,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       crop: 'fit',
       gravity: 'auto',
       quality: 'auto:good',
-      format: isHeic ? 'webp' : 'auto',
+      format: 'webp',
       dpr: 'auto'
     },
     // ~200KB compressed (main storage format)
@@ -139,7 +132,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: isHeic ? 'webp' : 'auto'
+      format: 'webp'
     }
   };
   
@@ -155,7 +148,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
       crop: 'fit',
       gravity: 'auto',
       quality: 'auto:low',
-      format: 'auto',
+      format: 'webp',
       dpr: 'auto'
     }),
     tablet: buildCloudinaryUrl(publicId, {
@@ -164,7 +157,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
       crop: 'fit',
       gravity: 'auto',
       quality: 'auto:low',
-      format: 'auto',
+      format: 'webp',
       dpr: 'auto'
     }),
     desktop: buildCloudinaryUrl(publicId, {
@@ -173,7 +166,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
       crop: 'fit',
       gravity: 'auto',
       quality: 'auto:low',
-      format: 'auto',
+      format: 'webp',
       dpr: 'auto'
     })
   };
@@ -187,7 +180,7 @@ export const getCompressedImageUrl = (publicId: string): string => {
     crop: 'fill',
     gravity: 'auto',
     quality: 'auto:low',
-    format: 'auto'
+    format: 'webp'
   });
 };
 
