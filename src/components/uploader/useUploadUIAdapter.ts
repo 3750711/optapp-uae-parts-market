@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useStagedCloudinaryUpload } from "@/hooks/useStagedCloudinaryUpload";
+import { extractPublicIdFromUrl, getProductImageUrl } from "@/utils/cloudinaryUtils";
 
 type AdapterOpts = {
   max?: number;
@@ -26,9 +27,19 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
     // Create preview URL if it doesn't exist
     if (!thumbUrl && item.file) {
       if (isHeicFile(item.file)) {
-        // For HEIC files, don't create blob URL as it won't work - use placeholder
-        thumbUrl = null; // Will be handled by UI component with a placeholder
+        // For HEIC files, try to generate Cloudinary preview if we have a URL
+        if (item.url) {
+          const publicId = extractPublicIdFromUrl(item.url);
+          if (publicId) {
+            thumbUrl = getProductImageUrl(publicId, 'thumbnail');
+          } else {
+            thumbUrl = "/placeholder-heic.svg"; // Fallback placeholder
+          }
+        } else {
+          thumbUrl = "/placeholder-heic.svg"; // This should be a placeholder image
+        }
       } else {
+        // Create blob URL for regular files
         thumbUrl = URL.createObjectURL(item.file);
       }
     }

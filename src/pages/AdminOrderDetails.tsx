@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle, MessageSquare, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 import { OrderTelegramMedia } from '@/components/order/OrderTelegramMedia';
+import CloudinaryImage from '@/components/ui/CloudinaryImage';
+import { extractPublicIdFromUrl } from '@/utils/cloudinaryUtils';
 
 const AdminOrderDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -429,10 +431,12 @@ const AdminOrderDetails = () => {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {allImages.map((imageUrl, index) => (
                           <div key={index} className="relative group aspect-square rounded-lg overflow-hidden bg-muted border">
-                            <img 
-                              src={imageUrl} 
+                            <CloudinaryImage 
+                              publicId={extractPublicIdFromUrl(imageUrl) || imageUrl}
                               alt={`Order image ${index + 1}`}
                               className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              size="card"
+                              fallbackSrc={imageUrl}
                             />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                               <Button

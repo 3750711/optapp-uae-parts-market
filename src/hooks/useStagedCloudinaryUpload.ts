@@ -344,21 +344,17 @@ export const useStagedCloudinaryUpload = () => {
     });
   }, []);
 
-  // Upload to Cloudinary with retry logic
-  const uploadToCloudinary = useCallback(async (
+  // Upload to Edge Function with retry logic
+  const uploadToEdgeFunction = useCallback(async (
     file: File,
-    signature: CloudinarySignature,
+    publicId: string,
     onProgress: (progress: number) => void,
     retryCount = 0
   ): Promise<{ url: string; publicId: string }> => {
     return new Promise((resolve, reject) => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('api_key', signature.api_key);
-      formData.append('timestamp', signature.timestamp.toString());
-      formData.append('folder', signature.folder);
-      formData.append('public_id', signature.public_id);
-      formData.append('signature', signature.signature);
+      formData.append('customPublicId', publicId);
 
       const xhr = new XMLHttpRequest();
       
@@ -373,12 +369,16 @@ export const useStagedCloudinaryUpload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
             const response = JSON.parse(xhr.responseText);
-            resolve({
-              url: response.secure_url,
-              publicId: response.public_id
-            });
+            if (response.success && response.mainImageUrl && response.publicId) {
+              resolve({
+                url: response.mainImageUrl,
+                publicId: response.publicId
+              });
+            } else {
+              reject(new Error(response.error || 'Edge Function upload failed'));
+            }
           } catch (error) {
-            reject(new Error('Invalid Cloudinary response'));
+            reject(new Error('Invalid Edge Function response'));
           }
         } else {
           // Enhanced retry logic with exponential backoff and jitter
@@ -387,14 +387,14 @@ export const useStagedCloudinaryUpload = () => {
             const jitter = Math.random() * 400; // 0-400ms jitter
             const delay = baseDelay + jitter;
             
-            console.log(`⏳ Retrying upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
+            console.log(`⏳ Retrying Edge Function upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
             setTimeout(() => {
-              uploadToCloudinary(file, signature, onProgress, retryCount + 1)
+              uploadToEdgeFunction(file, publicId, onProgress, retryCount + 1)
                 .then(resolve)
                 .catch(reject);
             }, delay);
           } else {
-            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`));
+            reject(new Error(`Edge Function upload failed: ${xhr.status} ${xhr.statusText}`));
           }
         }
       };
@@ -405,9 +405,9 @@ export const useStagedCloudinaryUpload = () => {
           const jitter = Math.random() * 400;
           const delay = baseDelay + jitter;
           
-          console.log(`🔄 Network error, retrying in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
+          console.log(`🔄 Network error, retrying Edge Function in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
           setTimeout(() => {
-            uploadToCloudinary(file, signature, onProgress, retryCount + 1)
+            uploadToEdgeFunction(file, publicId, onProgress, retryCount + 1)
               .then(resolve)
               .catch(reject);
           }, delay);
@@ -416,10 +416,10 @@ export const useStagedCloudinaryUpload = () => {
         }
       };
       
-      xhr.ontimeout = () => reject(new Error('Upload timeout'));
+      xhr.ontimeout = () => reject(new Error('Edge Function upload timeout'));
       
-      xhr.open('POST', signature.upload_url);
-      xhr.timeout = 120000; // 120 second timeout
+      xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cloudinary-upload`);
+      xhr.timeout = 180000; // 3 minute timeout for HEIC processing
       xhr.send(formData);
     });
   }, []);
@@ -564,8 +564,30 @@ export const useStagedCloudinaryUpload = () => {
       // Process files with adaptive parallelism
       await runPool(parallelism, items, async (item) => {
         try {
-          // Step 1: Compression (skip small files and HEIC)
-          const shouldCompress = !item.isHeic && item.file.size > 300_000; // Skip files under 300KB
+          // For HEIC files, upload directly to Edge Function (handles conversion)
+          if (item.isHeic) {
+            item.status = 'uploading';
+            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+            
+            const result = await uploadToEdgeFunction(
+              item.file,
+              item.publicId!,
+              (progress) => {
+                item.progress = progress;
+                setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
+              }
+            );
+            
+            item.status = 'success';
+            item.url = result.url;
+            newUrls.push(result.url);
+            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
+            
+            return; // Exit early for HEIC processing
+          }
+
+          // Step 1: Compression (for non-HEIC files only)
+          const shouldCompress = item.file.size > 300_000; // Skip files under 300KB
           let processedFile = item.file;
           
           if (shouldCompress) {
@@ -600,13 +622,13 @@ export const useStagedCloudinaryUpload = () => {
             }
           }
 
-          // Step 3: Upload with retry
+          // Step 3: Upload with retry (fallback for non-HEIC files)
           item.status = 'uploading';
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
           
-          const result = await uploadToCloudinary(
+          const result = await uploadToEdgeFunction(
             processedFile,
-            signature,
+            item.publicId!,
             (progress) => {
               item.progress = progress;
               setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
@@ -662,7 +684,7 @@ export const useStagedCloudinaryUpload = () => {
       // Don't auto-clear uploadItems to prevent photos from disappearing
       // Items will be managed through UI interactions instead
     }
-  }, [initSession, signBatchChunked, ensureSignature, compressInWorker, uploadToCloudinary, stagedUrls, toast]);
+  }, [initSession, signBatchChunked, ensureSignature, compressInWorker, uploadToEdgeFunction, stagedUrls, toast]);
 
   // Attach staged URLs to real order
   const attachToOrder = useCallback(async (orderId: string): Promise<void> => {
