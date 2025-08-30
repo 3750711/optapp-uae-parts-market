@@ -28,12 +28,11 @@ const AdminSellerStatistics = () => {
     if (!statistics || statistics.length === 0) return;
 
     const exportData = statistics.map(stat => ({
-      'Дата': format(new Date(stat.date), 'dd.MM.yyyy'),
       'Продавец': stat.seller_name || 'Не указано',
-      'OPT ID': stat.opt_id || 'Не указано',
+      'OPT ID': stat.seller_opt_id || 'Не указано',
       'Объявления': stat.products_created,
       'Заказы': stat.orders_created,
-      'Сумма заказов': stat.total_order_value,
+      'Сумма заказов': stat.total_revenue,
       'Средний чек': stat.avg_order_value
     }));
 
@@ -48,7 +47,7 @@ const AdminSellerStatistics = () => {
   // Calculate summary statistics
   const totalProductsCreated = statistics?.reduce((sum, stat) => sum + stat.products_created, 0) || 0;
   const totalOrdersCreated = statistics?.reduce((sum, stat) => sum + stat.orders_created, 0) || 0;
-  const totalOrderValue = statistics?.reduce((sum, stat) => sum + stat.total_order_value, 0) || 0;
+  const totalOrderValue = statistics?.reduce((sum, stat) => sum + stat.total_revenue, 0) || 0;
   const activeSellers = new Set(statistics?.map(stat => stat.seller_id) || []).size;
 
   if (error) {
@@ -193,16 +192,15 @@ const AdminSellerStatistics = () => {
             ) : isMobile ? (
               <div className="space-y-4">
                 {statistics.map((stat, index) => (
-                  <Card key={`${stat.seller_id}-${stat.date}-${index}`}>
+                  <Card key={`${stat.seller_id}-${index}`}>
                     <CardContent className="p-4">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-medium">{stat.seller_name || 'Не указано'}</p>
-                            <p className="text-sm text-muted-foreground">{format(new Date(stat.date), 'dd.MM.yyyy')}</p>
                           </div>
-                          {stat.opt_id && (
-                            <Badge variant="outline">{stat.opt_id}</Badge>
+                          {stat.seller_opt_id && (
+                            <Badge variant="outline">{stat.seller_opt_id}</Badge>
                           )}
                         </div>
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -216,7 +214,7 @@ const AdminSellerStatistics = () => {
                           </div>
                           <div>
                             <span className="text-muted-foreground">Сумма:</span>
-                            <span className="ml-2 font-medium">${stat.total_order_value.toFixed(0)}</span>
+                            <span className="ml-2 font-medium">${stat.total_revenue.toFixed(0)}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Средний чек:</span>
@@ -230,38 +228,36 @@ const AdminSellerStatistics = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Дата</TableHead>
-                      <TableHead>Продавец</TableHead>
-                      <TableHead>OPT ID</TableHead>
-                      <TableHead className="text-right">Объявления</TableHead>
-                      <TableHead className="text-right">Заказы</TableHead>
-                      <TableHead className="text-right">Сумма заказов</TableHead>
-                      <TableHead className="text-right">Средний чек</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {statistics.map((stat, index) => (
-                      <TableRow key={`${stat.seller_id}-${stat.date}-${index}`}>
-                        <TableCell>{format(new Date(stat.date), 'dd.MM.yyyy')}</TableCell>
-                        <TableCell className="font-medium">{stat.seller_name || 'Не указано'}</TableCell>
-                        <TableCell>
-                          {stat.opt_id ? (
-                            <Badge variant="outline">{stat.opt_id}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">Не указано</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{stat.products_created}</TableCell>
-                        <TableCell className="text-right">{stat.orders_created}</TableCell>
-                        <TableCell className="text-right">${stat.total_order_value.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">${stat.avg_order_value.toFixed(2)}</TableCell>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Продавец</TableHead>
+                        <TableHead>OPT ID</TableHead>
+                        <TableHead className="text-right">Объявления</TableHead>
+                        <TableHead className="text-right">Заказы</TableHead>
+                        <TableHead className="text-right">Сумма заказов</TableHead>
+                        <TableHead className="text-right">Средний чек</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {statistics.map((stat, index) => (
+                        <TableRow key={`${stat.seller_id}-${index}`}>
+                          <TableCell className="font-medium">{stat.seller_name || 'Не указано'}</TableCell>
+                          <TableCell>
+                            {stat.seller_opt_id ? (
+                              <Badge variant="outline">{stat.seller_opt_id}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">Не указано</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">{stat.products_created}</TableCell>
+                          <TableCell className="text-right">{stat.orders_created}</TableCell>
+                          <TableCell className="text-right">${stat.total_revenue.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">${stat.avg_order_value.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
               </div>
             )}
           </CardContent>

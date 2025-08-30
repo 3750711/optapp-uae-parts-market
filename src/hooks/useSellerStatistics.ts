@@ -3,13 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { startOfDay, endOfDay, subDays } from 'date-fns';
 
 export interface SellerStatistic {
-  date: string;
   seller_id: string;
   seller_name: string;
-  opt_id: string | null;
+  seller_opt_id: string | null;
   products_created: number;
   orders_created: number;
-  total_order_value: number;
+  total_revenue: number;
   avg_order_value: number;
 }
 
@@ -28,8 +27,8 @@ export const useSellerStatistics = ({
     queryKey: ['seller-daily-statistics', startDate, endDate],
     queryFn: async (): Promise<SellerStatistic[]> => {
       const { data, error } = await supabase.rpc('get_seller_daily_statistics', {
-        p_start_date: startOfDay(startDate).toISOString().split('T')[0],
-        p_end_date: endOfDay(endDate).toISOString().split('T')[0]
+        start_date: startOfDay(startDate).toISOString().split('T')[0],
+        end_date: endOfDay(endDate).toISOString().split('T')[0]
       });
 
       if (error) {
@@ -37,7 +36,13 @@ export const useSellerStatistics = ({
         throw error;
       }
 
-      return data || [];
+      // Calculate avg_order_value for each seller
+      const processedData = (data || []).map((item: any) => ({
+        ...item,
+        avg_order_value: item.orders_created > 0 ? item.total_revenue / item.orders_created : 0
+      }));
+
+      return processedData;
     },
     enabled,
     staleTime: 1000 * 60 * 5, // 5 minutes
