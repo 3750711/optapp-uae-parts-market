@@ -71,10 +71,17 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
   const removeStagedUrl = hook.removeStagedUrl;
   const retryItem = null; // пока не реализован в оригинальном хуке
   const attachToOrder = hook.attachToOrder;
+  const initSession = hook.initSession;
 
   const api = useMemo(() => ({
     items,
-    uploadFiles: (files: File[]) => uploadFiles?.(files),
+    uploadFiles: async (files: File[]) => {
+      // Инициализируем сессию для IndexedDB persistence
+      if (initSession) {
+        await initSession();
+      }
+      return uploadFiles?.(files);
+    },
     removeItem: (id: string) => {
       // Пробуем удаление из uploadItems по ID и из stagedUrls по URL
       removeUploadItem?.(id);
@@ -90,7 +97,7 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
     clearItems: () => {
       hook.clearStaging?.();
     }
-  }), [items, uploadFiles, removeUploadItem, removeStagedUrl, retryItem, attachToOrder, hook]);
+  }), [items, uploadFiles, removeUploadItem, removeStagedUrl, retryItem, attachToOrder, hook, initSession]);
 
   return api;
 }
