@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useUploadUIAdapter } from "./useUploadUIAdapter";
 import { generateThumbnailUrl } from "@/utils/cloudinaryUtils";
-import { isHeicFile, logHeicProcessing, getHeicStatusMessage } from "@/utils/heicProcessingUtils";
+
 
 type Props = {
   max?: number;
@@ -41,12 +41,8 @@ export default function SimplePhotoUploader({
       files: files.map(f => ({ name: f.name, type: f.type, size: f.size }))
     });
     
-    // Improved HEIC detection and logging
-    const heicFiles = files.filter(isHeicFile);
-    
-    if (heicFiles.length > 0) {
-      heicFiles.forEach(file => logHeicProcessing('detected', file));
-    }
+    // Simple file logging
+    console.log('📸 Files to upload:', files.map(f => ({ name: f.name, type: f.type, size: f.size })));
     
     if (files.length) uploadFiles?.(files);
     // сбрасываем value, чтобы можно было выбрать те же файлы повторно
@@ -107,7 +103,7 @@ export default function SimplePhotoUploader({
               />
             ) : (
               <div className="w-full aspect-square grid place-items-center text-xs text-muted-foreground bg-muted">
-                {it.originalFile ? getHeicStatusMessage(it.status, it.originalFile.name) : "Загрузка..."}
+                {it.originalFile ? statusLabel(it.status) : "Загрузка..."}
               </div>
             )}
 
@@ -119,10 +115,7 @@ export default function SimplePhotoUploader({
               >
                 {it.status === "uploading" 
                   ? `${Math.round(it.progress || 0)}%` 
-                  : (it.originalFile && isHeicFile(it.originalFile) 
-                      ? getHeicStatusMessage(it.status, it.originalFile.name)
-                      : statusLabel(it.status)
-                    )
+                  : statusLabel(it.status)
                 }
               </figcaption>
             )}

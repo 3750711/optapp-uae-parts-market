@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { uploadViaEdgeFunction } from './uploadViaEdgeFunction';
 import { useToast } from '@/hooks/use-toast';
-import { useHeicWorkerManager } from './useHeicWorkerManager';
 
 interface StagedUploadItem {
   id: string;
@@ -13,17 +12,14 @@ interface StagedUploadItem {
   error?: string;
   url?: string;
   publicId?: string;
-  isHeic?: boolean;
   originalSize?: number;
   compressedSize?: number;
-  wasHeicConverted?: boolean;
   metadata?: {
     width?: number;
     height?: number;
     size?: number;
     mime?: string;
     fallback?: string;
-    heic?: boolean;
     networkType?: string;
     quality?: number;
   };
@@ -53,7 +49,6 @@ interface CompressionResult {
   originalSize?: number;
   compressedSize?: number;
   compressionMs?: number;
-  wasHeicConverted?: boolean;
 }
 
 // IndexedDB for storing staged URLs
@@ -162,48 +157,11 @@ const stagingDB = new StagedUploadDB();
 
 export const useStagedCloudinaryUpload = () => {
   const { toast } = useToast();
-  const { convert: convertHeicFile } = useHeicWorkerManager();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [stagedUrls, setStagedUrls] = useState<string[]>([]);
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Try HEIC worker conversion with proper error handling
-  const tryHeicWorkerConversion = useCallback(async (
-    file: File, 
-    maxSide: number, 
-    quality: number, 
-    fileId: string
-  ): Promise<CompressionResult> => {
-    try {
-      console.log('🤖 HEIC Worker: Attempting conversion', { fileId });
-      
-      const result = await convertHeicFile(file, { maxSide, quality, budgetKB: 320 });
-      
-      console.log('✅ HEIC Worker: Conversion successful', {
-        fileId,
-        originalSize: file.size,
-        convertedSize: result.blob.size,
-        compressionRatio: Math.round((1 - result.blob.size / file.size) * 100) + '%'
-      });
-      
-      return {
-        ok: true,
-        blob: result.blob,
-        mime: result.mime || 'image/jpeg',
-        originalSize: file.size,
-        compressedSize: result.blob.size,
-        wasHeicConverted: true
-      };
-    } catch (error) {
-      console.error('💥 HEIC Worker: Exception during conversion', { fileId, error });
-      return { 
-        ok: false, 
-        code: 'HEIC_WORKER_EXCEPTION',
-        originalSize: file.size 
-      };
-    }
-  }, [convertHeicFile]);
 
   // Load existing session data on mount
   const loadSession = useCallback(async (sessionId: string) => {
@@ -329,85 +287,9 @@ export const useStagedCloudinaryUpload = () => {
     return signature;
   }, []);
 
-  // Convert HEIC via Edge Function fallback
-  const convertHeicViaEdgeFunction = useCallback(async (file: File, quality = 0.82, maxSide = 1600): Promise<CompressionResult> => {
-    try {
-      console.log('🌐 HEIC Edge Conversion: Starting server-side conversion', {
-        fileName: file.name,
-        fileSize: file.size,
-        quality,
-        maxSide
-      });
 
-      // Convert file to base64
-      const fileToBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = () => {
-            const result = reader.result as string;
-            const base64 = result.split(',')[1];
-            resolve(base64);
-          };
-          reader.onerror = error => reject(error);
-        });
-      };
-
-      const fileData = await fileToBase64(file);
-      
-      const { data, error } = await supabase.functions.invoke('convert-heic', {
-        body: {
-          fileData,
-          fileName: file.name,
-          quality,
-          maxSide
-        }
-      });
-
-      if (error) {
-        console.error('❌ HEIC Edge Conversion: Error:', error);
-        throw new Error(error.message || 'Edge Function conversion failed');
-      }
-
-      if (!data?.success || !data?.data) {
-        console.error('❌ HEIC Edge Conversion: Invalid response:', data);
-        throw new Error(data?.error || 'Invalid conversion response');
-      }
-
-      // Convert base64 back to blob
-      const binaryString = atob(data.data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const convertedBlob = new Blob([bytes], { type: 'image/jpeg' });
-
-      console.log('✅ HEIC Edge Conversion: Success', {
-        originalSize: data.originalSize,
-        convertedSize: data.convertedSize,
-        compressionRatio: Math.round((1 - data.convertedSize / data.originalSize) * 100) + '%'
-      });
-
-      return {
-        ok: true,
-        blob: convertedBlob,
-        mime: 'image/jpeg',
-        originalSize: data.originalSize,
-        compressedSize: data.convertedSize,
-        wasHeicConverted: true
-      };
-    } catch (error) {
-      console.error('💥 HEIC Edge Conversion: Failed:', error);
-      return { 
-        ok: false, 
-        code: 'HEIC_EDGE_CONVERSION_FAILED',
-        originalSize: file.size
-      };
-    }
-  }, []);
-
-  // Compress image in worker with adaptive parameters and HEIC handling
-  const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82, enableHeicWasm = true): Promise<CompressionResult> => {
+  // Compress image in worker with adaptive parameters
+  const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82): Promise<CompressionResult> => {
     const fileId = Math.random().toString(36).slice(2, 8);
     const isHeicFile = /\.(heic|heif)$/i.test(file.name) || /image\/(heic|heif)/i.test(file.type);
     
@@ -416,33 +298,19 @@ export const useStagedCloudinaryUpload = () => {
       fileName: file.name,
       fileSize: file.size,
       isHeicFile,
-      heicWasmEnabled: enableHeicWasm,
       compressionParams: { maxSide, quality }
     });
 
-    // For HEIC files, try worker first, then Edge Function fallback
-    if (isHeicFile && enableHeicWasm) {
-      console.log('📱 HEIC Processing: Attempting worker conversion first...');
-      
-      const workerResult = await tryHeicWorkerConversion(file, maxSide, quality, fileId);
-      if (workerResult.ok) {
-        return workerResult;
-      }
-      
-      console.log('⚠️ HEIC Processing: Worker failed, trying Edge Function fallback...');
-      const edgeResult = await convertHeicViaEdgeFunction(file, quality, maxSide);
-      if (edgeResult.ok) {
-        return edgeResult;
-      }
-      
-      console.error('💥 HEIC Processing: Both worker and Edge Function failed');
-      return { ok: false, code: 'HEIC_ALL_METHODS_FAILED', originalSize: file.size };
-    }
-    
-    // For HEIC files with WASM disabled, go straight to Edge Function
-    if (isHeicFile && !enableHeicWasm) {
-      console.log('🌐 HEIC Processing: WASM disabled, using Edge Function...');
-      return convertHeicViaEdgeFunction(file, quality, maxSide);
+    // For HEIC files, skip compression and upload directly to Cloudinary
+    if (isHeicFile) {
+      console.log('📱 HEIC Processing: Skipping compression, will upload directly to Cloudinary');
+      return {
+        ok: true,
+        blob: file,
+        mime: file.type || 'image/heic',
+        originalSize: file.size,
+        compressedSize: file.size
+      };
     }
     
     // Regular image compression for non-HEIC files
@@ -477,7 +345,6 @@ export const useStagedCloudinaryUpload = () => {
             originalSize: result.original?.size || file.size,
             compressedSize: result.size,
             compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A',
-            wasHeicConverted: result.wasHeicConverted,
             isHeicFile,
             finalMime: result.mime
           });
@@ -487,8 +354,7 @@ export const useStagedCloudinaryUpload = () => {
             mime: result.mime,
             originalSize: result.original?.size || file.size,
             compressedSize: result.size,
-            compressionMs: result.compressionMs,
-            wasHeicConverted: result.wasHeicConverted
+            compressionMs: result.compressionMs
           });
         } else {
           console.warn('⚠️ UI Upload: Compression failed', {
@@ -496,7 +362,7 @@ export const useStagedCloudinaryUpload = () => {
             fileName: file.name,
             code: result.code,
             message: result.message,
-            wasHeicAttempt: isHeicFile
+            wasHeicFile: isHeicFile
           });
           resolve({ 
             ok: false, 
@@ -513,7 +379,7 @@ export const useStagedCloudinaryUpload = () => {
           fileId,
           fileName: file.name,
           error,
-          wasHeicAttempt: isHeicFile
+          wasHeicFile: isHeicFile
         });
         resolve({ ok: false, code: 'WORKER_ERROR', originalSize: file.size });
       };
@@ -547,15 +413,13 @@ export const useStagedCloudinaryUpload = () => {
     file: File,
     signature: CloudinarySignature,
     onProgress: (progress: number) => void,
-    wasHeicConverted: boolean = false,
     retryCount = 0
   ): Promise<{ url: string; publicId: string }> => {
     try {
       console.log('📤 Uploading via Edge Function:', {
         fileName: file.name,
         fileSize: file.size,
-        publicId: signature.public_id,
-        wasHeicConverted
+        publicId: signature.public_id
       });
 
       // Convert file to base64
@@ -619,7 +483,7 @@ export const useStagedCloudinaryUpload = () => {
         
         console.log(`🔄 Retrying upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return uploadToCloudinary(file, signature, onProgress, wasHeicConverted, retryCount + 1);
+        return uploadToCloudinary(file, signature, onProgress, retryCount + 1);
       }
       
       throw new Error(error instanceof Error ? error.message : 'Upload failed');
@@ -709,7 +573,7 @@ export const useStagedCloudinaryUpload = () => {
 
     console.log(`📱 Network: ${networkType}, parallelism: ${parallelism}, quality: ${quality}`);
 
-    // Create upload items with stable UUID-based public IDs and HEIC detection
+    // Create upload items with stable UUID-based public IDs
     const items: StagedUploadItem[] = files.map((file) => {
       const publicId = `product_${crypto.randomUUID().replace(/-/g, '_')}`;
       return {
@@ -718,8 +582,6 @@ export const useStagedCloudinaryUpload = () => {
         progress: 0,
         status: 'pending',
         publicId, // Store the stable publicId for signing
-        isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
-                file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif'),
         originalSize: file.size
       };
     });
@@ -771,91 +633,34 @@ export const useStagedCloudinaryUpload = () => {
       // Process files with adaptive parallelism
       await runPool(parallelism, items, async (item) => {
         try {
-            // Step 1: Compression and HEIC conversion
-            // HEIC files MUST always be processed for conversion, regardless of size
-            const shouldCompress = item.isHeic || item.file.size > 300_000;
+            // Step 1: Compression for files over 300KB
+            const shouldCompress = item.file.size > 300_000;
             let processedFile = item.file;
             
-            // Enhanced HEIC detection and logging
-            if (item.isHeic || /heic|heif/i.test(item.file.type) || /\.hei[cf]$/i.test(item.file.name)) {
-              console.log(`🔄 HEIC Processing [${Date.now()}]: Файл HEIC обнаружен`, {
-                fileName: item.file.name,
-                fileSize: `${Math.round(item.file.size / 1024)}KB`,
-                fileType: item.file.type,
-                status: 'Начинается конвертация в JPEG...'
-              });
-            }
-            
             if (shouldCompress) {
-            item.status = 'compressing';
-            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
-            
-            const compressionResult = await compressInWorker(item.file, maxSide, quality, true);
-            if (compressionResult.ok && compressionResult.blob) {
-              // Always create JPEG file for consistency
-              processedFile = new File(
-                [compressionResult.blob], 
-                item.file.name.replace(/\.\w+$/i, '.jpg'), 
-                { type: 'image/jpeg' }
-              );
-              item.compressedSize = compressionResult.compressedSize;
-              // Track if this was converted from HEIC
-              item.wasHeicConverted = compressionResult.wasHeicConverted;
+              item.status = 'compressing';
+              setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
               
-              // Enhanced HEIC success logging
-              if (item.isHeic && compressionResult.wasHeicConverted) {
-                console.log(`✅ HEIC Processing [${Date.now()}]: Успешная конвертация HEIC → JPEG`, {
+              const compressionResult = await compressInWorker(item.file, maxSide, quality);
+              if (compressionResult.ok && compressionResult.blob) {
+                processedFile = new File(
+                  [compressionResult.blob], 
+                  item.file.name, 
+                  { type: compressionResult.mime || item.file.type }
+                );
+                item.compressedSize = compressionResult.compressedSize;
+                
+                console.log('✅ Compression successful', {
                   fileName: item.file.name,
                   originalSize: `${Math.round(item.file.size / 1024)}KB`,
-                  convertedSize: `${Math.round(compressionResult.compressedSize || 0 / 1024)}KB`,
-                  compressionRatio: `${Math.round((1 - (compressionResult.compressedSize || 0) / item.file.size) * 100)}% сжатие`
+                  compressedSize: `${Math.round(compressionResult.compressedSize || 0 / 1024)}KB`,
+                  compressionRatio: `${Math.round((1 - (compressionResult.compressedSize || 0) / item.file.size) * 100)}% reduction`
                 });
-              }
-            } else if (item.isHeic && compressionResult.code?.includes('HEIC')) {
-              // Try server-side HEIC conversion as fallback
-              console.warn('🔄 HEIC worker failed, trying server conversion', {
-                fileName: item.file.name,
-                error: compressionResult.code
-              });
-              
-              toast({
-                title: "Конвертация HEIC",
-                description: `Конвертируем ${item.file.name} на сервере...`,
-              });
-              
-              try {
-                const convertedFile = await convertHeicOnServer(item.file);
-                processedFile = convertedFile;
-                item.compressedSize = convertedFile.size;
-                item.wasHeicConverted = true;
-                
-                toast({
-                  title: "Успех",
-                  description: `HEIC файл ${item.file.name} успешно сконвертирован`,
-                });
-              } catch (serverError) {
-                console.error('💥 Server HEIC conversion failed:', serverError);
-                throw new Error(`HEIC conversion failed: ${compressionResult.code}`);
-              }
-            } else {
-              // Try server-side compression as fallback for other failures
-              console.warn(`⚠️ Compression failed for ${item.file.name}, trying server fallback:`, compressionResult.code);
-              
-              try {
-                const compressedFile = await compressOnServer(item.file);
-                processedFile = compressedFile;
-                item.compressedSize = compressedFile.size;
-                
-                toast({
-                  title: "Сжатие на сервере",
-                  description: `${item.file.name} обработан на сервере`,
-                });
-              } catch (serverError) {
-                console.error('💥 Server compression also failed:', serverError);
-                throw new Error('Both client and server compression failed');
+              } else {
+                console.warn(`⚠️ Compression failed for ${item.file.name}, uploading original:`, compressionResult.code);
+                // Continue with original file
               }
             }
-          }
 
           // Step 2: Ensure signature
           item.status = 'signing';
@@ -881,8 +686,7 @@ export const useStagedCloudinaryUpload = () => {
             (progress) => {
               item.progress = progress;
               setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
-            },
-            item.wasHeicConverted
+            }
           );
           
           item.status = 'success';
@@ -1007,99 +811,6 @@ export const useStagedCloudinaryUpload = () => {
     setSessionId(null);
   }, [sessionId]);
 
-  // Server-side HEIC conversion fallback
-  const convertHeicOnServer = useCallback(async (file: File): Promise<File> => {
-    console.log('🌐 Converting HEIC on server:', file.name);
-    
-    // Convert file to base64 with chunking to avoid "too many arguments" error
-    const arrayBuffer = await file.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
-    
-    // Process in chunks to avoid call stack limits
-    let base64 = '';
-    const chunkSize = 8192;
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, i + chunkSize);
-      base64 += String.fromCharCode.apply(null, Array.from(chunk));
-    }
-    base64 = btoa(base64);
-    
-    const { data, error } = await supabase.functions.invoke('convert-heic', {
-      body: {
-        fileData: base64,
-        fileName: file.name,
-        maxSide: 1600,
-        quality: 0.82
-      }
-    });
-    
-    if (error || !data?.success) {
-      throw new Error(data?.error || 'Server HEIC conversion failed');
-    }
-    
-    // Convert base64 back to File
-    const binaryString = atob(data.data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    
-    return new File([bytes], data.fileName, { type: data.mimeType });
-  }, []);
-
-  // Server-side compression fallback
-  const compressOnServer = useCallback(async (file: File): Promise<File> => {
-    console.log('🌐 Compressing on server:', file.name);
-    
-    // Upload file temporarily to get URL for compression
-    const tempFileName = `temp-${Date.now()}-${file.name}`;
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('order-images')
-      .upload(tempFileName, file);
-    
-    if (uploadError) {
-      throw new Error(`Temp upload failed: ${uploadError.message}`);
-    }
-    
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('order-images')
-      .getPublicUrl(tempFileName);
-    
-    try {
-      // Compress via Edge Function
-      const { data, error } = await supabase.functions.invoke('compress-image', {
-        body: {
-          imageUrl: publicUrl,
-          maxSizeKB: 400,
-          quality: 0.8,
-          maxWidth: 1600,
-          maxHeight: 1600
-        }
-      });
-      
-      if (error || !data?.success) {
-        throw new Error(data?.error || 'Server compression failed');
-      }
-      
-      // Download compressed image
-      const compressedResponse = await fetch(data.compressedUrl);
-      if (!compressedResponse.ok) {
-        throw new Error('Failed to download compressed image');
-      }
-      
-      const compressedBlob = await compressedResponse.blob();
-      const compressedFile = new File([compressedBlob], file.name.replace(/\.\w+$/, '.webp'), {
-        type: 'image/webp'
-      });
-      
-      return compressedFile;
-      
-    } finally {
-      // Clean up temp file
-      supabase.storage.from('order-images').remove([tempFileName]);
-    }
-  }, []);
 
   return {
     sessionId,

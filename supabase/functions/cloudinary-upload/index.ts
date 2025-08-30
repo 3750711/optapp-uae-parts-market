@@ -76,6 +76,10 @@ Deno.serve(async (req) => {
     const timestamp = Date.now();
     const publicId = customPublicId || `product_${productId || timestamp}_${timestamp}_${Math.random().toString(36).substring(7)}`;
     
+    // Check if file is HEIC/HEIF
+    const isHeicFile = file.type.includes('heic') || file.type.includes('heif') || 
+                      file.name.toLowerCase().includes('.heic') || file.name.toLowerCase().includes('.heif');
+    
     // Create optimized FormData for Cloudinary
     const cloudinaryFormData = new FormData();
     cloudinaryFormData.append('file', file);
@@ -84,8 +88,10 @@ Deno.serve(async (req) => {
     cloudinaryFormData.append('public_id', publicId);
     cloudinaryFormData.append('folder', 'products');
     
-    // Optimized transformation for faster uploads
-    const transformation = 'q_auto:good,f_auto,c_limit,w_1200,h_1200';
+    // Special transformation for HEIC files to ensure conversion to JPEG
+    const transformation = isHeicFile 
+      ? 'f_jpg,q_auto:good,c_limit,w_1600' 
+      : 'q_auto:good,f_auto,c_limit,w_1200,h_1200';
     cloudinaryFormData.append('transformation', transformation);
 
     // Generate signature
@@ -131,8 +137,10 @@ Deno.serve(async (req) => {
 
     const cloudinaryResult: CloudinaryResponse = await uploadResponse!.json();
     
-    // Generate optimized main image URL
-    const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:good,f_auto,c_limit,w_1200,h_1200/${cloudinaryResult.public_id}`;
+    // Generate optimized main image URL with proper transformation
+    const mainImageUrl = isHeicFile
+      ? `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_jpg,q_auto:good,c_limit,w_1600/${cloudinaryResult.public_id}`
+      : `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:good,f_auto,c_limit,w_1200,h_1200/${cloudinaryResult.public_id}`;
     const estimatedCompressedSize = Math.round(cloudinaryResult.bytes * 0.4);
 
     const response: UploadResponse = {

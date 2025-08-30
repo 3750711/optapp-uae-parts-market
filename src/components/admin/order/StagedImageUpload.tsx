@@ -82,7 +82,7 @@ export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
                    item.status === 'uploading' ? `Загрузка ${item.progress}%` : 
                    item.status === 'success' ? 'Готово' :
                    item.status === 'error' ? 'Ошибка' : 'Ожидание'}
-                  {item.metadata?.heic && ' • HEIC: оригинал загружен'}
+                  
                   {item.metadata?.networkType && ` • ${item.metadata.networkType.toUpperCase()}`}
                 </div>
                 {item.compressedSize && item.originalSize && (
