@@ -108,7 +108,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
     
     // Reset input
     event.target.value = '';
-  }, [uploadFiles, orderId, onImagesUpload, images, maxImages]);
+  }, [orderId, onImagesUpload, images, maxImages]);
 
   const handleImageDelete = useCallback(async (url: string) => {
     console.log('🎯 AdvancedImageUpload handleImageDelete:', url);
@@ -182,7 +182,6 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
           type="file"
           multiple
           accept="image/*"
-          capture="environment"
           onChange={handleFileSelect}
           className="absolute inset-0 opacity-0 cursor-pointer"
           disabled={disabled || (hasActiveUploads && !isPaused) || !orderId}
@@ -195,7 +194,13 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
           uploadQueue={uploadQueue}
           isUploading={isUploading}
           isPaused={isPaused}
-          networkProfile={{ effectiveType: '4g', ...networkProfile }}
+          networkProfile={{ 
+            effectiveType: '4g', 
+            saveData: false, 
+            maxConcurrent: networkProfile.parallelism,
+            maxSide: networkProfile.maxSide,
+            quality: networkProfile.quality 
+          }}
           onPause={() => setIsPaused(true)}
           onResume={() => setIsPaused(false)}
           onCancel={() => setUploadQueue([])}
