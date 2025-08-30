@@ -1,80 +1,71 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// deno-lint-ignore-file no-explicit-any
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST,OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Max-Age": "86400",
+};
 
-// Handle CORS preflight requests
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
   try {
     console.log('🎯 HEIC Edge Function: Starting HEIC conversion request');
+    
+    const form = await req.formData();
+    const file = form.get("file") as File | null;
+    const maxSideRaw = form.get("maxSide");
+    if (!file) return new Response("file is required", { status: 400, headers: CORS });
 
-    if (req.method !== 'POST') {
-      return new Response('Method not allowed', { 
-        status: 405, 
-        headers: corsHeaders 
-      });
-    }
-
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-    const maxSide = parseInt(formData.get('maxSide') as string || '1600');
-    const quality = parseFloat(formData.get('quality') as string || '0.82');
-
-    if (!file) {
-      return new Response('No file provided', { 
-        status: 400, 
-        headers: corsHeaders 
-      });
-    }
+    const maxSide = Number(maxSideRaw) || 1600;
+    const cloud = Deno.env.get("CLOUDINARY_CLOUD_NAME")!;
+    const preset = Deno.env.get("CLOUDINARY_UPLOAD_PRESET")!;
 
     console.log('📝 HEIC Edge Function: Processing file', {
       fileName: file.name,
       maxSide,
-      quality,
-      fileSize: file.size
+      fileSize: file.size,
+      cloud,
+      preset
     });
 
-    // Simple fallback: return a small JPEG placeholder
-    // In production, you could implement server-side HEIC conversion here
-    console.log('🔄 HEIC Edge Function: Creating fallback JPEG');
+    // Проксируем загрузку в Cloudinary, просим EAGER-трансформацию
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", preset);
+    fd.append("folder", "products");
+    // сгенерированный JPEG уменьшенного размера:
+    fd.append("eager", `c_limit,w_${maxSide}/f_jpg,q_auto:good`);
+
+    console.log('🔄 HEIC Edge Function: Proxying to Cloudinary with eager transformation');
     
-    // Create a simple 1x1 pixel JPEG as fallback
-    const fallbackJpeg = new Uint8Array([
-      0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
-      0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
-      0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08, 0x07, 0x07, 0x07, 0x09,
-      0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D, 0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12,
-      0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D, 0x1A, 0x1C, 0x1C, 0x20,
-      0x24, 0x2E, 0x27, 0x20, 0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29,
-      0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27, 0x39, 0x3D, 0x38, 0x32,
-      0x3C, 0x2E, 0x33, 0x34, 0x32, 0xFF, 0xC0, 0x00, 0x11, 0x08, 0x00, 0x01,
-      0x00, 0x01, 0x01, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01,
-      0xFF, 0xC4, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0xFF, 0xC4,
-      0x00, 0x14, 0x10, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xDA, 0x00, 0x0C,
-      0x03, 0x01, 0x00, 0x02, 0x11, 0x03, 0x11, 0x00, 0x3F, 0x00, 0xB2, 0xC0,
-      0x07, 0xFF, 0xD9
-    ]);
-
-    return new Response(fallbackJpeg.buffer, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'image/jpeg'
-      }
+    const r = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, { 
+      method: "POST", 
+      body: fd 
     });
+    
+    const text = await r.text();
+    
+    console.log('✅ HEIC Edge Function: Cloudinary response status:', r.status);
 
-  } catch (error) {
-    console.error('💥 HEIC Edge Function: Error:', error);
-    return new Response(`Internal server error: ${error.message}`, {
-      status: 500,
-      headers: corsHeaders
+    return new Response(text, { 
+      status: r.status, 
+      headers: { 
+        ...CORS, 
+        "Content-Type": "application/json" 
+      } 
+    });
+    
+  } catch (e) {
+    console.error('💥 HEIC Edge Function: Error:', e);
+    return new Response(JSON.stringify({ error: String(e) }), { 
+      status: 500, 
+      headers: { 
+        ...CORS, 
+        "Content-Type": "application/json" 
+      } 
     });
   }
 });

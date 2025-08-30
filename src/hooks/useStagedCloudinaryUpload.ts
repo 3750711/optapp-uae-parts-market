@@ -162,7 +162,7 @@ const stagingDB = new StagedUploadDB();
 
 export const useStagedCloudinaryUpload = () => {
   const { toast } = useToast();
-  const { convertHeicFile } = useHeicWorkerManager();
+  const { convert: convertHeicFile } = useHeicWorkerManager();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [stagedUrls, setStagedUrls] = useState<string[]>([]);
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
