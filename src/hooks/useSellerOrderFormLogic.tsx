@@ -190,7 +190,7 @@ export const useSellerOrderFormLogic = (): SellerOrderFormLogicReturn => {
     // Images and videos
     images,
     videos,
-    setImages,
+    setImages: setAllImages,
     setVideos,
     handleImageUpload,
     setAllImages,

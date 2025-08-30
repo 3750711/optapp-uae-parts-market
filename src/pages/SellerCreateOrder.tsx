@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -9,7 +9,8 @@ import { Progress } from "@/components/ui/progress";
 // Import seller-specific components and hooks
 import { useSellerOrderFormLogic } from "@/hooks/useSellerOrderFormLogic";
 import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
-import AdvancedImageUpload from "@/components/admin/order/AdvancedImageUpload";
+import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
+import { useStagedCloudinaryUpload } from "@/hooks/useStagedCloudinaryUpload";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,7 +27,7 @@ const SellerCreateOrder = () => {
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = getSellerPagesTranslations(language);
-  const [primaryImage, setPrimaryImage] = useState<string>('');
+  const { attachToOrder } = useStagedCloudinaryUpload();
 
   const {
     formData,
@@ -35,7 +36,7 @@ const SellerCreateOrder = () => {
     buyerProfiles,
     isLoading,
     createdOrder,
-    setImages,
+    setAllImages,
     setVideos,
     handleInputChange,
     handleImageUpload,
@@ -61,28 +62,7 @@ const SellerCreateOrder = () => {
 
   const onImagesUpload = (urls: string[]) => {
     console.log('📸 Images uploaded in seller order:', urls);
-    setImages(urls);
-    
-    // Set first image as primary if no primary image is set
-    if (!primaryImage && urls.length > 0) {
-      setPrimaryImage(urls[0]);
-    }
-  };
-
-  const onImageDelete = (url: string) => {
-    console.log('🗑️ Image deleted in seller order:', url);
-    const newImages = images.filter(img => img !== url);
-    setImages(newImages);
-    
-    // Update primary image if deleted image was primary
-    if (primaryImage === url) {
-      setPrimaryImage(newImages.length > 0 ? newImages[0] : '');
-    }
-  };
-
-  const onSetPrimaryImage = (url: string) => {
-    console.log('⭐ Primary image set in seller order:', url);
-    setPrimaryImage(url);
+    setAllImages(urls);
   };
 
   const onVideoUpload = (urls: string[]) => {
@@ -162,10 +142,23 @@ const SellerCreateOrder = () => {
     }
   };
 
-  // Generate temporary order ID for image uploads
-  const temporaryOrderId = useMemo(() => {
-    return `temp-seller-${user?.id || 'unknown'}-${Date.now()}`;
-  }, [user?.id]);
+  // Handle attachment of staged images after order creation
+  useEffect(() => {
+    if (createdOrder && images.length > 0) {
+      attachToOrder(createdOrder.id)
+        .then(() => {
+          console.log('✅ Staged images attached to order:', createdOrder.id);
+        })
+        .catch((error) => {
+          console.error('❌ Failed to attach staged images:', error);
+          toast({
+            title: "Предупреждение",
+            description: "Заказ создан, но не удалось привязать изображения",
+            variant: "destructive",
+          });
+        });
+    }
+  }, [createdOrder, attachToOrder, images, toast]);
 
   const isFormDisabled = isLoading || !canSubmit || isInitializing;
 
@@ -256,16 +249,14 @@ const SellerCreateOrder = () => {
               disabled={isFormDisabled}
             />
             
-            <AdvancedImageUpload
-              images={images}
-              onImagesUpload={onImagesUpload}
-              onImageDelete={onImageDelete}
-              onSetPrimaryImage={onSetPrimaryImage}
-              primaryImage={primaryImage}
-              orderId={temporaryOrderId}
-              disabled={isFormDisabled}
-              maxImages={25}
-            />
+            <div>
+              <h3 className="text-lg font-medium mb-4">Изображения</h3>
+              <SimplePhotoUploader
+                onChange={onImagesUpload}
+                max={25}
+                buttonText="Загрузить фото"
+              />
+            </div>
             
             <div>
               <h3 className="text-lg font-medium mb-4">{t.createOrderForm.videos}</h3>
@@ -274,7 +265,7 @@ const SellerCreateOrder = () => {
                 onUpload={onVideoUpload}
                 onDelete={onVideoDelete}
                 maxVideos={3}
-                productId={temporaryOrderId}
+                productId="temp-seller-video"
                 disabled={isFormDisabled}
               />
             </div>
