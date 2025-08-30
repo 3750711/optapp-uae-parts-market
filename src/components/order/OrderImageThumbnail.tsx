@@ -29,7 +29,7 @@ export const OrderImageThumbnail: React.FC<OrderImageThumbnailProps> = ({ orderI
         <img
           src={imageUrl}
           alt="Фото заказа"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain"
         />
       </div>
     );

@@ -20,7 +20,7 @@ export const OrderImages: React.FC<OrderImagesProps> = ({
             <img
               src={url}
               alt={`Order image ${index + 1}`}
-              className="w-full h-full object-cover rounded-lg"
+              className="w-full h-full object-contain rounded-lg"
               loading="lazy"
             />
           </div>

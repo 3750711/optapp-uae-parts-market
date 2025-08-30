@@ -22,7 +22,8 @@ self.onmessage = async (e) => {
     const twoPass = p.twoPass !== false;
 
     const buf = await file.arrayBuffer().catch(() => null);
-    const orientation = buf ? safeReadExifOrientation(buf) : 1;
+    // Always use normal orientation (1) to prevent unwanted rotations
+    const orientation = 1;
 
     const decoded = await decodeImage(file).catch(() => null);
     if (!decoded) throw new Error('DECODE_FAILED');
