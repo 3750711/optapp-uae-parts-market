@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from 'uuid';
 import { uploadViaEdgeFunction } from './uploadViaEdgeFunction';
 import { useToast } from '@/hooks/use-toast';
+import { useHeicWorkerManager } from './useHeicWorkerManager';
 
 interface StagedUploadItem {
   id: string;
@@ -161,10 +162,62 @@ const stagingDB = new StagedUploadDB();
 
 export const useStagedCloudinaryUpload = () => {
   const { toast } = useToast();
+  const { convertHeicFile, isWorkerReady } = useHeicWorkerManager();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [stagedUrls, setStagedUrls] = useState<string[]>([]);
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Try HEIC worker conversion with proper error handling
+  const tryHeicWorkerConversion = useCallback(async (
+    file: File, 
+    maxSide: number, 
+    quality: number, 
+    fileId: string
+  ): Promise<CompressionResult> => {
+    try {
+      console.log('🤖 HEIC Worker: Attempting conversion', { fileId, isReady: isWorkerReady() });
+      
+      const result = await convertHeicFile(file, maxSide, quality);
+      
+      if (result.ok && result.blob) {
+        console.log('✅ HEIC Worker: Conversion successful', {
+          fileId,
+          originalSize: file.size,
+          convertedSize: result.blob.size,
+          compressionRatio: Math.round((1 - result.blob.size / file.size) * 100) + '%'
+        });
+        
+        return {
+          ok: true,
+          blob: result.blob,
+          mime: result.mime || 'image/jpeg',
+          originalSize: file.size,
+          compressedSize: result.blob.size,
+          wasHeicConverted: true
+        };
+      } else {
+        console.warn('⚠️ HEIC Worker: Conversion failed', {
+          fileId,
+          code: result.code,
+          message: result.message
+        });
+        
+        return { 
+          ok: false, 
+          code: result.code || 'HEIC_WORKER_FAILED',
+          originalSize: file.size 
+        };
+      }
+    } catch (error) {
+      console.error('💥 HEIC Worker: Exception during conversion', { fileId, error });
+      return { 
+        ok: false, 
+        code: 'HEIC_WORKER_EXCEPTION',
+        originalSize: file.size 
+      };
+    }
+  }, [convertHeicFile, isWorkerReady]);
 
   // Load existing session data on mount
   const loadSession = useCallback(async (sessionId: string) => {
@@ -290,7 +343,84 @@ export const useStagedCloudinaryUpload = () => {
     return signature;
   }, []);
 
-  // Compress image in worker with adaptive parameters
+  // Convert HEIC via Edge Function fallback
+  const convertHeicViaEdgeFunction = useCallback(async (file: File, quality = 0.82, maxSide = 1600): Promise<CompressionResult> => {
+    try {
+      console.log('🌐 HEIC Edge Conversion: Starting server-side conversion', {
+        fileName: file.name,
+        fileSize: file.size,
+        quality,
+        maxSide
+      });
+
+      // Convert file to base64
+      const fileToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64 = result.split(',')[1];
+            resolve(base64);
+          };
+          reader.onerror = error => reject(error);
+        });
+      };
+
+      const fileData = await fileToBase64(file);
+      
+      const { data, error } = await supabase.functions.invoke('convert-heic', {
+        body: {
+          fileData,
+          fileName: file.name,
+          quality,
+          maxSide
+        }
+      });
+
+      if (error) {
+        console.error('❌ HEIC Edge Conversion: Error:', error);
+        throw new Error(error.message || 'Edge Function conversion failed');
+      }
+
+      if (!data?.success || !data?.data) {
+        console.error('❌ HEIC Edge Conversion: Invalid response:', data);
+        throw new Error(data?.error || 'Invalid conversion response');
+      }
+
+      // Convert base64 back to blob
+      const binaryString = atob(data.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const convertedBlob = new Blob([bytes], { type: 'image/jpeg' });
+
+      console.log('✅ HEIC Edge Conversion: Success', {
+        originalSize: data.originalSize,
+        convertedSize: data.convertedSize,
+        compressionRatio: Math.round((1 - data.convertedSize / data.originalSize) * 100) + '%'
+      });
+
+      return {
+        ok: true,
+        blob: convertedBlob,
+        mime: 'image/jpeg',
+        originalSize: data.originalSize,
+        compressedSize: data.convertedSize,
+        wasHeicConverted: true
+      };
+    } catch (error) {
+      console.error('💥 HEIC Edge Conversion: Failed:', error);
+      return { 
+        ok: false, 
+        code: 'HEIC_EDGE_CONVERSION_FAILED',
+        originalSize: file.size
+      };
+    }
+  }, []);
+
+  // Compress image in worker with adaptive parameters and HEIC handling
   const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82, enableHeicWasm = true): Promise<CompressionResult> => {
     const fileId = Math.random().toString(36).slice(2, 8);
     const isHeicFile = /\.(heic|heif)$/i.test(file.name) || /image\/(heic|heif)/i.test(file.type);
@@ -303,7 +433,33 @@ export const useStagedCloudinaryUpload = () => {
       heicWasmEnabled: enableHeicWasm,
       compressionParams: { maxSide, quality }
     });
+
+    // For HEIC files, try worker first, then Edge Function fallback
+    if (isHeicFile && enableHeicWasm) {
+      console.log('📱 HEIC Processing: Attempting worker conversion first...');
+      
+      const workerResult = await tryHeicWorkerConversion(file, maxSide, quality, fileId);
+      if (workerResult.ok) {
+        return workerResult;
+      }
+      
+      console.log('⚠️ HEIC Processing: Worker failed, trying Edge Function fallback...');
+      const edgeResult = await convertHeicViaEdgeFunction(file, quality, maxSide);
+      if (edgeResult.ok) {
+        return edgeResult;
+      }
+      
+      console.error('💥 HEIC Processing: Both worker and Edge Function failed');
+      return { ok: false, code: 'HEIC_ALL_METHODS_FAILED', originalSize: file.size };
+    }
     
+    // For HEIC files with WASM disabled, go straight to Edge Function
+    if (isHeicFile && !enableHeicWasm) {
+      console.log('🌐 HEIC Processing: WASM disabled, using Edge Function...');
+      return convertHeicViaEdgeFunction(file, quality, maxSide);
+    }
+    
+    // Regular image compression for non-HEIC files
     return new Promise((resolve) => {
       let worker: Worker;
       
@@ -322,7 +478,7 @@ export const useStagedCloudinaryUpload = () => {
       const timeout = setTimeout(() => {
         worker.terminate();
         resolve({ ok: false, code: 'WORKER_TIMEOUT' });
-      }, isHeicFile ? 60000 : 30000); // 60s for HEIC, 30s for other files
+      }, 30000); // 30s for regular image compression
       
       worker.onmessage = (e) => {
         clearTimeout(timeout);
@@ -376,18 +532,8 @@ export const useStagedCloudinaryUpload = () => {
         resolve({ ok: false, code: 'WORKER_ERROR', originalSize: file.size });
       };
       
-      // Detect device capabilities for HEIC WASM
-      const ua = navigator.userAgent || '';
-      const isOldTgWV = /Telegram\/[0-8]\./i.test(ua);
-      const canUseHeicWasm = enableHeicWasm && !isOldTgWV && (navigator.hardwareConcurrency || 4) >= 4;
-
-      // Send compression task with adaptive parameters
-      console.log('📤 UI Upload: Sending compression task to worker', {
-        fileId,
-        canUseHeicWasm,
-        isOldTgWV: /Telegram\/[0-8]\./i.test(navigator.userAgent || ''),
-        hardwareConcurrency: navigator.hardwareConcurrency || 4
-      });
+      // Send compression task for regular images
+      console.log('📤 UI Upload: Sending compression task to worker', { fileId });
       
       try {
         worker.postMessage({
@@ -396,7 +542,7 @@ export const useStagedCloudinaryUpload = () => {
           jpegQuality: quality,
           prefer: 'jpeg',
           twoPass: false,
-          enableHeicWasm: canUseHeicWasm
+          enableHeicWasm: false // Always false for regular compression
         });
       } catch (postError) {
         clearTimeout(timeout);
