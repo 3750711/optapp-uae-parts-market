@@ -43,8 +43,15 @@ export const extractVersionFromUrl = (cloudinaryUrl: string): string | null => {
   }
 };
 
+// Check if the public_id indicates a HEIC file
+const isHeicFile = (publicId: string): boolean => {
+  return publicId.toLowerCase().includes('heic') || publicId.toLowerCase().includes('heif');
+};
+
 // Predefined transformations for different use cases
 export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 'detail' | 'compressed' = 'card'): string => {
+  const isHeic = isHeicFile(publicId);
+  
   const transformations: Record<string, CloudinaryTransformation> = {
     // ~30KB thumbnail for very small previews
     thumbnail: {
@@ -53,7 +60,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: 'auto',
+      format: isHeic ? 'webp' : 'auto',
       dpr: 'auto'
     },
     // ~100KB card - optimized for catalog listings
@@ -63,7 +70,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: 'auto',
+      format: isHeic ? 'webp' : 'auto',
       dpr: 'auto'
     },
     // ~300KB detail for product pages
@@ -73,7 +80,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       crop: 'fit',
       gravity: 'auto',
       quality: 'auto:good',
-      format: 'auto',
+      format: isHeic ? 'webp' : 'auto',
       dpr: 'auto'
     },
     // ~200KB compressed (main storage format)
@@ -83,7 +90,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: 'auto'
+      format: isHeic ? 'webp' : 'auto'
     }
   };
   
@@ -92,6 +99,8 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
 
 // Predefined transformations for order images
 export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 'detail' | 'compressed' = 'card'): string => {
+  const isHeic = isHeicFile(publicId);
+  
   const transformations: Record<string, CloudinaryTransformation> = {
     // ~30KB thumbnail for very small previews
     thumbnail: {
@@ -100,7 +109,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: 'auto',
+      format: isHeic ? 'webp' : 'auto',
       dpr: 'auto'
     },
     // ~100KB card - optimized for catalog listings
@@ -110,7 +119,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: 'auto',
+      format: isHeic ? 'webp' : 'auto',
       dpr: 'auto'
     },
     // ~300KB detail for product pages
@@ -120,7 +129,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       crop: 'fit',
       gravity: 'auto',
       quality: 'auto:good',
-      format: 'auto',
+      format: isHeic ? 'webp' : 'auto',
       dpr: 'auto'
     },
     // ~200KB compressed (main storage format)
@@ -130,7 +139,7 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
-      format: 'auto'
+      format: isHeic ? 'webp' : 'auto'
     }
   };
   

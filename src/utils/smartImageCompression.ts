@@ -16,9 +16,20 @@ export interface SmartCompressionOptions {
 /**
  * Определяет параметры сжатия в зависимости от размера файла
  * @param fileSize Размер файла в байтах
+ * @param fileName Имя файла для определения типа
  * @returns Настройки сжатия или null если сжатие не нужно
  */
-export const getSmartCompressionSettings = (fileSize: number): SmartCompressionOptions | null => {
+export const getSmartCompressionSettings = (fileSize: number, fileName?: string): SmartCompressionOptions | null => {
+  // Check if it's a HEIC file
+  const isHeicFile = fileName && 
+    (fileName.toLowerCase().endsWith('.heic') || fileName.toLowerCase().endsWith('.heif'));
+  
+  // HEIC files should be handled by Cloudinary conversion, not compressed locally
+  if (isHeicFile) {
+    console.log(`🔄 HEIC file detected: ${fileName} - will be converted by Cloudinary`);
+    return null; // Skip local compression for HEIC files
+  }
+  
   // Файлы меньше 400KB не сжимаем - сохраняем оригинальное качество
   if (fileSize < COMPRESSION_THRESHOLDS.NO_COMPRESSION) {
     console.log(`🎯 No compression needed for file ${Math.round(fileSize / 1024)}KB (< 400KB threshold)`);
@@ -60,9 +71,18 @@ export const getSmartCompressionSettings = (fileSize: number): SmartCompressionO
 /**
  * Проверяет, нужно ли сжимать файл
  * @param fileSize Размер файла в байтах
+ * @param fileName Имя файла для определения типа
  * @returns true если файл нужно сжимать
  */
-export const shouldCompressFile = (fileSize: number): boolean => {
+export const shouldCompressFile = (fileSize: number, fileName?: string): boolean => {
+  // Don't compress HEIC files locally - let Cloudinary handle them
+  const isHeicFile = fileName && 
+    (fileName.toLowerCase().endsWith('.heic') || fileName.toLowerCase().endsWith('.heif'));
+  
+  if (isHeicFile) {
+    return false;
+  }
+  
   return fileSize >= COMPRESSION_THRESHOLDS.NO_COMPRESSION;
 };
 
