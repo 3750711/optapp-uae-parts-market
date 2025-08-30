@@ -318,20 +318,6 @@ const AdminOrderDetails = () => {
                         </div>
                       </div>
                     </Button>
-                    <Button
-                      variant="outline"
-                      asChild
-                      className="flex items-center gap-2"
-                    >
-                      <a
-                        href={`https://t.me/${import.meta.env.VITE_TG_BOT_USERNAME}?start=order_${order.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Send className="h-4 w-4" />
-                        📷 Загрузить из Telegram
-                      </a>
-                    </Button>
                     <OrderConfirmImagesDialog 
                       orderId={order.id} 
                       open={showConfirmDialog}
