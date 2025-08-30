@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle, MessageSquare, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
-import { OrderTelegramMedia } from '@/components/order/OrderTelegramMedia';
+
 import CloudinaryImage from '@/components/ui/CloudinaryImage';
 import { extractPublicIdFromUrl } from '@/utils/cloudinaryUtils';
 
@@ -406,10 +406,6 @@ const AdminOrderDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Telegram Media */}
-            {isAdmin && (
-              <OrderTelegramMedia orderId={order.id} />
-            )}
 
             {(allImages.length > 0 || allVideos.length > 0) && (
               <Card>
