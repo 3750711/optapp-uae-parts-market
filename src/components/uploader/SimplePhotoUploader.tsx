@@ -68,8 +68,6 @@ export default function SimplePhotoUploader({
           type="file"
           accept="image/*"
           multiple
-          // мобильная камера по умолчанию
-          capture="environment"
           className="hidden"
           onChange={onPick}
         />
