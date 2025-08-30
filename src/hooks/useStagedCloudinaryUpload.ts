@@ -1,6 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { persistentUploadDB } from '@/utils/persistentUploadDB';
+import { PersistedUploadItem } from '@/types/uploadTypes';
+import { getUploadSessionKey, makeTinyPreviewDataUrl, isHeicFile } from '@/utils/uploadUtils';
+import { extractPublicIdFromUrl, getProductImageUrl } from '@/utils/cloudinaryUtils';
 
 interface StagedUploadItem {
   id: string;
@@ -51,139 +55,53 @@ interface CompressionResult {
   compressionMs?: number;
 }
 
-// IndexedDB for storing staged URLs
-const DB_NAME = 'StagedUploads';
-const DB_VERSION = 1;
-const STORE_NAME = 'sessions';
-
-class StagedUploadDB {
-  private db: IDBDatabase | null = null;
-
-  async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-      
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve();
-      };
-      
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const store = db.createObjectStore(STORE_NAME, { keyPath: 'sessionId' });
-          store.createIndex('createdAt', 'createdAt');
-        }
-      };
-    });
-  }
-
-  async saveSession(sessionId: string, urls: string[]): Promise<void> {
-    if (!this.db) await this.init();
-    
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      
-      const data = {
-        sessionId,
-        urls,
-        createdAt: Date.now()
-      };
-      
-      const request = store.put(data);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async getSession(sessionId: string): Promise<string[] | null> {
-    if (!this.db) await this.init();
-    
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.get(sessionId);
-      
-      request.onsuccess = () => {
-        const result = request.result;
-        resolve(result ? result.urls : null);
-      };
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async clearSession(sessionId: string): Promise<void> {
-    if (!this.db) await this.init();
-    
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.delete(sessionId);
-      
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async clearOldSessions(): Promise<void> {
-    if (!this.db) await this.init();
-    
-    const cutoff = Date.now() - (24 * 60 * 60 * 1000); // 24 hours
-    
-    return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const index = store.index('createdAt');
-      const range = IDBKeyRange.upperBound(cutoff);
-      const request = index.openCursor(range);
-      
-      request.onsuccess = () => {
-        const cursor = request.result;
-        if (cursor) {
-          cursor.delete();
-          cursor.continue();
-        } else {
-          resolve();
-        }
-      };
-      request.onerror = () => reject(request.error);
-    });
-  }
-}
-
-const stagingDB = new StagedUploadDB();
-
-export const useStagedCloudinaryUpload = () => {
+export const useStagedCloudinaryUpload = (params?: { userId?: string; scope?: string; scopeId?: string }) => {
   const { toast } = useToast();
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [stagedUrls, setStagedUrls] = useState<string[]>([]);
+  const [sessionKey, setSessionKey] = useState<string | null>(null);
+  const [persistedItems, setPersistedItems] = useState<PersistedUploadItem[]>([]);
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Initialize session ID and restore from IndexedDB
+  // Generate deterministic session key
+  const getSessionKey = useCallback(() => {
+    if (params?.userId) {
+      return getUploadSessionKey({
+        userId: params.userId,
+        scope: (params.scope as any) || 'new-order',
+        scopeId: params.scopeId
+      });
+    }
+    // Fallback for backward compatibility
+    const stored = localStorage.getItem('spu:lastSessionKey');
+    return stored || `spu:legacy:${crypto.randomUUID()}`;
+  }, [params]);
+
+  // Initialize session and restore persisted data
   const initSession = useCallback(async () => {
-    if (sessionId) return sessionId;
+    if (sessionKey) return sessionKey;
     
-    const newSessionId = crypto.randomUUID();
-    setSessionId(newSessionId);
+    const newSessionKey = getSessionKey();
+    setSessionKey(newSessionKey);
     
     try {
-      // Try to restore previous session data
-      const savedUrls = await stagingDB.getSession(newSessionId);
-      if (savedUrls) {
-        setStagedUrls(savedUrls);
+      // Try to restore persisted session data
+      const saved = await persistentUploadDB.getSession(newSessionKey);
+      if (saved?.items) {
+        setPersistedItems(saved.items);
+        console.log(`✅ Restored ${saved.items.length} persisted items for session: ${newSessionKey}`);
       }
       
       // Clean up old sessions
-      await stagingDB.clearOldSessions();
+      await persistentUploadDB.compactOldSessions(24);
+      
+      // Store current session key for recovery
+      localStorage.setItem('spu:lastSessionKey', newSessionKey);
     } catch (error) {
-      console.error('Failed to initialize staging session:', error);
+      console.error('Failed to initialize persistent session:', error);
     }
     
-    return newSessionId;
-  }, [sessionId]);
+    return newSessionKey;
+  }, [sessionKey, getSessionKey]);
 
   // Get batch Cloudinary signatures using public cloudinary-sign function
   const getBatchSignatures = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
@@ -377,7 +295,7 @@ export const useStagedCloudinaryUpload = () => {
           // Enhanced retry logic with exponential backoff and jitter
           if (retryCount < 2 && (xhr.status >= 500 || xhr.status === 429)) {
             const baseDelay = Math.pow(1.5, retryCount) * 1500;
-            const jitter = Math.random() * 400; // 0-400ms jitter
+            const jitter = Math.random() * 400;
             const delay = baseDelay + jitter;
             
             console.log(`⏳ Retrying Edge Function upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
@@ -411,7 +329,7 @@ export const useStagedCloudinaryUpload = () => {
       
       xhr.ontimeout = () => reject(new Error('Edge Function upload timeout'));
       
-      xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cloudinary-upload`);
+      xhr.open('POST', `https://vfiylfljiixqkjfqubyq.supabase.co/functions/v1/cloudinary-upload`);
       xhr.timeout = 180000; // 3 minute timeout for HEIC processing
       xhr.send(formData);
     });
@@ -472,15 +390,15 @@ export const useStagedCloudinaryUpload = () => {
     return signature;
   }, [getSingleSignature]);
 
-  // Upload files to staging with optimized architecture
+  // Upload files with persistent storage
   const uploadFiles = useCallback(async (files: File[]): Promise<string[]> => {
     if (files.length === 0) return [];
     
     setIsUploading(true);
-    const currentSessionId = await initSession();
+    const currentSessionKey = await initSession();
     const newUrls: string[] = [];
     
-    // Detect network condition for adaptive optimization
+    // Network optimization
     const getNetworkType = () => {
       const connection = (navigator as any).connection;
       if (!connection) return '4g';
@@ -495,36 +413,85 @@ export const useStagedCloudinaryUpload = () => {
 
     console.log(`📱 Network: ${networkType}, parallelism: ${parallelism}, quality: ${quality}`);
 
-    // Create upload items with stable UUID-based public IDs and HEIC detection
-    const items: StagedUploadItem[] = files.map((file) => {
-      const publicId = `product_${crypto.randomUUID().replace(/-/g, '_')}`;
-      return {
-        id: crypto.randomUUID(), // Different from publicId for internal tracking
-        file,
-        progress: 0,
-        status: 'pending',
-        publicId, // Store the stable publicId for signing
-        isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
-                file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif') ||
-                file.type.includes('heic') || file.type.includes('heif'),
-        originalSize: file.size
-      };
-    });
-    
-    // Append new items to existing ones, avoiding duplicates based on file name and size
-    setUploadItems(prev => {
-      const existingFiles = new Set(prev.map(item => `${item.file.name}-${item.file.size}`));
-      const newItems = items.filter(item => 
-        !existingFiles.has(`${item.file.name}-${item.file.size}`)
-      );
-      return [...prev, ...newItems];
-    });
-
     try {
-      // Pre-fetch signatures in chunks (don't await - start parallel with compression)
+      // Create persisted items with previews
+      const newPersistedItems: PersistedUploadItem[] = await Promise.all(
+        files.map(async (file) => {
+          const isHeic = isHeicFile(file);
+          let localPreviewDataUrl: string | undefined;
+          
+          // Generate tiny preview for non-HEIC files
+          if (!isHeic) {
+            try {
+              localPreviewDataUrl = await makeTinyPreviewDataUrl(file);
+            } catch (error) {
+              console.warn('Failed to create preview for', file.name, error);
+            }
+          }
+          
+          const now = Date.now();
+          return {
+            id: crypto.randomUUID(),
+            publicId: `product_${crypto.randomUUID().replace(/-/g, '_')}`,
+            status: 'pending' as const,
+            progress: 0,
+            localPreviewDataUrl,
+            isHeic,
+            originalName: file.name,
+            originalSize: file.size,
+            createdAt: now,
+            updatedAt: now
+          };
+        })
+      );
+
+      // Update persisted items and save immediately
+      const updateItemAndPersist = async (id: string, patch: Partial<PersistedUploadItem>) => {
+        setPersistedItems(prev => {
+          const next = prev.map(item => 
+            item.id === id ? { ...item, ...patch, updatedAt: Date.now() } : item
+          );
+          // Save to IndexedDB immediately (non-blocking)
+          persistentUploadDB.saveSession(currentSessionKey, next).catch(error => 
+            console.error('Failed to persist update:', error)
+          );
+          return next;
+        });
+      };
+
+      // Add new items to persisted state
+      setPersistedItems(prev => {
+        const next = [...prev, ...newPersistedItems];
+        persistentUploadDB.saveSession(currentSessionKey, next).catch(error => 
+          console.error('Failed to persist new items:', error)
+        );
+        return next;
+      });
+
+      // Convert to legacy format for existing pipeline
+      const legacyItems: StagedUploadItem[] = newPersistedItems.map(item => ({
+        id: item.id,
+        file: files.find(f => f.name === item.originalName)!,
+        progress: item.progress,
+        status: item.status as any,
+        publicId: item.publicId,
+        isHeic: item.isHeic,
+        originalSize: item.originalSize
+      }));
+
+      // Append to upload items for processing
+      setUploadItems(prev => {
+        const existingFiles = new Set(prev.map(item => `${item.file.name}-${item.file.size}`));
+        const newItems = legacyItems.filter(item => 
+          !existingFiles.has(`${item.file.name}-${item.file.size}`)
+        );
+        return [...prev, ...newItems];
+      });
+
+      // Pre-fetch signatures in chunks
       const signaturePrefetch = signBatchChunked(
-        items.map(item => item.publicId!), 
-        currentSessionId
+        newPersistedItems.map(item => item.publicId), 
+        currentSessionKey
       );
 
       // Run pool for parallel processing
@@ -552,105 +519,96 @@ export const useStagedCloudinaryUpload = () => {
         await Promise.all(promises);
       };
 
-      // Get signature map (this should complete quickly due to chunking)
+      // Get signature map
       const signatureMap = await signaturePrefetch;
 
       // Process files with adaptive parallelism
-      await runPool(parallelism, items, async (item) => {
+      await runPool(parallelism, legacyItems, async (item) => {
         try {
-          // For HEIC files, upload directly to Edge Function (handles conversion)
+          // For HEIC files, upload directly to Edge Function
           if (item.isHeic) {
-            console.log(`📱 Processing HEIC file: ${item.file.name} (${item.file.type}), size: ${Math.round(item.file.size / 1024)}KB`);
+            console.log(`📱 Processing HEIC file: ${item.file.name}`);
             
-            item.status = 'uploading';
-            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+            await updateItemAndPersist(item.id, { status: 'uploading' });
             
             const result = await uploadToEdgeFunction(
               item.file,
               item.publicId!,
               (progress) => {
-                item.progress = progress;
-                setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
+                updateItemAndPersist(item.id, { progress });
               }
             );
             
             console.log(`✅ HEIC file processed successfully: ${item.file.name} → ${result.url}`);
             
-            item.status = 'success';
-            item.url = result.url;
-            newUrls.push(result.url);
-            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
+            const publicId = extractPublicIdFromUrl(result.url);
+            const cloudinaryThumbUrl = publicId ? getProductImageUrl(publicId, 'thumbnail') : result.url;
             
-            return; // Exit early for HEIC processing
+            await updateItemAndPersist(item.id, { 
+              status: 'completed', 
+              cloudinaryUrl: result.url,
+              cloudinaryThumbUrl,
+              progress: 100,
+              localPreviewDataUrl: undefined // Clear local preview
+            });
+            
+            newUrls.push(result.url);
+            return;
           }
 
           // Step 1: Compression (for non-HEIC files only)
-          const shouldCompress = item.file.size > 300_000; // Skip files under 300KB
+          const shouldCompress = item.file.size > 300_000;
           let processedFile = item.file;
           
           if (shouldCompress) {
-            item.status = 'compressing';
-            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+            await updateItemAndPersist(item.id, { status: 'compressing' });
             
             const compressionResult = await compressInWorker(item.file, maxSide, quality);
             if (compressionResult.ok && compressionResult.blob) {
-              // Always create JPEG file for consistency
               processedFile = new File(
                 [compressionResult.blob], 
                 item.file.name.replace(/\.\w+$/i, '.jpg'), 
                 { type: 'image/jpeg' }
               );
-              item.compressedSize = compressionResult.compressedSize;
-            } else {
-              console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
+              await updateItemAndPersist(item.id, { compressedSize: compressionResult.compressedSize });
             }
           }
 
           // Step 2: Ensure signature
-          item.status = 'signing';
-          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
-          
-          const signature = await ensureSignature(item.publicId!, currentSessionId, signatureMap);
-          
-          // Validate signature
-          const requiredFields = ['api_key', 'timestamp', 'signature', 'upload_url', 'cloud_name', 'public_id'];
-          for (const field of requiredFields) {
-            if (!(field in signature)) {
-              throw new Error(`Signature missing required field: ${field}`);
-            }
-          }
+          await updateItemAndPersist(item.id, { status: 'signing' });
+          const signature = await ensureSignature(item.publicId!, currentSessionKey, signatureMap);
 
-          // Step 3: Upload with retry (fallback for non-HEIC files)
-          item.status = 'uploading';
-          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+          // Step 3: Upload
+          await updateItemAndPersist(item.id, { status: 'uploading' });
           
           const result = await uploadToEdgeFunction(
             processedFile,
             item.publicId!,
             (progress) => {
-              item.progress = progress;
-              setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
+              updateItemAndPersist(item.id, { progress });
             }
           );
           
-          item.status = 'success';
-          item.url = result.url;
+          const publicId = extractPublicIdFromUrl(result.url);
+          const cloudinaryThumbUrl = publicId ? getProductImageUrl(publicId, 'thumbnail') : result.url;
+          
+          await updateItemAndPersist(item.id, { 
+            status: 'completed', 
+            cloudinaryUrl: result.url,
+            cloudinaryThumbUrl,
+            progress: 100,
+            localPreviewDataUrl: undefined // Clear local preview
+          });
+          
           newUrls.push(result.url);
-          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
           
         } catch (error) {
           console.error(`❌ Upload failed for ${item.file.name}:`, error);
-          item.status = 'error';
-          item.error = error instanceof Error ? error.message : 'Upload failed';
-          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, error: item.error } : p));
+          await updateItemAndPersist(item.id, { 
+            status: 'error', 
+            error: error instanceof Error ? error.message : 'Upload failed' 
+          });
         }
-      });
-
-      // Add to staged URLs and save to IndexedDB
-      setStagedUrls(prev => {
-        const updated = [...prev, ...newUrls];
-        stagingDB.saveSession(currentSessionId, updated);
-        return updated;
       });
       
       if (newUrls.length > 0) {
@@ -670,7 +628,7 @@ export const useStagedCloudinaryUpload = () => {
 
       return newUrls;
     } catch (error) {
-      console.error('Optimized upload failed:', error);
+      console.error('Upload failed:', error);
       toast({
         title: "Ошибка загрузки",
         description: "Произошла ошибка при загрузке файлов",
@@ -679,16 +637,25 @@ export const useStagedCloudinaryUpload = () => {
       return [];
     } finally {
       setIsUploading(false);
-      // Don't auto-clear uploadItems to prevent photos from disappearing
-      // Items will be managed through UI interactions instead
     }
-  }, [initSession, signBatchChunked, ensureSignature, compressInWorker, uploadToEdgeFunction, stagedUrls, toast]);
+  }, [initSession, signBatchChunked, ensureSignature, compressInWorker, uploadToEdgeFunction, toast]);
+
+  // Legacy compatibility - get staged URLs from persisted items
+  const stagedUrls = persistedItems
+    .filter(item => item.status === 'completed' && item.cloudinaryUrl)
+    .map(item => item.cloudinaryUrl!);
 
   // Attach staged URLs to real order
   const attachToOrder = useCallback(async (orderId: string): Promise<void> => {
-    if (stagedUrls.length === 0) return;
+    if (persistedItems.length === 0) return;
 
-    const items = stagedUrls.map(url => ({
+    const completedUrls = persistedItems
+      .filter(item => item.status === 'completed' && item.cloudinaryUrl)
+      .map(item => item.cloudinaryUrl!);
+
+    if (completedUrls.length === 0) return;
+
+    const items = completedUrls.map(url => ({
       url,
       type: 'photo' as const
     }));
@@ -709,70 +676,83 @@ export const useStagedCloudinaryUpload = () => {
     if (error) throw new Error('Edge Function call failed: ' + error.message);
     if (!data?.success) throw new Error('Database save failed: ' + (data?.error || 'unknown'));
 
-    // Clear staged data after successful attachment
-    setStagedUrls([]);
-    if (sessionId) {
+    // Clear persisted data after successful attachment
+    if (sessionKey) {
       try {
-        await stagingDB.clearSession(sessionId);
+        await persistentUploadDB.clearSession(sessionKey);
+        setPersistedItems([]);
+        setUploadItems([]);
       } catch (error) {
-        console.error('Failed to clear staging session:', error);
+        console.error('Failed to clear persistent session:', error);
       }
     }
-  }, [stagedUrls, sessionId]);
+  }, [persistedItems, sessionKey]);
 
   // Remove upload item by ID
   const removeUploadItem = useCallback((itemId: string) => {
     setUploadItems(prev => prev.filter(item => item.id !== itemId));
-  }, []);
+    setPersistedItems(prev => {
+      const next = prev.filter(item => item.id !== itemId);
+      if (sessionKey) {
+        persistentUploadDB.saveSession(sessionKey, next).catch(error => 
+          console.error('Failed to persist item removal:', error)
+        );
+      }
+      return next;
+    });
+  }, [sessionKey]);
 
   // Remove staged URL
   const removeStagedUrl = useCallback(async (url: string) => {
-    const updatedUrls = stagedUrls.filter(u => u !== url);
-    setStagedUrls(updatedUrls);
-    
-    if (sessionId) {
-      try {
-        await stagingDB.saveSession(sessionId, updatedUrls);
-      } catch (error) {
-        console.error('Failed to update staged URLs:', error);
+    setPersistedItems(prev => {
+      const next = prev.filter(item => item.cloudinaryUrl !== url);
+      if (sessionKey) {
+        persistentUploadDB.saveSession(sessionKey, next).catch(error => 
+          console.error('Failed to persist URL removal:', error)
+        );
       }
-    }
-  }, [stagedUrls, sessionId]);
+      return next;
+    });
+  }, [sessionKey]);
 
   // Clear all staged data
   const clearStaging = useCallback(async () => {
-    setStagedUrls([]);
+    setPersistedItems([]);
     setUploadItems([]);
     
-    if (sessionId) {
+    if (sessionKey) {
       try {
-        await stagingDB.clearSession(sessionId);
+        await persistentUploadDB.clearSession(sessionKey);
       } catch (error) {
-        console.error('Failed to clear staging session:', error);
+        console.error('Failed to clear persistent session:', error);
       }
     }
     
-    setSessionId(null);
-  }, [sessionId]);
+    setSessionKey(null);
+  }, [sessionKey]);
 
   // Restore staged URLs from saved data (for autosave sync)
   const restoreStagedUrls = useCallback(async (urls: string[]) => {
     if (urls.length === 0) return;
     
-    const currentSessionId = await initSession();
-    setStagedUrls(urls);
+    const currentSessionKey = await initSession();
     
     try {
-      await stagingDB.saveSession(currentSessionId, urls);
-      console.log('✅ Restored staged URLs from autosave:', urls.length, 'images');
+      // Migrate URLs to persisted format
+      const migratedItems = await persistentUploadDB.migrateFromLegacyUrls(currentSessionKey, urls);
+      setPersistedItems(prev => [...prev, ...migratedItems]);
+      await persistentUploadDB.saveSession(currentSessionKey, [...persistedItems, ...migratedItems]);
+      console.log('✅ Migrated and restored staged URLs from autosave:', urls.length, 'images');
     } catch (error) {
-      console.error('❌ Failed to save restored URLs to IndexedDB:', error);
+      console.error('❌ Failed to restore URLs to persistent storage:', error);
     }
-  }, [initSession]);
+  }, [initSession, persistedItems]);
 
   return {
-    sessionId,
+    sessionId: sessionKey, // Backward compatibility
+    sessionKey,
     stagedUrls,
+    persistedItems,
     uploadItems,
     isUploading,
     uploadFiles,

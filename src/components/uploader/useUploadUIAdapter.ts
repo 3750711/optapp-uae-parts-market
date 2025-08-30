@@ -29,26 +29,20 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
   };
 
   // Мягкое извлечение полей из хука useStagedCloudinaryUpload
-  const items = (hook.uploadItems ?? []).map((item: any) => {
-    let thumbUrl = item.thumbUrl;
+  const items = (hook.persistedItems ?? []).map((item: any) => {
+    let thumbUrl = item.cloudinaryThumbUrl || item.cloudinaryUrl;
     
     // Create preview URL if it doesn't exist
-    if (!thumbUrl && item.file) {
-      if (isHeicFile(item.file)) {
-        // For HEIC files, try to generate Cloudinary preview if we have a URL
-        if (item.url) {
-          const publicId = extractPublicIdFromUrl(item.url);
-          if (publicId) {
-            thumbUrl = getProductImageUrl(publicId, 'thumbnail');
-          } else {
-            thumbUrl = "/placeholder-heic.svg"; // Fallback placeholder
-          }
-        } else {
-          thumbUrl = "/placeholder-heic.svg"; // This should be a placeholder image
-        }
+    if (!thumbUrl) {
+      if (item.localPreviewDataUrl) {
+        // Use stored preview dataURL
+        thumbUrl = item.localPreviewDataUrl;
+      } else if (item.isHeic) {
+        // For HEIC files without preview, use placeholder
+        thumbUrl = "/placeholder-heic.svg";
       } else {
-        // Create blob URL for regular files
-        thumbUrl = URL.createObjectURL(item.file);
+        // Fallback placeholder for any other cases
+        thumbUrl = "/placeholder.svg";
       }
     }
     
@@ -56,13 +50,13 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
       ...item,
       thumbUrl,
       // Правильное имя файла  
-      originalFile: { name: item.file?.name || 'Unknown' },
+      originalFile: { name: item.originalName || 'Unknown' },
       // Правильный URL после загрузки 
-      cloudinaryUrl: item.url,
+      cloudinaryUrl: item.cloudinaryUrl,
       // Статус в правильном формате
-      status: item.status === 'success' ? 'completed' : item.status,
+      status: item.status === 'completed' ? 'completed' : item.status,
       // Add HEIC flag for UI handling
-      isHeic: item.file ? isHeicFile(item.file) : false
+      isHeic: item.isHeic || false
     };
   });
   
@@ -83,9 +77,9 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
       return uploadFiles?.(files);
     },
     removeItem: (id: string) => {
-      // Пробуем удаление из uploadItems по ID и из stagedUrls по URL
+      // Remove from persistent items first
       removeUploadItem?.(id);
-      // Для stagedUrls ищем URL в items и удаляем
+      // Also remove from staged URLs by matching the item
       const item = items.find(i => i.id === id);
       if (item?.cloudinaryUrl) {
         removeStagedUrl?.(item.cloudinaryUrl);
