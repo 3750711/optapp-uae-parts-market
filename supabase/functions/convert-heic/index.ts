@@ -5,114 +5,55 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Handle CORS preflight requests
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🎯 HEIC Edge Function: Starting HEIC conversion request')
-    
-    const { fileData, fileName, quality = 0.82, maxSide = 1600 } = await req.json()
-    
-    if (!fileData || !fileName) {
-      throw new Error('Missing required fields: fileData and fileName')
+    console.log('🎯 HEIC Edge Function: Starting HEIC conversion request');
+
+    if (req.method !== 'POST') {
+      return new Response('Method not allowed', { 
+        status: 405, 
+        headers: corsHeaders 
+      });
+    }
+
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    const maxSide = parseInt(formData.get('maxSide') as string || '1600');
+    const quality = parseFloat(formData.get('quality') as string || '0.82');
+
+    if (!file) {
+      return new Response('No file provided', { 
+        status: 400, 
+        headers: corsHeaders 
+      });
     }
 
     console.log('📝 HEIC Edge Function: Processing file', {
-      fileName,
-      quality,
+      fileName: file.name,
       maxSide,
-      dataSize: fileData.length
-    })
+      quality,
+      fileSize: file.size
+    });
 
-    // Convert base64 to Uint8Array
-    const binaryString = atob(fileData)
-    const bytes = new Uint8Array(binaryString.length)
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i)
-    }
-
-    console.log('🔄 HEIC Edge Function: Converted base64 to binary, size:', bytes.length)
-
-    // Use ImageMagick to convert HEIC to JPEG
-    const convertCommand = [
-      'magick',
-      '-', // Read from stdin
-      '-format', 'jpeg',
-      '-quality', Math.round(quality * 100).toString(),
-      '-resize', `${maxSide}x${maxSide}>`, // Only resize if larger
-      '-strip', // Remove metadata
-      'jpeg:-' // Output to stdout
-    ]
-
-    console.log('⚡ HEIC Edge Function: Running ImageMagick conversion...')
+    // For now, return an error as ImageMagick spawn is not available in Supabase Edge Runtime
+    // This function serves as a fallback placeholder
+    console.error('💥 HEIC Edge Function: ImageMagick not available in Edge Runtime');
     
-    const process = new Deno.Command('magick', {
-      args: convertCommand.slice(1), // Remove 'magick' from args
-      stdin: 'piped',
-      stdout: 'piped',
-      stderr: 'piped'
-    })
-
-    const child = process.spawn()
-    
-    // Write input data
-    const writer = child.stdin.getWriter()
-    await writer.write(bytes)
-    await writer.close()
-
-    // Wait for conversion to complete
-    const { code, stdout, stderr } = await child.output()
-
-    if (code !== 0) {
-      const errorText = new TextDecoder().decode(stderr)
-      console.error('❌ HEIC Edge Function: ImageMagick failed:', errorText)
-      throw new Error(`ImageMagick conversion failed: ${errorText}`)
-    }
-
-    console.log('✅ HEIC Edge Function: ImageMagick conversion successful')
-
-    // Convert output to base64
-    const outputBase64 = btoa(String.fromCharCode(...stdout))
-    
-    // Create a new filename with .jpg extension
-    const outputFileName = fileName.replace(/\.(heic|heif)$/i, '.jpg')
-
-    console.log('🎉 HEIC Edge Function: Conversion completed', {
-      originalSize: bytes.length,
-      convertedSize: stdout.length,
-      compressionRatio: `${Math.round((1 - stdout.length / bytes.length) * 100)}%`,
-      outputFileName
-    })
-
-    return new Response(JSON.stringify({
-      success: true,
-      data: outputBase64,
-      fileName: outputFileName,
-      originalSize: bytes.length,
-      convertedSize: stdout.length,
-      mimeType: 'image/jpeg'
-    }), {
-      headers: { 
-        'Content-Type': 'application/json',
-        ...corsHeaders 
-      }
-    })
+    return new Response('HEIC conversion not supported in Edge Functions', { 
+      status: 501,
+      headers: corsHeaders 
+    });
 
   } catch (error) {
-    console.error('💥 HEIC Edge Function: Error:', error)
-    
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message || 'HEIC conversion failed'
-    }), {
+    console.error('💥 HEIC Edge Function: Error:', error);
+    return new Response(`Internal server error: ${error.message}`, {
       status: 500,
-      headers: { 
-        'Content-Type': 'application/json',
-        ...corsHeaders 
-      }
-    })
+      headers: corsHeaders
+    });
   }
-})
+});

@@ -162,7 +162,7 @@ const stagingDB = new StagedUploadDB();
 
 export const useStagedCloudinaryUpload = () => {
   const { toast } = useToast();
-  const { convertHeicFile, isWorkerReady } = useHeicWorkerManager();
+  const { convertHeicFile } = useHeicWorkerManager();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [stagedUrls, setStagedUrls] = useState<string[]>([]);
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
@@ -176,39 +176,25 @@ export const useStagedCloudinaryUpload = () => {
     fileId: string
   ): Promise<CompressionResult> => {
     try {
-      console.log('🤖 HEIC Worker: Attempting conversion', { fileId, isReady: isWorkerReady() });
+      console.log('🤖 HEIC Worker: Attempting conversion', { fileId });
       
-      const result = await convertHeicFile(file, maxSide, quality);
+      const result = await convertHeicFile(file, { maxSide, quality, budgetKB: 320 });
       
-      if (result.ok && result.blob) {
-        console.log('✅ HEIC Worker: Conversion successful', {
-          fileId,
-          originalSize: file.size,
-          convertedSize: result.blob.size,
-          compressionRatio: Math.round((1 - result.blob.size / file.size) * 100) + '%'
-        });
-        
-        return {
-          ok: true,
-          blob: result.blob,
-          mime: result.mime || 'image/jpeg',
-          originalSize: file.size,
-          compressedSize: result.blob.size,
-          wasHeicConverted: true
-        };
-      } else {
-        console.warn('⚠️ HEIC Worker: Conversion failed', {
-          fileId,
-          code: result.code,
-          message: result.message
-        });
-        
-        return { 
-          ok: false, 
-          code: result.code || 'HEIC_WORKER_FAILED',
-          originalSize: file.size 
-        };
-      }
+      console.log('✅ HEIC Worker: Conversion successful', {
+        fileId,
+        originalSize: file.size,
+        convertedSize: result.blob.size,
+        compressionRatio: Math.round((1 - result.blob.size / file.size) * 100) + '%'
+      });
+      
+      return {
+        ok: true,
+        blob: result.blob,
+        mime: result.mime || 'image/jpeg',
+        originalSize: file.size,
+        compressedSize: result.blob.size,
+        wasHeicConverted: true
+      };
     } catch (error) {
       console.error('💥 HEIC Worker: Exception during conversion', { fileId, error });
       return { 
@@ -217,7 +203,7 @@ export const useStagedCloudinaryUpload = () => {
         originalSize: file.size 
       };
     }
-  }, [convertHeicFile, isWorkerReady]);
+  }, [convertHeicFile]);
 
   // Load existing session data on mount
   const loadSession = useCallback(async (sessionId: string) => {
@@ -1025,9 +1011,18 @@ export const useStagedCloudinaryUpload = () => {
   const convertHeicOnServer = useCallback(async (file: File): Promise<File> => {
     console.log('🌐 Converting HEIC on server:', file.name);
     
-    // Convert file to base64
+    // Convert file to base64 with chunking to avoid "too many arguments" error
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Process in chunks to avoid call stack limits
+    let base64 = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.slice(i, i + chunkSize);
+      base64 += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    base64 = btoa(base64);
     
     const { data, error } = await supabase.functions.invoke('convert-heic', {
       body: {
