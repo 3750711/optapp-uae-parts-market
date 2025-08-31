@@ -1,5 +1,5 @@
 import React from 'react';
-import { AuthProvider } from '@/contexts/EnhancedAuthContext';
+import { AuthProvider } from '@/contexts/AuthContext';
 import { AdminQueryClient } from '@/admin/_shared/AdminQueryClient';
 
 /**

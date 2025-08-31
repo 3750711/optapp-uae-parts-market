@@ -9,7 +9,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     persistSession: true,
-    autoRefreshToken: false, // ⬅️ Disabled for manual refresh with mutex
+    autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce'
   },

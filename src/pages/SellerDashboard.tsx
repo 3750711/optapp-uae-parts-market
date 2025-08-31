@@ -1,7 +1,7 @@
 
 import React, { useEffect } from "react";
 import FastSellerDashboard from "@/components/seller/FastSellerDashboard";
-import FastProtectedRoute from "@/components/auth/FastProtectedRoute";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { initMobileOptimizations } from "@/utils/mobileOptimizations";
 
 const SellerDashboard = () => {
@@ -10,11 +10,11 @@ const SellerDashboard = () => {
   }, []);
 
   return (
-    <FastProtectedRoute allowedRoles={['seller']}>
+    <ProtectedRoute allowedRoles={['seller']}>
       <div className="container mx-auto px-4 py-8">
         <FastSellerDashboard />
       </div>
-    </FastProtectedRoute>
+    </ProtectedRoute>
   );
 };
 
