@@ -103,11 +103,29 @@ export const useOptimizedOrdersQuery = ({
       }
 
       if (searchTerm) {
-        // Split search term into individual words for more flexible searching
-        const searchWords = searchTerm.trim().split(/\s+/);
-        
-        // For each word, create search conditions across all fields
-        searchWords.forEach(word => {
+        // Helper functions for search processing
+        const escapePostgRESTTerm = (term: string): string => {
+          return term.replace(/[%_]/g, '\\$&');
+        };
+
+        const normalizeText = (text: string): string => {
+          return text.replace(/ё/g, 'е').replace(/Ё/g, 'Е');
+        };
+
+        // Process search term
+        const normalizedSearchTerm = normalizeText(searchTerm.toLowerCase().trim());
+        const searchWords = normalizedSearchTerm.split(/\s+/).filter(word => word.length > 0);
+
+        console.log('🔍 Orders Search Debug:', {
+          originalTerm: searchTerm,
+          normalizedTerm: normalizedSearchTerm,
+          searchWords,
+          wordCount: searchWords.length
+        });
+
+        if (searchWords.length === 1) {
+          // Single word search - OR across all fields
+          const word = escapePostgRESTTerm(searchWords[0]);
           const isNumeric = !isNaN(Number(word));
           
           if (isNumeric) {
@@ -138,7 +156,49 @@ export const useOptimizedOrdersQuery = ({
               `text_order.ilike.%${word}%`
             );
           }
-        });
+
+          console.log('🔍 Single word search applied:', { word, isNumeric });
+        } else {
+          // Multiple words - AND logic between words, OR within each word across fields
+          const wordConditions = searchWords.map(word => {
+            const escapedWord = escapePostgRESTTerm(word);
+            const isNumeric = !isNaN(Number(escapedWord));
+            
+            if (isNumeric) {
+              return `order_number.eq.${Number(escapedWord)},` +
+                     `lot_number_order.eq.${Number(escapedWord)},` +
+                     `place_number.eq.${Number(escapedWord)},` +
+                     `title.ilike.%${escapedWord}%,` +
+                     `brand.ilike.%${escapedWord}%,` +
+                     `model.ilike.%${escapedWord}%,` +
+                     `buyer_opt_id.ilike.%${escapedWord}%,` +
+                     `seller_opt_id.ilike.%${escapedWord}%,` +
+                     `order_seller_name.ilike.%${escapedWord}%,` +
+                     `container_number.ilike.%${escapedWord}%,` +
+                     `text_order.ilike.%${escapedWord}%`;
+            } else {
+              return `title.ilike.%${escapedWord}%,` +
+                     `brand.ilike.%${escapedWord}%,` +
+                     `model.ilike.%${escapedWord}%,` +
+                     `buyer_opt_id.ilike.%${escapedWord}%,` +
+                     `seller_opt_id.ilike.%${escapedWord}%,` +
+                     `order_seller_name.ilike.%${escapedWord}%,` +
+                     `container_number.ilike.%${escapedWord}%,` +
+                     `text_order.ilike.%${escapedWord}%`;
+            }
+          });
+
+          // Apply AND logic: wrap each word condition in or(), then chain with and()
+          const orConditions = wordConditions.map(condition => `or(${condition})`);
+          const finalCondition = `and(${orConditions.join(',')})`;
+          
+          query = query.or(finalCondition);
+
+          console.log('🔍 Multi-word search applied:', {
+            wordConditions: wordConditions.length,
+            finalCondition: finalCondition.substring(0, 100) + '...'
+          });
+        }
       }
 
       const { data, error, count } = await query;
