@@ -2206,6 +2206,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      safe_seller_check: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       search_car_brands_and_models: {
         Args: { search_term: string }
         Returns: {
