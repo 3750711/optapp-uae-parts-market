@@ -18,7 +18,9 @@ const AdminSettings: React.FC = () => {
           <MessageCircle className="h-5 w-5 text-primary" />
           <div className="text-left">
             <p className="font-medium">Отражения телеграмов продавцев</p>
-            <p className="text-sm text-muted-foreground">Управление локальными аккаунтами</p>
+            <p className="text-sm text-muted-foreground">
+              Выбор продавцов, чьи телеграм аккаунты показывать в телеграм оповещениях
+            </p>
           </div>
         </Button>
       </div>
