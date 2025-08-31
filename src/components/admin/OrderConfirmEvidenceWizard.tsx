@@ -560,8 +560,8 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-w-[95vw] sm:max-h-[90vh] max-h-[85vh] p-3 sm:p-6 flex flex-col">
-        <DialogHeader className="space-y-2 pb-2 sm:pb-4">
+      <DialogContent className="sm:max-w-4xl max-w-[95vw] sm:max-h-[90vh] max-h-[85vh] p-0 flex flex-col overflow-hidden">
+        <DialogHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 sm:pb-4 border-b flex-shrink-0">
           <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
             <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
             Order Confirmation Evidence - Step {currentStep === 'chat_confirmation' ? '1' : '2'} of 2
@@ -573,16 +573,18 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
         {/* Stepper - hidden for admin with specific override */}
         {!(profile?.user_type === 'admin' && selectedStepOverride) && (
-          <div className="py-4 border-b">
+          <div className="px-3 sm:px-6 py-4 border-b flex-shrink-0">
             <Stepper steps={steps} />
           </div>
         )}
 
-        <ScrollArea className="flex-1 pr-2">
-          <StepContent />
+        <ScrollArea className="flex-1 px-3 sm:px-6 overflow-y-auto overscroll-contain [@supports(-webkit-touch-callout:none)]:[-webkit-overflow-scrolling:touch]">
+          <div className="py-2">
+            <StepContent />
+          </div>
         </ScrollArea>
 
-        <DialogFooter className="pt-4 border-t mt-auto">
+        <DialogFooter className="px-3 sm:px-6 pt-4 pb-3 sm:pb-6 border-t flex-shrink-0 bg-white">
           <ActionButtons />
         </DialogFooter>
       </DialogContent>
