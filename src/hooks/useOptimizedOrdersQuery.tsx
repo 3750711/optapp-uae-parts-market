@@ -103,28 +103,42 @@ export const useOptimizedOrdersQuery = ({
       }
 
       if (searchTerm) {
-        const isNumeric = !isNaN(Number(searchTerm));
+        // Split search term into individual words for more flexible searching
+        const searchWords = searchTerm.trim().split(/\s+/);
         
-        if (isNumeric) {
-          query = query.or(
-            `order_number.eq.${Number(searchTerm)},` +
-            `title.ilike.%${searchTerm}%,` +
-            `brand.ilike.%${searchTerm}%,` +
-            `model.ilike.%${searchTerm}%,` +
-            `buyer_opt_id.ilike.%${searchTerm}%,` +
-            `seller_opt_id.ilike.%${searchTerm}%,` +
-            `text_order.ilike.%${searchTerm}%`
-          );
-        } else {
-          query = query.or(
-            `title.ilike.%${searchTerm}%,` +
-            `brand.ilike.%${searchTerm}%,` +
-            `model.ilike.%${searchTerm}%,` +
-            `buyer_opt_id.ilike.%${searchTerm}%,` +
-            `seller_opt_id.ilike.%${searchTerm}%,` +
-            `text_order.ilike.%${searchTerm}%`
-          );
-        }
+        // For each word, create search conditions across all fields
+        searchWords.forEach(word => {
+          const isNumeric = !isNaN(Number(word));
+          
+          if (isNumeric) {
+            // For numeric words, search in both text fields and exact numeric matches
+            query = query.or(
+              `order_number.eq.${Number(word)},` +
+              `lot_number_order.eq.${Number(word)},` +
+              `place_number.eq.${Number(word)},` +
+              `title.ilike.%${word}%,` +
+              `brand.ilike.%${word}%,` +
+              `model.ilike.%${word}%,` +
+              `buyer_opt_id.ilike.%${word}%,` +
+              `seller_opt_id.ilike.%${word}%,` +
+              `order_seller_name.ilike.%${word}%,` +
+              `container_number.ilike.%${word}%,` +
+              `text_order.ilike.%${word}%`
+            );
+          } else {
+            // For text words, search only in text fields
+            query = query.or(
+              `title.ilike.%${word}%,` +
+              `brand.ilike.%${word}%,` +
+              `model.ilike.%${word}%,` +
+              `buyer_opt_id.ilike.%${word}%,` +
+              `seller_opt_id.ilike.%${word}%,` +
+              `order_seller_name.ilike.%${word}%,` +
+              `container_number.ilike.%${word}%,` +
+              `text_order.ilike.%${word}%`
+            );
+          }
+        });
       }
 
       const { data, error, count } = await query;
