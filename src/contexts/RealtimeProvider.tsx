@@ -4,13 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { devLog, prodError } from '@/utils/logger';
+import { detectWebSocketSupport, testWebSocketConnection, calculateBackoff, getFirefoxRecommendations, type WebSocketDiagnostics } from '@/utils/websocketUtils';
 
 interface RealtimeContextType {
   isConnected: boolean;
-  connectionState: 'connecting' | 'connected' | 'disconnected' | 'failed';
+  connectionState: 'connecting' | 'connected' | 'disconnected' | 'failed' | 'fallback';
   lastError?: string;
   realtimeEvents: any[];
   forceReconnect: () => void;
+  diagnostics: WebSocketDiagnostics & { connectionTest?: WebSocketDiagnostics['connectionTest'] };
+  isUsingFallback: boolean;
+  reconnectAttempts: number;
 }
 
 const RealtimeContext = createContext<RealtimeContextType | null>(null);
@@ -43,13 +47,18 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected' | 'failed'>('disconnected');
+  const [connectionState, setConnectionState] = useState<'connecting' | 'connected' | 'disconnected' | 'failed' | 'fallback'>('disconnected');
   const [lastError, setLastError] = useState<string>();
   const [realtimeEvents, setRealtimeEvents] = useState<any[]>([]);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [diagnostics, setDiagnostics] = useState<WebSocketDiagnostics & { connectionTest?: WebSocketDiagnostics['connectionTest'] }>(() => detectWebSocketSupport());
   
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
   const mountedRef = useRef(true);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const fallbackIntervalRef = useRef<NodeJS.Timeout>();
+  const maxReconnectAttempts = 5;
   
   // Debounced invalidation functions
   const debouncedInvalidateOffers = useCallback(
@@ -159,7 +168,45 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     }
   }, [debouncedInvalidateProducts, addRealtimeEvent]);
 
-  // Setup channel with error handling
+  // Test WebSocket connection
+  const testConnection = useCallback(async () => {
+    const wsUrl = `wss://vfiylfljiixqkjfqubyq.supabase.co/realtime/v1/websocket?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}&vsn=1.0.0`;
+    const result = await testWebSocketConnection(wsUrl);
+    setDiagnostics(prev => ({ ...prev, connectionTest: result }));
+    return result.success;
+  }, []);
+
+  // Start polling fallback when WebSocket fails
+  const startPollingFallback = useCallback(() => {
+    if (fallbackIntervalRef.current) return;
+    
+    console.log('🟡 Starting polling fallback due to WebSocket issues');
+    setConnectionState('fallback');
+    setIsUsingFallback(true);
+    
+    fallbackIntervalRef.current = setInterval(() => {
+      if (!mountedRef.current || !user) return;
+      
+      // Invalidate queries to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['seller-price-offers', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-price-offers', user.id] });
+      
+      if (profile?.user_type === 'admin') {
+        queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      }
+    }, 10000); // Poll every 10 seconds
+  }, [queryClient, user, profile]);
+
+  // Stop polling fallback
+  const stopPollingFallback = useCallback(() => {
+    if (fallbackIntervalRef.current) {
+      clearInterval(fallbackIntervalRef.current);
+      fallbackIntervalRef.current = undefined;
+    }
+    setIsUsingFallback(false);
+  }, []);
+
+  // Setup channel with enhanced error handling
   const setupChannel = useCallback((
     channelName: string,
     tableName: string,
@@ -190,10 +237,37 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
             setIsConnected(true);
             setConnectionState('connected');
             setLastError(undefined);
+            setReconnectAttempts(0);
+            stopPollingFallback();
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             setIsConnected(false);
             setConnectionState('failed');
-            setLastError(`Connection failed: ${status}`);
+            
+            const attempts = reconnectAttempts + 1;
+            setReconnectAttempts(attempts);
+            
+            let errorMessage = `Connection failed: ${status}`;
+            if (diagnostics.firefoxDetected) {
+              errorMessage += '. Firefox detected - WebSocket issues may occur.';
+            }
+            setLastError(errorMessage);
+            
+            // Start fallback after multiple failures
+            if (attempts >= 3 && !isUsingFallback) {
+              startPollingFallback();
+            }
+            
+            // Auto-retry with exponential backoff
+            if (attempts < maxReconnectAttempts) {
+              const delay = calculateBackoff(attempts - 1);
+              console.log(`🔄 Retrying connection in ${delay}ms (attempt ${attempts}/${maxReconnectAttempts})`);
+              
+              setTimeout(() => {
+                if (mountedRef.current) {
+                  forceReconnect();
+                }
+              }, delay);
+            }
           }
         });
       
@@ -205,17 +279,38 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       prodError(new Error(errorMessage), {
         context: 'setup-realtime-channel',
         channelName,
-        tableName
+        tableName,
+        firefoxDetected: diagnostics.firefoxDetected
       });
       
       setConnectionState('failed');
       setLastError(errorMessage);
+      
+      // Fallback for setup errors
+      if (!isUsingFallback) {
+        startPollingFallback();
+      }
     }
-  }, []);
+  }, [reconnectAttempts, diagnostics.firefoxDetected, isUsingFallback, startPollingFallback, stopPollingFallback, maxReconnectAttempts]);
 
   // Force reconnect function
-  const forceReconnect = useCallback(() => {
+  const forceReconnect = useCallback(async () => {
     devLog('Force reconnecting all realtime channels...');
+    
+    // Stop any fallback polling
+    stopPollingFallback();
+    
+    // Reset attempts counter
+    setReconnectAttempts(0);
+    
+    // Test connection first
+    const canConnect = await testConnection();
+    if (!canConnect && diagnostics.firefoxDetected) {
+      console.warn('🔴 WebSocket test failed on Firefox. Recommendations:', getFirefoxRecommendations());
+      setLastError('WebSocket connection blocked. Check Firefox settings.');
+      startPollingFallback();
+      return;
+    }
     
     // Clear existing channels
     channelsRef.current.forEach((channel, name) => {
@@ -240,7 +335,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         setupChannels();
       }
     }, 1000);
-  }, [user]);
+  }, [user, stopPollingFallback, testConnection, diagnostics.firefoxDetected, startPollingFallback]);
 
   // Setup all required channels
   const setupChannels = useCallback(() => {
@@ -306,12 +401,29 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       });
       channelsRef.current.clear();
       
-      // Clear timeouts
+      // Clear timeouts and intervals
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      if (fallbackIntervalRef.current) {
+        clearInterval(fallbackIntervalRef.current);
+      }
     };
   }, [user, setupChannels]);
+
+  // Initialize diagnostics on mount
+  useEffect(() => {
+    const initDiagnostics = async () => {
+      const wsSupport = detectWebSocketSupport();
+      setDiagnostics(wsSupport);
+      
+      if (wsSupport.firefoxDetected) {
+        console.warn('🔴 Firefox detected. WebSocket connections may have issues.', getFirefoxRecommendations());
+      }
+    };
+    
+    initDiagnostics();
+  }, []);
 
   const contextValue: RealtimeContextType = {
     isConnected,
@@ -319,6 +431,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     lastError,
     realtimeEvents,
     forceReconnect,
+    diagnostics,
+    isUsingFallback,
+    reconnectAttempts,
   };
 
   return (
