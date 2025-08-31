@@ -28,7 +28,8 @@ import {
   HelpCircle,
   ClipboardList,
   ShoppingBag,
-  Gavel
+  Gavel,
+  Shield
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -45,6 +46,7 @@ import LanguageToggle from '@/components/auth/LanguageToggle';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getMainPageTranslations } from '@/utils/mainPageTranslations';
 import { allowedLocalesFor } from '@/utils/languageVisibility';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 const Header = () => {
@@ -178,6 +180,29 @@ const Header = () => {
             allowedLanguages={allowedLocalesFor(profile?.user_type || null, location.pathname)}
             className="mr-2"
           />
+          
+          {/* Admin Panel Button */}
+          {user && !isLoading && !isCheckingAdmin && isAdmin && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="mr-2"
+                  >
+                    <Link to="/admin">
+                      <Shield className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{l.adminPanel}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           
           {user ? (
             <div className="flex items-center space-x-2">
