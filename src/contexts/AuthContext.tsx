@@ -203,7 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const isBfcacheRestore = typeof window !== 'undefined' && 
       (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type === 'back_forward';
 
-    // Проверяем начальную сессию
+    // Проверяем начальную сессию с валидацией токена
     const checkInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -211,7 +211,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("🔧 AuthContext: Initial session check", {
           hasSession: !!session,
           hasUser: !!session?.user,
-          userId: session?.user?.id
+          userId: session?.user?.id,
+          expiresAt: session?.expires_at
         });
         
         if (error) {
@@ -220,25 +221,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (session?.user) {
-          setSession(session);
-          setUser(session.user);
-          // При bfcache восстановлении не перезапрашиваем профиль сразу
-          await fetchUserProfile(session.user.id, { force: !isBfcacheRestore });
+          // CRITICAL: Validate session token before trusting it
+          const now = Math.floor(Date.now() / 1000);
+          const expiresAt = session.expires_at || 0;
+          
+          if (expiresAt > now) {
+            console.log("✅ AuthContext: Valid session token found");
+            
+            // Verify token by making a simple authenticated request
+            try {
+              const { error: testError } = await supabase.auth.getUser();
+              if (testError) {
+                console.warn("⚠️ AuthContext: Token validation failed, clearing session");
+                throw new Error('Invalid token');
+              }
+              
+              setSession(session);
+              setUser(session.user);
+              // При bfcache восстановлении не перезапрашиваем профиль сразу
+              await fetchUserProfile(session.user.id, { force: !isBfcacheRestore });
+            } catch (tokenError) {
+              console.warn("⚠️ AuthContext: Session token invalid, forcing signOut");
+              await forceCleanSession();
+            }
+          } else {
+            console.warn("⚠️ AuthContext: Session token expired, forcing signOut");
+            await forceCleanSession();
+          }
         } else {
-          console.log("🔧 AuthContext: No user found, clearing state");
-          setSession(null);
-          setUser(null);
-          setProfile(null);
+          console.log("🔧 AuthContext: No user found, cleaning state");
+          await forceCleanSession();
         }
       } catch (error) {
         console.error("❌ AuthContext: Initial session error:", error);
-        setSession(null);
-        setUser(null);
-        setProfile(null);
+        await forceCleanSession();
       } finally {
         setIsLoading(false);
         setHydrating(false);
       }
+    };
+
+    // Helper function to aggressively clean session state
+    const forceCleanSession = async () => {
+      console.log("🧹 AuthContext: Force cleaning session state");
+      
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      
+      // Clear all auth-related localStorage and sessionStorage
+      if (typeof window !== 'undefined') {
+        const localKeys = Object.keys(localStorage);
+        const authKeys = localKeys.filter(key => 
+          key.startsWith('sb-') || 
+          key.startsWith('supabase.auth.token') ||
+          key.includes('auth-token') ||
+          key.includes('session')
+        );
+        authKeys.forEach(key => localStorage.removeItem(key));
+        
+        const sessionKeys = Object.keys(sessionStorage);
+        const profileKeys = sessionKeys.filter(key => key.startsWith('profile_'));
+        profileKeys.forEach(key => sessionStorage.removeItem(key));
+        
+        console.log("🧹 AuthContext: Cleared", authKeys.length, "localStorage keys and", profileKeys.length, "sessionStorage keys");
+      }
+      
+      // Clear memory cache
+      profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
     };
 
     checkInitialSession();
@@ -356,9 +406,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      console.log('🚪 AuthContext: Starting signOut - clearing all caches');
+      console.log('🚪 AuthContext: Starting signOut - clearing all caches and localStorage');
       
-      // CRITICAL: Clear all caches to prevent cross-user data leaks
+      // CRITICAL: Clear all localStorage auth keys BEFORE signOut to prevent persistence
+      if (typeof window !== 'undefined') {
+        const storageKeys = Object.keys(localStorage);
+        const authKeys = storageKeys.filter(key => 
+          key.startsWith('sb-') || 
+          key.startsWith('supabase.auth.token') ||
+          key.includes('auth-token') ||
+          key.includes('session')
+        );
+        
+        authKeys.forEach(key => {
+          localStorage.removeItem(key);
+        });
+        console.log('🧹 AuthContext: Cleared localStorage auth keys:', authKeys);
+      }
       
       // 1. Clear memory cache
       profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
@@ -390,30 +454,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // 5. Reset profile fetch timestamp
       lastProfileFetchAtRef.current = 0;
       
-      // 6. Perform actual signOut
-      await supabase.auth.signOut();
+      // 6. Perform actual signOut with global scope
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'global' });
+      if (signOutError) {
+        console.warn('⚠️ AuthContext: SignOut error, but continuing with cleanup:', signOutError);
+      }
       
-      // 7. Clear React state
+      // 7. Double-check localStorage clearing after signOut
+      if (typeof window !== 'undefined') {
+        const remainingKeys = Object.keys(localStorage).filter(key => 
+          key.startsWith('sb-') || 
+          key.startsWith('supabase.auth.token')
+        );
+        remainingKeys.forEach(key => localStorage.removeItem(key));
+        if (remainingKeys.length > 0) {
+          console.log('🧹 AuthContext: Cleared remaining auth keys after signOut:', remainingKeys);
+        }
+      }
+      
+      // 8. Clear React state
       setUser(null);
       setProfile(null);
       setSession(null);
       setProfileError(null);
       
-      console.log('✅ AuthContext: SignOut completed - all caches cleared');
+      console.log('✅ AuthContext: SignOut completed - all caches and localStorage cleared');
     } catch (error) {
       console.error("❌ AuthContext: Sign out error:", error);
-      // Even if signOut fails, clear local state for security
+      
+      // Even if signOut fails, aggressively clear all local data for security
       setUser(null);
       setProfile(null);
       setSession(null);
       setProfileError(null);
       
-      // Force clear caches even on error
+      // Force clear all caches and localStorage
       profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
       if (typeof window !== 'undefined') {
-        const keys = Object.keys(sessionStorage);
-        const profileKeys = keys.filter(key => key.startsWith('profile_'));
+        // Clear sessionStorage
+        const sessionKeys = Object.keys(sessionStorage);
+        const profileKeys = sessionKeys.filter(key => key.startsWith('profile_'));
         profileKeys.forEach(key => sessionStorage.removeItem(key));
+        
+        // Force clear ALL localStorage auth keys
+        const localKeys = Object.keys(localStorage);
+        const authKeys = localKeys.filter(key => 
+          key.startsWith('sb-') || 
+          key.startsWith('supabase.auth.token') ||
+          key.includes('auth-token') ||
+          key.includes('session')
+        );
+        authKeys.forEach(key => localStorage.removeItem(key));
+        
+        console.log('🧹 AuthContext: Force cleared all auth data on error');
       }
     }
   };
