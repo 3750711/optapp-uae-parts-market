@@ -238,10 +238,11 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
                 <FormItem>
                   <FormLabel className="text-sm md:text-base">Наименование *</FormLabel>
                   <FormControl>
-                    <Input 
+                    <Textarea 
                       {...field} 
+                      rows={isMobile ? 3 : 4}
                       onBlur={() => validateField('title', field.value)}
-                      className={`h-12 md:h-10 ${validationErrors.title ? 'border-red-500' : ''}`}
+                      className={`min-h-[144px] md:min-h-[120px] resize-vertical ${validationErrors.title ? 'border-red-500' : ''}`}
                     />
                   </FormControl>
                   {validationErrors.title && (
