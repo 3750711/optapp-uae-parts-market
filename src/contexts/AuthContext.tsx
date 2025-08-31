@@ -46,104 +46,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profileError, setProfileError] = useState<string | null>(null);
   const [hydrating, setHydrating] = useState(true);
 
-  // AbortController для отмены предыдущих запросов профиля
-  const abortControllerRef = React.useRef<AbortController | null>(null);
+  // Single-flight для профиля: исключаем конкурирующие запросы
+  const inflightRef = React.useRef<Promise<void> | null>(null);
+  const lastProfileFetchAtRef = React.useRef<number>(0);
+  const PROFILE_TTL_MS = 2 * 60 * 1000; // 2 минуты
 
-  // Вычисляем isAdmin на основе профиля
-  const isAdmin = React.useMemo(() => {
-    if (!profile) return null;
-    return profile.user_type === 'admin';
-  }, [profile?.user_type]);
+  // isAdmin зависит только от текущего профиля (стабильное значение)
+  const isAdmin = React.useMemo<boolean | null>(() => {
+    if (profile === null) return null;              // профиль ещё не получен
+    return profile?.user_type === 'admin';
+  }, [profile?.user_type, profile === null]);
 
-  const fetchUserProfile = async (userId: string, retryCount = 0, skipCache = false): Promise<void> => {
-    // Проверяем кэш профиля для PWA оптимизации
-    if (!skipCache && typeof window !== 'undefined') {
-      const cachedProfile = sessionStorage.getItem(`profile_${userId}`);
-      if (cachedProfile) {
+  const fetchUserProfile = async (userId: string, { force = false } = {}): Promise<void> => {
+    // TTL-кэш из sessionStorage (как было)
+    if (!force && typeof window !== 'undefined') {
+      const cached = sessionStorage.getItem(`profile_${userId}`);
+      const ts = parseInt(sessionStorage.getItem(`profile_${userId}_time`) || '0', 10);
+      if (cached && Date.now() - ts < PROFILE_TTL_MS) {
         try {
-          const profile = JSON.parse(cachedProfile);
-          const cacheTime = parseInt(sessionStorage.getItem(`profile_${userId}_time`) || '0');
-          // Используем кэш до 2 минут
-          if (Date.now() - cacheTime < 2 * 60 * 1000) {
-            console.log("👤 AuthContext: Using cached profile");
-            setProfile(profile);
-            return;
-          }
-        } catch (error) {
-          console.warn("👤 AuthContext: Invalid cached profile, fetching fresh");
-        }
+          const parsed = JSON.parse(cached);
+          setProfile(parsed);
+          return;
+        } catch {}
       }
     }
 
-    // Отменяем предыдущий запрос
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    // Против дублей: если уже идёт запрос — ждём его
+    if (inflightRef.current) {
+      await inflightRef.current; 
+      return;
     }
-    
-    // Создаем новый AbortController
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
-    
+
     setIsProfileLoading(true);
     setProfileError(null);
-    
-    const timeoutId = setTimeout(() => {
-      abortController.abort();
-    }, 10000); // 10 секунд timeout
-    
-    try {
-      console.log("👤 AuthContext: Fetching profile for user:", userId, `(attempt ${retryCount + 1})`);
-      
+    lastProfileFetchAtRef.current = Date.now();
+
+    inflightRef.current = (async () => {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
-        .single()
-        .abortSignal(abortController.signal);
+        .single();
 
       if (error) {
         if (error.code === 'PGRST116') {
-          console.log("👤 AuthContext: No profile found, user needs to complete registration");
           setProfile(null);
-        } else {
-          throw error;
+          return;
         }
-      } else {
-        console.log("👤 AuthContext: Profile fetched successfully");
-        setProfile(data);
-        setProfileError(null);
-        
-        // Кэшируем профиль для PWA
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem(`profile_${userId}`, JSON.stringify(data));
-          sessionStorage.setItem(`profile_${userId}_time`, Date.now().toString());
-        }
+        throw error;
       }
-    } catch (error: any) {
-      // Игнорируем ошибки отмены
-      if (error?.name === 'AbortError' || abortController.signal.aborted) {
-        console.log("👤 AuthContext: Profile fetch aborted");
-        return;
+
+      setProfile(data);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(`profile_${userId}`, JSON.stringify(data));
+        sessionStorage.setItem(`profile_${userId}_time`, String(Date.now()));
       }
-      
-      console.error("❌ AuthContext: Error fetching profile:", error);
-      
-      // Retry logic - максимум 3 попытки
-      if (retryCount < 2) {
-        console.log(`🔄 AuthContext: Retrying profile fetch (${retryCount + 1}/2)`);
-        setTimeout(() => fetchUserProfile(userId, retryCount + 1), 2000 * (retryCount + 1));
-        return;
-      }
-      
+    })().catch((err) => {
       setProfile(null);
-      setProfileError(error.message || 'Failed to load profile');
-    } finally {
-      clearTimeout(timeoutId);
-      // Только сбрасываем isProfileLoading если это текущий запрос
-      if (abortControllerRef.current === abortController) {
-        setIsProfileLoading(false);
-      }
-    }
+      setProfileError(err?.message || 'Failed to load profile');
+    }).finally(() => {
+      setIsProfileLoading(false);
+      inflightRef.current = null;
+    });
+
+    await inflightRef.current;
   };
 
   useEffect(() => {
@@ -173,12 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session);
           setUser(session.user);
           // При bfcache восстановлении не перезапрашиваем профиль сразу
-          if (isBfcacheRestore) {
-            console.log("👤 AuthContext: bfcache restore detected, using cache");
-            await fetchUserProfile(session.user.id, 0, false);
-          } else {
-            await fetchUserProfile(session.user.id, 0, true);
-          }
+          await fetchUserProfile(session.user.id, { force: !isBfcacheRestore });
         } else {
           console.log("🔧 AuthContext: No user found, clearing state");
           setSession(null);
@@ -211,24 +172,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (session?.user) {
         setUser(session.user);
-        // Избегаем лишних запросов при TOKEN_REFRESHED в PWA
-        if (event === 'TOKEN_REFRESHED' && profile?.id === session.user.id) {
-          console.log("👤 AuthContext: Token refreshed, keeping existing profile");
-          return;
+        // Не дёргаем профиль на TOKEN_REFRESHED — используем текущий
+        if (event !== 'TOKEN_REFRESHED') {
+          void fetchUserProfile(session.user.id);
         }
-        // Используем setTimeout чтобы избежать deadlock в onAuthStateChange
-        setTimeout(() => {
-          fetchUserProfile(session.user.id);
-        }, 0);
       } else {
         console.log("🔧 AuthContext: No user in auth change, clearing state");
         setUser(null);
         setProfile(null);
         setProfileError(null);
-        // Отменяем текущие запросы профиля
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-        }
       }
       
       setIsLoading(false);
@@ -238,6 +190,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, []);
+
+  // Лёгкая фоновая актуализация профиля на возврате вкладки
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && user) {
+        const age = Date.now() - lastProfileFetchAtRef.current;
+        if (age > PROFILE_TTL_MS) {
+          void fetchUserProfile(user.id);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [user?.id]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -362,7 +328,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshAdminStatus = async (): Promise<void> => {
     if (!user) return;
-    await fetchUserProfile(user.id);
+    // Форс-обновление (ручной вызов, без таймеров)
+    await fetchUserProfile(user.id, { force: true });
   };
 
   const value: AuthContextType = {
@@ -384,7 +351,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithTelegram,
     refreshAdminStatus,
     profileError,
-    retryProfileLoad: () => user && fetchUserProfile(user.id),
+    retryProfileLoad: () => user && fetchUserProfile(user.id, { force: true }),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

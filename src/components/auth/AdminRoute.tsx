@@ -51,29 +51,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
 
   devLog('🔍 AdminRoute state:', authState);
 
-  // ✅ ИСПРАВЛЕНИЕ: Вынос useEffect наверх компонента (не условно)
-  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-  React.useEffect(() => {
-    if (authState.isAdmin === null) {
-      // Очистка предыдущего таймаута если есть
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      
-      timeoutRef.current = setTimeout(() => {
-        if (authState.isAdmin === null) {
-          console.warn('⚠️ Admin check timeout - forcing fallback');
-          refreshAdminStatus();
-        }
-      }, 5000); // 5 секунд таймаут
-      
-      return () => {
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current);
-        }
-      };
-    }
-  }, [authState.isAdmin, refreshAdminStatus]);
+  // Больше не форсим повторные проверки — ждём AuthContext
 
   // Состояние загрузки
   if (authState.isLoading) {
@@ -192,20 +170,13 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // isAdmin === null - ждем проверки прав с таймаутом  
+  // isAdmin === null - ждем проверки прав
   if (authState.isAdmin === null) {
-    devLog('⏳ Waiting for admin rights check...');
-    
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Определение прав доступа...</p>
-          <p className="text-xs text-gray-500 mt-2">
-            Пользователь: {profile?.email}
-            <br />
-            Тип: {authState.userType}
-          </p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="flex items-center gap-3 text-gray-600">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Checking admin access…</span>
         </div>
       </div>
     );
