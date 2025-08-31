@@ -3,10 +3,70 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { logTelegramNotification } from "../shared/telegram-logger.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://partsbay.ae',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Authentication utilities
+async function verifyAdminAccess(supabaseClient: any, authHeader: string) {
+  console.log('=== ADMIN VERIFICATION START ===');
+  
+  if (!authHeader) {
+    console.error('No authorization header provided');
+    throw new Error('Missing authorization header');
+  }
+
+  const token = authHeader.replace('Bearer ', '').trim();
+  console.log('Token extracted, length:', token.length);
+  
+  if (!token || token.length < 20) {
+    console.error('Invalid token format or length');
+    throw new Error('Invalid token format');
+  }
+
+  const supabaseWithAuth = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    }
+  );
+
+  const { data: { user }, error: authError } = await supabaseWithAuth.auth.getUser(token);
+
+  if (authError || !user) {
+    console.error('Authentication failed:', authError?.message || 'No user found');
+    throw new Error(`Authentication failed: ${authError?.message || 'Invalid or expired token'}`);
+  }
+
+  console.log('User authenticated:', user.id);
+
+  const { data: profile, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('user_type')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError) {
+    console.error('Error fetching user profile:', profileError.message);
+    throw new Error(`Failed to verify user permissions: ${profileError.message}`);
+  }
+
+  if (!profile || profile.user_type !== 'admin') {
+    console.error('Admin access denied for user:', user.id, 'type:', profile?.user_type);
+    throw new Error('Admin access required');
+  }
+
+  console.log('Admin permissions verified for user:', user.id);
+  console.log('=== ADMIN VERIFICATION SUCCESS ===');
+  
+  return user;
+}
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -27,6 +87,10 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    
+    // Verify admin access
+    const authHeader = req.headers.get('Authorization');
+    await verifyAdminAccess(supabase, authHeader || '');
     
     const { 
       offerId, 

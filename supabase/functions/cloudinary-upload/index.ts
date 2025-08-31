@@ -1,5 +1,66 @@
 
 import { corsHeaders } from '../_shared/cors.ts'
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Authentication utilities
+async function verifyAdminAccess(supabaseClient: any, authHeader: string) {
+  console.log('=== ADMIN VERIFICATION START ===');
+  
+  if (!authHeader) {
+    console.error('No authorization header provided');
+    throw new Error('Missing authorization header');
+  }
+
+  const token = authHeader.replace('Bearer ', '').trim();
+  console.log('Token extracted, length:', token.length);
+  
+  if (!token || token.length < 20) {
+    console.error('Invalid token format or length');
+    throw new Error('Invalid token format');
+  }
+
+  const supabaseWithAuth = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    }
+  );
+
+  const { data: { user }, error: authError } = await supabaseWithAuth.auth.getUser(token);
+
+  if (authError || !user) {
+    console.error('Authentication failed:', authError?.message || 'No user found');
+    throw new Error(`Authentication failed: ${authError?.message || 'Invalid or expired token'}`);
+  }
+
+  console.log('User authenticated:', user.id);
+
+  const { data: profile, error: profileError } = await supabaseClient
+    .from('profiles')
+    .select('user_type')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError) {
+    console.error('Error fetching user profile:', profileError.message);
+    throw new Error(`Failed to verify user permissions: ${profileError.message}`);
+  }
+
+  if (!profile || profile.user_type !== 'admin') {
+    console.error('Admin access denied for user:', user.id, 'type:', profile?.user_type);
+    throw new Error('Admin access required');
+  }
+
+  console.log('Admin permissions verified for user:', user.id);
+  console.log('=== ADMIN VERIFICATION SUCCESS ===');
+  
+  return user;
+}
 
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
 
@@ -32,6 +93,16 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Create Supabase client for auth verification
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? "",
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ""
+    );
+
+    // Verify admin access
+    const authHeader = req.headers.get('Authorization');
+    await verifyAdminAccess(supabaseClient, authHeader || '');
+
     const apiKey = Deno.env.get('CLOUDINARY_API_KEY')?.trim();
     const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET')?.trim();
     const uploadPreset = Deno.env.get('CLOUDINARY_UPLOAD_PRESET')?.trim();
