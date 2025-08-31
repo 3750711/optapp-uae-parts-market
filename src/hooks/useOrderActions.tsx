@@ -251,7 +251,7 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
             ...oldData,
             data: oldData.data.map((order: any) => 
               order.id === orderId 
-                ? { ...order, status: 'admin_confirmed' }
+                ? { ...order, status: 'processed' }
                 : order
             )
           };
@@ -259,7 +259,7 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
 
         await supabase
           .from('orders')
-          .update({ status: 'admin_confirmed' })
+          .update({ status: 'processed' })
           .eq('id', orderId);
         
         invalidateAllOrderCaches();

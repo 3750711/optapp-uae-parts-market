@@ -67,11 +67,11 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
     orderCreatedType: order.order_created_type,
     confirmImagesCount: confirmImages.length,
     hasConfirmImages: confirmImages.length > 0,
-    showConfirmButton: order.status === 'created' || order.status === 'seller_confirmed'
+    showConfirmButton: !['processed', 'cancelled', 'delivered', 'shipped'].includes(order.status)
   });
 
   const totalValue = Number(order.price || 0) + Number(order.delivery_price_confirm || 0);
-  const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
+  const showConfirmButton = !['processed', 'cancelled', 'delivered', 'shipped'].includes(order.status);
 
   const handlePhotoUploadComplete = () => {
     console.log(`Photo upload completed for order #${order.order_number}`);
