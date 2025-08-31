@@ -443,11 +443,11 @@ export const OrderConfirmImagesDialog = ({ orderId, open, onOpenChange }: OrderC
               </div>
 
               {/* Image Container */}
-              <div className="flex-1 flex items-center justify-center p-4 relative">
+              <div className="flex-1 flex items-start justify-center p-4 relative max-h-[calc(100vh-8rem)] overflow-y-auto [-webkit-overflow-scrolling:touch] overscroll-contain">
                 <img
                   src={zoomImage.url}
                   alt={`${zoomImage.title} ${zoomImage.currentIndex + 1}`}
-                  className="max-w-full max-h-full object-contain"
+                  className="max-w-full h-auto object-contain min-h-0"
                 />
 
                 {/* Navigation Buttons */}
