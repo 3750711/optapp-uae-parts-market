@@ -16,6 +16,7 @@
 import { BOT_TOKEN, MIN_IMAGES_REQUIRED, PRODUCT_GROUP_CHAT_ID } from "./config.ts";
 import { sendImageMediaGroups } from "./telegram-api.ts";
 import { logTelegramNotification } from "../shared/telegram-logger.ts";
+import { getLocalTelegramAccounts, getTelegramForDisplay } from "../shared/telegram-config.ts";
 
 /**
  * Handles product status change notifications
@@ -23,39 +24,8 @@ import { logTelegramNotification } from "../shared/telegram-logger.ts";
  * and has been thoroughly tested. Modify with extreme caution.
  */
 export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>) {
-  // List of local Telegram accounts that should show their real username
-  const localTelegramAccounts = [
-    'optseller_anton',
-    'optseller_georgii',
-    'igord_optseller',
-    'optseller_igork',
-    'pavel_optuae',
-    'sansanichuae',
-    'dmotrii_st',
-    'optseller_vlad',
-    'localseller_ali',
-    'faruknose', 
-    'faruk',
-    'faiznose',
-    'localseller_jahangir',
-    'localseller_pochemy',
-    'localseller_rakib',
-    'localseller_sharif',
-    'localseller_younus'
-  ];
-
-  // Function to determine which Telegram to display in notifications
-  const getTelegramForDisplay = (telegram: string) => {
-    if (!telegram) return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
-    
-    // Remove @ symbol if present for comparison
-    const cleanTelegram = telegram.replace('@', '').toLowerCase();
-    
-    if (localTelegramAccounts.includes(cleanTelegram)) {
-      return `@${telegram.replace('@', '')}`;
-    }
-    return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
-  };
+  // Load local telegram accounts from database
+  const localTelegramAccounts = await getLocalTelegramAccounts();
 
   // Validate required parameters
   if (!productId) {
@@ -167,7 +137,7 @@ export async function handleProductNotification(productId: string, notificationT
       `💰 Цена: ${messageData.price} $`,
       `🚚 Цена доставки: ${messageData.deliveryPrice} $`,
       `🆔 OPT_ID продавца: ${messageData.optId}`,
-      `👤 Telegram продавца: ${getTelegramForDisplay(messageData.telegram)}`,
+      `👤 Telegram продавца: ${getTelegramForDisplay(messageData.telegram, localTelegramAccounts)}`,
       '',
       `📊 Статус: ${messageData.status === 'active' ? 'Опубликован' : 
              messageData.status === 'sold' ? 'Продан' : 'На модерации'}`

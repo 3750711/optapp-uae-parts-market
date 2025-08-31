@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Settings, Bell, Shield, Database, Activity, Users, Mail, Key, FileText, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Settings, Bell, Shield, Database, Activity, Users, Mail, Key, FileText, Globe, MessageCircle } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
+import TelegramAccountsManager from '@/components/admin/TelegramAccountsManager';
 
 const AdminSettings: React.FC = () => {
+  const [telegramManagerOpen, setTelegramManagerOpen] = useState(false);
   const settingsCategories = [
     {
       title: "Системные настройки",
@@ -119,7 +122,7 @@ const AdminSettings: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
               <div className="flex items-center space-x-3 p-3 rounded-lg bg-card">
                 <Database className="h-5 w-5 text-blue-500" />
                 <div>
@@ -141,10 +144,26 @@ const AdminSettings: React.FC = () => {
                   <p className="text-sm text-muted-foreground">Отправка уведомлений всем</p>
                 </div>
               </div>
+              <Button
+                onClick={() => setTelegramManagerOpen(true)}
+                variant="outline"
+                className="flex items-center space-x-3 p-3 h-auto justify-start bg-card hover:bg-accent"
+              >
+                <MessageCircle className="h-5 w-5 text-primary" />
+                <div className="text-left">
+                  <p className="font-medium">Отражения телеграмов продавцев</p>
+                  <p className="text-sm text-muted-foreground">Управление локальными аккаунтами</p>
+                </div>
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <TelegramAccountsManager 
+        open={telegramManagerOpen}
+        onClose={() => setTelegramManagerOpen(false)}
+      />
     </AdminLayout>
   );
 };

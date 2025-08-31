@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logTelegramNotification } from '../shared/telegram-logger.ts';
+import { getLocalTelegramAccounts, getTelegramForDisplay } from '../shared/telegram-config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -95,39 +96,8 @@ serve(async (req) => {
       return '';
     };
 
-    // List of local Telegram accounts that should show their real username
-    const localTelegramAccounts = [
-      'OptSeller_Anton',
-      'OptSeller_Georgii',
-      'IgorD_OptSeller',
-      'OptSeller_IgorK',
-      'Pavel_optuae',
-      'SanSanichUAE',
-      'dmotrii_st',
-      'OptSeller_Vlad',
-      'LocalSeller_Ali',
-      'Faruknose', 
-      'Faruk',
-      'faiznose',
-      'LocalSeller_Jahangir',
-      'LocalSeller_Pochemy',
-      'LocalSeller_Rakib',
-      'LocalSeller_Sharif',
-      'LocalSeller_Younus'
-    ];
-
-    // Function to determine which Telegram to display in notifications
-    const getTelegramForDisplay = (telegram: string) => {
-      if (!telegram) return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
-      
-      // Remove @ symbol if present for comparison
-      const cleanTelegram = telegram.replace('@', '');
-      
-      if (localTelegramAccounts.includes(cleanTelegram)) {
-        return `@${cleanTelegram}`;
-      }
-      return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
-    };
+    // Load local telegram accounts from database
+    const localTelegramAccounts = await getLocalTelegramAccounts();
 
     // Create notification message for product publication
     const brandModelText = formatBrandModel(product.brand, product.model);
@@ -138,7 +108,7 @@ serve(async (req) => {
       `💰 Цена: ${product.price} $`,
       `🚚 Цена доставки: ${product.delivery_price} $`,
       `🆔 OPT_ID продавца: ${product.optid_created || ''}`,
-      `👤 Telegram продавца: ${getTelegramForDisplay(product.telegram_url || '')}`,
+      `👤 Telegram продавца: ${getTelegramForDisplay(product.telegram_url || '', localTelegramAccounts)}`,
       '',
       `📊 Статус: Опубликован`
     ].join('\n');
