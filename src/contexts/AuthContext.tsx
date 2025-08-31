@@ -3,6 +3,8 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { handleAuthErrorSoftly, createExponentialBackoff } from "@/utils/authErrorHandler";
+import { authSessionManager } from "@/utils/authSessionManager";
+import { profileManager } from "@/utils/profileManager";
 
 type UserProfile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -35,7 +37,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const reactInternals = (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
   if (!reactInternals?.ReactCurrentDispatcher?.current) {
     console.error("❌ AuthContext: React dispatcher is null! Provider called outside React context");
-    // Возвращаем fallback компонент
     return <div>Loading...</div>;
   }
 
@@ -45,150 +46,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [hydrating, setHydrating] = useState(true);
   
-  // Performance optimization: cache profile data and debounce requests
-  const profileCacheRef = useRef<{ data: UserProfile | null; timestamp: number; ttl: number }>({
-    data: null,
-    timestamp: 0,
-    ttl: 5 * 60 * 1000 // 5 minutes cache
-  });
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  // Enhanced auth state management
+  const cleanupRef = useRef<(() => void) | null>(null);
   const retryConfig = createExponentialBackoff(3, 1000);
 
   // Single-flight для профиля: исключаем конкурирующие запросы
-  const inflightRef = React.useRef<Promise<void> | null>(null);
-  const lastProfileFetchAtRef = React.useRef<number>(0);
-  const PROFILE_TTL_MS = 2 * 60 * 1000; // 2 минуты
+  const inflightRef = useRef<Promise<void> | null>(null);
 
   // isAdmin зависит только от текущего профиля (стабильное значение)
   const isAdmin = React.useMemo<boolean | null>(() => {
-    if (profile === null) return null;              // профиль ещё не получен
+    if (profile === null) return null;
     return profile?.user_type === 'admin';
   }, [profile?.user_type, profile === null]);
 
   const fetchUserProfile = async (userId: string, { force = false } = {}): Promise<void> => {
-    // Check cache first
-    const now = Date.now();
-    const cache = profileCacheRef.current;
-    
-    // CRITICAL: Validate cache userId matches current user
-    if (!force && cache.data && cache.timestamp + cache.ttl > now) {
-      // Check if cached profile belongs to current user
-      if (cache.data.id === userId) {
-        console.log('🔄 AuthContext: Using cached profile data for user:', userId);
-        setProfile(cache.data);
-        return;
-      } else {
-        console.warn('⚠️ AuthContext: Cache userId mismatch! Clearing cache', {
-          cachedUserId: cache.data.id,
-          requestedUserId: userId
-        });
-        // Clear invalid cache
-        profileCacheRef.current = { data: null, timestamp: 0, ttl: cache.ttl };
-      }
-    }
-
-    // TTL-кэш из sessionStorage с валидацией userId
-    if (!force && typeof window !== 'undefined') {
-      const cached = sessionStorage.getItem(`profile_${userId}`);
-      const ts = parseInt(sessionStorage.getItem(`profile_${userId}_time`) || '0', 10);
-      if (cached && Date.now() - ts < PROFILE_TTL_MS) {
-        try {
-          const parsed = JSON.parse(cached);
-          // CRITICAL: Validate sessionStorage userId matches current user
-          if (parsed && parsed.id === userId) {
-            console.log('🔄 AuthContext: Using sessionStorage cached profile for user:', userId);
-            setProfile(parsed);
-            // Update memory cache
-            profileCacheRef.current = { data: parsed, timestamp: now, ttl: cache.ttl };
-            return;
-          } else {
-            console.warn('⚠️ AuthContext: SessionStorage userId mismatch! Clearing cache', {
-              cachedUserId: parsed?.id,
-              requestedUserId: userId
-            });
-            // Clear invalid sessionStorage cache
-            sessionStorage.removeItem(`profile_${userId}`);
-            sessionStorage.removeItem(`profile_${userId}_time`);
-          }
-        } catch (e) {
-          console.warn('⚠️ AuthContext: Invalid sessionStorage cache, clearing:', e);
-          sessionStorage.removeItem(`profile_${userId}`);
-          sessionStorage.removeItem(`profile_${userId}_time`);
-        }
-      }
-    }
-
-    // Clear existing debounce timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    // Против дублей: если уже идёт запрос — ждём его
+    // Защита от дублирования запросов
     if (inflightRef.current) {
-      await inflightRef.current; 
+      await inflightRef.current;
       return;
     }
 
     setIsProfileLoading(true);
     setProfileError(null);
-    lastProfileFetchAtRef.current = Date.now();
 
     inflightRef.current = (async () => {
-      let attempts = 0;
-      while (attempts < 3) {
-        try {
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", userId)
-            .single();
-
-          if (error) {
-            if (error.code === 'PGRST116') {
-              setProfile(null);
-              return;
-            }
-            
-            // Use improved error handling
-            if (!handleAuthErrorSoftly(error, 'profile_fetch')) {
-              throw error;
-            }
-            
-            attempts++;
-            if (attempts < 3) {
-              const delay = retryConfig.getDelay(attempts - 1);
-              console.log(`🔄 AuthContext: Retrying profile fetch in ${delay}ms (attempt ${attempts}/3)`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-              continue;
-            }
-            throw error;
-          }
-
-          console.log('✅ AuthContext: Profile fetched successfully');
-          setProfile(data);
-          
-          // Update both caches
-          profileCacheRef.current = { data, timestamp: now, ttl: cache.ttl };
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem(`profile_${userId}`, JSON.stringify(data));
-            sessionStorage.setItem(`profile_${userId}_time`, String(Date.now()));
-          }
-          return;
-        } catch (err) {
-          if (attempts >= 3) {
-            throw err;
-          }
-          attempts++;
+      try {
+        console.log(`👤 AuthContext: Fetching profile for user ${userId} (force: ${force})`);
+        
+        const profileData = await profileManager.fetchProfile(userId, { force });
+        
+        if (profileData) {
+          setProfile(profileData);
+          console.log('✅ AuthContext: Profile loaded successfully');
+        } else {
+          setProfile(null);
+          console.log('👤 AuthContext: No profile found for user');
+        }
+      } catch (err) {
+        console.error('❌ AuthContext: Profile fetch error:', err);
+        
+        if (!handleAuthErrorSoftly(err, 'profile_fetch')) {
+          setProfile(null);
+          setProfileError(err?.message || 'Failed to load profile');
         }
       }
-    })().catch((err) => {
-      if (!handleAuthErrorSoftly(err, 'profile_fetch_final')) {
-        setProfile(null);
-        setProfileError(err?.message || 'Failed to load profile');
-      }
-    }).finally(() => {
+    })().finally(() => {
       setIsProfileLoading(false);
       inflightRef.current = null;
     });
@@ -197,13 +100,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log("🔧 AuthContext: useEffect triggered");
+    console.log("🚀 AuthContext: Initializing enhanced auth system");
     
-    // Проверяем восстановление из bfcache
-    const isBfcacheRestore = typeof window !== 'undefined' && 
-      (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming)?.type === 'back_forward';
+    // Migrate from old sessionStorage to new localStorage system
+    profileManager.migrateFromSessionStorage();
+    
+    // Initialize session manager with singleton guard
+    cleanupRef.current = authSessionManager.initialize((event, session) => {
+      console.log("🔧 AuthContext: Auth state change:", event, !!session);
 
-    // Проверяем начальную сессию с валидацией токена
+      // Handle user changes by clearing all profile caches
+      const isUserChange = user?.id && session?.user?.id && user.id !== session.user.id;
+      if (isUserChange) {
+        console.warn('🔄 AuthContext: User change detected, clearing all caches');
+        profileManager.clearAllProfiles();
+      }
+
+      setSession(session);
+
+      if (session?.user) {
+        setUser(session.user);
+        
+        // Only fetch profile on significant events, not token refreshes
+        if (event === 'SIGNED_IN' || (event === 'TOKEN_REFRESHED' && !profile)) {
+          void fetchUserProfile(session.user.id);
+        }
+      } else {
+        console.log("🔧 AuthContext: Clearing user state");
+        setUser(null);
+        setProfile(null);
+        setProfileError(null);
+        profileManager.clearAllProfiles();
+      }
+      
+      setIsLoading(false);
+    });
+
+    // Set up cross-tab profile sync
+    authSessionManager.on('profile-updated', ({ userId, profile: updatedProfile }) => {
+      if (user?.id === userId) {
+        console.log('📡 AuthContext: Profile updated from another tab');
+        setProfile(updatedProfile);
+      }
+    });
+
+    // Handle force signout from other tabs
+    authSessionManager.on('force-signout', ({ reason }) => {
+      console.warn('🚪 AuthContext: Force signout received:', reason);
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      profileManager.clearAllProfiles();
+    });
+
+    // Initial session check with token validation
     const checkInitialSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
@@ -221,35 +171,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (session?.user) {
-          // CRITICAL: Validate session token before trusting it
+          // Validate session token before trusting it
           const now = Math.floor(Date.now() / 1000);
           const expiresAt = session.expires_at || 0;
           
           if (expiresAt > now) {
-            console.log("✅ AuthContext: Valid session token found");
+            console.log("✅ AuthContext: Valid session found");
             
-            // Verify token by making a simple authenticated request
+            // Verify token validity with server
             try {
-              const { error: testError } = await supabase.auth.getUser();
-              if (testError) {
-                console.warn("⚠️ AuthContext: Token validation failed, clearing session");
+              const { error: userError } = await supabase.auth.getUser();
+              if (userError) {
+                console.warn("⚠️ AuthContext: Token validation failed");
                 throw new Error('Invalid token');
               }
               
               setSession(session);
               setUser(session.user);
-              // При bfcache восстановлении не перезапрашиваем профиль сразу
-              await fetchUserProfile(session.user.id, { force: !isBfcacheRestore });
+              await fetchUserProfile(session.user.id);
             } catch (tokenError) {
-              console.warn("⚠️ AuthContext: Session token invalid, forcing signOut");
+              console.warn("⚠️ AuthContext: Session invalid, cleaning up");
               await forceCleanSession();
             }
           } else {
-            console.warn("⚠️ AuthContext: Session token expired, forcing signOut");
+            console.warn("⚠️ AuthContext: Session expired");
             await forceCleanSession();
           }
         } else {
-          console.log("🔧 AuthContext: No user found, cleaning state");
+          console.log("🔧 AuthContext: No session found");
           await forceCleanSession();
         }
       } catch (error) {
@@ -257,19 +206,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await forceCleanSession();
       } finally {
         setIsLoading(false);
-        setHydrating(false);
       }
     };
 
-    // Helper function to aggressively clean session state
     const forceCleanSession = async () => {
       console.log("🧹 AuthContext: Force cleaning session state");
       
       setSession(null);
       setUser(null);
       setProfile(null);
+      profileManager.clearAllProfiles();
       
-      // Clear all auth-related localStorage and sessionStorage
+      // Clear all auth-related storage
       if (typeof window !== 'undefined') {
         const localKeys = Object.keys(localStorage);
         const authKeys = localKeys.filter(key => 
@@ -280,96 +228,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
         authKeys.forEach(key => localStorage.removeItem(key));
         
-        const sessionKeys = Object.keys(sessionStorage);
-        const profileKeys = sessionKeys.filter(key => key.startsWith('profile_'));
-        profileKeys.forEach(key => sessionStorage.removeItem(key));
-        
-        console.log("🧹 AuthContext: Cleared", authKeys.length, "localStorage keys and", profileKeys.length, "sessionStorage keys");
+        console.log(`🧹 AuthContext: Cleared ${authKeys.length} auth storage keys`);
       }
-      
-      // Clear memory cache
-      profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
     };
 
     checkInitialSession();
 
-    // Подписка на изменения авторизации
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("🔧 AuthContext: Auth state change", {
-        event,
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        userId: session?.user?.id,
-        previousUserId: user?.id
-      });
-
-      // CRITICAL: Detect user change and force clear caches
-      const isUserChange = user?.id && session?.user?.id && user.id !== session.user.id;
-      if (isUserChange) {
-        console.warn('🔄 AuthContext: User change detected! Force clearing caches', {
-          previousUserId: user.id,
-          newUserId: session.user.id
-        });
-        
-        // Force clear all caches on user change
-        profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
-        if (typeof window !== 'undefined') {
-          const keys = Object.keys(sessionStorage);
-          const profileKeys = keys.filter(key => key.startsWith('profile_'));
-          profileKeys.forEach(key => sessionStorage.removeItem(key));
-        }
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-          debounceTimerRef.current = undefined;
-        }
-        inflightRef.current = null;
-        lastProfileFetchAtRef.current = 0;
-      }
-
-      setSession(session);
-
-      if (session?.user) {
-        setUser(session.user);
-        // Не дёргаем профиль на TOKEN_REFRESHED — используем текущий
-        if (event !== 'TOKEN_REFRESHED') {
-          void fetchUserProfile(session.user.id);
-        }
-      } else {
-        console.log("🔧 AuthContext: No user in auth change, clearing state");
-        setUser(null);
-        setProfile(null);
-        setProfileError(null);
-        
-        // Clear caches when no user
-        profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
-        if (typeof window !== 'undefined') {
-          const keys = Object.keys(sessionStorage);
-          const profileKeys = keys.filter(key => key.startsWith('profile_'));
-          profileKeys.forEach(key => sessionStorage.removeItem(key));
-        }
-      }
-      
-      setIsLoading(false);
-    });
-
     return () => {
-      subscription.unsubscribe();
+      console.log("🧹 AuthContext: Cleaning up enhanced auth system");
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
     };
   }, []);
 
-  // Лёгкая фоновая актуализация профиля на возврате вкладки
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible' && user) {
-        const age = Date.now() - lastProfileFetchAtRef.current;
-        if (age > PROFILE_TTL_MS) {
-          void fetchUserProfile(user.id);
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
-  }, [user?.id]);
+  // Enhanced visibility and session awakening is handled by authSessionManager
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -406,9 +280,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      console.log('🚪 AuthContext: Starting signOut - clearing all caches and localStorage');
+      console.log('🚪 AuthContext: Starting enhanced signOut process');
       
-      // CRITICAL: Clear all localStorage auth keys BEFORE signOut to prevent persistence
+      // 1. Broadcast signOut to other tabs FIRST
+      authSessionManager.cleanup();
+      
+      // 2. Clear all auth-related localStorage BEFORE Supabase signOut
       if (typeof window !== 'undefined') {
         const storageKeys = Object.keys(localStorage);
         const authKeys = storageKeys.filter(key => 
@@ -418,67 +295,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           key.includes('session')
         );
         
-        authKeys.forEach(key => {
-          localStorage.removeItem(key);
-        });
-        console.log('🧹 AuthContext: Cleared localStorage auth keys:', authKeys);
+        authKeys.forEach(key => localStorage.removeItem(key));
+        console.log('🧹 AuthContext: Cleared localStorage auth keys:', authKeys.length);
       }
       
-      // 1. Clear memory cache
-      profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
-      console.log('🧹 AuthContext: Cleared memory cache');
-      
-      // 2. Clear sessionStorage cache for all users
-      if (typeof window !== 'undefined') {
-        const keys = Object.keys(sessionStorage);
-        const profileKeys = keys.filter(key => key.startsWith('profile_'));
-        profileKeys.forEach(key => {
-          sessionStorage.removeItem(key);
-        });
-        console.log('🧹 AuthContext: Cleared sessionStorage cache:', profileKeys.length, 'keys');
-      }
-      
-      // 3. Clear debounce timers
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = undefined;
-        console.log('🧹 AuthContext: Cleared debounce timer');
-      }
+      // 3. Clear profile caches
+      profileManager.clearAllProfiles();
       
       // 4. Cancel inflight requests
-      if (inflightRef.current) {
-        inflightRef.current = null;
-        console.log('🧹 AuthContext: Cancelled inflight requests');
-      }
+      inflightRef.current = null;
       
-      // 5. Reset profile fetch timestamp
-      lastProfileFetchAtRef.current = 0;
-      
-      // 6. Perform actual signOut with global scope
+      // 5. Perform Supabase signOut with global scope
       const { error: signOutError } = await supabase.auth.signOut({ scope: 'global' });
       if (signOutError) {
         console.warn('⚠️ AuthContext: SignOut error, but continuing with cleanup:', signOutError);
       }
       
-      // 7. Double-check localStorage clearing after signOut
+      // 6. Final cleanup - clear any remaining auth storage
       if (typeof window !== 'undefined') {
-        const remainingKeys = Object.keys(localStorage).filter(key => 
+        const finalStorageKeys = Object.keys(localStorage);
+        const finalAuthKeys = finalStorageKeys.filter(key => 
           key.startsWith('sb-') || 
-          key.startsWith('supabase.auth.token')
+          key.startsWith('supabase.auth.token') ||
+          key.includes('auth-token') ||
+          key.includes('session')
         );
-        remainingKeys.forEach(key => localStorage.removeItem(key));
-        if (remainingKeys.length > 0) {
-          console.log('🧹 AuthContext: Cleared remaining auth keys after signOut:', remainingKeys);
-        }
+        
+        finalAuthKeys.forEach(key => localStorage.removeItem(key));
+        console.log('🧹 AuthContext: Final cleanup - cleared', finalAuthKeys.length, 'remaining keys');
       }
       
-      // 8. Clear React state
+      // 7. Clear React state
       setUser(null);
       setProfile(null);
       setSession(null);
       setProfileError(null);
       
-      console.log('✅ AuthContext: SignOut completed - all caches and localStorage cleared');
+      console.log('✅ AuthContext: SignOut completed successfully');
     } catch (error) {
       console.error("❌ AuthContext: Sign out error:", error);
       
@@ -487,15 +340,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(null);
       setSession(null);
       setProfileError(null);
+      profileManager.clearAllProfiles();
       
-      // Force clear all caches and localStorage
-      profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
       if (typeof window !== 'undefined') {
-        // Clear sessionStorage
-        const sessionKeys = Object.keys(sessionStorage);
-        const profileKeys = sessionKeys.filter(key => key.startsWith('profile_'));
-        profileKeys.forEach(key => sessionStorage.removeItem(key));
-        
         // Force clear ALL localStorage auth keys
         const localKeys = Object.keys(localStorage);
         const authKeys = localKeys.filter(key => 
@@ -512,29 +359,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) throw new Error("No authenticated user");
+    if (!user?.id) throw new Error("User not authenticated");
     
     try {
-      console.log("📝 AuthContext: Updating profile for user:", user.id, updates);
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .update(updates)
-        .eq("id", user.id);
-      
+        .eq("id", user.id)
+        .select()
+        .single();
+        
       if (error) throw error;
       
-      console.log("✅ AuthContext: Profile updated successfully");
-      await refreshProfile();
+      // Update local state and persistent cache
+      setProfile(data);
+      profileManager.updateProfile(user.id, data);
+      
+      // Broadcast to other tabs
+      authSessionManager.broadcastProfileUpdate(user.id, data);
+      
+      console.log('✅ AuthContext: Profile updated successfully');
     } catch (error) {
-      console.error("❌ AuthContext: Update profile error:", error);
+      console.error('❌ AuthContext: Profile update failed:', error);
       throw error;
     }
   };
 
-  const refreshProfile = useCallback(async (forceRefresh = false) => {
-    if (!user?.id) return;
-    await fetchUserProfile(user.id, { force: forceRefresh });
-  }, [user?.id]);
+  const refreshProfile = async (forceRefresh = false) => {
+    if (user?.id) {
+      if (forceRefresh) {
+        profileManager.invalidateProfile(user.id);
+      }
+      await fetchUserProfile(user.id, { force: forceRefresh });
+    }
+  };
 
   const sendPasswordResetEmail = async (email: string) => {
     try {
@@ -594,6 +452,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchUserProfile(user.id, { force: true });
   };
 
+  const retryProfileLoad = () => {
+    if (user?.id) {
+      console.log('🔄 AuthContext: Retrying profile load');
+      profileManager.invalidateProfile(user.id);
+      void fetchUserProfile(user.id, { force: true });
+    }
+  };
+
   const value: AuthContextType = {
     user,
     profile,
@@ -601,6 +467,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     isProfileLoading,
     isAdmin,
+    profileError,
     signIn,
     signUp,
     signOut,
@@ -612,8 +479,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     forceRefreshSession,
     signInWithTelegram,
     refreshAdminStatus,
-    profileError,
-    retryProfileLoad: () => user && fetchUserProfile(user.id, { force: true }),
+    retryProfileLoad,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
