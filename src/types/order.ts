@@ -51,6 +51,7 @@ export interface OrderFormData {
   text_order: string;
   delivery_price: string;
   description: string; // Добавляем описание
+  status: OrderStatus; // Добавляем статус заказа для админов
 }
 
 export interface CreatedOrder {

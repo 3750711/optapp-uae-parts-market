@@ -16,7 +16,8 @@ const initialFormData: OrderFormData = {
   place_number: '',
   text_order: '',
   delivery_price: '',
-  description: '' // Добавляем отсутствующее поле
+  description: '', // Добавляем отсутствующее поле
+  status: 'created' // Статус по умолчанию
 };
 
 export const useAdminOrderFormData = () => {
@@ -68,7 +69,8 @@ export const useAdminOrderFormData = () => {
       place_number: '',
       text_order: '',
       delivery_price: '',
-      description: '' // Добавляем отсутствующее поле
+      description: '', // Добавляем отсутствующее поле
+      status: 'created' // Статус по умолчанию
     });
     setImages([]);
     setVideos([]);

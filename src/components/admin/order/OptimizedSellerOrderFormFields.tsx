@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { CarBrand, CarModel } from '@/hooks/useLazyCarData';
-import type { BuyerProfile, SellerProfile } from '@/types/order';
+import type { BuyerProfile, SellerProfile, OrderStatus } from '@/types/order';
 
 interface OptimizedSellerOrderFormFieldsProps {
   formData: any;
@@ -199,6 +199,29 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                 className="bg-white"
               />
             </div>
+          </div>
+
+          {/* Статус заказа */}
+          <div className="space-y-2">
+            <Label htmlFor="status">Статус заказа *</Label>
+            <Select
+              value={formData.status || 'created'}
+              onValueChange={(value) => handleInputChange('status', value as OrderStatus)}
+              disabled={disabled}
+            >
+              <SelectTrigger className="bg-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created">Создан</SelectItem>
+                <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
+                <SelectItem value="admin_confirmed">Подтвержден администратором</SelectItem>
+                <SelectItem value="processed">В обработке</SelectItem>
+                <SelectItem value="shipped">Отправлен</SelectItem>
+                <SelectItem value="delivered">Доставлен</SelectItem>
+                <SelectItem value="cancelled">Отменен</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
