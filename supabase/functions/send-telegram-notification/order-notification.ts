@@ -16,6 +16,7 @@
 import { BOT_TOKEN, ORDER_GROUP_CHAT_ID, REGISTERED_GROUP_CHAT_ID, ORDER_BASE_URL } from "./config.ts";
 import { waitBetweenBatches } from "./telegram-api.ts";
 import { logTelegramNotification } from "../shared/telegram-logger.ts";
+import { getLocalTelegramAccounts, getTelegramForDisplay } from "../shared/telegram-config.ts";
 
 /**
  * Handles order creation notifications
@@ -67,9 +68,14 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
       return `@${u}`;
     };
     
-    // Fetch seller telegram from profiles
-    let sellerTelegram: string = '';
+    // Get local telegram accounts and determine display telegram
+    let displayTelegram = '';
     try {
+      // Fetch local telegram accounts from database
+      const localAccounts = await getLocalTelegramAccounts();
+      
+      // Fetch seller telegram from profiles
+      let sellerTelegram = '';
       if (orderData.seller_id) {
         const { data: sellerProfile, error: sellerErr } = await supabaseClient
           .from('profiles')
@@ -78,16 +84,23 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
           .single();
         if (sellerErr) {
           console.warn('Could not fetch seller telegram from profiles:', sellerErr);
+        } else {
+          sellerTelegram = sellerProfile?.telegram;
         }
-        sellerTelegram = normalizeTelegramUsername(sellerProfile?.telegram);
       }
+      
+      // Use fallback if no seller telegram found
+      const telegramToCheck = sellerTelegram || orderData.telegram_url_order || '';
+      
+      // Determine display telegram using shared config logic
+      displayTelegram = getTelegramForDisplay(telegramToCheck, localAccounts);
+      
     } catch (e) {
-      console.warn('Exception fetching seller telegram:', e);
+      console.warn('Error with telegram config system, using fallback logic:', e);
+      // Fallback to original logic
+      const fallbackTelegram = normalizeTelegramUsername(orderData.telegram_url_order);
+      displayTelegram = fallbackTelegram || 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
     }
-    
-    // Fallbacks
-    const fallbackSellerTelegram = normalizeTelegramUsername(orderData.telegram_url_order);
-    const displayTelegram = sellerTelegram || fallbackSellerTelegram || '';
     
     // Format order number with leading zero
     const formattedOrderNumber = orderData.order_number.toString().padStart(5, '0');
