@@ -1,7 +1,6 @@
 
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { debounce } from '@/utils/debounce';
-import { useToast } from '@/hooks/use-toast';
 
 interface OptimizedAutosaveOptions {
   key: string;
@@ -18,7 +17,6 @@ export const useOptimizedFormAutosave = ({
   enabled = true,
   excludeFields = ['imageUrls', 'videoUrls', 'primaryImage']
 }: OptimizedAutosaveOptions) => {
-  const { toast } = useToast();
   const hasUnsavedChanges = useRef(false);
   const lastSavedData = useRef<string>('');
   const [draftExists, setDraftExists] = useState(false);
@@ -110,12 +108,7 @@ export const useOptimizedFormAutosave = ({
     localStorage.removeItem(`autosave_${key}_timestamp`);
     hasUnsavedChanges.current = false;
     setDraftExists(false);
-    
-    toast({
-      title: "Черновик очищен",
-      description: "Сохраненный черновик был удален",
-    });
-  }, [key, toast]);
+  }, [key]);
 
   const checkDraftExists = useCallback(() => {
     const savedData = localStorage.getItem(`autosave_${key}`);
