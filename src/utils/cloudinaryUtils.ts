@@ -100,10 +100,8 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       width: 150,
       height: 150,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:low',
-      format: 'webp',
-      dpr: 'auto'
+      format: 'webp'
     },
     // ~100KB card - optimized for catalog listings
     card: {
