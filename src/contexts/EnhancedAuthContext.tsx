@@ -51,6 +51,45 @@ const logAuthEvent = (event: string, data?: any) => {
 // BroadcastChannel для координации между вкладками
 const authChannel = typeof window !== 'undefined' ? new BroadcastChannel('auth') : null;
 
+// Manual refresh with mutex
+const REFRESH_LOCK_KEY = 'pb_refresh_lock_v1';
+const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('pb_auth') : null;
+
+async function refreshSafely() {
+  const now = Date.now();
+
+  // Lock for 30s (protection from parallel refreshes)
+  const current = localStorage.getItem(REFRESH_LOCK_KEY);
+  if (current && now - Number(current) < 30_000) return;
+  localStorage.setItem(REFRESH_LOCK_KEY, String(now));
+  bc?.postMessage({ t: 'lock' });
+
+  try {
+    const { error } = await supabase.auth.refreshSession();
+    if (error) {
+      console.warn('[auth] refresh failed, will retry softly in 15s', error.message);
+      setTimeout(refreshSafely, 15_000); // soft retry
+    } else {
+      bc?.postMessage({ t: 'refreshed', at: Date.now() });
+    }
+  } finally {
+    // Remove lock only if it's ours
+    if (localStorage.getItem(REFRESH_LOCK_KEY) === String(now)) {
+      localStorage.removeItem(REFRESH_LOCK_KEY);
+    }
+    bc?.postMessage({ t: 'unlock' });
+  }
+}
+
+function scheduleRefresh(session?: Session | null) {
+  if (!session?.expires_at) return;
+  // Refresh 60s before expiration
+  const ms = session.expires_at * 1000 - Date.now() - 60_000;
+  const delay = Math.max(ms, 5_000);
+  window.clearTimeout((window as any).__pbRefreshTimer);
+  (window as any).__pbRefreshTimer = window.setTimeout(refreshSafely, delay);
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const reactInternals = (React as any)?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
   if (!reactInternals?.ReactCurrentDispatcher?.current) {
@@ -74,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const currentUserIdRef = useRef<string | null>(null);
   const isTabLeaderRef = useRef<boolean>(true);
 
-  const PROFILE_TTL_MS = 2 * 60 * 1000; // 2 минуты
+  const PROFILE_TTL_MS = 10 * 60 * 1000; // 10 minutes for comfortable hydration
   const REFRESH_CYCLE_LIMIT = 3; // максимум 3 refresh за минуту
   const REFRESH_WINDOW_MS = 60 * 1000; // окно в 1 минуту
 
@@ -177,10 +216,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [user?.id]);
 
+  // Instant profile hydration from localStorage
+  const tryHydrateProfileFromCache = (userId: string): boolean => {
+    try {
+      const raw = localStorage.getItem(`pb_profile_${userId}`);
+      const ts = Number(localStorage.getItem(`pb_profile_${userId}_ts`) || 0);
+      if (!raw) return false;
+      if (Date.now() - ts > PROFILE_TTL_MS) return false;
+      const cached = JSON.parse(raw);
+      setProfile(cached);
+      logAuthEvent('profile_fetch', { 
+        source: 'localStorage_cache', 
+        userId 
+      });
+      return true;
+    } catch { 
+      return false; 
+    }
+  };
+
   const fetchUserProfile = async (userId: string, { force = false } = {}): Promise<void> => {
     const startTime = Date.now();
     
-    // TTL-кэш проверка
+    // Check sessionStorage first (shorter TTL for network cache)
     if (!force && typeof window !== 'undefined') {
       const cached = sessionStorage.getItem(`profile_${userId}`);
       const ts = parseInt(sessionStorage.getItem(`profile_${userId}_time`) || '0', 10);
@@ -189,7 +247,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const parsed = JSON.parse(cached);
           setProfile(parsed);
           logAuthEvent('profile_fetch', { 
-            source: 'cache', 
+            source: 'sessionStorage_cache', 
             dur_ms: Date.now() - startTime,
             userId 
           });
@@ -230,8 +288,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setProfile(data);
       
-      // Кэширование
+      // Dual caching - both localStorage (persistent) and sessionStorage (session-based)
       if (typeof window !== 'undefined') {
+        // localStorage for instant hydration after F5
+        localStorage.setItem(`pb_profile_${userId}`, JSON.stringify(data));
+        localStorage.setItem(`pb_profile_${userId}_ts`, String(Date.now()));
+        
+        // sessionStorage for shorter-term network cache
         sessionStorage.setItem(`profile_${userId}`, JSON.stringify(data));
         sessionStorage.setItem(`profile_${userId}_time`, String(Date.now()));
       }
@@ -291,7 +354,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           setSession(session);
           setUser(session.user);
-          await fetchUserProfile(session.user.id, { force: !isBfcacheRestore });
+          scheduleRefresh(session);
+          // Instant hydration from localStorage cache first
+          if (session.user.id) tryHydrateProfileFromCache(session.user.id);
+          // Then network fetch in background
+          if (session.user.id) void fetchUserProfile(session.user.id, { force: !isBfcacheRestore });
         } else {
           console.log("🔧 Enhanced AuthContext: No user found, clearing state");
           setSession(null);
@@ -328,10 +395,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setSession(session);
+      scheduleRefresh(session);
 
       if (session?.user) {
         setUser(session.user);
-        // Не перезапрашиваем профиль на TOKEN_REFRESHED
+        // Don't refetch profile on TOKEN_REFRESHED
         if (event !== 'TOKEN_REFRESHED') {
           void fetchUserProfile(session.user.id);
         }
@@ -355,6 +423,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       subscription.unsubscribe();
+      window.clearTimeout((window as any).__pbRefreshTimer);
+      bc?.close?.();
     };
   }, []);
 
