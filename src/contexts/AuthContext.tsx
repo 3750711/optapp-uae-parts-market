@@ -71,24 +71,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Check cache first
     const now = Date.now();
     const cache = profileCacheRef.current;
+    
+    // CRITICAL: Validate cache userId matches current user
     if (!force && cache.data && cache.timestamp + cache.ttl > now) {
-      console.log('🔄 AuthContext: Using cached profile data');
-      setProfile(cache.data);
-      return;
+      // Check if cached profile belongs to current user
+      if (cache.data.id === userId) {
+        console.log('🔄 AuthContext: Using cached profile data for user:', userId);
+        setProfile(cache.data);
+        return;
+      } else {
+        console.warn('⚠️ AuthContext: Cache userId mismatch! Clearing cache', {
+          cachedUserId: cache.data.id,
+          requestedUserId: userId
+        });
+        // Clear invalid cache
+        profileCacheRef.current = { data: null, timestamp: 0, ttl: cache.ttl };
+      }
     }
 
-    // TTL-кэш из sessionStorage (как было)
+    // TTL-кэш из sessionStorage с валидацией userId
     if (!force && typeof window !== 'undefined') {
       const cached = sessionStorage.getItem(`profile_${userId}`);
       const ts = parseInt(sessionStorage.getItem(`profile_${userId}_time`) || '0', 10);
       if (cached && Date.now() - ts < PROFILE_TTL_MS) {
         try {
           const parsed = JSON.parse(cached);
-          setProfile(parsed);
-          // Update memory cache
-          profileCacheRef.current = { data: parsed, timestamp: now, ttl: cache.ttl };
-          return;
-        } catch {}
+          // CRITICAL: Validate sessionStorage userId matches current user
+          if (parsed && parsed.id === userId) {
+            console.log('🔄 AuthContext: Using sessionStorage cached profile for user:', userId);
+            setProfile(parsed);
+            // Update memory cache
+            profileCacheRef.current = { data: parsed, timestamp: now, ttl: cache.ttl };
+            return;
+          } else {
+            console.warn('⚠️ AuthContext: SessionStorage userId mismatch! Clearing cache', {
+              cachedUserId: parsed?.id,
+              requestedUserId: userId
+            });
+            // Clear invalid sessionStorage cache
+            sessionStorage.removeItem(`profile_${userId}`);
+            sessionStorage.removeItem(`profile_${userId}_time`);
+          }
+        } catch (e) {
+          console.warn('⚠️ AuthContext: Invalid sessionStorage cache, clearing:', e);
+          sessionStorage.removeItem(`profile_${userId}`);
+          sessionStorage.removeItem(`profile_${userId}_time`);
+        }
       }
     }
 
@@ -221,8 +249,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         event,
         hasSession: !!session,
         hasUser: !!session?.user,
-        userId: session?.user?.id
+        userId: session?.user?.id,
+        previousUserId: user?.id
       });
+
+      // CRITICAL: Detect user change and force clear caches
+      const isUserChange = user?.id && session?.user?.id && user.id !== session.user.id;
+      if (isUserChange) {
+        console.warn('🔄 AuthContext: User change detected! Force clearing caches', {
+          previousUserId: user.id,
+          newUserId: session.user.id
+        });
+        
+        // Force clear all caches on user change
+        profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
+        if (typeof window !== 'undefined') {
+          const keys = Object.keys(sessionStorage);
+          const profileKeys = keys.filter(key => key.startsWith('profile_'));
+          profileKeys.forEach(key => sessionStorage.removeItem(key));
+        }
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+          debounceTimerRef.current = undefined;
+        }
+        inflightRef.current = null;
+        lastProfileFetchAtRef.current = 0;
+      }
 
       setSession(session);
 
@@ -237,6 +289,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         setProfile(null);
         setProfileError(null);
+        
+        // Clear caches when no user
+        profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
+        if (typeof window !== 'undefined') {
+          const keys = Object.keys(sessionStorage);
+          const profileKeys = keys.filter(key => key.startsWith('profile_'));
+          profileKeys.forEach(key => sessionStorage.removeItem(key));
+        }
       }
       
       setIsLoading(false);
@@ -296,12 +356,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      console.log('🚪 AuthContext: Starting signOut - clearing all caches');
+      
+      // CRITICAL: Clear all caches to prevent cross-user data leaks
+      
+      // 1. Clear memory cache
+      profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
+      console.log('🧹 AuthContext: Cleared memory cache');
+      
+      // 2. Clear sessionStorage cache for all users
+      if (typeof window !== 'undefined') {
+        const keys = Object.keys(sessionStorage);
+        const profileKeys = keys.filter(key => key.startsWith('profile_'));
+        profileKeys.forEach(key => {
+          sessionStorage.removeItem(key);
+        });
+        console.log('🧹 AuthContext: Cleared sessionStorage cache:', profileKeys.length, 'keys');
+      }
+      
+      // 3. Clear debounce timers
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = undefined;
+        console.log('🧹 AuthContext: Cleared debounce timer');
+      }
+      
+      // 4. Cancel inflight requests
+      if (inflightRef.current) {
+        inflightRef.current = null;
+        console.log('🧹 AuthContext: Cancelled inflight requests');
+      }
+      
+      // 5. Reset profile fetch timestamp
+      lastProfileFetchAtRef.current = 0;
+      
+      // 6. Perform actual signOut
       await supabase.auth.signOut();
+      
+      // 7. Clear React state
       setUser(null);
       setProfile(null);
       setSession(null);
+      setProfileError(null);
+      
+      console.log('✅ AuthContext: SignOut completed - all caches cleared');
     } catch (error) {
       console.error("❌ AuthContext: Sign out error:", error);
+      // Even if signOut fails, clear local state for security
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+      setProfileError(null);
+      
+      // Force clear caches even on error
+      profileCacheRef.current = { data: null, timestamp: 0, ttl: profileCacheRef.current.ttl };
+      if (typeof window !== 'undefined') {
+        const keys = Object.keys(sessionStorage);
+        const profileKeys = keys.filter(key => key.startsWith('profile_'));
+        profileKeys.forEach(key => sessionStorage.removeItem(key));
+      }
     }
   };
 
