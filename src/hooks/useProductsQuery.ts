@@ -40,8 +40,88 @@ export const useProductsQuery = ({
 
     // Apply filters
     if (debouncedSearchTerm) {
-      const escapedTerm = escapeLikePattern(debouncedSearchTerm.trim());
-      query = query.ilike('title', `%${escapedTerm}%`);
+      // Helper functions for search processing
+      const escapePostgRESTTerm = (term: string): string => {
+        return term.replace(/[%_]/g, '\\$&');
+      };
+
+      const normalizeText = (text: string): string => {
+        return text.replace(/ё/g, 'е').replace(/Ё/g, 'Е');
+      };
+
+      // Process search term
+      const normalizedSearchTerm = normalizeText(debouncedSearchTerm.toLowerCase().trim());
+      const searchWords = normalizedSearchTerm.split(/\s+/).filter(word => word.length > 0);
+
+      console.log('🔍 Products Search Debug:', {
+        originalTerm: debouncedSearchTerm,
+        normalizedTerm: normalizedSearchTerm,
+        searchWords,
+        wordCount: searchWords.length
+      });
+
+      if (searchWords.length === 1) {
+        // Single word search - OR across all fields
+        const word = escapePostgRESTTerm(searchWords[0]);
+        const isNumeric = !isNaN(Number(word));
+        
+        if (isNumeric) {
+          // Search in both text and numeric fields
+          query = query.or(
+            `lot_number.eq.${Number(word)},` +
+            `place_number.eq.${Number(word)},` +
+            `title.ilike.%${word}%,` +
+            `brand.ilike.%${word}%,` +
+            `model.ilike.%${word}%,` +
+            `seller_name.ilike.%${word}%,` +
+            `description.ilike.%${word}%`
+          );
+        } else {
+          // Search only in text fields
+          query = query.or(
+            `title.ilike.%${word}%,` +
+            `brand.ilike.%${word}%,` +
+            `model.ilike.%${word}%,` +
+            `seller_name.ilike.%${word}%,` +
+            `description.ilike.%${word}%`
+          );
+        }
+
+        console.log('🔍 Single word search applied:', { word, isNumeric });
+      } else {
+        // Multiple words - AND logic between words, OR within each word across fields
+        const wordConditions = searchWords.map(word => {
+          const escapedWord = escapePostgRESTTerm(word);
+          const isNumeric = !isNaN(Number(escapedWord));
+          
+          if (isNumeric) {
+            return `lot_number.eq.${Number(escapedWord)},` +
+                   `place_number.eq.${Number(escapedWord)},` +
+                   `title.ilike.%${escapedWord}%,` +
+                   `brand.ilike.%${escapedWord}%,` +
+                   `model.ilike.%${escapedWord}%,` +
+                   `seller_name.ilike.%${escapedWord}%,` +
+                   `description.ilike.%${escapedWord}%`;
+          } else {
+            return `title.ilike.%${escapedWord}%,` +
+                   `brand.ilike.%${escapedWord}%,` +
+                   `model.ilike.%${escapedWord}%,` +
+                   `seller_name.ilike.%${escapedWord}%,` +
+                   `description.ilike.%${escapedWord}%`;
+          }
+        });
+
+        // Apply AND logic: wrap each word condition in or(), then chain with and()
+        const orConditions = wordConditions.map(condition => `or(${condition})`);
+        const finalCondition = `and(${orConditions.join(',')})`;
+        
+        query = query.or(finalCondition);
+
+        console.log('🔍 Multi-word search applied:', {
+          wordConditions: wordConditions.length,
+          finalCondition: finalCondition.substring(0, 100) + '...'
+        });
+      }
     }
 
     if (statusFilter !== 'all') {

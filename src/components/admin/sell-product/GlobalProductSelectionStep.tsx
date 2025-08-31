@@ -50,7 +50,7 @@ const GlobalProductSelectionStep: React.FC<GlobalProductSelectionStepProps> = ({
           Шаг 1: Выберите товар для продажи
         </CardTitle>
         <CardDescription>
-          Найдите товар среди всех доступных в системе
+          Найдите товар среди всех доступных в системе. Используйте поиск по названию, бренду, модели, продавцу или номеру лота.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -60,7 +60,7 @@ const GlobalProductSelectionStep: React.FC<GlobalProductSelectionStepProps> = ({
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Поиск по названию товара..."
+                placeholder="Поиск по названию, бренду, модели, продавцу, лоту..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -74,15 +74,29 @@ const GlobalProductSelectionStep: React.FC<GlobalProductSelectionStepProps> = ({
 
         {/* Результаты поиска */}
         {isLoading ? (
-          <div className="text-center py-8">Загрузка товаров...</div>
+          <div className="text-center py-8">
+            <div className="animate-pulse">Поиск товаров...</div>
+          </div>
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            Товары не найдены по заданным критериям
+            {searchTerm ? (
+              <div>
+                <p>Товары не найдены по запросу "{searchTerm}"</p>
+                <p className="text-xs mt-2">Попробуйте другие ключевые слова или очистите фильтры</p>
+              </div>
+            ) : (
+              <p>Товары не найдены по заданным критериям</p>
+            )}
           </div>
         ) : (
           <>
-            <div className="text-sm text-gray-600 mb-4">
-              Найдено товаров: {filteredProducts.length}
+            <div className="text-sm text-gray-600 mb-4 flex items-center justify-between">
+              <span>Найдено товаров: {filteredProducts.length}</span>
+              {searchTerm && (
+                <span className="text-xs text-blue-600">
+                  по запросу: "{searchTerm}"
+                </span>
+              )}
             </div>
             
             <div className="grid gap-4 max-h-96 overflow-y-auto">
