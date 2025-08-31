@@ -53,37 +53,30 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       width: 150,
       height: 150,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:low',
-      format: 'webp',
-      dpr: 'auto'
+      format: 'webp'
     },
     // ~100KB card - optimized for catalog listings
     card: {
       width: 400,
       height: 300,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:low',
-      format: 'webp',
-      dpr: 'auto'
+      format: 'webp'
     },
     // ~300KB detail for product pages
     detail: {
       width: 800,
       height: 600,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:good',
-      format: 'webp',
-      dpr: 'auto'
+      format: 'webp'
     },
     // ~200KB compressed (main storage format)
     compressed: {
       width: 600,
       height: 450,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:low',
       format: 'webp'
     }
@@ -108,27 +101,22 @@ export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 
       width: 400,
       height: 300,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:low',
-      format: 'webp',
-      dpr: 'auto'
+      format: 'webp'
     },
     // ~300KB detail for product pages
     detail: {
       width: 800,
       height: 600,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:good',
-      format: 'webp',
-      dpr: 'auto'
+      format: 'webp'
     },
     // ~200KB compressed (main storage format)
     compressed: {
       width: 600,
       height: 450,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:low',
       format: 'webp'
     }
@@ -144,28 +132,22 @@ export const getResponsiveImageUrls = (publicId: string) => {
       width: 400,
       height: 300,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:low',
-      format: 'webp',
-      dpr: 'auto'
+      format: 'webp'
     }),
     tablet: buildCloudinaryUrl(publicId, {
       width: 600,
       height: 450,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:low',
-      format: 'webp',
-      dpr: 'auto'
+      format: 'webp'
     }),
     desktop: buildCloudinaryUrl(publicId, {
       width: 800,
       height: 600,
       crop: 'limit',
-      gravity: 'auto',
       quality: 'auto:low',
-      format: 'webp',
-      dpr: 'auto'
+      format: 'webp'
     })
   };
 };
@@ -176,7 +158,6 @@ export const getCompressedImageUrl = (publicId: string): string => {
     width: 600,
     height: 450,
     crop: 'limit',
-    gravity: 'auto',
     quality: 'auto:low',
     format: 'webp'
   });
