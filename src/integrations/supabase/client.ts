@@ -19,6 +19,25 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   global: {
     headers: {
       'X-Client-Info': 'supabase-js-web'
+    },
+    fetch: (url: RequestInfo | URL, options: RequestInit = {}) => {
+      // Add timeout and retry logic for all requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const enhancedOptions = {
+        ...options,
+        signal: controller.signal,
+      };
+      
+      return fetch(url, enhancedOptions)
+        .finally(() => clearTimeout(timeoutId))
+        .catch(error => {
+          if (error.name === 'AbortError') {
+            throw new Error('Request timeout - please check your connection');
+          }
+          throw error;
+        });
     }
   }
 })

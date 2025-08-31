@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
-import { useSellerPriceOffers } from "@/hooks/use-price-offers";
+import { useOptimizedSellerDashboard } from "@/hooks/useOptimizedSellerDashboard";
 import { sellerDashboardTranslations, getSellerDashboardTranslations } from "@/utils/translations/sellerDashboard";
 import { useLanguage } from "@/hooks/useLanguage";
 
@@ -80,7 +80,7 @@ const FastSellerDashboard = memo(() => {
   const { profile } = useAuth();
   const isMobile = useIsMobile();
   const { startTimer } = usePerformanceMonitor();
-  const { data: priceOffers, isLoading: offersLoading } = useSellerPriceOffers();
+  const { pendingOffersCount, isLoading: offersLoading } = useOptimizedSellerDashboard();
   const { language } = useLanguage();
   const t = getSellerDashboardTranslations(profile?.user_type === 'seller' ? language : 'ru');
 
@@ -102,11 +102,6 @@ const FastSellerDashboard = memo(() => {
       .map(word => word.charAt(0).toUpperCase())
       .join('');
   }, []);
-
-  const pendingOffersCount = useMemo(() => {
-    if (!priceOffers) return 0;
-    return priceOffers.filter(offer => offer.status === 'pending').length;
-  }, [priceOffers]);
 
   const handleContactAdmin = useCallback(() => {
     try {

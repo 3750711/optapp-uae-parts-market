@@ -17,6 +17,9 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
   const { user, profile, isLoading } = useAuth();
   const location = useLocation();
   
+  // Development mode check for reduced logging
+  const isDevelopment = import.meta.env.DEV;
+  
   // Мемоизируем вычисления для оптимизации производительности
   const authChecks = React.useMemo(() => {
     return {
@@ -40,29 +43,34 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
     }
   }, [authChecks.verificationStatus, authChecks.hasProfile]);
   
-  console.log("🔒 ProtectedRoute: Detailed auth check:", {
-    path: location.pathname,
-    hasUser: authChecks.hasUser,
-    hasProfile: authChecks.hasProfile,
-    userType: authChecks.userType,
-    verificationStatus: authChecks.verificationStatus,
-    profileCompleted: authChecks.profileCompleted,
-    emailConfirmed: authChecks.isEmailConfirmed,
-    allowedRoles,
-    excludedRoles,
-    requireEmailVerification,
-    isLoading,
-    timestamp: new Date().toISOString()
-  });
+  // Detailed logging for debugging (reduced in production)
+  if (isDevelopment) {
+    console.log('🔒 ProtectedRoute: Detailed auth check:', {
+      path: location.pathname,
+      hasUser: authChecks.hasUser,
+      hasProfile: authChecks.hasProfile,
+      userType: authChecks.userType,
+      verificationStatus: authChecks.verificationStatus,
+      profileCompleted: authChecks.profileCompleted,
+      emailConfirmed: authChecks.isEmailConfirmed,
+      allowedRoles,
+      excludedRoles,
+      requireEmailVerification,
+      isLoading,
+      timestamp: new Date().toISOString()
+    });
+  }
   
-  devLog("ProtectedRoute: Auth state:", { 
-    user: !!user, 
-    profile: !!profile, 
-    isLoading,
-    userType: profile?.user_type,
-    pathname: location.pathname,
-    profileCompleted: authChecks.profileCompleted
-  });
+  if (isDevelopment) {
+    console.log('🔍 ProtectedRoute: Auth state:', {
+      user: !!user,
+      profile: !!profile,
+      isLoading,
+      userType: profile?.user_type,
+      pathname: location.pathname,
+      profileCompleted: authChecks.profileCompleted
+    });
+  }
   
   // Show minimal loading state while checking authentication
   if (isLoading) {
@@ -192,7 +200,9 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
     );
   }
 
-  devLog("ProtectedRoute: User authenticated and authorized, rendering children");
+  if (isDevelopment) {
+    console.log('🔍 ProtectedRoute: User authenticated and authorized, rendering children');
+  }
   
   // Show email verification banner for unverified users (but still allow access)
   if (authChecks.hasUser && authChecks.hasProfile && !authChecks.isEmailConfirmed) {

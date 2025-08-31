@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { handleAuthErrorSoftly, createExponentialBackoff } from "@/utils/authErrorHandler";
 
 type UserProfile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -17,7 +18,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, options?: any) => Promise<{ user: User | null; error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: (forceRefresh?: boolean) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
   checkTokenValidity: () => Promise<boolean>;
@@ -45,6 +46,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [hydrating, setHydrating] = useState(true);
+  
+  // Performance optimization: cache profile data and debounce requests
+  const profileCacheRef = useRef<{ data: UserProfile | null; timestamp: number; ttl: number }>({
+    data: null,
+    timestamp: 0,
+    ttl: 5 * 60 * 1000 // 5 minutes cache
+  });
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
+  const retryConfig = createExponentialBackoff(3, 1000);
 
   // Single-flight для профиля: исключаем конкурирующие запросы
   const inflightRef = React.useRef<Promise<void> | null>(null);
@@ -58,6 +68,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [profile?.user_type, profile === null]);
 
   const fetchUserProfile = async (userId: string, { force = false } = {}): Promise<void> => {
+    // Check cache first
+    const now = Date.now();
+    const cache = profileCacheRef.current;
+    if (!force && cache.data && cache.timestamp + cache.ttl > now) {
+      console.log('🔄 AuthContext: Using cached profile data');
+      setProfile(cache.data);
+      return;
+    }
+
     // TTL-кэш из sessionStorage (как было)
     if (!force && typeof window !== 'undefined') {
       const cached = sessionStorage.getItem(`profile_${userId}`);
@@ -66,9 +85,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const parsed = JSON.parse(cached);
           setProfile(parsed);
+          // Update memory cache
+          profileCacheRef.current = { data: parsed, timestamp: now, ttl: cache.ttl };
           return;
         } catch {}
       }
+    }
+
+    // Clear existing debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
 
     // Против дублей: если уже идёт запрос — ждём его
@@ -82,28 +108,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     lastProfileFetchAtRef.current = Date.now();
 
     inflightRef.current = (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      let attempts = 0;
+      while (attempts < 3) {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          setProfile(null);
+          if (error) {
+            if (error.code === 'PGRST116') {
+              setProfile(null);
+              return;
+            }
+            
+            // Use improved error handling
+            if (!handleAuthErrorSoftly(error, 'profile_fetch')) {
+              throw error;
+            }
+            
+            attempts++;
+            if (attempts < 3) {
+              const delay = retryConfig.getDelay(attempts - 1);
+              console.log(`🔄 AuthContext: Retrying profile fetch in ${delay}ms (attempt ${attempts}/3)`);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue;
+            }
+            throw error;
+          }
+
+          console.log('✅ AuthContext: Profile fetched successfully');
+          setProfile(data);
+          
+          // Update both caches
+          profileCacheRef.current = { data, timestamp: now, ttl: cache.ttl };
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem(`profile_${userId}`, JSON.stringify(data));
+            sessionStorage.setItem(`profile_${userId}_time`, String(Date.now()));
+          }
           return;
+        } catch (err) {
+          if (attempts >= 3) {
+            throw err;
+          }
+          attempts++;
         }
-        throw error;
-      }
-
-      setProfile(data);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem(`profile_${userId}`, JSON.stringify(data));
-        sessionStorage.setItem(`profile_${userId}_time`, String(Date.now()));
       }
     })().catch((err) => {
-      setProfile(null);
-      setProfileError(err?.message || 'Failed to load profile');
+      if (!handleAuthErrorSoftly(err, 'profile_fetch_final')) {
+        setProfile(null);
+        setProfileError(err?.message || 'Failed to load profile');
+      }
     }).finally(() => {
       setIsProfileLoading(false);
       inflightRef.current = null;
@@ -269,10 +325,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const refreshProfile = async () => {
-    if (!user) return;
-    await fetchUserProfile(user.id);
-  };
+  const refreshProfile = useCallback(async (forceRefresh = false) => {
+    if (!user?.id) return;
+    await fetchUserProfile(user.id, { force: forceRefresh });
+  }, [user?.id]);
 
   const sendPasswordResetEmail = async (email: string) => {
     try {

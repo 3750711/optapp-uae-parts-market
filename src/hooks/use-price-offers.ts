@@ -373,7 +373,7 @@ export const useBuyerPriceOffers = () => {
   return query;
 };
 
-// Hook для получения предложений продавца с real-time обновлениями
+// Hook для получения предложений продавца с real-time обновлениями (оптимизированный)
 export const useSellerPriceOffers = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -384,6 +384,66 @@ export const useSellerPriceOffers = () => {
       if (!user?.id) return [];
       
       devLog('Fetching seller price offers for user:', user.id);
+      
+      // Split query for better performance - get basic data first
+      const { data, error } = await supabase
+        .from('price_offers')
+        .select(`
+          id,
+          status,
+          offered_price,
+          original_price,
+          created_at,
+          updated_at,
+          product_id,
+          buyer_id,
+          seller_id,
+          message,
+          delivery_method,
+          expires_at,
+          seller_response
+        `)
+        .eq('seller_id', user.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        prodError(error, {
+          context: 'fetch-seller-price-offers',
+          userId: user.id
+        });
+        throw error;
+      }
+      
+      devLog('Seller price offers fetched successfully:', data?.length || 0, 'offers');
+      return data as PriceOffer[];
+    },
+    enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000, // Cache for 2 minutes for better performance
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes (renamed from cacheTime)
+    refetchOnMount: false, // Don't refetch on every mount
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchInterval: 3 * 60 * 1000, // Refetch every 3 minutes in background
+    retry: (failureCount, error: any) => {
+      // Don't retry on auth errors
+      if (error?.status === 401 || error?.code === 401) return false;
+      return failureCount < 2; // Max 2 retries
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+  });
+
+  // Real-time updates are now handled by unified RealtimeProvider context
+
+  return query;
+};
+
+// Separate hook for detailed offer data (lazy loaded)
+export const useSellerPriceOffersDetailed = (offerIds: string[]) => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['seller-price-offers-detailed', user?.id, offerIds],
+    queryFn: async () => {
+      if (!user?.id || !offerIds.length) return [];
       
       const { data, error } = await supabase
         .from('price_offers')
@@ -406,29 +466,15 @@ export const useSellerPriceOffers = () => {
             telegram
           )
         `)
-        .eq('seller_id', user.id)
-        .order('created_at', { ascending: false });
+        .in('id', offerIds)
+        .eq('seller_id', user.id);
       
-      if (error) {
-        prodError(error, {
-          context: 'fetch-seller-price-offers',
-          userId: user.id
-        });
-        throw error;
-      }
-      
-      devLog('Seller price offers fetched successfully:', data?.length || 0, 'offers');
+      if (error) throw error;
       return data as PriceOffer[];
     },
-    enabled: !!user?.id,
-    staleTime: 30000, // Cache for 30 seconds for better performance
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: true,
+    enabled: !!user?.id && offerIds.length > 0,
+    staleTime: 1 * 60 * 1000, // 1 minute cache
   });
-
-  // Real-time updates are now handled by unified RealtimeProvider context
-
-  return query;
 };
 
 // Hook для админа для получения всех предложений

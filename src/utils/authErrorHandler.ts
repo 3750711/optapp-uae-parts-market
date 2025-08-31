@@ -1,16 +1,38 @@
 // Utility for handling authentication errors softly
 // Prevents aggressive signOut on temporary network issues
 
+import { toast } from 'sonner';
+
 export const isAuthError = (error: any): boolean => {
   return error?.status === 401 || 
          error?.code === 401 ||
          /invalid.*token/i.test(error?.message) ||
-         /unauthorized/i.test(error?.message);
+         /unauthorized/i.test(error?.message) ||
+         /refresh.*token.*invalid/i.test(error?.message) ||
+         /jwt.*expired/i.test(error?.message);
+};
+
+export const isNetworkError = (error: any): boolean => {
+  return error?.message?.includes('Failed to fetch') ||
+         error?.message?.includes('Network request failed') ||
+         error?.message?.includes('timeout') ||
+         error?.code === 'NETWORK_ERROR' ||
+         !navigator.onLine;
 };
 
 export const handleAuthErrorSoftly = (error: any, context: string = 'unknown') => {
   if (isAuthError(error)) {
     console.warn(`[auth] Soft auth error in ${context}, scheduling refresh:`, error.message);
+    
+    // Show user-friendly message for token errors
+    if (/refresh.*token.*invalid/i.test(error?.message)) {
+      toast.error('Session expired. Please sign in again.');
+      // Force page reload to trigger re-authentication
+      setTimeout(() => {
+        window.location.href = '/auth';
+      }, 2000);
+      return true;
+    }
     
     // Don't signOut immediately - let the manual refresh system handle it
     setTimeout(() => {
@@ -22,7 +44,28 @@ export const handleAuthErrorSoftly = (error: any, context: string = 'unknown') =
     return true; // Indicates this was handled as an auth error
   }
   
+  if (isNetworkError(error)) {
+    console.warn(`[auth] Network error in ${context}, will retry:`, error.message);
+    // Don't show error toast for network issues, they're temporary
+    return true;
+  }
+  
   return false; // Not an auth error, handle normally
+};
+
+// Exponential backoff utility for retries
+export const createExponentialBackoff = (maxRetries: number = 3, baseDelay: number = 1000) => {
+  return {
+    shouldRetry: (attemptCount: number, error: any) => {
+      if (attemptCount >= maxRetries) return false;
+      if (isAuthError(error) && !/refresh.*token.*invalid/i.test(error?.message)) return true;
+      if (isNetworkError(error)) return true;
+      return false;
+    },
+    getDelay: (attemptCount: number) => {
+      return Math.min(baseDelay * Math.pow(2, attemptCount), 30000);
+    }
+  };
 };
 
 // Usage example:
