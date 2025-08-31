@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Store, Activity, Plus, Car, FileText, Package, MessageSquare, DollarSign, CheckSquare, MessageCircle, HelpCircle, Languages, Search, BarChart3 } from 'lucide-react';
+import { Store, Activity, Plus, Car, FileText, Package, MessageSquare, DollarSign, CheckSquare, MessageCircle, HelpCircle, Languages, Search, BarChart3, Settings } from 'lucide-react';
 import ActionCard from './ActionCard';
 
 const AdminActionsSection: React.FC = () => {
@@ -111,6 +111,14 @@ const AdminActionsSection: React.FC = () => {
       icon: Languages,
       link: "/admin/synonyms",
       bgColor: "bg-violet-500",
+      textColor: "text-white"
+    },
+    {
+      title: "Административные",
+      subtitle: "Системные настройки и конфигурация",
+      icon: Settings,
+      link: "/admin/settings",
+      bgColor: "bg-slate-600",
       textColor: "text-white"
     }
   ];
