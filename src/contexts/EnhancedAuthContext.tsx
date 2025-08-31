@@ -314,8 +314,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
     })().catch((err) => {
-      setProfile(null);
+      // Don't clear profile on network error - keep cache if available
+      if (!profile) {
+        setProfile(null);
+      }
       setProfileError(err?.message || 'Failed to load profile');
+      console.warn('[auth] profile fetch error, keeping cached version if available', err.message);
       logAuthEvent('profile_fetch', { 
         source: 'network', 
         error: err?.message,
