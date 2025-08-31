@@ -40,13 +40,12 @@ export const UpdatePrompt: React.FC = () => {
   const handleUpdate = async () => {
     setIsUpdating(true);
     try {
-      await updateServiceWorker();
-      // After successful update, reload the page
+      // Soft update - just reload without aggressive cache clearing
+      console.log('🔄 UpdatePrompt: Performing soft reload to apply update');
       window.location.reload();
     } catch (error) {
       console.error('Failed to update:', error);
       setIsUpdating(false);
-      // Fallback to hard reload if update fails
       window.location.reload();
     }
   };

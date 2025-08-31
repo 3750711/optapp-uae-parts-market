@@ -123,24 +123,36 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         }
       }
       
-      // Preserve critical auth data
-      const criticalKeys = [
-        'supabase.auth.token', 
-        'sb-auth-token',
-        'sb-refresh-token'
-      ];
-      const preservedData: Record<string, string | null> = {};
-      criticalKeys.forEach(key => {
-        preservedData[key] = localStorage.getItem(key);
-      });
+      // Preserve critical auth and profile data
+      const preservedLocalStorage: Record<string, string | null> = {};
+      const preservedSessionStorage: Record<string, string | null> = {};
+      
+      // Preserve all auth and profile related data
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase') || key.startsWith('profile_'))) {
+          preservedLocalStorage[key] = localStorage.getItem(key);
+        }
+      }
+      
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase') || key.startsWith('profile_'))) {
+          preservedSessionStorage[key] = sessionStorage.getItem(key);
+        }
+      }
       
       // Clear all storage
       localStorage.clear();
       sessionStorage.clear();
       
       // Restore critical data
-      Object.entries(preservedData).forEach(([key, value]) => {
+      Object.entries(preservedLocalStorage).forEach(([key, value]) => {
         if (value) localStorage.setItem(key, value);
+      });
+      
+      Object.entries(preservedSessionStorage).forEach(([key, value]) => {
+        if (value) sessionStorage.setItem(key, value);
       });
       
       console.log('✅ Storage cleared and auth preserved');

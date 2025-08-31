@@ -75,10 +75,12 @@ const handleGlobalError = (event: ErrorEvent) => {
         console.warn('SW update failed during recovery:', error);
       }
       
-      // Show recoverable error banner instead of immediate reload
-      window.dispatchEvent(new CustomEvent('app:recoverable-chunk-error', {
-        detail: { message: event.error?.message }
-      }));
+      // Show recoverable error banner with delay to prevent spam
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('app:recoverable-chunk-error', {
+          detail: { message: event.error?.message }
+        }));
+      }, 1000);
     };
     
     trySoftRecover();
