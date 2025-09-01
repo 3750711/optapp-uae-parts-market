@@ -150,6 +150,11 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
 
     // Enhanced status tracking with session diagnostics
     channel.subscribe(async (status: string, err?: any) => {
+      // DEV ONLY — подписываемся на статусы для каждого канала
+      if (import.meta.env.DEV) {
+        console.debug('[RT][DEV]', channelName, 'status:', status, err ?? '');
+      }
+      
       if (status === 'SUBSCRIBED') {
         console.debug(`[RT] ${channelName}: ${status}`);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
@@ -765,6 +770,13 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const setupChannels = useCallback(() => {
     if (!user || !mountedRef.current) return;
     
+    // DEV ONLY — диагностика Realtime
+    if (import.meta.env.DEV) {
+      console.debug('[RT][DEV] Current channels:', 
+        supabase.getChannels().map(c => ({ topic: c.topic, state: c.state }))
+      );
+    }
+    
     devLog('Setting up realtime channels for user:', user.id);
     
     try {
@@ -865,6 +877,15 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     
     // Setup channels with JWT ready
     setupChannels();
+    
+    // DEV ONLY — показать каналы после настройки
+    if (import.meta.env.DEV) {
+      setTimeout(() => {
+        console.debug('[RT][DEV] Channels after setup:', 
+          supabase.getChannels().map(c => ({ topic: c.topic, state: c.state }))
+        );
+      }, 1000);
+    }
 
     return () => {
       mountedRef.current = false;
