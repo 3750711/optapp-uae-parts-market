@@ -220,6 +220,14 @@ export const useAdminSellProductState = () => {
     clearSavedData();
   }, [state.buyers, clearSavedData]);
 
+  // Функция для сброса только выбранного продукта (после успешного создания заказа)
+  const resetSelectedProduct = useCallback(() => {
+    updateState({ 
+      selectedProduct: null,
+      step: 1
+    });
+  }, [updateState]);
+
   // Очистка кэша покупателей
   const clearCache = useCallback(() => {
     localStorage.removeItem(BUYERS_CACHE_KEY);
@@ -252,6 +260,7 @@ export const useAdminSellProductState = () => {
     updateState,
     loadBuyers,
     resetState,
+    resetSelectedProduct,
     clearCache,
     restoreSavedState,
     clearSavedData,

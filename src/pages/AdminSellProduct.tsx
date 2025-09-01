@@ -30,6 +30,7 @@ const AdminSellProduct = () => {
     updateState, 
     loadBuyers, 
     resetState, 
+    resetSelectedProduct,
     restoreSavedState, 
     clearSavedData, 
     draftExists,
@@ -274,6 +275,9 @@ const AdminSellProduct = () => {
       if (result && typeof result === 'object') {
         // Clear autosaved data after successful order creation
         clearSavedData();
+        
+        // Сбрасываем выбранный продукт чтобы предотвратить повторное создание заказа
+        resetSelectedProduct();
         
         updateState({
           createdOrder: result,

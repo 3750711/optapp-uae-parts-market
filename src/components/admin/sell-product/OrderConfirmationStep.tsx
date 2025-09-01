@@ -13,6 +13,8 @@ import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 import SellerOrderPriceConfirmDialog from './SellerOrderPriceConfirmDialog';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
+import { checkProductStatus } from '@/utils/productStatusChecker';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 interface Product {
   id: string;
@@ -196,12 +198,49 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
     return true;
   };
 
-  const handleCreateOrderClick = () => {
+  const handleCreateOrderClick = async () => {
     if (!validateForm()) {
       return;
     }
+    
+    // 🔍 Проверяем статус товара перед созданием заказа
+    const c = getCommonTranslations(language);
+    
+    try {
+      console.log("🔍 Checking product status in OrderConfirmationStep...");
+      const productStatusResult = await checkProductStatus(product.id);
+      
+      if (!productStatusResult.isAvailable) {
+        console.error("❌ Product is not available in OrderConfirmationStep:", {
+          productId: product.id,
+          status: productStatusResult.status,
+          productTitle: product.title
+        });
+        
+        toast({
+          title: c.errors.title,
+          description: c.messages.productAlreadySold,
+          variant: "destructive",
+        });
+        
+        return;
+      }
+      
+      console.log("✅ Product is still available in OrderConfirmationStep");
+    } catch (error) {
+      console.error("❌ Failed to check product status in OrderConfirmationStep:", error);
+      
+      toast({
+        title: c.errors.title,
+        description: c.messages.productStatusCheckError,
+        variant: "destructive",
+      });
+      
+      return;
+    }
+    
     // Show price confirmation dialog
-    setShowPriceConfirmDialog(true);
+    setShowPriceConfirmDialog(true);  
   };
 
   const handlePriceConfirmed = async (newProductPrice: number) => {

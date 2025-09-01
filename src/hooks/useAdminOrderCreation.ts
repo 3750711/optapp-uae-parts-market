@@ -4,6 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/types/product';
 import { deduplicateArray } from '@/utils/deduplication';
+import { checkProductStatus } from '@/utils/productStatusChecker';
+import { getCommonTranslations } from '@/utils/translations/common';
+import { useLanguage } from '@/hooks/useLanguage';
 
 interface SellerProfile {
   id: string;
@@ -21,6 +24,7 @@ interface BuyerProfile {
 
 export const useAdminOrderCreation = () => {
   const { toast } = useToast();
+  const { language } = useLanguage();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const createOrder = useCallback(async (
@@ -72,6 +76,43 @@ export const useAdminOrderCreation = () => {
           orderImages_detailed: orderData.orderImages
         }
       });
+
+      // 🔍 КРИТИЧЕСКАЯ ПРОВЕРКА: Проверяем статус товара перед созданием заказа
+      console.log("🔍 Checking product status before order creation...");
+      const c = getCommonTranslations(language);
+      
+      try {
+        const productStatusResult = await checkProductStatus(selectedProduct.id);
+        console.log("📋 Product status check result:", productStatusResult);
+        
+        if (!productStatusResult.isAvailable) {
+          console.error("❌ Product is not available for order:", {
+            productId: selectedProduct.id,
+            status: productStatusResult.status,
+            productTitle: selectedProduct.title
+          });
+          
+          toast({
+            title: c.errors.title,
+            description: c.messages.productAlreadySold,
+            variant: "destructive",
+          });
+          
+          return 'product_unavailable';
+        }
+        
+        console.log("✅ Product is available for order creation");
+      } catch (error) {
+        console.error("❌ Failed to check product status:", error);
+        
+        toast({
+          title: c.errors.title,
+          description: c.messages.productStatusCheckError,
+          variant: "destructive",
+        });
+        
+        throw error;
+      }
 
       // Проверяем критически важные данные
       if (!selectedSeller.full_name || !selectedSeller.opt_id) {

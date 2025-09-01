@@ -69,7 +69,9 @@ const en = {
     unsavedChanges: 'You have unsaved changes',
     networkError: 'Network connection error',
     unauthorized: 'You are not authorized to perform this action',
-    noPhoto: 'No Photo'
+    noPhoto: 'No Photo',
+    productAlreadySold: 'Unfortunately, this product has already been sold',
+    productStatusCheckError: 'Failed to check product availability'
   },
 
   // Common errors
@@ -167,7 +169,9 @@ const ru = {
     unsavedChanges: 'У вас есть несохраненные изменения',
     networkError: 'Ошибка сетевого подключения',
     unauthorized: 'У вас нет прав для выполнения этого действия',
-    noPhoto: 'Нет фото'
+    noPhoto: 'Нет фото',
+    productAlreadySold: 'К сожалению, товар уже продан',
+    productStatusCheckError: 'Не удалось проверить доступность товара'
   },
 
   // Common errors
@@ -265,7 +269,9 @@ const bn = {
     unsavedChanges: 'আপনার অসংরক্ষিত পরিবর্তন আছে',
     networkError: 'নেটওয়ার্ক সংযোগ ত্রুটি',
     unauthorized: 'এই কাজটি সম্পাদন করার জন্য আপনার অনুমতি নেই',
-    noPhoto: 'কোন ছবি নেই'
+    noPhoto: 'কোন ছবি নেই',
+    productAlreadySold: 'দুঃখিত, এই পণ্যটি ইতিমধ্যে বিক্রি হয়ে গেছে',
+    productStatusCheckError: 'পণ্যের উপলব্ধতা যাচাই করতে ব্যর্থ হয়েছে'
   },
 
   // Common errors
