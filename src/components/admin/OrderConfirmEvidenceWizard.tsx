@@ -544,7 +544,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
             </div>
           )}
           
-          <ScrollArea className="flex-1 px-4">
+          <ScrollArea className="flex-1 px-4 mobile-scroll-optimized">
             <div className="py-2">
               <StepContent />
             </div>
@@ -578,7 +578,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           </div>
         )}
 
-        <ScrollArea className="flex-1 px-3 sm:px-6 overflow-y-auto overscroll-contain [@supports(-webkit-touch-callout:none)]:[-webkit-overflow-scrolling:touch]">
+        <ScrollArea className="flex-1 px-3 sm:px-6 mobile-scroll-optimized">
           <div className="py-2">
             <StepContent />
           </div>

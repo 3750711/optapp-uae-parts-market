@@ -13,13 +13,52 @@
   height: 100svh; /* Small viewport height as secondary fallback */
 }
 
+/* Performance optimizations to prevent scroll-linked effects */
+@media (max-width: 768px) {
+  /* Disable problematic scroll effects on mobile */
+  .mobile-scroll-optimized {
+    -webkit-overflow-scrolling: auto !important;
+    scroll-behavior: auto !important;
+    overscroll-behavior: contain;
+    contain: layout style paint;
+  }
+  
+  /* Force hardware acceleration selectively */
+  .hw-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+  
+  /* Remove hardware acceleration when not needed */
+  .hw-accelerated.idle {
+    will-change: auto;
+    transform: none;
+  }
+}
+
+/* Firefox-specific optimizations */
+@-moz-document url-prefix() {
+  @media (max-width: 768px) {
+    .mobile-scroll {
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
 /* Mobile form containers that handle keyboard properly */
 .mobile-form {
   max-height: calc(100dvh - 2rem);
   max-height: calc(100vh - 2rem); /* Fallback */
   overflow-y: auto;
   overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+}
+
+/* Optimize mobile forms for better performance */
+@media (max-width: 768px) {
+  .mobile-form {
+    -webkit-overflow-scrolling: auto;
+    scroll-behavior: auto;
+  }
 }
 
 /* Sticky footer for mobile forms */

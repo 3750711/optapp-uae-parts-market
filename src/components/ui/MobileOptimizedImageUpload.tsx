@@ -81,63 +81,51 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     const fileArray = Array.from(files);
     const validFiles: File[] = [];
 
-    // Анализ файлов для умного сжатия
-    let compressionStats = { noCompress: 0, willCompress: 0 };
-
-    for (const file of fileArray) {
-      if (!ALLOWED_PHOTO_TYPES.includes(file.type.toLowerCase())) {
-        if (!disableToast) {
-          toast({
-            title: "Неверный формат файла",
-            description: `Файл "${file.name}" имеет неподдерживаемый формат.`,
-            variant: "destructive",
-          });
+    // Process files in chunks to prevent UI blocking
+    const processFilesInChunks = async (files: File[], chunkSize: number = 3) => {
+      const results = [];
+      for (let i = 0; i < files.length; i += chunkSize) {
+        const chunk = files.slice(i, i + chunkSize);
+        // Add small delay to prevent blocking
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
-        continue;
+        results.push(...chunk.filter(file => {
+          // File validation logic
+          if (!ALLOWED_PHOTO_TYPES.includes(file.type.toLowerCase())) {
+            if (!disableToast) {
+              toast({
+                title: "Неверный формат файла",
+                description: `Файл "${file.name}" имеет неподдерживаемый формат.`,
+                variant: "destructive",
+              });
+            }
+            return false;
+          }
+
+          if (file.size > MAX_PHOTO_SIZE_BYTES) {
+            if (!disableToast) {
+              toast({
+                title: "Файл слишком большой",
+                description: `Размер файла "${file.name}" превышает ${MAX_PHOTO_SIZE_MB}MB.`,
+                variant: "destructive",
+              });
+            }
+            return false;
+          }
+          return true;
+        }));
       }
+      return results;
+    };
 
-      if (file.size > MAX_PHOTO_SIZE_BYTES) {
-        if (!disableToast) {
-          toast({
-            title: "Файл слишком большой",
-            description: `Размер файла "${file.name}" превышает ${MAX_PHOTO_SIZE_MB}MB.`,
-            variant: "destructive",
-          });
-        }
-        continue;
-      }
-
-      // Проверяем нужно ли сжатие
-      if (shouldCompressFile(file.size)) {
-        compressionStats.willCompress++;
-        console.log(`🔄 Will compress: ${file.name} (${formatFileSize(file.size)})`);
-      } else {
-        compressionStats.noCompress++;
-        console.log(`✨ No compression: ${file.name} (${formatFileSize(file.size)}) - preserving original quality`);
-      }
-
-      validFiles.push(file);
-    }
-
-    if (validFiles.length === 0) {
+    const processedFiles = await processFilesInChunks(fileArray);
+    
+    if (processedFiles.length === 0) {
       return;
     }
 
-    // Показываем информацию о стратегии сжатия
-    if (!disableToast && validFiles.length > 1) {
-      const message = compressionStats.noCompress > 0 && compressionStats.willCompress > 0
-        ? `${compressionStats.noCompress} файлов без сжатия (высокое качество), ${compressionStats.willCompress} файлов с умным сжатием`
-        : compressionStats.noCompress > 0
-        ? `Все ${compressionStats.noCompress} файлов сохранят оригинальное качество (< 400KB)`
-        : `${compressionStats.willCompress} файлов будут оптимизированы с умным сжатием`;
-
-      toast({
-        title: "Умная обработка изображений",
-        description: message,
-      });
-    }
-
-    const uploadedUrls = await uploadFilesBatch(validFiles, {
+    const uploadedUrls = await uploadFilesBatch(processedFiles, {
       productId,
       batchSize: 2,
       batchDelay: 1000,
@@ -149,13 +137,24 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     }
   }, [existingImages.length, maxImages, onUploadComplete, uploadFilesBatch, productId, toast, disableToast]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      handleFileSelect(e.target.files);
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      // Use requestIdleCallback if available to prevent blocking
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => {
+          handleFileSelect(files);
+        });
+      } else {
+        // Fallback for browsers without requestIdleCallback
+        setTimeout(() => {
+          handleFileSelect(files);
+        }, 0);
+      }
     }
     // Reset input
     e.target.value = "";
-  };
+  }, [handleFileSelect]);
 
   const handleDelete = (url: string) => {
     if (onImageDelete) {

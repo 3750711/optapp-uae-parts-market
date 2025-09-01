@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { createDebouncedViewportHandler } from '@/utils/mobileFormOptimizations';
 
 interface VirtualKeyboardState {
   isVisible: boolean;
@@ -12,18 +13,21 @@ export const useVirtualKeyboard = () => {
     viewportHeight: window.innerHeight,
     keyboardHeight: 0,
   });
+  
+  const debouncedHandlerRef = useRef<(() => void) | null>(null);
 
   const handleResize = useCallback(() => {
     if (!window.visualViewport) {
       // Fallback for browsers without Visual Viewport API
       const currentHeight = window.innerHeight;
-      const isKeyboardVisible = currentHeight < keyboardState.viewportHeight * 0.75;
+      const storedHeight = keyboardState.viewportHeight;
+      const isKeyboardVisible = currentHeight < storedHeight * 0.75;
       
-      setKeyboardState({
+      setKeyboardState(prev => ({
         isVisible: isKeyboardVisible,
         viewportHeight: currentHeight,
-        keyboardHeight: isKeyboardVisible ? keyboardState.viewportHeight - currentHeight : 0,
-      });
+        keyboardHeight: isKeyboardVisible ? storedHeight - currentHeight : 0,
+      }));
       return;
     }
 
@@ -32,12 +36,12 @@ export const useVirtualKeyboard = () => {
     const windowHeight = window.innerHeight;
     const isKeyboardVisible = currentHeight < windowHeight * 0.8;
     
-    setKeyboardState({
+    setKeyboardState(prev => ({
       isVisible: isKeyboardVisible,
       viewportHeight: currentHeight,
       keyboardHeight: isKeyboardVisible ? windowHeight - currentHeight : 0,
-    });
-  }, [keyboardState.viewportHeight]);
+    }));
+  }, []);
 
   const scrollToActiveInput = useCallback((inputElement?: HTMLElement) => {
     if (!keyboardState.isVisible) return;
@@ -52,8 +56,9 @@ export const useVirtualKeyboard = () => {
       
       // Only scroll if the element is hidden behind keyboard
       if (rect.bottom > windowHeight - keyboardHeight - 50) {
+        // Use auto scroll behavior on mobile to prevent janky animations
         element.scrollIntoView({
-          behavior: 'smooth',
+          behavior: 'auto',
           block: 'end',
           inline: 'nearest'
         });
@@ -62,16 +67,22 @@ export const useVirtualKeyboard = () => {
   }, [keyboardState.isVisible, keyboardState.keyboardHeight]);
 
   useEffect(() => {
+    if (!debouncedHandlerRef.current) {
+      debouncedHandlerRef.current = createDebouncedViewportHandler(handleResize, 100);
+    }
+    
+    const debouncedHandler = debouncedHandlerRef.current;
+    
     if (!window.visualViewport) {
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      window.addEventListener('resize', debouncedHandler);
+      return () => window.removeEventListener('resize', debouncedHandler);
     }
 
     const viewport = window.visualViewport;
-    viewport.addEventListener('resize', handleResize);
+    viewport.addEventListener('resize', debouncedHandler);
     
     return () => {
-      viewport.removeEventListener('resize', handleResize);
+      viewport.removeEventListener('resize', debouncedHandler);
     };
   }, [handleResize]);
 
