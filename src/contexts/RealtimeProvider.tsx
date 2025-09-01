@@ -83,6 +83,30 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     }
   }, []);
 
+  // Channel diagnostics for dev mode
+  const attachChannelDiagnostics = useCallback((channel: any, channelName: string) => {
+    if (process.env.NODE_ENV !== 'development') return;
+    
+    const warnOnce = (() => {
+      let fired = false;
+      return (msg: string, ...args: any[]) => {
+        if (!fired) {
+          console.warn(msg, ...args);
+          fired = true;
+        }
+      };
+    })();
+
+    // Enhanced status tracking
+    channel.subscribe((status: string, err?: any) => {
+      if (status === 'SUBSCRIBED') {
+        console.debug(`[RT] ${channelName}: ${status}`);
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        warnOnce(`[Realtime] Channel issue (${channelName}): ${status}`, err || '');
+      }
+    });
+  }, []);
+
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     if (!user || !mountedRef.current) return;
@@ -660,6 +684,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
           }
         });
       
+      // Attach dev diagnostics
+      attachChannelDiagnostics(channel, channelName);
+      
       channelsRef.current.set(channelName, channel);
       return channel;
       
@@ -673,7 +700,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         startPollingFallback();
       }
     }
-  }, [reconnectAttempts, diagnostics.firefoxDetected, isUsingFallback, startPollingFallback, stopPollingFallback, maxReconnectAttempts, handleRealtimeError, logChannelEvent]);
+  }, [reconnectAttempts, diagnostics.firefoxDetected, isUsingFallback, startPollingFallback, stopPollingFallback, maxReconnectAttempts, handleRealtimeError, logChannelEvent, attachChannelDiagnostics]);
 
   // Setup all required channels
   const setupChannels = useCallback(() => {
@@ -799,9 +826,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       const wsSupport = detectWebSocketSupport();
       setDiagnostics(wsSupport);
       
-      if (wsSupport.firefoxDetected) {
-        console.warn('🔴 Firefox detected. WebSocket connections may have issues.', getFirefoxRecommendations());
-      }
+      // Firefox warning removed - diagnostics now only on real channel errors
     };
     
     // Handle page visibility changes and network events

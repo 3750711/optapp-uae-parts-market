@@ -178,11 +178,27 @@ class AuthSessionManager {
     this.isInitialized = true;
     this.setupVisibilityHandlers();
 
+    // Initial session sync with Realtime
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      try {
+        supabase.realtime.setAuth(session?.access_token ?? '');
+      } catch (error) {
+        console.warn('⚠️ AuthSession: Failed to sync initial Realtime token:', error);
+      }
+    });
+
     // Set up the single auth state subscription
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔧 AuthSession: Auth state change:', event, !!session);
       
       this.currentSession = session;
+      
+      // Synchronize JWT token with Realtime
+      try {
+        supabase.realtime.setAuth(session?.access_token ?? '');
+      } catch (error) {
+        console.warn('⚠️ AuthSession: Failed to sync Realtime token:', error);
+      }
       
       // Handle session changes
       if (session) {

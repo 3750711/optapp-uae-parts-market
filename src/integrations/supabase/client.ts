@@ -16,37 +16,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   db: {
     schema: 'public'
   },
-  realtime: {
-    params: {
-      eventsPerSecond: 10,
-      timeout: 30000, // 30 seconds for WebSocket connection
-    },
-    heartbeatIntervalMs: 30000,
-    reconnectAfterMs: (tries: number) => Math.min(tries * 1000, 10000), // Exponential backoff up to 10s
-    logger: (level: string, message: string, meta?: any) => {
-      if (level === 'error') {
-        console.error('🔴 Realtime Error:', message, meta);
-      } else if (level === 'warn') {
-        console.warn('🟡 Realtime Warning:', message, meta);
-      } else {
-        console.log('🔵 Realtime:', message, meta);
-      }
-    },
-    encode: (payload: any, callback: (encoded: string) => void) => {
-      try {
-        callback(JSON.stringify(payload));
-      } catch (error) {
-        console.error('🔴 Realtime encoding error:', error);
-      }
-    },
-    decode: (payload: string, callback: (decoded: any) => void) => {
-      try {
-        callback(JSON.parse(payload));
-      } catch (error) {
-        console.error('🔴 Realtime decoding error:', error);
-      }
-    }
-  },
   global: {
     headers: {
       'X-Client-Info': 'supabase-js-web'
