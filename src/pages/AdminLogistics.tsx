@@ -119,26 +119,8 @@ const AdminLogistics = () => {
   const [managingPlacesOrderId, setManagingPlacesOrderId] = useState<string | null>(null);
   const [showContainerManagement, setShowContainerManagement] = useState(false);
 
-  useEffect(() => {
-    const channel = supabase
-      .channel('orders-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
+  // Real-time updates are now handled by RealtimeProvider
+  // No duplicate subscription needed
 
   const {
     data,

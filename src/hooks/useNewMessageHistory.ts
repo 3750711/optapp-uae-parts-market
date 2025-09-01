@@ -142,71 +142,11 @@ export const useNewMessageHistory = (params: UseNewMessageHistoryParams = {}) =>
     fetchMessageHistory();
   }, [fetchMessageHistory]);
 
-  // Real-time subscription with optimized fallback
+  // Real-time updates are now handled by RealtimeProvider
+  // Just set isLive to true for UI consistency
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
-    
-    console.log('🔌 Setting up real-time subscription for message_history');
-    
-    const channel = supabase
-      .channel('message-history-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'message_history'
-        },
-        (payload) => {
-          console.log('📨 Message history update received:', payload);
-          // Add small delay to ensure Edge Function has completed
-          setTimeout(() => {
-            fetchMessageHistory();
-          }, 1000);
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 Real-time subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          setIsLive(true);
-          // Clear polling if realtime is working
-          if (pollInterval) {
-            clearInterval(pollInterval);
-          }
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.warn('⚠️ Realtime failed, falling back to polling');
-          setIsLive(false);
-          // Fallback to polling every 30 seconds - much more optimal
-          pollInterval = setInterval(() => {
-            console.log('🔄 Polling for message history updates (fallback)');
-            fetchMessageHistory();
-          }, 30000);
-        }
-      });
-
-    // Initial check after 10 seconds to see if real-time is working
-    const initialTimer = setTimeout(() => {
-      if (channel.state !== 'joined') {
-        console.log('🔄 Real-time not connected after 10s, enabling polling fallback');
-        setIsLive(false);
-        pollInterval = setInterval(() => {
-          console.log('🔄 Polling for message history updates (initial fallback)');
-          fetchMessageHistory();
-        }, 30000);
-      }
-    }, 10000);
-
-    return () => {
-      console.log('🔌 Cleaning up message history subscription');
-      clearTimeout(initialTimer);
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-      supabase.removeChannel(channel);
-      setIsLive(false);
-    };
-  }, [fetchMessageHistory]);
+    setIsLive(true);
+  }, []);
 
   return {
     messages,

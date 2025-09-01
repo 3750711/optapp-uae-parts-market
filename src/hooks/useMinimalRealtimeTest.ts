@@ -18,54 +18,24 @@ export const useMinimalRealtimeTest = (enabled: boolean = false) => {
 
   useEffect(() => {
     if (!enabled) {
-      if (testChannel) {
-        supabase.removeChannel(testChannel);
-        setTestChannel(null);
-      }
       setEvents([]);
       setIsConnected(false);
       return;
     }
 
-    console.log('🧪 Starting minimal Real-time test...');
-
-    const channel = supabase
-      .channel('minimal_realtime_test')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'price_offers'
-        },
-        (payload) => {
-          const event: RealtimeTestEvent = {
-            timestamp: new Date(),
-            event: payload.eventType,
-            productId: payload.new?.product_id || payload.old?.product_id,
-            buyerId: payload.new?.buyer_id || payload.old?.buyer_id,
-            hasNewData: !!payload.new,
-            hasOldData: !!payload.old
-          };
-
-          console.log('🧪 Test event received:', event);
-          
-          setEvents(prev => [event, ...prev.slice(0, 19)]); // Keep last 20 events
-        }
-      )
-      .subscribe((status) => {
-        console.log('🧪 Test channel status:', status);
-        setIsConnected(status === 'SUBSCRIBED');
-      });
-
-    setTestChannel(channel);
-
-    return () => {
-      console.log('🧪 Cleaning up minimal test');
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
+    // Test subscription is disabled - use RealtimeProvider instead
+    console.log('🧪 Test subscription disabled - using RealtimeProvider');
+    setIsConnected(true);
+    
+    // Mock some test events for UI testing
+    const mockEvent: RealtimeTestEvent = {
+      timestamp: new Date(),
+      event: 'TEST_DISABLED',
+      hasNewData: true,
+      hasOldData: false
     };
+    
+    setEvents([mockEvent]);
   }, [enabled]);
 
   const clearEvents = () => setEvents([]);

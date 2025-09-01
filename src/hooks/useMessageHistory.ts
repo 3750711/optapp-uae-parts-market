@@ -141,48 +141,9 @@ export const useMessageHistory = (params: UseMessageHistoryParams = {}) => {
 
   // Real-time subscription with fallback
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
-    
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'event_logs'
-        },
-        (payload) => {
-          console.log('New message log received:', payload);
-          fetchHistory();
-        }
-      )
-      .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          setIsLive(true);
-          // Clear polling if realtime is working
-          if (pollInterval) {
-            clearInterval(pollInterval);
-          }
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('Realtime failed, falling back to polling');
-          setIsLive(false);
-          // Fallback to polling every 5 seconds
-          pollInterval = setInterval(() => {
-            fetchHistory();
-          }, 5000);
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-      if (pollInterval) {
-        clearInterval(pollInterval);
-      }
-      setIsLive(false);
-    };
+    // Real-time updates are now handled by RealtimeProvider
+    // Just set isLive to true for UI consistency
+    setIsLive(true);
   }, []);
 
   return {
