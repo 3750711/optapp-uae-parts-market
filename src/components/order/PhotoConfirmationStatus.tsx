@@ -1,7 +1,5 @@
 import React from 'react';
-import { Check, X } from 'lucide-react';
-import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
-import { useLanguage } from '@/hooks/useLanguage';
+import { Check, X, MessageSquare, Package } from 'lucide-react';
 
 interface PhotoConfirmationStatusProps {
   hasChatScreenshots: boolean;
@@ -14,30 +12,29 @@ export const PhotoConfirmationStatus = ({
   hasSignedProduct, 
   className = "" 
 }: PhotoConfirmationStatusProps) => {
-  const { language } = useLanguage();
-  const t = getSellerOrdersTranslations(language);
-
   return (
     <div className={`flex items-center gap-3 text-sm ${className}`}>
       <div className="flex items-center gap-1">
+        <MessageSquare className="h-3 w-3 text-muted-foreground" />
         {hasChatScreenshots ? (
           <Check className="h-4 w-4 text-green-600" />
         ) : (
           <X className="h-4 w-4 text-red-600" />
         )}
         <span className={hasChatScreenshots ? "text-green-600" : "text-red-600"}>
-          {t.screenStatus}
+          Screen
         </span>
       </div>
       
       <div className="flex items-center gap-1">
+        <Package className="h-3 w-3 text-muted-foreground" />
         {hasSignedProduct ? (
           <Check className="h-4 w-4 text-green-600" />
         ) : (
           <X className="h-4 w-4 text-red-600" />
         )}
         <span className={hasSignedProduct ? "text-green-600" : "text-red-600"}>
-          {t.photosStatus}
+          Photos
         </span>
       </div>
     </div>

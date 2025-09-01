@@ -70,17 +70,31 @@ const SellerOrders = () => {
       if (!ordersData.length) return [];
       
       const ordersWithConfirmations = await Promise.all(ordersData.map(async (order) => {
-        const { data: confirmImages } = await supabase
+        // Отдельные запросы для каждой категории, как в OrderConfirmButton
+        const { data: chatScreenshots } = await supabase
           .from('confirm_images')
-          .select('url, category')
-          .eq('order_id', order.id);
+          .select('url')
+          .eq('order_id', order.id)
+          .eq('category', 'chat_screenshot');
+
+        const { data: signedProductPhotos } = await supabase
+          .from('confirm_images')
+          .select('url')
+          .eq('order_id', order.id)
+          .eq('category', 'signed_product');
         
-        const hasChatScreenshots = confirmImages?.some(img => img.category === 'chat_screenshot') || false;
-        const hasSignedProduct = confirmImages?.some(img => img.category === 'signed_product') || false;
+        const hasChatScreenshots = (chatScreenshots?.length || 0) > 0;
+        const hasSignedProduct = (signedProductPhotos?.length || 0) > 0;
+        
+        // Также получаем общее количество изображений для обратной совместимости
+        const { data: allConfirmImages } = await supabase
+          .from('confirm_images')
+          .select('url')
+          .eq('order_id', order.id);
         
         return {
           ...order,
-          hasConfirmImages: confirmImages && confirmImages.length > 0,
+          hasConfirmImages: allConfirmImages && allConfirmImages.length > 0,
           hasChatScreenshots,
           hasSignedProduct
         };
