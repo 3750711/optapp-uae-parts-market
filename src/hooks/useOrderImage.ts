@@ -20,36 +20,12 @@ export const useOrderImage = (orderId: string, size: 'thumbnail' | 'card' | 'det
         return rawUrl;
       };
 
-      // 1. Попытка получить основное изображение из order_images
-      let { data, error } = await supabase
-        .from('order_images')
-        .select('url')
-        .eq('order_id', orderId)
-        .eq('is_primary', true)
-        .limit(1)
-        .single();
-
-      if (data?.url) return getOptimizedUrl(data.url);
-      if (error && error.code !== 'PGRST116') console.error('Error fetching primary order image:', error);
-
-      // 2. Попытка получить любое изображение из order_images, если основное не найдено
-      ({ data, error } = await supabase
-        .from('order_images')
-        .select('url')
-        .eq('order_id', orderId)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .single());
-
-      if (data?.url) return getOptimizedUrl(data.url);
-      if (error && error.code !== 'PGRST116') console.error('Error fetching first order image:', error);
-
-      // 3. Попытка получить изображение из поля images самой таблицы orders
+      // 1. Сначала проверяем orders.images (основной источник изображений)
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('images')
         .eq('id', orderId)
-        .single();
+        .maybeSingle();
 
       if (orderData?.images && orderData.images.length > 0 && orderData.images[0]) {
         return getOptimizedUrl(orderData.images[0]);
@@ -58,6 +34,28 @@ export const useOrderImage = (orderId: string, size: 'thumbnail' | 'card' | 'det
         console.error('Error fetching from orders.images:', orderError);
       }
 
+      // 2. Попытка получить основное изображение из order_images
+      let { data, error } = await supabase
+        .from('order_images')
+        .select('url')
+        .eq('order_id', orderId)
+        .eq('is_primary', true)
+        .limit(1)
+        .maybeSingle();
+
+      if (data?.url) return getOptimizedUrl(data.url);
+
+      // 3. Попытка получить любое изображение из order_images, если основное не найдено
+      ({ data, error } = await supabase
+        .from('order_images')
+        .select('url')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle());
+
+      if (data?.url) return getOptimizedUrl(data.url);
+
       // 4. В качестве запасного варианта, попытка получить изображение из confirm_images
       ({ data, error } = await supabase
         .from('confirm_images')
@@ -65,13 +63,13 @@ export const useOrderImage = (orderId: string, size: 'thumbnail' | 'card' | 'det
         .eq('order_id', orderId)
         .order('created_at', { ascending: true })
         .limit(1)
-        .single());
-      
-      if (error && error.code !== 'PGRST116') console.error('Error fetching first confirm image:', error);
+        .maybeSingle());
 
       return getOptimizedUrl(data?.url || null);
     },
     enabled: !!orderId,
+    staleTime: 5 * 60 * 1000, // 5 минут кэширования
+    gcTime: 10 * 60 * 1000, // 10 минут в памяти
   });
 
   return { imageUrl, isLoading };
