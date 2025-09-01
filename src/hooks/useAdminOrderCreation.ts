@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/types/product';
+import { deduplicateArray } from '@/utils/deduplication';
 
 interface SellerProfile {
   id: string;
@@ -109,14 +110,19 @@ export const useAdminOrderCreation = () => {
         additional_images_count: additionalImages.length
       });
 
-      // Объединяем: сначала изображения товара, потом дополнительные
-      const combinedImages = [...productImages, ...additionalImages];
-      console.log("📸 DETAILED Combined images final result:", {
+      // Объединяем и дедуплицируем: сначала изображения товара, потом дополнительные
+      const combinedImagesWithDuplicates = [...productImages, ...additionalImages];
+      const combinedImages = deduplicateArray(combinedImagesWithDuplicates);
+      
+      console.log("📸 DETAILED Combined images with deduplication:", {
         productImages_count: productImages.length,
         additionalImages_count: additionalImages.length,
+        combinedWithDuplicates_count: combinedImagesWithDuplicates.length,
         combinedImages_count: combinedImages.length,
+        duplicates_removed: combinedImagesWithDuplicates.length - combinedImages.length,
         combinedImages_full: combinedImages,
-        combinedImages_preview: combinedImages.slice(0, 3)
+        combinedImages_preview: combinedImages.slice(0, 3),
+        deduplication_applied: true
       });
 
       // 💰 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Детальная обработка стоимости доставки  
