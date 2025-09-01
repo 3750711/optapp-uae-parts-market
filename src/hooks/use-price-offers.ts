@@ -320,55 +320,7 @@ export const useBuyerPriceOffers = () => {
     enabled: !!user?.id,
   });
 
-  // Set up real-time subscription for buyer price offers
-  useEffect(() => {
-    if (!user?.id) return;
-
-    mountedRef.current = true;
-    devLog('Setting up real-time subscription for buyer price offers');
-
-    const channel = supabase
-      .channel('buyer-price-offers-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'price_offers',
-          filter: `buyer_id=eq.${user.id}`,
-        },
-        (payload) => {
-          if (!mountedRef.current) return;
-          
-          devLog('Buyer price offer change detected:', payload.eventType);
-          
-          try {
-            // Show notification if offer was cancelled
-            if (payload.eventType === 'UPDATE' && payload.new?.status === 'cancelled') {
-              toast.info('One of your offers was cancelled because the product has been sold to another buyer.');
-            }
-            
-            // Targeted invalidation with exact key
-            queryClient.invalidateQueries({ 
-              queryKey: ['buyer-price-offers', user.id], 
-              exact: true 
-            });
-          } catch (error) {
-            prodError(error instanceof Error ? error : new Error(String(error)), {
-              context: 'buyer-realtime-subscription',
-              userId: user.id
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      mountedRef.current = false;
-      devLog('Cleaning up real-time subscription for buyer price offers');
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, queryClient]);
+  // Real-time updates are now handled by unified RealtimeProvider context
 
   return query;
 };

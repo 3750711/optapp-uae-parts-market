@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { devLog, prodError } from '@/utils/logger';
 import { detectWebSocketSupport, testWebSocketConnection, calculateBackoff, getFirefoxRecommendations, type WebSocketDiagnostics } from '@/utils/websocketUtils';
+import { Notification } from '@/types/notification';
 
 interface RealtimeContextType {
   isConnected: boolean;
@@ -15,6 +16,12 @@ interface RealtimeContextType {
   diagnostics: WebSocketDiagnostics & { connectionTest?: WebSocketDiagnostics['connectionTest'] };
   isUsingFallback: boolean;
   reconnectAttempts: number;
+  // Notifications state and methods
+  notifications: Notification[];
+  unreadCount: number;
+  markNotificationAsRead: (id: string) => void;
+  markAllNotificationsAsRead: () => void;
+  deleteNotification: (id: string) => void;
 }
 
 const RealtimeContext = createContext<RealtimeContextType | null>(null);
@@ -54,6 +61,10 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [diagnostics, setDiagnostics] = useState<WebSocketDiagnostics & { connectionTest?: WebSocketDiagnostics['connectionTest'] }>(() => detectWebSocketSupport());
   
+  // Notifications state  
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
   const mountedRef = useRef(true);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
@@ -83,6 +94,41 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       queryClient.invalidateQueries({ queryKey: ['admin-products'], exact: true });
     }, 300),
     [queryClient]
+  );
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!user || !mountedRef.current) return;
+    
+    try {
+      console.log('🔍 [RealtimeProvider] Fetching notifications for user:', user.id);
+      
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('id, user_id, type, title, message, title_en, message_en, language, data, read, created_at, updated_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(30);
+
+      if (error) throw error;
+
+      console.log('✅ [RealtimeProvider] Notifications fetched:', data?.length || 0);
+      
+      if (mountedRef.current) {
+        setNotifications(data || []);
+        setUnreadCount((data || []).filter(n => !n.read).length);
+      }
+    } catch (error) {
+      console.error('❌ [RealtimeProvider] Error fetching notifications:', error);
+    }
+  }, [user]);
+
+  const debouncedRefreshNotifications = useCallback(
+    debounce(() => {
+      if (!mountedRef.current || !user) return;
+      fetchNotifications();
+    }, 300),
+    [user, fetchNotifications]
   );
 
   const addRealtimeEvent = useCallback((event: any) => {
@@ -168,9 +214,123 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     }
   }, [debouncedInvalidateProducts, addRealtimeEvent]);
 
+  // Handle notifications changes
+  const handleNotificationChange = useCallback((payload: any) => {
+    if (!mountedRef.current || !user) return;
+    
+    devLog('Notification realtime event:', payload.eventType, payload);
+    
+    try {
+      addRealtimeEvent({
+        type: 'notification',
+        action: payload.eventType,
+        notification_id: payload.new?.id || payload.old?.id
+      });
+      
+      // Refresh notifications data
+      debouncedRefreshNotifications();
+      
+    } catch (error) {
+      prodError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'notification-realtime-handler',
+        eventType: payload.eventType,
+        userId: user.id
+      });
+    }
+  }, [user, addRealtimeEvent, debouncedRefreshNotifications]);
+
+  // Notification management functions
+  const markNotificationAsRead = useCallback(async (notificationId: string) => {
+    if (!user || !mountedRef.current) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state optimistically
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('❌ [RealtimeProvider] Error marking notification as read:', error);
+    }
+  }, [user]);
+
+  const markAllNotificationsAsRead = useCallback(async () => {
+    if (!user || !mountedRef.current) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('❌ [RealtimeProvider] Error marking all notifications as read:', error);
+    }
+  }, [user]);
+
+  const deleteNotification = useCallback(async (notificationId: string) => {
+    if (!user || !mountedRef.current) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setNotifications(prev => {
+        const filtered = prev.filter(n => n.id !== notificationId);
+        const newUnreadCount = filtered.filter(n => !n.read).length;
+        setUnreadCount(newUnreadCount);
+        return filtered;
+      });
+    } catch (error) {
+      console.error('❌ [RealtimeProvider] Error deleting notification:', error);
+    }
+  }, [user]);
+
   // Test WebSocket connection
   const testConnection = useCallback(async () => {
-    const wsUrl = `wss://vfiylfljiixqkjfqubyq.supabase.co/realtime/v1/websocket?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}&vsn=1.0.0`;
+    // First check HTTP availability
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch('https://vfiylfljiixqkjfqubyq.supabase.co/rest/v1/', {
+        method: 'HEAD',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: 'Supabase API not accessible' } }));
+        return false;
+      }
+    } catch (error) {
+      setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: 'Network error: ' + (error as Error).message } }));
+      return false;
+    }
+
+    // Then test WebSocket (fixed URL without vsn parameter)
+    const wsUrl = `wss://vfiylfljiixqkjfqubyq.supabase.co/realtime/v1/websocket?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}`;
     const result = await testWebSocketConnection(wsUrl);
     setDiagnostics(prev => ({ ...prev, connectionTest: result }));
     return result.success;
@@ -194,8 +354,11 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       if (profile?.user_type === 'admin') {
         queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       }
+      
+      // Also refresh notifications during fallback
+      fetchNotifications();
     }, 10000); // Poll every 10 seconds
-  }, [queryClient, user, profile]);
+  }, [queryClient, user, profile, fetchNotifications]);
 
   // Stop polling fallback
   const stopPollingFallback = useCallback(() => {
@@ -305,9 +468,13 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     
     // Test connection first
     const canConnect = await testConnection();
-    if (!canConnect && diagnostics.firefoxDetected) {
-      console.warn('🔴 WebSocket test failed on Firefox. Recommendations:', getFirefoxRecommendations());
-      setLastError('WebSocket connection blocked. Check Firefox settings.');
+    if (!canConnect) {
+      if (diagnostics.firefoxDetected) {
+        console.warn('🔴 WebSocket test failed on Firefox. Recommendations:', getFirefoxRecommendations());
+        setLastError('WebSocket connection blocked. Using polling fallback for Firefox.');
+      } else {
+        setLastError('WebSocket connection failed. Using polling fallback.');
+      }
       startPollingFallback();
       return;
     }
@@ -360,13 +527,21 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         );
       }
       
+      // Notifications channel
+      setupChannel(
+        'unified-notifications',
+        'notifications',
+        handleNotificationChange,
+        `user_id=eq.${user.id}`
+      );
+      
     } catch (error) {
       prodError(error instanceof Error ? error : new Error(String(error)), {
         context: 'setup-realtime-channels',
         userId: user.id
       });
     }
-  }, [user, profile, setupChannel, handlePriceOfferChange, handleProductChange]);
+  }, [user, profile, setupChannel, handlePriceOfferChange, handleProductChange, handleNotificationChange]);
 
   // Main effect to manage realtime connections
   useEffect(() => {
@@ -386,6 +561,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     }
 
     mountedRef.current = true;
+    
+    // Initial data fetch
+    fetchNotifications();
     setupChannels();
 
     return () => {
@@ -409,7 +587,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         clearInterval(fallbackIntervalRef.current);
       }
     };
-  }, [user, setupChannels]);
+  }, [user, setupChannels, fetchNotifications]);
 
   // Initialize diagnostics on mount
   useEffect(() => {
@@ -434,6 +612,12 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     diagnostics,
     isUsingFallback,
     reconnectAttempts,
+    // Notifications
+    notifications,
+    unreadCount,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    deleteNotification,
   };
 
   return (
