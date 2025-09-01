@@ -23,7 +23,6 @@ import {
   SheetDescription,
   SheetFooter,
 } from '@/components/ui/sheet';
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
@@ -520,7 +519,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
       <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent 
           side="bottom" 
-          className="h-[90vh] w-full flex flex-col p-0"
+          className="h-[calc(100vh-2rem)] h-[calc(100dvh-2rem)] w-full flex flex-col p-0"
           onInteractOutside={(e) => {
             if (step1Hook.isUploading || step2Hook.isUploading) {
               e.preventDefault();
@@ -544,11 +543,11 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
             </div>
           )}
           
-          <ScrollArea className="flex-1 px-4 mobile-scroll-optimized">
+          <div className="flex-1 px-4 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [@supports(-webkit-touch-callout:none)]:[-webkit-overflow-scrolling:touch]">
             <div className="py-2">
               <StepContent />
             </div>
-          </ScrollArea>
+          </div>
           
           <SheetFooter className="p-4 pt-3 border-t bg-white">
             <ActionButtons />
@@ -560,7 +559,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-w-[95vw] sm:max-h-[90vh] max-h-[85vh] p-0 flex flex-col overflow-hidden">
+      <DialogContent className="sm:max-w-4xl max-w-[95vw] max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] p-0 flex flex-col overflow-hidden">
         <DialogHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 sm:pb-4 border-b flex-shrink-0">
           <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
             <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -578,11 +577,11 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           </div>
         )}
 
-        <ScrollArea className="flex-1 px-3 sm:px-6 mobile-scroll-optimized">
+        <div className="flex-1 px-3 sm:px-6 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] [@supports(-webkit-touch-callout:none)]:[-webkit-overflow-scrolling:touch]">
           <div className="py-2">
             <StepContent />
           </div>
-        </ScrollArea>
+        </div>
 
         <DialogFooter className="px-3 sm:px-6 pt-4 pb-3 sm:pb-6 border-t flex-shrink-0 bg-white">
           <ActionButtons />
