@@ -137,6 +137,8 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const fetchNotifications = useCallback(async () => {
     if (!user || !mountedRef.current) return;
     
+    const controller = new AbortController();
+    
     try {
       console.log('🔍 [RealtimeProvider] Fetching notifications for user:', user.id);
       
@@ -145,7 +147,8 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         .select('id, user_id, type, title, message, title_en, message_en, language, data, read, created_at, updated_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(30);
+        .limit(30)
+        .abortSignal(controller.signal);
 
       if (error) throw error;
 
@@ -155,8 +158,10 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         setNotifications(data || []);
         setUnreadCount((data || []).filter(n => !n.read).length);
       }
-    } catch (error) {
-      console.error('❌ [RealtimeProvider] Error fetching notifications:', error);
+    } catch (error: any) {
+      if (error.name !== 'AbortError' && mountedRef.current) {
+        console.error('❌ [RealtimeProvider] Error fetching notifications:', error);
+      }
     }
   }, [user]);
 
@@ -388,64 +393,85 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const markNotificationAsRead = useCallback(async (notificationId: string) => {
     if (!user || !mountedRef.current) return;
     
+    const controller = new AbortController();
+    
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .abortSignal(controller.signal);
 
       if (error) throw error;
 
       // Update local state optimistically
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
-      );
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('❌ [RealtimeProvider] Error marking notification as read:', error);
+      if (mountedRef.current) {
+        setNotifications(prev => 
+          prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError' && mountedRef.current) {
+        console.error('❌ [RealtimeProvider] Error marking notification as read:', error);
+      }
     }
   }, [user]);
 
   const markAllNotificationsAsRead = useCallback(async () => {
     if (!user || !mountedRef.current) return;
 
+    const controller = new AbortController();
+
     try {
       const { error } = await supabase
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
-        .eq('read', false);
+        .eq('read', false)
+        .abortSignal(controller.signal);
 
       if (error) throw error;
 
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch (error) {
-      console.error('❌ [RealtimeProvider] Error marking all notifications as read:', error);
+      if (mountedRef.current) {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        setUnreadCount(0);
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError' && mountedRef.current) {
+        console.error('❌ [RealtimeProvider] Error marking all notifications as read:', error);
+      }
     }
   }, [user]);
 
   const deleteNotification = useCallback(async (notificationId: string) => {
     if (!user || !mountedRef.current) return;
     
+    const controller = new AbortController();
+    
     try {
       const { error } = await supabase
         .from('notifications')
         .delete()
         .eq('id', notificationId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .abortSignal(controller.signal);
 
       if (error) throw error;
 
-      setNotifications(prev => {
-        const filtered = prev.filter(n => n.id !== notificationId);
-        const newUnreadCount = filtered.filter(n => !n.read).length;
-        setUnreadCount(newUnreadCount);
-        return filtered;
-      });
-    } catch (error) {
-      console.error('❌ [RealtimeProvider] Error deleting notification:', error);
+      if (mountedRef.current) {
+        setNotifications(prev => {
+          const filtered = prev.filter(n => n.id !== notificationId);
+          const newUnreadCount = filtered.filter(n => !n.read).length;
+          setUnreadCount(newUnreadCount);
+          return filtered;
+        });
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError' && mountedRef.current) {
+        console.error('❌ [RealtimeProvider] Error deleting notification:', error);
+      }
     }
   }, [user]);
 
@@ -636,9 +662,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     // Clear existing channels
     channelsRef.current.forEach((channel, name) => {
       try {
-        supabase.removeChannel(channel);
+        channel.unsubscribe();
       } catch (error) {
-        devLog('Error removing channel:', name, error);
+        devLog('Error unsubscribing channel:', name, error);
       }
     });
     channelsRef.current.clear();
@@ -737,9 +763,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       // Cleanup when user logs out
       channelsRef.current.forEach(channel => {
         try {
-          supabase.removeChannel(channel);
+          channel.unsubscribe();
         } catch (error) {
-          devLog('Error removing channel on logout:', error);
+          devLog('Error unsubscribing channel on logout:', error);
         }
       });
       channelsRef.current.clear();
@@ -760,9 +786,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       // Cleanup channels
       channelsRef.current.forEach(channel => {
         try {
-          supabase.removeChannel(channel);
+          channel.unsubscribe();
         } catch (error) {
-          devLog('Error removing channel on cleanup:', error);
+          devLog('Error unsubscribing channel on cleanup:', error);
         }
       });
       channelsRef.current.clear();
