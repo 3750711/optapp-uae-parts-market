@@ -17,6 +17,11 @@ interface SellerOrderDetailsTranslations {
   totalPrice: string;
   deliveryCost: string;
   placesCount: string;
+  lotNumber: string;
+  createdFromProduct: string;
+  originalProduct: string;
+  sourceProduct: string;
+  viewOriginalProduct: string;
   
   // Buyer information section
   buyerInformation: string;
@@ -40,6 +45,13 @@ interface SellerOrderDetailsTranslations {
     shipped: string;
     delivered: string;
     cancelled: string;
+  };
+
+  // Order types
+  orderTypes: {
+    product_order: string;
+    free_order: string;
+    ads_order: string;
   };
   
   // Container statuses
@@ -118,6 +130,11 @@ const ru: SellerOrderDetailsTranslations = {
   totalPrice: 'Общая стоимость',
   deliveryCost: 'Стоимость доставки',
   placesCount: 'Количество мест',
+  lotNumber: 'Номер лота',
+  createdFromProduct: 'Создан из товара',
+  originalProduct: 'Исходный товар',
+  sourceProduct: 'Товар-источник',
+  viewOriginalProduct: 'Посмотреть оригинальный товар',
   
   buyerInformation: 'Информация о покупателе',
   buyerName: 'Имя покупателя',
@@ -138,6 +155,12 @@ const ru: SellerOrderDetailsTranslations = {
     shipped: 'Отправлен',
     delivered: 'Доставлен',
     cancelled: 'Отменен',
+  },
+
+  orderTypes: {
+    product_order: 'Заказ из товара',
+    free_order: 'Свободный заказ',
+    ads_order: 'Заказ по объявлению',
   },
   
   containerStatuses: {
@@ -207,6 +230,11 @@ const en: SellerOrderDetailsTranslations = {
   totalPrice: 'Total Price',
   deliveryCost: 'Delivery Cost',
   placesCount: 'Places Count',
+  lotNumber: 'Lot Number',
+  createdFromProduct: 'Created from product',
+  originalProduct: 'Original Product',
+  sourceProduct: 'Source Product',
+  viewOriginalProduct: 'View original product',
   
   buyerInformation: 'Buyer Information',
   buyerName: 'Buyer Name',
@@ -227,6 +255,12 @@ const en: SellerOrderDetailsTranslations = {
     shipped: 'Shipped',
     delivered: 'Delivered',
     cancelled: 'Cancelled',
+  },
+
+  orderTypes: {
+    product_order: 'Product Order',
+    free_order: 'Free Order',
+    ads_order: 'Advertisement Order',
   },
   
   containerStatuses: {
@@ -296,6 +330,11 @@ const bn: SellerOrderDetailsTranslations = {
   totalPrice: 'মোট মূল্য',
   deliveryCost: 'ডেলিভারি খরচ',
   placesCount: 'স্থানের সংখ্যা',
+  lotNumber: 'লট নম্বর',
+  createdFromProduct: 'পণ্য থেকে তৈরি',
+  originalProduct: 'মূল পণ্য',
+  sourceProduct: 'সোর্স পণ্য',
+  viewOriginalProduct: 'মূল পণ্য দেখুন',
   
   buyerInformation: 'ক্রেতার তথ্য',
   buyerName: 'ক্রেতার নাম',
@@ -316,6 +355,12 @@ const bn: SellerOrderDetailsTranslations = {
     shipped: 'পাঠানো হয়েছে',
     delivered: 'বিতরণ করা হয়েছে',
     cancelled: 'বাতিল',
+  },
+
+  orderTypes: {
+    product_order: 'পণ্য অর্ডার',
+    free_order: 'ফ্রি অর্ডার',
+    ads_order: 'বিজ্ঞাপন অর্ডার',
   },
   
   containerStatuses: {

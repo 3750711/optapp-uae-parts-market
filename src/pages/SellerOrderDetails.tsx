@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Package, User, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle, MessageSquare, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, Package, User, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle, MessageSquare, CheckCircle2, AlertCircle, Loader2, ExternalLink, Box } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import SellerLayout from "@/components/layout/SellerLayout";
@@ -26,7 +26,7 @@ const SellerOrderDetails = () => {
   const { isMobile } = useMobileLayout();
   const [showConfirmationUpload, setShowConfirmationUpload] = useState(false);
 
-  // Main order query with buyer/seller info
+  // Main order query with buyer/seller info and product data
   const { data: order, isLoading: isOrderLoading, error: orderError } = useQuery({
     queryKey: ['seller-order', id],
     queryFn: async () => {
@@ -39,6 +39,15 @@ const SellerOrderDetails = () => {
           buyer:buyer_id(telegram, full_name, opt_id, email, phone),
           seller:seller_id(telegram, full_name, opt_id, email, phone),
           container:containers!container_number (
+            status
+          ),
+          source_product:product_id(
+            id,
+            lot_number,
+            title,
+            brand,
+            model,
+            price,
             status
           )
         `)
@@ -225,6 +234,19 @@ const SellerOrderDetails = () => {
     return t.containerStatuses[status] || status;
   };
 
+  const getOrderTypeLabel = (type: string) => {
+    return t.orderTypes[type] || type;
+  };
+
+  const getOrderTypeBadgeColor = (type: string) => {
+    switch (type) {
+      case 'product_order': return 'bg-blue-50 text-blue-700 border-blue-200';
+      case 'free_order': return 'bg-green-50 text-green-700 border-green-200';
+      case 'ads_order': return 'bg-purple-50 text-purple-700 border-purple-200';
+      default: return 'bg-gray-50 text-gray-700 border-gray-200';
+    }
+  };
+
   return (
     <SellerLayout>
       <div className="container mx-auto py-8 max-w-5xl">
@@ -283,10 +305,14 @@ const SellerOrderDetails = () => {
           <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                   <h1 className="text-4xl font-bold text-foreground">№ {order.order_number}</h1>
                   <Badge className={`${getStatusColor(order.status)} px-3 py-1 text-sm font-medium border`}>
                     {getStatusLabel(order.status)}
+                  </Badge>
+                  <Badge className={`${getOrderTypeBadgeColor(order.order_created_type)} px-3 py-1 text-sm font-medium border`}>
+                    <Box className="h-3 w-3 mr-1" />
+                    {getOrderTypeLabel(order.order_created_type)}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-4 text-muted-foreground">
@@ -345,6 +371,19 @@ const SellerOrderDetails = () => {
                       <div className="text-sm text-muted-foreground mb-1">{t.model}</div>
                       <div className="font-medium">{order.model || t.notSpecified}</div>
                     </div>
+                    {/* Show lot number for product orders */}
+                    {order.order_created_type === 'product_order' && order.source_product?.lot_number && (
+                      <div>
+                        <div className="text-sm text-muted-foreground mb-1">{t.lotNumber}</div>
+                        <div className="font-medium flex items-center gap-2">
+                          <span className="font-mono text-lg">№ {order.source_product.lot_number}</span>
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Box className="h-3 w-3 mr-1" />
+                            {t.sourceProduct}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="space-y-4">
@@ -371,6 +410,28 @@ const SellerOrderDetails = () => {
                   </div>
                 </div>
                 
+                {/* Source Product Info for product orders */}
+                {order.order_created_type === 'product_order' && order.source_product && (
+                  <div className="mt-6 pt-6 border-t">
+                    <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-blue-600 font-medium mb-1">{t.originalProduct}</div>
+                          <div className="text-lg font-medium">{order.source_product.title}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {order.source_product.brand} {order.source_product.model && `• ${order.source_product.model}`}
+                            {order.source_product.lot_number && ` • ${t.lotNumber}: №${order.source_product.lot_number}`}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm text-muted-foreground">{t.totalPrice}</div>
+                          <div className="text-xl font-bold text-blue-600">${order.source_product.price}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {order.description && (
                   <div className="mt-6 pt-6 border-t">
                     <div className="text-sm text-muted-foreground mb-2">{t.description}</div>
