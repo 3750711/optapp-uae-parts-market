@@ -64,12 +64,16 @@ const SellerOrders = () => {
   const ordersData = data?.pages.flatMap(page => page.data) || [];
   const totalCount = data?.pages[0]?.totalCount || 0;
   
-  const { data: orders } = useQuery({
+  const { data: orders, isLoading: isLoadingEnrichedOrders } = useQuery({
     queryKey: ['seller-orders-with-confirmations', ordersData.map(o => o.id)],
     queryFn: async () => {
+      console.log('🔍 Enriching orders data with photo status for orders:', ordersData.map(o => o.order_number));
+      
       if (!ordersData.length) return [];
       
       const ordersWithConfirmations = await Promise.all(ordersData.map(async (order) => {
+        console.log(`📊 Processing order ${order.order_number} (${order.id})`);
+        
         // Отдельные запросы для каждой категории, как в OrderConfirmButton
         const { data: chatScreenshots } = await supabase
           .from('confirm_images')
@@ -86,6 +90,8 @@ const SellerOrders = () => {
         const hasChatScreenshots = (chatScreenshots?.length || 0) > 0;
         const hasSignedProduct = (signedProductPhotos?.length || 0) > 0;
         
+        console.log(`📷 Order ${order.order_number}: screenshots=${hasChatScreenshots} (${chatScreenshots?.length || 0}), photos=${hasSignedProduct} (${signedProductPhotos?.length || 0})`);
+        
         // Также получаем общее количество изображений для обратной совместимости
         const { data: allConfirmImages } = await supabase
           .from('confirm_images')
@@ -100,10 +106,10 @@ const SellerOrders = () => {
         };
       }));
       
+      console.log('✅ Enrichment complete for', ordersWithConfirmations.length, 'orders');
       return ordersWithConfirmations;
     },
-    enabled: ordersData.length > 0,
-    initialData: ordersData
+    enabled: ordersData.length > 0
   });
 
   const confirmOrderMutation = useMutation({
@@ -385,19 +391,27 @@ const SellerOrders = () => {
               </div>
             )}
             
-            {activeSearchTerm && orders && orders.length > 0 && (
+            {activeSearchTerm && (orders || ordersData).length > 0 && (
               <div className="text-sm text-muted-foreground">
-                {t.foundResults} <strong>{orders.length}</strong> of {totalCount}
+                {t.foundResults} <strong>{(orders || ordersData).length}</strong> of {totalCount}
               </div>
             )}
           </div>
           
           <Separator />
 
-          {orders && orders.length > 0 ? (
+          {/* Use enriched orders if available, otherwise fallback to original data */}
+          {(orders || ordersData).length > 0 ? (
             <>
+              {isLoadingEnrichedOrders && !orders && (
+                <div className="text-center py-4 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                  Loading photo status...
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {orders?.map((order) => (
+                {(orders || ordersData).map((order) => (
                 <Card 
                   key={order.id}
                   className={`cursor-pointer hover:shadow-md transition-all ${getCardHighlightColor(order.status)}`}
@@ -421,8 +435,8 @@ const SellerOrders = () => {
                     </div>
                     
                     <PhotoConfirmationStatus 
-                      hasChatScreenshots={order.hasChatScreenshots}
-                      hasSignedProduct={order.hasSignedProduct}
+                      hasChatScreenshots={order.hasChatScreenshots || false}
+                      hasSignedProduct={order.hasSignedProduct || false}
                       className="pb-1"
                     />
                     
