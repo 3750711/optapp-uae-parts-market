@@ -44,6 +44,10 @@ const en = {
   notSpecified: "Not specified", 
   additionalInformation: "Additional information:",
 
+  // Photo confirmation status
+  screenStatus: "Screen",
+  photosStatus: "Photos",
+
   // Action buttons
   confirmOrder: "Confirm",
   cancelOrder: "Cancel",
@@ -144,6 +148,10 @@ const ru = {
   notSpecified: "Не указано", 
   additionalInformation: "Дополнительная информация:",
 
+  // Photo confirmation status
+  screenStatus: "Скрин",
+  photosStatus: "Фото",
+
   // Action buttons
   confirmOrder: "Подтвердить",
   cancelOrder: "Отменить",
@@ -243,6 +251,10 @@ const bn = {
   buyer: "ক্রেতা",
   notSpecified: "নির্দিষ্ট নয়", 
   additionalInformation: "অতিরিক্ত তথ্য:",
+
+  // Photo confirmation status
+  screenStatus: "স্ক্রিন",
+  photosStatus: "ছবি",
 
   // Action buttons
   confirmOrder: "নিশ্চিত করুন",

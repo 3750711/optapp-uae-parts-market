@@ -11,6 +11,7 @@ import { Link, Loader2, CheckCircle, X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { OrderConfirmButton } from "@/components/order/OrderConfirmButton";
+import { PhotoConfirmationStatus } from "@/components/order/PhotoConfirmationStatus";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,12 +72,17 @@ const SellerOrders = () => {
       const ordersWithConfirmations = await Promise.all(ordersData.map(async (order) => {
         const { data: confirmImages } = await supabase
           .from('confirm_images')
-          .select('url')
+          .select('url, category')
           .eq('order_id', order.id);
+        
+        const hasChatScreenshots = confirmImages?.some(img => img.category === 'chat_screenshot') || false;
+        const hasSignedProduct = confirmImages?.some(img => img.category === 'signed_product') || false;
         
         return {
           ...order,
-          hasConfirmImages: confirmImages && confirmImages.length > 0
+          hasConfirmImages: confirmImages && confirmImages.length > 0,
+          hasChatScreenshots,
+          hasSignedProduct
         };
       }));
       
@@ -399,6 +405,13 @@ const SellerOrders = () => {
                         {getStatusLabel(order.status)}
                       </Badge>
                     </div>
+                    
+                    <PhotoConfirmationStatus 
+                      hasChatScreenshots={order.hasChatScreenshots}
+                      hasSignedProduct={order.hasSignedProduct}
+                      className="pb-1"
+                    />
+                    
                     <div className="space-y-1">
                       <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
                       {order.lot_number_order && (
