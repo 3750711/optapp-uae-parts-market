@@ -78,6 +78,15 @@ export const optimizeForMobile = () => {
         user-select: text;
       }
       
+      /* Exception for file inputs - ensure they work on mobile */
+      input[type="file"] {
+        -webkit-touch-callout: default;
+        -webkit-user-select: none;
+        user-select: none;
+        pointer-events: auto !important;
+        touch-action: manipulation;
+      }
+      
       /* Prevent pull-to-refresh in PWA */
       html {
         overscroll-behavior: contain;

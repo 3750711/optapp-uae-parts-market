@@ -81,12 +81,44 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     const fileArray = Array.from(files);
     const validFiles: File[] = [];
 
-    // Process files in chunks to prevent UI blocking
+    // Process files - simplified for mobile
     const processFilesInChunks = async (files: File[], chunkSize: number = 3) => {
       const results = [];
+      
+      // For mobile, process all at once to avoid delays
+      if (isMobileDevice) {
+        console.log('📱 Mobile: Processing all files at once');
+        return files.filter(file => {
+          // File validation logic
+          if (!ALLOWED_PHOTO_TYPES.includes(file.type.toLowerCase())) {
+            if (!disableToast) {
+              toast({
+                title: "Неверный формат файла",
+                description: `Файл "${file.name}" имеет неподдерживаемый формат.`,
+                variant: "destructive",
+              });
+            }
+            return false;
+          }
+
+          if (file.size > MAX_PHOTO_SIZE_BYTES) {
+            if (!disableToast) {
+              toast({
+                title: "Файл слишком большой",
+                description: `Размер файла "${file.name}" превышает ${MAX_PHOTO_SIZE_MB}MB.`,
+                variant: "destructive",
+              });
+            }
+            return false;
+          }
+          return true;
+        });
+      }
+      
+      // Desktop: Process in chunks to prevent UI blocking
       for (let i = 0; i < files.length; i += chunkSize) {
         const chunk = files.slice(i, i + chunkSize);
-        // Add small delay to prevent blocking
+        // Add small delay to prevent blocking on desktop
         if (i > 0) {
           await new Promise(resolve => setTimeout(resolve, 50));
         }
@@ -140,21 +172,40 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      // Use requestIdleCallback if available to prevent blocking
-      if ('requestIdleCallback' in window) {
-        (window as any).requestIdleCallback(() => {
-          handleFileSelect(files);
+      console.log('📱 Mobile file selection detected:', {
+        fileCount: files.length,
+        isMobile: isMobileDevice,
+        fileNames: Array.from(files).map(f => f.name)
+      });
+      
+      // Show immediate feedback
+      if (!disableToast) {
+        toast({
+          title: "Файлы выбраны",
+          description: `Начинается обработка ${files.length} файлов...`,
         });
+      }
+      
+      // For mobile devices, call directly to avoid delays
+      if (isMobileDevice) {
+        console.log('📱 Mobile: Direct file processing');
+        handleFileSelect(files);
       } else {
-        // Fallback for browsers without requestIdleCallback
-        setTimeout(() => {
-          handleFileSelect(files);
-        }, 0);
+        // Use requestIdleCallback for desktop if available
+        if ('requestIdleCallback' in window) {
+          (window as any).requestIdleCallback(() => {
+            handleFileSelect(files);
+          });
+        } else {
+          setTimeout(() => {
+            handleFileSelect(files);
+          }, 0);
+        }
       }
     }
     // Reset input
     e.target.value = "";
-  }, [handleFileSelect]);
+  }, [handleFileSelect, isMobileDevice, toast, disableToast]);
 
   const handleDelete = (url: string) => {
     if (onImageDelete) {
@@ -184,14 +235,24 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             buttonIcon
           )}
           {isUploading ? getTranslatedText("Умная загрузка...", "Smart upload...") : (buttonText === "Загрузить фотографии" ? getTranslatedText("Загрузить фотографии", "Upload photos") : buttonText)}
-          <input
-            type="file"
-            multiple
-            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-            onChange={handleFileChange}
-            className="absolute inset-0 opacity-0 cursor-pointer"
-            disabled={disabled}
-          />
+        <input
+          type="file"
+          multiple
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+          onChange={handleFileChange}
+          className={cn(
+            "absolute inset-0 cursor-pointer",
+            isMobileDevice ? "opacity-0 touch-manipulation" : "opacity-0"
+          )}
+          style={{
+            // Better mobile touch handling
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            touchAction: 'manipulation',
+            zIndex: 10
+          }}
+          disabled={disabled}
+        />
         </Button>
 
         {/* Show upload progress */}
@@ -303,7 +364,17 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           multiple
           accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
           onChange={handleFileChange}
-          className="absolute inset-0 opacity-0 cursor-pointer"
+          className={cn(
+            "absolute inset-0 cursor-pointer",
+            isMobileDevice ? "opacity-0 touch-manipulation" : "opacity-0"
+          )}
+          style={{
+            // Better mobile touch handling
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            touchAction: 'manipulation',
+            zIndex: 10
+          }}
           disabled={disabled}
         />
       </Button>
