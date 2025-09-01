@@ -96,6 +96,43 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     [queryClient]
   );
 
+  const debouncedInvalidateOrders = useCallback(
+    debounce(() => {
+      if (!mountedRef.current) return;
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['user-orders'], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'], exact: true });
+    }, 300),
+    [queryClient]
+  );
+
+  const debouncedInvalidateMessageHistory = useCallback(
+    debounce(() => {
+      if (!mountedRef.current) return;
+      queryClient.invalidateQueries({ queryKey: ['message-history'], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['new-message-history'], exact: true });
+    }, 300),
+    [queryClient]
+  );
+
+  const debouncedInvalidateProfiles = useCallback(
+    debounce(() => {
+      if (!mountedRef.current) return;
+      queryClient.invalidateQueries({ queryKey: ['profile'], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['admin-users'], exact: true });
+    }, 300),
+    [queryClient]
+  );
+
+  const debouncedInvalidateTelegramLogs = useCallback(
+    debounce(() => {
+      if (!mountedRef.current) return;
+      queryClient.invalidateQueries({ queryKey: ['telegram-notifications'], exact: true });
+      queryClient.invalidateQueries({ queryKey: ['telegram-notification-stats'], exact: true });
+    }, 300),
+    [queryClient]
+  );
+
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     if (!user || !mountedRef.current) return;
@@ -239,6 +276,114 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     }
   }, [user, addRealtimeEvent, debouncedRefreshNotifications]);
 
+  // Handle orders changes
+  const handleOrderChange = useCallback((payload: any) => {
+    if (!mountedRef.current) return;
+    
+    devLog('Order realtime event:', payload.eventType, payload);
+    
+    try {
+      const order = payload.new || payload.old;
+      if (!order) return;
+      
+      addRealtimeEvent({
+        type: 'order',
+        action: payload.eventType,
+        order_id: order.id,
+        order_number: order.order_number
+      });
+      
+      debouncedInvalidateOrders();
+      
+    } catch (error) {
+      prodError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'order-realtime-handler',
+        eventType: payload.eventType
+      });
+    }
+  }, [debouncedInvalidateOrders, addRealtimeEvent]);
+
+  // Handle message_history changes
+  const handleMessageHistoryChange = useCallback((payload: any) => {
+    if (!mountedRef.current) return;
+    
+    devLog('Message history realtime event:', payload.eventType, payload);
+    
+    try {
+      const message = payload.new || payload.old;
+      if (!message) return;
+      
+      addRealtimeEvent({
+        type: 'message_history',
+        action: payload.eventType,
+        message_id: message.id,
+        status: message.status
+      });
+      
+      debouncedInvalidateMessageHistory();
+      
+    } catch (error) {
+      prodError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'message-history-realtime-handler',
+        eventType: payload.eventType
+      });
+    }
+  }, [debouncedInvalidateMessageHistory, addRealtimeEvent]);
+
+  // Handle profiles changes
+  const handleProfileChange = useCallback((payload: any) => {
+    if (!mountedRef.current) return;
+    
+    devLog('Profile realtime event:', payload.eventType, payload);
+    
+    try {
+      const profile = payload.new || payload.old;
+      if (!profile) return;
+      
+      addRealtimeEvent({
+        type: 'profile',
+        action: payload.eventType,
+        profile_id: profile.id,
+        verification_status: profile.verification_status
+      });
+      
+      debouncedInvalidateProfiles();
+      
+    } catch (error) {
+      prodError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'profile-realtime-handler',
+        eventType: payload.eventType
+      });
+    }
+  }, [debouncedInvalidateProfiles, addRealtimeEvent]);
+
+  // Handle telegram_notifications_log changes
+  const handleTelegramLogChange = useCallback((payload: any) => {
+    if (!mountedRef.current) return;
+    
+    devLog('Telegram log realtime event:', payload.eventType, payload);
+    
+    try {
+      const log = payload.new || payload.old;
+      if (!log) return;
+      
+      addRealtimeEvent({
+        type: 'telegram_log',
+        action: payload.eventType,
+        log_id: log.id,
+        status: log.status
+      });
+      
+      debouncedInvalidateTelegramLogs();
+      
+    } catch (error) {
+      prodError(error instanceof Error ? error : new Error(String(error)), {
+        context: 'telegram-log-realtime-handler',
+        eventType: payload.eventType
+      });
+    }
+  }, [debouncedInvalidateTelegramLogs, addRealtimeEvent]);
+
   // Notification management functions
   const markNotificationAsRead = useCallback(async (notificationId: string) => {
     if (!user || !mountedRef.current) return;
@@ -353,6 +498,15 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       
       if (profile?.user_type === 'admin') {
         queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['message-history'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        queryClient.invalidateQueries({ queryKey: ['telegram-notifications'] });
+      }
+      
+      if (profile?.user_type === 'seller' || profile?.user_type === 'buyer') {
+        queryClient.invalidateQueries({ queryKey: ['user-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
       }
       
       // Also refresh notifications during fallback
@@ -535,13 +689,47 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         `user_id=eq.${user.id}`
       );
       
+      // Orders channel (for admin or users with orders)
+      setupChannel(
+        'unified-orders',
+        'orders',
+        handleOrderChange
+      );
+      
+      // Message history channel (for admin only)
+      if (profile?.user_type === 'admin') {
+        setupChannel(
+          'unified-message-history',
+          'message_history',
+          handleMessageHistoryChange
+        );
+      }
+      
+      // Profiles channel (for admin only)
+      if (profile?.user_type === 'admin') {
+        setupChannel(
+          'unified-profiles',
+          'profiles',
+          handleProfileChange
+        );
+      }
+      
+      // Telegram notifications log channel (for admin only)
+      if (profile?.user_type === 'admin') {
+        setupChannel(
+          'unified-telegram-logs',
+          'telegram_notifications_log',
+          handleTelegramLogChange
+        );
+      }
+      
     } catch (error) {
       prodError(error instanceof Error ? error : new Error(String(error)), {
         context: 'setup-realtime-channels',
         userId: user.id
       });
     }
-  }, [user, profile, setupChannel, handlePriceOfferChange, handleProductChange, handleNotificationChange]);
+  }, [user, profile, setupChannel, handlePriceOfferChange, handleProductChange, handleNotificationChange, handleOrderChange, handleMessageHistoryChange, handleProfileChange, handleTelegramLogChange]);
 
   // Main effect to manage realtime connections
   useEffect(() => {
