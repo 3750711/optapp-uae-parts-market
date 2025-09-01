@@ -19,6 +19,10 @@ class AuthSessionManager {
   private onlineHandler: (() => void) | null = null;
   private currentSession: Session | null = null;
   private eventHandlers = new Map<keyof AuthEvents, Set<Function>>();
+  
+  // Realtime readiness system
+  private realtimeReadyListeners: Array<() => void> = [];
+  private rtTokenVersion = { v: 0 };
 
   private constructor() {
     if (typeof window !== 'undefined') {
@@ -182,6 +186,9 @@ class AuthSessionManager {
     supabase.auth.getSession().then(({ data: { session } }) => {
       try {
         supabase.realtime.setAuth(session?.access_token ?? '');
+        this.rtTokenVersion.v++;
+        this.signalRealtimeReady();
+        console.log('🔧 AuthSession: Initial Realtime token synced, version:', this.rtTokenVersion.v);
       } catch (error) {
         console.warn('⚠️ AuthSession: Failed to sync initial Realtime token:', error);
       }
@@ -196,6 +203,9 @@ class AuthSessionManager {
       // Synchronize JWT token with Realtime
       try {
         supabase.realtime.setAuth(session?.access_token ?? '');
+        this.rtTokenVersion.v++;
+        this.signalRealtimeReady();
+        console.log('🔧 AuthSession: Realtime token synced on auth change, version:', this.rtTokenVersion.v);
       } catch (error) {
         console.warn('⚠️ AuthSession: Failed to sync Realtime token:', error);
       }
@@ -278,6 +288,32 @@ class AuthSessionManager {
   // Broadcast profile update to other tabs
   broadcastProfileUpdate(userId: string, profile: any) {
     this.broadcastMessage('PROFILE_UPDATED', { userId, profile });
+  }
+
+  // Realtime readiness management
+  onRealtimeReady(callback: () => void) {
+    this.realtimeReadyListeners.push(callback);
+  }
+
+  offRealtimeReady(callback: () => void) {
+    const index = this.realtimeReadyListeners.indexOf(callback);
+    if (index > -1) {
+      this.realtimeReadyListeners.splice(index, 1);
+    }
+  }
+
+  private signalRealtimeReady() {
+    this.realtimeReadyListeners.forEach(callback => {
+      try {
+        callback();
+      } catch (error) {
+        console.error('❌ AuthSession: Error in realtime ready callback:', error);
+      }
+    });
+  }
+
+  getRtTokenVersion() {
+    return this.rtTokenVersion.v;
   }
 }
 

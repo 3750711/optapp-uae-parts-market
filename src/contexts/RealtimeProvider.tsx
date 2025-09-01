@@ -6,6 +6,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { devLog, prodError } from '@/utils/logger';
 import { detectWebSocketSupport, testWebSocketConnection, calculateBackoff, getFirefoxRecommendations, type WebSocketDiagnostics } from '@/utils/websocketUtils';
 import { Notification } from '@/types/notification';
+import { authSessionManager } from '@/utils/authSessionManager';
 
 interface RealtimeContextType {
   isConnected: boolean;
@@ -61,6 +62,10 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [diagnostics, setDiagnostics] = useState<WebSocketDiagnostics & { connectionTest?: WebSocketDiagnostics['connectionTest'] }>(() => detectWebSocketSupport());
   
+  // Realtime readiness state
+  const [realtimeReady, setRealtimeReady] = useState(false);
+  const [rtTokenVersion, setRtTokenVersion] = useState(() => authSessionManager.getRtTokenVersion());
+  
   // Notifications state  
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -74,6 +79,52 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const fallbackIntervalRef = useRef<NodeJS.Timeout>();
   const maxReconnectAttempts = 5;
   
+  // Initialize realtime readiness detection
+  useEffect(() => {
+    let isSubscribed = true;
+
+    // Check if we already have a valid session immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isSubscribed) return;
+      
+      console.debug('[RT] Current session check:', {
+        userId: session?.user?.id,
+        hasToken: Boolean(session?.access_token),
+        tokenLength: session?.access_token?.length
+      });
+      
+      if (session?.access_token) {
+        console.log('🔧 [RT] Token ready immediately, setting realtime ready');
+        setRealtimeReady(true);
+      }
+    });
+
+    // Listen for readiness signals from AuthSessionManager
+    const onReady = () => {
+      if (!isSubscribed) return;
+      console.log('🔧 [RT] Received realtime ready signal from AuthSessionManager');
+      setRealtimeReady(true);
+      setRtTokenVersion(authSessionManager.getRtTokenVersion());
+    };
+
+    authSessionManager.onRealtimeReady(onReady);
+
+    return () => {
+      isSubscribed = false;
+      authSessionManager.offRealtimeReady(onReady);
+    };
+  }, []);
+
+  // Reset readiness when token version changes
+  useEffect(() => {
+    console.log('🔧 [RT] Token version changed:', rtTokenVersion, 'resetting channels');
+    if (realtimeReady) {
+      // Token changed, need to recreate channels
+      setRealtimeReady(false);
+      setTimeout(() => setRealtimeReady(true), 100);
+    }
+  }, [rtTokenVersion, realtimeReady]);
+
   // Dev mode logging utility
   const logChannelEvent = useCallback((event: 'subscribe' | 'unsubscribe', channelName: string) => {
     if (process.env.NODE_ENV === 'development') {
@@ -97,11 +148,19 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       };
     })();
 
-    // Enhanced status tracking
-    channel.subscribe((status: string, err?: any) => {
+    // Enhanced status tracking with session diagnostics
+    channel.subscribe(async (status: string, err?: any) => {
       if (status === 'SUBSCRIBED') {
         console.debug(`[RT] ${channelName}: ${status}`);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        // Log session state on channel errors for debugging
+        const { data: { session } } = await supabase.auth.getSession();
+        console.error(`[RT] Channel issue (${channelName}): ${status}`, {
+          error: err,
+          hasSession: Boolean(session),
+          hasToken: Boolean(session?.access_token),
+          tokenVersion: authSessionManager.getRtTokenVersion()
+        });
         warnOnce(`[Realtime] Channel issue (${channelName}): ${status}`, err || '');
       }
     });
@@ -772,28 +831,39 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     }
   }, [user, profile, setupChannel, handlePriceOfferChange, handleProductChange, handleNotificationChange, handleOrderChange, handleMessageHistoryChange, handleProfileChange, handleTelegramLogChange, handleRealtimeError]);
 
-  // Main effect to manage realtime connections
+  // Main effect to manage realtime connections - only when JWT is ready
   useEffect(() => {
-    if (!user) {
-      // Cleanup when user logs out
+    if (!user || !realtimeReady) {
+      // Cleanup when user logs out or realtime not ready
       channelsRef.current.forEach((channel, name) => {
         try {
           logChannelEvent('unsubscribe', name);
           channel.unsubscribe();
         } catch (error) {
-          handleRealtimeError(error, `Cleanup channel ${name} on logout`);
+          handleRealtimeError(error, `Cleanup channel ${name} on logout or token change`);
         }
       });
       channelsRef.current.clear();
       setIsConnected(false);
       setConnectionState('disconnected');
+      
+      if (!user) {
+        console.log('🔧 [RT] User logged out, channels cleaned up');
+      } else if (!realtimeReady) {
+        console.log('🔧 [RT] Realtime not ready, waiting for JWT sync...');
+      }
       return;
     }
 
+    // At this point we have both user and realtime ready
+    console.log('🔧 [RT] User and realtime ready, setting up channels...');
+    
     mountedRef.current = true;
     
     // Initial data fetch
     fetchNotifications();
+    
+    // Setup channels with JWT ready
     setupChannels();
 
     return () => {
@@ -818,7 +888,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         clearInterval(fallbackIntervalRef.current);
       }
     };
-  }, [user, setupChannels, fetchNotifications, logChannelEvent, handleRealtimeError]);
+  }, [user, realtimeReady, setupChannels, fetchNotifications, logChannelEvent, handleRealtimeError]);
 
   // Initialize diagnostics and page visibility handlers
   useEffect(() => {
