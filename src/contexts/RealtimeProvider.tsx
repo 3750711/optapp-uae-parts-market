@@ -65,11 +65,205 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   
+  // Channel counting for dev mode
+  const [activeChannelsCount, setActiveChannelsCount] = useState(0);
+  
   const channelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
   const mountedRef = useRef(true);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const fallbackIntervalRef = useRef<NodeJS.Timeout>();
   const maxReconnectAttempts = 5;
+  
+  // Dev mode logging utility
+  const logChannelEvent = useCallback((event: 'subscribe' | 'unsubscribe', channelName: string) => {
+    if (process.env.NODE_ENV === 'development') {
+      const count = channelsRef.current.size;
+      console.log(`📡 [RealtimeProvider] ${event.toUpperCase()}: ${channelName} (Active channels: ${count})`);
+      setActiveChannelsCount(count);
+    }
+  }, []);
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    if (!user || !mountedRef.current) return;
+    
+    const controller = new AbortController();
+    
+    try {
+      console.log('🔍 [RealtimeProvider] Fetching notifications for user:', user.id);
+      
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('id, user_id, type, title, message, title_en, message_en, language, data, read, created_at, updated_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(30)
+        .abortSignal(controller.signal);
+
+      if (error) throw error;
+
+      console.log('✅ [RealtimeProvider] Notifications fetched:', data?.length || 0);
+      
+      if (mountedRef.current) {
+        setNotifications(data || []);
+        setUnreadCount((data || []).filter(n => !n.read).length);
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError' && mountedRef.current) {
+        console.error('❌ [RealtimeProvider] Error fetching notifications:', error);
+      }
+    }
+  }, [user]);
+
+  // Test WebSocket connection
+  const testConnection = useCallback(async () => {
+    // First check HTTP availability
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      const response = await fetch('https://vfiylfljiixqkjfqubyq.supabase.co/rest/v1/', {
+        method: 'HEAD',
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0'
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: 'Supabase API not accessible' } }));
+        return false;
+      }
+    } catch (error) {
+      setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: 'Network error: ' + (error as Error).message } }));
+      return false;
+    }
+
+    // Then test WebSocket (fixed URL without vsn parameter)
+    const wsUrl = `wss://vfiylfljiixqkjfqubyq.supabase.co/realtime/v1/websocket?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}`;
+    const result = await testWebSocketConnection(wsUrl);
+    setDiagnostics(prev => ({ ...prev, connectionTest: result }));
+    return result.success;
+  }, []);
+
+  // Start polling fallback when WebSocket fails
+  const startPollingFallback = useCallback(() => {
+    if (fallbackIntervalRef.current) return;
+    
+    console.log('🟡 Starting polling fallback due to WebSocket issues');
+    setConnectionState('fallback');
+    setIsUsingFallback(true);
+    
+    fallbackIntervalRef.current = setInterval(() => {
+      if (!mountedRef.current || !user) return;
+      
+      // Invalidate queries to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['seller-price-offers', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-price-offers', user.id] });
+      
+      if (profile?.user_type === 'admin') {
+        queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['message-history'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        queryClient.invalidateQueries({ queryKey: ['telegram-notifications'] });
+      }
+      
+      if (profile?.user_type === 'seller' || profile?.user_type === 'buyer') {
+        queryClient.invalidateQueries({ queryKey: ['user-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      }
+      
+      // Also refresh notifications during fallback
+      fetchNotifications();
+    }, 10000); // Poll every 10 seconds
+  }, [queryClient, user, profile, fetchNotifications]);
+
+  // Stop polling fallback
+  const stopPollingFallback = useCallback(() => {
+    if (fallbackIntervalRef.current) {
+      clearInterval(fallbackIntervalRef.current);
+      fallbackIntervalRef.current = undefined;
+    }
+    setIsUsingFallback(false);
+  }, []);
+
+  // Force reconnect function
+  const forceReconnect = useCallback(async () => {
+    devLog('Force reconnecting all realtime channels...');
+    
+    // Stop any fallback polling
+    stopPollingFallback();
+    
+    // Reset attempts counter
+    setReconnectAttempts(0);
+    
+    // Test connection first
+    const canConnect = await testConnection();
+    if (!canConnect) {
+      if (diagnostics.firefoxDetected) {
+        console.warn('🔴 WebSocket test failed on Firefox. Recommendations:', getFirefoxRecommendations());
+        setLastError('WebSocket connection blocked. Using polling fallback for Firefox.');
+      } else {
+        setLastError('WebSocket connection failed. Using polling fallback.');
+      }
+      startPollingFallback();
+      return;
+    }
+    
+    // Clear existing channels
+    channelsRef.current.forEach((channel, name) => {
+      try {
+        logChannelEvent('unsubscribe', name);
+        channel.unsubscribe();
+      } catch (error) {
+        console.error(`🔴 [RealtimeProvider] Error unsubscribing channel ${name}:`, error);
+      }
+    });
+    channelsRef.current.clear();
+    
+    setIsConnected(false);
+    setConnectionState('connecting');
+    
+    // Reconnect after a short delay
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (user && mountedRef.current) {
+        setupChannels();
+      }
+    }, 1000);
+  }, [user, stopPollingFallback, testConnection, diagnostics.firefoxDetected, startPollingFallback, logChannelEvent]);
+
+  // Unified error handler
+  const handleRealtimeError = useCallback((error: any, context: string) => {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`🔴 [RealtimeProvider] ${context}:`, errorMessage);
+    
+    setLastError(`${context}: ${errorMessage}`);
+    
+    // Increment reconnect attempts and trigger reconnect if not at max
+    setReconnectAttempts(prev => {
+      const newAttempts = prev + 1;
+      if (newAttempts < maxReconnectAttempts) {
+        const delay = calculateBackoff(newAttempts - 1);
+        console.log(`🔄 Auto-reconnect in ${delay}ms (attempt ${newAttempts}/${maxReconnectAttempts})`);
+        
+        setTimeout(() => {
+          if (mountedRef.current) {
+            forceReconnect();
+          }
+        }, delay);
+      } else {
+        console.warn('🔴 Max reconnect attempts reached, falling back to polling');
+        startPollingFallback();
+      }
+      return newAttempts;
+    });
+  }, [maxReconnectAttempts, startPollingFallback, forceReconnect]);
   
   // Debounced invalidation functions
   const debouncedInvalidateOffers = useCallback(
@@ -133,38 +327,6 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     [queryClient]
   );
 
-  // Fetch notifications
-  const fetchNotifications = useCallback(async () => {
-    if (!user || !mountedRef.current) return;
-    
-    const controller = new AbortController();
-    
-    try {
-      console.log('🔍 [RealtimeProvider] Fetching notifications for user:', user.id);
-      
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('id, user_id, type, title, message, title_en, message_en, language, data, read, created_at, updated_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(30)
-        .abortSignal(controller.signal);
-
-      if (error) throw error;
-
-      console.log('✅ [RealtimeProvider] Notifications fetched:', data?.length || 0);
-      
-      if (mountedRef.current) {
-        setNotifications(data || []);
-        setUnreadCount((data || []).filter(n => !n.read).length);
-      }
-    } catch (error: any) {
-      if (error.name !== 'AbortError' && mountedRef.current) {
-        console.error('❌ [RealtimeProvider] Error fetching notifications:', error);
-      }
-    }
-  }, [user]);
-
   const debouncedRefreshNotifications = useCallback(
     debounce(() => {
       if (!mountedRef.current || !user) return;
@@ -221,13 +383,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       debouncedInvalidateOffers(offer.product_id, user.id);
       
     } catch (error) {
-      prodError(error instanceof Error ? error : new Error(String(error)), {
-        context: 'price-offer-realtime-handler',
-        eventType: payload.eventType,
-        userId: user.id
-      });
+      handleRealtimeError(error, 'price-offer-realtime-handler');
     }
-  }, [user, queryClient, debouncedInvalidateOffers, addRealtimeEvent]);
+  }, [user, queryClient, debouncedInvalidateOffers, addRealtimeEvent, handleRealtimeError]);
 
   // Handle products changes
   const handleProductChange = useCallback((payload: any) => {
@@ -249,12 +407,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       debouncedInvalidateProducts();
       
     } catch (error) {
-      prodError(error instanceof Error ? error : new Error(String(error)), {
-        context: 'product-realtime-handler',
-        eventType: payload.eventType
-      });
+      handleRealtimeError(error, 'product-realtime-handler');
     }
-  }, [debouncedInvalidateProducts, addRealtimeEvent]);
+  }, [debouncedInvalidateProducts, addRealtimeEvent, handleRealtimeError]);
 
   // Handle notifications changes
   const handleNotificationChange = useCallback((payload: any) => {
@@ -273,13 +428,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       debouncedRefreshNotifications();
       
     } catch (error) {
-      prodError(error instanceof Error ? error : new Error(String(error)), {
-        context: 'notification-realtime-handler',
-        eventType: payload.eventType,
-        userId: user.id
-      });
+      handleRealtimeError(error, 'notification-realtime-handler');
     }
-  }, [user, addRealtimeEvent, debouncedRefreshNotifications]);
+  }, [user, addRealtimeEvent, debouncedRefreshNotifications, handleRealtimeError]);
 
   // Handle orders changes
   const handleOrderChange = useCallback((payload: any) => {
@@ -301,12 +452,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       debouncedInvalidateOrders();
       
     } catch (error) {
-      prodError(error instanceof Error ? error : new Error(String(error)), {
-        context: 'order-realtime-handler',
-        eventType: payload.eventType
-      });
+      handleRealtimeError(error, 'order-realtime-handler');
     }
-  }, [debouncedInvalidateOrders, addRealtimeEvent]);
+  }, [debouncedInvalidateOrders, addRealtimeEvent, handleRealtimeError]);
 
   // Handle message_history changes
   const handleMessageHistoryChange = useCallback((payload: any) => {
@@ -328,12 +476,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       debouncedInvalidateMessageHistory();
       
     } catch (error) {
-      prodError(error instanceof Error ? error : new Error(String(error)), {
-        context: 'message-history-realtime-handler',
-        eventType: payload.eventType
-      });
+      handleRealtimeError(error, 'message-history-realtime-handler');
     }
-  }, [debouncedInvalidateMessageHistory, addRealtimeEvent]);
+  }, [debouncedInvalidateMessageHistory, addRealtimeEvent, handleRealtimeError]);
 
   // Handle profiles changes
   const handleProfileChange = useCallback((payload: any) => {
@@ -355,12 +500,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       debouncedInvalidateProfiles();
       
     } catch (error) {
-      prodError(error instanceof Error ? error : new Error(String(error)), {
-        context: 'profile-realtime-handler',
-        eventType: payload.eventType
-      });
+      handleRealtimeError(error, 'profile-realtime-handler');
     }
-  }, [debouncedInvalidateProfiles, addRealtimeEvent]);
+  }, [debouncedInvalidateProfiles, addRealtimeEvent, handleRealtimeError]);
 
   // Handle telegram_notifications_log changes
   const handleTelegramLogChange = useCallback((payload: any) => {
@@ -382,12 +524,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       debouncedInvalidateTelegramLogs();
       
     } catch (error) {
-      prodError(error instanceof Error ? error : new Error(String(error)), {
-        context: 'telegram-log-realtime-handler',
-        eventType: payload.eventType
-      });
+      handleRealtimeError(error, 'telegram-log-realtime-handler');
     }
-  }, [debouncedInvalidateTelegramLogs, addRealtimeEvent]);
+  }, [debouncedInvalidateTelegramLogs, addRealtimeEvent, handleRealtimeError]);
 
   // Notification management functions
   const markNotificationAsRead = useCallback(async (notificationId: string) => {
@@ -475,80 +614,6 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     }
   }, [user]);
 
-  // Test WebSocket connection
-  const testConnection = useCallback(async () => {
-    // First check HTTP availability
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch('https://vfiylfljiixqkjfqubyq.supabase.co/rest/v1/', {
-        method: 'HEAD',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0'
-        },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: 'Supabase API not accessible' } }));
-        return false;
-      }
-    } catch (error) {
-      setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: 'Network error: ' + (error as Error).message } }));
-      return false;
-    }
-
-    // Then test WebSocket (fixed URL without vsn parameter)
-    const wsUrl = `wss://vfiylfljiixqkjfqubyq.supabase.co/realtime/v1/websocket?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}`;
-    const result = await testWebSocketConnection(wsUrl);
-    setDiagnostics(prev => ({ ...prev, connectionTest: result }));
-    return result.success;
-  }, []);
-
-  // Start polling fallback when WebSocket fails
-  const startPollingFallback = useCallback(() => {
-    if (fallbackIntervalRef.current) return;
-    
-    console.log('🟡 Starting polling fallback due to WebSocket issues');
-    setConnectionState('fallback');
-    setIsUsingFallback(true);
-    
-    fallbackIntervalRef.current = setInterval(() => {
-      if (!mountedRef.current || !user) return;
-      
-      // Invalidate queries to trigger refetch
-      queryClient.invalidateQueries({ queryKey: ['seller-price-offers', user.id] });
-      queryClient.invalidateQueries({ queryKey: ['buyer-price-offers', user.id] });
-      
-      if (profile?.user_type === 'admin') {
-        queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-        queryClient.invalidateQueries({ queryKey: ['message-history'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-        queryClient.invalidateQueries({ queryKey: ['telegram-notifications'] });
-      }
-      
-      if (profile?.user_type === 'seller' || profile?.user_type === 'buyer') {
-        queryClient.invalidateQueries({ queryKey: ['user-orders'] });
-        queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
-      }
-      
-      // Also refresh notifications during fallback
-      fetchNotifications();
-    }, 10000); // Poll every 10 seconds
-  }, [queryClient, user, profile, fetchNotifications]);
-
-  // Stop polling fallback
-  const stopPollingFallback = useCallback(() => {
-    if (fallbackIntervalRef.current) {
-      clearInterval(fallbackIntervalRef.current);
-      fallbackIntervalRef.current = undefined;
-    }
-    setIsUsingFallback(false);
-  }, []);
-
   // Setup channel with enhanced error handling
   const setupChannel = useCallback((
     channelName: string,
@@ -577,40 +642,21 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
           devLog(`Channel ${channelName} status:`, status);
           
           if (status === 'SUBSCRIBED') {
+            logChannelEvent('subscribe', channelName);
             setIsConnected(true);
             setConnectionState('connected');
             setLastError(undefined);
             setReconnectAttempts(0);
             stopPollingFallback();
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            logChannelEvent('unsubscribe', channelName);
             setIsConnected(false);
             setConnectionState('failed');
             
-            const attempts = reconnectAttempts + 1;
-            setReconnectAttempts(attempts);
-            
-            let errorMessage = `Connection failed: ${status}`;
-            if (diagnostics.firefoxDetected) {
-              errorMessage += '. Firefox detected - WebSocket issues may occur.';
-            }
-            setLastError(errorMessage);
-            
-            // Start fallback after multiple failures
-            if (attempts >= 3 && !isUsingFallback) {
-              startPollingFallback();
-            }
-            
-            // Auto-retry with exponential backoff
-            if (attempts < maxReconnectAttempts) {
-              const delay = calculateBackoff(attempts - 1);
-              console.log(`🔄 Retrying connection in ${delay}ms (attempt ${attempts}/${maxReconnectAttempts})`);
-              
-              setTimeout(() => {
-                if (mountedRef.current) {
-                  forceReconnect();
-                }
-              }, delay);
-            }
+            handleRealtimeError(
+              new Error(`Channel ${channelName} failed: ${status}`),
+              'Channel subscription error'
+            );
           }
         });
       
@@ -618,71 +664,16 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       return channel;
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      prodError(new Error(errorMessage), {
-        context: 'setup-realtime-channel',
-        channelName,
-        tableName,
-        firefoxDetected: diagnostics.firefoxDetected
-      });
+      handleRealtimeError(error, `Setup channel ${channelName}`);
       
       setConnectionState('failed');
-      setLastError(errorMessage);
       
       // Fallback for setup errors
       if (!isUsingFallback) {
         startPollingFallback();
       }
     }
-  }, [reconnectAttempts, diagnostics.firefoxDetected, isUsingFallback, startPollingFallback, stopPollingFallback, maxReconnectAttempts]);
-
-  // Force reconnect function
-  const forceReconnect = useCallback(async () => {
-    devLog('Force reconnecting all realtime channels...');
-    
-    // Stop any fallback polling
-    stopPollingFallback();
-    
-    // Reset attempts counter
-    setReconnectAttempts(0);
-    
-    // Test connection first
-    const canConnect = await testConnection();
-    if (!canConnect) {
-      if (diagnostics.firefoxDetected) {
-        console.warn('🔴 WebSocket test failed on Firefox. Recommendations:', getFirefoxRecommendations());
-        setLastError('WebSocket connection blocked. Using polling fallback for Firefox.');
-      } else {
-        setLastError('WebSocket connection failed. Using polling fallback.');
-      }
-      startPollingFallback();
-      return;
-    }
-    
-    // Clear existing channels
-    channelsRef.current.forEach((channel, name) => {
-      try {
-        channel.unsubscribe();
-      } catch (error) {
-        devLog('Error unsubscribing channel:', name, error);
-      }
-    });
-    channelsRef.current.clear();
-    
-    setIsConnected(false);
-    setConnectionState('connecting');
-    
-    // Reconnect after a short delay
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    
-    reconnectTimeoutRef.current = setTimeout(() => {
-      if (user && mountedRef.current) {
-        setupChannels();
-      }
-    }, 1000);
-  }, [user, stopPollingFallback, testConnection, diagnostics.firefoxDetected, startPollingFallback]);
+  }, [reconnectAttempts, diagnostics.firefoxDetected, isUsingFallback, startPollingFallback, stopPollingFallback, maxReconnectAttempts, handleRealtimeError, logChannelEvent]);
 
   // Setup all required channels
   const setupChannels = useCallback(() => {
@@ -750,22 +741,20 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       }
       
     } catch (error) {
-      prodError(error instanceof Error ? error : new Error(String(error)), {
-        context: 'setup-realtime-channels',
-        userId: user.id
-      });
+      handleRealtimeError(error, 'Setting up channels');
     }
-  }, [user, profile, setupChannel, handlePriceOfferChange, handleProductChange, handleNotificationChange, handleOrderChange, handleMessageHistoryChange, handleProfileChange, handleTelegramLogChange]);
+  }, [user, profile, setupChannel, handlePriceOfferChange, handleProductChange, handleNotificationChange, handleOrderChange, handleMessageHistoryChange, handleProfileChange, handleTelegramLogChange, handleRealtimeError]);
 
   // Main effect to manage realtime connections
   useEffect(() => {
     if (!user) {
       // Cleanup when user logs out
-      channelsRef.current.forEach(channel => {
+      channelsRef.current.forEach((channel, name) => {
         try {
+          logChannelEvent('unsubscribe', name);
           channel.unsubscribe();
         } catch (error) {
-          devLog('Error unsubscribing channel on logout:', error);
+          handleRealtimeError(error, `Cleanup channel ${name} on logout`);
         }
       });
       channelsRef.current.clear();
@@ -784,11 +773,12 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       mountedRef.current = false;
       
       // Cleanup channels
-      channelsRef.current.forEach(channel => {
+      channelsRef.current.forEach((channel, name) => {
         try {
+          logChannelEvent('unsubscribe', name);
           channel.unsubscribe();
         } catch (error) {
-          devLog('Error unsubscribing channel on cleanup:', error);
+          handleRealtimeError(error, `Cleanup channel ${name}`);
         }
       });
       channelsRef.current.clear();
@@ -801,9 +791,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         clearInterval(fallbackIntervalRef.current);
       }
     };
-  }, [user, setupChannels, fetchNotifications]);
+  }, [user, setupChannels, fetchNotifications, logChannelEvent, handleRealtimeError]);
 
-  // Initialize diagnostics on mount
+  // Initialize diagnostics and page visibility handlers
   useEffect(() => {
     const initDiagnostics = async () => {
       const wsSupport = detectWebSocketSupport();
@@ -814,8 +804,62 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       }
     };
     
+    // Handle page visibility changes and network events
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        console.log('🔄 Page became visible, checking connection...');
+        setTimeout(() => {
+          if (mountedRef.current && !isConnected) {
+            forceReconnect();
+          }
+        }, 1000);
+      }
+    };
+
+    const handleOnline = () => {
+      if (user) {
+        console.log('🌐 Network came online, reconnecting...');
+        setTimeout(() => {
+          if (mountedRef.current) {
+            forceReconnect();
+          }
+        }, 1000);
+      }
+    };
+
+    const handleOffline = () => {
+      console.log('🌐 Network went offline');
+      setConnectionState('disconnected');
+      setIsConnected(false);
+    };
+    
     initDiagnostics();
-  }, []);
+    
+    // Add event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Dev mode: log active channels count
+    if (process.env.NODE_ENV === 'development') {
+      const interval = setInterval(() => {
+        console.log(`📊 [RealtimeProvider] Active channels: ${channelsRef.current.size}`);
+      }, 30000); // Log every 30 seconds
+      
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [user, isConnected, forceReconnect]);
 
   const contextValue: RealtimeContextType = {
     isConnected,
