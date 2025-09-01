@@ -69,8 +69,10 @@ export const useAdminSellProductState = () => {
     setState(prevState => ({ ...prevState, ...updates }));
   }, []);
 
-  // Оптимизированная загрузка покупателей с RPC функцией
+  // Оптимизированная загрузка покупателей с улучшенной обработкой ошибок
   const loadBuyers = useCallback(async () => {
+    console.log('🔄 Starting buyer loading process...');
+    
     // Проверяем кэш покупателей
     const cached = localStorage.getItem(BUYERS_CACHE_KEY);
     
@@ -78,36 +80,69 @@ export const useAdminSellProductState = () => {
       try {
         const { data, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < CACHE_DURATION) {
+          console.log('✅ Using cached buyers:', data.length, 'buyers found');
           updateState({ buyers: data });
           return;
         }
+        console.log('⏰ Cache expired, loading fresh data...');
       } catch (error) {
-        console.error('Error parsing cached buyers:', error);
+        console.error('❌ Error parsing cached buyers:', error);
         localStorage.removeItem(BUYERS_CACHE_KEY);
       }
+    } else {
+      console.log('📭 No cached buyers found, loading from database...');
     }
 
     updateState({ isLoading: true });
     
     try {
+      console.log('🔍 Attempting RPC call to get_active_buyers...');
       // Используем оптимизированный запрос с серверной фильтрацией
       const { data, error } = await supabase.rpc('get_active_buyers', {
         limit_count: 100 // Ограничиваем количество для производительности
       });
 
       if (error) {
+        console.warn('⚠️ RPC function failed, falling back to direct query. RPC Error:', {
+          message: error.message,
+          code: error.code,
+          details: error.details
+        });
+        
         // Fallback на обычный запрос если RPC функция недоступна
+        console.log('🔄 Attempting direct query to profiles table...');
         const { data: fallbackData, error: fallbackError } = await supabase
           .from("profiles")
           .select("id, full_name, opt_id, telegram")
           .eq("user_type", "buyer")
+          .eq("verification_status", "verified") // Только верифицированные покупатели
           .not("opt_id", "is", null)
+          .neq("opt_id", "")
           .order("opt_id")
           .limit(100);
 
-        if (fallbackError) throw fallbackError;
+        if (fallbackError) {
+          console.error('❌ Direct query failed:', {
+            message: fallbackError.message,
+            code: fallbackError.code,
+            details: fallbackError.details,
+            hint: fallbackError.hint
+          });
+          
+          // Проверяем, является ли это ошибкой доступа
+          if (fallbackError.code === 'PGRST301' || fallbackError.message.includes('permission')) {
+            console.error('🚫 Access denied - RLS policy may be blocking seller access to buyer profiles');
+            throw new Error('Нет доступа к профилям покупателей. Проверьте права доступа.');
+          }
+          
+          throw fallbackError;
+        }
         
-        const buyers = fallbackData || [];
+        const buyers = (fallbackData || []).filter(buyer => 
+          buyer.opt_id && buyer.opt_id.trim() !== '' && buyer.full_name && buyer.full_name.trim() !== ''
+        );
+        
+        console.log('✅ Direct query successful:', buyers.length, 'verified buyers loaded');
         updateState({ buyers, isLoading: false });
         
         // Кэшируем результат с оптимизацией
@@ -116,14 +151,19 @@ export const useAdminSellProductState = () => {
             data: buyers,
             timestamp: Date.now()
           }));
+          console.log('💾 Buyers cached successfully');
         } catch (cacheError) {
-          console.warn('Failed to cache buyers:', cacheError);
+          console.warn('⚠️ Failed to cache buyers:', cacheError);
         }
         
         return;
       }
 
-      const buyers = data || [];
+      const buyers = (data || []).filter(buyer => 
+        buyer.opt_id && buyer.opt_id.trim() !== '' && buyer.full_name && buyer.full_name.trim() !== ''
+      );
+      
+      console.log('✅ RPC call successful:', buyers.length, 'buyers loaded via RPC');
       updateState({ buyers, isLoading: false });
       
       // Кэшируем результат
@@ -132,15 +172,35 @@ export const useAdminSellProductState = () => {
           data: buyers,
           timestamp: Date.now()
         }));
+        console.log('💾 Buyers cached successfully');
       } catch (cacheError) {
-        console.warn('Failed to cache buyers:', cacheError);
+        console.warn('⚠️ Failed to cache buyers:', cacheError);
       }
       
-    } catch (error) {
-      console.error("Error loading buyers:", error);
+    } catch (error: any) {
+      console.error("❌ Critical error loading buyers:", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        stack: error.stack
+      });
+      
+      // Улучшенное сообщение об ошибке для пользователя
+      let userMessage = "Не удалось загрузить список покупателей";
+      let description = "Попробуйте обновить страницу или обратитесь к администратору";
+      
+      if (error.message?.includes('доступа') || error.message?.includes('permission')) {
+        userMessage = "Нет доступа к данным покупателей";
+        description = "Убедитесь, что у вас есть права продавца и обратитесь к администратору";
+      } else if (error.code === 'PGRST301') {
+        userMessage = "Ошибка прав доступа";
+        description = "Политики безопасности блокируют доступ к профилям покупателей";
+      }
+      
       toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить список покупателей",
+        title: userMessage,
+        description: description,
         variant: "destructive",
       });
       updateState({ isLoading: false });
