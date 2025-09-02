@@ -14,6 +14,7 @@ import { initPerformanceOptimizations } from "@/utils/performanceUtils";
 import { initializeClarity } from "@/utils/clarityTracking";
 import { initMobileOptimizations } from "@/utils/mobileOptimizations";
 import { registerServiceWorker } from "@/utils/serviceWorkerManager";
+import { runRegressionProtection } from "@/utils/regressionProtection";
 
 // Import PWA optimizations early for better bfcache handling
 import "@/utils/pwaOptimizations";
@@ -38,9 +39,7 @@ const initApp = () => {
 
   root.render(
     <Shell>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <App />
     </Shell>
   );
 };
@@ -108,6 +107,9 @@ try {
   
   // Initialize PWA and mobile optimizations first
   initMobileOptimizations();
+  
+  // Run regression protection checks in development
+  runRegressionProtection();
   
   // Register service worker for PWA functionality (prod only)
   if (import.meta.env.PROD) {

@@ -303,39 +303,28 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
 
   // (fetchNotifications moved above)
 
-  // Test WebSocket connection
+  // Test WebSocket connection (non-blocking, background only)
   const testConnection = useCallback(async () => {
-    // First check HTTP availability
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch('https://vfiylfljiixqkjfqubyq.supabase.co/rest/v1/', {
-        method: 'HEAD',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0'
-        },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: 'Supabase API not accessible' } }));
-        return false;
-      }
-    } catch (error) {
-      setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: 'Network error: ' + (error as Error).message } }));
+    // Skip blocking tests on startup - do this in background only
+    if (realtimeMode === 'off') {
+      setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: 'Realtime disabled' } }));
       return false;
     }
 
-    // Test WebSocket (using proxied connection in development)
-    const wsUrl = import.meta.env.DEV 
-      ? `ws://${window.location.host}/ws?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}`
-      : `wss://vfiylfljiixqkjfqubyq.supabase.co/realtime/v1/websocket?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}`;
-    const result = await testWebSocketConnection(wsUrl);
-    setDiagnostics(prev => ({ ...prev, connectionTest: result }));
-    return result.success;
-  }, []);
+    try {
+      // Test WebSocket (using same-origin proxy)
+      const wsUrl = window.location.origin.replace('http', 'ws') + 
+        `/ws?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}`;
+      
+      const result = await testWebSocketConnection(wsUrl);
+      setDiagnostics(prev => ({ ...prev, connectionTest: result }));
+      return result.success;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      setDiagnostics(prev => ({ ...prev, connectionTest: { success: false, error: errorMsg } }));
+      return false;
+    }
+  }, [realtimeMode]);
 
   // Dev mode logging utility
 
@@ -358,23 +347,26 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     // Reset attempts counter
     setReconnectAttempts(0);
     
-    // Test connection first (only if not in degraded cellular mode)
+    // Schedule background connection test (non-blocking)
     if (!isLikelyCellularSlow()) {
-      const canConnect = await testConnection();
-      if (!canConnect) {
-        const breakerState = circuitBreakerRef.current.noteFailure();
-        
-        if (diagnostics.firefoxDetected) {
-          console.warn('🔴 WebSocket test failed on Firefox. Recommendations:', getFirefoxRecommendations());
-          setLastError('WebSocket connection blocked. Using polling fallback for Firefox.');
-        } else {
-          setLastError('WebSocket connection failed. Using polling fallback.');
+      // Test connection in background, don't block reconnection
+      testConnection().then(canConnect => {
+        if (!canConnect && mountedRef.current) {
+          const breakerState = circuitBreakerRef.current.noteFailure();
+          
+          if (diagnostics.firefoxDetected) {
+            console.warn('🔴 WebSocket test failed on Firefox. Recommendations:', getFirefoxRecommendations());
+            setLastError('WebSocket connection blocked. Using polling fallback for Firefox.');
+          } else {
+            setLastError('WebSocket connection failed. Using polling fallback.');
+          }
+          
+          setRealtimeMode(breakerState.mode);
+          startPollingMode();
         }
-        
-        setRealtimeMode(breakerState.mode);
-        startPollingMode();
-        return;
-      }
+      }).catch(error => {
+        console.warn('🔄 Background connection test failed:', error);
+      });
     }
     
     // Clear existing channels

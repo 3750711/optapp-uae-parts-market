@@ -47,13 +47,8 @@ const RouteLoader = React.memo(() => (
   <PBLogoLoader />
 ));
 
-// Network handler component that uses QueryClient
-const NetworkHandler = React.memo(() => {
-  useNetworkHandler();
-  return null;
-});
-
-const App = () => {
+// App content component with background sync logic
+const AppContent = React.memo(() => {
   const { processSyncQueue } = useBackgroundSync();
   
   useEffect(() => {
@@ -93,6 +88,46 @@ const App = () => {
   }, [processSyncQueue]);
 
   return (
+    <ErrorBoundary fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h1 className="text-xl font-semibold">Ошибка подключения</h1>
+          <p className="text-muted-foreground">Проверьте подключение к интернету</p>
+        </div>
+      </div>
+    }>
+      <RealtimeProvider>
+        <BrowserRouter>
+          <LanguageProvider>
+            <TooltipProvider>
+              <NetworkHandler />
+              <Toaster />
+              <RouteChangeOverlay />
+              <UpdatePrompt />
+              <NetworkStatus data-network-status />
+              <Suspense fallback={<RouteLoader />}>
+                <AppRoutes />
+                <PWAIndicators 
+                  showOfflineIndicator={false} 
+                  showInstallStatus={false} 
+                />
+              </Suspense>
+            </TooltipProvider>
+          </LanguageProvider>
+        </BrowserRouter>
+      </RealtimeProvider>
+    </ErrorBoundary>
+  );
+});
+
+// Network handler component - moved outside for proper provider order
+const NetworkHandler = React.memo(() => {
+  useNetworkHandler();
+  return null;
+});
+
+const App = () => {
+  return (
     <ErrorBoundary 
       onError={(error, errorInfo) => {
         console.error('🔴 Critical app error:', error, errorInfo.componentStack);
@@ -101,7 +136,6 @@ const App = () => {
       <HelmetProvider>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <QueryClientProvider client={queryClient}>
-            <NetworkHandler />
             <ErrorBoundary fallback={
               <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center space-y-4">
@@ -111,34 +145,7 @@ const App = () => {
               </div>
             }>
               <AuthProvider>
-                <ErrorBoundary fallback={
-                  <div className="min-h-screen flex items-center justify-center">
-                    <div className="text-center space-y-4">
-                      <h1 className="text-xl font-semibold">Ошибка подключения</h1>
-                      <p className="text-muted-foreground">Проверьте подключение к интернету</p>
-                    </div>
-                  </div>
-                }>
-                  <RealtimeProvider>
-                    <BrowserRouter>
-                      <LanguageProvider>
-                         <TooltipProvider>
-                         <Toaster />
-                         <RouteChangeOverlay />
-                         <UpdatePrompt />
-                         <NetworkStatus />
-                          <Suspense fallback={<RouteLoader />}>
-                            <AppRoutes />
-                             <PWAIndicators 
-                               showOfflineIndicator={false} 
-                               showInstallStatus={false} 
-                          />
-                          </Suspense>
-                        </TooltipProvider>
-                     </LanguageProvider>
-                     </BrowserRouter>
-                  </RealtimeProvider>
-                </ErrorBoundary>
+                <AppContent />
               </AuthProvider>
             </ErrorBoundary>
           </QueryClientProvider>

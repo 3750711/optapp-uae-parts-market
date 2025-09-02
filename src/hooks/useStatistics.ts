@@ -45,8 +45,8 @@ export const useStatistics = () => {
       try {
         console.log('📊 Fetching statistics via public endpoint');
         
-        // Try the public statistics edge function first (no auth required)
         try {
+          // Use only Edge Function for better performance and consistency
           const { data, error } = await supabase.functions.invoke('public-statistics');
           
           if (!error && data) {
@@ -57,41 +57,19 @@ export const useStatistics = () => {
               lastOrderNumber: Number(data.lastOrderNumber) || 0
             };
             
-            console.log('✅ Statistics fetched and validated from public endpoint:', validatedData);
+            console.log('✅ Statistics fetched and validated from Edge Function:', validatedData);
             setCachedStats(validatedData);
             return validatedData;
           } else {
-            console.warn('⚠️ Public statistics endpoint error:', error);
+            console.warn('⚠️ Edge Function error, returning cached/fallback data:', error);
+            throw new Error(`Edge Function failed: ${error?.message || 'Unknown error'}`);
           }
-        } catch (funcError) {
-          console.warn('⚠️ Edge function call failed:', funcError);
+        } catch (error) {
+          console.error('❌ Statistics fetch failed:', error);
+          // Return cached data or fallback - don't try multiple endpoints
+          const cached = getCachedStats();
+          return cached || FALLBACK_STATS;
         }
-
-        // Fallback to direct RPC call
-        try {
-          const { data: rpcData, error: rpcError } = await supabase.rpc('get_public_statistics');
-          
-          if (!rpcError && rpcData) {
-            // Validate and normalize RPC data too
-            const validatedRpcData: Statistics = {
-              totalSellers: Number(rpcData.totalSellers) || 0,
-              totalProducts: Number(rpcData.totalProducts) || 0,
-              lastOrderNumber: Number(rpcData.lastOrderNumber) || 0
-            };
-            
-            console.log('✅ Statistics fetched and validated from RPC:', validatedRpcData);
-            setCachedStats(validatedRpcData);
-            return validatedRpcData;
-          } else {
-            console.warn('⚠️ RPC statistics error:', rpcError);
-          }
-        } catch (rpcError) {
-          console.warn('⚠️ RPC call failed:', rpcError);
-        }
-
-        // Final fallback - use cached or default data
-        console.warn('📊 Using fallback statistics data');
-        return cachedStats || FALLBACK_STATS;
         
       } catch (error) {
         console.warn('📊 Statistics fetch completely failed, using cached/fallback data:', error);
@@ -99,16 +77,13 @@ export const useStatistics = () => {
       }
     },
     retry: (failureCount, error) => {
-      // Only retry on network errors, not on logical errors (406, etc)
-      const isNetworkError = error instanceof Error && 
-        (error.message.includes('NetworkError') || 
-         error.message.includes('Failed to fetch') ||
-         error.message.includes('CORS'));
-      return isNetworkError && failureCount < 2;
+      // Only retry on network errors, not auth errors
+      return failureCount < 1 && !error?.message?.includes('auth');
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-    staleTime: isCellular ? 15 * 60 * 1000 : 10 * 60 * 1000, // Longer cache on cellular
-    gcTime: 30 * 60 * 1000, // 30 minutes garbage collection
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    // Longer cache times for mobile networks
+    staleTime: isCellular ? 15 * 60 * 1000 : 10 * 60 * 1000, // 15/10 minutes
+    gcTime: 60 * 60 * 1000, // 1 hour in cache for better offline experience
     refetchInterval: false, // Disable auto-refetch, use manual invalidation
     placeholderData: cachedStats || FALLBACK_STATS, // Always have data to render
     // Enhanced error recovery for public endpoint
