@@ -69,10 +69,17 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const [realtimeMode, setRealtimeMode] = useState<'on' | 'degraded' | 'off'>(() => {
     if (isRealtimeDisabled()) return 'off';
     
-    // Start with 'off' mode on cellular networks to avoid CORS issues
+    // Enhanced cellular detection with saveData support  
     const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    if (connection && (connection.type === 'cellular' || ['slow-2g', '2g', '3g'].includes(connection.effectiveType))) {
-      console.log('🔧 [RT] Cellular network detected, starting with realtime OFF');
+    const isSlowConnection = connection && (['slow-2g', '2g', '3g'].includes(connection.effectiveType) || connection.type === 'cellular');
+    const hasSaveData = connection && connection.saveData === true;
+    
+    if (isSlowConnection || hasSaveData) {
+      console.log('🔧 [RT] Slow/cellular network detected, starting with realtime OFF', {
+        effectiveType: connection?.effectiveType,
+        type: connection?.type,
+        saveData: connection?.saveData
+      });
       return 'off';
     }
     
@@ -321,8 +328,10 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       return false;
     }
 
-    // Then test WebSocket (fixed URL without vsn parameter)
-    const wsUrl = `wss://vfiylfljiixqkjfqubyq.supabase.co/realtime/v1/websocket?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}`;
+    // Test WebSocket (using proxied connection in development)
+    const wsUrl = import.meta.env.DEV 
+      ? `ws://${window.location.host}/ws?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}`
+      : `wss://vfiylfljiixqkjfqubyq.supabase.co/realtime/v1/websocket?apikey=${encodeURIComponent("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0")}`;
     const result = await testWebSocketConnection(wsUrl);
     setDiagnostics(prev => ({ ...prev, connectionTest: result }));
     return result.success;

@@ -8,10 +8,9 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { RealtimeProvider } from '@/contexts/RealtimeProvider';
 import LanguageProvider from '@/components/layout/LanguageProvider';
-
 import { ThemeProvider } from "next-themes";
 import AppRoutes from "@/routes";
-import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { performanceMonitor } from "@/utils/performanceMonitor";
 import { PWAIndicators } from "@/components/PWAIndicators";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
@@ -94,36 +93,58 @@ const App = () => {
   }, [processSyncQueue]);
 
   return (
-    <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
+    <ErrorBoundary 
+      onError={(error, errorInfo) => {
+        console.error('🔴 Critical app error:', error, errorInfo.componentStack);
+      }}
+    >
       <HelmetProvider>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <QueryClientProvider client={queryClient}>
             <NetworkHandler />
-            <AuthProvider>
-              <RealtimeProvider>
-                <BrowserRouter>
-                  <LanguageProvider>
-                     <TooltipProvider>
-                     <Toaster />
-                     <RouteChangeOverlay />
-                     <UpdatePrompt />
-                     <NetworkStatus />
-                      <Suspense fallback={<RouteLoader />}>
-                        <AppRoutes />
-                         <PWAIndicators 
-                           showOfflineIndicator={false} 
-                           showInstallStatus={false} 
-                      />
-                      </Suspense>
-                    </TooltipProvider>
-                 </LanguageProvider>
-                 </BrowserRouter>
-              </RealtimeProvider>
-            </AuthProvider>
+            <ErrorBoundary fallback={
+              <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center space-y-4">
+                  <h1 className="text-xl font-semibold">Ошибка инициализации</h1>
+                  <p className="text-muted-foreground">Попробуйте обновить страницу</p>
+                </div>
+              </div>
+            }>
+              <AuthProvider>
+                <ErrorBoundary fallback={
+                  <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center space-y-4">
+                      <h1 className="text-xl font-semibold">Ошибка подключения</h1>
+                      <p className="text-muted-foreground">Проверьте подключение к интернету</p>
+                    </div>
+                  </div>
+                }>
+                  <RealtimeProvider>
+                    <BrowserRouter>
+                      <LanguageProvider>
+                         <TooltipProvider>
+                         <Toaster />
+                         <RouteChangeOverlay />
+                         <UpdatePrompt />
+                         <NetworkStatus />
+                          <Suspense fallback={<RouteLoader />}>
+                            <AppRoutes />
+                             <PWAIndicators 
+                               showOfflineIndicator={false} 
+                               showInstallStatus={false} 
+                          />
+                          </Suspense>
+                        </TooltipProvider>
+                     </LanguageProvider>
+                     </BrowserRouter>
+                  </RealtimeProvider>
+                </ErrorBoundary>
+              </AuthProvider>
+            </ErrorBoundary>
           </QueryClientProvider>
         </ThemeProvider>
       </HelmetProvider>
-    </GlobalErrorBoundary>
+    </ErrorBoundary>
   );
 };
 

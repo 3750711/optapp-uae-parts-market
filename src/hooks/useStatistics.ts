@@ -52,7 +52,7 @@ export const useStatistics = () => {
           try {
             const { count } = await supabase
               .from('products')
-              .select('*', { count: 'exact', head: true });
+              .select('*', { count: 'planned', head: true });
             totalProducts = count || 0;
           } catch (error) {
             console.warn('Failed to fetch products count:', error);
@@ -75,7 +75,7 @@ export const useStatistics = () => {
           try {
             const { count } = await supabase
               .from('profiles')
-              .select('*', { count: 'exact', head: true })
+              .select('*', { count: 'planned', head: true })
               .eq('user_type', 'seller');
             totalSellers = count || 0;
           } catch (error) {
@@ -85,9 +85,9 @@ export const useStatistics = () => {
         } else {
           // Parallel requests for good connections
           const [productsResult, ordersResult, sellersResult] = await Promise.allSettled([
-            supabase.from('products').select('*', { count: 'exact', head: true }),
+            supabase.from('products').select('*', { count: 'planned', head: true }),
             supabase.from('orders').select('order_number').order('order_number', { ascending: false }).limit(1).maybeSingle(),
-            supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('user_type', 'seller')
+            supabase.from('profiles').select('*', { count: 'planned', head: true }).eq('user_type', 'seller')
           ]);
 
           totalProducts = productsResult.status === 'fulfilled' 

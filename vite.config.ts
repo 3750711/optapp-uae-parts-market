@@ -36,6 +36,18 @@ export default defineConfig(({ mode }) => ({
           });
         },
       },
+      // WebSocket proxy for Realtime to avoid mobile network issues
+      '/ws': {
+        target: 'wss://vfiylfljiixqkjfqubyq.supabase.co',
+        ws: true,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ws/, '/realtime/v1/websocket'),
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('websocket proxy error', err);
+          });
+        },
+      },
     }
   },
   plugins: [
