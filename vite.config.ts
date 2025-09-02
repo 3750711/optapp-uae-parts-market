@@ -9,13 +9,6 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    proxy: {
-      '/supabase': {
-        target: 'https://vfiylfljiixqkjfqubyq.supabase.co',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/supabase/, ''),
-      },
-    },
   },
   plugins: [
     react(),
