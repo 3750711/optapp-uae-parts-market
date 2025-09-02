@@ -6,6 +6,9 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { devLog, prodError } from '@/utils/logger';
 import { detectWebSocketSupport, testWebSocketConnection, calculateBackoff, getFirefoxRecommendations, type WebSocketDiagnostics } from '@/utils/websocketUtils';
 
+// 🚫 ВРЕМЕННОЕ ОТКЛЮЧЕНИЕ WEBSOCKET ДЛЯ ДИАГНОСТИКИ CORS
+const REALTIME_DISABLED = true;
+
 interface RealtimeContextType {
   isConnected: boolean;
   connectionState: 'connecting' | 'connected' | 'disconnected' | 'failed' | 'fallback';
@@ -44,6 +47,28 @@ interface RealtimeProviderProps {
 }
 
 export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) => {
+  // 🚫 ВРЕМЕННАЯ ЗАГЛУШКА ДЛЯ ОТКЛЮЧЕНИЯ WEBSOCKET
+  if (REALTIME_DISABLED) {
+    console.log('🚫 WebSocket/Realtime ОТКЛЮЧЕН для диагностики CORS проблем');
+    
+    const disabledContextValue: RealtimeContextType = {
+      isConnected: false,
+      connectionState: 'disconnected',
+      lastError: 'WebSocket временно отключен для диагностики',
+      realtimeEvents: [],
+      forceReconnect: () => console.log('🚫 Reconnect отключен'),
+      diagnostics: detectWebSocketSupport(),
+      isUsingFallback: false,
+      reconnectAttempts: 0,
+    };
+
+    return (
+      <RealtimeContext.Provider value={disabledContextValue}>
+        {children}
+      </RealtimeContext.Provider>
+    );
+  }
+
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
