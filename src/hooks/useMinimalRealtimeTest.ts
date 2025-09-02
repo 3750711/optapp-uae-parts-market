@@ -42,8 +42,8 @@ export const useMinimalRealtimeTest = (enabled: boolean = false) => {
           const event: RealtimeTestEvent = {
             timestamp: new Date(),
             event: payload.eventType,
-            productId: payload.new?.product_id || payload.old?.product_id,
-            buyerId: payload.new?.buyer_id || payload.old?.buyer_id,
+            productId: (payload.new as any)?.product_id || (payload.old as any)?.product_id,
+            buyerId: (payload.new as any)?.buyer_id || (payload.old as any)?.buyer_id,
             hasNewData: !!payload.new,
             hasOldData: !!payload.old
           };

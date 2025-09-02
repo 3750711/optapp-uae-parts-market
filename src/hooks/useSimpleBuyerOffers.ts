@@ -89,20 +89,20 @@ export const useSimpleBuyerOffers = (statusFilter?: string) => {
       
       for (const offer of offerData || []) {
         const product = offer.products;
-        if (!product) continue;
+        if (!product || typeof product !== 'object') continue;
 
-        const productId = product.id;
+        const productId = (product as any).id;
         const existingEntry = productMap.get(productId);
         
         if (!existingEntry || new Date(offer.created_at) > new Date(existingEntry.user_offer_created_at || '')) {
           productMap.set(productId, {
-            ...product,
+            ...(product as any),
             user_offer_price: offer.offered_price,
             user_offer_status: offer.status,
             user_offer_created_at: offer.created_at,
             user_offer_expires_at: offer.expires_at,
             user_offer_seller_response: offer.seller_response
-          });
+          } as SimpleOfferProduct);
         }
       }
 

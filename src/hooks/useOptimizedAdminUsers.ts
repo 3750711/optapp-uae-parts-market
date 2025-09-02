@@ -138,7 +138,9 @@ export const useOptimizedAdminUsers = (filters: UseOptimizedAdminUsersProps) => 
       console.log(`✅ Users query with new logic completed in ${(endTime - startTime).toFixed(2)}ms. Found ${usersResult.count} users.`);
 
       return {
-        users: usersResult.data as ProfileType[],
+        users: (Array.isArray(usersResult.data) && usersResult.data.length > 0 && !usersResult.data[0]?.error) 
+          ? (usersResult.data as unknown as ProfileType[]) 
+          : [],
         totalCount: usersResult.count || 0,
         totalPages: Math.ceil((usersResult.count || 0) / filters.pageSize),
         pendingUsersCount: pendingUsersCount || 0

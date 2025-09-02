@@ -48,17 +48,17 @@ export const useStoreData = (storeId: string) => {
       if (modelError) throw modelError;
       
       const carBrands = brandData.map((brand) => {
-        const brandId = brand.car_brands.id;
+        const brandId = (brand.car_brands as any)?.id;
         const models = modelData
-          .filter(model => model.car_models.brand_id === brandId)
+          .filter(model => (model.car_models as any)?.brand_id === brandId)
           .map(model => ({
-            id: model.car_models.id,
-            name: model.car_models.name
+            id: (model.car_models as any)?.id,
+            name: (model.car_models as any)?.name
           }));
         
         return {
           id: brandId,
-          name: brand.car_brands.name,
+          name: (brand.car_brands as any)?.name,
           models: models
         };
       });

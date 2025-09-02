@@ -138,7 +138,7 @@ const PublicSellerProfile = () => {
               
             if (!brandsError && brandsData) {
               const brandNames = brandsData
-                .map(item => item.car_brands?.name)
+                .map(item => (item.car_brands as any)?.name)
                 .filter(Boolean) as string[];
                 
               setCarBrands(brandNames);
@@ -212,21 +212,21 @@ const PublicSellerProfile = () => {
     } else if (product.condition === "Восстановленный") {
       condition = "Восстановленный";
     }
-    
+
     return {
       id: product.id,
-      name: product.title,
+      title: product.title, // Use title instead of name
       price: Number(product.price),
       image: primaryImage,
-      condition: condition,
-      location: product.location || '',
-      brand: product.brand || '',
-      model: product.model || '',
+      condition,
+      location: product.location,
+      brand: product.brand,
+      model: product.model,
       seller_name: product.seller_name,
       status: product.status,
       seller_rating: product.rating_seller,
       optid_created: product.optid_created,
-      seller_id: product.seller_id
+      seller_id: product.seller_id,
     };
   }) || [];
 

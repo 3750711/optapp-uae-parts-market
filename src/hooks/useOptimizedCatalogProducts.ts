@@ -307,14 +307,18 @@ export const useOptimizedCatalogProducts = ({
           throw new Error(`Database query failed: ${error.message}`);
         }
         
-        const dataWithSortedImages = data?.map(product => ({
-          ...product,
-          product_images: product.product_images?.sort((a: any, b: any) => {
-            if (a.is_primary && !b.is_primary) return -1;
-            if (!a.is_primary && b.is_primary) return 1;
-            return 0;
-          })
-        }));
+        const dataWithSortedImages = data?.map(product => {
+          if (!product || typeof product !== 'object' || Array.isArray(product)) return product;
+          const productObj = product as any;
+          return {
+            ...productObj,
+            product_images: Array.isArray(productObj.product_images) ? productObj.product_images.sort((a: any, b: any) => {
+              if (a.is_primary && !b.is_primary) return -1;
+              if (!a.is_primary && b.is_primary) return 1;
+              return 0;
+            }) : []
+          };
+        });
         
         const endTime = performance.now();
         console.log(`✅ Products loaded in ${(endTime - startTime).toFixed(2)}ms:`, dataWithSortedImages?.length || 0);
