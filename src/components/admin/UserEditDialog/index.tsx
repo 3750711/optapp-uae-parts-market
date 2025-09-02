@@ -33,7 +33,7 @@ import { UserEditForm } from './UserEditForm';
 
 export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps) => {
   const { toast } = useToast();
-  const { checkTokenValidity, forceRefreshSession, refreshProfile } = useAuth();
+  const { refreshProfile } = useAuth(); // ❌ Removed forceRefreshSession and checkTokenValidity
   const isMobile = useIsMobile();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [pendingValues, setPendingValues] = React.useState<UserFormValues | null>(null);
@@ -49,15 +49,7 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
       
       console.log("Submitting user edit for:", user?.id, "with values:", values);
       
-      // Check token validity before proceeding
-      const isTokenValid = await checkTokenValidity();
-      if (!isTokenValid) {
-        console.log("Token is invalid, attempting to refresh...");
-        const refreshSuccess = await forceRefreshSession();
-        if (!refreshSuccess) {
-          throw new Error("Authentication session expired. Please log in again.");
-        }
-      }
+      // ❌ Removed manual token validity check - let autoRefreshToken handle it
       
       const cleanedValues = Object.entries(values).reduce((acc, [key, value]) => {
         if (key === 'rating' && value) {
@@ -76,32 +68,10 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
 
       if (error) {
         console.error("Error updating user:", error);
-        
-        // Check if it's an authentication error and try to recover
-        if (error.message?.includes('auth') || error.message?.includes('token') || error.message?.includes('session')) {
-          console.log("Authentication error detected, attempting session refresh...");
-          const refreshSuccess = await forceRefreshSession();
-          if (refreshSuccess) {
-            // Retry the operation after refreshing
-            const { data: retryData, error: retryError } = await supabase.rpc('secure_update_profile', {
-              p_user_id: user!.id,
-              p_updates: cleanedValues
-            });
-            
-            if (retryError) {
-              throw retryError;
-            }
-            
-            if (!retryData?.success) {
-              throw new Error(retryData?.message || 'Failed to update profile after session refresh');
-            }
-          } else {
-            throw new Error("Session refresh failed. Please log in again.");
-          }
-        } else {
-          throw error;
-        }
-      } else if (!data?.success) {
+        throw error;
+      }
+      
+      if (!data?.success) {
         throw new Error(data?.message || 'Failed to update profile');
       }
 

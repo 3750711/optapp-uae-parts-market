@@ -34,8 +34,8 @@ export const DeleteAccountButton: React.FC = () => {
         description: "Ваш аккаунт и все связанные данные были удалены",
       });
       
-      // После успешного удаления, очистим сессию
-      await supabase.auth.signOut();
+      // После успешного удаления, очистим сессию локально
+      await supabase.auth.signOut({ scope: 'local' });
       
       navigate('/');
     } catch (error: any) {

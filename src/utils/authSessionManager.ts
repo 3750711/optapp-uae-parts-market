@@ -69,38 +69,12 @@ class AuthSessionManager {
     }
   }
 
+  // ❌ Removed manual refresh timer - rely on autoRefreshToken only
   private setupSessionRefreshTimer(session: Session) {
+    // Clear any existing timer
     this.clearRefreshTimer();
-    
-    if (!session.expires_at) return;
-
-    const expiresAt = session.expires_at * 1000; // Convert to milliseconds
-    const now = Date.now();
-    const timeUntilExpiry = expiresAt - now;
-    
-    // Schedule refresh 90 seconds before expiry
-    const refreshTime = Math.max(timeUntilExpiry - 90000, 5000); // At least 5s from now
-    
-    if (refreshTime > 0) {
-      console.log(`🕐 AuthSession: Scheduling refresh in ${Math.round(refreshTime / 1000)}s`);
-      
-      this.refreshTimer = setTimeout(async () => {
-        console.log('🔄 AuthSession: Pre-emptive token refresh');
-        try {
-          const { data, error } = await supabase.auth.refreshSession();
-          if (error) {
-            console.error('❌ AuthSession: Pre-refresh failed:', error);
-            this.emit('session-expired', { reason: 'Pre-refresh failed' });
-          } else if (data.session) {
-            console.log('✅ AuthSession: Pre-refresh successful');
-            this.setupSessionRefreshTimer(data.session);
-          }
-        } catch (error) {
-          console.error('❌ AuthSession: Pre-refresh error:', error);
-          this.emit('session-expired', { reason: 'Pre-refresh error' });
-        }
-      }, refreshTime);
-    }
+    // Note: No manual refresh scheduling - Supabase autoRefreshToken handles this
+    console.log('🕐 AuthSession: Session active, autoRefreshToken will handle renewal');
   }
 
   private clearRefreshTimer() {
@@ -126,11 +100,11 @@ class AuthSessionManager {
             return;
           }
 
-          // Then verify with server
+          // Then verify with server - let autoRefreshToken handle if needed
           const { error: userError } = await supabase.auth.getUser();
           if (userError) {
-            console.warn('⚠️ AuthSession: Token invalid on visibility change, need refresh');
-            await supabase.auth.refreshSession();
+            console.warn('⚠️ AuthSession: Token validation failed on visibility change');
+            // Don't manually refresh - autoRefreshToken will handle it
           } else {
             console.log('✅ AuthSession: Session valid after visibility change');
           }
@@ -147,8 +121,8 @@ class AuthSessionManager {
         try {
           const { error } = await supabase.auth.getUser();
           if (error) {
-            console.warn('⚠️ AuthSession: Session invalid after coming online');
-            await supabase.auth.refreshSession();
+            console.warn('⚠️ AuthSession: Session validation failed after coming online');
+            // Don't manually refresh - autoRefreshToken will handle it
           }
         } catch (error) {
           console.error('❌ AuthSession: Error validating session after coming online:', error);

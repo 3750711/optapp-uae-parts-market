@@ -24,7 +24,7 @@ interface AuthContextType {
   sendPasswordResetEmail: (email: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
   checkTokenValidity: () => Promise<boolean>;
-  forceRefreshSession: () => Promise<boolean>;
+  // forceRefreshSession removed - using autoRefreshToken only
   signInWithTelegram: (authData: any) => Promise<{ user: User | null; error: any }>;
   refreshAdminStatus: () => Promise<void>;
   retryProfileLoad: () => void;
@@ -424,16 +424,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const forceRefreshSession = async (): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.auth.refreshSession();
-      if (error) throw error;
-      return !!data.session;
-    } catch (error) {
-      console.error("❌ AuthContext: Session refresh failed:", error);
-      return false;
-    }
-  };
+  // ❌ Removed forceRefreshSession - rely only on autoRefreshToken
 
   const signInWithTelegram = async (authData: any): Promise<{ user: User | null; error: any }> => {
     try {
@@ -476,7 +467,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sendPasswordResetEmail,
     updatePassword,
     checkTokenValidity,
-    forceRefreshSession,
+    // forceRefreshSession removed
     signInWithTelegram,
     refreshAdminStatus,
     retryProfileLoad,

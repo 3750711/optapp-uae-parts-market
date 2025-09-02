@@ -5,7 +5,8 @@
 const NEVER_CACHE_PATTERNS = [
   /\/auth\/v1\//,
   /\/functions\/v1\//,
-  /\/rest\/v1\/rpc\//  // RPC endpoints that might contain auth logic
+  /\/rest\/v1\/rpc\//,  // RPC endpoints that might contain auth logic
+  /\/realtime\/v1\//    // Realtime endpoints
 ];
 
 // Check if URL should never be cached
