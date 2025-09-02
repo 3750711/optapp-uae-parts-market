@@ -25,7 +25,17 @@ export default defineConfig(({ mode }) => ({
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
           });
         },
-      }
+      },
+      '/functions': {
+        target: 'https://vfiylfljiixqkjfqubyq.supabase.co',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/functions/, '/functions'),
+        configure: (proxy, _options) => {
+          proxy.on('error', (err, _req, _res) => {
+            console.log('functions proxy error', err);
+          });
+        },
+      },
     }
   },
   plugins: [

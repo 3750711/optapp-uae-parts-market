@@ -27,7 +27,7 @@ class ProductionErrorReporting {
     maxReportsPerSession: 50,
     batchSize: 10,
     flushInterval: 30000, // 30 секунд
-    endpoint: '/functions/v1/error-reports'
+    endpoint: import.meta.env.DEV ? '/functions/v1/error-reports' : '/functions/v1/error-reports'
   };
 
   private errorQueue: ErrorReport[] = [];

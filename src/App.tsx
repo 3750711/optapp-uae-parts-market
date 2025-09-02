@@ -48,11 +48,14 @@ const RouteLoader = React.memo(() => (
   <PBLogoLoader />
 ));
 
+// Network handler component that uses QueryClient
+const NetworkHandler = React.memo(() => {
+  useNetworkHandler();
+  return null;
+});
+
 const App = () => {
   const { processSyncQueue } = useBackgroundSync();
-  
-  // Initialize network monitoring
-  useNetworkHandler();
   
   useEffect(() => {
     // Initialize performance monitoring in development
@@ -95,6 +98,7 @@ const App = () => {
       <HelmetProvider>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <QueryClientProvider client={queryClient}>
+            <NetworkHandler />
             <AuthProvider>
               <RealtimeProvider>
                 <BrowserRouter>
