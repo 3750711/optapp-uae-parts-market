@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { isSlowConnection } from '@/utils/networkUtils';
 
 interface EmbeddingsStats {
   totalProducts: number;
@@ -78,6 +79,16 @@ export const useEmbeddingsGenerator = () => {
   };
 
   const generateEmbeddings = async () => {
+    // Проверяем скорость соединения
+    if (isSlowConnection()) {
+      toast({
+        title: 'Медленное соединение',
+        description: 'Генерация embeddings отключена на медленных сетях для экономии трафика',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (!stats) {
       await fetchStats();
       return;

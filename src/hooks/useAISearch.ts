@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { isSlowConnection } from '@/utils/networkUtils';
 
 export interface AISearchResult {
   id: string;
@@ -75,6 +76,20 @@ export const useAISearch = () => {
     setSearchType('ai');
 
     try {
+      // На медленных сетях включаем fallback сразу
+      const slowConn = isSlowConnection();
+      if (slowConn && !options.enableFallback) {
+        console.log('Slow connection detected, enabling fallback mode');
+        return {
+          success: true,
+          query,
+          results: [],
+          count: 0,
+          searchType: 'fallback',
+          error: 'Using standard search due to slow connection'
+        };
+      }
+
       // Защита: проверяем авторизацию перед вызовом Edge Function
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -102,6 +117,12 @@ export const useAISearch = () => {
       if (error) {
         console.error('AI search error:', error);
         
+        // Более детальная обработка ошибок
+        const isTimeoutError = error.message?.includes('timeout') || error.name === 'TimeoutError';
+        const errorMessage = isTimeoutError 
+          ? 'Request timed out due to slow connection'
+          : error.message;
+        
         // Try fallback to standard search if enabled
         if (options.enableFallback) {
           console.log('Falling back to standard search...');
@@ -112,7 +133,7 @@ export const useAISearch = () => {
             results: [],
             count: 0,
             searchType: 'fallback',
-            error: `AI search failed, using standard search: ${error.message}`
+            error: `AI search failed, using standard search: ${errorMessage}`
           };
         }
         
@@ -121,7 +142,7 @@ export const useAISearch = () => {
           query,
           results: [],
           count: 0,
-          error: error.message
+          error: errorMessage
         };
       }
 

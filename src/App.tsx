@@ -18,23 +18,30 @@ import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
-// Консервативная конфигурация QueryClient для стабильности мобильных сетей
+import { NetworkIndicator } from "@/components/NetworkIndicator";
+import { getQueryConfigForConnection } from "@/utils/networkUtils";
+
+// Адаптивная конфигурация QueryClient для мобильных сетей
+const networkConfig = getQueryConfigForConnection();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
-        // Только 1 попытка, только на сетевые ошибки
+        // Различаем типы ошибок для лучшей обработки
+        const isTimeoutError = error?.name === 'TimeoutError';
         const isNetworkError = error?.name === 'NetworkError' || 
                               error?.message?.includes('fetch') ||
                               error?.message?.includes('network');
-        return isNetworkError && failureCount < 1;
+        
+        // На медленных сетях не ретраим, на быстрых - только 1 попытка
+        return !isTimeoutError && isNetworkError && failureCount < networkConfig.retry;
       },
-      staleTime: 10 * 60 * 1000, // 10 минут - консервативно
-      gcTime: 60 * 60 * 1000, // 1 час в памяти
-      refetchOnWindowFocus: false, 
-      refetchOnReconnect: false, 
-      refetchOnMount: false, // Отключено для минимума запросов
-      networkMode: 'online', // Только онлайн режим
+      staleTime: networkConfig.staleTime,
+      gcTime: networkConfig.gcTime,
+      refetchOnWindowFocus: networkConfig.refetchOnWindowFocus, 
+      refetchOnReconnect: networkConfig.refetchOnReconnect, 
+      refetchOnMount: false, // Минимум запросов
+      networkMode: 'online',
     },
     mutations: {
       retry: false,
@@ -61,6 +68,7 @@ const App = () => {
                 <LanguageProvider>
                   <TooltipProvider>
                     <Toaster />
+                    <NetworkIndicator />
                     <Suspense fallback={<RouteLoader />}>
                       <AppRoutes />
                     </Suspense>
