@@ -16,7 +16,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   children, 
   fallback 
 }) => {
-  const { user, profile, isLoading, isAdmin, refreshAdminStatus, isProfileLoading } = useAuth();
+  const { user, profile, isLoading, isAdmin, refreshProfile, isProfileLoading } = useAuth();
   const location = useLocation();
 
   // Мемоизируем состояние для избежания лишних ре-рендеров
@@ -151,7 +151,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
           </Alert>
           <div className="flex gap-2">
             <Button 
-              onClick={() => refreshAdminStatus()}
+              onClick={() => refreshProfile(true)}
               variant="outline"
               className="flex-1"
             >
