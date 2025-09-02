@@ -1,11 +1,15 @@
 // Service Worker configuration for Fix-Pack V3
 // Ensures auth endpoints are never cached to prevent token refresh issues
 
-// Never cache auth & edge function endpoints
+// Never cache Supabase endpoints - EXPANDED for Safe Baseline
 const NEVER_CACHE_PATTERNS = [
+  /\/supabase\//,
   /\/auth\/v1\//,
+  /\/rest\/v1\//,
+  /\/storage\/v1\//,
   /\/functions\/v1\//,
-  /\/rest\/v1\/rpc\//  // RPC endpoints that might contain auth logic
+  /\/realtime\/v1\//,
+  /\/rpc\//
 ];
 
 // Check if URL should never be cached

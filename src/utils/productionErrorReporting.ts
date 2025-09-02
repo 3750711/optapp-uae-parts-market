@@ -23,7 +23,7 @@ interface ErrorReportingConfig {
 
 class ProductionErrorReporting {
   private config: ErrorReportingConfig = {
-    enabled: import.meta.env.PROD, // Только в продакшене
+    enabled: false, // 🚫 ВРЕМЕННО ОТКЛЮЧЕНО для Safe Baseline
     maxReportsPerSession: 50,
     batchSize: 10,
     flushInterval: 30000, // 30 секунд

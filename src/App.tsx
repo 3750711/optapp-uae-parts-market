@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from '@/contexts/AuthContext';
-import { RealtimeProvider } from '@/contexts/RealtimeProvider';
+import { RealtimeProvider } from '@/contexts/RealtimeProvider.noop';
 import LanguageProvider from '@/components/layout/LanguageProvider';
 
 import { ThemeProvider } from "next-themes";
@@ -47,70 +47,26 @@ const RouteLoader = React.memo(() => (
 ));
 
 const App = () => {
-  const { processSyncQueue } = useBackgroundSync();
-  
-  useEffect(() => {
-    // Initialize performance monitoring in development
-    if (import.meta.env.DEV) {
-      // Performance monitoring initialized
-    }
-
-    // Listen for SW messages about background sync
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'BACKGROUND_SYNC') {
-        console.log('📱 App: Background sync requested');
-        processSyncQueue().catch(console.error);
-      }
-    };
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('message', handleMessage);
-    }
-
-    // Process sync queue when coming online
-    const handleOnline = () => {
-      console.log('🌐 App: Back online, processing sync queue');
-      processSyncQueue().catch(console.error);
-    };
-
-    window.addEventListener('online', handleOnline);
-
-    // Cleanup on unmount
-    return () => {
-      performanceMonitor.destroy();
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.removeEventListener('message', handleMessage);
-      }
-      window.removeEventListener('online', handleOnline);
-    };
-  }, [processSyncQueue]);
+  // 🔧 УПРОЩЕНО: Убраны все сложные инициализации для Safe Baseline
 
   return (
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-              <RealtimeProvider>
-                <BrowserRouter>
-                  <LanguageProvider>
-                     <TooltipProvider>
-                     <Toaster />
-                     <RouteChangeOverlay />
-                     <UpdatePrompt />
-                      <Suspense fallback={<RouteLoader />}>
-                        <AppRoutes />
-                         <PWAIndicators 
-                           showOfflineIndicator={false} 
-                           showInstallStatus={false} 
-                      />
-                      </Suspense>
-                    </TooltipProvider>
-                 </LanguageProvider>
-                 </BrowserRouter>
-              </RealtimeProvider>
-            </AuthProvider>
-          </QueryClientProvider>
+          <AuthProvider>
+            <RealtimeProvider>
+              <BrowserRouter>
+                <LanguageProvider>
+                  <TooltipProvider>
+                    <Toaster />
+                    <Suspense fallback={<RouteLoader />}>
+                      <AppRoutes />
+                    </Suspense>
+                  </TooltipProvider>
+                </LanguageProvider>
+              </BrowserRouter>
+            </RealtimeProvider>
+          </AuthProvider>
         </ThemeProvider>
       </HelmetProvider>
     </GlobalErrorBoundary>
