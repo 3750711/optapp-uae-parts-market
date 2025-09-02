@@ -1,5 +1,5 @@
 /*
-  Content-Security-Policy: worker-src 'self' blob:; connect-src 'self' https://api.cloudinary.com https://api.partsbay.ae wss://api.partsbay.ae https://lovcdn.supabase.co; img-src 'self' data: https: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net
+  Content-Security-Policy: worker-src 'self' blob:; connect-src 'self' https://api.cloudinary.com https://api.partsbay.ae wss://api.partsbay.ae https://lovcdn.supabase.co https://vfiylfljiixqkjfqubyq.supabase.co wss://vfiylfljiixqkjfqubyq.supabase.co; img-src 'self' data: https: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin

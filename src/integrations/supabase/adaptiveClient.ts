@@ -16,8 +16,13 @@ export class AdaptiveSupabaseClient {
   private proxyClient?: SupabaseClientType;
   private currentClient: SupabaseClientType;
   private isUsingProxy = false;
+  private _primaryUrl: string;
+  private _primaryKey: string;
 
   constructor(options: AdaptiveSupabaseOptions) {
+    this._primaryUrl = options.primaryUrl;
+    this._primaryKey = options.primaryKey;
+    
     if (options.client) {
       this.primaryClient = options.client;
       this.currentClient = options.client;
@@ -29,6 +34,15 @@ export class AdaptiveSupabaseClient {
     if (options.proxyUrl) {
       this.proxyClient = createClient<Database>(options.proxyUrl, options.primaryKey);
     }
+  }
+
+  // Expose URL and key for compatibility
+  get supabaseUrl(): string {
+    return this._primaryUrl;
+  }
+
+  get supabaseKey(): string {
+    return this._primaryKey;
   }
 
   async testConnection(client: SupabaseClientType): Promise<boolean> {
@@ -81,6 +95,10 @@ export class AdaptiveSupabaseClient {
     return this.currentClient.storage;
   }
 
+  get functions() {
+    return this.currentClient.functions;
+  }
+
   get rpc() {
     return this.currentClient.rpc.bind(this.currentClient);
   }
@@ -95,5 +113,14 @@ export class AdaptiveSupabaseClient {
 
   removeChannel(channel: any) {
     return this.currentClient.removeChannel(channel);
+  }
+
+  // Additional methods that might be used
+  schema(name: 'public' | '__InternalSupabase' = 'public') {
+    return this.currentClient.schema(name);
+  }
+
+  get realtime() {
+    return this.currentClient.realtime;
   }
 }

@@ -28,7 +28,7 @@ export const RATE_LIMITS = {
 export const CSP_DIRECTIVES = {
   'default-src': ["'self'"],
   'img-src': ["'self'", "https://res.cloudinary.com", "https://cdn.gpteng.co", "https://c.clarity.ms", "https://api.partsbay.ae", "data:", "blob:"],
-  'connect-src': ["'self'", "https://api.partsbay.ae", "wss://api.partsbay.ae", "https://api.cloudinary.com", "https://cdn.gpteng.co", "https://*.clarity.ms", "https://telegram.org"],
+  'connect-src': ["'self'", "https://api.partsbay.ae", "wss://api.partsbay.ae", "https://api.cloudinary.com", "https://cdn.gpteng.co", "https://*.clarity.ms", "https://telegram.org", "https://vfiylfljiixqkjfqubyq.supabase.co", "wss://vfiylfljiixqkjfqubyq.supabase.co"],
   'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://scripts.clarity.ms", "https://telegram.org", "https://cdn.jsdelivr.net"],
   'script-src-elem': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://scripts.clarity.ms", "https://telegram.org", "https://cdn.jsdelivr.net"],
   'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
