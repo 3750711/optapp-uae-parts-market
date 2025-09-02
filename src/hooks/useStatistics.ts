@@ -50,9 +50,16 @@ export const useStatistics = () => {
           const { data, error } = await supabase.functions.invoke('public-statistics');
           
           if (!error && data) {
-            console.log('✅ Statistics fetched from public endpoint:', data);
-            setCachedStats(data);
-            return data;
+            // Validate and normalize the received data
+            const validatedData: Statistics = {
+              totalSellers: Number(data.totalSellers) || 0,
+              totalProducts: Number(data.totalProducts) || 0,
+              lastOrderNumber: Number(data.lastOrderNumber) || 0
+            };
+            
+            console.log('✅ Statistics fetched and validated from public endpoint:', validatedData);
+            setCachedStats(validatedData);
+            return validatedData;
           } else {
             console.warn('⚠️ Public statistics endpoint error:', error);
           }
@@ -65,9 +72,16 @@ export const useStatistics = () => {
           const { data: rpcData, error: rpcError } = await supabase.rpc('get_public_statistics');
           
           if (!rpcError && rpcData) {
-            console.log('✅ Statistics fetched from RPC:', rpcData);
-            setCachedStats(rpcData);
-            return rpcData;
+            // Validate and normalize RPC data too
+            const validatedRpcData: Statistics = {
+              totalSellers: Number(rpcData.totalSellers) || 0,
+              totalProducts: Number(rpcData.totalProducts) || 0,
+              lastOrderNumber: Number(rpcData.lastOrderNumber) || 0
+            };
+            
+            console.log('✅ Statistics fetched and validated from RPC:', validatedRpcData);
+            setCachedStats(validatedRpcData);
+            return validatedRpcData;
           } else {
             console.warn('⚠️ RPC statistics error:', rpcError);
           }

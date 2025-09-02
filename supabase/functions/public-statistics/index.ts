@@ -49,7 +49,16 @@ serve(async (req) => {
 
     console.log('✅ Statistics fetched successfully:', data);
 
-    return new Response(JSON.stringify(data), {
+    // Validate and normalize the data structure
+    const validatedData = {
+      totalSellers: Number(data.totalSellers) || 0,
+      totalProducts: Number(data.totalProducts) || 0,
+      lastOrderNumber: Number(data.lastOrderNumber) || 0
+    };
+    
+    console.log('✅ Statistics validated and normalized:', validatedData);
+
+    return new Response(JSON.stringify(validatedData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 

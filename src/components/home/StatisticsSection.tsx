@@ -12,6 +12,9 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ icon: Icon, value, label, isUpdating }) => {
+  // Bulletproof protection against undefined/null values
+  const safeValue = (value != null && typeof value === 'number' && !isNaN(value)) ? value : 0;
+  
   return (
     <div className="text-center p-6 border border-border rounded-lg bg-card relative">
       {isUpdating && (
@@ -23,7 +26,7 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, value, label, isUpdatin
         <Icon className="w-8 h-8 text-muted-foreground" />
       </div>
       <div className="text-3xl font-bold text-foreground mb-2">
-        {value.toLocaleString()}
+        {safeValue.toLocaleString()}
       </div>
       <p className="text-muted-foreground font-medium">
         {label}
