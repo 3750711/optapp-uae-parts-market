@@ -211,8 +211,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     // Listen for readiness signals from AuthSessionManager  
     const onReady = () => {
       if (!isSubscribed) return;
-      const currentMode = realtimeMode;
-      if (currentMode === 'off') return;
+      if (realtimeMode as string === 'off') return;
       
       console.log('🔧 [RT] Received realtime ready signal from AuthSessionManager');
       
