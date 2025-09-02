@@ -18,6 +18,8 @@ import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
+import { NetworkStatus } from "@/components/ui/NetworkStatus";
+import { useNetworkHandler } from "@/hooks/useNetworkHandler";
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +50,9 @@ const RouteLoader = React.memo(() => (
 
 const App = () => {
   const { processSyncQueue } = useBackgroundSync();
+  
+  // Initialize network monitoring
+  useNetworkHandler();
   
   useEffect(() => {
     // Initialize performance monitoring in development
@@ -98,6 +103,7 @@ const App = () => {
                      <Toaster />
                      <RouteChangeOverlay />
                      <UpdatePrompt />
+                     <NetworkStatus />
                       <Suspense fallback={<RouteLoader />}>
                         <AppRoutes />
                          <PWAIndicators 
