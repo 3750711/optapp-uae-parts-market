@@ -102,8 +102,7 @@ self.addEventListener('fetch', (event) => {
   // Skip caching for upload endpoints and external APIs
   const isUploadEndpoint = url.pathname.startsWith('/api/') || 
                           url.hostname.includes('cloudinary.com') ||
-                          url.hostname.includes('supabase.co') ||
-                          url.hostname.includes('supabase.in') ||
+                          url.hostname.includes('api.partsbay.ae') ||
                           (url.hostname !== self.location.hostname && request.method === 'POST');
   
   // CRITICAL: Never cache ANY Supabase endpoints to prevent auth issues
@@ -112,8 +111,6 @@ self.addEventListener('fetch', (event) => {
                             url.pathname.includes('/storage/') ||
                             url.pathname.includes('/functions/') ||
                             url.pathname.includes('/realtime/') ||
-                            url.hostname.includes('supabase.co') ||
-                            url.hostname.includes('supabase.in') ||
                             url.hostname.includes('api.partsbay.ae');
   
   if (isUploadEndpoint || isSupabaseEndpoint) {

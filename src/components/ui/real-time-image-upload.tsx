@@ -40,7 +40,7 @@ const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onD
         return;
       }
 
-      const publicUrl = `https://lovcdn.supabase.co/storage/v1/object/public/product-images/${data.path}`;
+      const publicUrl = `https://api.partsbay.ae/storage/v1/object/public/product-images/${data.path}`;
       setImageUrl(publicUrl);
       onUpload(publicUrl);
       toast({
@@ -64,7 +64,7 @@ const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onD
     setUploading(true);
 
     try {
-      const filePath = imageUrl.replace('https://lovcdn.supabase.co/storage/v1/object/public/product-images/', '');
+      const filePath = imageUrl.replace('https://api.partsbay.ae/storage/v1/object/public/product-images/', '');
       const { error } = await supabase.storage
         .from('product-images')
         .remove([filePath]);
