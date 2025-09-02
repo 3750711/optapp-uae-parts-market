@@ -1,7 +1,7 @@
 import { getTimeoutForConnection } from './networkUtils';
 
 export const createTimeoutFetch = () => {
-  const originalFetch = global.fetch;
+  const originalFetch = globalThis.fetch;
 
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const { general, auth } = getTimeoutForConnection();
