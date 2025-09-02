@@ -65,9 +65,17 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [diagnostics, setDiagnostics] = useState<WebSocketDiagnostics & { connectionTest?: WebSocketDiagnostics['connectionTest'] }>(() => detectWebSocketSupport());
   
-  // Realtime protection and mode management
+  // Realtime protection and mode management with cellular detection
   const [realtimeMode, setRealtimeMode] = useState<'on' | 'degraded' | 'off'>(() => {
     if (isRealtimeDisabled()) return 'off';
+    
+    // Start with 'off' mode on cellular networks to avoid CORS issues
+    const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+    if (connection && (connection.type === 'cellular' || ['slow-2g', '2g', '3g'].includes(connection.effectiveType))) {
+      console.log('🔧 [RT] Cellular network detected, starting with realtime OFF');
+      return 'off';
+    }
+    
     return getRecommendedRealtimeMode();
   });
   const circuitBreakerRef = useRef(createCircuitBreaker());
