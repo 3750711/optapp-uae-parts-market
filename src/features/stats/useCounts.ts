@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCounts } from './fetchCounts';
+import { safeGetItem, safeSetItem } from '@/utils/localStorage';
 
 export function useCounts() {
   const query = useQuery({
@@ -13,15 +14,14 @@ export function useCounts() {
     },
     placeholderData: () => {
       // Return cached data as placeholder while loading
-      const cached = localStorage.getItem('counts_cache');
-      return cached ? JSON.parse(cached) : { parts: 0, orders: 0 };
+      return safeGetItem('counts_cache', { parts: 0, orders: 0 });
     },
   });
 
   // Cache successful results using useEffect pattern
   React.useEffect(() => {
     if (query.data && query.isSuccess) {
-      localStorage.setItem('counts_cache', JSON.stringify(query.data));
+      safeSetItem('counts_cache', query.data);
     }
   }, [query.data, query.isSuccess]);
 

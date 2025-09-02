@@ -2,8 +2,12 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
+import { cleanupCorruptedCache } from './utils/localStorage';
 
 import './index.css';
+
+// Clean up any corrupted localStorage data on app start
+cleanupCorruptedCache();
 
 const queryClient = new QueryClient({
   defaultOptions: {

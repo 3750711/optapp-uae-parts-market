@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { safeGetItem, safeSetItem } from '@/utils/localStorage';
 
 interface Statistics {
   totalProducts: number;
@@ -38,17 +39,16 @@ export const useStatistics = () => {
         };
         
         // Cache successful results
-        localStorage.setItem('statistics_cache', JSON.stringify(result));
+        safeSetItem('statistics_cache', result);
         return result;
       } catch (error) {
         console.warn('Statistics fetch failed:', error);
         // Return cached data on error
-        const cached = localStorage.getItem('statistics_cache');
-        return cached ? JSON.parse(cached) : {
+        return safeGetItem('statistics_cache', {
           totalProducts: 0,
           lastOrderNumber: 0,  
           totalSellers: 0,
-        };
+        });
       }
     },
     staleTime: 30 * 1000, // 30 seconds
@@ -56,12 +56,11 @@ export const useStatistics = () => {
       return /TypeError|NetworkError|timeout|Failed to fetch/i.test(error?.message || '') && failureCount < 2;
     },
     placeholderData: () => {
-      const cached = localStorage.getItem('statistics_cache');
-      return cached ? JSON.parse(cached) : {
+      return safeGetItem('statistics_cache', {
         totalProducts: 0,
         lastOrderNumber: 0,
         totalSellers: 0,
-      };
+      });
     },
   });
 };

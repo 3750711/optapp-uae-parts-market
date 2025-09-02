@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { safeGetItem } from '@/utils/localStorage';
 
 export async function fetchCounts() {
   try {
@@ -12,7 +13,6 @@ export async function fetchCounts() {
   } catch (error) {
     console.warn('Failed to fetch counts:', error);
     // Return cached data or defaults on error
-    const cached = localStorage.getItem('counts_cache');
-    return cached ? JSON.parse(cached) : { parts: 0, orders: 0 };
+    return safeGetItem('counts_cache', { parts: 0, orders: 0 });
   }
 }
