@@ -38,20 +38,9 @@ console.log('🔧 Network Info:', {
 
 console.log('🔧 Supabase Client initialized with adaptive connection');
 
-// Test connection and switch to proxy if needed
-adaptiveClient.testConnection(primaryClient).then(isWorking => {
-  if (!isWorking) {
-    console.warn('⚠️ Direct Supabase connection failed, attempting proxy...');
-    adaptiveClient.switchToProxy().then(switched => {
-      if (switched) {
-        console.log('✅ Successfully switched to proxy connection');
-      } else {
-        console.error('❌ Both direct and proxy connections failed');
-      }
-    });
-  } else {
-    console.log('✅ Direct Supabase connection working');
-  }
+// Initialize connection with smart fallback
+adaptiveClient.initializeConnection().catch(err => {
+  console.error('🚨 Failed to initialize Supabase connection:', err);
 });
 
 export const supabase = adaptiveClient;
