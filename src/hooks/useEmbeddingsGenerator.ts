@@ -113,6 +113,18 @@ export const useEmbeddingsGenerator = () => {
       while (offset < totalToProcess) {
         console.log(`📦 Processing batch: offset ${offset}, batchSize ${batchSize}`);
         
+        // Защита: проверяем авторизацию перед вызовом Edge Function
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          console.warn('Embeddings generation requires authentication');
+          toast({
+            title: 'Ошибка авторизации',
+            description: 'Для генерации embeddings требуется авторизация',
+            variant: 'destructive',
+          });
+          return;
+        }
+        
         const { data, error } = await supabase.functions.invoke('generate-embeddings', {
           body: {
             statuses: selectedStatuses,

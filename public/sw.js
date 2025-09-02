@@ -106,8 +106,18 @@ self.addEventListener('fetch', (event) => {
                           url.hostname.includes('supabase.in') ||
                           (url.hostname !== self.location.hostname && request.method === 'POST');
   
-  if (isUploadEndpoint) {
-    // Never cache uploads or external API calls - pass through directly
+  // CRITICAL: Never cache ANY Supabase endpoints to prevent auth issues
+  const isSupabaseEndpoint = url.pathname.includes('/auth/') ||
+                            url.pathname.includes('/rest/') ||
+                            url.pathname.includes('/storage/') ||
+                            url.pathname.includes('/functions/') ||
+                            url.pathname.includes('/realtime/') ||
+                            url.hostname.includes('supabase.co') ||
+                            url.hostname.includes('supabase.in') ||
+                            url.hostname.includes('api.partsbay.ae');
+  
+  if (isUploadEndpoint || isSupabaseEndpoint) {
+    // Never cache uploads, Supabase endpoints or external API calls - pass through directly
     return;
   }
 

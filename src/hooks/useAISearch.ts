@@ -75,6 +75,20 @@ export const useAISearch = () => {
     setSearchType('ai');
 
     try {
+      // Защита: проверяем авторизацию перед вызовом Edge Function
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.warn('AI search requires authentication');
+        return { 
+          success: false,
+          query,
+          results: [], 
+          count: 0,
+          error: 'Authentication required for AI search',
+          cached: false 
+        };
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-search', {
         body: {
           query: query.trim(),

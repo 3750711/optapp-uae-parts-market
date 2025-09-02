@@ -18,25 +18,27 @@ import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
-// Оптимизированная конфигурация QueryClient для production
+// Консервативная конфигурация QueryClient для стабильности мобильных сетей
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error) => {
-        // Не повторяем при авторизационных ошибках
-        if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
-          return false;
-        }
-        return failureCount < 1; // Уменьшено для быстрого fallback в офлайн
+        // Только 1 попытка, только на сетевые ошибки
+        const isNetworkError = error?.name === 'NetworkError' || 
+                              error?.message?.includes('fetch') ||
+                              error?.message?.includes('network');
+        return isNetworkError && failureCount < 1;
       },
-      staleTime: 5 * 60 * 1000, // Уменьшено до 5 минут для более актуальных данных о предложениях
-      gcTime: 30 * 60 * 1000, // 30 минут в памяти
-      refetchOnWindowFocus: false, // Отключено для производительности
-      refetchOnReconnect: false, // Отключено для офлайн режима
-      refetchOnMount: true, // Включено для получения актуальных данных о предложениях
+      staleTime: 10 * 60 * 1000, // 10 минут - консервативно
+      gcTime: 60 * 60 * 1000, // 1 час в памяти
+      refetchOnWindowFocus: false, 
+      refetchOnReconnect: false, 
+      refetchOnMount: false, // Отключено для минимума запросов
+      networkMode: 'online', // Только онлайн режим
     },
     mutations: {
-      retry: false, // Не повторяем мутации автоматически
+      retry: false,
+      networkMode: 'online',
     }
   },
 });
