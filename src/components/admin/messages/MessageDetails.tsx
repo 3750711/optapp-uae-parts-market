@@ -47,8 +47,31 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
     }
   }, [isOpen, messageId]);
 
-  // Real-time updates are now handled by RealtimeProvider
-  // No duplicate subscription needed
+  // Real-time subscription for message updates
+  useEffect(() => {
+    if (!isOpen || !messageId) return;
+
+    const channel = supabase
+      .channel('message-details')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'message_history',
+          filter: `id=eq.${messageId}`
+        },
+        (payload) => {
+          console.log('💬 Message updated in real-time:', payload);
+          fetchRecipientDetails();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, messageId]);
 
   useEffect(() => {
     let filtered = recipients;

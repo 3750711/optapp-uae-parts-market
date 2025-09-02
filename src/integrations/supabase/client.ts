@@ -2,40 +2,73 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
 
-// Always use same-origin proxy to avoid CORS/operator issues on cellular networks
-const supabaseUrl = typeof window !== 'undefined' 
-  ? window.location.origin + '/supabase' 
-  : (typeof process !== 'undefined' && process.env.NODE_ENV === 'test' 
-    ? "http://localhost:3000/supabase"
-    : "https://vfiylfljiixqkjfqubyq.supabase.co")
+const supabaseUrl = "https://vfiylfljiixqkjfqubyq.supabase.co"
 const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0"
 
-let _client: ReturnType<typeof createClient> | null = null
-
-export function getSupabase() {
-  if (_client) return _client
-
-  _client = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: 'pkce',
-      // Environment-specific storage key to prevent preview/prod conflicts
-      storageKey: typeof window !== 'undefined' 
-        ? `sb-vfiylfljiixqkjfqubyq-${window.location.hostname.includes('lovable') ? 'preview' : 'prod'}`
-        : 'sb-vfiylfljiixqkjfqubyq-default'
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  },
+  db: {
+    schema: 'public'
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+      timeout: 30000, // 30 seconds for WebSocket connection
     },
-    db: {
-      schema: 'public'
+    heartbeatIntervalMs: 30000,
+    reconnectAfterMs: (tries: number) => Math.min(tries * 1000, 10000), // Exponential backoff up to 10s
+    logger: (level: string, message: string, meta?: any) => {
+      if (level === 'error') {
+        console.error('🔴 Realtime Error:', message, meta);
+      } else if (level === 'warn') {
+        console.warn('🟡 Realtime Warning:', message, meta);
+      } else {
+        console.log('🔵 Realtime:', message, meta);
+      }
+    },
+    encode: (payload: any, callback: (encoded: string) => void) => {
+      try {
+        callback(JSON.stringify(payload));
+      } catch (error) {
+        console.error('🔴 Realtime encoding error:', error);
+      }
+    },
+    decode: (payload: string, callback: (decoded: any) => void) => {
+      try {
+        callback(JSON.parse(payload));
+      } catch (error) {
+        console.error('🔴 Realtime decoding error:', error);
+      }
     }
-    // Note: Realtime WebSocket proxy is handled at the network level via Vite proxy
-    // ❌ Removed global.fetch - let Supabase handle auth requests natively
-  })
-
-  return _client
-}
-
-// Legacy export for backward compatibility - will be replaced gradually
-export const supabase = getSupabase()
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js-web'
+    },
+    fetch: (url: RequestInfo | URL, options: RequestInit = {}) => {
+      // Add timeout and retry logic for all requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const enhancedOptions = {
+        ...options,
+        signal: controller.signal,
+      };
+      
+      return fetch(url, enhancedOptions)
+        .finally(() => clearTimeout(timeoutId))
+        .catch(error => {
+          if (error.name === 'AbortError') {
+            throw new Error('Request timeout - please check your connection');
+          }
+          throw error;
+        });
+    }
+  }
+})

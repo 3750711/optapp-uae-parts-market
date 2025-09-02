@@ -19,10 +19,6 @@ class AuthSessionManager {
   private onlineHandler: (() => void) | null = null;
   private currentSession: Session | null = null;
   private eventHandlers = new Map<keyof AuthEvents, Set<Function>>();
-  
-  // Realtime readiness system
-  private realtimeReadyListeners: Array<() => void> = [];
-  private rtTokenVersion = { v: 0 };
 
   private constructor() {
     if (typeof window !== 'undefined') {
@@ -69,12 +65,38 @@ class AuthSessionManager {
     }
   }
 
-  // ❌ Removed manual refresh timer - rely on autoRefreshToken only
   private setupSessionRefreshTimer(session: Session) {
-    // Clear any existing timer
     this.clearRefreshTimer();
-    // Note: No manual refresh scheduling - Supabase autoRefreshToken handles this
-    console.log('🕐 AuthSession: Session active, autoRefreshToken will handle renewal');
+    
+    if (!session.expires_at) return;
+
+    const expiresAt = session.expires_at * 1000; // Convert to milliseconds
+    const now = Date.now();
+    const timeUntilExpiry = expiresAt - now;
+    
+    // Schedule refresh 90 seconds before expiry
+    const refreshTime = Math.max(timeUntilExpiry - 90000, 5000); // At least 5s from now
+    
+    if (refreshTime > 0) {
+      console.log(`🕐 AuthSession: Scheduling refresh in ${Math.round(refreshTime / 1000)}s`);
+      
+      this.refreshTimer = setTimeout(async () => {
+        console.log('🔄 AuthSession: Pre-emptive token refresh');
+        try {
+          const { data, error } = await supabase.auth.refreshSession();
+          if (error) {
+            console.error('❌ AuthSession: Pre-refresh failed:', error);
+            this.emit('session-expired', { reason: 'Pre-refresh failed' });
+          } else if (data.session) {
+            console.log('✅ AuthSession: Pre-refresh successful');
+            this.setupSessionRefreshTimer(data.session);
+          }
+        } catch (error) {
+          console.error('❌ AuthSession: Pre-refresh error:', error);
+          this.emit('session-expired', { reason: 'Pre-refresh error' });
+        }
+      }, refreshTime);
+    }
   }
 
   private clearRefreshTimer() {
@@ -100,11 +122,11 @@ class AuthSessionManager {
             return;
           }
 
-          // Then verify with server - let autoRefreshToken handle if needed
+          // Then verify with server
           const { error: userError } = await supabase.auth.getUser();
           if (userError) {
-            console.warn('⚠️ AuthSession: Token validation failed on visibility change');
-            // Don't manually refresh - autoRefreshToken will handle it
+            console.warn('⚠️ AuthSession: Token invalid on visibility change, need refresh');
+            await supabase.auth.refreshSession();
           } else {
             console.log('✅ AuthSession: Session valid after visibility change');
           }
@@ -121,8 +143,8 @@ class AuthSessionManager {
         try {
           const { error } = await supabase.auth.getUser();
           if (error) {
-            console.warn('⚠️ AuthSession: Session validation failed after coming online');
-            // Don't manually refresh - autoRefreshToken will handle it
+            console.warn('⚠️ AuthSession: Session invalid after coming online');
+            await supabase.auth.refreshSession();
           }
         } catch (error) {
           console.error('❌ AuthSession: Error validating session after coming online:', error);
@@ -156,35 +178,11 @@ class AuthSessionManager {
     this.isInitialized = true;
     this.setupVisibilityHandlers();
 
-    // Initial session detection (don't sync token here)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      try {
-        if (session?.access_token) {
-          this.signalRealtimeReady();
-          console.log('🔧 AuthSession: Initial session detected, signaling realtime ready');
-        }
-      } catch (error) {
-        console.warn('⚠️ AuthSession: Failed to handle initial session:', error);
-      }
-    });
-
     // Set up the single auth state subscription
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('🔧 AuthSession: Auth state change:', event, !!session);
       
       this.currentSession = session;
-      
-      // Only sync with Realtime for genuine token changes, not every event
-      // Let RealtimeProvider handle token updates with debouncing
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        try {
-          // Don't increment version here - let RealtimeProvider handle it
-          this.signalRealtimeReady();
-          console.log('🔧 AuthSession: Signaled realtime ready for event:', event);
-        } catch (error) {
-          console.warn('⚠️ AuthSession: Failed to signal realtime ready:', error);
-        }
-      }
       
       // Handle session changes
       if (session) {
@@ -264,32 +262,6 @@ class AuthSessionManager {
   // Broadcast profile update to other tabs
   broadcastProfileUpdate(userId: string, profile: any) {
     this.broadcastMessage('PROFILE_UPDATED', { userId, profile });
-  }
-
-  // Realtime readiness management
-  onRealtimeReady(callback: () => void) {
-    this.realtimeReadyListeners.push(callback);
-  }
-
-  offRealtimeReady(callback: () => void) {
-    const index = this.realtimeReadyListeners.indexOf(callback);
-    if (index > -1) {
-      this.realtimeReadyListeners.splice(index, 1);
-    }
-  }
-
-  private signalRealtimeReady() {
-    this.realtimeReadyListeners.forEach(callback => {
-      try {
-        callback();
-      } catch (error) {
-        console.error('❌ AuthSession: Error in realtime ready callback:', error);
-      }
-    });
-  }
-
-  getRtTokenVersion() {
-    return this.rtTokenVersion.v;
   }
 }
 

@@ -26,8 +26,28 @@ const AdminTelegramMonitoring = () => {
   const { data: notifications, isLoading, refetch } = useTelegramNotifications(filters, page, 50);
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useTelegramNotificationStats();
 
-  // Real-time updates are now handled by RealtimeProvider
-  // No duplicate subscription needed
+  // Real-time updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('telegram-notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'telegram_notifications_log'
+        },
+        () => {
+          refetch();
+          refetchStats();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch, refetchStats]);
 
   const handleSearch = () => {
     setFilters(prev => ({ ...prev, search: searchTerm }));

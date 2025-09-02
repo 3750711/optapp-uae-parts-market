@@ -8,17 +8,16 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { RealtimeProvider } from '@/contexts/RealtimeProvider';
 import LanguageProvider from '@/components/layout/LanguageProvider';
+
 import { ThemeProvider } from "next-themes";
 import AppRoutes from "@/routes";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { performanceMonitor } from "@/utils/performanceMonitor";
 import { PWAIndicators } from "@/components/PWAIndicators";
 import { useBackgroundSync } from "@/hooks/useBackgroundSync";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
-import { NetworkStatus } from "@/components/ui/NetworkStatus";
-import { useNetworkHandler } from "@/hooks/useNetworkHandler";
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,8 +46,7 @@ const RouteLoader = React.memo(() => (
   <PBLogoLoader />
 ));
 
-// App content component with background sync logic
-const AppContent = React.memo(() => {
+const App = () => {
   const { processSyncQueue } = useBackgroundSync();
   
   useEffect(() => {
@@ -88,70 +86,34 @@ const AppContent = React.memo(() => {
   }, [processSyncQueue]);
 
   return (
-    <ErrorBoundary fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-xl font-semibold">Ошибка подключения</h1>
-          <p className="text-muted-foreground">Проверьте подключение к интернету</p>
-        </div>
-      </div>
-    }>
-      <RealtimeProvider>
-        <BrowserRouter>
-          <LanguageProvider>
-            <TooltipProvider>
-              <NetworkHandler />
-              <Toaster />
-              <RouteChangeOverlay />
-              <UpdatePrompt />
-              <NetworkStatus data-network-status />
-              <Suspense fallback={<RouteLoader />}>
-                <AppRoutes />
-                <PWAIndicators 
-                  showOfflineIndicator={false} 
-                  showInstallStatus={false} 
-                />
-              </Suspense>
-            </TooltipProvider>
-          </LanguageProvider>
-        </BrowserRouter>
-      </RealtimeProvider>
-    </ErrorBoundary>
-  );
-});
-
-// Network handler component - moved outside for proper provider order
-const NetworkHandler = React.memo(() => {
-  useNetworkHandler();
-  return null;
-});
-
-const App = () => {
-  return (
-    <ErrorBoundary 
-      onError={(error, errorInfo) => {
-        console.error('🔴 Critical app error:', error, errorInfo.componentStack);
-      }}
-    >
+    <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
           <QueryClientProvider client={queryClient}>
-            <ErrorBoundary fallback={
-              <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <h1 className="text-xl font-semibold">Ошибка инициализации</h1>
-                  <p className="text-muted-foreground">Попробуйте обновить страницу</p>
-                </div>
-              </div>
-            }>
-              <AuthProvider>
-                <AppContent />
-              </AuthProvider>
-            </ErrorBoundary>
+            <AuthProvider>
+              <RealtimeProvider>
+                <BrowserRouter>
+                  <LanguageProvider>
+                     <TooltipProvider>
+                     <Toaster />
+                     <RouteChangeOverlay />
+                     <UpdatePrompt />
+                      <Suspense fallback={<RouteLoader />}>
+                        <AppRoutes />
+                         <PWAIndicators 
+                           showOfflineIndicator={false} 
+                           showInstallStatus={false} 
+                      />
+                      </Suspense>
+                    </TooltipProvider>
+                 </LanguageProvider>
+                 </BrowserRouter>
+              </RealtimeProvider>
+            </AuthProvider>
           </QueryClientProvider>
         </ThemeProvider>
       </HelmetProvider>
-    </ErrorBoundary>
+    </GlobalErrorBoundary>
   );
 };
 
