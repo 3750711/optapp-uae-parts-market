@@ -7,6 +7,8 @@ import { devLog, prodError } from '@/utils/logger';
 import { detectWebSocketSupport, testWebSocketConnection, calculateBackoff, getFirefoxRecommendations, type WebSocketDiagnostics } from '@/utils/websocketUtils';
 import { Notification } from '@/types/notification';
 import { authSessionManager } from '@/utils/authSessionManager';
+import { createCircuitBreaker, safeSetRealtimeAuth, isRealtimeDisabled, type RtMode } from '@/utils/realtimeGuard';
+import { getRecommendedRealtimeMode, logNetworkProfile, isLikelyCellularSlow } from '@/utils/netProfile';
 
 interface RealtimeContextType {
   isConnected: boolean;
@@ -17,6 +19,7 @@ interface RealtimeContextType {
   diagnostics: WebSocketDiagnostics & { connectionTest?: WebSocketDiagnostics['connectionTest'] };
   isUsingFallback: boolean;
   reconnectAttempts: number;
+  realtimeMode: 'on' | 'degraded' | 'off';
   // Notifications state and methods
   notifications: Notification[];
   unreadCount: number;
@@ -62,9 +65,13 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [diagnostics, setDiagnostics] = useState<WebSocketDiagnostics & { connectionTest?: WebSocketDiagnostics['connectionTest'] }>(() => detectWebSocketSupport());
   
-  // Realtime readiness state
+  // Realtime protection and mode management
+  const [realtimeMode, setRealtimeMode] = useState<'on' | 'degraded' | 'off'>(() => {
+    if (isRealtimeDisabled()) return 'off';
+    return getRecommendedRealtimeMode();
+  });
+  const circuitBreakerRef = useRef(createCircuitBreaker());
   const [realtimeReady, setRealtimeReady] = useState(false);
-  const [rtTokenVersion, setRtTokenVersion] = useState(() => authSessionManager.getRtTokenVersion());
   
   // Notifications state  
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -77,100 +84,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
   const mountedRef = useRef(true);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const fallbackIntervalRef = useRef<NodeJS.Timeout>();
+  const pollingIntervalRef = useRef<NodeJS.Timeout>();
   const maxReconnectAttempts = 5;
   
-  // Initialize realtime readiness detection
-  useEffect(() => {
-    let isSubscribed = true;
-
-    // Check if we already have a valid session immediately
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isSubscribed) return;
-      
-      console.debug('[RT] Current session check:', {
-        userId: session?.user?.id,
-        hasToken: Boolean(session?.access_token),
-        tokenLength: session?.access_token?.length
-      });
-      
-      if (session?.access_token) {
-        console.log('🔧 [RT] Token ready immediately, setting realtime ready');
-        setRealtimeReady(true);
-      }
-    });
-
-    // Listen for readiness signals from AuthSessionManager
-    const onReady = () => {
-      if (!isSubscribed) return;
-      console.log('🔧 [RT] Received realtime ready signal from AuthSessionManager');
-      setRealtimeReady(true);
-      setRtTokenVersion(authSessionManager.getRtTokenVersion());
-    };
-
-    authSessionManager.onRealtimeReady(onReady);
-
-    return () => {
-      isSubscribed = false;
-      authSessionManager.offRealtimeReady(onReady);
-    };
-  }, []);
-
-  // Reset readiness when token version changes
-  useEffect(() => {
-    console.log('🔧 [RT] Token version changed:', rtTokenVersion, 'resetting channels');
-    if (realtimeReady) {
-      // Token changed, need to recreate channels
-      setRealtimeReady(false);
-      setTimeout(() => setRealtimeReady(true), 100);
-    }
-  }, [rtTokenVersion, realtimeReady]);
-
-  // Dev mode logging utility
-  const logChannelEvent = useCallback((event: 'subscribe' | 'unsubscribe', channelName: string) => {
-    if (process.env.NODE_ENV === 'development') {
-      const count = channelsRef.current.size;
-      console.log(`📡 [RealtimeProvider] ${event.toUpperCase()}: ${channelName} (Active channels: ${count})`);
-      setActiveChannelsCount(count);
-    }
-  }, []);
-
-  // Channel diagnostics for dev mode
-  const attachChannelDiagnostics = useCallback((channel: any, channelName: string) => {
-    if (process.env.NODE_ENV !== 'development') return;
-    
-    const warnOnce = (() => {
-      let fired = false;
-      return (msg: string, ...args: any[]) => {
-        if (!fired) {
-          console.warn(msg, ...args);
-          fired = true;
-        }
-      };
-    })();
-
-    // Enhanced status tracking with session diagnostics
-    channel.subscribe(async (status: string, err?: any) => {
-      // DEV ONLY — подписываемся на статусы для каждого канала
-      if (import.meta.env.DEV) {
-        console.debug('[RT][DEV]', channelName, 'status:', status, err ?? '');
-      }
-      
-      if (status === 'SUBSCRIBED') {
-        console.debug(`[RT] ${channelName}: ${status}`);
-      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-        // Log session state on channel errors for debugging
-        const { data: { session } } = await supabase.auth.getSession();
-        console.error(`[RT] Channel issue (${channelName}): ${status}`, {
-          error: err,
-          hasSession: Boolean(session),
-          hasToken: Boolean(session?.access_token),
-          tokenVersion: authSessionManager.getRtTokenVersion()
-        });
-        warnOnce(`[Realtime] Channel issue (${channelName}): ${status}`, err || '');
-      }
-    });
-  }, []);
-
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
     if (!user || !mountedRef.current) return;
@@ -202,6 +118,176 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
       }
     }
   }, [user]);
+
+  // Start polling mode for degraded/off states
+  const startPollingMode = useCallback(() => {
+    if (pollingIntervalRef.current) return;
+    
+    console.log('🟡 Starting polling mode (Realtime mode:', realtimeMode, ')');
+    setConnectionState('fallback');
+    setIsUsingFallback(true);
+    
+    pollingIntervalRef.current = setInterval(() => {
+      if (!mountedRef.current || !user) return;
+      
+      // Invalidate queries to trigger refetch
+      queryClient.invalidateQueries({ queryKey: ['seller-price-offers', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-price-offers', user.id] });
+      
+      if (profile?.user_type === 'admin') {
+        queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['message-history'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        queryClient.invalidateQueries({ queryKey: ['telegram-notifications'] });
+      }
+      
+      if (profile?.user_type === 'seller' || profile?.user_type === 'buyer') {
+        queryClient.invalidateQueries({ queryKey: ['user-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      }
+      
+      // Also refresh notifications during polling
+      fetchNotifications();
+    }, realtimeMode === 'off' ? 15000 : 10000); // Longer intervals for off mode
+  }, [queryClient, user, profile, fetchNotifications, realtimeMode]);
+
+  // Legacy fallback method for compatibility
+  const startPollingFallback = startPollingMode;
+
+  // Stop polling mode
+  const stopPollingMode = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = undefined;
+    }
+    if (fallbackIntervalRef.current) {
+      clearInterval(fallbackIntervalRef.current);
+      fallbackIntervalRef.current = undefined;
+    }
+    setIsUsingFallback(false);
+  }, []);
+
+  // Legacy method for compatibility
+  const stopPollingFallback = stopPollingMode;
+
+  // Initialize realtime mode and readiness
+  useEffect(() => {
+    let isSubscribed = true;
+
+    // Log network profile for debugging
+    if (localStorage.getItem('DEBUG_RT') === '1') {
+      logNetworkProfile();
+    }
+
+    // If realtime is disabled, start polling immediately and exit
+    if (realtimeMode === 'off') {
+      console.log('🔧 [RT] Realtime disabled, starting polling mode');
+      startPollingMode();
+      return;
+    }
+
+    // Check if we already have a valid session immediately
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isSubscribed) return;
+      
+      console.debug('[RT] Current session check:', {
+        userId: session?.user?.id,
+        hasToken: Boolean(session?.access_token),
+        mode: realtimeMode
+      });
+      
+      if (session?.access_token) {
+        console.log('🔧 [RT] Token ready immediately, setting realtime ready');
+        
+        // Safe auth update with debouncing
+        const authUpdated = safeSetRealtimeAuth(supabase, session.access_token);
+        if (authUpdated) {
+          setRealtimeReady(true);
+        }
+      }
+    });
+
+    // Listen for readiness signals from AuthSessionManager  
+    const onReady = () => {
+      if (!isSubscribed) return;
+      const currentMode = realtimeMode;
+      if (currentMode === 'off') return;
+      
+      console.log('🔧 [RT] Received realtime ready signal from AuthSessionManager');
+      
+      // Get current session and update auth safely
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        const authUpdated = safeSetRealtimeAuth(supabase, session?.access_token);
+        if (authUpdated) {
+          setRealtimeReady(true);
+        }
+      });
+    };
+
+    authSessionManager.onRealtimeReady(onReady);
+
+    return () => {
+      isSubscribed = false;
+      authSessionManager.offRealtimeReady(onReady);
+    };
+  }, [realtimeMode, startPollingMode]);
+  const logChannelEvent = useCallback((event: 'subscribe' | 'unsubscribe', channelName: string) => {
+    if (process.env.NODE_ENV === 'development') {
+      const count = channelsRef.current.size;
+      console.log(`📡 [RealtimeProvider] ${event.toUpperCase()}: ${channelName} (Active channels: ${count})`);
+      setActiveChannelsCount(count);
+    }
+  }, []);
+
+  // Channel diagnostics for dev mode
+  const attachChannelDiagnostics = useCallback((channel: any, channelName: string) => {
+    if (process.env.NODE_ENV !== 'development') return;
+    
+    const warnOnce = (() => {
+      let fired = false;
+      return (msg: string, ...args: any[]) => {
+        if (!fired) {
+          console.warn(msg, ...args);
+          fired = true;
+        }
+      };
+    })();
+
+    // Enhanced status tracking with session diagnostics
+    channel.subscribe(async (status: string, err?: any) => {
+      // DEV ONLY — подписываемся на статусы для каждого канала
+      if (import.meta.env.DEV) {
+        console.debug('[RT][DEV]', channelName, 'status:', status, err ?? '');
+      }
+      
+        if (status === 'SUBSCRIBED') {
+        console.debug(`[RT] ${channelName}: ${status}`);
+        // Note success for circuit breaker
+        circuitBreakerRef.current.noteSuccess();
+        if (realtimeMode !== 'on') {
+          console.log('🟢 [RT] Channel subscribed, upgrading to ON mode');
+          setRealtimeMode('on');
+          stopPollingMode(); // Stop polling when RT works
+        }
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        // Log session state on channel errors for debugging
+        const { data: { session } } = await supabase.auth.getSession();
+        console.error(`[RT] Channel issue (${channelName}): ${status}`, {
+          error: err,
+          hasSession: Boolean(session),
+          hasToken: Boolean(session?.access_token),
+          mode: realtimeMode
+        });
+        warnOnce(`[Realtime] Channel issue (${channelName}): ${status}`, err || '');
+        
+        // Handle channel errors with circuit breaker
+        handleRealtimeError(err || new Error(status), `Channel ${channelName}`);
+      }
+    });
+  }, []);
+
+  // (fetchNotifications moved above)
 
   // Test WebSocket connection
   const testConnection = useCallback(async () => {
@@ -235,69 +321,44 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     return result.success;
   }, []);
 
-  // Start polling fallback when WebSocket fails
-  const startPollingFallback = useCallback(() => {
-    if (fallbackIntervalRef.current) return;
-    
-    console.log('🟡 Starting polling fallback due to WebSocket issues');
-    setConnectionState('fallback');
-    setIsUsingFallback(true);
-    
-    fallbackIntervalRef.current = setInterval(() => {
-      if (!mountedRef.current || !user) return;
-      
-      // Invalidate queries to trigger refetch
-      queryClient.invalidateQueries({ queryKey: ['seller-price-offers', user.id] });
-      queryClient.invalidateQueries({ queryKey: ['buyer-price-offers', user.id] });
-      
-      if (profile?.user_type === 'admin') {
-        queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-        queryClient.invalidateQueries({ queryKey: ['message-history'] });
-        queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-        queryClient.invalidateQueries({ queryKey: ['telegram-notifications'] });
-      }
-      
-      if (profile?.user_type === 'seller' || profile?.user_type === 'buyer') {
-        queryClient.invalidateQueries({ queryKey: ['user-orders'] });
-        queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
-      }
-      
-      // Also refresh notifications during fallback
-      fetchNotifications();
-    }, 10000); // Poll every 10 seconds
-  }, [queryClient, user, profile, fetchNotifications]);
+  // Dev mode logging utility
 
-  // Stop polling fallback
-  const stopPollingFallback = useCallback(() => {
-    if (fallbackIntervalRef.current) {
-      clearInterval(fallbackIntervalRef.current);
-      fallbackIntervalRef.current = undefined;
-    }
-    setIsUsingFallback(false);
-  }, []);
-
-  // Force reconnect function
+  // Force reconnect function with circuit breaker protection
   const forceReconnect = useCallback(async () => {
     devLog('Force reconnecting all realtime channels...');
     
-    // Stop any fallback polling
-    stopPollingFallback();
+    // Check circuit breaker state
+    if (circuitBreakerRef.current.mode === 'off') {
+      console.log('🔴 [RT] Circuit breaker is OFF, cannot reconnect');
+      if (!isUsingFallback) {
+        startPollingMode();
+      }
+      return;
+    }
+    
+    // Stop any polling
+    stopPollingMode();
     
     // Reset attempts counter
     setReconnectAttempts(0);
     
-    // Test connection first
-    const canConnect = await testConnection();
-    if (!canConnect) {
-      if (diagnostics.firefoxDetected) {
-        console.warn('🔴 WebSocket test failed on Firefox. Recommendations:', getFirefoxRecommendations());
-        setLastError('WebSocket connection blocked. Using polling fallback for Firefox.');
-      } else {
-        setLastError('WebSocket connection failed. Using polling fallback.');
+    // Test connection first (only if not in degraded cellular mode)
+    if (!isLikelyCellularSlow()) {
+      const canConnect = await testConnection();
+      if (!canConnect) {
+        const breakerState = circuitBreakerRef.current.noteFailure();
+        
+        if (diagnostics.firefoxDetected) {
+          console.warn('🔴 WebSocket test failed on Firefox. Recommendations:', getFirefoxRecommendations());
+          setLastError('WebSocket connection blocked. Using polling fallback for Firefox.');
+        } else {
+          setLastError('WebSocket connection failed. Using polling fallback.');
+        }
+        
+        setRealtimeMode(breakerState.mode);
+        startPollingMode();
+        return;
       }
-      startPollingFallback();
-      return;
     }
     
     // Clear existing channels
@@ -320,23 +381,34 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     }
     
     reconnectTimeoutRef.current = setTimeout(() => {
-      if (user && mountedRef.current) {
+      if (user && mountedRef.current && realtimeMode !== 'off') {
         setupChannels();
       }
     }, 1000);
-  }, [user, stopPollingFallback, testConnection, diagnostics.firefoxDetected, startPollingFallback, logChannelEvent]);
+  }, [user, stopPollingMode, testConnection, diagnostics.firefoxDetected, startPollingMode, logChannelEvent, isUsingFallback, realtimeMode]);
 
-  // Unified error handler
+  // Unified error handler with circuit breaker
   const handleRealtimeError = useCallback((error: any, context: string) => {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(`🔴 [RealtimeProvider] ${context}:`, errorMessage);
     
     setLastError(`${context}: ${errorMessage}`);
     
+    // Update circuit breaker
+    const breakerState = circuitBreakerRef.current.noteFailure();
+    setRealtimeMode(breakerState.mode);
+    
+    // Handle based on circuit breaker state
+    if (breakerState.mode === 'off') {
+      console.warn('🔴 Circuit breaker tripped, switching to polling mode');
+      startPollingMode();
+      return;
+    }
+    
     // Increment reconnect attempts and trigger reconnect if not at max
     setReconnectAttempts(prev => {
       const newAttempts = prev + 1;
-      if (newAttempts < maxReconnectAttempts) {
+      if (newAttempts < maxReconnectAttempts && breakerState.mode !== 'off') {
         const delay = calculateBackoff(newAttempts - 1);
         console.log(`🔄 Auto-reconnect in ${delay}ms (attempt ${newAttempts}/${maxReconnectAttempts})`);
         
@@ -347,11 +419,11 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
         }, delay);
       } else {
         console.warn('🔴 Max reconnect attempts reached, falling back to polling');
-        startPollingFallback();
+        startPollingMode();
       }
       return newAttempts;
     });
-  }, [maxReconnectAttempts, startPollingFallback, forceReconnect]);
+  }, [maxReconnectAttempts, startPollingMode, forceReconnect]);
   
   // Debounced invalidation functions
   const debouncedInvalidateOffers = useCallback(
@@ -986,6 +1058,7 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
     diagnostics,
     isUsingFallback,
     reconnectAttempts,
+    realtimeMode,
     // Notifications
     notifications,
     unreadCount,

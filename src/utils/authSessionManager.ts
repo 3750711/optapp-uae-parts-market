@@ -156,15 +156,15 @@ class AuthSessionManager {
     this.isInitialized = true;
     this.setupVisibilityHandlers();
 
-    // Initial session sync with Realtime
+    // Initial session detection (don't sync token here)
     supabase.auth.getSession().then(({ data: { session } }) => {
       try {
-        supabase.realtime.setAuth(session?.access_token ?? '');
-        this.rtTokenVersion.v++;
-        this.signalRealtimeReady();
-        console.log('🔧 AuthSession: Initial Realtime token synced, version:', this.rtTokenVersion.v);
+        if (session?.access_token) {
+          this.signalRealtimeReady();
+          console.log('🔧 AuthSession: Initial session detected, signaling realtime ready');
+        }
       } catch (error) {
-        console.warn('⚠️ AuthSession: Failed to sync initial Realtime token:', error);
+        console.warn('⚠️ AuthSession: Failed to handle initial session:', error);
       }
     });
 
@@ -174,14 +174,16 @@ class AuthSessionManager {
       
       this.currentSession = session;
       
-      // Synchronize JWT token with Realtime
-      try {
-        supabase.realtime.setAuth(session?.access_token ?? '');
-        this.rtTokenVersion.v++;
-        this.signalRealtimeReady();
-        console.log('🔧 AuthSession: Realtime token synced on auth change, version:', this.rtTokenVersion.v);
-      } catch (error) {
-        console.warn('⚠️ AuthSession: Failed to sync Realtime token:', error);
+      // Only sync with Realtime for genuine token changes, not every event
+      // Let RealtimeProvider handle token updates with debouncing
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        try {
+          // Don't increment version here - let RealtimeProvider handle it
+          this.signalRealtimeReady();
+          console.log('🔧 AuthSession: Signaled realtime ready for event:', event);
+        } catch (error) {
+          console.warn('⚠️ AuthSession: Failed to signal realtime ready:', error);
+        }
       }
       
       // Handle session changes
