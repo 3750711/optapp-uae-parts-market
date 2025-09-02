@@ -28,6 +28,7 @@ export function getSupabase() {
     db: {
       schema: 'public'
     }
+    // Note: Realtime WebSocket proxy is handled at the network level via Vite proxy
     // ❌ Removed global.fetch - let Supabase handle auth requests natively
   })
 

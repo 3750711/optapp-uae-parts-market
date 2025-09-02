@@ -121,8 +121,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (session?.user) {
         setUser(session.user);
         
-        // Only fetch profile on significant events, not token refreshes
-        if (event === 'SIGNED_IN' || (event === 'TOKEN_REFRESHED' && !profile)) {
+        // Only fetch profile on sign in or initial load, not on token refresh
+        if (event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && !profile)) {
           void fetchUserProfile(session.user.id);
         }
       } else {
@@ -414,15 +414,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const checkTokenValidity = async (): Promise<boolean> => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      return !error && !!session;
-    } catch (error) {
-      console.error("❌ AuthContext: Token validity check failed:", error);
-      return false;
+  const checkTokenValidity = useCallback(async (): Promise<boolean> => {
+    // Use cached session for token validity check to avoid network overhead
+    if (session) {
+      const now = Math.floor(Date.now() / 1000);
+      const expiresAt = session.expires_at || 0;
+      
+      // If token expires within 5 minutes, consider it invalid to trigger refresh
+      return expiresAt > (now + 300);
     }
-  };
+    
+    return false;
+  }, [session]);
 
   // ❌ Removed forceRefreshSession - rely only on autoRefreshToken
 

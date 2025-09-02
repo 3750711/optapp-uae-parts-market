@@ -2058,6 +2058,10 @@ export type Database = {
           last_access: string
         }[]
       }
+      get_public_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_rls_policies_status: {
         Args: Record<PropertyKey, never>
         Returns: {
