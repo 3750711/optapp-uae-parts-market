@@ -9,8 +9,8 @@ import './index.css';
 // Clean up any corrupted localStorage data on app start
 cleanupCorruptedCache();
 
-// Supabase URL is now hardcoded in client.ts to https://api.partsbay.ae
-console.log('✅ Using hardcoded Supabase URL: https://api.partsbay.ae');
+// Supabase client now uses environment variable
+console.log('✅ Using Supabase URL from env:', import.meta.env.VITE_SUPABASE_URL);
 
 const queryClient = new QueryClient({
   defaultOptions: {
