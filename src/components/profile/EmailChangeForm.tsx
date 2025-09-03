@@ -71,22 +71,18 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
   const sendEmailChangeNotification = async (oldEmail: string, newEmail: string) => {
     try {
       // Отправляем уведомление на старый email
-      await fetch(`${supabase.supabaseUrl}/functions/v1/send-password-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
-        },
-        body: JSON.stringify({
+      const { error } = await supabase.functions.invoke('send-password-reset', {
+        body: {
           email: oldEmail,
           emailChangeInfo: {
             oldEmail: oldEmail,
             newEmail: newEmail,
             type: 'email_change_notification'
           }
-        })
+        }
       });
-
+      
+      if (error) throw error;
       console.log('Email change notification sent to old email');
     } catch (error) {
       console.error('Error sending email change notification:', error);
@@ -96,22 +92,18 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
   const sendEmailChangeSuccessNotification = async (newEmail: string, oldEmail: string) => {
     try {
       // Отправляем приветственное уведомление на новый email
-      await fetch(`${supabase.supabaseUrl}/functions/v1/send-password-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
-        },
-        body: JSON.stringify({
+      const { error } = await supabase.functions.invoke('send-password-reset', {
+        body: {
           email: newEmail,
           emailChangeInfo: {
             oldEmail: oldEmail,
             newEmail: newEmail,
             type: 'email_change_success'
           }
-        })
+        }
       });
-
+      
+      if (error) throw error;
       console.log('Email change success notification sent to new email');
     } catch (error) {
       console.error('Error sending email change success notification:', error);

@@ -165,21 +165,16 @@ const ForgotPassword = () => {
         console.log("Found email for OPT ID:", emailToUse);
       }
 
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/send-password-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
-        },
-        body: JSON.stringify({
+      const { data: result, error } = await supabase.functions.invoke('send-password-reset', {
+        body: {
           email: emailToUse,
           optId: optId
-        })
+        }
       });
 
-      const result = await response.json();
+      if (error) throw error;
 
-      if (!response.ok || !result.success) {
+      if (!result.success) {
         console.error("Password reset error:", result);
         handleFailedAttempt();
         
@@ -256,23 +251,18 @@ const ForgotPassword = () => {
       });
       
       // Используем новую Edge Function для сброса пароля
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/admin-password-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
-        },
-        body: JSON.stringify({
+      const { data: result, error } = await supabase.functions.invoke('admin-password-reset', {
+        body: {
           email: sentToEmail,
           code: codeValue,
           newPassword: data.newPassword
-        })
+        }
       });
 
-      const result = await response.json();
+      if (error) throw error;
       console.log("API response:", result);
 
-      if (!response.ok || !result.success) {
+      if (!result.success) {
         console.error("Password reset failed:", result);
         toast({
           title: "Ошибка",

@@ -4,7 +4,7 @@ import type { Database } from './types';
 import { AdaptiveSupabaseClient } from './adaptiveClient';
 
 // Direct Supabase URL and proxy URL
-const directSupabaseUrl = 'https://vfiylfljiixqkjfqubyq.supabase.co';
+const directSupabaseUrl = 'https://api.partsbay.ae';
 const proxyUrl = 'https://api.partsbay.ae';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY!;
 

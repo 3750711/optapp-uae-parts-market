@@ -18,11 +18,13 @@ export class AdaptiveSupabaseClient {
   private isUsingProxy = false;
   private _primaryUrl: string;
   private _primaryKey: string;
+  private _proxyUrl?: string;
   private preferProxy: boolean = false;
 
   constructor(options: AdaptiveSupabaseOptions) {
     this._primaryUrl = options.primaryUrl;
     this._primaryKey = options.primaryKey;
+    this._proxyUrl = options.proxyUrl;
     
     // Detect if we're in UAE or on mobile network
     this.preferProxy = this.shouldPreferProxy();
@@ -50,7 +52,7 @@ export class AdaptiveSupabaseClient {
 
   // Expose URL and key for compatibility
   get supabaseUrl(): string {
-    return this._primaryUrl;
+    return (this.isUsingProxy && this._proxyUrl) ? this._proxyUrl : this._primaryUrl;
   }
 
   get supabaseKey(): string {
