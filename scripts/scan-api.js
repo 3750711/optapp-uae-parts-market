@@ -1,7 +1,7 @@
 const { execSync } = require('node:child_process');
 
 const cmds = [
-  `grep -r "supabase\\.co" --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git . || true`,
+  `grep -r "vfiylfljiixqkjfqubyq\\.supabase\\.co" --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git . || true`,
 ];
 
 try {
