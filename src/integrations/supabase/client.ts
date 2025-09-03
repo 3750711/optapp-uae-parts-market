@@ -4,8 +4,8 @@ import type { Database } from './types';
 import { AdaptiveSupabaseClient } from './adaptiveClient';
 import { getNetworkInfo, isSlowConnection } from '@/utils/networkUtils';
 
-const supabaseUrl = 'https://vfiylfljiixqkjfqubyq.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://api.partsbay.ae';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0';
 
 // Create primary client with direct Supabase connection
 const primaryClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -21,7 +21,7 @@ const primaryClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 const adaptiveClient = new AdaptiveSupabaseClient({
   primaryUrl: supabaseUrl,
   primaryKey: supabaseAnonKey,
-  proxyUrl: 'https://api.partsbay.ae',
+  proxyUrl: supabaseUrl, // Use same URL as it's already our proxy
   client: primaryClient
 });
 
