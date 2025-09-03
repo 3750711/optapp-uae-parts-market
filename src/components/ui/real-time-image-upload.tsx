@@ -40,9 +40,12 @@ const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onD
         return;
       }
 
-      const publicUrl = `https://api.partsbay.ae/storage/v1/object/public/product-images/${data.path}`;
-      setImageUrl(publicUrl);
-      onUpload(publicUrl);
+      const { data: publicUrlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(data.path);
+      
+      setImageUrl(publicUrlData.publicUrl);
+      onUpload(publicUrlData.publicUrl);
       toast({
         title: "Успех",
         description: "Изображение успешно загружено",
@@ -64,7 +67,10 @@ const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onD
     setUploading(true);
 
     try {
-      const filePath = imageUrl.replace('https://api.partsbay.ae/storage/v1/object/public/product-images/', '');
+      // Extract file path from public URL
+      const urlParts = imageUrl.split('/storage/v1/object/public/product-images/');
+      const filePath = urlParts[1] || imageUrl.split('/').pop();
+      
       const { error } = await supabase.storage
         .from('product-images')
         .remove([filePath]);

@@ -1,6 +1,6 @@
 // PWA Service Worker - Optimized for minimal refresh behavior
-const CACHE_NAME = 'partsbay-pwa-v1';
-const STATIC_CACHE_NAME = 'partsbay-static-v1';
+const CACHE_NAME = 'partsbay-pwa-v4-back-to-supabase';
+const STATIC_CACHE_NAME = 'partsbay-static-v4-back-to-supabase';
 
 // Essential resources to cache
 const ESSENTIAL_RESOURCES = ['/', '/offline.html'];
@@ -102,7 +102,7 @@ self.addEventListener('fetch', (event) => {
   // Skip caching for upload endpoints and external APIs
   const isUploadEndpoint = url.pathname.startsWith('/api/') || 
                           url.hostname.includes('cloudinary.com') ||
-                          url.hostname.includes('api.partsbay.ae') ||
+                          url.hostname.includes('supabase.co') ||
                           (url.hostname !== self.location.hostname && request.method === 'POST');
   
   // CRITICAL: Never cache ANY Supabase endpoints to prevent auth issues
@@ -111,7 +111,7 @@ self.addEventListener('fetch', (event) => {
                             url.pathname.includes('/storage/') ||
                             url.pathname.includes('/functions/') ||
                             url.pathname.includes('/realtime/') ||
-                            url.hostname.includes('api.partsbay.ae');
+                            url.hostname.includes('supabase.co');
   
   if (isUploadEndpoint || isSupabaseEndpoint) {
     // Never cache uploads, Supabase endpoints or external API calls - pass through directly
