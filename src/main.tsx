@@ -9,8 +9,8 @@ import './index.css';
 // Clean up any corrupted localStorage data on app start
 cleanupCorruptedCache();
 
-// Supabase client now uses environment variable
-console.log('✅ Using Supabase URL from env:', import.meta.env.VITE_SUPABASE_URL);
+// Supabase client uses adaptive dual-domain connection
+console.log('✅ Using dual-domain Supabase: direct + proxy fallback');
 
 const queryClient = new QueryClient({
   defaultOptions: {
