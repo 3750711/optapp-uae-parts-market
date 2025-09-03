@@ -98,7 +98,6 @@ export const SENSITIVE_FIELDS = [
 // Environment validation
 export function validateEnvironment() {
   const requiredEnvVars = [
-    'VITE_SUPABASE_URL',
     'VITE_SUPABASE_PUBLISHABLE_KEY',
   ];
   

@@ -9,10 +9,8 @@ import './index.css';
 // Clean up any corrupted localStorage data on app start
 cleanupCorruptedCache();
 
-// Runtime check for correct Supabase URL
-if (!import.meta.env.VITE_SUPABASE_URL?.startsWith('https://api.partsbay.ae')) {
-  console.error('❌ Wrong SUPABASE URL. Expected https://api.partsbay.ae, got:', import.meta.env.VITE_SUPABASE_URL);
-}
+// Supabase URL is now hardcoded in client.ts to https://api.partsbay.ae
+console.log('✅ Using hardcoded Supabase URL: https://api.partsbay.ae');
 
 const queryClient = new QueryClient({
   defaultOptions: {
