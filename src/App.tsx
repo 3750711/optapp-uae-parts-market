@@ -19,6 +19,7 @@ import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
 import { UpdatePrompt } from "@/components/UpdatePrompt";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
+import { ServiceWorkerStatus } from "@/components/ServiceWorkerStatus";
 import { getQueryConfigForConnection } from "@/utils/networkUtils";
 
 // Адаптивная конфигурация QueryClient для мобильных сетей
