@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from '@/contexts/AuthContext';
+import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary';
 import { RealtimeProvider } from '@/contexts/RealtimeProvider.noop';
 import LanguageProvider from '@/components/layout/LanguageProvider';
 
@@ -63,21 +64,25 @@ const App = () => {
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-          <AuthProvider>
-            <RealtimeProvider>
-              <BrowserRouter>
-                <LanguageProvider>
-                  <TooltipProvider>
-                    <Toaster />
-                    <NetworkIndicator />
-                    <Suspense fallback={<RouteLoader />}>
-                      <AppRoutes />
-                    </Suspense>
-                  </TooltipProvider>
-                </LanguageProvider>
-              </BrowserRouter>
-            </RealtimeProvider>
-          </AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <AuthErrorBoundary>
+                <RealtimeProvider>
+                  <BrowserRouter>
+                    <LanguageProvider>
+                      <TooltipProvider>
+                        <Toaster />
+                        <NetworkIndicator />
+                        <Suspense fallback={<RouteLoader />}>
+                          <AppRoutes />
+                        </Suspense>
+                      </TooltipProvider>
+                    </LanguageProvider>
+                  </BrowserRouter>
+                </RealtimeProvider>
+              </AuthErrorBoundary>
+            </AuthProvider>
+          </QueryClientProvider>
         </ThemeProvider>
       </HelmetProvider>
     </GlobalErrorBoundary>

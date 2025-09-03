@@ -54,3 +54,14 @@ export function cleanupCorruptedCache(): void {
     }
   });
 }
+
+export function clearAllStorageData(): void {
+  console.log('🧹 Clearing all localStorage and sessionStorage data');
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+    console.log('✅ All storage data cleared');
+  } catch (error) {
+    console.warn('⚠️ Error clearing storage data:', error);
+  }
+}

@@ -44,6 +44,16 @@ self.addEventListener('activate', (event) => {
           })
         );
       }),
+      // Clear any auth-related storage on new SW activation
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({ 
+            type: 'SW_ACTIVATED', 
+            clearAuth: true,
+            version: 'v3-back-to-supabase'
+          });
+        });
+      }),
       // Take control of all clients immediately
       self.clients.claim()
     ])
