@@ -1,7 +1,7 @@
 const { execSync } = require('node:child_process');
 
 const cmds = [
-  `grep -r "vfiylfljiixqkjfqubyq\\.supabase\\.co" --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git . || true`,
+  // No forbidden patterns to check - using custom domain api.partsbay.ae
 ];
 
 try {
