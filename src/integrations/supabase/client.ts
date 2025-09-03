@@ -4,7 +4,8 @@ import type { Database } from './types';
 import { AdaptiveSupabaseClient } from './adaptiveClient';
 import { getNetworkInfo, isSlowConnection } from '@/utils/networkUtils';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://api.partsbay.ae';
+// Hardcoded URL to avoid .env issues
+const supabaseUrl = 'https://api.partsbay.ae';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0';
 
 // Create primary client with direct Supabase connection
@@ -36,6 +37,7 @@ console.log('🔧 Network Info:', {
   isSlowConnection: isSlow
 });
 
+console.log('🔧 Supabase Client initialized with URL:', supabaseUrl);
 console.log('🔧 Supabase Client initialized with adaptive connection');
 
 // Initialize connection with smart fallback
