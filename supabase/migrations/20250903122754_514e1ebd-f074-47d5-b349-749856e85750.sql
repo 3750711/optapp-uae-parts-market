@@ -1,0 +1,2 @@
+-- Configure CORS domains for PostgREST API
+alter system set pgrst.cors_domain = 'https://partsbay.ae, https://preview--optapp-uae-parts-market.lovable.app, https://optapp-uae-parts-market.lovable.app, http://localhost:5173, http://localhost:3000';
