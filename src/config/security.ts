@@ -25,11 +25,10 @@ export const RATE_LIMITS = {
 // Content Security Policy configuration
 // WARNING: 'unsafe-eval' is required for Telegram login widget functionality
 // This is a security compromise but necessary for the Telegram widget's internal eval() calls
-// TEMPORARY: Added *.supabase.co domains due to Lovable .env overwriting issues
 export const CSP_DIRECTIVES = {
   'default-src': ["'self'"],
-  'img-src': ["'self'", "https://res.cloudinary.com", "https://cdn.gpteng.co", "https://c.clarity.ms", "https://api.partsbay.ae", "https://*.supabase.co", "data:", "blob:"],
-  'connect-src': ["'self'", "https://api.partsbay.ae", "wss://api.partsbay.ae", "https://*.supabase.co", "wss://*.supabase.co", "https://api.cloudinary.com", "https://cdn.gpteng.co", "https://*.clarity.ms", "https://telegram.org"],
+  'img-src': ["'self'", "https://res.cloudinary.com", "https://cdn.gpteng.co", "https://c.clarity.ms", "https://api.partsbay.ae", "data:", "blob:"],
+  'connect-src': ["'self'", "https://api.partsbay.ae", "wss://api.partsbay.ae", "https://api.cloudinary.com", "https://cdn.gpteng.co", "https://*.clarity.ms", "https://telegram.org"],
   'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://scripts.clarity.ms", "https://telegram.org", "https://cdn.jsdelivr.net"],
   'script-src-elem': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.gpteng.co", "https://www.clarity.ms", "https://scripts.clarity.ms", "https://telegram.org", "https://cdn.jsdelivr.net"],
   'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
