@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
   // Only cache static assets, always fetch fresh for development
   if (request.destination === 'image' || request.destination === 'font') {
     event.respondWith(
-      caches.open('static-v1').then(cache => {
+      caches.open('static-v3-back-to-supabase').then(cache => {
         return cache.match(request).then(response => {
           if (response) {
             // Check if cached version is recent (< 1 hour for development)

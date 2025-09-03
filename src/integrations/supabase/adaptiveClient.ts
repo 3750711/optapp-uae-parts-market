@@ -17,7 +17,7 @@ export class AdaptiveSupabaseClient {
   private _primaryKey: string;
 
   constructor(options: AdaptiveSupabaseOptions) {
-    this._primaryUrl = 'https://api.partsbay.ae'; // Always use custom domain
+    this._primaryUrl = import.meta.env.VITE_SUPABASE_URL!;
     this._primaryKey = options.primaryKey;
     
     if (options.client) {
@@ -26,10 +26,10 @@ export class AdaptiveSupabaseClient {
       throw new Error('Client must be provided');
     }
 
-    console.log('🌍 Supabase Client using custom domain:', this._primaryUrl);
+    console.log('🌍 Supabase Client initialized:', this._primaryUrl);
   }
 
-  // Always return the custom domain
+  // Return the Supabase URL
   get supabaseUrl(): string {
     return this._primaryUrl;
   }
@@ -39,7 +39,7 @@ export class AdaptiveSupabaseClient {
   }
 
   get usingProxy(): boolean {
-    return false; // No proxy switching needed
+    return false;
   }
 
   // Proxy all Supabase methods to the client
