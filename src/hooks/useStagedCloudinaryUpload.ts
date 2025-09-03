@@ -337,84 +337,99 @@ export const useStagedCloudinaryUpload = () => {
     });
   }, []);
 
-  // Upload to Edge Function with retry logic
+  // Upload to Edge Function with retry logic using supabase.functions.invoke
   const uploadToEdgeFunction = useCallback(async (
     file: File,
     publicId: string,
     onProgress: (progress: number) => void,
     retryCount = 0
   ): Promise<{ url: string; publicId: string }> => {
-    return new Promise((resolve, reject) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('customPublicId', publicId);
+    // Convert file to base64 for transmission
+    const fileToBase64 = (file: File): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    };
 
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const progress = Math.round((event.loaded / event.total) * 100);
-          onProgress(progress);
+    // Simulate progress during file processing
+    const simulateProgress = () => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 15 + 5; // Increment by 5-20%
+        if (progress >= 95) {
+          progress = 95; // Stop at 95% until actual completion
+          clearInterval(interval);
         }
-      };
+        onProgress(Math.min(progress, 95));
+      }, 200);
       
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const response = JSON.parse(xhr.responseText);
-            if (response.success && response.mainImageUrl && response.publicId) {
-              resolve({
-                url: response.mainImageUrl,
-                publicId: response.publicId
-              });
-            } else {
-              reject(new Error(response.error || 'Edge Function upload failed'));
-            }
-          } catch (error) {
-            reject(new Error('Invalid Edge Function response'));
-          }
-        } else {
-          // Enhanced retry logic with exponential backoff and jitter
-          if (retryCount < 2 && (xhr.status >= 500 || xhr.status === 429)) {
-            const baseDelay = Math.pow(1.5, retryCount) * 1500;
-            const jitter = Math.random() * 400; // 0-400ms jitter
-            const delay = baseDelay + jitter;
-            
-            console.log(`⏳ Retrying Edge Function upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
-            setTimeout(() => {
-              uploadToEdgeFunction(file, publicId, onProgress, retryCount + 1)
-                .then(resolve)
-                .catch(reject);
-            }, delay);
-          } else {
-            reject(new Error(`Edge Function upload failed: ${xhr.status} ${xhr.statusText}`));
-          }
+      return () => clearInterval(interval);
+    };
+
+    try {
+      const stopProgress = simulateProgress();
+      
+      // Convert file to base64
+      const fileBase64 = await fileToBase64(file);
+      
+      // Prepare the request body
+      const requestBody = {
+        fileData: fileBase64,
+        fileName: file.name,
+        customPublicId: publicId
+      };
+
+      // Call the edge function using supabase client
+      const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
+        body: requestBody,
+        headers: {
+          'Content-Type': 'application/json'
         }
+      });
+
+      stopProgress();
+      onProgress(100);
+
+      if (error) {
+        console.error('❌ Edge Function error:', error);
+        throw new Error(error.message || 'Edge Function call failed');
+      }
+
+      if (!data?.success || !data?.mainImageUrl || !data?.publicId) {
+        console.error('❌ Invalid Edge Function response:', data);
+        throw new Error(data?.error || 'Invalid Edge Function response');
+      }
+
+      return {
+        url: data.mainImageUrl,
+        publicId: data.publicId
       };
+
+    } catch (error) {
+      console.error(`❌ Upload attempt ${retryCount + 1} failed:`, error);
       
-      xhr.onerror = () => {
-        if (retryCount < 2) {
-          const baseDelay = Math.pow(1.6, retryCount) * 1500;
-          const jitter = Math.random() * 400;
-          const delay = baseDelay + jitter;
-          
-          console.log(`🔄 Network error, retrying Edge Function in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
-          setTimeout(() => {
-            uploadToEdgeFunction(file, publicId, onProgress, retryCount + 1)
-              .then(resolve)
-              .catch(reject);
-          }, delay);
-        } else {
-          reject(new Error('Network error'));
-        }
-      };
-      
-      xhr.ontimeout = () => reject(new Error('Edge Function upload timeout'));
-      
-      xhr.open('POST', `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cloudinary-upload`);
-      xhr.timeout = 180000; // 3 minute timeout for HEIC processing
-      xhr.send(formData);
-    });
+      // Enhanced retry logic with exponential backoff and jitter
+      if (retryCount < 2) {
+        const baseDelay = Math.pow(1.5, retryCount) * 1500;
+        const jitter = Math.random() * 400; // 0-400ms jitter
+        const delay = baseDelay + jitter;
+        
+        console.log(`🔄 Retrying Edge Function upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return uploadToEdgeFunction(file, publicId, onProgress, retryCount + 1);
+      } else {
+        throw new Error(error instanceof Error ? error.message : 'Upload failed after 3 attempts');
+      }
+    }
   }, []);
 
   // Chunked batch signature function
