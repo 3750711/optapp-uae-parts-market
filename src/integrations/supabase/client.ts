@@ -19,7 +19,7 @@ const primaryClient = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 
 // Initialize adaptive client with proxy fallback
 const adaptiveClient = new AdaptiveSupabaseClient({
-  primaryUrl: supabaseUrl,
+  primaryUrl: supabaseUrl, // Always use proxy URL (https://api.partsbay.ae)
   primaryKey: supabaseAnonKey,
   proxyUrl: supabaseUrl, // Use same URL as it's already our proxy
   client: primaryClient
