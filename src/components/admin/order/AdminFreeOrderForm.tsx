@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
-import DirectCloudinaryUploader from '@/components/uploader/DirectCloudinaryUploader';
+import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
 import { useStagedCloudinaryUpload } from '@/hooks/useStagedCloudinaryUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
@@ -556,13 +556,10 @@ useEffect(() => {
         <div className="space-y-6">
           <div>
             <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Изображения</h3>
-            <DirectCloudinaryUploader
-              images={images}
-              onImagesUpload={onImagesUpload}
-              onImageDelete={onImageDelete}
-              maxImages={25}
+            <SimplePhotoUploader
+              onChange={onImagesUpload}
+              max={25}
               buttonText="Загрузить фото"
-              disabled={isImageUploadDisabled}
             />
           </div>
 
