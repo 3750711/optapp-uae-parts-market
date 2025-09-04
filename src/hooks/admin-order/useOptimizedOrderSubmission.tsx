@@ -1,9 +1,13 @@
-
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { OrderFormData } from '@/types/order';
+import { OrderFormData, CreatedOrder, OrderStatus } from '@/types/order';
 import { deduplicateArray } from '@/utils/deduplication';
+
+const validateOrderStatus = (status: string): OrderStatus | null => {
+  const validOrderStatuses: OrderStatus[] = ['created', 'seller_confirmed', 'admin_confirmed', 'processed', 'shipped', 'delivered', 'cancelled'];
+  return validOrderStatuses.includes(status as OrderStatus) ? status as OrderStatus : null;
+};
 
 interface OptimizedOrderSubmissionResult {
   isLoading: boolean;
