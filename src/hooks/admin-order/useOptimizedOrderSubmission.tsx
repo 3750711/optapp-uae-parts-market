@@ -81,21 +81,18 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
           p_price: parseFloat(formData.price),
           p_seller_id: formData.sellerId,
           p_buyer_id: buyerProfile.id,
-          p_description: formData.text_order || null,
-          p_order_seller_name: null, // Будет установлено автоматически триггером
-          p_seller_opt_id: null, // Будет установлено автоматически триггером
+          p_description: formData.text_order || '',
           p_brand: formData.brand || '',
           p_model: formData.model || '',
           p_status: validateOrderStatus(formData.status) || 'created',
-          p_order_created_type: 'free_order',
           p_delivery_method: formData.deliveryMethod,
           p_place_number: parseInt(formData.place_number) || 1,
-          p_text_order: formData.text_order || null,
+          p_text_order: formData.text_order || '',
           p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null,
-          p_telegram_url_order: null,
           p_images: deduplicateArray(images),
-          p_videos: deduplicateArray(videos),
-          p_product_id: null
+          p_video_url: deduplicateArray(videos),
+          p_product_id: null,
+          p_quantity: 1
         });
 
       if (orderError) {

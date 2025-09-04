@@ -219,20 +219,18 @@ export const useAdminOrderCreation = () => {
         p_price: orderData.price,
         p_place_number: selectedProduct.place_number || 1,
         p_seller_id: selectedSeller.id,
-        p_order_seller_name: selectedSeller.full_name,
-        p_seller_opt_id: selectedSeller.opt_id,
         p_buyer_id: selectedBuyer.id,
         p_brand: selectedProduct.brand || '',
         p_model: productModel,
         p_status: 'admin_confirmed' as const,
-        p_order_created_type: 'product_order' as const,
-        p_telegram_url_order: null,
         p_images: combinedImages,                    // КРИТИЧНО: передаем объединенные изображения
-        p_videos: [],                                // ДОБАВЛЕНО: пустой массив видео для заказов из товаров
+        p_video_url: [],                             // ИСПРАВЛЕНО: переименовано с p_videos на p_video_url
         p_product_id: selectedProduct.id,
         p_delivery_method: orderData.deliveryMethod as 'cargo_rf' | 'cargo_kz' | 'self_pickup',
         p_text_order: '',
-        p_delivery_price_confirm: finalDeliveryPrice // КРИТИЧНО: передаем финальную стоимость доставки
+        p_delivery_price_confirm: finalDeliveryPrice, // КРИТИЧНО: передаем финальную стоимость доставки
+        p_description: selectedProduct.description || '', // ДОБАВЛЕНО: обязательный параметр
+        p_quantity: 1                                // ДОБАВЛЕНО: обязательный параметр
       };
 
       console.log("✅ 🔥 CRITICAL FINAL RPC PAYLOAD WITH ALL FIXES:", {
