@@ -1,11 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { handleWithCors } from "../_shared/handler.ts";
+import { BadRequestError, UpstreamError } from "../_shared/errors.ts";
 
 // SHA-1 implementation for Cloudinary signature
 const sha1 = async (text: string): Promise<string> => {
@@ -32,20 +28,10 @@ interface SignResponse {
   upload_url: string;
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+Deno.serve(handleWithCors(async (req, { reqId, cors }) => {
+  if (req.method !== 'POST') {
+    throw new BadRequestError("method_not_allowed", "POST method required");
   }
-
-  try {
-    // Only allow POST requests
-    if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: corsHeaders }
-      );
-    }
 
     // Public endpoint - no authentication required for staging uploads
 
@@ -66,10 +52,7 @@ Deno.serve(async (req) => {
       targetId = sessionId;
       folder = `staging/${sessionId}`;
     } else {
-      return new Response(
-        JSON.stringify({ error: 'Provide either valid orderId or sessionId (UUID v4)' }),
-        { status: 400, headers: corsHeaders }
-      );
+      throw new BadRequestError("invalid_id", "Provide either valid orderId or sessionId (UUID v4)");
     }
 
     // Get Cloudinary credentials
@@ -84,14 +67,7 @@ Deno.serve(async (req) => {
       if (!API_KEY) missing.push('CLOUDINARY_API_KEY');
       if (!API_SECRET) missing.push('CLOUDINARY_API_SECRET');
       
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Server configuration error', 
-          missing 
-        }),
-        { status: 500, headers: corsHeaders }
-      );
+      throw new UpstreamError("cloudinary_config_missing", `Missing Cloudinary credentials: ${missing.join(', ')}`);
     }
 
     // Generate signature parameters
@@ -115,27 +91,17 @@ Deno.serve(async (req) => {
     // Return canonical contract: {success: true, data: {...}}
     const response = {
       success: true,
-      data: signatureData
+      data: signatureData,
+      reqId
     };
 
-    console.log('Generated Cloudinary signature for targetId:', targetId, 'folder:', folder);
+    console.log('Generated Cloudinary signature for targetId:', targetId, 'folder:', folder, 'reqId:', reqId);
 
     return new Response(
       JSON.stringify(response),
       { 
         status: 200, 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        headers: { 'Content-Type': 'application/json' } 
       }
     );
-
-  } catch (error) {
-    console.error('Edge function error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: corsHeaders }
-    );
-  }
-});
+}));
