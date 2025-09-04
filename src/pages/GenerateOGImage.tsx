@@ -18,6 +18,7 @@ const GenerateOGImage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({
           prompt: "clean minimalist logo with text 'partsbay.ae' on pure white background, modern typography, professional business logo, high contrast black text on white, 1200x630 pixels, social media banner"
