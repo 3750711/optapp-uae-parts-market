@@ -1,21 +1,9 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import type { OrderFormData } from '@/types/order';
 
-interface FreeOrderFormData {
-  title: string;
-  price: string;
-  sellerId: string;
-  buyerOptId: string;
-  brand: string;
-  model: string;
-  description?: string;
-  place_number?: string;
-  delivery_price?: string;
-  text_order?: string;
-}
-
-interface SubmissionState {
+interface FreeOrderSubmissionState {
   isLoading: boolean;
   stage: string;
   progress: number;
@@ -23,8 +11,19 @@ interface SubmissionState {
   error: string | null;
 }
 
-export const useAdminFreeOrderSubmission = () => {
-  const [submissionState, setSubmissionState] = useState<SubmissionState>({
+interface FreeOrderSubmissionResult {
+  isLoading: boolean;
+  stage: string;
+  progress: number;
+  createdOrder: any;
+  error: string | null;
+  handleSubmit: (formData: OrderFormData, images: string[], videos: string[]) => Promise<void>;
+  resetCreatedOrder: () => void;
+  clearError: () => void;
+}
+
+export const useAdminFreeOrderSubmission = (): FreeOrderSubmissionResult => {
+  const [state, setState] = useState<FreeOrderSubmissionState>({
     isLoading: false,
     stage: '',
     progress: 0,
@@ -33,132 +32,123 @@ export const useAdminFreeOrderSubmission = () => {
   });
 
   const handleSubmit = useCallback(async (
-    formData: FreeOrderFormData,
+    formData: OrderFormData,
     images: string[],
     videos: string[]
   ) => {
     try {
-      setSubmissionState({
-        isLoading: true,
-        stage: 'Создание заказа...',
-        progress: 10,
-        createdOrder: null,
-        error: null,
-      });
-
-      // Validate required fields
-      if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
-        throw new Error('Заполните все обязательные поля');
-      }
-
-      // Parse numeric values
-      const price = parseFloat(formData.price);
-      if (isNaN(price) || price <= 0) {
-        throw new Error('Цена должна быть положительным числом');
-      }
-
-      const placeNumber = formData.place_number ? parseInt(formData.place_number) : 1;
-      const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
-
-      setSubmissionState(prev => ({
+      setState(prev => ({
         ...prev,
-        stage: 'Отправка данных на сервер...',
-        progress: 50,
+        isLoading: true,
+        stage: 'Создание свободного заказа...',
+        progress: 25,
+        error: null
       }));
 
-      // Call the specialized admin_create_free_order function
+      // Validate required fields
+      if (!formData.title?.trim()) {
+        throw new Error('Название товара обязательно');
+      }
+      if (!formData.price || Number(formData.price) <= 0) {
+        throw new Error('Цена должна быть больше 0');
+      }
+      if (!formData.sellerId) {
+        throw new Error('Продавец должен быть выбран');
+      }
+      if (!formData.buyerOptId?.trim()) {
+        throw new Error('OPT_ID покупателя обязателен');
+      }
+
+      setState(prev => ({ ...prev, progress: 50 }));
+
+      // Call the specialized free order function
       const { data: orderId, error } = await supabase.rpc('admin_create_free_order', {
-        p_title: formData.title,
-        p_price: price,
+        p_title: formData.title.trim(),
+        p_price: Number(formData.price),
         p_seller_id: formData.sellerId,
-        p_buyer_opt_id: formData.buyerOptId,
-        p_brand: formData.brand || '',
-        p_model: formData.model || '',
-        p_description: formData.description || '',
-        p_images: images,
-        p_video_url: videos,
-        p_delivery_method: 'self_pickup',
-        p_place_number: placeNumber,
-        p_delivery_price_confirm: deliveryPrice,
-        p_text_order: formData.text_order || '',
+        p_buyer_opt_id: formData.buyerOptId.trim(),
+        p_brand: formData.brand?.trim() || '',
+        p_model: formData.model?.trim() || '',
+        p_description: formData.description?.trim() || '',
+        p_images: images.length > 0 ? images : [],
+        p_video_url: videos.length > 0 ? videos : [],
+        p_delivery_method: formData.deliveryMethod || 'self_pickup',
+        p_place_number: Number(formData.place_number) || 1,
+        p_delivery_price_confirm: formData.delivery_price ? Number(formData.delivery_price) : null,
+        p_text_order: formData.text_order?.trim() || ''
       });
 
       if (error) {
         console.error('Error creating free order:', error);
-        throw new Error(`Ошибка создания заказа: ${error.message}`);
+        throw new Error(error.message);
       }
 
-      setSubmissionState(prev => ({
-        ...prev,
-        stage: 'Получение данных заказа...',
-        progress: 75,
-      }));
+      setState(prev => ({ ...prev, progress: 75 }));
 
-      // Fetch the created order
-      const { data: order, error: fetchError } = await supabase
+      // Fetch the created order details
+      const { data: orderData, error: fetchError } = await supabase
         .from('orders')
         .select('*')
         .eq('id', orderId)
         .single();
 
       if (fetchError) {
-        console.error('Error fetching created order:', fetchError);
-        throw new Error('Заказ создан, но произошла ошибка при получении данных');
+        console.error('Error fetching order:', fetchError);
+        throw new Error('Заказ создан, но не удалось получить его данные');
       }
 
-      setSubmissionState({
+      setState(prev => ({
+        ...prev,
         isLoading: false,
-        stage: 'Завершено',
+        stage: 'Заказ успешно создан',
         progress: 100,
-        createdOrder: order,
-        error: null,
-      });
+        createdOrder: orderData
+      }));
 
       toast({
-        title: "Заказ успешно создан",
-        description: `Свободный заказ #${order.order_number} создан и подтвержден`,
+        title: "Свободный заказ создан",
+        description: `Заказ #${orderData.order_number} успешно создан`,
       });
 
     } catch (error) {
+      console.error('Free order submission error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       
-      setSubmissionState({
+      setState(prev => ({
+        ...prev,
         isLoading: false,
-        stage: 'Ошибка',
+        stage: '',
         progress: 0,
-        createdOrder: null,
-        error: errorMessage,
-      });
+        error: errorMessage
+      }));
 
       toast({
+        variant: "destructive",
         title: "Ошибка создания заказа",
         description: errorMessage,
-        variant: "destructive",
       });
-
-      throw error;
     }
   }, []);
 
   const resetCreatedOrder = useCallback(() => {
-    setSubmissionState(prev => ({
+    setState(prev => ({
       ...prev,
       createdOrder: null,
-      error: null,
       stage: '',
-      progress: 0,
+      progress: 0
     }));
   }, []);
 
   const clearError = useCallback(() => {
-    setSubmissionState(prev => ({
-      ...prev,
-      error: null,
-    }));
+    setState(prev => ({ ...prev, error: null }));
   }, []);
 
   return {
-    ...submissionState,
+    isLoading: state.isLoading,
+    stage: state.stage,
+    progress: state.progress,
+    createdOrder: state.createdOrder,
+    error: state.error,
     handleSubmit,
     resetCreatedOrder,
     clearError,
