@@ -17,7 +17,7 @@ export class AdaptiveSupabaseClient {
   private _primaryKey: string;
 
   constructor(options: AdaptiveSupabaseOptions) {
-    this._primaryUrl = import.meta.env.VITE_SUPABASE_URL!;
+    this._primaryUrl = options.primaryUrl;
     this._primaryKey = options.primaryKey;
     
     if (options.client) {

@@ -28,7 +28,7 @@ export function isTokenFromCurrentDomain(token: string): boolean {
   const decoded = decodeJWT(token);
   if (!decoded?.iss) return false;
   
-  const currentDomain = import.meta.env.VITE_SUPABASE_URL || 'https://api.partsbay.ae';
+  const currentDomain = 'https://api.partsbay.ae';
   const expectedIssuer = `${currentDomain}/auth/v1`;
   
   console.log('🔍 Token domain check:', { 

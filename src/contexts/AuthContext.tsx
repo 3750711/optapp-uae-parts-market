@@ -82,60 +82,77 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log("🚀 AuthContext: Initializing simplified auth system");
     
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("🔧 AuthContext: Auth state change:", event, !!session);
+    // Initialize auth system asynchronously to wait for client readiness
+    const initAuthSystem = async () => {
+      try {
+        // Wait for client to be ready
+        const client = await import('@/lib/supabaseClient').then(m => m.getSupabaseClient());
         
-        // Clear any previous auth errors on successful auth events
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setAuthError(null);
-        }
+        // Set up auth state listener
+        const { data: { subscription } } = client.auth.onAuthStateChange(
+          (event, session) => {
+            console.log("🔧 AuthContext: Auth state change:", event, !!session);
+            
+            // Clear any previous auth errors on successful auth events
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+              setAuthError(null);
+            }
 
-        setSession(session);
+            setSession(session);
 
-        if (session?.user) {
-          setUser(session.user);
-          
-          // Fetch profile for new sessions or sign-ins
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            fetchUserProfile(session.user.id);
+            if (session?.user) {
+              setUser(session.user);
+              
+              // Fetch profile for new sessions or sign-ins
+              if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                fetchUserProfile(session.user.id);
+              }
+            } else {
+              console.log("🔧 AuthContext: Clearing user state");
+              setUser(null);
+              setProfile(null);
+              setProfileError(null);
+            }
+            
+            setIsLoading(false);
           }
-        } else {
-          console.log("🔧 AuthContext: Clearing user state");
-          setUser(null);
-          setProfile(null);
-          setProfileError(null);
+        );
+
+        // Check for existing session
+        const { data: { session }, error } = await client.auth.getSession();
+        if (error) {
+          console.error("❌ AuthContext: Session check error:", error);
+          setAuthError("Authentication error. Please log in again.");
+        } else if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          fetchUserProfile(session.user.id);
         }
         
         setIsLoading(false);
-      }
-    );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error("❌ AuthContext: Session check error:", error);
-        setAuthError("Authentication error. Please log in again.");
+        return () => {
+          console.log("🧹 AuthContext: Cleaning up auth system");
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("❌ AuthContext: Critical session error:", error);
+        setAuthError("Critical authentication error. Please clear browser data and try again.");
         setIsLoading(false);
-        return;
       }
+    };
 
-      if (session?.user) {
-        setSession(session);
-        setUser(session.user);
-        fetchUserProfile(session.user.id);
-      }
-      setIsLoading(false);
-    }).catch(error => {
-      console.error("❌ AuthContext: Critical session error:", error);
-      setAuthError("Critical authentication error. Please clear browser data and try again.");
-      setIsLoading(false);
+    // Start initialization and store cleanup function
+    let cleanup: (() => void) | undefined;
+    initAuthSystem().then(cleanupFn => {
+      cleanup = cleanupFn;
     });
 
+    // Return cleanup function
     return () => {
-      console.log("🧹 AuthContext: Cleaning up auth system");
-      subscription.unsubscribe();
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, []);
 
