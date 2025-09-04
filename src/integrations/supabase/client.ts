@@ -1,19 +1,35 @@
 
-import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { getSupabaseClient } from '@/lib/supabaseClient';
 
-// Supabase configuration - use custom domain to fix CORS issues
-const supabaseUrl = 'https://api.partsbay.ae';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0';
+// Legacy synchronous export for backward compatibility
+// This will be a Promise-based client under the hood
+let _supabaseClient: ReturnType<typeof import('@supabase/supabase-js').createClient<Database>> | null = null;
 
-// Create Supabase client
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: { 
-    persistSession: true, 
-    autoRefreshToken: true, 
-    detectSessionInUrl: true, 
-    flowType: 'pkce' 
+// Initialize client asynchronously and cache it
+getSupabaseClient().then(client => {
+  _supabaseClient = client;
+}).catch(error => {
+  console.error('Failed to initialize Supabase client:', error);
+});
+
+// Proxy object that forwards all calls to the actual client
+export const supabase = new Proxy({} as ReturnType<typeof import('@supabase/supabase-js').createClient<Database>>, {
+  get(target, prop) {
+    if (!_supabaseClient) {
+      throw new Error('Supabase client not yet initialized. Make sure to wait for initialization or use getSupabaseClient() directly.');
+    }
+    
+    const value = _supabaseClient[prop as keyof typeof _supabaseClient];
+    
+    // Bind methods to maintain proper context
+    if (typeof value === 'function') {
+      return value.bind(_supabaseClient);
+    }
+    
+    return value;
   }
 });
 
-console.log('🌍 Supabase Client initialized:', supabaseUrl);
+// Also export the Promise-based client for new code
+export { getSupabaseClient };
