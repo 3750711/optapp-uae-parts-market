@@ -82,7 +82,7 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
           p_buyer_id: buyerProfile.id,
           p_brand: formData.brand || '',
           p_model: formData.model || '',
-          p_status: formData.status || 'created',
+          p_status: validateOrderStatus(formData.status) || 'created',
           p_order_created_type: 'free_order',
           p_telegram_url_order: null,
           p_images: deduplicateArray(images),
