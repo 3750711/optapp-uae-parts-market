@@ -1886,7 +1886,7 @@ export type Database = {
         Returns: undefined
       }
       admin_resend_welcome: {
-        Args: { p_user_id: string }
+        Args: { user_id_param: string }
         Returns: Json
       }
       binary_quantize: {
