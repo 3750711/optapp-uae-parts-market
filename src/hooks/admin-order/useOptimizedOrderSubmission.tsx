@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { orderClient } from '@/integrations/supabase/orderClient';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { OrderFormData, CreatedOrder, OrderStatus } from '@/types/order';
 import { deduplicateArray } from '@/utils/deduplication';
@@ -59,7 +59,7 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
       setProgress(20);
 
       // Получаем buyer_id по buyer_opt_id
-      const { data: buyerProfile, error: buyerError } = await orderClient
+      const { data: buyerProfile, error: buyerError } = await supabase
         .from('profiles')
         .select('id')
         .eq('opt_id', formData.buyerOptId)
@@ -75,7 +75,7 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
       setStage('Создание заказа...');
       setProgress(60);
 
-      const { data: orderId, error: orderError } = await orderClient
+      const { data: orderId, error: orderError } = await supabase
         .rpc('admin_create_order', {
           p_title: formData.title,
           p_price: parseFloat(formData.price),
@@ -109,7 +109,7 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
       console.log('✅ Order created with ID:', orderId);
 
       // Получаем полные данные созданного заказа
-      const { data: order, error: fetchError } = await orderClient
+      const { data: order, error: fetchError } = await supabase
         .from('orders')
         .select('*')
         .eq('id', orderId)
