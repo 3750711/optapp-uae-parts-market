@@ -79,22 +79,23 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
         .rpc('admin_create_order', {
           p_title: formData.title,
           p_price: parseFloat(formData.price),
-          p_place_number: parseInt(formData.place_number) || 1,
           p_seller_id: formData.sellerId,
+          p_buyer_id: buyerProfile.id,
+          p_description: formData.text_order || null,
           p_order_seller_name: null, // Будет установлено автоматически триггером
           p_seller_opt_id: null, // Будет установлено автоматически триггером
-          p_buyer_id: buyerProfile.id,
           p_brand: formData.brand || '',
           p_model: formData.model || '',
           p_status: validateOrderStatus(formData.status) || 'created',
           p_order_created_type: 'free_order',
+          p_delivery_method: formData.deliveryMethod,
+          p_place_number: parseInt(formData.place_number) || 1,
+          p_text_order: formData.text_order || null,
+          p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null,
           p_telegram_url_order: null,
           p_images: deduplicateArray(images),
           p_videos: deduplicateArray(videos),
-          p_product_id: null,
-          p_delivery_method: formData.deliveryMethod,
-          p_text_order: formData.text_order || null,
-          p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null
+          p_product_id: null
         });
 
       if (orderError) {
