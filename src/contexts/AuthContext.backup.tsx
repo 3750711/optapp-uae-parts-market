@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { profileManager } from "@/utils/profileManager";
+import { validateAndCleanupSession, isNetworkError, forceCleanLogout } from "@/utils/authSessionManager";
 
 type UserProfile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -38,33 +40,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profileError, setProfileError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  console.log('🚫 AuthContext: Simplified version for debugging - PWA features disabled');
-
   // isAdmin зависит только от текущего профиля
   const isAdmin = React.useMemo<boolean | null>(() => {
     if (profile === null) return null;
     return profile?.user_type === 'admin';
   }, [profile?.user_type, profile === null]);
 
-  const fetchUserProfile = async (userId: string): Promise<void> => {
+  const fetchUserProfile = async (userId: string, { force = false } = {}): Promise<void> => {
     setIsProfileLoading(true);
     setProfileError(null);
 
     try {
-      console.log(`👤 AuthContext: Fetching profile for user ${userId}`);
+      console.log(`👤 AuthContext: Fetching profile for user ${userId} (force: ${force})`);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const profileData = await profileManager.fetchProfile(userId, { force });
       
-      if (error) {
-        console.error('❌ AuthContext: Profile fetch error:', error);
-        setProfile(null);
-        setProfileError(error.message || 'Failed to load profile');
-      } else if (data) {
-        setProfile(data);
+      if (profileData) {
+        setProfile(profileData);
         console.log('✅ AuthContext: Profile loaded successfully');
       } else {
         setProfile(null);
@@ -80,69 +72,96 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log("🚀 AuthContext: Initializing simplified auth system");
+    console.log("🚀 AuthContext: Initializing auth system");
     
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("🔧 AuthContext: Auth state change:", event, !!session);
-        
-        // Clear any previous auth errors on successful auth events
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          setAuthError(null);
-        }
-
-        setSession(session);
-
-        if (session?.user) {
-          setUser(session.user);
-          
-          // Fetch profile for new sessions or sign-ins
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            fetchUserProfile(session.user.id);
-          }
-        } else {
-          console.log("🔧 AuthContext: Clearing user state");
-          setUser(null);
-          setProfile(null);
-          setProfileError(null);
-        }
-        
-        setIsLoading(false);
-      }
-    );
-
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error("❌ AuthContext: Session check error:", error);
-        setAuthError("Authentication error. Please log in again.");
+    // Migrate from old sessionStorage to new localStorage system
+    profileManager.migrateFromSessionStorage();
+    
+    // First validate and cleanup any old sessions
+    validateAndCleanupSession().then(isValid => {
+      if (!isValid) {
+        console.log("🚨 AuthContext: Invalid session cleaned up, will reload");
         setIsLoading(false);
         return;
       }
+      
+      // Set up auth state listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          console.log("🔧 AuthContext: Auth state change:", event, !!session);
+          
+          // Clear any previous auth errors on successful auth events
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            setAuthError(null);
+          }
 
-      if (session?.user) {
-        setSession(session);
-        setUser(session.user);
-        fetchUserProfile(session.user.id);
-      }
-      setIsLoading(false);
+          setSession(session);
+
+          if (session?.user) {
+            setUser(session.user);
+            
+            // Fetch profile for new sessions or sign-ins
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+              setTimeout(() => {
+                void fetchUserProfile(session.user.id);
+              }, 0);
+            }
+          } else {
+            console.log("🔧 AuthContext: Clearing user state");
+            setUser(null);
+            setProfile(null);
+            setProfileError(null);
+            profileManager.clearAllProfiles();
+          }
+          
+          setIsLoading(false);
+        }
+      );
+
+      // Check for existing session
+      supabase.auth.getSession().then(({ data: { session }, error }) => {
+        if (error) {
+          console.error("❌ AuthContext: Session check error:", error);
+          if (isNetworkError(error)) {
+            setAuthError("Network connection issue. Please check your internet connection and try again.");
+            forceCleanLogout();
+          } else {
+            setAuthError("Authentication error. Please log in again.");
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+          setTimeout(() => {
+            void fetchUserProfile(session.user.id);
+          }, 0);
+        }
+        setIsLoading(false);
+      }).catch(error => {
+        console.error("❌ AuthContext: Critical session error:", error);
+        setAuthError("Critical authentication error. Please clear browser data and try again.");
+        forceCleanLogout();
+        setIsLoading(false);
+      });
+
+      return () => {
+        console.log("🧹 AuthContext: Cleaning up auth system");
+        subscription.unsubscribe();
+      };
     }).catch(error => {
-      console.error("❌ AuthContext: Critical session error:", error);
-      setAuthError("Critical authentication error. Please clear browser data and try again.");
+      console.error("❌ AuthContext: Session validation failed:", error);
+      setAuthError("Session validation failed. Please log in again.");
       setIsLoading(false);
     });
-
-    return () => {
-      console.log("🧹 AuthContext: Cleaning up auth system");
-      subscription.unsubscribe();
-    };
   }, []);
+
 
   const signIn = async (email: string, password: string) => {
     try {
       setAuthError(null);
-      console.log('🔓 AuthContext: Attempting sign in with URL:', supabase.supabaseUrl);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -154,7 +173,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { user: data.user, error: null };
     } catch (error) {
       console.error("❌ AuthContext: Sign in error:", error);
-      setAuthError(error.message || "Sign in failed. Please try again.");
+      
+      if (isNetworkError(error)) {
+        setAuthError("Network connection issue. Please check your internet connection and try again.");
+      } else {
+        setAuthError(error.message || "Sign in failed. Please try again.");
+      }
+      
       return { user: null, error };
     }
   };
@@ -177,7 +202,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { user: data.user, error: null };
     } catch (error) {
       console.error("❌ AuthContext: Sign up error:", error);
-      setAuthError(error.message || "Sign up failed. Please try again.");
+      
+      if (isNetworkError(error)) {
+        setAuthError("Network connection issue. Please check your internet connection and try again.");
+      } else {
+        setAuthError(error.message || "Sign up failed. Please try again.");
+      }
+      
       return { user: null, error };
     }
   };
@@ -185,6 +216,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       console.log('🚪 AuthContext: Starting signOut process');
+      
+      // Clear profile caches
+      profileManager.clearAllProfiles();
       
       // Perform Supabase signOut
       const { error } = await supabase.auth.signOut();
@@ -197,7 +231,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfile(null);
       setSession(null);
       setProfileError(null);
-      setAuthError(null);
       
       console.log('✅ AuthContext: SignOut completed successfully');
     } catch (error) {
@@ -218,8 +251,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
       if (error) throw error;
       
-      // Update local state
+      // Update local state and persistent cache
       setProfile(data);
+      profileManager.updateProfile(user.id, data);
       
       console.log('✅ AuthContext: Profile updated successfully');
     } catch (error) {
@@ -230,7 +264,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshProfile = async (forceRefresh = false) => {
     if (user?.id) {
-      await fetchUserProfile(user.id);
+      if (forceRefresh) {
+        profileManager.invalidateProfile(user.id);
+      }
+      await fetchUserProfile(user.id, { force: forceRefresh });
     }
   };
 
@@ -254,8 +291,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+
   const signInWithTelegram = async (authData: any): Promise<{ user: User | null; error: any }> => {
     try {
+      // Заглушка для Telegram авторизации - будет реализована позже
       console.log("📱 AuthContext: Telegram auth not implemented yet:", authData);
       return { user: null, error: new Error("Telegram auth not implemented") };
     } catch (error) {
@@ -264,10 +303,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+
   const retryProfileLoad = () => {
     if (user?.id) {
       console.log('🔄 AuthContext: Retrying profile load');
-      fetchUserProfile(user.id);
+      profileManager.invalidateProfile(user.id);
+      void fetchUserProfile(user.id, { force: true });
     }
   };
 
@@ -278,7 +319,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const forceReauth = async () => {
     console.log('🔄 AuthContext: Force re-authentication requested');
     setAuthError(null);
-    await signOut();
+    await forceCleanLogout();
   };
 
   const value: AuthContextType = {

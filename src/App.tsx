@@ -14,13 +14,13 @@ import { ThemeProvider } from "next-themes";
 import AppRoutes from "@/routes";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { performanceMonitor } from "@/utils/performanceMonitor";
-import { PWAIndicators } from "@/components/PWAIndicators";
-import { useBackgroundSync } from "@/hooks/useBackgroundSync";
+// import { PWAIndicators } from "@/components/PWAIndicators"; // TEMPORARILY DISABLED
+// import { useBackgroundSync } from "@/hooks/useBackgroundSync"; // TEMPORARILY DISABLED
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
-import { UpdatePrompt } from "@/components/UpdatePrompt";
+// import { UpdatePrompt } from "@/components/UpdatePrompt"; // TEMPORARILY DISABLED
 import { NetworkIndicator } from "@/components/NetworkIndicator";
-import { ServiceWorkerStatus } from "@/components/ServiceWorkerStatus";
+// import { ServiceWorkerStatus } from "@/components/ServiceWorkerStatus"; // TEMPORARILY DISABLED
 import { getQueryConfigForConnection } from "@/utils/networkUtils";
 
 // Адаптивная конфигурация QueryClient для мобильных сетей
@@ -58,7 +58,8 @@ const RouteLoader = React.memo(() => (
 ));
 
 const App = () => {
-  // 🔧 УПРОЩЕНО: Убраны все сложные инициализации для Safe Baseline
+  // 🔧 SIMPLIFIED: Temporarily disabled PWA components for debugging auth issues
+  console.log('🚫 PWA components temporarily disabled for debugging');
 
   return (
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>

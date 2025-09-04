@@ -3,19 +3,20 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import { cleanupCorruptedCache } from './utils/localStorage';
-import { registerServiceWorker } from './utils/serviceWorkerManager';
+// import { registerServiceWorker } from './utils/serviceWorkerManager'; // TEMPORARILY DISABLED
 
 import './index.css';
 
 // Clean up any corrupted localStorage data on app start
 cleanupCorruptedCache();
 
-// Register Service Worker for PWA functionality
-registerServiceWorker().then(() => {
-  console.log('✅ Service Worker registered for file sync');
-}).catch(err => {
-  console.warn('⚠️ Service Worker registration failed:', err);
-});
+// Register Service Worker for PWA functionality - TEMPORARILY DISABLED
+// registerServiceWorker().then(() => {
+//   console.log('✅ Service Worker registered for file sync');
+// }).catch(err => {
+//   console.warn('⚠️ Service Worker registration failed:', err);
+// });
+console.log('🚫 Service Worker temporarily disabled for debugging');
 
 // Supabase client uses adaptive dual-domain connection
 console.log('✅ Using dual-domain Supabase: direct + proxy fallback');
