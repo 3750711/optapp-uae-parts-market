@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
-import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
-import { useStagedCloudinaryUpload } from '@/hooks/useStagedCloudinaryUpload';
+import { MobileOptimizedImageUpload } from '@/components/ui/MobileOptimizedImageUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { TelegramOrderParser } from './TelegramOrderParser';
@@ -27,7 +26,7 @@ export const AdminFreeOrderForm = () => {
   const [isOrderCreated, setIsOrderCreated] = useState(false);
   const [sessionId] = useState(() => crypto.randomUUID());
   const isMobile = useIsMobile();
-  const { attachToOrder, restoreStagedUrls, clearStaging } = useStagedCloudinaryUpload();
+  
 
   const {
     // Form data
@@ -158,8 +157,6 @@ useEffect(() => {
       // 4) Медиа
       if (Array.isArray(saved.images)) {
         setAllImages(saved.images);
-        // Sync with staged uploads for persistence
-        restoreStagedUrls(saved.images);
       }
       if (Array.isArray(saved.videos)) setVideos(saved.videos);
 
@@ -243,29 +240,8 @@ useEffect(() => {
   if (createdOrder) {
     setIsOrderCreated(true);
     clearSavedData();
-    
-    // Attach staged images if any
-    if (images.length > 0) {
-      attachToOrder(createdOrder.id)
-        .then(() => {
-          console.log('✅ Staged images attached to order:', createdOrder.id);
-          // Clear staged uploads after successful attachment
-          clearStaging();
-        })
-        .catch((error) => {
-          console.error('❌ Failed to attach staged images:', error);
-          toast({
-            title: "Предупреждение",
-            description: "Заказ создан, но не удалось привязать изображения",
-            variant: "destructive",
-          });
-        });
-    } else {
-      // Clear staged uploads even if no images to attach
-      clearStaging();
-    }
   }
-}, [createdOrder, clearSavedData, attachToOrder, images, toast, clearStaging]);
+}, [createdOrder, clearSavedData]);
 
 // Отслеживание состояния загрузки
 useEffect(() => {
@@ -401,7 +377,6 @@ useEffect(() => {
     setIsCreating(false);
     setIsOrderCreated(false);
     clearSavedData();
-    clearStaging();
     resetForm();
   };
 
@@ -556,10 +531,12 @@ useEffect(() => {
         <div className="space-y-6">
           <div>
             <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Изображения</h3>
-            <SimplePhotoUploader
-              onChange={onImagesUpload}
-              max={25}
-              buttonText="Загрузить фото"
+            <MobileOptimizedImageUpload
+              onUploadComplete={onImagesUpload}
+              existingImages={images}
+              onImageDelete={onImageDelete}
+              disabled={isImageUploadDisabled}
+              maxImages={25}
             />
           </div>
 
