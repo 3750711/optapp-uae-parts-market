@@ -24,7 +24,12 @@ async function initializeSupabaseClient(): Promise<SupabaseClientType> {
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     
     if (!supabaseAnonKey) {
-      throw new Error('VITE_SUPABASE_ANON_KEY is not defined');
+      throw new Error('VITE_SUPABASE_ANON_KEY environment variable is not defined');
+    }
+
+    // Validate anon key format (basic JWT structure check)
+    if (!supabaseAnonKey.includes('.')) {
+      throw new Error('VITE_SUPABASE_ANON_KEY does not appear to be a valid JWT token');
     }
 
     // Create Supabase client with runtime URL and env anon key
@@ -37,12 +42,14 @@ async function initializeSupabaseClient(): Promise<SupabaseClientType> {
       }
     });
 
-    console.log('🌍 Supabase Client initialized with runtime config:', config.SUPABASE_URL);
+    console.log('🌍 Supabase Client initialized successfully');
+    console.log('   URL:', config.SUPABASE_URL);
+    console.log('   Key:', supabaseAnonKey.substring(0, 20) + '...');
     
     return client;
   } catch (error) {
     console.error('❌ Failed to initialize Supabase client:', error);
-    throw error;
+    throw new Error(`Supabase initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

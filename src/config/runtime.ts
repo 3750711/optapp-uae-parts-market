@@ -14,11 +14,12 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
       cache: 'no-cache',
       headers: {
         'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to load runtime config: ${response.status}`);
+      throw new Error(`Failed to load runtime config: HTTP ${response.status} ${response.statusText}`);
     }
 
     const config = await response.json() as RuntimeConfig;
@@ -27,8 +28,15 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
       throw new Error('SUPABASE_URL not found in runtime config');
     }
 
+    // Validate URL format
+    try {
+      new URL(config.SUPABASE_URL);
+    } catch {
+      throw new Error(`Invalid SUPABASE_URL format: ${config.SUPABASE_URL}`);
+    }
+
     cachedConfig = config;
-    console.log('🌍 Runtime config loaded:', config.SUPABASE_URL);
+    console.log('🌍 Runtime config loaded successfully:', config.SUPABASE_URL);
     
     return config;
   } catch (error) {
@@ -40,7 +48,7 @@ export async function loadRuntimeConfig(): Promise<RuntimeConfig> {
     };
     
     cachedConfig = fallbackConfig;
-    console.warn('⚠️ Using fallback runtime config');
+    console.warn('⚠️ Using fallback runtime config:', fallbackConfig.SUPABASE_URL);
     
     return fallbackConfig;
   }
