@@ -72,6 +72,22 @@ interface CustomRPCFunctions {
   search_car_brands_and_models: (args: {
     search_term: string;
   }) => any[];
+
+  admin_create_free_order: (args: {
+    p_title: string;
+    p_price: number;
+    p_seller_id: string;
+    p_buyer_opt_id: string;
+    p_brand?: string;
+    p_model?: string;
+    p_description?: string;
+    p_images?: string[];
+    p_video_url?: string[];
+    p_delivery_method?: 'self_pickup' | 'delivery';
+    p_place_number?: number;
+    p_delivery_price_confirm?: number | null;
+    p_text_order?: string;
+  }) => string; // Returns UUID
 }
 
 // Extend the built-in Database type

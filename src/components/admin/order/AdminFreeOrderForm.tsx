@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useAdminFreeOrderSubmission } from '@/hooks/admin-order/useAdminFreeOrderSubmission';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
 import { MobileOptimizedImageUpload } from '@/components/ui/MobileOptimizedImageUpload';
@@ -8,7 +8,7 @@ import { CreatedOrderView } from './CreatedOrderView';
 import { TelegramOrderParser } from './TelegramOrderParser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader, AlertCircle, Camera, Plus, RefreshCw, Database } from 'lucide-react';
+import { Loader, AlertCircle, Plus, RefreshCw, Database } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -16,19 +16,27 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
 import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
-import { normalizeDecimal } from '@/utils/number';
-
-import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
-import { usePWALifecycle } from '@/hooks/usePWALifecycle';
 
 export const AdminFreeOrderForm = () => {
-  const [isCreating, setIsCreating] = useState(false);
-  const [isOrderCreated, setIsOrderCreated] = useState(false);
-  const [sessionId] = useState(() => crypto.randomUUID());
   const isMobile = useIsMobile();
-  
 
+  // Use the specialized submission hook for free orders
   const {
+    isLoading: submissionLoading,
+    stage,
+    createdOrder: submittedOrder,
+    error: submissionError,
+    handleSubmit: submitOrder,
+    resetCreatedOrder,
+    clearError: clearSubmissionError,
+  } = useAdminFreeOrderSubmission();
+
+  // Use existing admin form logic for data management
+  const {
+    // Admin access
+    hasAdminAccess,
+    isCheckingAdmin,
+    
     // Form data
     formData,
     handleInputChange,
@@ -36,49 +44,48 @@ export const AdminFreeOrderForm = () => {
     videos,
     setAllImages,
     setVideos,
-    isLoading,
-    createdOrder,
-    handleSubmit: originalHandleSubmit,
-    handleOrderUpdate,
-    resetForm,
     
-    // Admin access
-    hasAdminAccess,
-    isCheckingAdmin,
-    
-    // Error handling
-    error,
-    retryOperation,
-    clearError,
-    
-    // Additional data for preview
-    selectedSeller,
+    // Additional data
     buyerProfiles,
     sellerProfiles,
-    enableBuyersLoading,
-    enableSellersLoading,
-    
-    // Loading states
-    isInitializing,
     isLoadingBuyers,
     isLoadingSellers,
-    isLoadingBrands,
+    enableBuyersLoading,
+    enableSellersLoading,
     
     // Car data
     brands,
     models,
+    isLoadingBrands,
     isLoadingModels,
-    // Brand/Model lookup functions
+    selectBrand,
+    enableBrandsLoading,
     findBrandNameById,
     findModelNameById,
     findBrandIdByName,
-    findModelIdByName,
     findModelIdByNameDirect,
-    enableBrandsLoading,
-    selectBrand
+    
+    // Loading states and other utilities
+    isInitializing: formInitializing,
+    resetForm,
   } = useAdminOrderFormLogic();
 
-  // Add submission guard
+  // Combine states - prioritize submission hook for order creation flow
+  const createdOrder = submittedOrder;
+  const error = submissionError;
+  const isLoading = submissionLoading;
+  const isInitializing = formInitializing;
+
+  // Initialize data loading when admin access is confirmed
+  useEffect(() => {
+    if (hasAdminAccess) {
+      enableBuyersLoading();
+      enableSellersLoading();
+      enableBrandsLoading();
+    }
+  }, [hasAdminAccess, enableBuyersLoading, enableSellersLoading, enableBrandsLoading]);
+
+  // Submission guard
   const { guardedSubmit, canSubmit } = useSubmissionGuard({
     timeout: 10000,
     onDuplicateSubmit: () => {
@@ -90,231 +97,43 @@ export const AdminFreeOrderForm = () => {
     }
   });
 
+  // Handle image and video uploads using the existing pattern
   const onImagesUpload = (urls: string[]) => {
-    console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
     setAllImages(urls);
   };
 
   const onImageDelete = (url: string) => {
-    console.log('🗑️ AdminFreeOrderForm: Image deleted:', url);
     const newImages = images.filter(img => img !== url);
     setAllImages(newImages);
   };
 
-const onVideoUpload = (urls: string[]) => {
-  console.log('📹 AdminFreeOrderForm: New videos uploaded:', urls);
-  setVideos(prev => [...prev, ...urls]);
-};
-
-const onVideoDelete = (url: string) => {
-  console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
-  setVideos(prev => prev.filter(video => video !== url));
-};
-
-// Автосохранение черновика для iOS (только для этой страницы)
-const { loadSavedData, clearSavedData, saveNow, hasUnsavedChanges } = useOptimizedFormAutosave({
-  key: 'admin_free_order',
-  data: { formData, images, videos },
-  delay: 1000,
-  enabled: !isCreating && !isOrderCreated && !createdOrder,
-  excludeFields: []
-});
-
-// Восстановление черновика при монтировании (до 24 часов) — сначала бренд, потом модель
-useEffect(() => {
-  try {
-    const saved = loadSavedData();
-    if (saved) {
-      const savedForm = saved.formData || {} as Record<string, string>;
-
-      // Включаем загрузку брендов и моделей
-      enableBrandsLoading();
-
-      // 1) Применяем простые поля, кроме brand/model
-      const skipKeys = new Set(['brandId', 'brand', 'modelId', 'model']);
-      Object.entries(savedForm).forEach(([k, v]) => {
-        if (typeof v === 'string' && !skipKeys.has(k)) {
-          handleInputChange(k, v);
-        }
-      });
-
-      // 2) Бренд — ID и название
-      if (typeof savedForm.brandId === 'string' && savedForm.brandId) {
-        handleInputChange('brandId', savedForm.brandId);
-      }
-      if (typeof savedForm.brand === 'string' && savedForm.brand) {
-        handleInputChange('brand', savedForm.brand);
-      }
-
-      // 3) Модель — ID и название (после установки бренда)
-      if (typeof savedForm.modelId === 'string' && savedForm.modelId) {
-        handleInputChange('modelId', savedForm.modelId);
-      }
-      if (typeof savedForm.model === 'string' && savedForm.model) {
-        handleInputChange('model', savedForm.model);
-      }
-
-      // 4) Медиа
-      if (Array.isArray(saved.images)) {
-        setAllImages(saved.images);
-      }
-      if (Array.isArray(saved.videos)) setVideos(saved.videos);
-
-      console.log('✅ Черновик формы восстановлен (упорядоченное применение brand/model)');
-    }
-  } catch (e) {
-    console.error('❌ Ошибка восстановления черновика:', e);
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
-  // PWA lifecycle management for autosave
-  const { isPWA, forceSave } = usePWALifecycle('admin-free-order-autosave', {
-    onVisibilityChange: (isHidden) => {
-      if (isHidden && !isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
-        console.log('🏠 PWA: Auto-saving form on visibility change');
-        saveNow();
-      }
-    },
-    onPageHide: () => {
-      if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
-        console.log('🏠 PWA: Auto-saving form on page hide');
-        saveNow();
-      }
-    },
-    onFreeze: () => {
-      if (!isCreating && !isOrderCreated && !createdOrder && hasUnsavedChanges) {
-        console.log('🏠 PWA: Auto-saving form on freeze');
-        saveNow();
-      }
-    }
-  });
-
-// Мгновенное сохранение при скрытии/уходе со страницы (оптимизировано для PWA)
-useEffect(() => {
-  // Fallback for older browsers without PWA lifecycle support
-  if (!isPWA) {
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden' && !isCreating && !isOrderCreated && !createdOrder) {
-        saveNow();
-      }
-    };
-    const onPageHide = () => {
-      if (!isCreating && !isOrderCreated && !createdOrder) {
-        saveNow();
-      }
-    };
-    document.addEventListener('visibilitychange', onVisibility, { passive: true });
-    window.addEventListener('pagehide', onPageHide, { passive: true });
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('pagehide', onPageHide);
-    };
-  }
-}, [isPWA, saveNow, isCreating, isOrderCreated, createdOrder]);
-
-// Восстановление бренда/моделей при возврате на страницу (bfcache/pageshow)
-useEffect(() => {
-  const onPageShow = () => {
-    try {
-      enableBrandsLoading();
-      if (formData.brandId) {
-        // Подгружаем модели для сохраненного бренда без сброса выбранной модели
-        selectBrand(formData.brandId);
-        if (formData.modelId) {
-          // Восстанавливаем отображение названия модели
-          handleInputChange('modelId', formData.modelId);
-        }
-      }
-    } catch (e) {
-      console.error('Ошибка восстановления бренда/модели при pageshow:', e);
-    }
+  const onVideoUpload = (urls: string[]) => {
+    setVideos(prev => [...prev, ...urls]);
   };
-  window.addEventListener('pageshow', onPageShow);
-  return () => window.removeEventListener('pageshow', onPageShow);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [enableBrandsLoading, selectBrand, formData.brandId, formData.modelId, handleInputChange]);
 
-// Очистка черновика после успешного создания
-useEffect(() => {
-  if (createdOrder) {
-    setIsOrderCreated(true);
-    clearSavedData();
-  }
-}, [createdOrder, clearSavedData]);
+  const onVideoDelete = (url: string) => {
+    setVideos(prev => prev.filter(video => video !== url));
+  };
 
-// Отслеживание состояния загрузки
-useEffect(() => {
-  setIsCreating(isLoading);
-}, [isLoading]);
-  // Обработчик данных из Telegram парсера (теперь асинхронный)
   const handleTelegramDataParsed = async (data: ParsedTelegramOrder) => {
     console.log('📝 Применение данных из Telegram:', data);
     
-    // Убеждаемся что бренды загружены для поиска ID
-    enableBrandsLoading();
-    
-    // Заполняем основные поля
+    // Fill basic fields using the existing handleInputChange
     handleInputChange('title', data.title);
     handleInputChange('place_number', data.place_number);
     handleInputChange('price', data.price);
+    handleInputChange('buyerOptId', data.buyerOptId);
     
     if (data.delivery_price) {
       handleInputChange('delivery_price', data.delivery_price);
     }
 
-    // Заполняем бренд и модель с поиском их ID
-    let brandId: string | null = null;
-    let modelId: string | null = null;
-    
-    if (data.brand) {
-      brandId = findBrandIdByName(data.brand);
-      if (brandId) {
-        handleInputChange('brandId', brandId);
-        handleInputChange('brand', data.brand);
-        console.log('✅ Заполнен бренд:', data.brand, 'ID:', brandId);
-      } else {
-        // Заполняем только название, ID останется пустым
-        handleInputChange('brand', data.brand);
-        console.log('⚠️ Бренд распознан, но не найден в базе:', data.brand);
-      }
-    } else {
-      console.log('⚠️ Бренд не распознан автоматически');
-    }
-    
-    // Для модели используем прямой поиск в базе данных
-    if (data.model && brandId) {
-      console.log('🔍 Поиск модели через прямой запрос к базе...');
-      try {
-        modelId = await findModelIdByNameDirect(data.model, brandId);
-        if (modelId) {
-          handleInputChange('modelId', modelId);
-          handleInputChange('model', data.model);
-          console.log('✅ Заполнена модель:', data.model, 'ID:', modelId);
-        } else {
-          // Заполняем только название, ID останется пустым
-          handleInputChange('model', data.model);
-          console.log('⚠️ Модель распознана, но не найдена в базе:', data.model);
-        }
-      } catch (error) {
-        console.error('❌ Ошибка поиска модели:', error);
-        handleInputChange('model', data.model);
-      }
-    } else if (data.model) {
-      handleInputChange('model', data.model);
-      console.log('⚠️ Модель распознана, но бренд не найден в базе');
-    } else {
-      console.log('⚠️ Модель не распознана автоматически');
-    }
-
-    // Ищем продавца по OPT_ID
-    console.log('🔍 Поиск продавца с OPT_ID:', data.sellerOptId);
+    // Find and set seller
     const foundSeller = sellerProfiles.find(seller => seller.opt_id === data.sellerOptId);
     if (foundSeller) {
       handleInputChange('sellerId', foundSeller.id);
       console.log('✅ Найден продавец:', foundSeller.opt_id);
     } else {
-      console.log('❌ Продавец не найден. Доступные продавцы:', sellerProfiles.map(s => s.opt_id));
       toast({
         title: "Продавец не найден",
         description: `Продавец с OPT_ID "${data.sellerOptId}" не найден в системе`,
@@ -322,34 +141,42 @@ useEffect(() => {
       });
     }
 
-    // Устанавливаем OPT_ID покупателя
-    handleInputChange('buyerOptId', data.buyerOptId);
-    console.log('✅ Установлен OPT_ID покупателя:', data.buyerOptId);
+    // Find and set brand/model
+    let brandId: string | null = null;
+    if (data.brand) {
+      brandId = findBrandIdByName(data.brand);
+      if (brandId) {
+        handleInputChange('brandId', brandId);
+        handleInputChange('brand', data.brand);
+        selectBrand(brandId);
+      } else {
+        handleInputChange('brand', data.brand);
+      }
+    }
 
-    // Формируем сообщение о результатах
-    const brandMessage = data.brand 
-      ? (brandId ? `Бренд: ${data.brand} ✅` : `Бренд: ${data.brand} ⚠️ (не найден в базе)`)
-      : 'Бренд: не распознан';
-    
-    const modelMessage = data.model 
-      ? (modelId ? `Модель: ${data.model} ✅` : `Модель: ${data.model} ⚠️ (не найдена в базе)`)
-      : 'Модель: не распознана';
+    if (data.model && brandId) {
+      try {
+        const modelId = await findModelIdByNameDirect(data.model, brandId);
+        if (modelId) {
+          handleInputChange('modelId', modelId);
+          handleInputChange('model', data.model);
+        } else {
+          handleInputChange('model', data.model);
+        }
+      } catch (error) {
+        console.error('Error finding model:', error);
+        handleInputChange('model', data.model);
+      }
+    }
 
     toast({
       title: "Поля заполнены",
-      description: `Данные из Telegram применены. ${brandMessage}, ${modelMessage}`,
+      description: "Данные из Telegram применены",
     });
   };
 
   const handleCreateOrderClick = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('🔍 Validating admin form:', {
-      title: formData.title,
-      price: formData.price,
-      sellerId: formData.sellerId,
-      buyerOptId: formData.buyerOptId,
-      brandId: formData.brandId
-    });
 
     // Validate required fields
     if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId || !formData.brandId) {
@@ -361,36 +188,27 @@ useEffect(() => {
       return;
     }
 
-    setIsCreating(true);
     guardedSubmit(async () => {
-      try {
-        await originalHandleSubmit(e);
-      } catch (error) {
-        setIsCreating(false);
-        throw error;
-      }
+      await submitOrder(formData, images, videos);
     });
   };
 
-  // Расширенный сброс формы с очисткой состояния
-  const resetFormAndClearAutosave = () => {
-    setIsCreating(false);
-    setIsOrderCreated(false);
-    clearSavedData();
+  const resetFormAndClearState = () => {
     resetForm();
+    resetCreatedOrder();
   };
-
 
   const getBuyerProfile = () => {
     return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
   };
 
-  const handleRetry = () => {
-    clearError();
-    retryOperation();
+  const selectedSeller = sellerProfiles.find(s => s.id === formData.sellerId) || null;
+
+  const clearError = () => {
+    clearSubmissionError();
   };
 
-  // Показать состояние загрузки админа
+  // Loading states
   if (isCheckingAdmin) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -413,7 +231,6 @@ useEffect(() => {
     );
   }
 
-  // Показать состояние инициализации данных
   if (isInitializing) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -457,15 +274,14 @@ useEffect(() => {
         order={createdOrder}
         images={images}
         videos={videos}
-        onNewOrder={resetFormAndClearAutosave}
-        onOrderUpdate={handleOrderUpdate}
+        onNewOrder={resetFormAndClearState}
+        onOrderUpdate={() => {}}
         buyerProfile={getBuyerProfile()}
       />
     );
   }
 
   const isFormDisabled = isLoading || !canSubmit;
-  const isImageUploadDisabled = isLoading; // Image upload should only be disabled during order creation
 
   return (
     <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
@@ -474,7 +290,6 @@ useEffect(() => {
         description="Заполните информацию о заказе"
       />
 
-      {/* Error Alert with Retry */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -483,104 +298,85 @@ useEffect(() => {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRetry}
+              onClick={clearError}
               className="ml-2"
             >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Повторить
+              <RefreshCw className="h-3 w-3" />
             </Button>
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Парсер Telegram сообщений */}
-      <TelegramOrderParser
-        onDataParsed={handleTelegramDataParsed}
-        disabled={isFormDisabled}
-      />
-      
-      {/* Оптимизированные поля формы заказа */}
-      <OptimizedSellerOrderFormFields
-        formData={formData}
-        handleInputChange={handleInputChange}
-        disabled={isFormDisabled}
-        // car data
-        brands={brands}
-        models={models}
-        isLoadingBrands={isLoadingBrands}
-        isLoadingModels={isLoadingModels}
-        enableBrandsLoading={enableBrandsLoading}
-        selectBrand={selectBrand}
-        findBrandNameById={findBrandNameById}
-        findModelNameById={findModelNameById}
-        // profiles
-        buyerProfiles={buyerProfiles}
-        sellerProfiles={sellerProfiles}
-        isLoadingBuyers={isLoadingBuyers}
-        isLoadingSellers={isLoadingSellers}
-        enableBuyersLoading={enableBuyersLoading}
-        enableSellersLoading={enableSellersLoading}
-      />
-      
-      {/* Media Upload Section */}
-      <MobileFormSection 
-        title="Медиафайлы заказа" 
-        icon={<Camera className="h-5 w-5" />}
-        defaultOpen={true}
-      >
-        <div className="space-y-6">
-          <div>
-            <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Изображения</h3>
-            <MobileOptimizedImageUpload
-              onUploadComplete={onImagesUpload}
-              existingImages={images}
-              onImageDelete={onImageDelete}
-              disabled={isImageUploadDisabled}
-              maxImages={25}
-            />
-          </div>
+      <Card>
+        <CardContent className="pt-6">
+          <TelegramOrderParser 
+            onDataParsed={handleTelegramDataParsed}
+            disabled={isFormDisabled}
+          />
+        </CardContent>
+      </Card>
 
-          <div>
-            <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Видео</h3>
-            <CloudinaryVideoUpload
-              videos={videos}
-              onUpload={onVideoUpload}
-              onDelete={onVideoDelete}
-              maxVideos={5}
-              disabled={isImageUploadDisabled}
-            />
-          </div>
-        </div>
+      <MobileFormSection title="Информация о заказе">
+        <OptimizedSellerOrderFormFields
+          formData={formData}
+          handleInputChange={handleInputChange}
+          disabled={isFormDisabled}
+          sellerProfiles={sellerProfiles}
+          buyerProfiles={buyerProfiles}
+          brands={brands}
+          models={models}
+          isLoadingBrands={isLoadingBrands}
+          isLoadingModels={isLoadingModels}
+          isLoadingBuyers={isLoadingBuyers}
+          isLoadingSellers={isLoadingSellers}
+          enableBrandsLoading={enableBrandsLoading}
+          enableBuyersLoading={enableBuyersLoading}
+          enableSellersLoading={enableSellersLoading}
+          selectBrand={selectBrand}
+          findBrandNameById={findBrandNameById}
+          findModelNameById={findModelNameById}
+        />
       </MobileFormSection>
 
-      {/* Actions */}
-      {isMobile ? (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
-          <Button
-            type="button"
-            onClick={handleCreateOrderClick}
-            disabled={isFormDisabled}
-            size="lg"
-            className="w-full touch-target min-h-[48px] text-base font-medium"
-          >
-            {isLoading ? 'Создание заказа...' : 'Создать заказ'}
-          </Button>
-        </div>
-      ) : (
-        <div className="flex justify-end pt-6 border-t">
-          <Button
-            type="button"
-            onClick={handleCreateOrderClick}
-            disabled={isFormDisabled}
-            size="lg"
-            className="min-w-[200px]"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Создать заказ
-          </Button>
-        </div>
-      )}
+      <MobileFormSection title="Изображения">
+        <MobileOptimizedImageUpload
+          onUploadComplete={onImagesUpload}
+          onImageDelete={onImageDelete}
+          existingImages={images}
+          disabled={isFormDisabled}
+          maxImages={10}
+        />
+      </MobileFormSection>
 
+      <MobileFormSection title="Видео">
+        <CloudinaryVideoUpload
+          videos={videos}
+          onUpload={onVideoUpload}
+          onDelete={onVideoDelete}
+          disabled={isFormDisabled}
+          maxVideos={3}
+        />
+      </MobileFormSection>
+
+      <div className={`${isMobile ? 'fixed bottom-0 left-0 right-0 p-4 bg-background border-t z-50' : 'flex justify-end'}`}>
+        <Button
+          onClick={handleCreateOrderClick}
+          disabled={isFormDisabled}
+          className="w-full md:w-auto"
+        >
+          {isLoading ? (
+            <>
+              <Loader className="mr-2 h-4 w-4 animate-spin" />
+              {stage || 'Создание заказа...'}
+            </>
+          ) : (
+            <>
+              <Plus className="mr-2 h-4 w-4" />
+              Создать заказ
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 };

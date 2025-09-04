@@ -1767,6 +1767,24 @@ export type Database = {
       }
     }
     Functions: {
+      admin_create_free_order: {
+        Args: {
+          p_brand?: string
+          p_buyer_opt_id: string
+          p_delivery_method?: Database["public"]["Enums"]["delivery_method"]
+          p_delivery_price_confirm?: number
+          p_description?: string
+          p_images?: string[]
+          p_model?: string
+          p_place_number?: number
+          p_price: number
+          p_seller_id: string
+          p_text_order?: string
+          p_title: string
+          p_video_url?: string[]
+        }
+        Returns: string
+      }
       admin_create_order: {
         Args: {
           p_brand?: string
