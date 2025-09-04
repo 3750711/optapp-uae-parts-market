@@ -53,7 +53,7 @@ function useOrderFormLogic({
   const [selectedBuyerId, setSelectedBuyerId] = useState<string | null>(initialData?.buyer_id || null);
   const [selectedProducts, setSelectedProducts] = useState<string[]>(initialData?.products || []);
   const [orderData, setOrderData] = useState({
-    status: initialData?.status || 'pending',
+    status: initialData?.status || 'admin_confirmed',
     delivery_address: initialData?.delivery_address || '',
     delivery_price: initialData?.delivery_price || 0,
     total_price: initialData?.total_price || 0,
@@ -74,18 +74,18 @@ function useOrderFormLogic({
 
   const statuses = useMemo(() => {
     if (isAdmin || hasAdminAccess) {
-      return ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'];
+      return ['created', 'seller_confirmed', 'admin_confirmed', 'processed', 'shipped', 'delivered', 'cancelled'];
     } else if (isSeller) {
-      return ['pending', 'processing', 'shipped', 'cancelled'];
+      return ['created', 'seller_confirmed', 'processed', 'shipped', 'cancelled'];
     } else {
-      return ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+      return ['created', 'seller_confirmed', 'processed', 'shipped', 'delivered', 'cancelled'];
     }
   }, [isAdmin, isSeller, hasAdminAccess]);
 
   useEffect(() => {
     if (initialData) {
       setOrderData({
-        status: initialData?.status || 'pending',
+        status: initialData?.status || 'admin_confirmed',
         delivery_address: initialData?.delivery_address || '',
         delivery_price: initialData?.delivery_price || 0,
         total_price: initialData?.total_price || 0,
