@@ -195,8 +195,9 @@ export const RealtimeProvider: React.FC<RealtimeProviderProps> = ({ children }) 
 
   // Test WebSocket connection
   const testConnection = useCallback(async () => {
-    const base = import.meta.env.VITE_SUPABASE_URL!;
-    const wsUrl = `${base.replace(/^http/i, 'ws')}/realtime/v1/websocket?apikey=${encodeURIComponent(import.meta.env.VITE_SUPABASE_ANON_KEY!)}&vsn=1.0.0`;
+    const { loadRuntimeConfig } = await import('@/config/runtime');
+    const config = await loadRuntimeConfig();
+    const wsUrl = `${config.SUPABASE_URL.replace(/^http/i, 'ws')}/realtime/v1/websocket?apikey=${encodeURIComponent(import.meta.env.VITE_SUPABASE_ANON_KEY!)}&vsn=1.0.0`;
     const result = await testWebSocketConnection(wsUrl);
     setDiagnostics(prev => ({ ...prev, connectionTest: result }));
     return result.success;
