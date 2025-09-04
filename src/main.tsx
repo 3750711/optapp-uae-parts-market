@@ -19,7 +19,7 @@ cleanupCorruptedCache();
 console.log('🚫 Service Worker temporarily disabled for debugging');
 
 // Supabase client uses adaptive dual-domain connection
-console.log('✅ Using dual-domain Supabase: direct + proxy fallback');
+console.log('🌍 Supabase Client initialized with custom domain');
 
 const queryClient = new QueryClient({
   defaultOptions: {
