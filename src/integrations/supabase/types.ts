@@ -2269,8 +2269,20 @@ export type Database = {
         Args: { debug_info: Json; user_id: string }
         Returns: undefined
       }
+      notify_admins_new_pending_user: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
       notify_registered_order_status: {
         Args: { p_order_id: string }
+        Returns: undefined
+      }
+      notify_user_verification_status_change: {
+        Args: {
+          p_new_status: Database["public"]["Enums"]["verification_status"]
+          p_old_status: Database["public"]["Enums"]["verification_status"]
+          p_user_id: string
+        }
         Returns: undefined
       }
       resend_order_notification: {
