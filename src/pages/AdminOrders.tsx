@@ -19,11 +19,14 @@ import { useAdminOrdersState } from "@/hooks/useAdminOrdersState";
 import { useOrderActions } from "@/hooks/useOrderActions";
 import { AdminOrdersErrorBoundary } from "@/components/error/AdminOrdersErrorBoundary";
 import { useAdminPWALifecycle } from "@/admin/_shared/AdminPWALifecycle";
+import { RealtimeDiagnostics } from "@/components/realtime/RealtimeDiagnostics";
+import { useOptimizedAdminAccess } from "@/hooks/useOptimizedAdminAccess";
 
 const AdminOrders = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAdmin } = useOptimizedAdminAccess();
   
   const {
     searchTerm,
@@ -277,6 +280,20 @@ const AdminOrders = () => {
             onBulkStatusChange={handleBulkStatusChange}
             onSingleOrderDelete={handleSingleOrderDelete}
           />
+          
+          {/* Realtime Diagnostics - DEV mode or Admins only */}
+          {(import.meta.env.DEV || isAdmin) && (
+            <div className="mt-6">
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                    Realtime Diagnostics
+                  </h3>
+                  <RealtimeDiagnostics />
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </AdminOrdersErrorBoundary>
     </AdminLayout>

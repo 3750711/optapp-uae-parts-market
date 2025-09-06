@@ -38,8 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profileError, setProfileError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
-  console.log('🚫 AuthContext: Simplified version for debugging - PWA features disabled');
-
   // isAdmin зависит только от текущего профиля
   const isAdmin = React.useMemo<boolean | null>(() => {
     if (profile === null) return null;
