@@ -347,15 +347,37 @@ export const useStagedCloudinaryUpload = () => {
     // Convert file to base64 for transmission
     const fileToBase64 = (file: File): Promise<string> => {
       return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
-          const base64 = result.split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
+        try {
+          const reader = new FileReader();
+          reader.onload = () => {
+            try {
+              const result = reader.result as string;
+              if (!result || typeof result !== 'string') {
+                throw new Error('Failed to read file as string');
+              }
+              
+              // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
+              const base64 = result.split(',')[1];
+              if (!base64) {
+                throw new Error('Invalid base64 data - no comma separator found');
+              }
+              
+              console.log(`📄 File to base64 conversion successful: ${file.name}, base64 length: ${base64.length}`);
+              resolve(base64);
+            } catch (error) {
+              console.error('❌ Error processing FileReader result:', error);
+              reject(new Error(`Failed to process file data: ${error instanceof Error ? error.message : 'unknown error'}`));
+            }
+          };
+          reader.onerror = () => {
+            console.error('❌ FileReader error:', reader.error);
+            reject(new Error('Failed to read file'));
+          };
+          reader.readAsDataURL(file);
+        } catch (error) {
+          console.error('❌ Error setting up FileReader:', error);
+          reject(new Error(`Failed to setup file reader: ${error instanceof Error ? error.message : 'unknown error'}`));
+        }
       });
     };
 
@@ -379,6 +401,7 @@ export const useStagedCloudinaryUpload = () => {
       
       // Convert file to base64
       const fileBase64 = await fileToBase64(file);
+      console.log(`📤 File conversion complete: ${file.name}, base64 length: ${fileBase64.length}`);
       
       // Prepare the request body
       const requestBody = {
@@ -387,9 +410,11 @@ export const useStagedCloudinaryUpload = () => {
         customPublicId: publicId
       };
 
-      // Call the edge function using supabase client
+      console.log(`📤 Uploading to Edge Function: ${file.name}, size: ${file.size} bytes, publicId: ${publicId}`);
+
+      // Call the edge function using supabase client - FIX: stringify the body
       const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
-        body: requestBody,
+        body: JSON.stringify(requestBody),
         headers: {
           'Content-Type': 'application/json'
         }
@@ -400,8 +425,25 @@ export const useStagedCloudinaryUpload = () => {
 
       if (error) {
         console.error('❌ Edge Function error:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          requestBody: {
+            fileName: requestBody.fileName,
+            customPublicId: requestBody.customPublicId,
+            base64Length: requestBody.fileData?.length || 'undefined'
+          }
+        });
         throw new Error(error.message || 'Edge Function call failed');
       }
+
+      console.log(`✅ Edge Function response received:`, {
+        success: data?.success,
+        hasMainImageUrl: !!data?.mainImageUrl,
+        hasPublicId: !!data?.publicId,
+        error: data?.error
+      });
 
       if (!data?.success || !data?.mainImageUrl || !data?.publicId) {
         console.error('❌ Invalid Edge Function response:', data);
