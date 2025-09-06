@@ -85,7 +85,7 @@ export const useAdminFreeOrderSubmission = (): FreeOrderSubmissionResult => {
 
       setState(prev => ({ ...prev, progress: 60 }));
 
-      // Call the admin_create_order function with admin_confirmed status
+      // Call the admin_create_order function with correct parameter order
       const { data: orderId, error } = await supabase.rpc('admin_create_order', {
         p_title: formData.title.trim(),
         p_price: Number(formData.price),

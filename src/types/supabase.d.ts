@@ -83,7 +83,7 @@ interface CustomRPCFunctions {
     p_buyer_id: string;
     p_brand: string;
     p_model: string;
-    p_status: 'created' | 'seller_confirmed' | 'processed' | 'cancelled' | 'admin_confirmed';
+    p_status: 'created' | 'seller_confirmed' | 'admin_confirmed' | 'processed' | 'shipped' | 'delivered' | 'cancelled';
     p_order_created_type: 'free_order' | 'product_order';
     p_telegram_url_order: string;
     p_images: string[];
