@@ -73,20 +73,24 @@ interface CustomRPCFunctions {
     search_term: string;
   }) => any[];
 
-  admin_create_free_order: (args: {
+  admin_create_order: (args: {
     p_title: string;
     p_price: number;
+    p_place_number: number;
     p_seller_id: string;
-    p_buyer_opt_id: string;
-    p_brand?: string;
-    p_model?: string;
-    p_description?: string;
-    p_images?: string[];
-    p_video_url?: string[];
-    p_delivery_method?: 'self_pickup' | 'delivery';
-    p_place_number?: number;
-    p_delivery_price_confirm?: number | null;
-    p_text_order?: string;
+    p_order_seller_name: string;
+    p_seller_opt_id: string;
+    p_buyer_id: string;
+    p_brand: string;
+    p_model: string;
+    p_status: 'created' | 'seller_confirmed' | 'processed' | 'cancelled' | 'admin_confirmed';
+    p_order_created_type: 'free_order' | 'product_order';
+    p_telegram_url_order: string;
+    p_images: string[];
+    p_product_id: string | null;
+    p_delivery_method: 'self_pickup' | 'delivery';
+    p_text_order: string;
+    p_delivery_price_confirm: number | null;
   }) => string; // Returns UUID
 }
 
