@@ -2273,10 +2273,6 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
-      notify_registered_order_status: {
-        Args: { p_order_id: string }
-        Returns: undefined
-      }
       notify_user_verification_status_change: {
         Args: {
           p_new_status: Database["public"]["Enums"]["verification_status"]
