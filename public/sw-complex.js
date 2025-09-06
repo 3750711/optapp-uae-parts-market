@@ -1,6 +1,10 @@
-// PWA Service Worker - Optimized for minimal refresh behavior
-const CACHE_NAME = 'partsbay-pwa-v4-back-to-supabase';
-const STATIC_CACHE_NAME = 'partsbay-static-v4-back-to-supabase';
+// PWA Service Worker - Optimized for minimal refresh behavior with custom domain
+const CACHE_NAME = 'partsbay-pwa-v5-custom-domain';
+const STATIC_CACHE_NAME = 'partsbay-static-v5-custom-domain';
+
+// Supabase configuration
+const SUPABASE_URL = 'https://api.partsbay.ae';
+const SUPABASE_ORIGIN = new URL(SUPABASE_URL).origin;
 
 // Essential resources to cache
 const ESSENTIAL_RESOURCES = ['/', '/offline.html'];
@@ -102,19 +106,20 @@ self.addEventListener('fetch', (event) => {
   // Skip caching for upload endpoints and external APIs
   const isUploadEndpoint = url.pathname.startsWith('/api/') || 
                           url.hostname.includes('cloudinary.com') ||
-                          url.hostname.includes('supabase.co') ||
                           (url.hostname !== self.location.hostname && request.method === 'POST');
   
-  // CRITICAL: Never cache ANY Supabase endpoints to prevent auth issues
-  const isSupabaseEndpoint = url.pathname.includes('/auth/') ||
+  // CRITICAL: Never cache ANY Supabase endpoints to prevent auth issues - use custom domain
+  const isSupabaseEndpoint = (url.origin === SUPABASE_ORIGIN && (
+                            url.pathname.includes('/auth/') ||
                             url.pathname.includes('/rest/') ||
                             url.pathname.includes('/storage/') ||
                             url.pathname.includes('/functions/') ||
-                            url.pathname.includes('/realtime/') ||
-                            url.hostname.includes('supabase.co');
+                            url.pathname.includes('/realtime/')
+                          )) || url.hostname.includes('supabase.co');
   
   if (isUploadEndpoint || isSupabaseEndpoint) {
-    // Never cache uploads, Supabase endpoints or external API calls - pass through directly
+    // Network-only for Supabase API calls - no caching to prevent auth/data issues
+    event.respondWith(fetch(request));
     return;
   }
 

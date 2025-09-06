@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SyncData {
   id: string;
@@ -127,44 +128,44 @@ export const useBackgroundSync = () => {
 
   // Sync free order
   const syncFreeOrder = useCallback(async (orderData: any): Promise<boolean> => {
-    const response = await fetch('/api/orders/free', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify(orderData)
-    });
-    
-    return response.ok;
+    try {
+      const { error } = await supabase.functions.invoke('admin-free-order', {
+        body: orderData
+      });
+      
+      return !error;
+    } catch (error) {
+      console.error('Failed to sync free order:', error);
+      return false;
+    }
   }, []);
 
   // Sync price offer
   const syncPriceOffer = useCallback(async (offerData: any): Promise<boolean> => {
-    const response = await fetch('/api/price-offers', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify(offerData)
-    });
-    
-    return response.ok;
+    try {
+      const { error } = await supabase.functions.invoke('create-price-offer', {
+        body: offerData
+      });
+      
+      return !error;
+    } catch (error) {
+      console.error('Failed to sync price offer:', error);
+      return false;
+    }
   }, []);
 
   // Sync product
   const syncProduct = useCallback(async (productData: any): Promise<boolean> => {
-    const response = await fetch('/api/products', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify(productData)
-    });
-    
-    return response.ok;
+    try {
+      const { error } = await supabase.functions.invoke('create-product', {
+        body: productData
+      });
+      
+      return !error;
+    } catch (error) {
+      console.error('Failed to sync product:', error);
+      return false;
+    }
   }, []);
 
   // Get pending sync count

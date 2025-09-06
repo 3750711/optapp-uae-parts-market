@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import BackButton from "@/components/navigation/BackButton";
+import { supabase } from '@/integrations/supabase/client';
 
 const GenerateOGImage = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -14,22 +15,16 @@ const GenerateOGImage = () => {
     setIsGenerating(true);
     
     try {
-      const response = await fetch('/api/generate-og-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('generate-og-image', {
+        body: {
           prompt: "clean minimalist logo with text 'partsbay.ae' on pure white background, modern typography, professional business logo, high contrast black text on white, 1200x630 pixels, social media banner"
-        })
+        }
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to generate image');
+      if (error) {
+        throw new Error(error.message || 'Failed to generate image');
       }
 
-      const data = await response.json();
       setGeneratedImage(data.image);
       
       toast({
