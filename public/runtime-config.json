@@ -1,3 +1,9 @@
 {
-  "SUPABASE_URL": "https://api.partsbay.ae"
+  "SUPABASE_URL": "https://api.partsbay.ae",
+  "REALTIME_ENABLED": true,
+  "REALTIME_PARAMS": {
+    "eventsPerSecond": 10,
+    "timeout": 30000,
+    "vsn": "1.0.0"
+  }
 }

@@ -6,8 +6,8 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { devLog, prodError } from '@/utils/logger';
 import { detectWebSocketSupport, testWebSocketConnection, calculateBackoff, getFirefoxRecommendations, type WebSocketDiagnostics } from '@/utils/websocketUtils';
 
-// 🚫 ВРЕМЕННОЕ ОТКЛЮЧЕНИЕ WEBSOCKET ДЛЯ ДИАГНОСТИКИ CORS
-const REALTIME_DISABLED = true;
+// ✅ ВКЛЮЧЕНИЕ WEBSOCKET ЧЕРЕЗ ПРОКСИ api.partsbay.ae
+const REALTIME_DISABLED = false;
 
 interface RealtimeContextType {
   isConnected: boolean;

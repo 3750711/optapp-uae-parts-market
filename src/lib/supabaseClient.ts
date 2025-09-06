@@ -39,6 +39,13 @@ async function initializeSupabaseClient(): Promise<SupabaseClientType> {
         autoRefreshToken: true, 
         detectSessionInUrl: true, 
         flowType: 'pkce' 
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: config.REALTIME_PARAMS?.eventsPerSecond || 10,
+          timeout: config.REALTIME_PARAMS?.timeout || 30000,
+          vsn: config.REALTIME_PARAMS?.vsn || '1.0.0'
+        }
       }
     });
 

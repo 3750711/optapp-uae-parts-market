@@ -1,5 +1,11 @@
 export interface RuntimeConfig {
   SUPABASE_URL: string;
+  REALTIME_ENABLED?: boolean;
+  REALTIME_PARAMS?: {
+    eventsPerSecond: number;
+    timeout: number;
+    vsn: string;
+  };
 }
 
 let cachedConfig: RuntimeConfig | null = null;

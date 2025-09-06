@@ -7,7 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary';
-import { RealtimeProvider } from '@/contexts/RealtimeProvider.noop';
+import { RealtimeProvider } from '@/contexts/RealtimeProvider';
 import LanguageProvider from '@/components/layout/LanguageProvider';
 
 import { ThemeProvider } from "next-themes";
