@@ -130,19 +130,16 @@ export const useNotifications = () => {
     }
   }, [user?.id]);
 
-  // ВРЕМЕННО ОТКЛЮЧЕНО: Setup real-time subscription
+  // Setup real-time subscription for notifications
   useEffect(() => {
     if (!user) return;
 
-    console.log('🔍 [useNotifications] Setting up for user:', user.id);
+    console.log('🔍 [useNotifications] Setting up realtime for user:', user.id);
     
-    // Только базовая загрузка без Realtime подписок
+    // Initial fetch
     fetchNotifications();
     
-    // REALTIME ВРЕМЕННО ОТКЛЮЧЕН ДЛЯ ДИАГНОСТИКИ
-    console.log('⚠️ [useNotifications] Realtime subscriptions disabled for diagnostics');
-    
-    /*
+    // Setup realtime subscription
     const channel = supabase
       .channel('notifications-changes')
       .on(
@@ -154,7 +151,32 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          // ... realtime logic
+          console.log('📢 [useNotifications] New notification received:', payload.new);
+          
+          // Process new notification with language logic
+          const notification = payload.new as Notification;
+          const userType = profile?.user_type || 'buyer';
+          const isSellerViewingEnglish = userType === 'seller';
+          
+          const processedNotification = {
+            ...notification,
+            title: isSellerViewingEnglish && notification.title_en 
+              ? notification.title_en 
+              : notification.title || translations.notificationTitles[notification.type as keyof typeof translations.notificationTitles] || 'Notification',
+            message: isSellerViewingEnglish && notification.message_en 
+              ? notification.message_en 
+              : notification.message || translations.notificationMessages[notification.type as keyof typeof translations.notificationMessages]?.(notification.data) || ''
+          };
+          
+          // Add new notification to the top of the list
+          setNotifications(prev => [processedNotification, ...prev]);
+          
+          // Show toast notification
+          const toastTitle = isSellerViewingEnglish ? 'New notification' : 'Новое уведомление';
+          toast({
+            title: toastTitle,
+            description: processedNotification.title,
+          });
         }
       )
       .on(
@@ -166,16 +188,37 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          // ... realtime logic
+          console.log('🔄 [useNotifications] Notification updated:', payload.new);
+          
+          // Update existing notification in state
+          const updatedNotification = payload.new as Notification;
+          const userType = profile?.user_type || 'buyer';
+          const isSellerViewingEnglish = userType === 'seller';
+          
+          const processedNotification = {
+            ...updatedNotification,
+            title: isSellerViewingEnglish && updatedNotification.title_en 
+              ? updatedNotification.title_en 
+              : updatedNotification.title || translations.notificationTitles[updatedNotification.type as keyof typeof translations.notificationTitles] || 'Notification',
+            message: isSellerViewingEnglish && updatedNotification.message_en 
+              ? updatedNotification.message_en 
+              : updatedNotification.message || translations.notificationMessages[updatedNotification.type as keyof typeof translations.notificationMessages]?.(updatedNotification.data) || ''
+          };
+          
+          setNotifications(prev => 
+            prev.map(n => n.id === updatedNotification.id ? processedNotification : n)
+          );
         }
       )
       .subscribe();
 
+    console.log('✅ [useNotifications] Realtime channel subscribed');
+
     return () => {
+      console.log('🔌 [useNotifications] Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-    */
-  }, [user, fetchNotifications]); // Убрали зависимости от profile и translations
+  }, [user, fetchNotifications, profile?.user_type, translations]);
 
   console.log('🔍 [useNotifications] Hook execution complete');
 

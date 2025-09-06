@@ -42,6 +42,8 @@ async function initializeSupabaseClient(): Promise<SupabaseClientType> {
       },
       realtime: {
         params: {
+          apikey: supabaseAnonKey,
+          authorization: `Bearer ${supabaseAnonKey}`,
           eventsPerSecond: config.REALTIME_PARAMS?.eventsPerSecond || 10,
           timeout: config.REALTIME_PARAMS?.timeout || 30000,
           vsn: config.REALTIME_PARAMS?.vsn || '1.0.0'
@@ -51,7 +53,11 @@ async function initializeSupabaseClient(): Promise<SupabaseClientType> {
 
     console.log('🌍 Supabase Client initialized successfully');
     console.log('   URL:', config.SUPABASE_URL);
-    console.log('   Key:', supabaseAnonKey.substring(0, 20) + '...');
+    
+    // Only log keys in development mode
+    if (import.meta.env.DEV) {
+      console.log('   Key:', supabaseAnonKey.substring(0, 20) + '...');
+    }
     
     return client;
   } catch (error) {
