@@ -76,21 +76,20 @@ interface CustomRPCFunctions {
   admin_create_order: (args: {
     p_title: string;
     p_price: number;
-    p_place_number: number;
     p_seller_id: string;
-    p_order_seller_name: string;
-    p_seller_opt_id: string;
     p_buyer_id: string;
+    p_status: 'created' | 'seller_confirmed' | 'admin_confirmed' | 'processed' | 'shipped' | 'delivered' | 'cancelled';
+    p_quantity: number;
+    p_delivery_method: 'self_pickup' | 'cargo_rf' | 'cargo_kz';
+    p_place_number: number;
+    p_delivery_price_confirm: number | null;
+    p_product_id: string | null;
     p_brand: string;
     p_model: string;
-    p_status: 'created' | 'seller_confirmed' | 'admin_confirmed' | 'processed' | 'shipped' | 'delivered' | 'cancelled';
-    p_order_created_type: 'free_order' | 'product_order';
-    p_telegram_url_order: string;
+    p_description: string;
     p_images: string[];
-    p_product_id: string | null;
-    p_delivery_method: 'self_pickup' | 'delivery';
+    p_video_url: string[];
     p_text_order: string;
-    p_delivery_price_confirm: number | null;
   }) => string; // Returns UUID
 }
 

@@ -85,25 +85,24 @@ export const useAdminFreeOrderSubmission = (): FreeOrderSubmissionResult => {
 
       setState(prev => ({ ...prev, progress: 60 }));
 
-      // Call the admin_create_order function with correct parameter order
+      // Call the admin_create_order function with correct parameter order matching DB signature
       const { data: orderId, error } = await supabase.rpc('admin_create_order', {
         p_title: formData.title.trim(),
         p_price: Number(formData.price),
-        p_place_number: Number(formData.place_number) || 1,
         p_seller_id: formData.sellerId,
-        p_order_seller_name: sellerProfile.full_name || 'Unknown Seller',
-        p_seller_opt_id: sellerProfile.opt_id || '',
         p_buyer_id: buyerProfile.id,
+        p_status: 'admin_confirmed',
+        p_quantity: 1,
+        p_delivery_method: formData.deliveryMethod || 'self_pickup',
+        p_place_number: Number(formData.place_number) || 1,
+        p_delivery_price_confirm: formData.delivery_price ? Number(formData.delivery_price) : null,
+        p_product_id: null,
         p_brand: formData.brand?.trim() || '',
         p_model: formData.model?.trim() || '',
-        p_status: 'admin_confirmed',
-        p_order_created_type: 'free_order',
-        p_telegram_url_order: '',
+        p_description: formData.description?.trim() || '',
         p_images: images.length > 0 ? images : [],
-        p_product_id: null,
-        p_delivery_method: formData.deliveryMethod || 'self_pickup',
-        p_text_order: formData.text_order?.trim() || '',
-        p_delivery_price_confirm: formData.delivery_price ? Number(formData.delivery_price) : null
+        p_video_url: videos.length > 0 ? videos : [],
+        p_text_order: formData.text_order?.trim() || ''
       });
 
       if (error) {
