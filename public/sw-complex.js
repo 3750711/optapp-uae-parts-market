@@ -1,6 +1,6 @@
 // PWA Service Worker - Optimized for minimal refresh behavior with custom domain
-const CACHE_NAME = 'partsbay-pwa-v5-custom-domain';
-const STATIC_CACHE_NAME = 'partsbay-static-v5-custom-domain';
+const CACHE_NAME = 'partsbay-pwa-v6-custom-domain';
+const STATIC_CACHE_NAME = 'partsbay-static-v6-custom-domain';
 
 // Supabase configuration
 const SUPABASE_URL = 'https://api.partsbay.ae';
@@ -115,7 +115,7 @@ self.addEventListener('fetch', (event) => {
                             url.pathname.includes('/storage/') ||
                             url.pathname.includes('/functions/') ||
                             url.pathname.includes('/realtime/')
-                          )) || url.hostname.includes('supabase.co');
+                          ));
   
   if (isUploadEndpoint || isSupabaseEndpoint) {
     // Network-only for Supabase API calls - no caching to prevent auth/data issues
