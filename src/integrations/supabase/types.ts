@@ -2014,6 +2014,14 @@ export type Database = {
         Args: { p_email: string; p_opt_id?: string }
         Returns: Json
       }
+      create_price_offer_notification: {
+        Args: {
+          p_buyer_id: string
+          p_offered_price: number
+          p_product_id: string
+        }
+        Returns: undefined
+      }
       create_user_order: {
         Args: {
           p_brand: string
@@ -2259,6 +2267,10 @@ export type Database = {
       }
       log_telegram_auth_debug: {
         Args: { debug_info: Json; user_id: string }
+        Returns: undefined
+      }
+      notify_registered_order_status: {
+        Args: { p_order_id: string }
         Returns: undefined
       }
       resend_order_notification: {
