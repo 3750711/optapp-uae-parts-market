@@ -44,6 +44,27 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          created_at: string | null
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       car_brands: {
         Row: {
           created_at: string
@@ -1723,6 +1744,21 @@ export type Database = {
       }
     }
     Views: {
+      app_public_settings: {
+        Row: {
+          key: string | null
+          value: string | null
+        }
+        Insert: {
+          key?: string | null
+          value?: string | null
+        }
+        Update: {
+          key?: string | null
+          value?: string | null
+        }
+        Relationships: []
+      }
       public_seller_profiles: {
         Row: {
           company_name: string | null
@@ -2021,6 +2057,10 @@ export type Database = {
       force_user_logout: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      functions_url: {
+        Args: { p_path: string }
+        Returns: string
       }
       get_admin_add_product_data: {
         Args: Record<PropertyKey, never>
