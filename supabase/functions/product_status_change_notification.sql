@@ -53,7 +53,7 @@ BEGIN
         -- Вызываем Edge Function для отправки уведомления
         PERFORM
           net.http_post(
-            url:='https://vfiylfljiixqkjfqubyq.supabase.co/functions/v1/send-telegram-notification',
+            url:='https://api.partsbay.ae/functions/v1/send-telegram-notification',
             headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0"}'::jsonb,
             body:=json_build_object('productId', NEW.id, 'notificationType', notification_type)::jsonb
           );
