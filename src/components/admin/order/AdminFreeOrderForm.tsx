@@ -104,11 +104,6 @@ export const AdminFreeOrderForm = () => {
     setAllImages(completedUrls);
   };
 
-  const onImagesComplete = (finalUrls: string[]) => {
-    console.log('✅ All images upload completed:', finalUrls);
-    setAllImages(finalUrls);
-  };
-
   const onVideoUpload = (urls: string[]) => {
     setVideos(prev => [...prev, ...urls]);
   };
@@ -344,7 +339,6 @@ export const AdminFreeOrderForm = () => {
         <div className="space-y-4">
           <SimplePhotoUploader
             onChange={onImagesUpload}
-            onComplete={onImagesComplete}
             max={10}
             language="ru"
             buttonText="Загрузить изображения"
