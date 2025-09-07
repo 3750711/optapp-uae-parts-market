@@ -1897,7 +1897,7 @@ export type Database = {
         Returns: undefined
       }
       admin_resend_welcome: {
-        Args: { user_id_param: string }
+        Args: { p_user_id: string }
         Returns: Json
       }
       binary_quantize: {
@@ -2019,6 +2019,14 @@ export type Database = {
           p_buyer_id: string
           p_offered_price: number
           p_product_id: string
+        }
+        Returns: undefined
+      }
+      create_price_offer_status_notification: {
+        Args: {
+          p_offer_id: string
+          p_seller_response?: string
+          p_status: string
         }
         Returns: undefined
       }
