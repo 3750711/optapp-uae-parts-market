@@ -1801,6 +1801,16 @@ export type Database = {
         }
         Relationships: []
       }
+      v_hardcoded_urls_check: {
+        Row: {
+          found_urls: string[] | null
+          function_body: string | null
+          function_name: unknown | null
+          schema_name: unknown | null
+          url_type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_create_free_order: {
@@ -1920,6 +1930,14 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      check_no_hardcoded_function_urls: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          details: Json
+          message: string
+          status: string
+        }[]
+      }
       check_opt_id_exists: {
         Args: { p_ip_address?: unknown; p_opt_id: string }
         Returns: boolean
@@ -1963,6 +1981,16 @@ export type Database = {
       cleanup_expired_telegram_sessions: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      cleanup_hardcoded_function_urls: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          action: string
+          function_name: string
+          new_url: string
+          old_url: string
+          status: string
+        }[]
       }
       cleanup_old_login_attempts: {
         Args: Record<PropertyKey, never>
@@ -2091,6 +2119,15 @@ export type Database = {
           | { p_ip_address?: unknown; p_opt_id: string }
           | { p_opt_id: string }
         Returns: string
+      }
+      get_functions_url_patterns: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          correct_usage: string
+          description: string
+          example: string
+          pattern_type: string
+        }[]
       }
       get_next_order_number: {
         Args: Record<PropertyKey, never>
@@ -2276,6 +2313,10 @@ export type Database = {
       log_telegram_auth_debug: {
         Args: { debug_info: Json; user_id: string }
         Returns: undefined
+      }
+      monitor_function_url_compliance: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       notify_admins_new_pending_user: {
         Args: { p_user_id: string }
@@ -2489,6 +2530,10 @@ export type Database = {
           p_order_id: string
           p_video_url?: string[]
         }
+        Returns: boolean
+      }
+      validate_functions_url_compliance: {
+        Args: Record<PropertyKey, never>
         Returns: boolean
       }
       validate_profile_update: {
