@@ -411,10 +411,12 @@ export const useStagedCloudinaryUpload = () => {
       };
 
       console.log(`📤 Uploading to Edge Function: ${file.name}, size: ${file.size} bytes, publicId: ${publicId}`);
+      console.log(`🔗 Edge Function URL: ${supabase.supabaseUrl}/functions/v1/cloudinary-upload`);
+      console.log(`📝 Request body:`, requestBody);
 
       // Call the edge function using supabase client
       const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
-        body: requestBody, // Supabase client handles JSON serialization
+        body: JSON.stringify(requestBody), // Must stringify for Edge Function
         headers: {
           'Content-Type': 'application/json'
         }
