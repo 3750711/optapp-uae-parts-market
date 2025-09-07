@@ -403,58 +403,57 @@ export const useStagedCloudinaryUpload = () => {
       const fileBase64 = await fileToBase64(file);
       console.log(`📤 File conversion complete: ${file.name}, base64 length: ${fileBase64.length}`);
       
-      // Prepare the request body
+      // Prepare the request body for new Edge Function format: { base64, name, type, folder }
       const requestBody = {
-        fileData: fileBase64,
-        fileName: file.name,
-        customPublicId: publicId
+        base64: fileBase64,
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        folder: 'products'
       };
 
-      console.log(`📤 Uploading to Edge Function: ${file.name}, size: ${file.size} bytes, publicId: ${publicId}`);
-      console.log(`🔗 Edge Function URL: ${supabase.supabaseUrl}/functions/v1/cloudinary-upload`);
+      console.log(`📤 Uploading to Edge Function: ${file.name}, size: ${file.size} bytes`);
+      
+      // Use direct fetch() to Edge Function for better control over response
+      const edgeFunctionUrl = `${supabase.supabaseUrl}/functions/v1/cloudinary-upload`;
+      console.log(`🔗 Edge Function URL: ${edgeFunctionUrl}`);
       console.log(`📝 Request body:`, requestBody);
 
-      // Call the edge function using supabase client
-      const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
-        body: JSON.stringify(requestBody), // Must stringify for Edge Function
+      const response = await fetch(edgeFunctionUrl, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'apikey': supabase.supabaseKey
+        },
+        body: JSON.stringify(requestBody)
       });
 
       stopProgress();
       onProgress(100);
 
-      // Log raw response for debugging (first 500 chars)
-      if (typeof data === 'string') {
-        console.debug('📥 Raw response (first 500 chars):', data.substring(0, 500));
+      // Read response as text first, log first 500 chars, then parse JSON
+      const responseText = await response.text();
+      console.log(`📥 Raw response (first 500 chars): ${responseText.substring(0, 500)}`);
+
+      if (!response.ok) {
+        console.error(`❌ Edge function failed: ${response.status} ${response.statusText}`);
+        console.error(`Raw response body: ${responseText}`);
+        throw new Error(`Edge function failed: ${response.status} ${response.statusText}\nResponse: ${responseText}`);
       }
 
-      if (error) {
-        console.error('❌ Edge Function error:', error);
-        console.error('❌ Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name,
-          requestBody: {
-            fileName: requestBody.fileName,
-            customPublicId: requestBody.customPublicId,
-            base64Length: requestBody.fileData?.length || 'undefined'
-          }
-        });
-        
-        // Try to parse the error if it contains JSON
-        let errorMessage = error.message || 'Edge Function call failed';
-        try {
-          if (typeof error.message === 'string' && error.message.includes('{')) {
-            const parsed = JSON.parse(error.message);
-            errorMessage = parsed.error || parsed.message || errorMessage;
-          }
-        } catch {
-          // Keep original error message if JSON parsing fails
-        }
-        
-        throw new Error(errorMessage);
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('✅ Edge function response parsed:', data);
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON response:', parseError);
+        console.error(`Raw response: ${responseText}`);
+        throw new Error(`Invalid JSON response from Edge Function: ${responseText}`);
+      }
+
+      if (!data?.success) {
+        console.error('❌ Upload failed:', data);
+        throw new Error(data?.error || 'Upload failed');
       }
 
       console.log(`✅ Edge Function response received:`, {
