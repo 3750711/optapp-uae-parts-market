@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useAdminFreeOrderSubmission } from '@/hooks/admin-order/useAdminFreeOrderSubmission';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
-import { MobileOptimizedImageUpload } from '@/components/ui/MobileOptimizedImageUpload';
+import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { TelegramOrderParser } from './TelegramOrderParser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader, AlertCircle, Plus, RefreshCw, Database } from 'lucide-react';
+import { Loader, AlertCircle, Plus, RefreshCw, Database, X } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -97,14 +97,11 @@ export const AdminFreeOrderForm = () => {
     }
   });
 
-  // Handle image and video uploads using the existing pattern
-  const onImagesUpload = (urls: string[]) => {
-    setAllImages(urls);
-  };
-
-  const onImageDelete = (url: string) => {
-    const newImages = images.filter(img => img !== url);
-    setAllImages(newImages);
+  // Handle image uploads with SimplePhotoUploader format
+  const onImagesUpload = (items: any[]) => {
+    // SimplePhotoUploader returns items with cloudinaryUrl property
+    const urls = items.map(item => item.cloudinaryUrl).filter(Boolean);
+    setAllImages([...images, ...urls]);
   };
 
   const onVideoUpload = (urls: string[]) => {
@@ -339,13 +336,43 @@ export const AdminFreeOrderForm = () => {
       </MobileFormSection>
 
       <MobileFormSection title="Изображения">
-        <MobileOptimizedImageUpload
-          onUploadComplete={onImagesUpload}
-          onImageDelete={onImageDelete}
-          existingImages={images}
-          disabled={isFormDisabled}
-          maxImages={10}
-        />
+        <div className="space-y-4">
+          <SimplePhotoUploader
+            onChange={onImagesUpload}
+            max={10}
+            language="ru"
+            buttonText="Загрузить изображения"
+          />
+          
+          {/* Display existing images with delete option */}
+          {images.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {images.map((url, index) => (
+                <div key={index} className="relative aspect-square">
+                  <img
+                    src={url}
+                    alt={`Изображение ${index + 1}`}
+                    className="w-full h-full object-cover rounded-lg border cursor-zoom-in"
+                    onClick={() => window.open(url, '_blank')}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => {
+                      const newImages = images.filter(img => img !== url);
+                      setAllImages(newImages);
+                    }}
+                    className="absolute top-2 right-2 h-6 w-6 p-0"
+                    disabled={isFormDisabled}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </MobileFormSection>
 
       <MobileFormSection title="Видео">
