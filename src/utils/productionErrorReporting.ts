@@ -23,11 +23,11 @@ interface ErrorReportingConfig {
 
 class ProductionErrorReporting {
   private config: ErrorReportingConfig = {
-    enabled: false, // 🚫 ВРЕМЕННО ОТКЛЮЧЕНО для Safe Baseline
+    enabled: false, // 🚫 TEMPORARILY DISABLED for Safe Baseline
     maxReportsPerSession: 50,
     batchSize: 10,
-    flushInterval: 30000, // 30 секунд
-    endpoint: '/functions/v1/error-reports'
+    flushInterval: 30000, // 30 seconds
+    endpoint: 'error-reports' // Use relative endpoint for supabase.functions.invoke
   };
 
   private errorQueue: ErrorReport[] = [];

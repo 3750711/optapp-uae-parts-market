@@ -95,35 +95,18 @@ export const uploadToCloudinary = async (
       hasCustomPublicId: !!customPublicId
     });
     
-    // Get runtime config and token
-    const config = getRuntimeConfig();
-    const token = await getUserToken();
-    const functionUrl = `${config.SUPABASE_URL}/functions/v1/cloudinary-upload`;
+    console.log('☁️ Calling Cloudinary upload via supabase.functions.invoke...');
     
-    console.log('🌐 Request URL:', functionUrl);
-    
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(requestData)
+    const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
+      body: requestData
     });
 
-    // Log raw response for debugging
-    const responseText = await response.text();
-    console.log('📥 Raw response (first 500 chars):', responseText.slice(0, 500));
-    console.log('📊 Response status:', response.status, response.statusText);
-
-    if (!response.ok) {
-      console.error('❌ HTTP Error:', response.status, response.statusText);
-      console.error('❌ Response body:', responseText.slice(0, 1000));
-      throw new Error(`HTTP ${response.status}: ${responseText.slice(0, 200)}`);
+    if (error) {
+      console.error('❌ Edge function error:', error);
+      throw new Error(`Edge function failed: ${error.message}`);
     }
 
-    // Parse JSON safely
-    const data = safeJsonParse(responseText);
+    console.log('📥 Edge function response:', data);
     
     console.log('📥 Parsed response:', {
       success: data.success,
@@ -198,32 +181,18 @@ export const uploadDirectToCloudinary = async (
       dataSize: base64.length
     });
     
-    // Get runtime config and token
-    const config = getRuntimeConfig();
-    const token = await getUserToken();
-    const functionUrl = `${config.SUPABASE_URL}/functions/v1/cloudinary-upload`;
+    console.log('☁️ Direct upload to Cloudinary via supabase.functions.invoke...');
     
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify(requestData)
+    const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
+      body: requestData
     });
 
-    // Log raw response for debugging
-    const responseText = await response.text();
-    console.log('📥 Direct upload raw response (first 500 chars):', responseText.slice(0, 500));
-
-    if (!response.ok) {
-      console.error('❌ Direct upload HTTP Error:', response.status);
-      console.error('❌ Response body:', responseText.slice(0, 1000));
-      throw new Error(`HTTP ${response.status}: ${responseText.slice(0, 200)}`);
+    if (error) {
+      console.error('❌ Direct upload error:', error);
+      throw new Error(`Direct upload failed: ${error.message}`);
     }
 
-    // Parse JSON safely
-    const data = safeJsonParse(responseText);
+    console.log('📥 Direct upload response:', data);
 
     if (data.success && data.mainImageUrl) {
       console.log('✅ Direct Cloudinary upload SUCCESS:', {

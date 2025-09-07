@@ -448,42 +448,23 @@ export const useStagedCloudinaryUpload = () => {
 
       console.log(`📤 Uploading to Edge Function: ${file.name}, size: ${file.size} bytes`);
       
-      // Use proxy URL from runtime config with direct fetch
-      const edgeFunctionUrl = `${config.SUPABASE_URL}/functions/v1/cloudinary-upload`;
-      console.log(`🔗 Edge Function URL: ${edgeFunctionUrl}`);
-      console.log(`📝 Request headers: { Content-Type: application/json, Authorization: Bearer [token] }`);
+      console.log(`📤 Uploading to Cloudinary via supabase.functions.invoke`);
       console.log(`📝 Request body keys: [${Object.keys(requestBody).join(', ')}]`);
 
-      const response = await fetch(edgeFunctionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        body: JSON.stringify(requestBody)
+      const { data: response, error: functionError } = await supabase.functions.invoke('cloudinary-upload', {
+        body: requestBody
       });
+
+      if (functionError) {
+        console.error(`❌ Edge function invoke failed:`, functionError);
+        throw new Error(`Edge function failed: ${functionError.message}`);
+      }
 
       stopProgress();
       onProgress(100);
 
-      // Read response as text first, log first 500 chars, then parse JSON
-      const responseText = await response.text();
-      console.log(`📥 Raw response (first 500 chars): ${responseText.substring(0, 500)}`);
-
-      if (!response.ok) {
-        console.error(`❌ Edge function failed: ${response.status} ${response.statusText}`);
-        console.error(`Raw response body: ${responseText}`);
-        throw new Error(`Edge function failed: ${response.status} ${response.statusText}\nResponse: ${responseText}`);
-      }
-
-      let data;
-      try {
-        data = safeJsonParse(responseText);
-        console.log('✅ Edge function response parsed:', data);
-      } catch (parseError) {
-        console.error('❌ Failed to parse JSON response:', parseError);
-        throw new Error(`Invalid JSON response from Edge Function: ${responseText.substring(0, 500)}`);
-      }
+      console.log(`📥 Edge function response:`, response);
+      const data = response;
 
       if (!data?.success) {
         console.error('❌ Upload failed:', data);
