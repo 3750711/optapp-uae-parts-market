@@ -98,10 +98,15 @@ export const AdminFreeOrderForm = () => {
   });
 
   // Handle image uploads with SimplePhotoUploader format
-  const onImagesUpload = (items: any[]) => {
-    // SimplePhotoUploader returns items with cloudinaryUrl property
-    const urls = items.map(item => item.cloudinaryUrl).filter(Boolean);
-    setAllImages([...images, ...urls]);
+  const onImagesUpload = (completedUrls: string[]) => {
+    console.log('📸 Images uploaded:', completedUrls);
+    // SimplePhotoUploader onChange gives us completed URLs
+    setAllImages(completedUrls);
+  };
+
+  const onImagesComplete = (finalUrls: string[]) => {
+    console.log('✅ All images upload completed:', finalUrls);
+    setAllImages(finalUrls);
   };
 
   const onVideoUpload = (urls: string[]) => {
@@ -339,6 +344,7 @@ export const AdminFreeOrderForm = () => {
         <div className="space-y-4">
           <SimplePhotoUploader
             onChange={onImagesUpload}
+            onComplete={onImagesComplete}
             max={10}
             language="ru"
             buttonText="Загрузить изображения"
