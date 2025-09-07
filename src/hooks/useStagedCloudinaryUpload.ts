@@ -412,9 +412,9 @@ export const useStagedCloudinaryUpload = () => {
 
       console.log(`📤 Uploading to Edge Function: ${file.name}, size: ${file.size} bytes, publicId: ${publicId}`);
 
-      // Call the edge function using supabase client - FIX: stringify the body
+      // Call the edge function using supabase client
       const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
-        body: JSON.stringify(requestBody),
+        body: requestBody, // Supabase client handles JSON serialization
         headers: {
           'Content-Type': 'application/json'
         }
@@ -422,6 +422,11 @@ export const useStagedCloudinaryUpload = () => {
 
       stopProgress();
       onProgress(100);
+
+      // Log raw response for debugging (first 500 chars)
+      if (typeof data === 'string') {
+        console.debug('📥 Raw response (first 500 chars):', data.substring(0, 500));
+      }
 
       if (error) {
         console.error('❌ Edge Function error:', error);
@@ -435,7 +440,19 @@ export const useStagedCloudinaryUpload = () => {
             base64Length: requestBody.fileData?.length || 'undefined'
           }
         });
-        throw new Error(error.message || 'Edge Function call failed');
+        
+        // Try to parse the error if it contains JSON
+        let errorMessage = error.message || 'Edge Function call failed';
+        try {
+          if (typeof error.message === 'string' && error.message.includes('{')) {
+            const parsed = JSON.parse(error.message);
+            errorMessage = parsed.error || parsed.message || errorMessage;
+          }
+        } catch {
+          // Keep original error message if JSON parsing fails
+        }
+        
+        throw new Error(errorMessage);
       }
 
       console.log(`✅ Edge Function response received:`, {
