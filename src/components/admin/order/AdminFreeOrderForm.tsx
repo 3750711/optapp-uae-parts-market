@@ -336,43 +336,12 @@ export const AdminFreeOrderForm = () => {
       </MobileFormSection>
 
       <MobileFormSection title="Изображения">
-        <div className="space-y-4">
-          <SimplePhotoUploader
-            onChange={onImagesUpload}
-            max={10}
-            language="ru"
-            buttonText="Загрузить изображения"
-          />
-          
-          {/* Display existing images with delete option */}
-          {images.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {images.map((url, index) => (
-                <div key={index} className="relative aspect-square">
-                  <img
-                    src={url}
-                    alt={`Изображение ${index + 1}`}
-                    className="w-full h-full object-cover rounded-lg border cursor-zoom-in"
-                    onClick={() => window.open(url, '_blank')}
-                  />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
-                      const newImages = images.filter(img => img !== url);
-                      setAllImages(newImages);
-                    }}
-                    className="absolute top-2 right-2 h-6 w-6 p-0"
-                    disabled={isFormDisabled}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <SimplePhotoUploader
+          onChange={onImagesUpload}
+          max={10}
+          language="ru"
+          buttonText="Загрузить изображения"
+        />
       </MobileFormSection>
 
       <MobileFormSection title="Видео">
