@@ -2,6 +2,37 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// Helper functions for new upload path
+const getRuntimeConfig = () => {
+  try {
+    if (typeof window !== 'undefined' && (window as any).runtimeConfig) {
+      return (window as any).runtimeConfig;
+    }
+    return { SUPABASE_URL: 'https://api.partsbay.ae' };
+  } catch {
+    return { SUPABASE_URL: 'https://api.partsbay.ae' };
+  }
+};
+
+const getUserToken = async (): Promise<string> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0';
+  } catch {
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0';
+  }
+};
+
+const safeJsonParse = (text: string): any => {
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error('Failed to parse JSON:', error);
+    console.error('Raw text:', text.substring(0, 500));
+    throw new Error('Invalid JSON response');
+  }
+};
+
 interface StagedUploadItem {
   id: string;
   file: File;
@@ -337,7 +368,7 @@ export const useStagedCloudinaryUpload = () => {
     });
   }, []);
 
-  // Upload to Edge Function with retry logic using supabase.functions.invoke
+  // Upload to Edge Function with direct fetch and new format
   const uploadToEdgeFunction = useCallback(async (
     file: File,
     publicId: string,
@@ -403,6 +434,10 @@ export const useStagedCloudinaryUpload = () => {
       const fileBase64 = await fileToBase64(file);
       console.log(`📤 File conversion complete: ${file.name}, base64 length: ${fileBase64.length}`);
       
+      // Get runtime config and user token
+      const config = getRuntimeConfig();
+      const userToken = await getUserToken();
+      
       // Prepare the request body for new Edge Function format: { base64, name, type, folder }
       const requestBody = {
         base64: fileBase64,
@@ -413,17 +448,17 @@ export const useStagedCloudinaryUpload = () => {
 
       console.log(`📤 Uploading to Edge Function: ${file.name}, size: ${file.size} bytes`);
       
-      // Use direct fetch() to Edge Function for better control over response
-      const edgeFunctionUrl = `${supabase.supabaseUrl}/functions/v1/cloudinary-upload`;
+      // Use proxy URL from runtime config with direct fetch
+      const edgeFunctionUrl = `${config.SUPABASE_URL}/functions/v1/cloudinary-upload`;
       console.log(`🔗 Edge Function URL: ${edgeFunctionUrl}`);
-      console.log(`📝 Request body:`, requestBody);
+      console.log(`📝 Request headers: { Content-Type: application/json, Authorization: Bearer [token] }`);
+      console.log(`📝 Request body keys: [${Object.keys(requestBody).join(', ')}]`);
 
       const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
-          'apikey': supabase.supabaseKey
+          'Authorization': `Bearer ${userToken}`
         },
         body: JSON.stringify(requestBody)
       });
@@ -443,12 +478,11 @@ export const useStagedCloudinaryUpload = () => {
 
       let data;
       try {
-        data = JSON.parse(responseText);
+        data = safeJsonParse(responseText);
         console.log('✅ Edge function response parsed:', data);
       } catch (parseError) {
         console.error('❌ Failed to parse JSON response:', parseError);
-        console.error(`Raw response: ${responseText}`);
-        throw new Error(`Invalid JSON response from Edge Function: ${responseText}`);
+        throw new Error(`Invalid JSON response from Edge Function: ${responseText.substring(0, 500)}`);
       }
 
       if (!data?.success) {
