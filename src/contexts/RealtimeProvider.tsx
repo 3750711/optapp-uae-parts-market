@@ -130,7 +130,13 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
     setupRealtime();
     
     return () => {
-      if (subscription) subscription.unsubscribe();
+      if (subscription) {
+        try {
+          subscription.data.subscription.unsubscribe();
+        } catch (error) {
+          console.debug('[RT] Cleanup subscription error:', error);
+        }
+      }
       if (timer) clearInterval(timer);
       if (supabase?.realtime) {
         try {
