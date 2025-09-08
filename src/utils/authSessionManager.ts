@@ -23,21 +23,35 @@ function decodeJWT(token: string): DecodedToken | null {
   }
 }
 
-// Check if token was issued by current Supabase domain
+// Check if token was issued by current Supabase domain (flexible domain support)
 export function isTokenFromCurrentDomain(token: string): boolean {
   const decoded = decodeJWT(token);
   if (!decoded?.iss) return false;
   
-  const currentDomain = 'https://api.partsbay.ae';
+  // Get current domain from runtime config or fallback to hardcoded
+  let currentDomain = 'https://api.partsbay.ae'; // Default fallback
+  
+  try {
+    // Try to get domain from runtime config if available
+    const runtimeConfig = (window as any).__RUNTIME_CONFIG__;
+    if (runtimeConfig?.SUPABASE_URL) {
+      currentDomain = runtimeConfig.SUPABASE_URL;
+    }
+  } catch (error) {
+    console.warn('Could not get runtime domain, using fallback:', error);
+  }
+  
   const expectedIssuer = `${currentDomain}/auth/v1`;
+  const isValid = decoded.iss === expectedIssuer;
   
   console.log('🔍 Token domain check:', { 
     tokenIssuer: decoded.iss, 
     expectedIssuer,
-    isValid: decoded.iss === expectedIssuer 
+    currentDomain,
+    isValid
   });
   
-  return decoded.iss === expectedIssuer;
+  return isValid;
 }
 
 // Check if session contains old/invalid tokens
@@ -65,14 +79,29 @@ export function isSessionValid(session: any): boolean {
   }
 }
 
-// Check if error is a network error
+// Check if error is a network error (enhanced detection)
 export function isNetworkError(error: any): boolean {
-  return error?.message?.includes('NetworkError') ||
-         error?.message?.includes('Failed to fetch') ||
-         error?.message?.includes('Network request failed') ||
-         error?.message?.includes('fetch') ||
+  if (!navigator.onLine) return true;
+  
+  const errorString = (error?.message || error?.name || '').toLowerCase();
+  const networkIndicators = [
+    'networkerror',
+    'failed to fetch',
+    'network request failed',
+    'connection failed',
+    'timeout',
+    'abort',
+    'ns_binding_aborted',
+    'net::err_',
+    'fetch error',
+    'connection refused',
+    'connection reset'
+  ];
+  
+  return networkIndicators.some(indicator => errorString.includes(indicator)) ||
          error?.name === 'TypeError' ||
-         !navigator.onLine;
+         error?.name === 'AbortError' ||
+         error?.status === 0;
 }
 
 // Clear all auth-related localStorage data
@@ -151,12 +180,56 @@ export async function validateAndCleanupSession(): Promise<boolean> {
     return true;
   } catch (error) {
     if (isNetworkError(error)) {
-      console.warn('🌐 Network error during session validation:', error);
-      await forceCleanLogout();
-      return false;
+      console.warn('🌐 Network error during session validation - allowing graceful degradation:', error);
+      // Don't force logout on network errors, allow app to work offline/retry
+      return true;
     }
     
     console.error('❌ Error validating session:', error);
     return false;
+  }
+}
+
+// Enhanced retry mechanism for auth operations
+export async function retryAuthOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      const isLastAttempt = attempt === maxRetries;
+      const shouldRetry = isNetworkError(error) && !isLastAttempt;
+      
+      if (shouldRetry) {
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        console.log(`🔄 Auth operation failed (attempt ${attempt}), retrying in ${delay}ms:`, error);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error(`❌ Auth operation failed after ${attempt} attempts:`, error);
+        throw error;
+      }
+    }
+  }
+  throw new Error('Retry mechanism exhausted');
+}
+
+// Check if user needs first login completion
+export async function checkFirstLoginCompletion(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('first_login_completed, profile_completed, auth_method')
+      .eq('id', userId)
+      .single();
+      
+    if (error || !data) return true; // Assume completed if error
+    
+    return data.first_login_completed === true && data.profile_completed === true;
+  } catch (error) {
+    console.warn('Error checking first login completion:', error);
+    return true; // Assume completed if error
   }
 }

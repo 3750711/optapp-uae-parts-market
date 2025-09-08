@@ -2,6 +2,12 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
+import { 
+  isNetworkError, 
+  retryAuthOperation, 
+  checkFirstLoginCompletion 
+} from "@/utils/authSessionManager";
+import { quickAuthDiagnostic, logAuthState } from "@/utils/authDiagnostics";
 
 type UserProfile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -14,6 +20,7 @@ interface AuthContextType {
   isAdmin: boolean | null;
   profileError: string | null;
   authError: string | null;
+  needsFirstLoginCompletion: boolean;
   signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
   signUp: (email: string, password: string, options?: any) => Promise<{ user: User | null; error: any }>;
   signOut: () => Promise<void>;
@@ -25,6 +32,8 @@ interface AuthContextType {
   retryProfileLoad: () => void;
   clearAuthError: () => void;
   forceReauth: () => Promise<void>;
+  completeFirstLogin: () => Promise<void>;
+  runDiagnostic: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [needsFirstLoginCompletion, setNeedsFirstLoginCompletion] = useState(false);
 
   // isAdmin зависит только от текущего профиля
   const isAdmin = React.useMemo<boolean | null>(() => {
@@ -51,27 +61,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log(`👤 AuthContext: Fetching profile for user ${userId}`);
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await retryAuthOperation(async () => {
+        return await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single();
+      });
       
       if (error) {
-        console.error('❌ AuthContext: Profile fetch error:', error);
-        setProfile(null);
-        setProfileError(error.message || 'Failed to load profile');
+        if (isNetworkError(error)) {
+          console.warn('🌐 AuthContext: Network error fetching profile, will retry later:', error);
+          setProfileError('Network error. Profile will load when connection is restored.');
+        } else {
+          console.error('❌ AuthContext: Profile fetch error:', error);
+          setProfile(null);
+          setProfileError(error.message || 'Failed to load profile');
+        }
       } else if (data) {
         setProfile(data);
         console.log('✅ AuthContext: Profile loaded successfully');
+        
+        // Check if first login completion is needed
+        const firstLoginComplete = await checkFirstLoginCompletion(userId);
+        setNeedsFirstLoginCompletion(!firstLoginComplete);
+        
+        if (!firstLoginComplete) {
+          console.log('🔄 AuthContext: First login completion required');
+        }
       } else {
         setProfile(null);
         console.log('👤 AuthContext: No profile found for user');
       }
     } catch (err) {
-      console.error('❌ AuthContext: Profile fetch error:', err);
-      setProfile(null);
-      setProfileError(err?.message || 'Failed to load profile');
+      if (isNetworkError(err)) {
+        console.warn('🌐 AuthContext: Network error during profile fetch:', err);
+        setProfileError('Connection issue. Please check your internet connection.');
+      } else {
+        console.error('❌ AuthContext: Profile fetch error:', err);
+        setProfile(null);
+        setProfileError(err?.message || 'Failed to load profile');
+      }
     } finally {
       setIsProfileLoading(false);
     }
@@ -296,6 +326,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await signOut();
   };
 
+  const completeFirstLogin = async () => {
+    if (!user?.id) {
+      console.error('❌ AuthContext: Cannot complete first login without user');
+      return;
+    }
+    
+    try {
+      console.log('🔄 AuthContext: Completing first login setup');
+      
+      // Update profile to mark first login as completed
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          first_login_completed: true,
+          profile_completed: true 
+        })
+        .eq('id', user.id);
+        
+      if (error) {
+        console.error('❌ AuthContext: Failed to complete first login:', error);
+        throw error;
+      }
+      
+      setNeedsFirstLoginCompletion(false);
+      await refreshProfile(); // Refresh to get updated profile
+      console.log('✅ AuthContext: First login setup completed');
+      
+    } catch (error) {
+      console.error('❌ AuthContext: Error completing first login:', error);
+      setAuthError('Failed to complete setup. Please try again.');
+    }
+  };
+
+  const runDiagnostic = async () => {
+    console.log('🔍 AuthContext: Running authentication diagnostic');
+    logAuthState('Manual diagnostic');
+    
+    try {
+      const result = await quickAuthDiagnostic();
+      console.log('🔍 Diagnostic result:', result);
+      
+      if (result.status === 'critical') {
+        setAuthError(`Authentication issues detected: ${result.issues.join(', ')}`);
+      } else if (result.status === 'degraded') {
+        console.warn('⚠️ Auth degraded:', result.issues);
+      }
+    } catch (error) {
+      console.error('❌ Diagnostic failed:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     profile,
@@ -305,6 +386,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdmin,
     profileError,
     authError,
+    needsFirstLoginCompletion,
     signIn,
     signUp,
     signOut,
@@ -316,6 +398,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     retryProfileLoad,
     clearAuthError,
     forceReauth,
+    completeFirstLogin,
+    runDiagnostic,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
