@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/integrations/supabase/types';
-import { loadRuntimeConfig } from '@/config/runtime';
 
 type SupabaseClientType = ReturnType<typeof createClient<Database>>;
 
@@ -17,46 +16,33 @@ export async function getSupabaseClient(): Promise<SupabaseClientType> {
 
 async function initializeSupabaseClient(): Promise<SupabaseClientType> {
   try {
-    // Load runtime configuration
-    const config = await loadRuntimeConfig();
-    
-    // Get anon key from environment variables
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    
-    if (!supabaseAnonKey) {
-      throw new Error('VITE_SUPABASE_ANON_KEY environment variable is not defined');
+    const rt: any = (globalThis as any).__PB_RUNTIME__ || {};
+    const SUPABASE_URL = rt.SUPABASE_URL ?? (import.meta as any).env?.VITE_SUPABASE_URL ?? 'https://api.partsbay.ae';
+    const SUPABASE_ANON_KEY = rt.SUPABASE_ANON_KEY ?? (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error('Supabase URL/ANON not configured');
     }
 
-    // Validate anon key format (basic JWT structure check)
-    if (!supabaseAnonKey.includes('.')) {
-      throw new Error('VITE_SUPABASE_ANON_KEY does not appear to be a valid JWT token');
-    }
-
-    // Create Supabase client with runtime URL and env anon key
-    const client = createClient<Database>(config.SUPABASE_URL, supabaseAnonKey, {
+    // Create Supabase client with runtime URL and anon key
+    const client = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { 
         persistSession: true, 
         autoRefreshToken: true, 
         detectSessionInUrl: true, 
         flowType: 'pkce' 
       },
-      realtime: {
-        params: {
-          apikey: supabaseAnonKey,
-          authorization: `Bearer ${supabaseAnonKey}`,
-          eventsPerSecond: config.REALTIME_PARAMS?.eventsPerSecond || 10,
-          timeout: config.REALTIME_PARAMS?.timeout || 30000,
-          vsn: config.REALTIME_PARAMS?.vsn || '1.0.0'
-        }
+      global: { 
+        headers: { 'x-client-info': 'partsbay-web' } 
       }
     });
 
     console.log('🌍 Supabase Client initialized successfully');
-    console.log('   URL:', config.SUPABASE_URL);
+    console.log('   URL:', SUPABASE_URL);
     
     // Only log keys in development mode
     if (import.meta.env.DEV) {
-      console.log('   Key:', supabaseAnonKey.substring(0, 20) + '...');
+      console.log('   Key:', SUPABASE_ANON_KEY.substring(0, 20) + '...');
     }
     
     return client;
