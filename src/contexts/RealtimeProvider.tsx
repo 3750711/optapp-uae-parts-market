@@ -36,89 +36,89 @@ export const useRealtime = () => {
   return context;
 };
 
+// Anti-duplication for connection attempts
+let rtBound = false;
+let rtConnectTick = 0;
+
 export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [isConnected, setIsConnected] = React.useState(false);
   const [connectionState, setConnectionState] = React.useState<'connecting' | 'connected' | 'disconnected' | 'failed' | 'fallback'>('disconnected');
   const [lastError, setLastError] = React.useState<string>();
   const [reconnectAttempts, setReconnectAttempts] = React.useState(0);
-  const [hasValidSession, setHasValidSession] = React.useState(false);
 
   useEffect(() => {
     let supabase: any;
     let subscription: any;
-    let timer: NodeJS.Timeout;
     
+    const safeRealtimeConnect = async () => {
+      // Anti-duplication by time + state check
+      const now = Date.now();
+      if (now - rtConnectTick < 300) return;
+      rtConnectTick = now;
+
+      if (!supabase) return;
+      
+      try {
+        const state = supabase.realtime?.socket?.connectionState?.();
+        if (state === 'open' || state === 'connecting') return;
+
+        // Firefox – short delay reduces "connection was interrupted"
+        setTimeout(() => {
+          try { 
+            supabase.realtime.connect();
+            setIsConnected(true);
+            setConnectionState('connected');
+          } catch (error) {
+            if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+              console.debug('[RT] Connect error:', error);
+            }
+          }
+        }, 150);
+      } catch (error) {
+        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          console.debug('[RT] Safe connect error:', error);
+        }
+      }
+    };
+
     const setupRealtime = async () => {
       try {
         supabase = await getSupabaseClient();
         
-        const connectWithAuth = async () => {
-          try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.access_token) {
-              supabase.realtime.setAuth(session.access_token);
-              if (!isConnected) {
-                console.debug('[RT] Connecting with valid session');
-                supabase.realtime.connect();
-                setIsConnected(true);
-                setConnectionState('connected');
-                setHasValidSession(true);
-              }
-            } else {
-              setHasValidSession(false);
-              if (isConnected) {
-                console.debug('[RT] Disconnecting - no valid session');
-                supabase.realtime.disconnect();
-                setIsConnected(false);
-                setConnectionState('disconnected');
-              }
-            }
-          } catch (error) {
-            console.debug('[RT] Failed to connect with auth:', error);
-            setLastError('Failed to authenticate connection');
-            setConnectionState('failed');
-          }
-        };
-
-        // Initial auth check - only connect if we have a session
-        await connectWithAuth();
-
-        // Listen for auth changes - be smarter about when to connect/disconnect
+        // Simplified auth state listener - only handle SIGNED_IN/SIGNED_OUT
         subscription = supabase.auth.onAuthStateChange(async (event) => {
-          console.debug('[RT] Auth event:', event);
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.debug('[RT] Auth event:', event);
+          }
           
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            await connectWithAuth();
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token || '';
+            try { 
+              supabase.realtime.setAuth(token); 
+            } catch (error) {
+              if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+                console.debug('[RT] SetAuth error:', error);
+              }
+            }
+            await safeRealtimeConnect();
+            rtBound = true;
             setReconnectAttempts(prev => prev + 1);
-          } else if (event === 'SIGNED_OUT') {
-            setHasValidSession(false);
+          }
+          
+          if (event === 'SIGNED_OUT') {
+            rtBound = false;
             try { 
               supabase.realtime.disconnect();
               setIsConnected(false);
               setConnectionState('disconnected');
-              console.debug('[RT] Disconnected after sign out');
             } catch (error) {
-              console.debug('[RT] Disconnect error:', error);
+              if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+                console.debug('[RT] Disconnect error:', error);
+              }
             }
           }
-          // For INITIAL_SESSION: do nothing special - handled by connectWithAuth above
         });
-
-        // Firefox watchdog - only run if we expect to be connected
-        timer = setInterval(() => {
-          if (!hasValidSession) return; // Don't try to reconnect if no session
-          
-          try {
-            const state = supabase?.realtime?.socket?.connectionState?.();
-            if (state && state !== 'open' && isConnected) {
-              console.debug('[RT] Reconnecting, state=', state);
-              supabase.realtime.connect();
-              setConnectionState('connecting');
-            }
-          } catch (error) {
-            console.debug('[RT] Watchdog error:', error);
-          }
-        }, 10000);
 
       } catch (error) {
         console.error('[RT] Setup failed:', error);
@@ -132,21 +132,24 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
     return () => {
       if (subscription) {
         try {
-          subscription.data.subscription.unsubscribe();
+          subscription.unsubscribe();
         } catch (error) {
-          console.debug('[RT] Cleanup subscription error:', error);
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.debug('[RT] Cleanup subscription error:', error);
+          }
         }
       }
-      if (timer) clearInterval(timer);
-      if (supabase?.realtime) {
+      if (supabase?.realtime && rtBound) {
         try {
           supabase.realtime.disconnect();
         } catch (error) {
-          console.debug('[RT] Cleanup disconnect error:', error);
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.debug('[RT] Cleanup disconnect error:', error);
+          }
         }
       }
     };
-  }, [isConnected, hasValidSession]);
+  }, []);
 
   const contextValue: RealtimeContextType = {
     isConnected,

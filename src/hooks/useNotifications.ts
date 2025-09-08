@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -130,18 +130,37 @@ export const useNotifications = () => {
     }
   }, [user?.id]);
 
+  // Single channel ref to prevent duplicates
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   // Setup real-time subscription for notifications
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
 
-    console.log('🔍 [useNotifications] Setting up realtime for user:', user.id);
+    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+      console.log('🔍 [useNotifications] Setting up realtime for user:', user.id);
+    }
     
     // Initial fetch
     fetchNotifications();
-    
-    // Setup realtime subscription
-    const channel = supabase
-      .channel('notifications-changes')
+
+    // Close old channel if exists
+    if (channelRef.current) {
+      try { 
+        channelRef.current.unsubscribe(); 
+      } catch (error) {
+        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          console.debug('[useNotifications] Old channel cleanup error:', error);
+        }
+      }
+      channelRef.current = null;
+    }
+
+    // Create single channel per user
+    const channel = supabase.channel(`notifications:${user.id}`);
+    channelRef.current = channel;
+
+    channel
       .on(
         'postgres_changes',
         {
@@ -151,7 +170,9 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('📢 [useNotifications] New notification received:', payload.new);
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.log('📢 [useNotifications] New notification received:', payload.new);
+          }
           
           // Process new notification with language logic
           const notification = payload.new as Notification;
@@ -188,7 +209,9 @@ export const useNotifications = () => {
           filter: `user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('🔄 [useNotifications] Notification updated:', payload.new);
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.log('🔄 [useNotifications] Notification updated:', payload.new);
+          }
           
           // Update existing notification in state
           const updatedNotification = payload.new as Notification;
@@ -210,17 +233,29 @@ export const useNotifications = () => {
           );
         }
       )
-      .subscribe();
-
-    console.log('✅ [useNotifications] Realtime channel subscribed');
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED' && (window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          console.log('✅ [useNotifications] Realtime channel subscribed');
+        }
+      });
 
     return () => {
-      console.log('🔌 [useNotifications] Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
+      if (channelRef.current) {
+        try { 
+          channelRef.current.unsubscribe(); 
+        } catch (error) {
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.debug('[useNotifications] Channel cleanup error:', error);
+          }
+        }
+        channelRef.current = null;
+      }
     };
-  }, [user, fetchNotifications, profile?.user_type, translations]);
+  }, [user?.id, profile?.user_type]); // Optimized dependencies
 
-  console.log('🔍 [useNotifications] Hook execution complete');
+  if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+    console.log('🔍 [useNotifications] Hook execution complete');
+  }
 
   return {
     notifications,

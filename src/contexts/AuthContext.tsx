@@ -70,7 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     try {
-      console.log(`👤 AuthContext: Fetching profile for user ${userId}`);
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.log(`👤 AuthContext: Fetching profile for user ${userId}`);
+      }
       
       // Retry with delays to handle trigger race conditions
       for (const delay of [0, 300, 800]) {
@@ -79,7 +81,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const data = await tryOnce();
           
           setProfile(data);
-          console.log('✅ AuthContext: Profile loaded successfully');
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.log('✅ AuthContext: Profile loaded successfully');
+          }
           setNeedsFirstLoginCompletion(false); // Always disabled
           return;
         } catch (error) {
@@ -102,7 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log("🚀 AuthContext: Initializing simplified auth system");
+    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+      console.log("🚀 AuthContext: Initializing simplified auth system");
+    }
     
     // Initialize auth system asynchronously to wait for client readiness
     const initAuthSystem = async () => {
@@ -113,7 +119,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Set up auth state listener
         const { data: { subscription } } = client.auth.onAuthStateChange(
           (event, session) => {
-            console.log("🔧 AuthContext: Auth state change:", event, !!session);
+            if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+              console.log("🔧 AuthContext: Auth state change:", event, !!session);
+            }
             
             // Clear any previous auth errors on successful auth events
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -130,7 +138,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 fetchUserProfile(session.user.id);
               }
             } else {
-              console.log("🔧 AuthContext: Clearing user state");
+              if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+                console.log("🔧 AuthContext: Clearing user state");
+              }
               setUser(null);
               setProfile(null);
               setProfileError(null);
@@ -174,12 +184,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             
             if (session?.user) {
-              console.log("🔧 AuthContext: Session validated, setting up user");
+              if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+                console.log("🔧 AuthContext: Session validated, setting up user");
+              }
               setSession(session);
               setUser(session.user);
               fetchUserProfile(session.user.id);
             } else {
-              console.log("🔧 AuthContext: No session found (normal guest state)");
+              if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+                console.log("🔧 AuthContext: No session found (normal guest state)");
+              }
             }
           }
         }
@@ -187,7 +201,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
 
         return () => {
-          console.log("🧹 AuthContext: Cleaning up auth system");
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.log("🧹 AuthContext: Cleaning up auth system");
+          }
           subscription.unsubscribe();
         };
       } catch (error) {
@@ -214,7 +230,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setAuthError(null);
-      console.log('🔓 AuthContext: Attempting sign in');
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.log('🔓 AuthContext: Attempting sign in');
+      }
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -223,7 +241,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      console.log('✅ AuthContext: Sign in successful');
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.log('✅ AuthContext: Sign in successful');
+      }
       return { user: data.user, error: null };
     } catch (error) {
       console.error("❌ AuthContext: Sign in error:", error);
@@ -271,7 +291,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      console.log('🚪 AuthContext: Starting signOut process');
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.log('🚪 AuthContext: Starting signOut process');
+      }
       
       // Perform Supabase signOut
       const { error } = await supabase.auth.signOut();
@@ -286,7 +308,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setProfileError(null);
       setAuthError(null);
       
-      console.log('✅ AuthContext: SignOut completed successfully');
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.log('✅ AuthContext: SignOut completed successfully');
+      }
     } catch (error) {
       console.error("❌ AuthContext: Sign out error:", error);
     }
@@ -308,7 +332,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Update local state
       setProfile(data);
       
-      console.log('✅ AuthContext: Profile updated successfully');
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.log('✅ AuthContext: Profile updated successfully');
+      }
     } catch (error) {
       console.error('❌ AuthContext: Profile update failed:', error);
       throw error;
