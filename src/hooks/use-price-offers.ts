@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useBatchOffersInvalidation } from './use-price-offers-batch';
 import { useEffect, useRef } from 'react';
 import { devLog, prodError } from '@/utils/logger';
+import { FLAGS } from '@/config/flags';
 
 // Hook для проверки существующего предложения пользователя
 export const useCheckPendingOffer = (productId: string, enabled: boolean = true) => {
@@ -324,6 +325,12 @@ export const useBuyerPriceOffers = () => {
   useEffect(() => {
     if (!user?.id) return;
 
+    // Skip realtime setup if disabled
+    if (!FLAGS.REALTIME_ENABLED) {
+      devLog('Realtime disabled, skipping buyer price offers subscription');
+      return;
+    }
+
     mountedRef.current = true;
     devLog('Setting up real-time subscription for buyer price offers');
 
@@ -418,17 +425,15 @@ export const useSellerPriceOffers = () => {
       return data as PriceOffer[];
     },
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes for better performance
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes (renamed from cacheTime)
-    refetchOnMount: false, // Don't refetch on every mount
+    staleTime: 60 * 1000, // Cache for 1 minute
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
     refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchInterval: 3 * 60 * 1000, // Refetch every 3 minutes in background
     retry: (failureCount, error: any) => {
       // Don't retry on auth errors
       if (error?.status === 401 || error?.code === 401) return false;
-      return failureCount < 2; // Max 2 retries
+      return failureCount < 1; // Max 1 retry
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    retryDelay: 1000 // Simple 1 second delay
   });
 
   // Real-time updates are now handled by unified RealtimeProvider context

@@ -7,13 +7,14 @@ export const useOptimizedSellerDashboard = () => {
 
   // Memoized pending offers count to prevent unnecessary recalculations
   const pendingOffersCount = useMemo(() => {
-    if (!priceOffers || offersLoading) return 0;
+    if (offersLoading || error) return 0;
+    if (!priceOffers) return 0;
     return priceOffers.filter(offer => offer.status === 'pending').length;
-  }, [priceOffers, offersLoading]);
+  }, [priceOffers, offersLoading, error]);
 
   // Memoized stats for dashboard
   const dashboardStats = useMemo(() => {
-    if (!priceOffers || offersLoading) {
+    if (offersLoading || error || !priceOffers) {
       return {
         total: 0,
         pending: 0,
@@ -35,7 +36,7 @@ export const useOptimizedSellerDashboard = () => {
       ...stats,
       hasOffers: stats.total > 0
     };
-  }, [priceOffers, offersLoading]);
+  }, [priceOffers, offersLoading, error]);
 
   return {
     pendingOffersCount,
