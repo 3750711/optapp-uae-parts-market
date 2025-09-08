@@ -47,13 +47,20 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
 
   // Listen for auth events from AuthContext
   useEffect(() => {
-    const handleAuthConnect = (e: CustomEvent) => {
+    const handleAuthConnect = async (e: CustomEvent) => {
       const { session } = e.detail;
       if (session) {
-        safeConnectRealtime(session);
-        setIsConnected(true);
-        setConnectionState('connected');
-        setLastError(undefined);
+        setConnectionState('connecting');
+        try {
+          await safeConnectRealtime(session);
+          setIsConnected(true);
+          setConnectionState('connected');
+          setLastError(undefined);
+        } catch (error) {
+          console.error('[RT] Connection failed:', error);
+          setConnectionState('failed');
+          setLastError('Connection failed');
+        }
       }
     };
 
@@ -101,14 +108,14 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
     connectionState,
     lastError,
     realtimeEvents: [],
-    forceReconnect: () => {
+    forceReconnect: async () => {
       try {
         setReconnectAttempts(prev => prev + 1);
         safeDisconnectRealtime();
         
         if (status === 'authed' && session) {
-          // Direct reconnect without setTimeout
-          safeConnectRealtime(session);
+          setConnectionState('connecting');
+          await safeConnectRealtime(session);
           setIsConnected(true);
           setConnectionState('connected');
         }

@@ -70,44 +70,39 @@ export const useAuth = () => useContext(AuthContext)!;
 
 async function fetchProfileReliable(userId: string, abort: AbortSignal): Promise<Profile | null> {
   const executeQuery = async () => {
-    const { data, error, status } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-    
-    if (error) throw Object.assign(error, { httpStatus: status });
-    return data as Profile;
+    const ctrl = new AbortController(); 
+    const timer = setTimeout(() => ctrl.abort(), 7000);
+    try {
+      const { data, error, status } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .abortSignal(ctrl.signal)
+        .single();
+      
+      if (error) throw Object.assign(error, { httpStatus: status });
+      return data as Profile;
+    } finally { 
+      clearTimeout(timer); 
+    }
   };
 
   try {
     return await executeQuery();
   } catch (error: any) {
-    // 401-healing: refresh token and retry once
+    // 401-healing: refresh token and retry once  
     if (error?.httpStatus === 401) {
-      console.debug('[AUTH] 401 detected, attempting token refresh');
-      await supabase.auth.refreshSession();
-      const { data: session } = await supabase.auth.getSession();
-      if (session.session?.access_token) {
-        // Notify realtime of token refresh
-        window.dispatchEvent(new CustomEvent('auth:refresh', { 
-          detail: { session: session.session } 
-        }));
+      console.debug('[AUTH] 401 detected, attempting heal-retry');
+      await supabase.auth.refreshSession().catch(() => {});
+      const s2 = (await supabase.auth.getSession()).data.session;
+      if (s2?.access_token) {
+        supabase.realtime.setAuth(s2.access_token);
+        window.dispatchEvent(new CustomEvent('auth:refresh', { detail: { session: s2 } }));
       }
       return await executeQuery();
     }
     
-    // Retry with delays for other errors
-    const delays = [300, 800];
-    for (const delay of delays) {
-      if (abort.aborted) throw new DOMException('aborted', 'AbortError');
-      await new Promise(r => setTimeout(r, delay));
-      try { 
-        return await executeQuery(); 
-      } catch (retryError) {
-        if (delay === 800) throw retryError;
-      }
-    }
+    console.warn('[PROFILE] fetch failed', error);
     throw error;
   }
 }
@@ -168,44 +163,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Enhanced wake-up handler for session recovery
+  // Debounced wake-up handler for session recovery (350ms)
   useEffect(() => {
-    const handleWakeUp = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (!data.session) return; // User logged out
+    let debounceTimer: NodeJS.Timeout;
+    
+    const debouncedHeal = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(async () => {
+        try {
+          const { data } = await supabase.auth.getSession();
+          if (!data.session) return;
 
-        // Force session refresh to handle throttled tokens
-        await supabase.auth.refreshSession();
-        
-        // Update Realtime auth with fresh token
-        const { data: refreshedData } = await supabase.auth.getSession();
-        if (refreshedData.session?.access_token) {
-          window.dispatchEvent(new CustomEvent('auth:refresh', { 
-            detail: { session: refreshedData.session } 
-          }));
-          
-          // Silent profile refresh without FSM status change
-          if (refreshedData.session.user.id && profile) {
-            try {
-              await loadProfile(refreshedData.session.user.id);
-            } catch (error) {
-              console.debug('[AUTH] Silent profile refresh failed:', error);
+          await supabase.auth.refreshSession().catch(() => {});
+          const s2 = (await supabase.auth.getSession()).data.session;
+          if (s2?.access_token) {
+            supabase.realtime.setAuth(s2.access_token);
+            
+            // Use queryClient to invalidate profile instead of direct fetch
+            if (typeof window !== 'undefined' && (window as any).__queryClient && s2.user?.id) {
+              (window as any).__queryClient.invalidateQueries({ 
+                queryKey: ['profile', s2.user.id] 
+              });
+            }
+            
+            if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+              console.debug('[AUTH] Wake-up healing + invalidation completed');
             }
           }
-          
-          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-            console.debug('[AUTH] Wake-up healing completed');
-          }
+        } catch (error) {
+          console.debug('[AUTH] Wake-up healing failed:', error);
         }
-      } catch (error) {
-        console.debug('[AUTH] Wake-up healing failed:', error);
-      }
+      }, 350);
     };
 
-    const onFocus = () => handleWakeUp();
-    const onVisible = () => document.visibilityState === 'visible' && handleWakeUp();
-    const onOnline = () => handleWakeUp();
+    const onFocus = () => debouncedHeal();
+    const onVisible = () => document.visibilityState === 'visible' && debouncedHeal();
+    const onOnline = () => debouncedHeal();
 
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisible);
@@ -215,8 +208,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisible);
       window.removeEventListener('online', onOnline);
+      clearTimeout(debounceTimer);
     };
-  }, [profile]);
+  }, []);
 
   // Подписка СНАЧАЛА, затем чтение текущей сессии
   useEffect(() => {
@@ -230,14 +224,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(newSession);
           setUser(newSession.user);
           
-          // Only show spinner on truly initial load or when no profile exists
-          if (event === 'INITIAL_SESSION' || !profile) {
+          // Only show spinner on truly initial load AND no profile exists
+          if (event === 'INITIAL_SESSION' && !profile) {
             setStatus('checking');
           } else {
             setStatus('authed');
           }
           
-          // Notify realtime to connect with new session
+          // Await realtime connection for proper initialization
           window.dispatchEvent(new CustomEvent('auth:connect', { detail: { session: newSession } }));
           
           await loadProfile(newSession.user.id);

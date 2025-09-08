@@ -38,10 +38,10 @@ const queryClient = new QueryClient({
         // На медленных сетях не ретраим, на быстрых - только 1 попытка
         return !isTimeoutError && isNetworkError && failureCount < networkConfig.retry;
       },
-      staleTime: networkConfig.staleTime,
+      staleTime: 60_000, // 60s for SWR behavior
       gcTime: networkConfig.gcTime,
-      refetchOnWindowFocus: networkConfig.refetchOnWindowFocus, 
-      refetchOnReconnect: networkConfig.refetchOnReconnect, 
+      refetchOnWindowFocus: 'always', // Always refetch on focus
+      refetchOnReconnect: 'always', // Always refetch on reconnect
       refetchOnMount: false, // Минимум запросов
       networkMode: 'online',
     },
@@ -51,6 +51,11 @@ const queryClient = new QueryClient({
     }
   },
 });
+
+// Make queryClient globally available for wake-up handler
+if (typeof window !== 'undefined') {
+  (window as any).__queryClient = queryClient;
+}
 
 // Компонент загрузки для lazy-loaded маршрутов
 const RouteLoader = React.memo(() => (

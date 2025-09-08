@@ -3,12 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface RealtimeState {
   connected: boolean;
+  connecting: Promise<void> | null;
   channels: Set<string>;
   connectionAttempts: number;
 }
 
 const state: RealtimeState = {
   connected: false,
+  connecting: null,
   channels: new Set(),
   connectionAttempts: 0
 };
@@ -16,7 +18,7 @@ const state: RealtimeState = {
 /**
  * Safely connect to Supabase Realtime with session auth
  */
-export function safeConnectRealtime(session: Session): void {
+export async function safeConnectRealtime(session?: Session | null): Promise<void> {
   if (state.connected) {
     if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
       console.debug('[RT] Already connected, skipping');
@@ -24,53 +26,70 @@ export function safeConnectRealtime(session: Session): void {
     return;
   }
 
-  const startTime = Date.now();
-  
-  try {
-    // Set auth token first
-    supabase.realtime.setAuth(session.access_token);
-    
-    // Check current socket state directly
-    const socketState = (supabase as any).realtime?.socket?.connectionState?.();
-    if (socketState === 'open' || socketState === 'connecting') {
-      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-        console.debug('[RT] Socket already active:', socketState);
-      }
-      state.connected = true;
-      return;
-    }
-
-    // Direct connection without delay
-    supabase.realtime.connect();
-    state.connected = true;
-    state.connectionAttempts = 0;
-    
-    const duration = Date.now() - startTime;
+  if (state.connecting) {
     if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-      console.debug(`[RT] Connected in ${duration}ms`);
+      console.debug('[RT] Connection in progress, awaiting...');
     }
-    
-  } catch (error) {
-    state.connectionAttempts++;
-    const duration = Date.now() - startTime;
-    
-    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-      console.debug(`[RT] Connection failed after ${duration}ms:`, error);
-    }
-    
-    // Reset connection state on error
-    state.connected = false;
+    return state.connecting;
   }
+
+  state.connecting = (async () => {
+    const startTime = Date.now();
+    
+    try {
+      // Get token from session or current session
+      const token = session?.access_token ?? (await supabase.auth.getSession()).data.session?.access_token;
+      if (token) {
+        supabase.realtime.setAuth(token);
+      }
+      
+      // Check current socket state directly
+      const socketState = (supabase as any).realtime?.socket?.connectionState?.();
+      if (socketState === 'open' || socketState === 'connecting') {
+        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          console.debug('[RT] Socket already active:', socketState);
+        }
+        state.connected = true;
+        return;
+      }
+
+      // Direct connection without delay
+      supabase.realtime.connect();
+      state.connected = true;
+      state.connectionAttempts = 0;
+      
+      const duration = Date.now() - startTime;
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.debug(`[RT] Connected in ${duration}ms`);
+      }
+      
+    } catch (error) {
+      state.connectionAttempts++;
+      const duration = Date.now() - startTime;
+      
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.debug(`[RT] Connection failed after ${duration}ms:`, error);
+      }
+      
+      // Reset connection state on error
+      state.connected = false;
+    }
+  })().finally(() => {
+    state.connecting = null;
+  });
+
+  return state.connecting;
 }
 
 /**
  * Refresh Realtime auth token without reconnecting
  */
-export function refreshRealtimeAuth(session: Session): void {
-  if (!state.connected) return;
+export function refreshRealtimeAuth(session?: Session | null): void {
+  const token = session?.access_token;
+  if (!token) return;
   
   try {
-    supabase.realtime.setAuth(session.access_token);
+    supabase.realtime.setAuth(token);
     
     if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
       console.debug('[RT] Auth token refreshed');
@@ -140,6 +159,7 @@ export function getRealtimeState() {
   const socketState = (supabase as any).realtime?.socket?.connectionState?.();
   return {
     connected: state.connected,
+    connecting: !!state.connecting,
     socketState,
     channelCount: state.channels.size,
     channels: Array.from(state.channels),
