@@ -14,7 +14,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVerification = false }: ProtectedRouteProps) => {
-  const { user, profile, isLoading } = useAuth();
+  const { user, profile, status } = useAuth();
   const location = useLocation();
   
   // Development mode check for reduced logging
@@ -56,7 +56,7 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
       allowedRoles,
       excludedRoles,
       requireEmailVerification,
-      isLoading,
+      status,
       timestamp: new Date().toISOString()
     });
   }
@@ -65,19 +65,54 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
     console.log('🔍 ProtectedRoute: Auth state:', {
       user: !!user,
       profile: !!profile,
-      isLoading,
+      status,
       userType: profile?.user_type,
       pathname: location.pathname,
       profileCompleted: authChecks.profileCompleted
     });
   }
   
+  // Add timeout for checking status to prevent infinite loading
+  const [checkingTimeout, setCheckingTimeout] = React.useState(false);
+  React.useEffect(() => {
+    if (status === 'checking') {
+      const timer = setTimeout(() => {
+        setCheckingTimeout(true);
+      }, 5000); // 5 second timeout
+      return () => clearTimeout(timer);
+    }
+    setCheckingTimeout(false);
+  }, [status]);
+
   // Show minimal loading state while checking authentication
-  if (isLoading) {
+  if (status === 'checking' && !checkingTimeout) {
     devLog("ProtectedRoute: Showing loading state");
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // If checking timed out, show error with retry option
+  if (status === 'checking' && checkingTimeout) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="max-w-md mx-auto text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Ошибка загрузки</h2>
+          <p className="text-gray-600 mb-4">Не удалось загрузить профиль</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            Обновить страницу
+          </button>
+        </div>
       </div>
     );
   }
@@ -104,7 +139,7 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
   }
   
   // Redirect to login if not authenticated
-  if (!authChecks.hasUser) {
+  if (status === 'guest') {
     devLog("ProtectedRoute: User not authenticated, redirecting to login");
     return <Navigate to={`/login?from=${encodeURIComponent(location.pathname)}`} replace />;
   }
@@ -112,18 +147,24 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
   // For Telegram users with incomplete profiles, let TelegramLoginWidget handle the modal
   // No redirect needed here as the modal will handle profile completion
   
-  // If profile is still loading but user exists, show minimal loading
+  // If profile is still loading but user exists, show error after timeout
   if (!authChecks.hasProfile) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="max-w-md mx-auto text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">
-            Настройка профиля...
-          </h2>
-          <p className="text-gray-600">
-            Подождите, мы создаем ваш профиль
-          </p>
+          <div className="text-red-500 mb-4">
+            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Ошибка профиля</h2>
+          <p className="text-gray-600 mb-4">Не удалось загрузить профиль пользователя</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            Обновить страницу
+          </button>
         </div>
       </div>
     );
