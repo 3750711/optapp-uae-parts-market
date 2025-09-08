@@ -102,6 +102,12 @@ async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Pr
   try {
     return await executeQuery();
   } catch (error: any) {
+    // AbortError is normal - navigation/timeout, not a real error
+    if (error?.name === 'AbortError' || /AbortError/i.test(error?.message)) {
+      console.debug('[PROFILE] request aborted (navigation/timeout)');
+      return null; // Return null, don't throw - let React Query handle gracefully
+    }
+    
     // 401-healing: refresh token and retry once  
     if (error?.httpStatus === 401) {
       console.debug('[AUTH] 401 detected, attempting heal-retry');

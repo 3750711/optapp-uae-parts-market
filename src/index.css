@@ -112,8 +112,10 @@
   
   body {
     @apply bg-background text-foreground font-sans;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
     line-height: 1.6;
+    /* Prevent FOUT with immediate fallback fonts */
+    font-display: swap;
   }
 
   /* Bengali font support */
