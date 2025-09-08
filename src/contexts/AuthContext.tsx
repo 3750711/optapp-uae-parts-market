@@ -142,15 +142,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         );
 
-        // Check for existing session
+        // Check for existing session with enhanced logging
         const { data: { session }, error } = await client.auth.getSession();
         if (error) {
           console.error("❌ AuthContext: Session check error:", error);
+          
+          // Be more forgiving in preview environments
+          const isPreviewEnv = window.location.hostname.includes('lovable') || 
+                              window.location.hostname.includes('preview');
+          
+          if (isPreviewEnv && isNetworkError(error)) {
+            console.log("🔧 AuthContext: Network error in preview env, continuing without auth error");
+            setIsLoading(false);
+            return () => subscription.unsubscribe();
+          }
+          
           setAuthError("Authentication error. Please log in again.");
         } else if (session?.user) {
+          console.log("🔧 AuthContext: Existing session found, setting up user");
           setSession(session);
           setUser(session.user);
           fetchUserProfile(session.user.id);
+        } else {
+          console.log("🔧 AuthContext: No existing session found");
         }
         
         setIsLoading(false);
@@ -183,19 +197,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setAuthError(null);
-      console.log('🔓 AuthContext: Attempting sign in with URL:', supabase.supabaseUrl);
+      console.log('🔓 AuthContext: Attempting sign in');
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { data, error } = await retryAuthOperation(async () => {
+        return await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
       });
       
       if (error) throw error;
       
+      console.log('✅ AuthContext: Sign in successful');
       return { user: data.user, error: null };
     } catch (error) {
       console.error("❌ AuthContext: Sign in error:", error);
-      setAuthError(error.message || "Sign in failed. Please try again.");
+      
+      // Enhanced error handling for preview environments
+      if (isNetworkError(error)) {
+        const isPreviewEnv = window.location.hostname.includes('lovable') || 
+                            window.location.hostname.includes('preview');
+        
+        if (isPreviewEnv) {
+          setAuthError("Network error in preview environment. Please try again in a moment.");
+        } else {
+          setAuthError("Network error. Please check your connection and try again.");
+        }
+      } else {
+        setAuthError(error.message || "Sign in failed. Please try again.");
+      }
+      
       return { user: null, error };
     }
   };
