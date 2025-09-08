@@ -94,27 +94,7 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
     return () => clearInterval(interval);
   }, []);
 
-  // Add visibility change listener for mobile support
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && status === 'authed' && session) {
-        // Page became visible, check connection after a short delay
-        setTimeout(() => {
-          if (status === 'authed') {
-            safeConnectRealtime(session);
-            setIsConnected(true);
-            setConnectionState('connected');
-          }
-        }, 500);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [status, session]);
+  // Removed visibility change listener - now handled in AuthContext for better coordination
 
   const contextValue: RealtimeContextType = {
     isConnected,
@@ -127,11 +107,10 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
         safeDisconnectRealtime();
         
         if (status === 'authed' && session) {
-          setTimeout(() => {
-            safeConnectRealtime(session);
-            setIsConnected(true);
-            setConnectionState('connected');
-          }, 500);
+          // Direct reconnect without setTimeout
+          safeConnectRealtime(session);
+          setIsConnected(true);
+          setConnectionState('connected');
         }
       } catch (error) {
         console.error('[RT] Force reconnect failed:', error);

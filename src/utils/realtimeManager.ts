@@ -24,43 +24,42 @@ export function safeConnectRealtime(session: Session): void {
     return;
   }
 
+  const startTime = Date.now();
+  
   try {
-    // Set auth token
+    // Set auth token first
     supabase.realtime.setAuth(session.access_token);
     
-    // Check if already connected
+    // Check current socket state directly
     const socketState = (supabase as any).realtime?.socket?.connectionState?.();
     if (socketState === 'open' || socketState === 'connecting') {
       if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-        console.debug('[RT] Socket already connecting/connected');
+        console.debug('[RT] Socket already active:', socketState);
       }
       state.connected = true;
       return;
     }
 
-    // Connect with small delay for stability
-    setTimeout(() => {
-      try {
-        supabase.realtime.connect();
-        state.connected = true;
-        state.connectionAttempts = 0;
-        
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-          console.debug('[RT] Connected successfully');
-        }
-      } catch (error) {
-        state.connectionAttempts++;
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-          console.debug('[RT] Connection failed:', error);
-        }
-      }
-    }, 100);
+    // Direct connection without delay
+    supabase.realtime.connect();
+    state.connected = true;
+    state.connectionAttempts = 0;
+    
+    const duration = Date.now() - startTime;
+    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+      console.debug(`[RT] Connected in ${duration}ms`);
+    }
     
   } catch (error) {
     state.connectionAttempts++;
+    const duration = Date.now() - startTime;
+    
     if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-      console.debug('[RT] Connect setup failed:', error);
+      console.debug(`[RT] Connection failed after ${duration}ms:`, error);
     }
+    
+    // Reset connection state on error
+    state.connected = false;
   }
 }
 

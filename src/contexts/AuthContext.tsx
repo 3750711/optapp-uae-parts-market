@@ -147,6 +147,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Wake-up handler for tab visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && status === 'authed' && session) {
+        const startTime = Date.now();
+        
+        try {
+          // Force session refresh after wake-up
+          const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+          
+          if (refreshedSession && !error) {
+            // Update realtime auth with fresh token
+            window.dispatchEvent(new CustomEvent('auth:refresh', { 
+              detail: { session: refreshedSession } 
+            }));
+            
+            const duration = Date.now() - startTime;
+            if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+              console.debug(`[AUTH] Wake-up refresh completed in ${duration}ms`);
+            }
+          }
+        } catch (error) {
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.debug('[AUTH] Wake-up refresh failed:', error);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [status, session]);
+
   // Подписка СНАЧАЛА, затем чтение текущей сессии
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {

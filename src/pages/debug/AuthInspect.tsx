@@ -17,19 +17,29 @@ export default function AuthInspect() {
     const anonKey = getRuntimeAnonKey();
     const projectRef = getProjectRef();
     
-    // JWT metadata from session
+    // JWT metadata from session with TTL calculation
     let jwtMeta = null;
+    let tokenTTL = 0;
     if (session?.access_token) {
       const jwt = decodeJwt<any>(session.access_token);
       if (jwt) {
+        tokenTTL = Math.max(0, jwt.exp - Math.floor(Date.now() / 1000));
         jwtMeta = {
           iss: jwt.iss,
           sub: jwt.sub,
           exp: jwt.exp,
-          expDate: jwt.exp ? new Date(jwt.exp * 1000).toISOString() : null
+          expDate: jwt.exp ? new Date(jwt.exp * 1000).toISOString() : null,
+          ttlSeconds: tokenTTL,
+          ttlMinutes: Math.floor(tokenTTL / 60),
+          role: jwt.role,
+          sessionId: jwt.session_id
         };
       }
     }
+
+    // Get expected WebSocket URL
+    const wsUrl = `wss://api.partsbay.ae/realtime/v1/websocket?apikey=${anonKey || 'missing'}&vsn=1.0.0`;
+    const actualWsUrl = (supabase as any).realtime?.socket?.endPoint || 'Not connected';
 
     // Get storage keys
     const storageKeys = [];
@@ -62,6 +72,12 @@ export default function AuthInspect() {
         sessionExpiresAt: session?.expires_at || null,
         jwtMeta,
         issuerValidation: session?.access_token ? validateSessionIssuer(session.access_token) : null
+      },
+      websocket: {
+        expectedUrl: wsUrl,
+        actualUrl: actualWsUrl,
+        urlMatches: wsUrl === actualWsUrl,
+        socketState: realtimeState.socketState
       },
       storage: {
         keys: storageKeys
@@ -154,6 +170,54 @@ export default function AuthInspect() {
     }
   };
 
+  const testWebSocketHandshake = async () => {
+    setLoading(true);
+    console.log('🔄 Testing WebSocket 101 handshake...');
+    
+    try {
+      const anonKey = getRuntimeAnonKey();
+      const wsUrl = `wss://api.partsbay.ae/realtime/v1/websocket?apikey=${anonKey}&vsn=1.0.0`;
+      const startTime = Date.now();
+      const testSocket = new WebSocket(wsUrl);
+      
+      const timeout = setTimeout(() => {
+        testSocket.close();
+        alert('⏰ WebSocket handshake timeout (10s)');
+        setLoading(false);
+      }, 10000);
+      
+      testSocket.onopen = () => {
+        clearTimeout(timeout);
+        const latency = Date.now() - startTime;
+        console.log(`✅ WebSocket handshake successful in ${latency}ms`);
+        alert(`✅ WebSocket handshake successful in ${latency}ms`);
+        testSocket.close();
+        setLoading(false);
+      };
+      
+      testSocket.onerror = (error) => {
+        clearTimeout(timeout);
+        console.error('❌ WebSocket handshake failed:', error);
+        alert('❌ WebSocket handshake failed - check console for details');
+        setLoading(false);
+      };
+      
+      testSocket.onclose = (event) => {
+        clearTimeout(timeout);
+        if (event.code !== 1000) {
+          console.error(`❌ WebSocket closed with code: ${event.code}, reason: ${event.reason}`);
+          alert(`❌ WebSocket closed with code: ${event.code}, reason: ${event.reason}`);
+        }
+        setLoading(false);
+      };
+      
+    } catch (error) {
+      console.error('❌ WebSocket test failed:', error);
+      alert('❌ WebSocket test failed: ' + error.message);
+      setLoading(false);
+    }
+  };
+
   const testRealtimePing = async () => {
     if (!user?.id) {
       alert('No user ID for realtime test');
@@ -239,6 +303,13 @@ export default function AuthInspect() {
               🌐 Test CORS Preflight
             </button>
             <button 
+              onClick={testWebSocketHandshake}
+              disabled={loading}
+              className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
+            >
+              🔌 Test WebSocket 101
+            </button>
+            <button 
               onClick={testRealtimePing}
               disabled={loading || !user}
               className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
@@ -268,6 +339,14 @@ export default function AuthInspect() {
           <h2 className="text-xl font-semibold mb-4">🔐 Session Status</h2>
           <pre className="bg-muted p-3 rounded text-sm overflow-auto">
             {JSON.stringify(inspectData.session, null, 2)}
+          </pre>
+        </div>
+
+        {/* WebSocket Configuration */}
+        <div className="bg-card p-4 rounded-lg border">
+          <h2 className="text-xl font-semibold mb-4">🔌 WebSocket Configuration</h2>
+          <pre className="bg-muted p-3 rounded text-sm overflow-auto">
+            {JSON.stringify(inspectData.websocket, null, 2)}
           </pre>
         </div>
 
