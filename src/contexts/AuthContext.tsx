@@ -8,6 +8,8 @@ import {
   checkFirstLoginCompletion 
 } from "@/utils/authSessionManager";
 import { quickAuthDiagnostic, logAuthState } from "@/utils/authDiagnostics";
+import { checkSessionSoft } from "@/auth/authSessionManager";
+import { clearAuthStorageSafe } from "@/auth/clearAuthStorage";
 
 type UserProfile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -54,40 +56,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return profile?.user_type === 'admin';
   }, [profile?.user_type, profile === null]);
 
+  // Fetch user profile with retry logic for trigger race conditions
   const fetchUserProfile = async (userId: string): Promise<void> => {
     setIsProfileLoading(true);
     setProfileError(null);
 
+    const tryOnce = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      if (error) throw error;
+      return data;
+    };
+
     try {
       console.log(`👤 AuthContext: Fetching profile for user ${userId}`);
       
-      const { data, error } = await retryAuthOperation(async () => {
-        return await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
-      });
-      
-      if (error) {
-        if (isNetworkError(error)) {
-          console.warn('🌐 AuthContext: Network error fetching profile, will retry later:', error);
-          setProfileError('Network error. Profile will load when connection is restored.');
-        } else {
-          console.error('❌ AuthContext: Profile fetch error:', error);
-          setProfile(null);
-          setProfileError(error.message || 'Failed to load profile');
+      // Retry with delays to handle trigger race conditions
+      for (const delay of [0, 300, 800]) {
+        try {
+          if (delay) await new Promise(r => setTimeout(r, delay));
+          const data = await tryOnce();
+          
+          setProfile(data);
+          console.log('✅ AuthContext: Profile loaded successfully');
+          setNeedsFirstLoginCompletion(false); // Always disabled
+          return;
+        } catch (error) {
+          // Continue to next retry on error
+          if (delay === 800) throw error; // Last attempt, throw error
         }
-      } else if (data) {
-        setProfile(data);
-        console.log('✅ AuthContext: Profile loaded successfully');
-        
-        // DISABLED: Check if first login completion is needed
-        console.log('🔄 AuthContext: First login completion check disabled');
-        setNeedsFirstLoginCompletion(false); // Always set to false (disabled)
-      } else {
-        setProfile(null);
-        console.log('👤 AuthContext: No profile found for user');
       }
     } catch (err) {
       if (isNetworkError(err)) {
@@ -142,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         );
 
-        // Check for existing session with enhanced logging
+        // Check for existing session with enhanced soft validation
         const { data: { session }, error } = await client.auth.getSession();
         if (error) {
           console.error("❌ AuthContext: Session check error:", error);
@@ -158,13 +158,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           
           setAuthError("Authentication error. Please log in again.");
-        } else if (session?.user) {
-          console.log("🔧 AuthContext: Existing session found, setting up user");
-          setSession(session);
-          setUser(session.user);
-          fetchUserProfile(session.user.id);
         } else {
-          console.log("🔧 AuthContext: No existing session found");
+          // Use soft validation instead of immediate logout
+          const verdict = checkSessionSoft(session);
+          if (!verdict.ok && verdict.forceLogout) {
+            console.warn('[AUTH] Force logout:', verdict.reason);
+            clearAuthStorageSafe();
+            await client.auth.signOut();
+            setAuthError("Session expired. Please log in again.");
+          } else {
+            if (!verdict.ok) {
+              console.debug('[AUTH] Soft issue:', verdict.reason);
+            }
+            
+            if (session?.user) {
+              console.log("🔧 AuthContext: Session validated, setting up user");
+              setSession(session);
+              setUser(session.user);
+              fetchUserProfile(session.user.id);
+            } else {
+              console.log("🔧 AuthContext: No session found");
+            }
+          }
         }
         
         setIsLoading(false);

@@ -12,6 +12,8 @@ import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 import TermsPage from "@/pages/TermsPage";
 import PrivacyPage from "@/pages/PrivacyPage";
 import BlockedPage from "@/pages/BlockedPage";
+import AuthState from "@/pages/debug/AuthState";
+import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 
 // Lazy loaded публичные страницы
 const Index = lazy(() => import('@/pages/Index'));
@@ -108,6 +110,13 @@ const AppRoutes: React.FC = () => {
       <RouteErrorBoundary>
         <Suspense fallback={<RouteSuspenseFallback />}>
           <Routes>
+            {/* Debug routes (temporary for troubleshooting) */}
+            <Route path="/debug/auth-state" element={
+              <Suspense fallback={<PBLogoLoader />}>
+                <AuthState />
+              </Suspense>
+            } />
+
             {/* Публичные маршруты - доступны всем */}
             <Route path="/" element={
               <HomeRedirect>
