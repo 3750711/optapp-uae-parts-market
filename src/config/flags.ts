@@ -11,12 +11,15 @@ export const FLAGS = {
     if (typeof window !== 'undefined') {
       const runtime = (window as any).__PB_RUNTIME__;
       if (runtime && typeof runtime.REALTIME_ENABLED === 'boolean') {
+        console.debug('[FLAGS] REALTIME_ENABLED from runtime config:', runtime.REALTIME_ENABLED);
         return runtime.REALTIME_ENABLED;
       }
     }
     
-    // Fallback to environment variable (default: true)
-    return process.env.NODE_ENV !== 'test'; // Disable in tests by default
+    // Fallback to environment variable (default: false for safety)
+    const fallback = process.env.NODE_ENV !== 'test';
+    console.debug('[FLAGS] REALTIME_ENABLED fallback (no runtime config):', fallback);
+    return fallback;
   })(),
 
   /**

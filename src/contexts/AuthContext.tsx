@@ -170,17 +170,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const p = await fetchProfileReliable(uid, ctrl.signal);
       if (p) {
         setProfile(p);
+        setProfileError(null);
         if (FLAGS.DEBUG_AUTH) {
-          console.debug('[AUTH] Profile loaded successfully');
+          console.debug('[AUTH] Profile loaded successfully:', p.user_type);
         }
       } else {
+        console.warn('[AUTH] Profile not found for user:', uid);
         setProfile(null);
-        setProfileError('Profile not found');
+        setProfileError('Не удалось загрузить профиль пользователя');
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
-        console.warn('[AUTH] Profile load failed:', error);
-        setProfileError(error.message || 'Failed to load profile');
+        console.error('[AUTH] Profile load failed:', {
+          error: error.message || error,
+          userId: uid,
+          status: error.httpStatus || 'unknown'
+        });
+        setProfileError(`Ошибка загрузки профиля: ${error.message || 'Неизвестная ошибка'}`);
+        
+        // Set profile to null to ensure UI shows error state correctly
+        setProfile(null);
       }
       // Don't break auth state on profile load failure
     } finally { 
