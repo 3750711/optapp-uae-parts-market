@@ -81,7 +81,10 @@ function anyToCompositeSignal(signals: AbortSignal[]): AbortSignal {
   return ctrl.signal;
 }
 
-async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Promise<Profile | null> {
+// Special symbol to distinguish AbortError from actual null/undefined results
+const ABORTED = Symbol('ABORTED');
+
+async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Promise<Profile | null | typeof ABORTED> {
   // General 7s timeout over external signal
   const localCtrl = new AbortController();
   const timer = setTimeout(() => localCtrl.abort(), 7000);
@@ -107,7 +110,7 @@ async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Pr
     // AbortError is normal - navigation/timeout, not a real error
     if (error?.name === 'AbortError' || /AbortError/i.test(error?.message)) {
       console.debug('[PROFILE] request aborted (navigation/timeout)');
-      return null; // Return null, don't throw - let React Query handle gracefully
+      return ABORTED; // Return special symbol to distinguish from actual null result
     }
     
     // 401-healing: refresh token and retry once  
@@ -168,13 +171,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       const p = await fetchProfileReliable(uid, ctrl.signal);
-      if (p) {
+      if (p === ABORTED) {
+        // Request was aborted - this is normal during navigation, don't set error
+        console.debug('[AUTH] Profile request aborted, not setting error');
+        return; // Don't change profile or error state
+      } else if (p) {
         setProfile(p);
         setProfileError(null);
         if (FLAGS.DEBUG_AUTH) {
           console.debug('[AUTH] Profile loaded successfully:', p.user_type);
         }
       } else {
+        // Actually no profile found (null from database)
         console.warn('[AUTH] Profile not found for user:', uid);
         setProfile(null);
         setProfileError('Не удалось загрузить профиль пользователя');
@@ -208,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-        if (newSession) {
+        if (newSession?.user?.id) {
           setSession(newSession);
           setUser(newSession.user);
           
@@ -305,7 +313,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(s);
       setUser(s.user);
       setStatus('authed');
-      await loadProfile(s.user.id);
+      if (s.user?.id) {
+        await loadProfile(s.user.id);
+      }
       
       if (FLAGS.DEBUG_AUTH) {
         console.debug('[AUTH] Session restored, user authenticated');

@@ -1,7 +1,7 @@
 {
   "SUPABASE_URL": "https://api.partsbay.ae",
   "REALTIME_ENABLED": false,
-  "DEBUG_AUTH": true,
+  "DEBUG_AUTH": false,
   "REALTIME_PARAMS": {
     "eventsPerSecond": 10,
     "timeout": 30000,
