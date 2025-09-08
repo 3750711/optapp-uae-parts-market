@@ -4,13 +4,13 @@ import { Link } from "react-router-dom";
 import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered, FileText, ShoppingCart, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthWithProfile } from "@/hooks/useAuthWithProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerDashboardTranslations } from '@/utils/translations/sellerDashboard';
 
 const OptimizedSellerDashboard = () => {
-  const { profile } = useAuth();
+  const { profile } = useAuthWithProfile();
   const isMobile = useIsMobile();
   const { language } = useLanguage();
   const t = getSellerDashboardTranslations(language);

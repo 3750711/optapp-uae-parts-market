@@ -2,7 +2,7 @@ import React, { memo, useMemo, useCallback, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthWithProfile } from "@/hooks/useAuthWithProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
 import { useOptimizedSellerDashboard } from "@/hooks/useOptimizedSellerDashboard";
@@ -77,7 +77,7 @@ ListOrderedIcon.displayName = "ListOrderedIcon";
 MessageCircleIcon.displayName = "MessageCircleIcon";
 
 const FastSellerDashboard = memo(() => {
-  const { profile } = useAuth();
+  const { profile } = useAuthWithProfile();
   const isMobile = useIsMobile();
   const { startTimer } = usePerformanceMonitor();
   const { pendingOffersCount, isLoading: offersLoading } = useOptimizedSellerDashboard();

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthWithProfile } from '@/hooks/useAuthWithProfile';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +27,7 @@ import LanguageToggle from '@/components/auth/LanguageToggle';
 import { getProfileMenuTranslations } from '@/utils/translations/profileMenuPages';
 
 const SellerMobileProfileMenu = () => {
-  const { user, signOut, profile } = useAuth();
+  const { user, signOut, profile, isLoading } = useAuthWithProfile();
   const { unreadCount } = useNotifications();
   const { language, changeLanguage } = useLanguage();
   const navigate = useNavigate();
@@ -54,8 +54,17 @@ const SellerMobileProfileMenu = () => {
     }
   };
 
-  if (!user || !profile) {
+  // Show loading state instead of returning null
+  if (!user) {
     return null;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
@@ -85,12 +94,12 @@ const SellerMobileProfileMenu = () => {
             <h2 className="text-xl font-semibold">
               {user.user_metadata?.full_name || 'User'}
             </h2>
-            {profile.opt_id && (
+            {profile?.opt_id && (
               <p className="text-sm text-muted-foreground">
                 {t.optId}: {profile.opt_id}
               </p>
             )}
-            {profile.telegram && (
+            {profile?.telegram && (
               <p className="text-sm text-muted-foreground">
                 {t.telegram}: @{profile.telegram.replace('@', '')}
               </p>

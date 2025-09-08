@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthWithProfile } from "@/hooks/useAuthWithProfile";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";
 import { 
@@ -50,7 +50,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 
 const Header = () => {
-  const { user, signOut, profile, isLoading } = useAuth();
+  const { user, signOut, profile, isLoading } = useAuthWithProfile();
   const { isAdmin, isCheckingAdmin } = useAdminAccess();
   const { unreadCount } = useNotifications();
   const { favorites } = useFavorites();
@@ -156,7 +156,8 @@ const Header = () => {
       <div className="container flex items-center justify-between py-3 md:py-4 px-4 md:px-8 mx-auto">
         <Link 
           to={(function getHomePath() {
-            if (!user || !profile) return "/";
+            if (!user) return "/";
+            if (!profile) return "/"; // Don't block on profile loading
             if (isAdmin) return "/admin";
             const isVerified = profile.verification_status === 'verified';
             if (!isVerified && !isAdmin) return "/pending-approval";
