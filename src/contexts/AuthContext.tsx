@@ -1,324 +1,181 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { checkSessionSoft } from '@/auth/authSessionManager';
-import { decodeJwt } from '@/auth/jwtHelpers';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
 import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
-import { safeConnectRealtime, refreshRealtimeAuth, safeDisconnectRealtime } from '@/utils/realtimeManager';
 import { FLAGS } from '@/config/flags';
 
-type AuthStatus = 'checking' | 'guest' | 'authed' | 'error';
-
-type Profile = {
-  id: string;
-  email: string;
-  user_type: 'admin' | 'seller' | 'buyer';
-  verification_status?: string;
-  preferred_locale?: string;
+// Simplified type definition for profile updates
+type ProfileUpdate = {
   first_name?: string;
   last_name?: string;
   phone?: string;
-  profile_completed?: boolean;
-  first_login_completed?: boolean;
-  full_name?: string;
   company_name?: string;
   location?: string;
   description_user?: string;
   telegram?: string;
-  telegram_id?: string;
-  opt_id?: string;
-  opt_status?: string;
-  auth_method?: string;
-  email_confirmed?: boolean;
+  preferred_locale?: string;
+  first_login_completed?: boolean;
+  profile_completed?: boolean;
   accepted_terms?: boolean;
   accepted_privacy?: boolean;
-  avatar_url?: string;
-  is_trusted_seller?: boolean;
-  created_at?: string;
-  updated_at?: string;
 };
 
 type AuthContextType = {
-  status: AuthStatus;
+  // Core state - only session, user, loading
   user: User | null;
   session: Session | null;
-  profile: Profile | null;
-  isAdmin: boolean | null;
-  // Backward compatibility properties
-  isLoading: boolean;
-  isProfileLoading: boolean;
-  profileError: string | null;
-  authError: string | null;
-  needsFirstLoginCompletion: boolean;
-  // Core methods
+  loading: boolean;
+  
+  // Core auth methods
   signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
   signOut: () => Promise<void>;
   signUp: (email: string, password: string, options?: any) => Promise<{ user: User | null; error: any }>;
-  updateProfile: (updates: Partial<Profile>) => Promise<void>;
-  refreshProfile: (forceRefresh?: boolean) => Promise<void>;
-  // Additional methods for backward compatibility
+  
+  // Profile methods (delegates to Supabase directly)
+  updateProfile: (updates: ProfileUpdate) => Promise<void>;
+  
+  // Additional auth methods for backward compatibility
   sendPasswordResetEmail: (email: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
   signInWithTelegram: (authData: any) => Promise<{ user: User | null; error: any }>;
-  retryProfileLoad: () => void;
-  clearAuthError: () => void;
-  forceReauth: () => Promise<void>;
   completeFirstLogin: () => Promise<void>;
+  
+  // Legacy properties for backward compatibility (deprecated - use useOptimizedProfile instead)
+  /** @deprecated Use useOptimizedProfile hook instead */
+  profile: any;
+  /** @deprecated Use useOptimizedProfile hook instead */
+  isAdmin: boolean | null;
+  /** @deprecated Use useOptimizedProfile hook instead */
+  isLoading: boolean;
+  /** @deprecated Use useOptimizedProfile hook instead */
+  isProfileLoading: boolean;
+  /** @deprecated Use useOptimizedProfile hook instead */
+  profileError: string | null;
+  /** @deprecated Always null */
+  authError: string | null;
+  /** @deprecated Always false */
+  needsFirstLoginCompletion: boolean;
+  /** @deprecated Always 'authed' when user exists */
+  status?: string;
+  /** @deprecated No-op function */
+  refreshProfile: () => Promise<void>;
+  /** @deprecated No-op function */
+  retryProfileLoad: () => void;
+  /** @deprecated No-op function */
+  clearAuthError: () => void;
+  /** @deprecated No-op function */
+  forceReauth: () => Promise<void>;
+  /** @deprecated No-op function */
   runDiagnostic: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 export const useAuth = () => useContext(AuthContext)!;
 
-// Utility: combine multiple AbortSignals
-function anyToCompositeSignal(signals: AbortSignal[]): AbortSignal {
-  const ctrl = new AbortController();
-  const onAbort = () => ctrl.abort();
-  signals.forEach(s => s?.addEventListener?.('abort', onAbort, { once: true }));
-  // If any signal is already aborted, abort immediately
-  if (signals.some(s => s?.aborted)) ctrl.abort();
-  return ctrl.signal;
-}
-
-async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Promise<Profile | null> {
-  // General 7s timeout over external signal
-  const localCtrl = new AbortController();
-  const timer = setTimeout(() => localCtrl.abort(), 7000);
-  const signal = extSignal 
-    ? anyToCompositeSignal([extSignal, localCtrl.signal])
-    : localCtrl.signal;
-
-  const executeQuery = async () => {
-    const { data, error, status } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .abortSignal(signal)
-      .single();
-    
-    if (error) throw Object.assign(error, { httpStatus: status });
-    return data as Profile;
-  };
-
-  try {
-    return await executeQuery();
-  } catch (error: any) {
-    // AbortError is normal - navigation/timeout, not a real error
-    if (error?.name === 'AbortError' || /AbortError/i.test(error?.message)) {
-      console.debug('[PROFILE] request aborted (navigation/timeout)');
-      throw error; // Let caller handle AbortError appropriately
-    }
-    
-    // 401-healing: refresh token and retry once  
-    if (error?.httpStatus === 401) {
-      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-        console.debug('[AUTH] 401 detected, attempting heal-retry');
-      }
-      await supabase.auth.refreshSession().catch(() => {});
-      const s2 = (await supabase.auth.getSession()).data.session;
-      if (s2?.access_token) {
-        supabase.realtime.setAuth(s2.access_token);
-      }
-      return await executeQuery();
-    }
-    
-    console.warn('[PROFILE] fetch failed', error);
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [status, setStatus] = useState<AuthStatus>('checking');
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const profileAbortRef = useRef<AbortController | null>(null);
-
-  // Initialize centralized wake-up handler
+  // Centralized wake-up handler
   useWakeUpHandler();
 
-  // isAdmin зависит только от текущего профиля
-  const isAdmin = useMemo<boolean | null>(() => {
-    if (profile === null) return null;
-    return profile?.user_type === 'admin';
-  }, [profile?.user_type, profile === null]);
-
-  // helper: безопасно загрузить профиль с таймаутом
-  const loadProfile = async (uid: string) => {
-    profileAbortRef.current?.abort();
-    const ctrl = new AbortController();
-    profileAbortRef.current = ctrl;
-    const timeout = setTimeout(() => ctrl.abort(), 7000); // 7s верхняя граница
-    
-    setIsProfileLoading(true);
-    setProfileError(null);
-    
-    try {
-      if (FLAGS.DEBUG_AUTH) {
-        console.debug('[AUTH] Loading profile for user:', uid);
-      }
-      
-      const p = await fetchProfileReliable(uid, ctrl.signal);
-      if (p) {
-        setProfile(p);
-        setProfileError(null);
-        if (FLAGS.DEBUG_AUTH) {
-          console.debug('[AUTH] Profile loaded successfully:', p.user_type);
-        }
-      } else {
-        // Actually no profile found (null from database)
-        console.warn('[AUTH] Profile not found for user:', uid);
-        setProfile(null);
-        setProfileError('Не удалось загрузить профиль пользователя');
-      }
-    } catch (error: any) {
-      // AbortError is normal during navigation - don't set error state
-      if (error?.name === 'AbortError') {
-        console.debug('[AUTH] Profile request aborted during navigation');
-        return;
-      }
-      
-      console.error('[AUTH] Profile load failed:', {
-        error: error.message || error,
-        userId: uid,
-        status: error.httpStatus || 'unknown'
-      });
-      setProfileError(`Ошибка загрузки профиля: ${error.message || 'Неизвестная ошибка'}`);
-      setProfile(null);
-    } finally { 
-      setIsProfileLoading(false);
-      clearTimeout(timeout); 
-    }
-  };
-
-  // Wake-up handling is now centralized in useWakeUpHandler hook
-
-  // Подписка СНАЧАЛА, затем чтение текущей сессии
+  // Single source of truth: onAuthStateChange
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (FLAGS.DEBUG_AUTH) {
         console.debug('[AUTH] event:', event, !!newSession);
       }
 
+      // Update session and user state
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-        if (newSession?.user?.id) {
-          setSession(newSession);
-          setUser(newSession.user);
-          
-          // Only show spinner on first load without cached profile
-          const cachedProfile = profile; // Use current profile state
-          if (event === 'INITIAL_SESSION' && !cachedProfile) {
-            setStatus('checking');
-          } else {
-            setStatus('authed');
-          }
-          
-          // Connect realtime if enabled
-          if (FLAGS.REALTIME_ENABLED) {
-            await safeConnectRealtime(newSession);
-          }
-          
-          await loadProfile(newSession.user.id);
-          
-          if (FLAGS.DEBUG_AUTH) {
-            console.debug('[AUTH] Session established, realtime connect triggered');
-          }
+        if (newSession?.access_token && FLAGS.REALTIME_ENABLED) {
+          // Set realtime auth token (minimal realtime interaction)
+          supabase.realtime.setAuth(newSession.access_token);
+        }
+        setLoading(false);
+        
+        if (FLAGS.DEBUG_AUTH) {
+          console.debug('[AUTH] Session established');
         }
         return;
       }
 
       if (event === 'TOKEN_REFRESHED') {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        // Update realtime auth if enabled
-        if (FLAGS.REALTIME_ENABLED && newSession) {
-          refreshRealtimeAuth(newSession);
+        if (newSession?.access_token && FLAGS.REALTIME_ENABLED) {
+          // Update realtime auth token
+          supabase.realtime.setAuth(newSession.access_token);
         }
         
-        // No automatic profile refresh on token refresh - React Query handles stale data
         if (FLAGS.DEBUG_AUTH) {
-          console.debug('[AUTH] Token refreshed, session updated');
+          console.debug('[AUTH] Token refreshed');
         }
         return;
       }
 
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        setUser(null); 
-        setSession(null); 
-        setProfile(null);
-        setStatus('guest');
-        
-        // Clear auth storage and disconnect realtime
+        // Clear auth storage
         clearAuthStorageSafe();
-        if (FLAGS.REALTIME_ENABLED) {
-          safeDisconnectRealtime();
-        }
+        setLoading(false);
         
         if (FLAGS.DEBUG_AUTH) {
-          console.debug('[AUTH] Signed out, storage cleared, realtime disconnected');
+          console.debug('[AUTH] Signed out, storage cleared');
         }
         return;
       }
     });
 
-    // первичная инициализация
+    // Initialize with existing session
     (async () => {
-      const { data: { session: s } } = await supabase.auth.getSession();
-      const verdict = checkSessionSoft(s);
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      const verdict = checkSessionSoft(existingSession);
       
-      if (!s || !verdict.ok) {
+      if (!existingSession || !verdict.ok) {
         setUser(null); 
         setSession(null); 
-        setProfile(null);
-        setStatus('guest');                                // нормальная гостевая ветка
+        setLoading(false);
+        
         if (FLAGS.DEBUG_AUTH) {
-          console.debug('[AUTH] No valid session, setting guest status');
+          console.debug('[AUTH] No valid session found');
         }
         return;
       }
       
-      setSession(s);
-      setUser(s.user);
-      setStatus('authed');
-      if (s.user?.id) {
-        await loadProfile(s.user.id);
-      }
+      setSession(existingSession);
+      setUser(existingSession.user);
+      setLoading(false);
       
       if (FLAGS.DEBUG_AUTH) {
-        console.debug('[AUTH] Session restored, user authenticated');
+        console.debug('[AUTH] Session restored');
       }
     })();
 
-    return () => { 
+    return () => {
       try { 
         subscription.unsubscribe(); 
       } catch {} 
     };
   }, []);
 
+  // Core auth methods
   const signIn = async (email: string, password: string) => {
     try {
-      setAuthError(null);
       const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error; 
       return { user: data.user, error: null };
     } catch (error) {
-      setAuthError(error.message || 'Sign in failed');
       return { user: null, error };
     }
   };
 
   const signOut = async () => {
     await supabase.auth.signOut(); 
-    // остальное почистит onAuthStateChange
+    // State cleanup handled by onAuthStateChange
   };
 
   const signUp = async (email: string, password: string, options?: any) => {
@@ -335,31 +192,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       return { user: data.user, error: null };
     } catch (error) {
-      console.error("❌ AuthContext: Sign up error:", error);
+      console.error("Sign up error:", error);
       return { user: null, error };
     }
   };
 
-  const updateProfile = async (updates: Partial<Profile>) => {
+  const updateProfile = async (updates: ProfileUpdate) => {
     if (!user?.id) throw new Error("User not authenticated");
     
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("profiles")
       .update(updates)
-      .eq("id", user.id)
-      .select()
-      .single();
+      .eq("id", user.id);
       
     if (error) throw error;
     
-    // Update local state
-    setProfile(data);
-  };
-
-  const refreshProfile = async (forceRefresh = false) => {
-    if (user?.id) {
-      await loadProfile(user.id);
-    }
+    // React Query will handle cache invalidation automatically
   };
 
   // Additional methods for backward compatibility
@@ -368,7 +216,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       return { error };
     } catch (error) {
-      console.error("❌ AuthContext: Password reset error:", error);
       return { error };
     }
   };
@@ -378,48 +225,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.updateUser({ password });
       return { error };
     } catch (error) {
-      console.error("❌ AuthContext: Update password error:", error);
       return { error };
     }
   };
 
   const signInWithTelegram = async (authData: any): Promise<{ user: User | null; error: any }> => {
     try {
-      console.log("📱 AuthContext: Telegram auth not implemented yet:", authData);
+      console.log("Telegram auth not implemented yet:", authData);
       return { user: null, error: new Error("Telegram auth not implemented") };
     } catch (error) {
-      console.error("❌ AuthContext: Telegram sign in error:", error);
       return { user: null, error };
     }
   };
 
-  const retryProfileLoad = () => {
-    if (user?.id) {
-      console.log('🔄 AuthContext: Retrying profile load');
-      loadProfile(user.id);
-    }
-  };
-
-  const clearAuthError = () => {
-    setAuthError(null);
-  };
-
-  const forceReauth = async () => {
-    console.log('🔄 AuthContext: Force re-authentication requested');
-    setAuthError(null);
-    await signOut();
-  };
-
   const completeFirstLogin = async () => {
     if (!user?.id) {
-      console.error('❌ AuthContext: Cannot complete first login without user');
+      console.error('Cannot complete first login without user');
       return;
     }
     
     try {
-      console.log('🔄 AuthContext: Completing first login setup');
-      
-      // Update profile to mark first login as completed
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -429,49 +254,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', user.id);
         
       if (error) {
-        console.error('❌ AuthContext: Failed to complete first login:', error);
+        console.error('Failed to complete first login:', error);
         throw error;
       }
       
-      await refreshProfile(); // Refresh to get updated profile
-      console.log('✅ AuthContext: First login setup completed');
+      // React Query will handle cache invalidation automatically
+      console.log('First login setup completed');
       
     } catch (error) {
-      console.error('❌ AuthContext: Error completing first login:', error);
-      setAuthError('Failed to complete setup. Please try again.');
+      console.error('Error completing first login:', error);
     }
   };
 
+  // No-op legacy methods for backward compatibility
+  const refreshProfile = async () => {
+    // No-op - React Query handles this automatically
+  };
+
+  const retryProfileLoad = () => {
+    // No-op - use React Query refetch instead
+  };
+
+  const clearAuthError = () => {
+    // No-op - errors handled by individual hooks
+  };
+
+  const forceReauth = async () => {
+    await signOut();
+  };
+
   const runDiagnostic = async () => {
-    console.log('🔍 AuthContext: Running authentication diagnostic');
-    // Add diagnostic implementation here if needed
+    // No-op - use debugging tools instead
   };
 
   const value = useMemo<AuthContextType>(() => ({
-    status, 
+    // Core state
     user, 
     session, 
-    profile, 
-    isAdmin,
-    isLoading: status === 'checking',
-    isProfileLoading,
-    profileError,
-    authError,
-    needsFirstLoginCompletion: false, // Always disabled as per old logic
+    loading,
+    
+    // Core methods
     signIn, 
     signOut,
     signUp,
     updateProfile,
-    refreshProfile,
     sendPasswordResetEmail,
     updatePassword,
     signInWithTelegram,
+    completeFirstLogin,
+    
+    // Legacy properties (deprecated - always provide fallback values for compatibility)
+    profile: null,
+    isAdmin: null,
+    isLoading: loading,
+    isProfileLoading: false,
+    profileError: null,
+    authError: null,
+    needsFirstLoginCompletion: false,
+    status: user ? 'authed' : 'guest',
+    refreshProfile,
     retryProfileLoad,
     clearAuthError,
     forceReauth,
-    completeFirstLogin,
     runDiagnostic
-  }), [status, user, session, profile, isAdmin, isProfileLoading, profileError, authError]);
+  }), [user, session, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

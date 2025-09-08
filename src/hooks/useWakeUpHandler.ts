@@ -1,10 +1,8 @@
 import { useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { FLAGS } from '@/config/flags';
 
 export function useWakeUpHandler() {
-  const queryClient = useQueryClient();
-
   useEffect(() => {
     let timeout: any;
     
@@ -18,18 +16,16 @@ export function useWakeUpHandler() {
         const { data } = await supabase.auth.getSession();
         if (!data.session) return;
         
+        // Simple session refresh - React Query handles data refetching via refetchOnWindowFocus
         await supabase.auth.refreshSession().catch(() => {});
         const s2 = (await supabase.auth.getSession()).data.session;
-        if (s2?.access_token) {
+        
+        // Only update realtime auth if enabled
+        if (s2?.access_token && FLAGS.REALTIME_ENABLED) {
           supabase.realtime.setAuth(s2.access_token);
-          
-          // Invalidate profile using proper queryClient hook
-          queryClient.invalidateQueries({ 
-            queryKey: ['profile', s2.user.id] 
-          });
         }
       } catch (error) {
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        if (FLAGS.DEBUG_AUTH) {
           console.debug('[WAKE] Heal failed:', error);
         }
       }
@@ -48,5 +44,5 @@ export function useWakeUpHandler() {
       window.removeEventListener('focus', debouncedHeal);
       window.removeEventListener('online', debouncedHeal);
     };
-  }, [queryClient]);
+  }, []);
 }

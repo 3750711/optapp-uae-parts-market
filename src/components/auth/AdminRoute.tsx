@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthWithProfile } from '@/hooks/useAuthWithProfile';
 import { useUserAccess } from '@/hooks/useUserAccess';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   children, 
   fallback 
 }) => {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile } = useAuthWithProfile();
   const { role, isFirstLoad, isAdmin } = useUserAccess();
   const location = useLocation();
 
@@ -77,7 +77,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
           </Alert>
           <div className="flex gap-2">
             <Button 
-              onClick={() => refreshProfile(true)}
+              onClick={() => refreshProfile()}
               variant="outline"
               className="flex-1"
             >
