@@ -29,7 +29,9 @@ export function useWakeUpHandler() {
           });
         }
       } catch (error) {
-        console.warn('[WAKE] Heal failed:', error);
+        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          console.debug('[WAKE] Heal failed:', error);
+        }
       }
     };
 

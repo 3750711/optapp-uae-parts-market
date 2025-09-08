@@ -5,6 +5,7 @@ import { checkSessionSoft } from '@/auth/authSessionManager';
 import { decodeJwt } from '@/auth/jwtHelpers';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
 import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
+import { safeConnectRealtime, refreshRealtimeAuth, safeDisconnectRealtime } from '@/utils/realtimeManager';
 
 type AuthStatus = 'checking' | 'guest' | 'authed' | 'error';
 
@@ -110,12 +111,13 @@ async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Pr
     
     // 401-healing: refresh token and retry once  
     if (error?.httpStatus === 401) {
-      console.debug('[AUTH] 401 detected, attempting heal-retry');
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.debug('[AUTH] 401 detected, attempting heal-retry');
+      }
       await supabase.auth.refreshSession().catch(() => {});
       const s2 = (await supabase.auth.getSession()).data.session;
       if (s2?.access_token) {
         supabase.realtime.setAuth(s2.access_token);
-        window.dispatchEvent(new CustomEvent('auth:refresh', { detail: { session: s2 } }));
       }
       return await executeQuery();
     }
@@ -139,7 +141,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const profileAbortRef = useRef<AbortController | null>(null);
   const lastTokenRefreshRef = useRef<number>(0);
 
-  // Initialize wake-up handler for proper session management
+  // Initialize centralized wake-up handler
   useWakeUpHandler();
   const tokenRefreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -186,49 +188,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Debounced wake-up handler for session recovery (350ms)
-  useEffect(() => {
-    let debounceTimer: NodeJS.Timeout;
-    
-    const debouncedHeal = () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(async () => {
-        try {
-          const { data } = await supabase.auth.getSession();
-          if (!data.session) return;
-
-          await supabase.auth.refreshSession().catch(() => {});
-          const s2 = (await supabase.auth.getSession()).data.session;
-          if (s2?.access_token) {
-            supabase.realtime.setAuth(s2.access_token);
-            
-            // Profile will be invalidated by the component using useQueryClient
-            
-            if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-              console.debug('[AUTH] Wake-up healing + invalidation completed');
-            }
-          }
-        } catch (error) {
-          console.debug('[AUTH] Wake-up healing failed:', error);
-        }
-      }, 350);
-    };
-
-    const onFocus = () => debouncedHeal();
-    const onVisible = () => document.visibilityState === 'visible' && debouncedHeal();
-    const onOnline = () => debouncedHeal();
-
-    window.addEventListener('focus', onFocus);
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('online', onOnline);
-    
-    return () => {
-      window.removeEventListener('focus', onFocus);
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('online', onOnline);
-      clearTimeout(debounceTimer);
-    };
-  }, []);
+  // Wake-up handling is now centralized in useWakeUpHandler hook
 
   // Подписка СНАЧАЛА, затем чтение текущей сессии
   useEffect(() => {
@@ -249,8 +209,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setStatus('authed');
           }
           
-          // Await realtime connection for proper initialization
-          window.dispatchEvent(new CustomEvent('auth:connect', { detail: { session: newSession } }));
+          // Direct realtime connection for proper initialization
+          await safeConnectRealtime(newSession);
           
           await loadProfile(newSession.user.id);
           
@@ -266,7 +226,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(newSession?.user ?? null);
         
         // Always update realtime auth immediately
-        window.dispatchEvent(new CustomEvent('auth:refresh', { detail: { session: newSession } }));
+        if (newSession) {
+          refreshRealtimeAuth(newSession);
+        }
         
         // Debounced profile refresh (>=60s) - silent, no FSM status change
         const now = Date.now();
@@ -301,7 +263,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Clear auth storage and disconnect realtime
         clearAuthStorageSafe();
-        window.dispatchEvent(new CustomEvent('auth:disconnect'));
+        safeDisconnectRealtime();
         
         if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
           console.debug('[AUTH] Signed out, storage cleared, realtime disconnected');

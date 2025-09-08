@@ -39,57 +39,13 @@ export const useRealtime = () => {
 };
 
 export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const { status, session } = useAuth();
+  const { status } = useAuth();
   const [isConnected, setIsConnected] = React.useState(false);
   const [connectionState, setConnectionState] = React.useState<'connecting' | 'connected' | 'disconnected' | 'failed' | 'fallback'>('disconnected');
   const [lastError, setLastError] = React.useState<string>();
   const [reconnectAttempts, setReconnectAttempts] = React.useState(0);
 
-  // Listen for auth events from AuthContext
-  useEffect(() => {
-    const handleAuthConnect = async (e: CustomEvent) => {
-      const { session } = e.detail;
-      if (session) {
-        setConnectionState('connecting');
-        try {
-          await safeConnectRealtime(session);
-          setIsConnected(true);
-          setConnectionState('connected');
-          setLastError(undefined);
-        } catch (error) {
-          console.error('[RT] Connection failed:', error);
-          setConnectionState('failed');
-          setLastError('Connection failed');
-        }
-      }
-    };
-
-    const handleAuthRefresh = (e: CustomEvent) => {
-      const { session } = e.detail;
-      if (session) {
-        refreshRealtimeAuth(session);
-      }
-    };
-
-    const handleAuthDisconnect = () => {
-      safeDisconnectRealtime();
-      setIsConnected(false);
-      setConnectionState('disconnected');
-      setLastError(undefined);
-    };
-
-    window.addEventListener('auth:connect', handleAuthConnect as EventListener);
-    window.addEventListener('auth:refresh', handleAuthRefresh as EventListener);
-    window.addEventListener('auth:disconnect', handleAuthDisconnect);
-
-    return () => {
-      window.removeEventListener('auth:connect', handleAuthConnect as EventListener);
-      window.removeEventListener('auth:refresh', handleAuthRefresh as EventListener);
-      window.removeEventListener('auth:disconnect', handleAuthDisconnect);
-    };
-  }, []);
-
-  // Update local state based on realtime manager
+  // Update local state based on realtime manager state
   useEffect(() => {
     const updateState = () => {
       const state = getRealtimeState();
@@ -97,11 +53,11 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
       setConnectionState(state.connected ? 'connected' : 'disconnected');
     };
 
-    const interval = setInterval(updateState, 2000); // Check every 2s
+    // Update immediately and then periodically
+    updateState();
+    const interval = setInterval(updateState, 5000); // Check every 5s (less frequent)
     return () => clearInterval(interval);
   }, []);
-
-  // Removed visibility change listener - now handled in AuthContext for better coordination
 
   const contextValue: RealtimeContextType = {
     isConnected,
@@ -111,16 +67,13 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
     forceReconnect: async () => {
       try {
         setReconnectAttempts(prev => prev + 1);
-        safeDisconnectRealtime();
-        
-        if (status === 'authed' && session) {
-          setConnectionState('connecting');
-          await safeConnectRealtime(session);
-          setIsConnected(true);
-          setConnectionState('connected');
-        }
+        // Use the centralized manager's force reconnect
+        const { forceReconnect } = await import('@/utils/realtimeManager');
+        forceReconnect();
       } catch (error) {
-        console.error('[RT] Force reconnect failed:', error);
+        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          console.debug('[RT] Force reconnect failed:', error);
+        }
         setConnectionState('failed');
         setLastError('Force reconnect failed');
       }
