@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { checkSessionSoft } from '@/auth/authSessionManager';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
@@ -23,10 +24,13 @@ type ProfileUpdate = {
 };
 
 type AuthContextType = {
-  // Core state - only session, user, loading
+  // Core state - unified session, user, profile, loading states
   user: User | null;
   session: Session | null;
   loading: boolean;
+  profile: any;
+  isAdmin: boolean;
+  isCheckingAdmin: boolean;
   
   // Core auth methods
   signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
@@ -42,16 +46,12 @@ type AuthContextType = {
   signInWithTelegram: (authData: any) => Promise<{ user: User | null; error: any }>;
   completeFirstLogin: () => Promise<void>;
   
-  // Legacy properties for backward compatibility (deprecated - use useOptimizedProfile instead)
-  /** @deprecated Use useOptimizedProfile hook instead */
-  profile: any;
-  /** @deprecated Use useOptimizedProfile hook instead */
-  isAdmin: boolean | null;
-  /** @deprecated Use useOptimizedProfile hook instead */
+  // Legacy properties for backward compatibility
+  /** @deprecated Use profile directly */
   isLoading: boolean;
-  /** @deprecated Use useOptimizedProfile hook instead */
+  /** @deprecated Use isCheckingAdmin */
   isProfileLoading: boolean;
-  /** @deprecated Use useOptimizedProfile hook instead */
+  /** @deprecated Always null */
   profileError: string | null;
   /** @deprecated Always null */
   authError: string | null;
@@ -81,6 +81,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Centralized wake-up handler
   useWakeUpHandler();
+
+  // Centralized profile loading using React Query
+  const profileQuery = useQuery({
+    queryKey: ['profile', user?.id],
+    enabled: !!user?.id,
+    queryFn: async ({ signal }) => {
+      if (!user?.id) throw new Error('No user ID available');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .abortSignal(signal)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 60000, // 1 minute
+    gcTime: 300000, // 5 minutes
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: 'always',
+    refetchOnReconnect: 'always',
+    retry: (failureCount, error: any) => {
+      if (error?.name === 'AbortError' || (error?.status >= 400 && error?.status < 500)) {
+        return false;
+      }
+      return failureCount < 1;
+    },
+  });
+
+  // Stable derived state
+  const profile = profileQuery.data || null;
+  const isAdmin = profile?.user_type === 'admin';
+  const isCheckingAdmin = !!user && profileQuery.isLoading;
 
   // Single source of truth: onAuthStateChange
   useEffect(() => {
@@ -288,10 +323,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo<AuthContextType>(() => ({
-    // Core state
+    // Core unified state
     user, 
     session, 
     loading,
+    profile,
+    isAdmin,
+    isCheckingAdmin,
     
     // Core methods
     signIn, 
@@ -303,11 +341,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithTelegram,
     completeFirstLogin,
     
-    // Legacy properties (deprecated - always provide fallback values for compatibility)
-    profile: null,
-    isAdmin: null,
-    isLoading: loading,
-    isProfileLoading: false,
+    // Legacy properties for backward compatibility
+    isLoading: loading || isCheckingAdmin,
+    isProfileLoading: isCheckingAdmin,
     profileError: null,
     authError: null,
     needsFirstLoginCompletion: false,
@@ -317,7 +353,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearAuthError,
     forceReauth,
     runDiagnostic
-  }), [user, session, loading]);
+  }), [user, session, loading, profile, isAdmin, isCheckingAdmin]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

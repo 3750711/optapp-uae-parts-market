@@ -1,8 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthWithProfile } from '@/hooks/useAuthWithProfile';
-import { useUserAccess } from '@/hooks/useUserAccess';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -17,24 +16,23 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   children, 
   fallback 
 }) => {
-  const { user, refreshProfile } = useAuthWithProfile();
-  const { role, isFirstLoad, isAdmin } = useUserAccess();
+  const { user, isAdmin, isCheckingAdmin, profile } = useAuth();
   const location = useLocation();
 
   // Мемоизируем состояние для избежания лишних ре-рендеров
   const authState = useMemo(() => ({
     hasUser: !!user,
     isAdmin,
-    role,
-    isFirstLoad,
+    role: profile?.user_type,
+    isCheckingAdmin,
     userId: user?.id,
     userEmail: user?.email
-  }), [user, isAdmin, role, isFirstLoad]);
+  }), [user, isAdmin, isCheckingAdmin, profile]);
 
   devLog('🔍 AdminRoute state:', authState);
 
-  // Show spinner only on true first load
-  if (authState.isFirstLoad) {
+  // Show spinner only when actually checking admin status
+  if (authState.isCheckingAdmin) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -77,7 +75,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
           </Alert>
           <div className="flex gap-2">
             <Button 
-              onClick={() => refreshProfile()}
+              onClick={() => window.location.reload()}
               variant="outline"
               className="flex-1"
             >

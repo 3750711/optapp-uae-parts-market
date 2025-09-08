@@ -1,12 +1,16 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 
+/**
+ * Hook for checking admin access - now delegates to centralized AuthContext
+ * @deprecated Use useAuth() directly for isAdmin and isCheckingAdmin
+ */
 export const useAdminAccess = () => {
-  const { isAdmin, user, profile } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAuth();
   
   return {
-    isAdmin: isAdmin === true,
-    hasAdminAccess: isAdmin === true,
-    isCheckingAdmin: isAdmin === null && !!user
+    isAdmin,
+    hasAdminAccess: isAdmin,
+    isCheckingAdmin
   };
 };

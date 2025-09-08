@@ -1,20 +1,16 @@
 
 import { useAuth } from '@/contexts/AuthContext';
-import { useMemo } from 'react';
 
+/**
+ * @deprecated Use useAuth() directly for isAdmin and isCheckingAdmin
+ * This hook now delegates to the centralized AuthContext
+ */
 export const useOptimizedAdminAccess = () => {
-  const { user, profile, isAdmin } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAuth();
   
-  // Кэшируем результат проверки прав
-  const adminAccessState = useMemo(() => {
-    const isCheckingAdmin = !profile && !!user;
-    
-    return {
-      isAdmin: isAdmin === true,
-      isCheckingAdmin,
-      hasAdminAccess: isAdmin === true
-    };
-  }, [profile, user, isAdmin]);
-  
-  return adminAccessState;
+  return {
+    isAdmin,
+    isCheckingAdmin,
+    hasAdminAccess: isAdmin
+  };
 };

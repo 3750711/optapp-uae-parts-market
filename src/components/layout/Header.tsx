@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuthWithProfile } from "@/hooks/useAuthWithProfile";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -47,11 +46,11 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { getMainPageTranslations } from '@/utils/mainPageTranslations';
 import { allowedLocalesFor } from '@/utils/languageVisibility';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import HeaderSkeleton from './HeaderSkeleton';
 
 
 const Header = () => {
-  const { user, signOut, profile, isLoading } = useAuthWithProfile();
-  const { isAdmin, isCheckingAdmin } = useAdminAccess();
+  const { user, signOut, profile, isAdmin, isCheckingAdmin, loading } = useAuth();
   const { unreadCount } = useNotifications();
   const { favorites } = useFavorites();
   const isMobile = useIsMobile();
@@ -119,13 +118,18 @@ const Header = () => {
     logout: 'Выйти',
   };
   // Отладочная информация для Header
-  console.log('🏠 Header Debug:', {
+  console.debug('🏠 Header Debug:', {
     user_email: user?.email,
     profile_user_type: profile?.user_type,
     isAdmin,
     isCheckingAdmin,
-    isLoading
+    loading
   });
+
+  // Show skeleton while loading or checking admin
+  if (loading || (user && isCheckingAdmin)) {
+    return <HeaderSkeleton />;
+  }
 
   const handleLogout = async () => {
     try {
@@ -183,7 +187,7 @@ const Header = () => {
           />
           
           {/* Admin Panel Button */}
-          {user && !isLoading && !isCheckingAdmin && isAdmin && (
+          {user && !loading && !isCheckingAdmin && isAdmin && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -353,7 +357,7 @@ const Header = () => {
                     )}
                     
                     {/* Admin Panel */}
-                    {!isLoading && !isCheckingAdmin && isAdmin && (
+                    {!loading && !isCheckingAdmin && isAdmin && (
                       <>
                         <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                           <Link to="/admin" className="flex w-full items-center">
