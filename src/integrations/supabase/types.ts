@@ -2095,7 +2095,7 @@ export type Database = {
         Returns: undefined
       }
       diagnose_auth_state: {
-        Args: Record<PropertyKey, never> | { p_user_id?: string }
+        Args: { p_user_id?: string }
         Returns: Json
       }
       expire_old_price_offers: {
