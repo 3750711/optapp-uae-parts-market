@@ -116,6 +116,11 @@ const AppRoutes: React.FC = () => {
                 <AuthState />
               </Suspense>
             } />
+            <Route path="/debug/auth-foundation" element={
+              <Suspense fallback={<PBLogoLoader />}>
+                {React.createElement(lazy(() => import('@/pages/debug/AuthFoundationAudit')))}
+              </Suspense>
+            } />
 
             {/* Публичные маршруты - доступны всем */}
             <Route path="/" element={
