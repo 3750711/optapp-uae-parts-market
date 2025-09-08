@@ -12,7 +12,7 @@ export function validateSessionIssuer(access_token?: string): { ok: boolean; rea
 }
 
 export function checkSessionSoft(session: Session | null) {
-  if (!session?.access_token) return { ok:false, forceLogout:true, reason:'no_token' };
+  if (!session?.access_token) return { ok:false, forceLogout:false, reason:'no_token' };
 
   const now = Math.floor(Date.now()/1000);
   const jwt: any = decodeJwt(session.access_token);

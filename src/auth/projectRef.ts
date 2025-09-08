@@ -14,3 +14,14 @@ export function getProjectRef(): string | null {
   // кастомный домен: хеш-неймспейс
   try { return btoa(url).replace(/=+$/,'').slice(0,20); } catch { return null; }
 }
+
+export function getProjectRefFromAnon(anon?: string): string | null {
+  if (!anon) return null;
+  try {
+    const [, payload] = anon.split('.');
+    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return decoded?.ref || null;
+  } catch {
+    return null;
+  }
+}

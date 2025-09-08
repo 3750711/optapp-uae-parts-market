@@ -3,12 +3,37 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import { cleanupCorruptedCache } from './utils/localStorage';
+import { quarantineStaleRefreshTokens } from './auth/quarantineStaleRefresh';
+import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupabase';
 // import { registerServiceWorker } from './utils/serviceWorkerManager'; // TEMPORARILY DISABLED
 
 import './index.css';
 
 // Clean up any corrupted localStorage data on app start
 cleanupCorruptedCache();
+
+// Debug logging for runtime config verification
+const runtimeConfig = {
+  url: getRuntimeSupabaseUrl(),
+  anonRef: (() => {
+    try {
+      const anonKey = getRuntimeAnonKey();
+      if (!anonKey) return null;
+      const [, payload] = anonKey.split('.');
+      return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/'))).ref;
+    } catch {
+      return null;
+    }
+  })()
+};
+console.info('🔍 Supabase runtime config:', runtimeConfig);
+
+// Auto-quarantine stale refresh tokens BEFORE mounting React app
+quarantineStaleRefreshTokens().then(() => {
+  console.log('🧹 Token quarantine check completed');
+}).catch(err => {
+  console.warn('⚠️ Token quarantine check failed:', err);
+});
 
 // Register Service Worker for PWA functionality - TEMPORARILY DISABLED
 // registerServiceWorker().then(() => {

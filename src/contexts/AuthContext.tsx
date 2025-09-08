@@ -157,15 +157,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           setAuthError("Authentication error. Please log in again.");
         } else {
-          // Use soft validation instead of immediate logout
+          // Use soft validation with filtering against unnecessary logouts
           const verdict = checkSessionSoft(session);
-          if (!verdict.ok && verdict.forceLogout) {
+          
+          // Don't logout user if simply no session/token on startup (normal "not logged in")
+          const softNoSession = (!session && (verdict.reason === 'no_token' || verdict.reason?.startsWith?.('soft_')));
+          
+          if (!verdict.ok && verdict.forceLogout && !softNoSession) {
             console.warn('[AUTH] Force logout:', verdict.reason);
             clearAuthStorageSafe();
             await client.auth.signOut();
             setAuthError("Session expired. Please log in again.");
           } else {
-            if (!verdict.ok) {
+            if (!verdict.ok && !softNoSession) {
               console.debug('[AUTH] Soft issue:', verdict.reason);
             }
             
@@ -175,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               setUser(session.user);
               fetchUserProfile(session.user.id);
             } else {
-              console.log("🔧 AuthContext: No session found");
+              console.log("🔧 AuthContext: No session found (normal guest state)");
             }
           }
         }

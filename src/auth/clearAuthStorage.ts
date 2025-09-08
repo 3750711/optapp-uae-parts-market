@@ -1,7 +1,7 @@
-import { getProjectRef } from './projectRef';
+import { getProjectRef, getProjectRefFromAnon } from './projectRef';
 
-export function clearAuthStorageSafe() {
-  const ref = getProjectRef();
+export function clearAuthStorageSafe(anonKey?: string) {
+  const ref = anonKey ? getProjectRefFromAnon(anonKey) : getProjectRef();
   const prefixes = ref ? [`sb-${ref}-`, `supabase.auth.`] : [`sb-`, `supabase.auth.`];
 
   for (const storage of [localStorage, sessionStorage]) {
