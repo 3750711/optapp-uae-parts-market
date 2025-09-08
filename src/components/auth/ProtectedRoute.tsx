@@ -147,25 +147,18 @@ const ProtectedRoute = ({ children, allowedRoles, excludedRoles, requireEmailVer
   // For Telegram users with incomplete profiles, let TelegramLoginWidget handle the modal
   // No redirect needed here as the modal will handle profile completion
   
-  // If profile is still loading but user exists, show error after timeout
-  if (!authChecks.hasProfile) {
+  // If profile is still loading but user exists, show minimal loading indicator
+  // Don't block the route - let components handle their own loading states
+  if (!authChecks.hasProfile && status === 'authed') {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="max-w-md mx-auto text-center">
-          <div className="text-red-500 mb-4">
-            <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
+      <div className="min-h-screen">
+        <div className="fixed top-4 right-4 z-50">
+          <div className="bg-white shadow-lg rounded-lg p-3 flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+            <span className="text-sm text-gray-600">Загрузка профиля...</span>
           </div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Ошибка профиля</h2>
-          <p className="text-gray-600 mb-4">Не удалось загрузить профиль пользователя</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-          >
-            Обновить страницу
-          </button>
         </div>
+        {children}
       </div>
     );
   }

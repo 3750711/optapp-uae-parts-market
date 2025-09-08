@@ -81,10 +81,7 @@ function anyToCompositeSignal(signals: AbortSignal[]): AbortSignal {
   return ctrl.signal;
 }
 
-// Special symbol to distinguish AbortError from actual null/undefined results
-const ABORTED = Symbol('ABORTED');
-
-async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Promise<Profile | null | typeof ABORTED> {
+async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Promise<Profile | null> {
   // General 7s timeout over external signal
   const localCtrl = new AbortController();
   const timer = setTimeout(() => localCtrl.abort(), 7000);
@@ -110,7 +107,7 @@ async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Pr
     // AbortError is normal - navigation/timeout, not a real error
     if (error?.name === 'AbortError' || /AbortError/i.test(error?.message)) {
       console.debug('[PROFILE] request aborted (navigation/timeout)');
-      return ABORTED; // Return special symbol to distinguish from actual null result
+      throw error; // Let caller handle AbortError appropriately
     }
     
     // 401-healing: refresh token and retry once  
@@ -143,11 +140,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
   const profileAbortRef = useRef<AbortController | null>(null);
-  const lastTokenRefreshRef = useRef<number>(0);
 
   // Initialize centralized wake-up handler
   useWakeUpHandler();
-  const tokenRefreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // isAdmin зависит только от текущего профиля
   const isAdmin = useMemo<boolean | null>(() => {
@@ -171,11 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       const p = await fetchProfileReliable(uid, ctrl.signal);
-      if (p === ABORTED) {
-        // Request was aborted - this is normal during navigation, don't set error
-        console.debug('[AUTH] Profile request aborted, not setting error');
-        return; // Don't change profile or error state
-      } else if (p) {
+      if (p) {
         setProfile(p);
         setProfileError(null);
         if (FLAGS.DEBUG_AUTH) {
@@ -187,19 +178,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
         setProfileError('Не удалось загрузить профиль пользователя');
       }
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('[AUTH] Profile load failed:', {
-          error: error.message || error,
-          userId: uid,
-          status: error.httpStatus || 'unknown'
-        });
-        setProfileError(`Ошибка загрузки профиля: ${error.message || 'Неизвестная ошибка'}`);
-        
-        // Set profile to null to ensure UI shows error state correctly
-        setProfile(null);
+    } catch (error: any) {
+      // AbortError is normal during navigation - don't set error state
+      if (error?.name === 'AbortError') {
+        console.debug('[AUTH] Profile request aborted during navigation');
+        return;
       }
-      // Don't break auth state on profile load failure
+      
+      console.error('[AUTH] Profile load failed:', {
+        error: error.message || error,
+        userId: uid,
+        status: error.httpStatus || 'unknown'
+      });
+      setProfileError(`Ошибка загрузки профиля: ${error.message || 'Неизвестная ошибка'}`);
+      setProfile(null);
     } finally { 
       setIsProfileLoading(false);
       clearTimeout(timeout); 
@@ -220,8 +212,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(newSession);
           setUser(newSession.user);
           
-          // Only show spinner on truly initial load AND no profile exists
-          if (event === 'INITIAL_SESSION' && !profile) {
+          // Only show spinner on first load without cached profile
+          const cachedProfile = profile; // Use current profile state
+          if (event === 'INITIAL_SESSION' && !cachedProfile) {
             setStatus('checking');
           } else {
             setStatus('authed');
@@ -250,27 +243,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           refreshRealtimeAuth(newSession);
         }
         
-        // Debounced profile refresh (>=60s) - silent, no FSM status change
-        const now = Date.now();
-        if (now - lastTokenRefreshRef.current >= 60000) { // 60s minimum
-          lastTokenRefreshRef.current = now;
-          
-          if (tokenRefreshDebounceRef.current) {
-            clearTimeout(tokenRefreshDebounceRef.current);
-          }
-          
-          tokenRefreshDebounceRef.current = setTimeout(async () => {
-            if (newSession?.user?.id && profile) {
-              try {
-                await loadProfile(newSession.user.id);
-                if (FLAGS.DEBUG_AUTH) {
-                  console.debug('[AUTH] Background profile refresh completed');
-                }
-              } catch (error) {
-                console.debug('[AUTH] Background profile refresh failed:', error);
-              }
-            }
-          }, 100);
+        // No automatic profile refresh on token refresh - React Query handles stale data
+        if (FLAGS.DEBUG_AUTH) {
+          console.debug('[AUTH] Token refreshed, session updated');
         }
         return;
       }

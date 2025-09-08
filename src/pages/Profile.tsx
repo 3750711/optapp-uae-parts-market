@@ -51,15 +51,17 @@ const Profile = () => {
   const navigate = useNavigate();
   
   // Используем оптимизированный хук
+  const profileQuery = useOptimizedProfile();
   const { 
-    data, 
+    data: profile, 
     isLoading, 
     error, 
-    refetch, 
-    profile, 
-    orderStats, 
-    storeInfo 
-  } = useOptimizedProfile();
+    refetch 
+  } = profileQuery;
+  
+  // For backward compatibility, provide empty values for orderStats and storeInfo
+  const orderStats = { totalOrders: 0, completedOrders: 0, pendingOrders: 0 };
+  const storeInfo = null;
   
   useEffect(() => {
     if (!user) {
