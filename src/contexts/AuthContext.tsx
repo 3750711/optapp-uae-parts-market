@@ -69,26 +69,47 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const useAuth = () => useContext(AuthContext)!;
 
 async function fetchProfileReliable(userId: string, abort: AbortSignal): Promise<Profile | null> {
-  const tryOnce = async () => {
-    const { data, error } = await supabase.from('profiles')
+  const executeQuery = async () => {
+    const { data, error, status } = await supabase
+      .from('profiles')
       .select('*')
-      .eq('id', userId).single();
-    if (error) throw error;
+      .eq('id', userId)
+      .single();
+    
+    if (error) throw Object.assign(error, { httpStatus: status });
     return data as Profile;
   };
-  
-  const delays = [0, 300, 800];
-  for (const delay of delays) {
-    if (abort.aborted) throw new DOMException('aborted', 'AbortError');
-    if (delay) await new Promise(r => setTimeout(r, delay));
-    try { 
-      return await tryOnce(); 
-    } catch (error) {
-      // Continue to next retry unless this is the last attempt
-      if (delay === 800) throw error;
+
+  try {
+    return await executeQuery();
+  } catch (error: any) {
+    // 401-healing: refresh token and retry once
+    if (error?.httpStatus === 401) {
+      console.debug('[AUTH] 401 detected, attempting token refresh');
+      await supabase.auth.refreshSession();
+      const { data: session } = await supabase.auth.getSession();
+      if (session.session?.access_token) {
+        // Notify realtime of token refresh
+        window.dispatchEvent(new CustomEvent('auth:refresh', { 
+          detail: { session: session.session } 
+        }));
+      }
+      return await executeQuery();
     }
+    
+    // Retry with delays for other errors
+    const delays = [300, 800];
+    for (const delay of delays) {
+      if (abort.aborted) throw new DOMException('aborted', 'AbortError');
+      await new Promise(r => setTimeout(r, delay));
+      try { 
+        return await executeQuery(); 
+      } catch (retryError) {
+        if (delay === 800) throw retryError;
+      }
+    }
+    throw error;
   }
-  return null;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -147,38 +168,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Wake-up handler for tab visibility changes
+  // Enhanced wake-up handler for session recovery
   useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && status === 'authed' && session) {
-        const startTime = Date.now();
+    const handleWakeUp = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) return; // User logged out
+
+        // Force session refresh to handle throttled tokens
+        await supabase.auth.refreshSession();
         
-        try {
-          // Force session refresh after wake-up
-          const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+        // Update Realtime auth with fresh token
+        const { data: refreshedData } = await supabase.auth.getSession();
+        if (refreshedData.session?.access_token) {
+          window.dispatchEvent(new CustomEvent('auth:refresh', { 
+            detail: { session: refreshedData.session } 
+          }));
           
-          if (refreshedSession && !error) {
-            // Update realtime auth with fresh token
-            window.dispatchEvent(new CustomEvent('auth:refresh', { 
-              detail: { session: refreshedSession } 
-            }));
-            
-            const duration = Date.now() - startTime;
-            if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-              console.debug(`[AUTH] Wake-up refresh completed in ${duration}ms`);
+          // Silent profile refresh without FSM status change
+          if (refreshedData.session.user.id && profile) {
+            try {
+              await loadProfile(refreshedData.session.user.id);
+            } catch (error) {
+              console.debug('[AUTH] Silent profile refresh failed:', error);
             }
           }
-        } catch (error) {
+          
           if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-            console.debug('[AUTH] Wake-up refresh failed:', error);
+            console.debug('[AUTH] Wake-up healing completed');
           }
         }
+      } catch (error) {
+        console.debug('[AUTH] Wake-up healing failed:', error);
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [status, session]);
+    const onFocus = () => handleWakeUp();
+    const onVisible = () => document.visibilityState === 'visible' && handleWakeUp();
+    const onOnline = () => handleWakeUp();
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('online', onOnline);
+    
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('online', onOnline);
+    };
+  }, [profile]);
 
   // Подписка СНАЧАЛА, затем чтение текущей сессии
   useEffect(() => {
@@ -191,12 +229,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (newSession) {
           setSession(newSession);
           setUser(newSession.user);
-          setStatus('authed');
+          
+          // Only show spinner on truly initial load or when no profile exists
+          if (event === 'INITIAL_SESSION' || !profile) {
+            setStatus('checking');
+          } else {
+            setStatus('authed');
+          }
           
           // Notify realtime to connect with new session
           window.dispatchEvent(new CustomEvent('auth:connect', { detail: { session: newSession } }));
           
           await loadProfile(newSession.user.id);
+          setStatus('authed');
           
           if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
             console.debug('[AUTH] Session established, realtime connect triggered');
@@ -209,7 +254,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
-        // Debounced profile refresh and realtime auth update (>=60s)
+        // Always update realtime auth immediately
+        window.dispatchEvent(new CustomEvent('auth:refresh', { detail: { session: newSession } }));
+        
+        // Debounced profile refresh (>=60s) - silent, no FSM status change
         const now = Date.now();
         if (now - lastTokenRefreshRef.current >= 60000) { // 60s minimum
           lastTokenRefreshRef.current = now;
@@ -219,17 +267,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           
           tokenRefreshDebounceRef.current = setTimeout(async () => {
-            if (newSession?.user?.id) {
-              await loadProfile(newSession.user.id);
-              
-              // Refresh realtime auth
-              window.dispatchEvent(new CustomEvent('auth:refresh', { detail: { session: newSession } }));
-              
-              if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-                console.debug('[AUTH] Token refreshed, profile and realtime auth updated');
+            if (newSession?.user?.id && profile) {
+              try {
+                await loadProfile(newSession.user.id);
+                if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+                  console.debug('[AUTH] Background profile refresh completed');
+                }
+              } catch (error) {
+                console.debug('[AUTH] Background profile refresh failed:', error);
               }
             }
-          }, 1000);
+          }, 100);
         }
         return;
       }

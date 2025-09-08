@@ -155,10 +155,10 @@ export function forceReconnect(): void {
     safeDisconnectRealtime();
   }
   
-  // Get current session to reconnect
+  // Get current session to reconnect synchronously
   supabase.auth.getSession().then(({ data: { session } }) => {
     if (session) {
-      setTimeout(() => safeConnectRealtime(session), 500);
+      safeConnectRealtime(session);
     }
   });
 }
