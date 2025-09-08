@@ -3,10 +3,8 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { 
-  isNetworkError, 
-  retryAuthOperation, 
-  checkFirstLoginCompletion 
-} from "@/utils/authSessionManager";
+  isNetworkError
+} from "@/utils/authErrorHandler";
 import { quickAuthDiagnostic, logAuthState } from "@/utils/authDiagnostics";
 import { checkSessionSoft } from "@/auth/authSessionManager";
 import { clearAuthStorageSafe } from "@/auth/clearAuthStorage";
@@ -214,11 +212,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthError(null);
       console.log('🔓 AuthContext: Attempting sign in');
       
-      const { data, error } = await retryAuthOperation(async () => {
-        return await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
       
       if (error) throw error;
