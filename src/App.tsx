@@ -52,10 +52,7 @@ const queryClient = new QueryClient({
   },
 });
 
-// Make queryClient globally available for wake-up handler
-if (typeof window !== 'undefined') {
-  (window as any).__queryClient = queryClient;
-}
+// Wake-up handler now uses proper React Query hooks instead of global access
 
 // Компонент загрузки для lazy-loaded маршрутов
 const RouteLoader = React.memo(() => (

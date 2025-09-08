@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { checkSessionSoft } from '@/auth/authSessionManager';
 import { decodeJwt } from '@/auth/jwtHelpers';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
+import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
 
 type AuthStatus = 'checking' | 'guest' | 'authed' | 'error';
 
@@ -68,23 +69,34 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 export const useAuth = () => useContext(AuthContext)!;
 
-async function fetchProfileReliable(userId: string, abort: AbortSignal): Promise<Profile | null> {
+// Utility: combine multiple AbortSignals
+function anyToCompositeSignal(signals: AbortSignal[]): AbortSignal {
+  const ctrl = new AbortController();
+  const onAbort = () => ctrl.abort();
+  signals.forEach(s => s?.addEventListener?.('abort', onAbort, { once: true }));
+  // If any signal is already aborted, abort immediately
+  if (signals.some(s => s?.aborted)) ctrl.abort();
+  return ctrl.signal;
+}
+
+async function fetchProfileReliable(userId: string, extSignal?: AbortSignal): Promise<Profile | null> {
+  // General 7s timeout over external signal
+  const localCtrl = new AbortController();
+  const timer = setTimeout(() => localCtrl.abort(), 7000);
+  const signal = extSignal 
+    ? anyToCompositeSignal([extSignal, localCtrl.signal])
+    : localCtrl.signal;
+
   const executeQuery = async () => {
-    const ctrl = new AbortController(); 
-    const timer = setTimeout(() => ctrl.abort(), 7000);
-    try {
-      const { data, error, status } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .abortSignal(ctrl.signal)
-        .single();
-      
-      if (error) throw Object.assign(error, { httpStatus: status });
-      return data as Profile;
-    } finally { 
-      clearTimeout(timer); 
-    }
+    const { data, error, status } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .abortSignal(signal)
+      .single();
+    
+    if (error) throw Object.assign(error, { httpStatus: status });
+    return data as Profile;
   };
 
   try {
@@ -104,6 +116,8 @@ async function fetchProfileReliable(userId: string, abort: AbortSignal): Promise
     
     console.warn('[PROFILE] fetch failed', error);
     throw error;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -118,6 +132,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const profileAbortRef = useRef<AbortController | null>(null);
   const lastTokenRefreshRef = useRef<number>(0);
+
+  // Initialize wake-up handler for proper session management
+  useWakeUpHandler();
   const tokenRefreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // isAdmin зависит только от текущего профиля
@@ -179,12 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (s2?.access_token) {
             supabase.realtime.setAuth(s2.access_token);
             
-            // Use queryClient to invalidate profile instead of direct fetch
-            if (typeof window !== 'undefined' && (window as any).__queryClient && s2.user?.id) {
-              (window as any).__queryClient.invalidateQueries({ 
-                queryKey: ['profile', s2.user.id] 
-              });
-            }
+            // Profile will be invalidated by the component using useQueryClient
             
             if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
               console.debug('[AUTH] Wake-up healing + invalidation completed');
@@ -235,7 +247,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           window.dispatchEvent(new CustomEvent('auth:connect', { detail: { session: newSession } }));
           
           await loadProfile(newSession.user.id);
-          setStatus('authed');
           
           if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
             console.debug('[AUTH] Session established, realtime connect triggered');
