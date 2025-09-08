@@ -82,13 +82,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(data);
         console.log('✅ AuthContext: Profile loaded successfully');
         
-        // Check if first login completion is needed
-        const firstLoginComplete = await checkFirstLoginCompletion(userId);
-        setNeedsFirstLoginCompletion(!firstLoginComplete);
-        
-        if (!firstLoginComplete) {
-          console.log('🔄 AuthContext: First login completion required');
-        }
+        // DISABLED: Check if first login completion is needed
+        console.log('🔄 AuthContext: First login completion check disabled');
+        setNeedsFirstLoginCompletion(false); // Always set to false (disabled)
       } else {
         setProfile(null);
         console.log('👤 AuthContext: No profile found for user');

@@ -41,12 +41,29 @@ export function isTokenFromCurrentDomain(token: string): boolean {
     console.warn('Could not get runtime domain, using fallback:', error);
   }
   
-  const expectedIssuer = `${currentDomain}/auth/v1`;
-  const isValid = decoded.iss === expectedIssuer;
+  // List of allowed domains for flexible development/preview support
+  const allowedDomains = [
+    'https://api.partsbay.ae', // Production
+    'https://vfiylfljiixqkjfqubyq.supabase.co', // Direct Supabase URL
+  ];
   
-  console.log('🔍 Token domain check:', { 
+  // Add current window location domain for development/preview
+  if (typeof window !== 'undefined') {
+    const windowDomain = currentDomain;
+    if (!allowedDomains.includes(windowDomain)) {
+      allowedDomains.push(windowDomain);
+    }
+  }
+  
+  // Check if token issuer matches any allowed domain
+  const isValid = allowedDomains.some(domain => {
+    const expectedIssuer = `${domain}/auth/v1`;
+    return decoded.iss === expectedIssuer;
+  });
+  
+  console.log('🔍 Token domain check (flexible):', { 
     tokenIssuer: decoded.iss, 
-    expectedIssuer,
+    allowedDomains,
     currentDomain,
     isValid
   });
@@ -91,17 +108,25 @@ export function isNetworkError(error: any): boolean {
     'connection failed',
     'timeout',
     'abort',
-    'ns_binding_aborted',
+    'ns_binding_aborted', // Added explicit handling for NS_BINDING_ABORTED
     'net::err_',
     'fetch error',
     'connection refused',
-    'connection reset'
+    'connection reset',
+    'timeouterror' // Added TimeoutError handling
   ];
+  
+  // Special handling for NS_BINDING_ABORTED - this is a critical network interruption
+  const isBindingAborted = errorString.includes('ns_binding_aborted') || 
+                          errorString.includes('binding_aborted') ||
+                          error?.code === 'NS_BINDING_ABORTED';
   
   return networkIndicators.some(indicator => errorString.includes(indicator)) ||
          error?.name === 'TypeError' ||
          error?.name === 'AbortError' ||
-         error?.status === 0;
+         error?.name === 'TimeoutError' ||
+         error?.status === 0 ||
+         isBindingAborted;
 }
 
 // Clear all auth-related localStorage data
@@ -190,7 +215,7 @@ export async function validateAndCleanupSession(): Promise<boolean> {
   }
 }
 
-// Enhanced retry mechanism for auth operations
+// Enhanced retry mechanism for auth operations with special NS_BINDING_ABORTED handling
 export async function retryAuthOperation<T>(
   operation: () => Promise<T>,
   maxRetries: number = 3,
@@ -201,11 +226,29 @@ export async function retryAuthOperation<T>(
       return await operation();
     } catch (error) {
       const isLastAttempt = attempt === maxRetries;
-      const shouldRetry = isNetworkError(error) && !isLastAttempt;
+      const isNetworkErr = isNetworkError(error);
+      
+      // Special handling for NS_BINDING_ABORTED - increase retry attempts
+      const errorString = (error?.message || error?.name || '').toLowerCase();
+      const isBindingAborted = errorString.includes('ns_binding_aborted') || 
+                              errorString.includes('binding_aborted');
+      
+      // For NS_BINDING_ABORTED, allow more retries with longer delays
+      const effectiveMaxRetries = isBindingAborted ? Math.max(maxRetries, 5) : maxRetries;
+      const effectiveIsLastAttempt = attempt >= effectiveMaxRetries;
+      const shouldRetry = isNetworkErr && !effectiveIsLastAttempt;
       
       if (shouldRetry) {
-        const delay = baseDelay * Math.pow(2, attempt - 1);
-        console.log(`🔄 Auth operation failed (attempt ${attempt}), retrying in ${delay}ms:`, error);
+        // Longer delay for binding aborted errors
+        const multiplier = isBindingAborted ? 3 : 2;
+        const delay = baseDelay * Math.pow(multiplier, attempt - 1);
+        
+        console.log(`🔄 Auth operation failed (attempt ${attempt}/${effectiveMaxRetries}), retrying in ${delay}ms:`, {
+          error: error?.message || error,
+          isBindingAborted,
+          delay
+        });
+        
         await new Promise(resolve => setTimeout(resolve, delay));
       } else {
         console.error(`❌ Auth operation failed after ${attempt} attempts:`, error);
@@ -216,20 +259,9 @@ export async function retryAuthOperation<T>(
   throw new Error('Retry mechanism exhausted');
 }
 
-// Check if user needs first login completion
+// Check if user needs first login completion (DISABLED - always returns true)
 export async function checkFirstLoginCompletion(userId: string): Promise<boolean> {
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('first_login_completed, profile_completed, auth_method')
-      .eq('id', userId)
-      .single();
-      
-    if (error || !data) return true; // Assume completed if error
-    
-    return data.first_login_completed === true && data.profile_completed === true;
-  } catch (error) {
-    console.warn('Error checking first login completion:', error);
-    return true; // Assume completed if error
-  }
+  // DISABLED: Always return true to skip first login completion checks
+  console.log('🔄 First login completion check disabled - returning true for user:', userId);
+  return true;
 }
