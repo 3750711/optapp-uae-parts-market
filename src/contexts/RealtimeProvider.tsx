@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { safeConnectRealtime, refreshRealtimeAuth, safeDisconnectRealtime, getRealtimeState } from '@/utils/realtimeManager';
 
 interface RealtimeContextType {
   isConnected: boolean;
@@ -43,78 +44,66 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
   const [connectionState, setConnectionState] = React.useState<'connecting' | 'connected' | 'disconnected' | 'failed' | 'fallback'>('disconnected');
   const [lastError, setLastError] = React.useState<string>();
   const [reconnectAttempts, setReconnectAttempts] = React.useState(0);
-  const connectedRef = useRef(false);
 
-  function safeConnect() {
-    const state = (supabase as any).realtime?.socket?.connectionState?.();
-    if (state === 'open' || state === 'connecting' || connectedRef.current) return;
-    
-    setTimeout(() => {
-      try { 
-        supabase.realtime.connect(); 
-        connectedRef.current = true;
+  // Listen for auth events from AuthContext
+  useEffect(() => {
+    const handleAuthConnect = (e: CustomEvent) => {
+      const { session } = e.detail;
+      if (session) {
+        safeConnectRealtime(session);
         setIsConnected(true);
         setConnectionState('connected');
         setLastError(undefined);
-        
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-          console.debug('[RT] Connected successfully');
-        }
-      } catch (error) {
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-          console.debug('[RT] Connect error:', error);
-        }
-        setIsConnected(false);
-        setConnectionState('failed');
-        setLastError('Connection failed');
       }
-    }, 150); // Firefox micro-delay
-  }
+    };
 
-  useEffect(() => {
-    if (status === 'authed') {
-      const token = session?.access_token || '';
-      try { 
-        supabase.realtime.setAuth(token); 
-      } catch (error) {
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-          console.debug('[RT] SetAuth error:', error);
-        }
+    const handleAuthRefresh = (e: CustomEvent) => {
+      const { session } = e.detail;
+      if (session) {
+        refreshRealtimeAuth(session);
       }
-      safeConnect();
-      return;
-    }
-    
-    // guest/error → гасим сокет, чистим флаг
-    try { 
-      supabase.realtime.disconnect(); 
-    } catch {}
-    connectedRef.current = false;
-    setIsConnected(false);
-    setConnectionState('disconnected');
-    
-    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-      console.debug('[RT] Disconnected due to auth status:', status);
-    }
-  }, [status, session?.access_token]);
+    };
 
-  // на всякий случай обновляем токен при refresh (контекст уже обновит session)
+    const handleAuthDisconnect = () => {
+      safeDisconnectRealtime();
+      setIsConnected(false);
+      setConnectionState('disconnected');
+      setLastError(undefined);
+    };
+
+    window.addEventListener('auth:connect', handleAuthConnect as EventListener);
+    window.addEventListener('auth:refresh', handleAuthRefresh as EventListener);
+    window.addEventListener('auth:disconnect', handleAuthDisconnect);
+
+    return () => {
+      window.removeEventListener('auth:connect', handleAuthConnect as EventListener);
+      window.removeEventListener('auth:refresh', handleAuthRefresh as EventListener);
+      window.removeEventListener('auth:disconnect', handleAuthDisconnect);
+    };
+  }, []);
+
+  // Update local state based on realtime manager
   useEffect(() => {
-    if (status === 'authed') {
-      try { 
-        supabase.realtime.setAuth(session?.access_token || ''); 
-      } catch {}
-    }
-  }, [status, session?.access_token]);
+    const updateState = () => {
+      const state = getRealtimeState();
+      setIsConnected(state.connected);
+      setConnectionState(state.connected ? 'connected' : 'disconnected');
+    };
+
+    const interval = setInterval(updateState, 2000); // Check every 2s
+    return () => clearInterval(interval);
+  }, []);
 
   // Add visibility change listener for mobile support
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && status === 'authed') {
+      if (document.visibilityState === 'visible' && status === 'authed' && session) {
         // Page became visible, check connection after a short delay
         setTimeout(() => {
           if (status === 'authed') {
-            safeConnect();
+            safeConnectRealtime(session);
+            setIsConnected(true);
+            setConnectionState('connected');
           }
         }, 500);
       }
@@ -125,7 +114,7 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [status]);
+  }, [status, session]);
 
   const contextValue: RealtimeContextType = {
     isConnected,
@@ -135,9 +124,14 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
     forceReconnect: () => {
       try {
         setReconnectAttempts(prev => prev + 1);
-        connectedRef.current = false; // Reset connection flag
-        if (status === 'authed') {
-          safeConnect();
+        safeDisconnectRealtime();
+        
+        if (status === 'authed' && session) {
+          setTimeout(() => {
+            safeConnectRealtime(session);
+            setIsConnected(true);
+            setConnectionState('connected');
+          }, 500);
         }
       } catch (error) {
         console.error('[RT] Force reconnect failed:', error);

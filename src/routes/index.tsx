@@ -122,6 +122,11 @@ const AppRoutes: React.FC = () => {
                 {React.createElement(lazy(() => import('@/pages/debug/AuthFoundationAudit')))}
               </Suspense>
             } />
+            <Route path="/debug/auth-inspect" element={
+              <Suspense fallback={<PBLogoLoader />}>
+                {React.createElement(lazy(() => import('@/pages/debug/AuthInspect')))}
+              </Suspense>
+            } />
 
             {/* Публичные маршруты - доступны всем */}
             <Route path="/" element={

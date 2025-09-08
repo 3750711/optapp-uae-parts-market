@@ -3,6 +3,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { checkSessionSoft } from '@/auth/authSessionManager';
 import { decodeJwt } from '@/auth/jwtHelpers';
+import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
 
 type AuthStatus = 'checking' | 'guest' | 'authed' | 'error';
 
@@ -100,6 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
   const profileAbortRef = useRef<AbortController | null>(null);
+  const lastTokenRefreshRef = useRef<number>(0);
+  const tokenRefreshDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // isAdmin зависит только от текущего профиля
   const isAdmin = useMemo<boolean | null>(() => {
@@ -112,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profileAbortRef.current?.abort();
     const ctrl = new AbortController();
     profileAbortRef.current = ctrl;
-    const timeout = setTimeout(() => ctrl.abort(), 5000); // 5s верхняя граница
+    const timeout = setTimeout(() => ctrl.abort(), 7000); // 7s верхняя граница
     
     setIsProfileLoading(true);
     setProfileError(null);
@@ -151,18 +154,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.debug('[AUTH] event:', event, !!newSession);
       }
 
-      if (event === 'SIGNED_IN') {
-        setSession(newSession);
-        setUser(newSession!.user);
-        setStatus('authed');
-        await loadProfile(newSession!.user.id);        // ← грузим профиль ТОЛЬКО здесь
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        if (newSession) {
+          setSession(newSession);
+          setUser(newSession.user);
+          setStatus('authed');
+          
+          // Notify realtime to connect with new session
+          window.dispatchEvent(new CustomEvent('auth:connect', { detail: { session: newSession } }));
+          
+          await loadProfile(newSession.user.id);
+          
+          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+            console.debug('[AUTH] Session established, realtime connect triggered');
+          }
+        }
         return;
       }
 
       if (event === 'TOKEN_REFRESHED') {
         setSession(newSession);
         setUser(newSession?.user ?? null);
-        // профиль НЕ перезагружаем
+        
+        // Debounced profile refresh and realtime auth update (>=60s)
+        const now = Date.now();
+        if (now - lastTokenRefreshRef.current >= 60000) { // 60s minimum
+          lastTokenRefreshRef.current = now;
+          
+          if (tokenRefreshDebounceRef.current) {
+            clearTimeout(tokenRefreshDebounceRef.current);
+          }
+          
+          tokenRefreshDebounceRef.current = setTimeout(async () => {
+            if (newSession?.user?.id) {
+              await loadProfile(newSession.user.id);
+              
+              // Refresh realtime auth
+              window.dispatchEvent(new CustomEvent('auth:refresh', { detail: { session: newSession } }));
+              
+              if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+                console.debug('[AUTH] Token refreshed, profile and realtime auth updated');
+              }
+            }
+          }, 1000);
+        }
         return;
       }
 
@@ -171,11 +206,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null); 
         setProfile(null);
         setStatus('guest');
-        return;
-      }
-
-      if (event === 'INITIAL_SESSION') {
-        // не дергаем ни коннекты, ни профили; статус решит первичная инициализация ниже
+        
+        // Clear auth storage and disconnect realtime
+        clearAuthStorageSafe();
+        window.dispatchEvent(new CustomEvent('auth:disconnect'));
+        
+        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          console.debug('[AUTH] Signed out, storage cleared, realtime disconnected');
+        }
         return;
       }
     });
