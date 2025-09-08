@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { FLAGS } from '@/config/flags';
 import { useLanguage } from '@/hooks/useLanguage';
 import { Notification } from '@/types/notification';
 import { toast } from '@/hooks/use-toast';
@@ -28,7 +29,7 @@ export const useNotifications = () => {
     if (!user) return;
 
     try {
-      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+      if (FLAGS.DEBUG_AUTH) {
         console.debug('[useNotifications] Fetching notifications for user:', user.id);
       }
       
@@ -140,12 +141,20 @@ export const useNotifications = () => {
       return;
     }
 
-    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+    if (FLAGS.DEBUG_AUTH) {
       console.debug('[useNotifications] Setting up realtime for user:', user.id);
     }
     
     // Initial fetch
     fetchNotifications();
+
+    // Skip realtime setup if disabled
+    if (!FLAGS.REALTIME_ENABLED) {
+      if (FLAGS.DEBUG_AUTH) {
+        console.debug('[useNotifications] Realtime disabled, skipping subscription');
+      }
+      return;
+    }
 
     // закрыть старый канал
     if (channelRef.current) { 
@@ -167,7 +176,7 @@ export const useNotifications = () => {
         filter: `user_id=eq.${user.id}`
       },
       (payload) => {
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        if (FLAGS.DEBUG_AUTH) {
           console.debug('[useNotifications] New notification received:', payload.new);
         }
         
@@ -207,7 +216,7 @@ export const useNotifications = () => {
         filter: `user_id=eq.${user.id}`
       },
       (payload) => {
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        if (FLAGS.DEBUG_AUTH) {
           console.debug('[useNotifications] Notification updated:', payload.new);
         }
         
@@ -235,7 +244,8 @@ export const useNotifications = () => {
     ch.subscribe();
 
     return () => {
-      if (channelRef.current) { 
+      // Only cleanup if realtime was enabled
+      if (FLAGS.REALTIME_ENABLED && channelRef.current) { 
         try { 
           channelRef.current.unsubscribe(); 
         } catch {} 

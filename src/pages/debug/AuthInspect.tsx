@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { FLAGS } from '@/config/flags';
 import { decodeJwt } from '@/auth/jwtHelpers';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from '@/config/runtimeSupabase';
 import { getProjectRef } from '@/auth/projectRef';
@@ -219,6 +220,11 @@ export default function AuthInspect() {
   };
 
   const testRealtimePing = async () => {
+    if (!FLAGS.REALTIME_ENABLED) {
+      alert('Realtime is disabled by configuration');
+      return;
+    }
+
     if (!user?.id) {
       alert('No user ID for realtime test');
       return;
@@ -309,22 +315,48 @@ export default function AuthInspect() {
             >
               🔌 Test WebSocket 101
             </button>
-            <button 
-              onClick={testRealtimePing}
-              disabled={loading || !user}
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
-            >
-              📡 Test Realtime Ping
-            </button>
-            <button 
-              onClick={forceReconnect}
-              disabled={loading}
-              className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 disabled:opacity-50"
-            >
-              🔌 Force RT Reconnect
-            </button>
+            {FLAGS.REALTIME_ENABLED && (
+              <button 
+                onClick={forceReconnect}
+                disabled={loading}
+                className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 disabled:opacity-50"
+              >
+                🔌 Force RT Reconnect
+              </button>
+            )}
           </div>
         </div>
+
+        {/* Feature Flags */}
+        <div className="bg-card p-4 rounded-lg border">
+          <h2 className="text-xl font-semibold mb-4">🚩 Feature Flags</h2>
+          <div className="space-y-2">
+            <div className={`px-3 py-2 rounded ${FLAGS.REALTIME_ENABLED ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+              <span className="font-medium">Realtime: </span>
+              <span>{FLAGS.REALTIME_ENABLED ? '✅ Enabled' : '🚫 Disabled'}</span>
+            </div>
+            <div className={`px-3 py-2 rounded ${FLAGS.DEBUG_AUTH ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
+              <span className="font-medium">Debug Auth: </span>
+              <span>{FLAGS.DEBUG_AUTH ? '✅ Enabled' : '❌ Disabled'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Realtime Tests - Only show if enabled */}
+        {FLAGS.REALTIME_ENABLED && (
+          <div className="bg-card p-4 rounded-lg border">
+            <h2 className="text-xl font-semibold mb-4">📡 Realtime Tests</h2>
+            <div className="flex flex-wrap gap-2">
+              <button 
+                onClick={testRealtimePing}
+                disabled={loading || !user}
+                className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
+              >
+                📡 Test Realtime Ping
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Runtime & Environment */}
         <div className="bg-card p-4 rounded-lg border">

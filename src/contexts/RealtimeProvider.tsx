@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { safeConnectRealtime, refreshRealtimeAuth, safeDisconnectRealtime, getRealtimeState } from '@/utils/realtimeManager';
+import { FLAGS } from '@/config/flags';
 
 interface RealtimeContextType {
   isConnected: boolean;
@@ -13,7 +14,7 @@ interface RealtimeContextType {
   isUsingFallback: boolean;
   reconnectAttempts: number;
   enabled: boolean;
-  mode: 'on';
+  mode: 'on' | 'off';
 }
 
 const RealtimeContext = React.createContext<RealtimeContextType | null>(null);
@@ -31,8 +32,8 @@ export const useRealtime = () => {
       diagnostics: { firefoxDetected: false },
       isUsingFallback: false,
       reconnectAttempts: 0,
-      enabled: true,
-      mode: 'on' as const
+      enabled: FLAGS.REALTIME_ENABLED,
+      mode: FLAGS.REALTIME_ENABLED ? 'on' : 'off'
     };
   }
   return context;
@@ -47,6 +48,13 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
 
   // Update local state based on realtime manager state
   useEffect(() => {
+    if (!FLAGS.REALTIME_ENABLED) {
+      setIsConnected(false);
+      setConnectionState('disconnected');
+      setLastError('Realtime disabled by configuration');
+      return;
+    }
+
     const updateState = () => {
       const state = getRealtimeState();
       setIsConnected(state.connected);
@@ -65,13 +73,20 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
     lastError,
     realtimeEvents: [],
     forceReconnect: async () => {
+      if (!FLAGS.REALTIME_ENABLED) {
+        if (FLAGS.DEBUG_AUTH) {
+          console.debug('🚫 Realtime disabled - no reconnect available');
+        }
+        return;
+      }
+
       try {
         setReconnectAttempts(prev => prev + 1);
         // Use the centralized manager's force reconnect
         const { forceReconnect } = await import('@/utils/realtimeManager');
         forceReconnect();
       } catch (error) {
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        if (FLAGS.DEBUG_AUTH) {
           console.debug('[RT] Force reconnect failed:', error);
         }
         setConnectionState('failed');
@@ -81,8 +96,8 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
     diagnostics: { firefoxDetected: /Firefox/i.test(navigator.userAgent) },
     isUsingFallback: false,
     reconnectAttempts,
-    enabled: true,
-    mode: 'on'
+    enabled: FLAGS.REALTIME_ENABLED,
+    mode: FLAGS.REALTIME_ENABLED ? 'on' : 'off'
   };
 
   return (

@@ -6,6 +6,7 @@ import { decodeJwt } from '@/auth/jwtHelpers';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
 import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
 import { safeConnectRealtime, refreshRealtimeAuth, safeDisconnectRealtime } from '@/utils/realtimeManager';
+import { FLAGS } from '@/config/flags';
 
 type AuthStatus = 'checking' | 'guest' | 'authed' | 'error';
 
@@ -162,14 +163,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfileError(null);
     
     try {
-      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+      if (FLAGS.DEBUG_AUTH) {
         console.debug('[AUTH] Loading profile for user:', uid);
       }
       
       const p = await fetchProfileReliable(uid, ctrl.signal);
       if (p) {
         setProfile(p);
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        if (FLAGS.DEBUG_AUTH) {
           console.debug('[AUTH] Profile loaded successfully');
         }
       } else {
@@ -193,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Подписка СНАЧАЛА, затем чтение текущей сессии
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+      if (FLAGS.DEBUG_AUTH) {
         console.debug('[AUTH] event:', event, !!newSession);
       }
 
@@ -209,12 +210,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setStatus('authed');
           }
           
-          // Direct realtime connection for proper initialization
-          await safeConnectRealtime(newSession);
+          // Connect realtime if enabled
+          if (FLAGS.REALTIME_ENABLED) {
+            await safeConnectRealtime(newSession);
+          }
           
           await loadProfile(newSession.user.id);
           
-          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          if (FLAGS.DEBUG_AUTH) {
             console.debug('[AUTH] Session established, realtime connect triggered');
           }
         }
@@ -225,8 +228,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
         
-        // Always update realtime auth immediately
-        if (newSession) {
+        // Update realtime auth if enabled
+        if (FLAGS.REALTIME_ENABLED && newSession) {
           refreshRealtimeAuth(newSession);
         }
         
@@ -243,7 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (newSession?.user?.id && profile) {
               try {
                 await loadProfile(newSession.user.id);
-                if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+                if (FLAGS.DEBUG_AUTH) {
                   console.debug('[AUTH] Background profile refresh completed');
                 }
               } catch (error) {
@@ -263,9 +266,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Clear auth storage and disconnect realtime
         clearAuthStorageSafe();
-        safeDisconnectRealtime();
+        if (FLAGS.REALTIME_ENABLED) {
+          safeDisconnectRealtime();
+        }
         
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        if (FLAGS.DEBUG_AUTH) {
           console.debug('[AUTH] Signed out, storage cleared, realtime disconnected');
         }
         return;
@@ -282,7 +287,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null); 
         setProfile(null);
         setStatus('guest');                                // нормальная гостевая ветка
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        if (FLAGS.DEBUG_AUTH) {
           console.debug('[AUTH] No valid session, setting guest status');
         }
         return;
@@ -293,7 +298,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setStatus('authed');
       await loadProfile(s.user.id);
       
-      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+      if (FLAGS.DEBUG_AUTH) {
         console.debug('[AUTH] Session restored, user authenticated');
       }
     })();

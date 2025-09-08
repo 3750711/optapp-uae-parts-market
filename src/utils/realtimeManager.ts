@@ -1,5 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { FLAGS } from '@/config/flags';
 
 interface RealtimeState {
   connected: boolean;
@@ -19,15 +20,22 @@ const state: RealtimeState = {
  * Safely connect to Supabase Realtime with session auth
  */
 export async function safeConnectRealtime(session?: Session | null): Promise<void> {
+  if (!FLAGS.REALTIME_ENABLED) {
+    if (FLAGS.DEBUG_AUTH) {
+      console.debug('[RT] Realtime disabled, skipping connection');
+    }
+    return;
+  }
+
   if (state.connected) {
-    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+    if (FLAGS.DEBUG_AUTH) {
       console.debug('[RT] Already connected, skipping');
     }
     return;
   }
 
   if (state.connecting) {
-    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+    if (FLAGS.DEBUG_AUTH) {
       console.debug('[RT] Connection in progress, awaiting...');
     }
     return state.connecting;
@@ -59,7 +67,7 @@ export async function safeConnectRealtime(session?: Session | null): Promise<voi
       state.connectionAttempts = 0;
       
       const duration = Date.now() - startTime;
-      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+      if (FLAGS.DEBUG_AUTH) {
         console.debug(`[RT] Connected in ${duration}ms`);
       }
       
@@ -67,7 +75,7 @@ export async function safeConnectRealtime(session?: Session | null): Promise<voi
       state.connectionAttempts++;
       const duration = Date.now() - startTime;
       
-      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+      if (FLAGS.DEBUG_AUTH) {
         console.debug(`[RT] Connection failed after ${duration}ms:`, error);
       }
       
@@ -85,17 +93,24 @@ export async function safeConnectRealtime(session?: Session | null): Promise<voi
  * Refresh Realtime auth token without reconnecting
  */
 export function refreshRealtimeAuth(session?: Session | null): void {
+  if (!FLAGS.REALTIME_ENABLED) {
+    if (FLAGS.DEBUG_AUTH) {
+      console.debug('[RT] Realtime disabled, skipping auth refresh');
+    }
+    return;
+  }
+
   const token = session?.access_token;
   if (!token) return;
   
   try {
     supabase.realtime.setAuth(token);
     
-    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+    if (FLAGS.DEBUG_AUTH) {
       console.debug('[RT] Auth token refreshed');
     }
   } catch (error) {
-    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+    if (FLAGS.DEBUG_AUTH) {
       console.debug('[RT] Auth refresh failed:', error);
     }
   }
@@ -105,6 +120,13 @@ export function refreshRealtimeAuth(session?: Session | null): void {
  * Safely disconnect from Realtime and unsubscribe all channels
  */
 export function safeDisconnectRealtime(): void {
+  if (!FLAGS.REALTIME_ENABLED) {
+    if (FLAGS.DEBUG_AUTH) {
+      console.debug('[RT] Realtime disabled, skipping disconnect');
+    }
+    return;
+  }
+
   if (!state.connected) return;
   
   try {
@@ -116,7 +138,7 @@ export function safeDisconnectRealtime(): void {
         channel.unsubscribe();
         state.channels.delete(channelName);
       } catch (error) {
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        if (FLAGS.DEBUG_AUTH) {
           console.debug('[RT] Failed to unsubscribe from channel:', channelName, error);
         }
       }
@@ -127,12 +149,12 @@ export function safeDisconnectRealtime(): void {
     state.connected = false;
     state.connectionAttempts = 0;
     
-    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+    if (FLAGS.DEBUG_AUTH) {
       console.debug('[RT] Disconnected and cleaned up channels');
     }
   } catch (error) {
     state.connected = false; // Force reset state
-    if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+    if (FLAGS.DEBUG_AUTH) {
       console.debug('[RT] Disconnect failed:', error);
     }
   }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { FLAGS } from '@/config/flags';
 
 interface RealtimeContextType {
   isConnected: boolean;
@@ -22,13 +23,13 @@ export const useRealtime = () => {
     return {
       isConnected: false,
       connectionState: 'disconnected' as const,
-      lastError: 'Realtime temporarily disabled',
+      lastError: FLAGS.REALTIME_ENABLED ? 'Realtime context not available' : 'Realtime disabled',
       realtimeEvents: [],
       forceReconnect: () => {},
       diagnostics: { firefoxDetected: false },
       isUsingFallback: false,
       reconnectAttempts: 0,
-      enabled: false,
+      enabled: FLAGS.REALTIME_ENABLED,
       mode: 'off' as const
     };
   }
@@ -39,13 +40,17 @@ export const RealtimeProvider: React.FC<{children: React.ReactNode}> = ({ childr
   const contextValue: RealtimeContextType = {
     isConnected: false,
     connectionState: 'disconnected',
-    lastError: 'Realtime temporarily disabled for stability',
+    lastError: FLAGS.REALTIME_ENABLED ? 'Realtime temporarily disabled for stability' : 'Realtime disabled by configuration',
     realtimeEvents: [],
-    forceReconnect: () => console.log('🚫 Realtime disabled - no reconnect'),
+    forceReconnect: () => {
+      if (FLAGS.DEBUG_AUTH) {
+        console.debug('🚫 Realtime disabled - no reconnect available');
+      }
+    },
     diagnostics: { firefoxDetected: false },
     isUsingFallback: false,
     reconnectAttempts: 0,
-    enabled: false,
+    enabled: FLAGS.REALTIME_ENABLED,
     mode: 'off'
   };
 
