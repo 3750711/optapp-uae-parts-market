@@ -12,6 +12,7 @@ import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 import TermsPage from "@/pages/TermsPage";
 import PrivacyPage from "@/pages/PrivacyPage";
 import BlockedPage from "@/pages/BlockedPage";
+import ForbiddenPage from "@/pages/403";
 import AuthState from "@/pages/debug/AuthState";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 
@@ -522,6 +523,9 @@ const AppRoutes: React.FC = () => {
                 <BlockedPage />
               </ProtectedRoute>
             } />
+            
+            {/* Access denied page */}
+            <Route path="/403" element={<ForbiddenPage />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>

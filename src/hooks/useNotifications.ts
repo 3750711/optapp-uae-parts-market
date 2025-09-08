@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import { getNotificationTranslations } from '@/utils/notificationTranslations';
 
 export const useNotifications = () => {
-  const { user, profile } = useAuth();
+  const { status, user, profile } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,18 +28,18 @@ export const useNotifications = () => {
     if (!user) return;
 
     try {
-      console.log('🔍 [useNotifications] Fetching notifications for user:', user.id);
+      if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+        console.debug('[useNotifications] Fetching notifications for user:', user.id);
+      }
       
       const { data, error } = await supabase
         .from('notifications')
         .select('id, user_id, type, title, message, title_en, message_en, language, data, read, created_at, updated_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(30); // Reduced limit for better performance
+        .limit(30);
 
       if (error) throw error;
-
-      console.log('🔍 [useNotifications] Notifications fetched:', data?.length || 0);
 
       // Process notifications to show correct language based on user type
       const processedNotifications = (data || []).map(notification => {
@@ -135,127 +134,115 @@ export const useNotifications = () => {
 
   // Setup real-time subscription for notifications
   useEffect(() => {
-    if (!user?.id) return;
+    // только для авторизованных
+    if (status !== 'authed' || !user?.id) {
+      setLoading(false);
+      return;
+    }
 
     if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-      console.log('🔍 [useNotifications] Setting up realtime for user:', user.id);
+      console.debug('[useNotifications] Setting up realtime for user:', user.id);
     }
     
     // Initial fetch
     fetchNotifications();
 
-    // Close old channel if exists
-    if (channelRef.current) {
+    // закрыть старый канал
+    if (channelRef.current) { 
       try { 
         channelRef.current.unsubscribe(); 
-      } catch (error) {
-        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-          console.debug('[useNotifications] Old channel cleanup error:', error);
-        }
-      }
-      channelRef.current = null;
+      } catch {} 
+      channelRef.current = null; 
     }
 
-    // Create single channel per user
-    const channel = supabase.channel(`notifications:${user.id}`);
-    channelRef.current = channel;
+    const ch = supabase.channel(`notifications:${user.id}`);
+    channelRef.current = ch;
 
-    channel
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-            console.log('📢 [useNotifications] New notification received:', payload.new);
-          }
-          
-          // Process new notification with language logic
-          const notification = payload.new as Notification;
-          const userType = profile?.user_type || 'buyer';
-          const isSellerViewingEnglish = userType === 'seller';
-          
-          const processedNotification = {
-            ...notification,
-            title: isSellerViewingEnglish && notification.title_en 
-              ? notification.title_en 
-              : notification.title || translations.notificationTitles[notification.type as keyof typeof translations.notificationTitles] || 'Notification',
-            message: isSellerViewingEnglish && notification.message_en 
-              ? notification.message_en 
-              : notification.message || translations.notificationMessages[notification.type as keyof typeof translations.notificationMessages]?.(notification.data) || ''
-          };
-          
-          // Add new notification to the top of the list
-          setNotifications(prev => [processedNotification, ...prev]);
-          
-          // Show toast notification
-          const toastTitle = isSellerViewingEnglish ? 'New notification' : 'Новое уведомление';
-          toast({
-            title: toastTitle,
-            description: processedNotification.title,
-          });
+    ch.on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`
+      },
+      (payload) => {
+        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          console.debug('[useNotifications] New notification received:', payload.new);
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-            console.log('🔄 [useNotifications] Notification updated:', payload.new);
-          }
-          
-          // Update existing notification in state
-          const updatedNotification = payload.new as Notification;
-          const userType = profile?.user_type || 'buyer';
-          const isSellerViewingEnglish = userType === 'seller';
-          
-          const processedNotification = {
-            ...updatedNotification,
-            title: isSellerViewingEnglish && updatedNotification.title_en 
-              ? updatedNotification.title_en 
-              : updatedNotification.title || translations.notificationTitles[updatedNotification.type as keyof typeof translations.notificationTitles] || 'Notification',
-            message: isSellerViewingEnglish && updatedNotification.message_en 
-              ? updatedNotification.message_en 
-              : updatedNotification.message || translations.notificationMessages[updatedNotification.type as keyof typeof translations.notificationMessages]?.(updatedNotification.data) || ''
-          };
-          
-          setNotifications(prev => 
-            prev.map(n => n.id === updatedNotification.id ? processedNotification : n)
-          );
+        
+        // Process new notification with language logic
+        const notification = payload.new as Notification;
+        const userType = profile?.user_type || 'buyer';
+        const isSellerViewingEnglish = userType === 'seller';
+        
+        const processedNotification = {
+          ...notification,
+          title: isSellerViewingEnglish && notification.title_en 
+            ? notification.title_en 
+            : notification.title || translations.notificationTitles[notification.type as keyof typeof translations.notificationTitles] || 'Notification',
+          message: isSellerViewingEnglish && notification.message_en 
+            ? notification.message_en 
+            : notification.message || translations.notificationMessages[notification.type as keyof typeof translations.notificationMessages]?.(notification.data) || ''
+        };
+        
+        // Add new notification to the top of the list
+        setNotifications(prev => [processedNotification, ...prev]);
+        
+        // Show toast notification
+        const toastTitle = isSellerViewingEnglish ? 'New notification' : 'Новое уведомление';
+        toast({
+          title: toastTitle,
+          description: processedNotification.title,
+        });
+      }
+    );
+
+    ch.on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'notifications',
+        filter: `user_id=eq.${user.id}`
+      },
+      (payload) => {
+        if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
+          console.debug('[useNotifications] Notification updated:', payload.new);
         }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED' && (window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-          console.log('✅ [useNotifications] Realtime channel subscribed');
-        }
-      });
+        
+        // Update existing notification in state
+        const updatedNotification = payload.new as Notification;
+        const userType = profile?.user_type || 'buyer';
+        const isSellerViewingEnglish = userType === 'seller';
+        
+        const processedNotification = {
+          ...updatedNotification,
+          title: isSellerViewingEnglish && updatedNotification.title_en 
+            ? updatedNotification.title_en 
+            : updatedNotification.title || translations.notificationTitles[updatedNotification.type as keyof typeof translations.notificationTitles] || 'Notification',
+          message: isSellerViewingEnglish && updatedNotification.message_en 
+            ? updatedNotification.message_en 
+            : updatedNotification.message || translations.notificationMessages[updatedNotification.type as keyof typeof translations.notificationMessages]?.(updatedNotification.data) || ''
+        };
+        
+        setNotifications(prev => 
+          prev.map(n => n.id === updatedNotification.id ? processedNotification : n)
+        );
+      }
+    );
+
+    ch.subscribe();
 
     return () => {
-      if (channelRef.current) {
+      if (channelRef.current) { 
         try { 
           channelRef.current.unsubscribe(); 
-        } catch (error) {
-          if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-            console.debug('[useNotifications] Channel cleanup error:', error);
-          }
-        }
-        channelRef.current = null;
+        } catch {} 
+        channelRef.current = null; 
       }
     };
-  }, [user?.id, profile?.user_type]); // Optimized dependencies
-
-  if ((window as any).__PB_RUNTIME__?.DEBUG_AUTH) {
-    console.log('🔍 [useNotifications] Hook execution complete');
-  }
+  }, [status, user?.id, profile?.user_type, fetchNotifications, translations]);
 
   return {
     notifications,
