@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { preloadRoutes } from '@/utils/routePreloader';
 
 const CRITICAL_ROUTES = [
   '/seller/dashboard',
@@ -10,30 +11,21 @@ const CRITICAL_ROUTES = [
 ];
 
 /**
- * Preloads critical routes to prevent NS_BINDING_ABORTED errors
- * This helps with route transitions and reduces loading delays
+ * Preloads critical routes using SW-safe strategy
+ * First tries warming through Service Worker, then falls back to prefetch links
  */
 export const RoutePreloader: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Preload critical routes after authentication
-    const preloadRoutes = () => {
-      CRITICAL_ROUTES.forEach(route => {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = route;
-        
-        // Only add if not already added
-        if (!document.querySelector(`link[href="${route}"]`)) {
-          document.head.appendChild(link);
-          console.log('🚀 [RoutePreloader] Prefetching route:', route);
-        }
-      });
-    };
-
     // Small delay to avoid interfering with initial load
-    const timer = setTimeout(preloadRoutes, 1000);
+    const timer = setTimeout(() => {
+      preloadRoutes({
+        routes: CRITICAL_ROUTES,
+        disablePrefetchTag: false, // можно отключить через feature flag если нужно
+        debug: false // включить для отладки
+      });
+    }, 1000);
     
     return () => clearTimeout(timer);
   }, [location.pathname]);

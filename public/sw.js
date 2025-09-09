@@ -1,213 +1,163 @@
-/* Minimal, stable Service Worker for PartsBay via proxy
-   - Network-only: any API (proxy, Supabase) + any OPTIONS
-   - HTML (navigations): Network-first with fallback to cached shell if доступен
-   - JS/CSS: Stale-While-Revalidate (same-origin only)
-   - Images/Fonts: Cache-First (same-origin only), size <= 2MB
-   - Exclude Cloudinary/Telegram/CDN/3rd-party from caching
-   - Safe cache versioning + cleanup
+/* SW: navigation-safe + prefetch-aware + warm cache
+   Version bump if you change anything here:
 */
+const SW_VERSION = 'v3';
+const APP_SHELL_CACHE = `app-shell-${SW_VERSION}`;
+const HTML_FALLBACK_URL = '/index.html';
 
-const SW_VERSION = 'v2025-09-09-1';
-const STATIC_CACHE = `pb-static-${SW_VERSION}`;
-const RUNTIME_CACHE = `pb-runtime-${SW_VERSION}`;
-const IMAGE_CACHE = `pb-images-${SW_VERSION}`;
+// Разрешённые маршруты для навигации/прогрева (минимальный вайтлист).
+// Регулярки применяются к pathname.
+const ROUTE_WHITELIST = [
+  /^\/$/,                    // главная
+  /^\/seller(\/.*)?$/,       // seller dashboard
+  /^\/admin(\/.*)?$/,        // admin
+  /^\/buyer(\/.*)?$/,        // buyer
+  /^\/product(\/.*)?$/,      // карточки товаров
+];
 
-const PROXY_HOST = 'api.partsbay.ae';
-const SUPABASE_SUFFIX = '.supabase.co';
-const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
-const MAX_RUNTIME_ENTRIES = 80;
-const MAX_IMAGE_ENTRIES = 80;
+// Флаг логов — включите вначале, потом выключите:
+const DEBUG = true;
 
-// Минимальный пре-кэш только для shell; offline.html не используем
-const PRECACHE_URLS = ['/', '/site.webmanifest', '/android-chrome-192x192.png', '/android-chrome-512x512.png'];
+// Утилиты
+const isSameOrigin = (url) => {
+  try {
+    const u = new URL(url, self.location.origin);
+    return u.origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
 
+const isWhitelistedRoute = (url) => {
+  try {
+    const { pathname } = new URL(url, self.location.origin);
+    return ROUTE_WHITELIST.some((re) => re.test(pathname));
+  } catch {
+    return false;
+  }
+};
+
+const isPrefetchHeader = (req) => {
+  // Браузеры могут слать разные заголовки для prefetch:
+  // - Purpose: prefetch (Chrome старые)
+  // - Sec-Purpose: prefetch (Chrome новые)
+  // - Sec-Fetch-Mode: navigate|no-cors|cors|same-origin (для навигаций будет "navigate")
+  const h = req.headers;
+  const purpose = h.get('Purpose') || h.get('Sec-Purpose') || '';
+  if (purpose.toLowerCase().includes('prefetch')) return true;
+
+  // Если HTML не запрашивается как документ — тоже не наша «навигация».
+  const dest = h.get('Sec-Fetch-Dest');
+  if (dest && dest !== 'document') return true;
+
+  // Если это явно <link rel="prefetch"> за статикой (script/style), то destination будет script/style/etc.
+  // Мы их не обрабатываем в навигационном хэндлере.
+  return false;
+};
+
+// Установка/активация
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
-  );
+  if (DEBUG) console.log('[SW] install', SW_VERSION);
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', (event) => {
+  if (DEBUG) console.log('[SW] activate', SW_VERSION);
   event.waitUntil((async () => {
-    if ('navigationPreload' in self.registration) {
-      try { await self.registration.navigationPreload.enable(); } catch {}
-    }
+    // Сносим старые кэши других версий
     const keys = await caches.keys();
     await Promise.all(
       keys
-        .filter((k) => ![STATIC_CACHE, RUNTIME_CACHE, IMAGE_CACHE].includes(k))
+        .filter((k) => !k.includes(SW_VERSION))
         .map((k) => caches.delete(k))
     );
     await self.clients.claim();
   })());
 });
 
-self.addEventListener('message', (event) => {
-  if (event.data === 'SKIP_WAITING') self.skipWaiting();
-});
-
-function isApiRequest(url) {
-  const u = new URL(url);
-  const host = u.hostname;
-  if (host === PROXY_HOST) return true;         // наш прокси
-  if (host.endsWith(SUPABASE_SUFFIX)) return true; // прямые supabase-хосты
-  return false;
-}
-
-function isThirdParty(url) {
-  const u = new URL(url);
-  const h = u.hostname;
-  if (h.endsWith('cloudinary.com')) return true;
-  if (h === 't.me' || h.endsWith('.t.me')) return true;
-  if (h.endsWith('gstatic.com')) return true;
-  if (h.endsWith('googleapis.com')) return true;
-  if (h.endsWith('fbcdn.net') || h.endsWith('facebook.com')) return true;
-  if (h.endsWith('twitter.com') || h.endsWith('x.com')) return true;
-  if (h === 'cdn.jsdelivr.net' || h.endsWith('unpkg.com')) return true;
-  return false;
-}
-
-async function trimCache(cacheName, maxEntries) {
-  const cache = await caches.open(cacheName);
-  const keys = await cache.keys();
-  if (keys.length <= maxEntries) return;
-  for (let i = 0; i < keys.length - maxEntries; i++) {
-    await cache.delete(keys[i]);
-  }
-}
-
-async function cachePutIfSmall(cacheName, request, response) {
-  try {
-    if (response.type === 'opaque') return response; // не знаем размер — не кладём
-    const len = Number(response.headers.get('content-length') || '0');
-    if (len && len > MAX_IMAGE_BYTES) return response; // слишком большой
-    const cache = await caches.open(cacheName);
-    await cache.put(request, response.clone());
-    return response;
-  } catch {
-    return response;
-  }
-}
-
+// Навигации: только настоящие переходы на документ (SPA), без prefetch
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = request.url;
 
-  // Никогда не кэшируем preflight — иначе сломается CORS
-  if (request.method === 'OPTIONS') {
-    event.respondWith(fetch(request));
-    return;
+  // Обрабатываем только same-origin запросы
+  if (!isSameOrigin(request.url)) return;
+
+  // Нас интересуют HTML-страницы: mode=navigate ИЛИ accept: text/html,
+  // но исключаем prefetch заголовки и недокументные назначения.
+  const isNavigateMode = request.mode === 'navigate';
+  const accept = request.headers.get('accept') || '';
+  const looksLikeHTML = accept.includes('text/html');
+
+  // Важное исключение: prefetch не трогаем, иначе ловим NS_BINDING_ABORTED при конкуренции с <link rel="prefetch">
+  if (isPrefetchHeader(request)) {
+    if (DEBUG) console.log('[SW] skip prefetch', request.url);
+    return; // пропускаем до сети/браузера
   }
 
-  // Любые API (proxy/Supabase) и запросы с no-store — только сеть
-  if (isApiRequest(url) || request.headers.get('cache-control')?.includes('no-store')) {
-    event.respondWith(fetch(request));
-    return;
-  }
+  if (isNavigateMode || looksLikeHTML) {
+    // Работает только для whitelisted роутов SPA
+    if (!isWhitelistedRoute(request.url)) {
+      if (DEBUG) console.log('[SW] nav not whitelisted, passthrough', request.url);
+      return; // пускаем напрямую
+    }
 
-  // Навигации: Network-first с лёгким fallback на кэшированный shell
-  if (request.mode === 'navigate') {
+    // App-Shell стратегия: Stale-While-Revalidate для HTML (index.html)
     event.respondWith((async () => {
       try {
-        console.log('[SW] Handling navigation:', url);
-        
-        const preload = 'navigationPreload' in self.registration
-          ? await self.registration.navigationPreload.getState().then(s => s.enabled ? event.preloadResponse : null).catch(() => null)
-          : null;
-        
-        const res = preload ? await preload : await fetch(request);
-        
-        // Проверяем, что ответ успешный
-        if (!res.ok) {
-          console.warn('[SW] Navigation failed with status:', res.status);
-          throw new Error(`Navigation failed: ${res.status}`);
+        // Пробуем сеть в первую очередь, чтобы не мешать <link rel="prefetch"> и SSR-заголовкам
+        const network = await fetch(request);
+        // Только успешные HTML кладём в кэш
+        if (network && network.ok && (network.headers.get('content-type') || '').includes('text/html')) {
+          const cache = await caches.open(APP_SHELL_CACHE);
+          cache.put(HTML_FALLBACK_URL, network.clone());
         }
-        
-        const cache = await caches.open(RUNTIME_CACHE);
-        // кэшируем корневой shell для быстрого возврата
-        if (new URL(url).pathname === '/') {
-          cache.put('/', res.clone()).catch(e => console.warn('[SW] Cache put failed:', e));
-        }
-        trimCache(RUNTIME_CACHE, MAX_RUNTIME_ENTRIES);
-        
-        console.log('[SW] Navigation successful:', url);
-        return res;
-      } catch (error) {
-        console.error('[SW] Navigation error for:', url, error);
-        
-        // простой graceful degradation: вернём кэшированный shell, если он есть
-        const cache = await caches.open(STATIC_CACHE);
-        const cachedResponse = await cache.match('/');
-        
-        if (cachedResponse) {
-          console.log('[SW] Returning cached shell for failed navigation');
-          return cachedResponse;
-        }
-        
-        // Если нет кэшированного shell, пробрасываем ошибку чтобы браузер обработал как обычно
-        throw error;
+        return network;
+      } catch (e) {
+        if (DEBUG) console.warn('[SW] network fail, fallback to cache', e);
+        const cache = await caches.open(APP_SHELL_CACHE);
+        const cached = await cache.match(HTML_FALLBACK_URL);
+        if (cached) return cached;
+        // Last resort: голая офлайн-заглушка
+        return new Response('<!doctype html><title>Offline</title><h1>Offline</h1>', {
+          headers: { 'content-type': 'text/html' },
+          status: 200,
+        });
       }
     })());
-    return;
   }
+});
 
-  const dest = request.destination;
+// Прогрев маршрутов из приложения (без запуска <link rel=prefetch>)
+// Жёстко ограничиваем домен и вайтлист, чтобы не превратить в CDN-прокачку
+self.addEventListener('message', (event) => {
+  const { data } = event;
+  if (!data || typeof data !== 'object') return;
 
-  // JS/CSS: улучшенная stale-while-revalidate с правильной обработкой динамических импортов
-  if ((dest === 'script' || dest === 'style') && new URL(url).origin === self.origin) {
-    event.respondWith((async () => {
-      const cache = await caches.open(RUNTIME_CACHE);
-      const cachedResponse = await cache.match(request);
-      
+  if (data.type === 'WARM_ROUTE' && typeof data.url === 'string') {
+    const url = new URL(data.url, self.location.origin).toString();
+    if (!isSameOrigin(url) || !isWhitelistedRoute(url)) {
+      if (DEBUG) console.warn('[SW] WARM_ROUTE rejected (not whitelisted):', url);
+      return;
+    }
+    if (DEBUG) console.log('[SW] WARM_ROUTE start:', url);
+    event.waitUntil((async () => {
       try {
-        // Всегда пытаемся получить свежую версию для динамических импортов
-        const networkResponse = await fetch(request);
-        
-        if (networkResponse.ok) {
-          // Кэшируем только успешные ответы
-          cache.put(request, networkResponse.clone()).catch(e => 
-            console.warn('[SW] Cache put failed for script:', e)
-          );
-          trimCache(RUNTIME_CACHE, MAX_RUNTIME_ENTRIES);
+        // Тянем HTML документа (как обычную навигацию), но явно GET
+        const resp = await fetch(url, { method: 'GET', credentials: 'same-origin' });
+        if (resp.ok && (resp.headers.get('content-type') || '').includes('text/html')) {
+          const cache = await caches.open(APP_SHELL_CACHE);
+          await cache.put(HTML_FALLBACK_URL, resp.clone());
+          if (DEBUG) console.log('[SW] WARM_ROUTE cached app shell from', url);
+        } else if (DEBUG) {
+          console.log('[SW] WARM_ROUTE non-HTML or not OK', resp.status, url);
         }
-        
-        return networkResponse;
-      } catch (error) {
-        console.warn('[SW] Network failed for script:', url, error);
-        
-        // Возвращаем кэшированную версию только если она есть
-        if (cachedResponse) {
-          console.log('[SW] Using cached version for:', url);
-          return cachedResponse;
-        }
-        
-        // Если нет кэша, пробрасываем ошибку для корректной обработки браузером
-        throw error;
+      } catch (e) {
+        if (DEBUG) console.warn('[SW] WARM_ROUTE failed', url, e);
       }
     })());
-    return;
   }
 
-  // Изображения/шрифты: Cache-First с ограничением размера (same-origin)
-  if ((dest === 'image' || dest === 'font') && new URL(url).origin === self.origin && !isThirdParty(url)) {
-    event.respondWith((async () => {
-      const cache = await caches.open(IMAGE_CACHE);
-      const cached = await cache.match(request);
-      if (cached) return cached;
-      try {
-        const res = await fetch(request);
-        const stored = await cachePutIfSmall(IMAGE_CACHE, request, res.clone());
-        trimCache(IMAGE_CACHE, MAX_IMAGE_ENTRIES);
-        return stored;
-      } catch {
-        // без особых фолбеков; просто пробрасываем ошибку
-        throw new Error('Image fetch failed');
-      }
-    })());
-    return;
+  if (data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
   }
-
-  // Всё остальное — напрямую в сеть без кэширования
-  event.respondWith(fetch(request));
 });
