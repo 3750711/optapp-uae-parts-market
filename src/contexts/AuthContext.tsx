@@ -156,10 +156,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(newSession);
       setUser(newSession?.user ?? null);
 
-      if (newSession?.access_token && FLAGS.REALTIME_ENABLED) {
-        // Set realtime auth token (minimal realtime interaction)
-        supabase.realtime.setAuth(newSession.access_token);
-      }
+      // Realtime auth removed - no longer needed
+      // if (newSession?.access_token) {
+      //   supabase.realtime.setAuth(newSession.access_token);
+      // }
 
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         // Clear auth storage

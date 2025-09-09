@@ -6,7 +6,7 @@ import Layout from "@/components/layout/Layout";
 import StatisticsSection from "@/components/home/StatisticsSection";
 import { ProfessionalAuthBlock } from "@/components/auth/ProfessionalAuthBlock";
 import { TelegramLoginWidget } from "@/components/auth/TelegramLoginWidget";
-import { RealtimeDiagnostics } from "@/components/realtime/RealtimeDiagnostics";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -133,12 +133,12 @@ const Index = () => {
                    </div>
                  )}
 
-                 {/* Realtime Diagnostics - for development/testing */}
-                 {import.meta.env.DEV && (
-                   <div className="mt-8 max-w-2xl mx-auto">
-                     <RealtimeDiagnostics />
-                   </div>
-                 )}
+                  {/* Realtime Diagnostics removed - no longer needed */}
+                  {/* {import.meta.env.DEV && (
+                    <div className="mt-8 max-w-2xl mx-auto">
+                      <RealtimeDiagnostics />
+                    </div>
+                  )} */}
              </div>
            </div>
          </section>

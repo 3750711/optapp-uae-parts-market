@@ -26,26 +26,15 @@ const AdminTelegramMonitoring = () => {
   const { data: notifications, isLoading, refetch } = useTelegramNotifications(filters, page, 50);
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useTelegramNotificationStats();
 
-  // Real-time updates
+  // Manual refresh every 30 seconds instead of real-time updates
   useEffect(() => {
-    const channel = supabase
-      .channel('telegram-notifications-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'telegram_notifications_log'
-        },
-        () => {
-          refetch();
-          refetchStats();
-        }
-      )
-      .subscribe();
+    const refreshInterval = setInterval(() => {
+      refetch();
+      refetchStats();
+    }, 30000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(refreshInterval);
     };
   }, [refetch, refetchStats]);
 

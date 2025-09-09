@@ -20,10 +20,10 @@ export function useWakeUpHandler() {
         await supabase.auth.refreshSession().catch(() => {});
         const s2 = (await supabase.auth.getSession()).data.session;
         
-        // Only update realtime auth if enabled
-        if (s2?.access_token && FLAGS.REALTIME_ENABLED) {
-          supabase.realtime.setAuth(s2.access_token);
-        }
+        // Only update realtime auth if needed (Realtime removed)
+        // if (s2?.access_token) {
+        //   supabase.realtime.setAuth(s2.access_token);
+        // }
       } catch (error) {
         if (FLAGS.DEBUG_AUTH) {
           console.debug('[WAKE] Heal failed:', error);

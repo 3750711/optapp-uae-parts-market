@@ -35,40 +35,11 @@ export const useApprovalStatus = () => {
 
     checkInitialStatus();
 
-    // Set up real-time subscription for profile changes
-    const channel = supabase
-      .channel('profile-verification-status')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'profiles',
-          filter: `id=eq.${user.id}`
-        },
-        (payload) => {
-          const newProfile = payload.new;
-          if (newProfile.verification_status === 'verified') {
-            setIsApproved(true);
-            setTimeout(() => {
-              // Redirect based on user type
-              if (newProfile.user_type === 'seller') {
-                navigate('/seller/dashboard');
-              } else if (newProfile.user_type === 'admin') {
-                navigate('/admin');
-              } else {
-                navigate('/');
-              }
-            }, 2000);
-          } else if (newProfile.verification_status === 'blocked') {
-            navigate('/blocked', { replace: true });
-          }
-        }
-      )
-      .subscribe();
+    // Periodic check for verification status changes (every 10 seconds)
+    const intervalId = setInterval(checkInitialStatus, 10000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(intervalId);
     };
   }, [user, profile, navigate]);
 

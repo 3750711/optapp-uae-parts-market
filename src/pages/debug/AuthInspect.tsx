@@ -4,7 +4,6 @@ import { FLAGS } from '@/config/flags';
 import { decodeJwt } from '@/auth/jwtHelpers';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from '@/config/runtimeSupabase';
 import { getProjectRef } from '@/auth/projectRef';
-import { getRealtimeState, forceReconnect } from '@/utils/realtimeManager';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function AuthInspect() {
@@ -28,24 +27,20 @@ export default function AuthInspect() {
           iss: jwt.iss,
           sub: jwt.sub,
           exp: jwt.exp,
-          expDate: jwt.exp ? new Date(jwt.exp * 1000).toISOString() : null,
-          ttlSeconds: tokenTTL,
-          ttlMinutes: Math.floor(tokenTTL / 60),
-          role: jwt.role,
-          sessionId: jwt.session_id
+          ttl: tokenTTL,
+          ttlMin: Math.floor(tokenTTL / 60),
+          expired: tokenTTL <= 0
         };
       }
     }
 
-    // Get expected WebSocket URL
-    const wsUrl = `wss://api.partsbay.ae/realtime/v1/websocket?apikey=${anonKey || 'missing'}&vsn=1.0.0`;
-    const actualWsUrl = (supabase as any).realtime?.socket?.endPoint || 'Not connected';
-
-    // Get storage keys
-    const storageKeys = [];
-    for (const storage of [localStorage, sessionStorage]) {
-      for (const key of Object.keys(storage)) {
-        if (key.startsWith('sb-') || key.startsWith('supabase.auth.')) {
+    // Auth storage scan
+    const storageKeys: any[] = [];
+    ['localStorage', 'sessionStorage'].forEach(storageType => {
+      const storage = storageType === 'localStorage' ? localStorage : sessionStorage;
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (key && (key.includes('supabase') || key.includes('auth'))) {
           const value = storage.getItem(key);
           storageKeys.push({
             key,
@@ -54,9 +49,10 @@ export default function AuthInspect() {
           });
         }
       }
-    }
+    });
 
-    const realtimeState = getRealtimeState();
+    // Realtime state removed
+    const realtimeState = { enabled: false, connected: false, message: 'Realtime completely removed' };
 
     setInspectData({
       timestamp: new Date().toISOString(),
@@ -68,146 +64,69 @@ export default function AuthInspect() {
       },
       session: {
         hasSession: !!session,
-        userId: user?.id || null,
-        sessionExpiresAt: session?.expires_at || null,
-        jwtMeta,
-        tokenIsValid: tokenTTL > 0
+        hasUser: !!user,
+        hasToken: !!session?.access_token,
+        userId: user?.id,
+        userEmail: user?.email,
+        tokenTTL: tokenTTL,
+        tokenTTLMin: Math.floor(tokenTTL / 60),
+        tokenExpired: tokenTTL <= 0,
+        sessionCreatedAt: session?.created_at,
+        sessionExpiresAt: session?.expires_at,
+        sessionRefreshToken: session?.refresh_token ? '✓ Present' : '✗ Missing'
       },
-      websocket: {
-        expectedUrl: wsUrl,
-        actualUrl: actualWsUrl,
-        urlMatches: wsUrl === actualWsUrl,
-        socketState: realtimeState.socketState
-      },
-      storage: {
-        keys: storageKeys
-      },
-      realtime: {
-        ...realtimeState
-      },
+      jwt: jwtMeta,
       profile: {
         hasProfile: !!profile,
-        userType: profile?.user_type || null,
-        profileCompleted: profile?.profile_completed || null
+        profileId: profile?.id,
+        profileType: profile?.user_type,
+        verificationStatus: profile?.verification_status
       },
-      authContext: {
-        status,
-        hasUser: !!user,
-        hasSession: !!session,
-        hasProfile: !!profile
+      storage: {
+        keys: storageKeys,
+        totalKeys: storageKeys.length
+      },
+      realtime: realtimeState,
+      client: {
+        url: supabase.supabaseUrl,
+        key: supabase.supabaseKey ? '✓ Present' : '✗ Missing',
+        keyLength: supabase.supabaseKey?.length || 0,
+        keyValidation: anonKey ? 'Valid format' : 'Invalid format'
       }
     });
   };
 
-  const testRefresh = async () => {
+  useEffect(() => {
+    updateInspectData();
+  }, [session, user, profile]);
+
+  const testWebSocket101 = async () => {
     setLoading(true);
     try {
-      const startTime = Date.now();
-      const { error } = await supabase.auth.refreshSession();
-      const duration = Date.now() - startTime;
+      const wsUrl = 'wss://echo.websocket.org';
+      console.log('🧪 Testing WebSocket 101 to:', wsUrl);
       
-      alert(`Refresh ${error ? 'failed' : 'successful'} (${duration}ms)${error ? ': ' + error.message : ''}`);
-      updateInspectData();
-    } catch (error) {
-      alert('Refresh error: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const testProfile = async () => {
-    if (!user?.id) {
-      alert('No user ID available');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const startTime = Date.now();
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      const duration = Date.now() - startTime;
+      const ws = new WebSocket(wsUrl);
       
-      alert(`Profile fetch ${error ? 'failed' : 'successful'} (${duration}ms)${error ? ': ' + error.message : ''}`);
-      updateInspectData();
-    } catch (error) {
-      alert('Profile error: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const testCors = async () => {
-    setLoading(true);
-    try {
-      const url = `${getRuntimeSupabaseUrl()}/auth/v1/token`;
-      const startTime = Date.now();
-      
-      const response = await fetch(url, {
-        method: 'OPTIONS',
-        headers: {
-          'Origin': window.location.origin,
-          'Access-Control-Request-Method': 'POST',
-          'Access-Control-Request-Headers': 'content-type,authorization'
-        }
-      });
-      
-      const duration = Date.now() - startTime;
-      const headers = {
-        'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
-        'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
-        'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers')
+      ws.onopen = () => {
+        console.log('✅ WebSocket 101 connection opened');
+        ws.send('test-message-from-partsbay');
+        
+        setTimeout(() => {
+          ws.close();
+          alert('✅ WebSocket 101 test successful');
+          setLoading(false);
+        }, 1000);
       };
       
-      alert(`CORS preflight ${response.ok ? 'successful' : 'failed'} (${duration}ms, status: ${response.status})\nHeaders: ${JSON.stringify(headers, null, 2)}`);
-    } catch (error) {
-      alert('CORS error: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const testWebSocketHandshake = async () => {
-    setLoading(true);
-    console.log('🔄 Testing WebSocket 101 handshake...');
-    
-    try {
-      const anonKey = getRuntimeAnonKey();
-      const wsUrl = `wss://api.partsbay.ae/realtime/v1/websocket?apikey=${anonKey}&vsn=1.0.0`;
-      const startTime = Date.now();
-      const testSocket = new WebSocket(wsUrl);
-      
-      const timeout = setTimeout(() => {
-        testSocket.close();
-        alert('⏰ WebSocket handshake timeout (10s)');
-        setLoading(false);
-      }, 10000);
-      
-      testSocket.onopen = () => {
-        clearTimeout(timeout);
-        const latency = Date.now() - startTime;
-        console.log(`✅ WebSocket handshake successful in ${latency}ms`);
-        alert(`✅ WebSocket handshake successful in ${latency}ms`);
-        testSocket.close();
+      ws.onerror = (error) => {
+        console.error('❌ WebSocket 101 error:', error);
+        alert('❌ WebSocket 101 test failed');
         setLoading(false);
       };
       
-      testSocket.onerror = (error) => {
-        clearTimeout(timeout);
-        console.error('❌ WebSocket handshake failed:', error);
-        alert('❌ WebSocket handshake failed - check console for details');
-        setLoading(false);
-      };
-      
-      testSocket.onclose = (event) => {
-        clearTimeout(timeout);
-        if (event.code !== 1000) {
-          console.error(`❌ WebSocket closed with code: ${event.code}, reason: ${event.reason}`);
-          alert(`❌ WebSocket closed with code: ${event.code}, reason: ${event.reason}`);
-        }
+      ws.onclose = () => {
+        console.log('🔌 WebSocket 101 connection closed');
         setLoading(false);
       };
       
@@ -219,110 +138,44 @@ export default function AuthInspect() {
   };
 
   const testRealtimePing = async () => {
-    if (!FLAGS.REALTIME_ENABLED) {
-      alert('Realtime is disabled by configuration');
-      return;
-    }
-
-    if (!user?.id) {
-      alert('No user ID for realtime test');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const channelName = `audit:${user.id}`;
-      const channel = supabase.channel(channelName);
-      
-      let received = false;
-      const timeout = setTimeout(() => {
-        if (!received) {
-          alert('Realtime ping timeout (10s)');
-          channel.unsubscribe();
-        }
-      }, 10000);
-
-      channel
-        .on('broadcast', { event: 'ping' }, (payload) => {
-          received = true;
-          clearTimeout(timeout);
-          alert(`Realtime ping successful! Payload: ${JSON.stringify(payload)}`);
-          channel.unsubscribe();
-          setLoading(false);
-        })
-        .subscribe(async (status) => {
-          if (status === 'SUBSCRIBED') {
-            // Send ping after subscription
-            await channel.send({
-              type: 'broadcast',
-              event: 'ping',
-              payload: { message: 'test', timestamp: Date.now() }
-            });
-          }
-        });
-
-    } catch (error) {
-      alert('Realtime ping error: ' + error.message);
-      setLoading(false);
-    }
+    alert('Realtime has been completely removed from the project');
+    return;
   };
 
-  useEffect(() => {
-    updateInspectData();
-  }, [session, user, status, profile]);
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="flex items-center justify-center min-h-32">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">🔍 Auth Inspector</h1>
-      
+    <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">🔍 Auth Inspector</h1>
+        <button 
+          onClick={updateInspectData}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+        >
+          🔄 Refresh
+        </button>
+      </div>
+
       <div className="grid gap-6">
-        {/* Controls */}
+        {/* Quick Actions */}
         <div className="bg-card p-4 rounded-lg border">
-          <h2 className="text-xl font-semibold mb-4">🎮 Test Controls</h2>
+          <h2 className="text-xl font-semibold mb-4">⚡ Quick Tests</h2>
           <div className="flex flex-wrap gap-2">
             <button 
-              onClick={updateInspectData}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
-            >
-              🔄 Refresh Data
-            </button>
-            <button 
-              onClick={testRefresh}
-              disabled={loading || !session}
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
-            >
-              🔑 Test Session Refresh
-            </button>
-            <button 
-              onClick={testProfile}
-              disabled={loading || !user}
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
-            >
-              👤 Test Profile Fetch
-            </button>
-            <button 
-              onClick={testCors}
+              onClick={testWebSocket101}
               disabled={loading}
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
-            >
-              🌐 Test CORS Preflight
-            </button>
-            <button 
-              onClick={testWebSocketHandshake}
-              disabled={loading}
-              className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
+              className="px-4 py-2 bg-success text-success-foreground rounded hover:bg-success/90 disabled:opacity-50"
             >
               🔌 Test WebSocket 101
             </button>
-            {FLAGS.REALTIME_ENABLED && (
-              <button 
-                onClick={forceReconnect}
-                disabled={loading}
-                className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 disabled:opacity-50"
-              >
-                🔌 Force RT Reconnect
-              </button>
-            )}
           </div>
         </div>
 
@@ -330,9 +183,9 @@ export default function AuthInspect() {
         <div className="bg-card p-4 rounded-lg border">
           <h2 className="text-xl font-semibold mb-4">🚩 Feature Flags</h2>
           <div className="space-y-2">
-            <div className={`px-3 py-2 rounded ${FLAGS.REALTIME_ENABLED ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+            <div className="px-3 py-2 rounded bg-red-100 text-red-800">
               <span className="font-medium">Realtime: </span>
-              <span>{FLAGS.REALTIME_ENABLED ? '✅ Enabled' : '🚫 Disabled'}</span>
+              <span>🚫 Completely Removed</span>
             </div>
             <div className={`px-3 py-2 rounded ${FLAGS.DEBUG_AUTH ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
               <span className="font-medium">Debug Auth: </span>
@@ -341,86 +194,12 @@ export default function AuthInspect() {
           </div>
         </div>
 
-        {/* Realtime Tests - Only show if enabled */}
-        {FLAGS.REALTIME_ENABLED && (
-          <div className="bg-card p-4 rounded-lg border">
-            <h2 className="text-xl font-semibold mb-4">📡 Realtime Tests</h2>
-            <div className="flex flex-wrap gap-2">
-              <button 
-                onClick={testRealtimePing}
-                disabled={loading || !user}
-                className="px-4 py-2 bg-secondary text-secondary-foreground rounded hover:bg-secondary/90 disabled:opacity-50"
-              >
-                📡 Test Realtime Ping
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Runtime & Environment */}
+        {/* Inspection Data */}
         <div className="bg-card p-4 rounded-lg border">
-          <h2 className="text-xl font-semibold mb-4">🌍 Runtime & Environment</h2>
-          <pre className="bg-muted p-3 rounded text-sm overflow-auto">
-            {JSON.stringify(inspectData.runtime, null, 2)}
+          <h2 className="text-xl font-semibold mb-4">📊 Inspection Data</h2>
+          <pre className="whitespace-pre-wrap text-xs bg-muted p-4 rounded overflow-auto max-h-96">
+            {JSON.stringify(inspectData, null, 2)}
           </pre>
-        </div>
-
-        {/* Session Status */}
-        <div className="bg-card p-4 rounded-lg border">
-          <h2 className="text-xl font-semibold mb-4">🔐 Session Status</h2>
-          <pre className="bg-muted p-3 rounded text-sm overflow-auto">
-            {JSON.stringify(inspectData.session, null, 2)}
-          </pre>
-        </div>
-
-        {/* WebSocket Configuration */}
-        <div className="bg-card p-4 rounded-lg border">
-          <h2 className="text-xl font-semibold mb-4">🔌 WebSocket Configuration</h2>
-          <pre className="bg-muted p-3 rounded text-sm overflow-auto">
-            {JSON.stringify(inspectData.websocket, null, 2)}
-          </pre>
-        </div>
-
-        {/* Storage Keys */}
-        <div className="bg-card p-4 rounded-lg border">
-          <h2 className="text-xl font-semibold mb-4">💾 Storage Keys</h2>
-          <pre className="bg-muted p-3 rounded text-sm overflow-auto">
-            {JSON.stringify(inspectData.storage, null, 2)}
-          </pre>
-        </div>
-
-        {/* Realtime Status */}
-        <div className="bg-card p-4 rounded-lg border">
-          <h2 className="text-xl font-semibold mb-4">📡 Realtime Status</h2>
-          <pre className="bg-muted p-3 rounded text-sm overflow-auto">
-            {JSON.stringify(inspectData.realtime, null, 2)}
-          </pre>
-        </div>
-
-        {/* Profile Status */}
-        <div className="bg-card p-4 rounded-lg border">
-          <h2 className="text-xl font-semibold mb-4">👤 Profile Status</h2>
-          <pre className="bg-muted p-3 rounded text-sm overflow-auto">
-            {JSON.stringify(inspectData.profile, null, 2)}
-          </pre>
-        </div>
-
-        {/* Auth Context Status */}
-        <div className="bg-card p-4 rounded-lg border">
-          <h2 className="text-xl font-semibold mb-4">📋 Auth Context Status</h2>
-          <pre className="bg-muted p-3 rounded text-sm overflow-auto">
-            {JSON.stringify(inspectData.authContext, null, 2)}
-          </pre>
-        </div>
-
-        {/* Debug Instructions */}
-        <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">💡 Debug Instructions</h2>
-          <p className="text-sm text-muted-foreground">
-            To enable debug logs, run in console: <code className="bg-muted px-2 py-1 rounded">localStorage.setItem('DEBUG_AUTH', '1')</code>
-            <br />
-            To disable: <code className="bg-muted px-2 py-1 rounded">localStorage.removeItem('DEBUG_AUTH')</code>
-          </p>
         </div>
       </div>
     </div>

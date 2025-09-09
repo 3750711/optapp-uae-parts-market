@@ -19,7 +19,7 @@ import { useAdminOrdersState } from "@/hooks/useAdminOrdersState";
 import { useOrderActions } from "@/hooks/useOrderActions";
 import { AdminOrdersErrorBoundary } from "@/components/error/AdminOrdersErrorBoundary";
 import { useAdminPWALifecycle } from "@/admin/_shared/AdminPWALifecycle";
-import { RealtimeDiagnostics } from "@/components/realtime/RealtimeDiagnostics";
+
 import { useOptimizedAdminAccess } from "@/hooks/useOptimizedAdminAccess";
 
 const AdminOrders = () => {
@@ -282,6 +282,7 @@ const AdminOrders = () => {
           />
           
           {/* Realtime Diagnostics - DEV mode or Admins only */}
+          {/* Realtime Diagnostics removed
           {(import.meta.env.DEV || isAdmin) && (
             <div className="mt-6">
               <Card>
@@ -294,6 +295,7 @@ const AdminOrders = () => {
               </Card>
             </div>
           )}
+          */}
         </div>
       </AdminOrdersErrorBoundary>
     </AdminLayout>

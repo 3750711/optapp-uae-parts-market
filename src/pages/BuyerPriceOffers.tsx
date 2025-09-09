@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSimpleBuyerOffers, useSimpleBuyerOfferCounts } from '@/hooks/useSimpleBuyerOffers';
-import { usePriceOffersRealtime } from '@/hooks/usePriceOffersRealtime';
+
 import { SimpleOfferCard } from '@/components/offers/SimpleOfferCard';
 import Layout from '@/components/layout/Layout';
 import { formatPrice } from '@/utils/formatPrice';
@@ -17,8 +17,9 @@ const BuyerPriceOffers: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [favoriteProducts, setFavoriteProducts] = useState<Set<string>>(new Set());
   
+  // Remove the usePriceOffersRealtime hook call
   // Enable real-time updates
-  usePriceOffersRealtime();
+  // usePriceOffersRealtime();
   
   const { 
     data: offerProducts, 

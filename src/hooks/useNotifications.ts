@@ -126,126 +126,32 @@ export const useNotifications = () => {
   // Single channel ref to prevent duplicates
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Setup real-time subscription for notifications
+  // Manual refresh function for notifications
+  const refreshNotifications = () => {
+    if (user?.id) {
+      fetchNotifications();
+    }
+  };
+
+  // Optional: Set up periodic refresh (every 30 seconds) for critical notifications  
   useEffect(() => {
-    // только для авторизованных
     if (status !== 'authed' || !user?.id) {
       setLoading(false);
       return;
-    }
-
-    if (FLAGS.DEBUG_AUTH) {
-      console.debug('[useNotifications] Setting up realtime for user:', user.id);
     }
     
     // Initial fetch
     fetchNotifications();
 
-    // Skip realtime setup if disabled
-    if (!FLAGS.REALTIME_ENABLED) {
-      if (FLAGS.DEBUG_AUTH) {
-        console.debug('[useNotifications] Realtime disabled, skipping subscription');
-      }
-      return;
-    }
-
-    // закрыть старый канал
-    if (channelRef.current) { 
-      try { 
-        channelRef.current.unsubscribe(); 
-      } catch {} 
-      channelRef.current = null; 
-    }
-
-    const ch = supabase.channel(`notifications:${user.id}`);
-    channelRef.current = ch;
-
-    ch.on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${user.id}`
-      },
-      (payload) => {
-        if (FLAGS.DEBUG_AUTH) {
-          console.debug('[useNotifications] New notification received:', payload.new);
-        }
-        
-        // Process new notification with language logic
-        const notification = payload.new as Notification;
-        const userType = profile?.user_type || 'buyer';
-        const isSellerViewingEnglish = userType === 'seller';
-        
-        const processedNotification = {
-          ...notification,
-          title: isSellerViewingEnglish && notification.title_en 
-            ? notification.title_en 
-            : notification.title || translations.notificationTitles[notification.type as keyof typeof translations.notificationTitles] || 'Notification',
-          message: isSellerViewingEnglish && notification.message_en 
-            ? notification.message_en 
-            : notification.message || translations.notificationMessages[notification.type as keyof typeof translations.notificationMessages]?.(notification.data) || ''
-        };
-        
-        // Add new notification to the top of the list
-        setNotifications(prev => [processedNotification, ...prev]);
-        
-        // Show toast notification
-        const toastTitle = isSellerViewingEnglish ? 'New notification' : 'Новое уведомление';
-        toast({
-          title: toastTitle,
-          description: processedNotification.title,
-        });
-      }
-    );
-
-    ch.on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'notifications',
-        filter: `user_id=eq.${user.id}`
-      },
-      (payload) => {
-        if (FLAGS.DEBUG_AUTH) {
-          console.debug('[useNotifications] Notification updated:', payload.new);
-        }
-        
-        // Update existing notification in state
-        const updatedNotification = payload.new as Notification;
-        const userType = profile?.user_type || 'buyer';
-        const isSellerViewingEnglish = userType === 'seller';
-        
-        const processedNotification = {
-          ...updatedNotification,
-          title: isSellerViewingEnglish && updatedNotification.title_en 
-            ? updatedNotification.title_en 
-            : updatedNotification.title || translations.notificationTitles[updatedNotification.type as keyof typeof translations.notificationTitles] || 'Notification',
-          message: isSellerViewingEnglish && updatedNotification.message_en 
-            ? updatedNotification.message_en 
-            : updatedNotification.message || translations.notificationMessages[updatedNotification.type as keyof typeof translations.notificationMessages]?.(updatedNotification.data) || ''
-        };
-        
-        setNotifications(prev => 
-          prev.map(n => n.id === updatedNotification.id ? processedNotification : n)
-        );
-      }
-    );
-
-    ch.subscribe();
+    // Set up interval for periodic refresh
+    const intervalId = setInterval(() => {
+      fetchNotifications();
+    }, 30000); // 30 seconds
 
     return () => {
-      // Only cleanup if realtime was enabled
-      if (FLAGS.REALTIME_ENABLED && channelRef.current) { 
-        try { 
-          channelRef.current.unsubscribe(); 
-        } catch {} 
-        channelRef.current = null; 
-      }
+      clearInterval(intervalId);
     };
-  }, [status, user?.id, profile?.user_type, fetchNotifications, translations]);
+  }, [status, user?.id]);
 
   return {
     notifications,
@@ -254,6 +160,6 @@ export const useNotifications = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    refetch: fetchNotifications
+    refreshNotifications
   };
 };

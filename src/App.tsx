@@ -7,7 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary';
-import { RealtimeProvider } from '@/contexts/RealtimeProvider';
+
 import LanguageProvider from '@/components/layout/LanguageProvider';
 
 import { ThemeProvider } from "next-themes";
@@ -71,20 +71,18 @@ const App = () => {
           <QueryClientProvider client={queryClient}>
             <AuthProvider>
               <AuthErrorBoundary>
-                <RealtimeProvider>
-                  <BrowserRouter>
-                    <LanguageProvider>
-                      <TooltipProvider>
-                        <Toaster />
-                        <NetworkIndicator />
-                        <Suspense fallback={<RouteLoader />}>
-                          <RoutePreloader />
-                          <AppRoutes />
-                        </Suspense>
-                      </TooltipProvider>
-                    </LanguageProvider>
-                  </BrowserRouter>
-                </RealtimeProvider>
+                <BrowserRouter>
+                  <LanguageProvider>
+                    <TooltipProvider>
+                      <Toaster />
+                      <NetworkIndicator />
+                      <Suspense fallback={<RouteLoader />}>
+                        <RoutePreloader />
+                        <AppRoutes />
+                      </Suspense>
+                    </TooltipProvider>
+                  </LanguageProvider>
+                </BrowserRouter>
               </AuthErrorBoundary>
             </AuthProvider>
           </QueryClientProvider>
