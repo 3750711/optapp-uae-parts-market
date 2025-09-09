@@ -15,7 +15,7 @@ export const PWAUpdateBanner: React.FC = () => {
     const handleControllerUpdated = () => {
       setIsUpdating(false);
       setUpdateAvailable(false);
-      console.log('🚀 PWA: Service Worker updated without reload');
+      
     };
 
     window.addEventListener('sw-update-available', handleUpdateAvailable);

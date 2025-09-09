@@ -63,7 +63,7 @@ export const usePWAOptimizedAutosave = ({
           lastSavedData.current = serializedData;
           setHasUnsavedChanges(false);
           onSave?.();
-          console.log(`🏠 PWA Autosave: ${key}`);
+          
         });
       } else {
         // Regular browser save
@@ -72,7 +72,7 @@ export const usePWAOptimizedAutosave = ({
         lastSavedData.current = serializedData;
         setHasUnsavedChanges(false);
         onSave?.();
-        console.log(`💾 Autosave: ${key}`);
+        
       }
     } catch (error) {
       console.error('💾 Autosave error:', error);
@@ -126,26 +126,26 @@ export const usePWAOptimizedAutosave = ({
     const unregister = pwaLifecycleManager.register(`autosave-${key}`, {
       onVisibilityChange: (isHidden: boolean) => {
         if (isHidden && hasUnsavedChanges) {
-          console.log(`📱 PWA visibility changed to hidden, saving ${key} immediately`);
+          
           saveNow();
         }
       },
       onPageHide: () => {
         if (hasUnsavedChanges) {
-          console.log(`📱 PWA page hiding, saving ${key} immediately`);
+          
           saveNow();
         }
       },
       onFreeze: () => {
         if (hasUnsavedChanges) {
-          console.log(`❄️ PWA frozen, saving ${key} immediately`);
+          
           saveNow();
         }
       },
       onBlur: () => {
         // Additional save on blur for mobile browsers
         if (hasUnsavedChanges && (navigator.userAgent.includes('Mobile') || navigator.userAgent.includes('iPhone'))) {
-          console.log(`📱 Mobile blur detected, saving ${key} immediately`);
+          
           saveNow();
         }
       },

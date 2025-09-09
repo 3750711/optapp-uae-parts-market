@@ -9,13 +9,13 @@ export const useAdminPWALifecycle = (id: string, onRefresh?: () => void) => {
       onVisibilityChange: (isHidden: boolean) => {
         if (!isHidden && onRefresh) {
           // Мягкий рефреш только при возврате в админку
-          console.log(`🏠 Admin PWA: Page visible, soft refresh for ${id}`);
+          
           setTimeout(onRefresh, 300); // Задержка для стабильности
         }
       },
       onPageShow: (event: PageTransitionEvent) => {
         if (event.persisted) {
-          console.log(`🏠 Admin PWA: Restored from bfcache for ${id}`);
+          
           // НЕ делаем автоматический рефреш при bfcache - данные должны остаться
         }
       },

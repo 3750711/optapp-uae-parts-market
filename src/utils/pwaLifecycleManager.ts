@@ -57,7 +57,7 @@ class PWALifecycleManager {
         this.rapidChangeCount++;
         if (this.rapidChangeCount > 3) {
           this.isFastSwitching = true;
-          console.log('🏠 PWA: Fast app switching detected - throttling events');
+          
           setTimeout(() => {
             this.isFastSwitching = false;
             this.rapidChangeCount = 0;
@@ -117,7 +117,7 @@ class PWALifecycleManager {
     window.addEventListener('pagehide', (event) => {
       // For PWA with bfcache, minimize operations to avoid blocking
       if (this.isPWA && event.persisted) {
-        console.log('🏠 PWA: Page cached for bfcache - minimal operations');
+        
         // Only execute critical save operations
         this.listeners.forEach((options) => {
           if (options.enableBfcacheOptimization) {
@@ -138,7 +138,7 @@ class PWALifecycleManager {
     // Bfcache restoration handler
     window.addEventListener('pageshow', (event) => {
       if (event.persisted) {
-        console.log('🏠 PWA: Page restored from bfcache - rehydrating state');
+        
         // Reset rapid change detection on bfcache restore
         this.rapidChangeCount = 0;
         this.isFastSwitching = false;
@@ -152,7 +152,7 @@ class PWALifecycleManager {
     // Page freeze/resume detection (modern browsers)
     if ('onfreeze' in document) {
       document.addEventListener('freeze', () => {
-        console.log('🏠 PWA: Page frozen');
+        
         this.isPageFrozen = true;
         this.listeners.forEach((options) => {
           options.onFreeze?.();
@@ -160,7 +160,7 @@ class PWALifecycleManager {
       }, { passive: false }); // Not passive for critical saves
 
       document.addEventListener('resume', () => {
-        console.log('🏠 PWA: Page resumed');
+        
         this.isPageFrozen = false;
         this.listeners.forEach((options) => {
           options.onResume?.();
@@ -171,13 +171,6 @@ class PWALifecycleManager {
     // Bfcache monitoring
     this.monitorBfcache();
     
-    console.log('🔄 PWA Lifecycle Manager: Event listeners initialized', {
-      isPWA: this.isPWA,
-      isIOSDevice,
-      isTelegramWebView,
-      effectiveDebounce,
-      listeners: 7
-    });
   }
 
   private monitorBfcache() {
@@ -186,7 +179,7 @@ class PWALifecycleManager {
     // Check if page was restored from bfcache
     const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
     if (navigation?.type === 'back_forward') {
-      console.log('🏠 PWA: Restored from bfcache successfully');
+      
     }
 
     // Monitor bfcache blocking reasons
@@ -204,24 +197,24 @@ class PWALifecycleManager {
         });
         observer.observe({ entryTypes: ['navigation'] });
       } catch (error) {
-        console.log('🏠 PWA: PerformanceObserver not fully supported');
+        
       }
     }
   }
 
   register(id: string, options: LifecycleOptions) {
     this.listeners.set(id, options);
-    console.log(`🏠 PWA: Registered lifecycle listener "${id}"`);
+    
     
     return () => {
       this.listeners.delete(id);
-      console.log(`🏠 PWA: Unregistered lifecycle listener "${id}"`);
+      
     };
   }
 
   // Force save for critical operations
   forceSave(reason: string = 'manual') {
-    console.log(`🏠 PWA: Force save triggered - ${reason}`);
+    
     this.listeners.forEach((options) => {
       options.onPageHide?.();
     });

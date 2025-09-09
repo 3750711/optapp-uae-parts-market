@@ -40,7 +40,7 @@ export const UpdatePrompt: React.FC = () => {
     setIsUpdating(true);
     try {
       // Soft update - just reload without aggressive cache clearing
-      console.log('🔄 UpdatePrompt: Performing soft reload to apply update');
+      
       window.location.reload();
     } catch (error) {
       console.error('Failed to update:', error);

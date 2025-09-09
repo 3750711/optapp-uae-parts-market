@@ -14,7 +14,7 @@ import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RoutePreloader } from "@/components/routing/RoutePreloader";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
-import { ServiceWorkerStatus } from "@/components/ServiceWorkerStatus";
+
 import { getQueryConfigForConnection } from "@/utils/networkUtils";
 
 // Адаптивная конфигурация QueryClient для мобильных сетей
@@ -66,7 +66,7 @@ const App = () => {
                     <TooltipProvider>
                       <Toaster />
                       <NetworkIndicator />
-                      {import.meta.env.DEV && <ServiceWorkerStatus />}
+                      
                       <Suspense fallback={<RouteLoader />}>
                         <RoutePreloader />
                         <AppRoutes />
