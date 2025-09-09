@@ -54,22 +54,6 @@ export default function AuthFoundationAudit() {
     }));
   };
 
-  const testRealtime = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
-      setOut((o:any) => ({ ...o, realtime: ['No session available for realtime test'] }));
-      return;
-    }
-
-    await supabase.realtime.setAuth(session.access_token);
-    const ch = supabase.channel('audit');
-    const log:string[] = [];
-    const push = (m:string)=>log.push(`[${new Date().toISOString()}] ${m}`);
-    ch.on('broadcast', { event: 'ping' }, (p)=>push('recv broadcast ping ' + JSON.stringify(p)));
-    await ch.subscribe((s)=>push('status '+s));
-    setTimeout(()=>{ try { ch.send({ type:'broadcast', event:'ping', payload:{ t:Date.now() }}); } catch {} }, 500);
-    setTimeout(()=>{ ch.unsubscribe(); setOut((o:any)=>({ ...o, realtime: log })); }, 2500);
-  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-3">
@@ -85,7 +69,6 @@ export default function AuthFoundationAudit() {
       </div>
       <div className="flex gap-2">
         <button onClick={run} className="px-3 py-2 rounded bg-black text-white">Run unified auth test</button>
-        <button onClick={testRealtime} className="px-3 py-2 rounded bg-black text-white">Test Realtime</button>
       </div>
       <pre className="text-xs bg-gray-100 p-3 rounded overflow-auto h-64">{JSON.stringify(out, null, 2)}</pre>
       <p className="text-xs opacity-60">Пароль не логируется. Для прод — удалите страницу после аудита.</p>

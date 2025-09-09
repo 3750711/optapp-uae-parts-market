@@ -47,29 +47,16 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
     }
   }, [isOpen, messageId]);
 
-  // Real-time subscription for message updates
+  // Auto-refresh every 30 seconds for message updates
   useEffect(() => {
     if (!isOpen || !messageId) return;
 
-    const channel = supabase
-      .channel('message-details')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'message_history',
-          filter: `id=eq.${messageId}`
-        },
-        (payload) => {
-          console.log('💬 Message updated in real-time:', payload);
-          fetchRecipientDetails();
-        }
-      )
-      .subscribe();
+    const interval = setInterval(() => {
+      fetchRecipientDetails();
+    }, 30000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [isOpen, messageId]);
 

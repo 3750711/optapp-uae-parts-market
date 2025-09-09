@@ -4,6 +4,8 @@ import DashboardHeader from '@/components/admin/dashboard/DashboardHeader';
 import MessageRecipientSelection from '@/components/admin/messages/MessageRecipientSelection';
 import MessageComposer from '@/components/admin/messages/MessageComposer';
 import MessageHistory from '@/components/admin/messages/MessageHistory';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { useRecipientSelection } from '@/hooks/useRecipientSelection';
 import { useNewMessageHistory } from '@/hooks/useNewMessageHistory';
 
@@ -14,7 +16,18 @@ const AdminMessages = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <DashboardHeader title="Сообщения пользователям" />
+        <div className="flex items-center justify-between">
+          <DashboardHeader title="Сообщения пользователям" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={refreshHistory}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Обновить
+          </Button>
+        </div>
         
         <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6">
           {/* Left Column - Message Creation */}

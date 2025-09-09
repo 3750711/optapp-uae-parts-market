@@ -63,19 +63,9 @@ export class AdaptiveSupabaseClient {
     return this.client.from(table);
   }
 
-  channel(name: string) {
-    return this.client.channel(name);
-  }
-
-  removeChannel(channel: any) {
-    return this.client.removeChannel(channel);
-  }
 
   schema(name: 'public' | '__InternalSupabase' = 'public') {
     return this.client.schema(name);
   }
 
-  get realtime() {
-    return this.client.realtime;
-  }
 }

@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import { FileText, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye, Container, Save } from "lucide-react";
+import { Loader2, Eye, Container, Save, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
@@ -119,24 +119,14 @@ const AdminLogistics = () => {
   const [managingPlacesOrderId, setManagingPlacesOrderId] = useState<string | null>(null);
   const [showContainerManagement, setShowContainerManagement] = useState(false);
 
+  // Auto-refresh logistics data every 60 seconds
   useEffect(() => {
-    const channel = supabase
-      .channel('orders-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
-        }
-      )
-      .subscribe();
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
+    }, 60000);
 
     return () => {
-      supabase.removeChannel(channel);
+      clearInterval(interval);
     };
   }, [queryClient]);
 
@@ -627,6 +617,15 @@ const AdminLogistics = () => {
           <CardHeader className="py-4 flex flex-row justify-between items-center">
             <CardTitle>Управление логистикой</CardTitle>
             <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['logistics-orders'] })}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Обновить
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => setShowContainerManagement(true)}
