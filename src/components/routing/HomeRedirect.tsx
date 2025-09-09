@@ -1,7 +1,23 @@
+import React, { useEffect, useRef } from 'react';
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuthWithProfile } from "@/hooks/useAuthWithProfile";
 import { devLog } from "@/utils/logger";
 import { redirectProtection } from "@/utils/redirectProtection";
+import { supabase } from '@/integrations/supabase/client';
+
+// Local timeout utility for failsafe retry
+async function withTimeout<T>(promise: Promise<T>, ms: number, label = 'timeout'): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(label)), ms);
+  });
+  
+  try {
+    return await Promise.race([promise, timeoutPromise]) as T;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 interface HomeRedirectProps {
   children: React.ReactNode;
@@ -10,6 +26,7 @@ interface HomeRedirectProps {
 const HomeRedirect = ({ children }: HomeRedirectProps) => {
   const { user, profile, isLoading } = useAuthWithProfile();
   const location = useLocation();
+  const retriedRef = useRef(false);
   
   console.log("🚀 HomeRedirect: Auth state check:", { 
     user: !!user, 
@@ -27,6 +44,26 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     isLoading,
     userType: profile?.user_type
   });
+
+  // Failsafe retry mechanism if loading takes too long
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const retryTimer = setTimeout(async () => {
+      if (retriedRef.current) return;
+      retriedRef.current = true;
+      
+      console.warn('[HomeRedirect] Loading timeout, attempting retry getSession');
+      try {
+        await withTimeout(supabase.auth.getSession(), 5000, 'getSession-retry');
+      } catch (error) {
+        console.warn('[HomeRedirect] Retry getSession failed:', error);
+      }
+      // Important: Don't modify context state here - AuthContext watchdog will handle it
+    }, 12000);
+
+    return () => clearTimeout(retryTimer);
+  }, [isLoading]);
   
   // Show loading while checking authentication
   if (isLoading) {

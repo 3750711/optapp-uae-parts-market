@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +6,20 @@ import { checkSessionSoft } from '@/auth/authSessionManager';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
 import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
 import { FLAGS } from '@/config/flags';
+
+// Local timeout utility to avoid external dependencies
+async function withTimeout<T>(promise: Promise<T>, ms: number, label = 'timeout'): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(label)), ms);
+  });
+  
+  try {
+    return await Promise.race([promise, timeoutPromise]) as T;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // Simplified type definition for profile updates
 type ProfileUpdate = {
@@ -78,6 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const unsubRef = useRef<() => void>();
+  const endedRef = useRef(false); // Prevent multiple setLoading(false) calls
 
   // Centralized wake-up handler
   useWakeUpHandler();
@@ -117,83 +133,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = profile?.user_type === 'admin';
   const isCheckingAdmin = !!user && profileQuery.isLoading;
 
-  // Single source of truth: onAuthStateChange
+  // Initialize auth state with improved timeout handling
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    let cancelled = false;
+
+    // 1) Set up auth state subscription FIRST (before getSession)
+    unsubRef.current?.();
+    const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (cancelled) return;
+      
       if (FLAGS.DEBUG_AUTH) {
-        console.debug('[AUTH] event:', event, !!newSession);
+        console.debug('[AuthProvider] Auth state changed:', event, newSession?.user?.id);
       }
 
       // Update session and user state
       setSession(newSession);
       setUser(newSession?.user ?? null);
 
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-        if (newSession?.access_token && FLAGS.REALTIME_ENABLED) {
-          // Set realtime auth token (minimal realtime interaction)
-          supabase.realtime.setAuth(newSession.access_token);
-        }
-        setLoading(false);
-        
-        if (FLAGS.DEBUG_AUTH) {
-          console.debug('[AUTH] Session established');
-        }
-        return;
-      }
-
-      if (event === 'TOKEN_REFRESHED') {
-        if (newSession?.access_token && FLAGS.REALTIME_ENABLED) {
-          // Update realtime auth token
-          supabase.realtime.setAuth(newSession.access_token);
-        }
-        
-        if (FLAGS.DEBUG_AUTH) {
-          console.debug('[AUTH] Token refreshed');
-        }
-        return;
+      if (newSession?.access_token && FLAGS.REALTIME_ENABLED) {
+        // Set realtime auth token (minimal realtime interaction)
+        supabase.realtime.setAuth(newSession.access_token);
       }
 
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         // Clear auth storage
         clearAuthStorageSafe();
+      }
+
+      // End loading on key auth events
+      if (!endedRef.current && (
+        event === 'INITIAL_SESSION' || 
+        event === 'SIGNED_IN' || 
+        event === 'TOKEN_REFRESHED' || 
+        event === 'SIGNED_OUT'
+      )) {
+        endedRef.current = true;
         setLoading(false);
-        
         if (FLAGS.DEBUG_AUTH) {
-          console.debug('[AUTH] Signed out, storage cleared');
+          console.log('[AuthProvider] Loading ended by event:', event);
         }
-        return;
       }
     });
+    
+    unsubRef.current = () => data.subscription.unsubscribe();
 
-    // Initialize with existing session
+    // 2) Try to restore session with timeout (don't block app forever)
     (async () => {
-      const { data: { session: existingSession } } = await supabase.auth.getSession();
-      const verdict = checkSessionSoft(existingSession);
-      
-      if (!existingSession || !verdict.ok) {
-        setUser(null); 
-        setSession(null); 
-        setLoading(false);
+      try {
+        const startTime = Date.now();
+        await withTimeout(supabase.auth.getSession(), 7000, 'getSession-timeout');
         
         if (FLAGS.DEBUG_AUTH) {
-          console.debug('[AUTH] No valid session found');
+          console.log('[AuthProvider] getSession completed in', Date.now() - startTime, 'ms');
         }
-        return;
-      }
-      
-      setSession(existingSession);
-      setUser(existingSession.user);
-      setLoading(false);
-      
-      if (FLAGS.DEBUG_AUTH) {
-        console.debug('[AUTH] Session restored');
+      } catch (error) {
+        console.warn('[AuthProvider] getSession failed/timeout on init:', error);
+      } finally {
+        // If no auth events came through, end loading anyway
+        if (!cancelled && !endedRef.current) {
+          endedRef.current = true;
+          setLoading(false);
+          if (FLAGS.DEBUG_AUTH) {
+            console.log('[AuthProvider] Loading ended by getSession finally block');
+          }
+        }
       }
     })();
 
+    // 3) Watchdog timer - force loading=false after 12 seconds
+    const watchdog = setTimeout(() => {
+      if (!cancelled && !endedRef.current) {
+        console.warn('[AuthProvider] Watchdog: forcing loading=false after 12s');
+        endedRef.current = true;
+        setLoading(false);
+      }
+    }, 12000);
+
     return () => {
-      try { 
-        subscription.unsubscribe(); 
-      } catch {} 
+      cancelled = true;
+      clearTimeout(watchdog);
+      unsubRef.current?.();
     };
   }, []);
 
