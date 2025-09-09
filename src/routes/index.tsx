@@ -71,9 +71,9 @@ const SellerProductDetail = lazy(() => import('@/pages/SellerProductDetail'));
 
 // Real-time functionality now handled by unified RealtimeProvider context
 
-// Критически важные админские страницы - загружаются без lazy loading
-import AdminDashboard from '@/pages/AdminDashboard';
-import AdminAddProduct from '@/pages/AdminAddProduct';
+// Lazy loaded критические админские страницы
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
+const AdminAddProduct = lazy(() => import('@/pages/AdminAddProduct'));
 
 // Lazy loaded админские страницы
 const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
