@@ -1,8 +1,29 @@
-
+/*
   Content-Security-Policy: default-src 'self'; img-src 'self' data: https: blob:; connect-src 'self' https://api.partsbay.ae wss://api.partsbay.ae https://api.cloudinary.com https://cdn.gpteng.co https://*.clarity.ms https://telegram.org; script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdn.jsdelivr.net https://telegram.org https://cdn.gpteng.co https://www.clarity.ms https://scripts.clarity.ms; script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' data: https://cdn.jsdelivr.net https://telegram.org https://cdn.gpteng.co https://www.clarity.ms https://scripts.clarity.ms; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://telegram.org; font-src 'self' data: https://fonts.gstatic.com; frame-src https://oauth.telegram.org; frame-ancestors 'none'; worker-src 'self' blob:; media-src 'self' https://res.cloudinary.com data: blob:; form-action 'self' https://api.cloudinary.com
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+
+# JavaScript and TypeScript files - correct MIME types
+/assets/*.js
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.tsx
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.jsx
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.ts
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*.mjs
+  Content-Type: application/javascript
+  Cache-Control: public, max-age=31536000, immutable
 
 /sw.js
   Cache-Control: no-cache, no-store, must-revalidate
