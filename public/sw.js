@@ -154,19 +154,37 @@ self.addEventListener('fetch', (event) => {
 
   const dest = request.destination;
 
-  // JS/CSS: Stale-While-Revalidate для того же origin
+  // JS/CSS: улучшенная stale-while-revalidate с правильной обработкой динамических импортов
   if ((dest === 'script' || dest === 'style') && new URL(url).origin === self.origin) {
     event.respondWith((async () => {
       const cache = await caches.open(RUNTIME_CACHE);
-      const cached = await cache.match(request);
-      const networkPromise = fetch(request)
-        .then((res) => {
-          cache.put(request, res.clone());
+      const cachedResponse = await cache.match(request);
+      
+      try {
+        // Всегда пытаемся получить свежую версию для динамических импортов
+        const networkResponse = await fetch(request);
+        
+        if (networkResponse.ok) {
+          // Кэшируем только успешные ответы
+          cache.put(request, networkResponse.clone()).catch(e => 
+            console.warn('[SW] Cache put failed for script:', e)
+          );
           trimCache(RUNTIME_CACHE, MAX_RUNTIME_ENTRIES);
-          return res;
-        })
-        .catch(() => null);
-      return cached || (await networkPromise) || fetch(request);
+        }
+        
+        return networkResponse;
+      } catch (error) {
+        console.warn('[SW] Network failed for script:', url, error);
+        
+        // Возвращаем кэшированную версию только если она есть
+        if (cachedResponse) {
+          console.log('[SW] Using cached version for:', url);
+          return cachedResponse;
+        }
+        
+        // Если нет кэша, пробрасываем ошибку для корректной обработки браузером
+        throw error;
+      }
     })());
     return;
   }

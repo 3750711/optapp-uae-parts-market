@@ -2,6 +2,15 @@
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
+  // Временно отключаем SW в preview/development для избежания конфликтов с динамическими импортами
+  const isPreview = window.location.hostname.includes('lovable.app') || 
+                   window.location.hostname.includes('sandbox.lovable.dev');
+  
+  if (isPreview) {
+    console.log('[PWA] Service Worker disabled in preview environment');
+    return;
+  }
+
   // Статичный build ID - не используем Date.now() для избежания постоянных обновлений
   const versionTag = (window as any).__APP_BUILD_ID__ || 'v2025-09-09-1';
   const swUrl = `/sw.js?v=${encodeURIComponent(versionTag)}`;
