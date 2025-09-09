@@ -139,8 +139,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Read runtime configuration for timeouts
     const RC = (window as any).__PB_RUNTIME__ || {};
-    const INIT_TIMEOUT = Number(RC.AUTH_INIT_TIMEOUT_MS ?? 10000);  // getSession timeout
-    const WATCHDOG_TIMEOUT = Math.max(INIT_TIMEOUT + 4000, 14000);  // страховка
+    const INIT_TIMEOUT = Number(RC.AUTH_INIT_TIMEOUT_MS ?? 20000);  // getSession timeout (увеличен для продакшена)
+    const WATCHDOG_TIMEOUT = Math.max(INIT_TIMEOUT + 5000, 25000);  // страховка с большим запасом
 
     // 1) Set up auth state subscription FIRST (before getSession)
     unsubRef.current?.();
@@ -148,7 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (cancelled) return;
       
       if (FLAGS.DEBUG_AUTH) {
-        console.debug('[AuthProvider] Auth state changed:', event, newSession?.user?.id);
+        console.debug('[AuthProvider] Auth state changed:', event, newSession?.user?.id, 
+          'hasUser:', !!newSession?.user, 'token:', !!newSession?.access_token);
       }
 
       // Update session and user state
