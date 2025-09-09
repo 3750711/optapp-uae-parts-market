@@ -32,7 +32,7 @@ export const useCheckPendingOffer = (productId: string, enabled: boolean = true)
         .eq('product_id', productId)
         .eq('buyer_id', user.id)
         .eq('status', 'pending')
-        .maybeSingle();
+        .limit(1);
       
       if (error) {
         prodError(error, {
@@ -47,10 +47,10 @@ export const useCheckPendingOffer = (productId: string, enabled: boolean = true)
       devLog('useCheckPendingOffer: Query completed', { 
         productId, 
         userId: user.id,
-        hasData: !!data 
+        hasData: !!data?.[0] 
       });
       
-      return data;
+      return data?.[0] || null;
     },
     enabled: enabled && !!user?.id,
   });
