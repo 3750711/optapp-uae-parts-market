@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SyncData {
@@ -13,6 +13,23 @@ const SYNC_STORAGE_KEY = 'pwa_sync_queue';
 const MAX_RETRIES = 3;
 
 export const useBackgroundSync = () => {
+  // Listen for SW background sync messages
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'BACKGROUND_SYNC') {
+        console.log('📱 BG Sync: SW requested sync processing');
+        processSyncQueue();
+      }
+    };
+    
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleMessage);
+      return () => {
+        navigator.serviceWorker.removeEventListener('message', handleMessage);
+      };
+    }
+  }, []);
+
   // Add data to sync queue
   const queueForSync = useCallback(async (type: string, data: any): Promise<string> => {
     const syncId = `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

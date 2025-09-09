@@ -1,9 +1,14 @@
-/* SW: navigation-safe + prefetch-aware + warm cache
+/* SW: Simple and stable PWA system
    Version bump if you change anything here:
 */
-const SW_VERSION = 'v5';
+const SW_VERSION = 'v6-stable';
 const APP_SHELL_CACHE = `app-shell-${SW_VERSION}`;
+const RUNTIME_CACHE = `runtime-${SW_VERSION}`;
 const HTML_FALLBACK_URL = '/index.html';
+
+// Cache limits for stability
+const MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB limit
+const MAX_CACHE_ENTRIES = 200;
 
 // Разрешённые маршруты для навигации/прогрева (минимальный вайтлист).
 // Регулярки применяются к pathname.
@@ -104,9 +109,60 @@ self.addEventListener('activate', (event) => {
         .filter((k) => !k.includes(SW_VERSION))
         .map((k) => caches.delete(k))
     );
+    
+    // Clean up oversized caches
+    await cleanupCache();
+    
     await self.clients.claim();
   })());
 });
+
+// Cache cleanup with LRU strategy for stability
+async function cleanupCache() {
+  try {
+    const cache = await caches.open(RUNTIME_CACHE);
+    const keys = await cache.keys();
+    
+    if (keys.length > MAX_CACHE_ENTRIES) {
+      // Remove oldest 20% of entries
+      const removeCount = Math.floor(keys.length * 0.2);
+      const keysToRemove = keys.slice(0, removeCount);
+      
+      await Promise.all(keysToRemove.map(key => cache.delete(key)));
+      if (DEBUG) console.log(`[SW] Cleaned up ${removeCount} cache entries`);
+    }
+  } catch (e) {
+    if (DEBUG) console.warn('[SW] Cache cleanup failed:', e);
+  }
+}
+
+// Background Sync event for simple offline capabilities
+self.addEventListener('sync', (event) => {
+  if (DEBUG) console.log('[SW] Background sync event:', event.tag);
+  
+  if (event.tag.startsWith('sync-')) {
+    event.waitUntil(handleBackgroundSync(event.tag));
+  }
+});
+
+// Handle background sync - notify client to process queue
+async function handleBackgroundSync(tag) {
+  try {
+    if (DEBUG) console.log('[SW] Processing background sync:', tag);
+    
+    // Notify client to process sync queue
+    const clients = await self.clients.matchAll();
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'BACKGROUND_SYNC',
+        tag: tag
+      });
+    });
+    
+  } catch (error) {
+    if (DEBUG) console.error('[SW] Background sync failed:', error);
+  }
+}
 
 // Навигации: только настоящие переходы на документ (SPA), без prefetch
 self.addEventListener('fetch', (event) => {

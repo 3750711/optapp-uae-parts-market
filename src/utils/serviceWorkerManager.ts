@@ -6,7 +6,7 @@ export async function registerServiceWorker() {
   console.log('[PWA] Service Worker registration enabled for all environments');
 
   // Статичный build ID - не используем Date.now() для избежания постоянных обновлений
-  const versionTag = (window as any).__APP_BUILD_ID__ || 'v2025-09-09-1';
+  const versionTag = (window as any).__APP_BUILD_ID__ || 'v6-stable';
   const swUrl = `/sw.js?v=${encodeURIComponent(versionTag)}`;
 
   try {
@@ -49,6 +49,6 @@ export async function registerServiceWorker() {
 
 export const swManager = {
   register: registerServiceWorker,
-  getVersion: () => Promise.resolve('v2025-09-09-1'),
+  getVersion: () => Promise.resolve('v6-stable'),
   getRegistration: () => navigator.serviceWorker?.getRegistration('/'),
 };

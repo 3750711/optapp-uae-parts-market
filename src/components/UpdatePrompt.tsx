@@ -6,11 +6,20 @@ export const UpdatePrompt: React.FC = () => {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [showChunkErrorPrompt, setShowChunkErrorPrompt] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [autoUpdateTimer, setAutoUpdateTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Listen for SW update events
     const handleUpdateAvailable = () => {
       setShowUpdatePrompt(true);
+      
+      // Auto-update after 30 seconds if not dismissed
+      const timer = setTimeout(() => {
+        console.log('[PWA] Auto-updating after 30 seconds...');
+        handleUpdate();
+      }, 30000);
+      
+      setAutoUpdateTimer(timer);
     };
 
     // Listen for recoverable chunk errors
@@ -52,6 +61,12 @@ export const UpdatePrompt: React.FC = () => {
   const handleDismiss = () => {
     setShowUpdatePrompt(false);
     setShowChunkErrorPrompt(false);
+    
+    // Clear auto-update timer
+    if (autoUpdateTimer) {
+      clearTimeout(autoUpdateTimer);
+      setAutoUpdateTimer(null);
+    }
   };
 
   if (!showUpdatePrompt && !showChunkErrorPrompt) return null;
