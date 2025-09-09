@@ -15,7 +15,16 @@ export const useCheckPendingOffer = (productId: string, enabled: boolean = true)
   return useQuery({
     queryKey: ['user-offer', productId, user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id) {
+        devLog('useCheckPendingOffer: No user ID available', { productId, enabled });
+        return null;
+      }
+      
+      devLog('useCheckPendingOffer: Checking pending offer', { 
+        productId, 
+        userId: user.id,
+        authUid: supabase.auth.getUser() 
+      });
       
       const { data, error } = await supabase
         .from('price_offers')
@@ -23,11 +32,23 @@ export const useCheckPendingOffer = (productId: string, enabled: boolean = true)
         .eq('product_id', productId)
         .eq('buyer_id', user.id)
         .eq('status', 'pending')
-        .single();
+        .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
+        prodError(error, {
+          context: 'check-pending-offer',
+          productId,
+          userId: user.id,
+          errorCode: error.code
+        });
         throw error;
       }
+      
+      devLog('useCheckPendingOffer: Query completed', { 
+        productId, 
+        userId: user.id,
+        hasData: !!data 
+      });
       
       return data;
     },
