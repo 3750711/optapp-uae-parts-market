@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { swManager, clearServiceWorkerCaches, updateServiceWorker } from '../utils/serviceWorkerManager';
+import { swManager } from '../utils/serviceWorkerManager';
 
 export function ServiceWorkerStatus() {
   const [swStatus, setSWStatus] = useState<string>('checking');
@@ -19,7 +19,7 @@ export function ServiceWorkerStatus() {
           setSWStatus(registration.active ? 'active' : 'installing');
           const ver = await swManager.getVersion();
           setVersion(ver);
-          setUpdateAvailable(swManager.isUpdateAvailable());
+          setUpdateAvailable(false);
         } else {
           setSWStatus('not-registered');
         }
@@ -55,8 +55,7 @@ export function ServiceWorkerStatus() {
 
   const handleUpdate = async () => {
     try {
-      await updateServiceWorker();
-      setUpdateAvailable(false);
+      window.location.reload();
     } catch (error) {
       console.error('SW Update failed:', error);
     }
@@ -64,7 +63,10 @@ export function ServiceWorkerStatus() {
 
   const handleClearCache = async () => {
     try {
-      await clearServiceWorkerCaches();
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
       setTimeout(() => window.location.reload(), 500);
     } catch (error) {
       console.error('Cache clear failed:', error);

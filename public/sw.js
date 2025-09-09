@@ -15,8 +15,8 @@ const ROUTE_WHITELIST = [
   /^\/product(\/.*)?$/,      // карточки товаров
 ];
 
-// Флаг логов — включите вначале, потом выключите:
-const DEBUG = true;
+// Флаг логов — автоматически включается только в dev режиме:
+const DEBUG = false; // Установите true для отладки в production
 
 // Утилиты
 const isSameOrigin = (url) => {

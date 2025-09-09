@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { updateServiceWorker } from '@/utils/serviceWorkerManager';
 import { AlertTriangle, RotateCw } from 'lucide-react';
 
 export const UpdatePrompt: React.FC = () => {

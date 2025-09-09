@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { updateServiceWorker } from '@/utils/serviceWorkerManager';
 
 export const PWAUpdateBanner: React.FC = () => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -31,7 +30,7 @@ export const PWAUpdateBanner: React.FC = () => {
   const handleUpdate = async () => {
     setIsUpdating(true);
     try {
-      await updateServiceWorker();
+      window.location.reload();
     } catch (error) {
       console.error('Failed to update SW:', error);
       setIsUpdating(false);

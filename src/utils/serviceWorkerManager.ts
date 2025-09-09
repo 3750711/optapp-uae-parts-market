@@ -45,19 +45,10 @@ export async function registerServiceWorker() {
   }
 }
 
-// Legacy compatibility stubs for disabled components
-export const updateServiceWorker = () => {
-  console.warn('[PWA] Legacy updateServiceWorker called - functionality simplified');
-  window.location.reload();
-};
-
-export const clearServiceWorkerCaches = () => {
-  console.warn('[PWA] Legacy clearServiceWorkerCaches called - not implemented in simplified version');
-};
+// Legacy compatibility - удалены неиспользуемые функции
 
 export const swManager = {
   register: registerServiceWorker,
-  isUpdateAvailable: () => false,
   getVersion: () => Promise.resolve('v2025-09-09-1'),
   getRegistration: () => navigator.serviceWorker?.getRegistration('/'),
 };
