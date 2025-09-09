@@ -71,3 +71,15 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## PWA/Service Worker (Production)
+
+This project includes a minimal, stable Service Worker with the following caching strategies:
+
+- **HTML (navigate)**: Network-first → fallback кэшированный `/`
+- **JS/CSS**: Stale-While-Revalidate (same-origin)
+- **Images/Fonts**: Cache-First (same-origin, ≤2MB, max 80 записей)
+- **API (`https://api.partsbay.ae`, `*.supabase.co`)**: строго Network-only
+- **OPTIONS (preflight)**: строго Network-only
+- **3rd-party (Cloudinary/Telegram/CDN)**: исключены из кэша
+- **Обновление SW**: правкой `SW_VERSION` или билд-тэга `__APP_BUILD_ID__`

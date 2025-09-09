@@ -5,7 +5,7 @@ import App from './App';
 import { cleanupCorruptedCache } from './utils/localStorage';
 import { quarantineStaleRefreshTokens } from './auth/quarantineStaleRefresh';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupabase';
-// import { registerServiceWorker } from './utils/serviceWorkerManager'; // TEMPORARILY DISABLED
+import { registerServiceWorker } from './utils/serviceWorkerManager';
 
 import './index.css';
 
@@ -35,13 +35,9 @@ quarantineStaleRefreshTokens().then(() => {
   console.warn('⚠️ Token quarantine check failed:', err);
 });
 
-// Register Service Worker for PWA functionality - TEMPORARILY DISABLED
-// registerServiceWorker().then(() => {
-//   console.log('✅ Service Worker registered for file sync');
-// }).catch(err => {
-//   console.warn('⚠️ Service Worker registration failed:', err);
-// });
-console.log('🚫 Service Worker temporarily disabled for debugging');
+// Register Service Worker for PWA functionality
+registerServiceWorker();
+console.log('[PWA] Registration attempted');
 
 // Supabase client uses adaptive dual-domain connection
 console.log('🌍 Supabase Client initialized with custom domain');

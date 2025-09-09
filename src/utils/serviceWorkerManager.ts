@@ -1,164 +1,53 @@
-// Service Worker registration and lifecycle management
-interface ServiceWorkerManager {
-  register(): Promise<ServiceWorkerRegistration | null>;
-  unregister(): Promise<boolean>;
-  update(): Promise<void>;
-  getRegistration(): Promise<ServiceWorkerRegistration | undefined>;
-}
+// src/utils/serviceWorkerManager.ts
+export async function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
 
-class PWAServiceWorkerManager implements ServiceWorkerManager {
-  private registration: ServiceWorkerRegistration | null = null;
-  private updateAvailable = false;
+  // Простой cache-busting за счёт билд-тэга
+  const versionTag = (window as any).__APP_BUILD_ID__ || Date.now().toString();
+  const swUrl = `/sw.js?v=${encodeURIComponent(versionTag)}`;
 
-  async register(): Promise<ServiceWorkerRegistration | null> {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
-      console.log('🚫 SW: Service Worker not supported');
-      return null;
-    }
+  try {
+    const reg = await navigator.serviceWorker.register(swUrl, { scope: '/' });
 
-    try {
-      console.log('🔧 SW: Registering...');
-      
-      this.registration = await navigator.serviceWorker.register('/sw.js', {
-        scope: '/',
-        updateViaCache: 'none' // Always check for updates
-      });
-
-      console.log('✅ SW: Registered successfully', this.registration);
-
-      // Handle updates
-      this.registration.addEventListener('updatefound', () => {
-        const newWorker = this.registration?.installing;
-        if (newWorker) {
-          console.log('🔄 SW: Update found');
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('✨ SW: New version available');
-              this.updateAvailable = true;
-              this.notifyUpdateAvailable();
-            }
-          });
+    // мгновенная активация новой версии
+    if (reg.waiting) reg.waiting.postMessage('SKIP_WAITING');
+    reg.addEventListener('updatefound', () => {
+      const sw = reg.installing;
+      if (!sw) return;
+      sw.addEventListener('statechange', () => {
+        if (sw.state === 'installed' && reg.waiting) {
+          reg.waiting.postMessage('SKIP_WAITING');
         }
       });
+    });
 
-      // Handle messages from SW
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        const { type, payload } = event.data || {};
-        console.log('📱 SW: Message received', { type, payload });
-      });
-
-      // Auto-update check every 30 minutes
-      setInterval(() => {
-        this.checkForUpdates();
-      }, 30 * 60 * 1000);
-
-      return this.registration;
-    } catch (error) {
-      console.error('❌ SW: Registration failed', error);
-      return null;
-    }
-  }
-
-  async unregister(): Promise<boolean> {
-    if (!this.registration) return false;
-    
-    try {
-      const result = await this.registration.unregister();
-      console.log('🗑️ SW: Unregistered', result);
-      return result;
-    } catch (error) {
-      console.error('❌ SW: Unregistration failed', error);
-      return false;
-    }
-  }
-
-  async update(): Promise<void> {
-    if (!this.registration) return;
-    
-    try {
-      await this.registration.update();
-      console.log('🔄 SW: Update check completed');
-    } catch (error) {
-      console.error('❌ SW: Update failed', error);
-    }
-  }
-
-  async getRegistration(): Promise<ServiceWorkerRegistration | undefined> {
-    if (typeof window === 'undefined') return undefined;
-    return navigator.serviceWorker.getRegistration('/');
-  }
-
-  private async checkForUpdates(): Promise<void> {
-    if (!document.hidden && this.registration) {
-      console.log('🔍 SW: Checking for updates...');
-      await this.update();
-    }
-  }
-
-  private notifyUpdateAvailable(): void {
-    console.log('🔄 PWA: SW update detected');
-    this.updateAvailable = true;
-    
-    // Dispatch event for UI notification - NO auto-activation
-    window.dispatchEvent(new CustomEvent('sw-update-available'));
-    
-    // Remove auto-activation to prevent mid-session controller changes
-    // User must confirm update through UI banner
-  }
-
-  // Force activate new service worker
-  async activateUpdate(): Promise<void> {
-    if (!this.registration?.waiting) return;
-
-    // Send message to waiting SW to skip waiting
-    this.registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-    
-    // Show update notification instead of forced reload for PWA optimization
+    // мягкое обновление вкладки при смене контроллера
+    let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      console.log('🚀 SW: New version activated');
-      
-      // Dispatch event instead of forced reload to prevent PWA interruption
-      const event = new CustomEvent('sw-controller-updated', {
-        detail: { timestamp: Date.now() }
-      });
-      window.dispatchEvent(event);
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
     });
-  }
 
-  // Get SW version info
-  async getVersion(): Promise<string> {
-    if (!navigator.serviceWorker.controller) return 'No SW';
-    
-    return new Promise((resolve) => {
-      const channel = new MessageChannel();
-      channel.port1.onmessage = (event) => {
-        resolve(event.data.version || 'Unknown');
-      };
-      
-      navigator.serviceWorker.controller.postMessage(
-        { type: 'GET_VERSION' },
-        [channel.port2]
-      );
-    });
-  }
-
-  // Clear all SW caches
-  async clearCaches(): Promise<void> {
-    if (!navigator.serviceWorker.controller) return;
-    
-    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
-  }
-
-  isUpdateAvailable(): boolean {
-    return this.updateAvailable;
+    console.log('[PWA] Service Worker registered:', swUrl);
+  } catch (err) {
+    console.warn('[PWA] Service Worker registration failed:', err);
   }
 }
 
-// Singleton instance
-export const swManager = new PWAServiceWorkerManager();
+// Legacy compatibility stubs for disabled components
+export const updateServiceWorker = () => {
+  console.warn('[PWA] Legacy updateServiceWorker called - functionality simplified');
+  window.location.reload();
+};
 
-// Helper functions
-export const registerServiceWorker = () => swManager.register();
-export const updateServiceWorker = () => swManager.activateUpdate();
-export const getServiceWorkerVersion = () => swManager.getVersion();
-export const clearServiceWorkerCaches = () => swManager.clearCaches();
+export const clearServiceWorkerCaches = () => {
+  console.warn('[PWA] Legacy clearServiceWorkerCaches called - not implemented in simplified version');
+};
+
+export const swManager = {
+  register: registerServiceWorker,
+  isUpdateAvailable: () => false,
+  getVersion: () => Promise.resolve('v2025-09-09-1'),
+  getRegistration: () => navigator.serviceWorker?.getRegistration('/'),
+};
