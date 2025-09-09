@@ -136,6 +136,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state with improved timeout handling
   useEffect(() => {
     let cancelled = false;
+    
+    // Read runtime configuration for timeouts
+    const RC = (window as any).__PB_RUNTIME__ || {};
+    const INIT_TIMEOUT = Number(RC.AUTH_INIT_TIMEOUT_MS ?? 10000);  // getSession timeout
+    const WATCHDOG_TIMEOUT = Math.max(INIT_TIMEOUT + 4000, 14000);  // страховка
 
     // 1) Set up auth state subscription FIRST (before getSession)
     unsubRef.current?.();
@@ -181,7 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const startTime = Date.now();
-        await withTimeout(supabase.auth.getSession(), 7000, 'getSession-timeout');
+        await withTimeout(supabase.auth.getSession(), INIT_TIMEOUT, 'getSession-timeout');
         
         if (FLAGS.DEBUG_AUTH) {
           console.log('[AuthProvider] getSession completed in', Date.now() - startTime, 'ms');
@@ -200,14 +205,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })();
 
-    // 3) Watchdog timer - force loading=false after 12 seconds
+    // 3) Watchdog timer - force loading=false after configurable timeout
     const watchdog = setTimeout(() => {
       if (!cancelled && !endedRef.current) {
-        console.warn('[AuthProvider] Watchdog: forcing loading=false after 12s');
+        console.warn(`[AuthProvider] Watchdog: forcing loading=false after ${WATCHDOG_TIMEOUT}ms`);
         endedRef.current = true;
         setLoading(false);
       }
-    }, 12000);
+    }, WATCHDOG_TIMEOUT);
 
     return () => {
       cancelled = true;
