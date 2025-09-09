@@ -87,7 +87,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     telegramData: TelegramAuthData;
   } | null>(null);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
-  const { user, profile } = useAuth();
+  const { user, profile, signInWithTelegram, signIn } = useAuth();
   const { checkRateLimit } = useRateLimit();
 
   // Generate deterministic password based on telegram_id
@@ -123,8 +123,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
       console.log('🚀 [TelegramWidget] Using AuthContext.signInWithTelegram');
       
-      // Use AuthContext instead of direct supabase calls
-      const { signInWithTelegram } = useAuth();
+      // Use AuthContext from the top level
       const result = await signInWithTelegram(authData);
 
       if (result.error) {
@@ -183,8 +182,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     try {
       console.log('🔄 [TelegramWidget] Using AuthContext.signIn for:', email, 'isNew:', isNewUser);
       
-      // Use AuthContext instead of direct supabase calls
-      const { signIn } = useAuth();
+      // Use AuthContext from the top level
       const { user: resultUser, error: signInError } = await signIn(email, password);
 
       if (signInError) {
