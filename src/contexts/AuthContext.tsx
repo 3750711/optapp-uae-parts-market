@@ -89,24 +89,60 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const useAuth = () => useContext(AuthContext)!;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Defensive check for React dispatcher - using safer approach
-  try {
-    const [testState] = useState(null); // This will fail if dispatcher is null
-  } catch (error: any) {
-    if (error?.message?.includes('dispatcher') || error?.message?.includes('null')) {
-      console.error('🚨 [AuthProvider] React dispatcher not ready, hooks unavailable');
-      throw new Error('React dispatcher not initialized - try refreshing page');
+  // Check React dispatcher readiness before using any hooks
+  const checkDispatcher = () => {
+    try {
+      const ReactInternals = (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+      const dispatcher = ReactInternals?.ReactCurrentDispatcher?.current;
+      if (!dispatcher) {
+        console.error('🚨 [AuthProvider] React dispatcher is null');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('🚨 [AuthProvider] Error checking React dispatcher:', error);
+      return false;
     }
+  };
+
+  // Early return if React hooks are not available
+  if (!checkDispatcher()) {
+    console.error('🚨 [AuthProvider] React hooks unavailable, showing error UI');
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card rounded-lg p-6 border shadow-sm text-center">
+          <h2 className="text-lg font-semibold text-destructive mb-4">
+            Ошибка инициализации React
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            React dispatcher не готов. Обновите страницу.
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded-md"
+          >
+            Обновить страницу
+          </button>
+        </div>
+      </div>
+    );
   }
 
+  // If we reach here, React hooks should be working
+  console.log('✅ [AuthProvider] React dispatcher ready, initializing hooks');
+  
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const unsubRef = useRef<() => void>();
   const endedRef = useRef(false); // Prevent multiple setLoading(false) calls
 
-  // Centralized wake-up handler
-  useWakeUpHandler();
+  // Centralized wake-up handler (only called if hooks are working)
+  try {
+    useWakeUpHandler();
+  } catch (error) {
+    console.warn('⚠️ [AuthProvider] useWakeUpHandler failed:', error);
+  }
 
   // Centralized profile loading using React Query
   const profileQuery = useQuery({

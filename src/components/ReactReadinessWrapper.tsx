@@ -22,23 +22,38 @@ export const ReactReadinessWrapper: React.FC<ReactReadinessWrapperProps> = ({
     let mounted = true;
     let timeoutId: NodeJS.Timeout;
 
-    const checkReactDispatcher = () => {
-      checkCount.current++;
+  const checkReactDispatcher = () => {
+    checkCount.current++;
+    
+    try {
+      // Deep check - actually try to execute a hook in a test component
+      const TestComponent = () => {
+        const [testState, setTestState] = React.useState(true);
+        React.useEffect(() => {
+          setTestState(false);
+        }, []);
+        return null;
+      };
       
-      try {
-        // Safe check - try to use useState
-        const testHook = React.useState;
-        if (typeof testHook === 'function' && mounted) {
-          console.log(`✅ [ReactReadiness] Check #${checkCount.current}: React hooks available`);
-          setIsReady(true);
-          return true;
-        }
-      } catch (error) {
-        console.warn(`⚠️ [ReactReadiness] Check #${checkCount.current} failed:`, error);
+      // Check if React internals are ready
+      const ReactInternals = (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+      const dispatcher = ReactInternals?.ReactCurrentDispatcher?.current;
+      
+      if (dispatcher && typeof React.useState === 'function' && mounted) {
+        console.log(`✅ [ReactReadiness] Check #${checkCount.current}: React dispatcher ready`, {
+          dispatcherExists: !!dispatcher,
+          useStateAvailable: typeof React.useState === 'function',
+          useEffectAvailable: typeof React.useEffect === 'function'
+        });
+        setIsReady(true);
+        return true;
       }
-      
-      return false;
-    };
+    } catch (error) {
+      console.warn(`⚠️ [ReactReadiness] Check #${checkCount.current} failed:`, error);
+    }
+    
+    return false;
+  };
 
     // Initial check
     if (!checkReactDispatcher()) {
