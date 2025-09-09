@@ -89,6 +89,16 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const useAuth = () => useContext(AuthContext)!;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Defensive check for React dispatcher - using safer approach
+  try {
+    const [testState] = useState(null); // This will fail if dispatcher is null
+  } catch (error: any) {
+    if (error?.message?.includes('dispatcher') || error?.message?.includes('null')) {
+      console.error('🚨 [AuthProvider] React dispatcher not ready, hooks unavailable');
+      throw new Error('React dispatcher not initialized - try refreshing page');
+    }
+  }
+
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);

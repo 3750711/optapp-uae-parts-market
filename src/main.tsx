@@ -7,6 +7,7 @@ import { quarantineStaleRefreshTokens } from './auth/quarantineStaleRefresh';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupabase';
 import { registerServiceWorker } from './utils/serviceWorkerManager';
 import { ModuleLoadingBoundary } from './components/ModuleLoadingBoundary';
+import { ReactReadinessWrapper } from './components/ReactReadinessWrapper';
 
 import './index.css';
 
@@ -72,10 +73,12 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode},{hasErro
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ModuleLoadingBoundary>
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    </ModuleLoadingBoundary>
+    <ReactReadinessWrapper>
+      <ModuleLoadingBoundary>
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      </ModuleLoadingBoundary>
+    </ReactReadinessWrapper>
   </React.StrictMode>
 );

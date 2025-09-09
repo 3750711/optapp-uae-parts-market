@@ -38,7 +38,9 @@ export default defineConfig(({ mode }) => ({
         inlineDynamicImports: false,
         
         manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // CRITICAL: React must be first chunk to load synchronously
+          '0-react-core': ['react', 'react-dom', 'react/jsx-runtime'],
+          'vendor-react-router': ['react-router-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-query': ['@tanstack/react-query'],
           'vendor-ui': [
