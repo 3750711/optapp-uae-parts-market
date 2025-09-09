@@ -42,25 +42,7 @@ console.log('[PWA] Registration attempted');
 // Supabase client uses adaptive dual-domain connection
 console.log('🌍 Supabase Client initialized with custom domain');
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: (failureCount, error) => {
-        // Не повторяем при авторизационных ошибках
-        if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
-          return false;
-        }
-        return failureCount < 1;
-      },
-      staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: false,
-    }
-  },
-});
+// QueryClient перенесён в App.tsx для единой конфигурации
 
 class ErrorBoundary extends React.Component<{children: React.ReactNode},{hasError:boolean}> {
   constructor(props: any) { 
@@ -82,9 +64,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode},{hasErro
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
+      <App />
     </ErrorBoundary>
   </React.StrictMode>
 );

@@ -1,5 +1,5 @@
 
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,21 +7,14 @@ import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AuthErrorBoundary } from '@/components/auth/AuthErrorBoundary';
-
 import LanguageProvider from '@/components/layout/LanguageProvider';
-
 import { ThemeProvider } from "next-themes";
 import AppRoutes from "@/routes";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
-import { performanceMonitor } from "@/utils/performanceMonitor";
-// import { PWAIndicators } from "@/components/PWAIndicators"; // TEMPORARILY DISABLED
-// import { useBackgroundSync } from "@/hooks/useBackgroundSync"; // TEMPORARILY DISABLED
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
-import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
 import { RoutePreloader } from "@/components/routing/RoutePreloader";
-// import { UpdatePrompt } from "@/components/UpdatePrompt"; // TEMPORARILY DISABLED
 import { NetworkIndicator } from "@/components/NetworkIndicator";
-// import { ServiceWorkerStatus } from "@/components/ServiceWorkerStatus"; // TEMPORARILY DISABLED
+import { ServiceWorkerStatus } from "@/components/ServiceWorkerStatus";
 import { getQueryConfigForConnection } from "@/utils/networkUtils";
 
 // Адаптивная конфигурация QueryClient для мобильных сетей
@@ -61,9 +54,6 @@ const RouteLoader = React.memo(() => (
 ));
 
 const App = () => {
-  // 🔧 SIMPLIFIED: Temporarily disabled PWA components for debugging auth issues
-  console.log('🚫 PWA components temporarily disabled for debugging');
-
   return (
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
@@ -76,6 +66,7 @@ const App = () => {
                     <TooltipProvider>
                       <Toaster />
                       <NetworkIndicator />
+                      {import.meta.env.DEV && <ServiceWorkerStatus />}
                       <Suspense fallback={<RouteLoader />}>
                         <RoutePreloader />
                         <AppRoutes />

@@ -1,7 +1,7 @@
 /* SW: navigation-safe + prefetch-aware + warm cache
    Version bump if you change anything here:
 */
-const SW_VERSION = 'v4';
+const SW_VERSION = 'v5';
 const APP_SHELL_CACHE = `app-shell-${SW_VERSION}`;
 const HTML_FALLBACK_URL = '/index.html';
 
@@ -15,8 +15,8 @@ const ROUTE_WHITELIST = [
   /^\/product(\/.*)?$/,      // карточки товаров
 ];
 
-// Флаг логов — временно включен для диагностики Cloudinary проблемы:
-const DEBUG = true; // ВРЕМЕННО для исправления Cloudinary ошибок
+// Флаг логов — только в development окружении:
+const DEBUG = false; // В продакшене всегда false для производительности
 
 // Утилиты
 const isSameOrigin = (url) => {
@@ -43,6 +43,19 @@ const isExternalCDN = (url) => {
       'fonts.gstatic.com'
     ];
     return externalDomains.some(domain => hostname.includes(domain));
+  } catch {
+    return false;
+  }
+};
+
+const isAPIPath = (url) => {
+  try {
+    const u = new URL(url, self.location.origin);
+    const pathname = u.pathname;
+    // КРИТИЧЕСКИЕ API пути — они НЕ должны обрабатываться SW
+    return pathname.startsWith('/rest/') || 
+           pathname.startsWith('/auth/') || 
+           pathname.startsWith('/functions/');
   } catch {
     return false;
   }
@@ -99,15 +112,45 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Исключаем внешние CDN (особенно Cloudinary)
+  // 🚨 КРИТИЧЕСКАЯ БЕЗОПАСНОСТЬ: Исключаем внешние CDN (особенно Cloudinary)
   if (isExternalCDN(request.url)) {
-    if (DEBUG) console.log('[SW] SKIP external CDN:', request.url);
     return; // Пропускаем внешние CDN напрямую к сети
   }
 
   // Обрабатываем только same-origin запросы
   if (!isSameOrigin(request.url)) {
-    if (DEBUG) console.log('[SW] SKIP non-same-origin:', request.url);
+    return;
+  }
+
+  // 🚨 КРИТИЧЕСКАЯ БЕЗОПАСНОСТЬ: API пути НЕ должны перехватываться SW
+  if (isAPIPath(request.url)) {
+    if (DEBUG) console.log('[SW] SKIP API path:', request.url);
+    return; // Пропускаем все API запросы напрямую к серверу
+  }
+
+  // ⚡ КЕШИРОВАНИЕ СТАТИКИ: Cache First для JS/CSS
+  const dest = request.destination;
+  if (dest === 'script' || dest === 'style') {
+    event.respondWith((async () => {
+      const cache = await caches.open(APP_SHELL_CACHE);
+      const cached = await cache.match(request);
+      if (cached) {
+        if (DEBUG) console.log('[SW] Cache hit (static):', request.url);
+        return cached;
+      }
+      
+      try {
+        const response = await fetch(request);
+        if (response.ok) {
+          cache.put(request, response.clone());
+          if (DEBUG) console.log('[SW] Cached static:', request.url);
+        }
+        return response;
+      } catch (e) {
+        if (DEBUG) console.warn('[SW] Static fetch failed:', request.url, e);
+        throw e;
+      }
+    })());
     return;
   }
 
@@ -133,26 +176,22 @@ self.addEventListener('fetch', (event) => {
     // App-Shell стратегия: Stale-While-Revalidate для HTML (index.html)
     event.respondWith((async () => {
       try {
-        if (DEBUG) console.log('[SW] Processing navigation:', request.url);
-        // Пробуем сеть в первую очередь, чтобы не мешать <link rel="prefetch"> и SSR-заголовкам
+        // Пробуем сеть в первую очередь
         const network = await fetch(request);
         // Только успешные HTML кладём в кэш
         if (network && network.ok && (network.headers.get('content-type') || '').includes('text/html')) {
           const cache = await caches.open(APP_SHELL_CACHE);
           cache.put(HTML_FALLBACK_URL, network.clone());
-          if (DEBUG) console.log('[SW] Cached HTML for:', request.url);
         }
         return network;
       } catch (e) {
-        if (DEBUG) console.warn('[SW] network fail, fallback to cache', request.url, e);
+        // Offline fallback: возвращаем кешированный index.html
         const cache = await caches.open(APP_SHELL_CACHE);
         const cached = await cache.match(HTML_FALLBACK_URL);
         if (cached) {
-          if (DEBUG) console.log('[SW] Served from cache:', request.url);
           return cached;
         }
-        // Last resort: голая офлайн-заглушка
-        if (DEBUG) console.warn('[SW] Serving offline fallback for:', request.url);
+        // Last resort: минимальная офлайн-заглушка
         return new Response('<!doctype html><title>Offline</title><h1>Offline</h1>', {
           headers: { 'content-type': 'text/html' },
           status: 200,
@@ -171,23 +210,17 @@ self.addEventListener('message', (event) => {
   if (data.type === 'WARM_ROUTE' && typeof data.url === 'string') {
     const url = new URL(data.url, self.location.origin).toString();
     if (!isSameOrigin(url) || !isWhitelistedRoute(url)) {
-      if (DEBUG) console.warn('[SW] WARM_ROUTE rejected (not whitelisted):', url);
       return;
     }
-    if (DEBUG) console.log('[SW] WARM_ROUTE start:', url);
     event.waitUntil((async () => {
       try {
-        // Тянем HTML документа (как обычную навигацию), но явно GET
         const resp = await fetch(url, { method: 'GET', credentials: 'same-origin' });
         if (resp.ok && (resp.headers.get('content-type') || '').includes('text/html')) {
           const cache = await caches.open(APP_SHELL_CACHE);
           await cache.put(HTML_FALLBACK_URL, resp.clone());
-          if (DEBUG) console.log('[SW] WARM_ROUTE cached app shell from', url);
-        } else if (DEBUG) {
-          console.log('[SW] WARM_ROUTE non-HTML or not OK', resp.status, url);
         }
       } catch (e) {
-        if (DEBUG) console.warn('[SW] WARM_ROUTE failed', url, e);
+        // Тихо игнорируем ошибки прогрева
       }
     })());
   }
