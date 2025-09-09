@@ -3,11 +3,9 @@ import React, { lazy } from 'react';
 import { Route } from 'react-router-dom';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 
-// Критически важные админские страницы - загружаются без lazy loading
-import AdminDashboard from '@/pages/AdminDashboard';
-import AdminAddProduct from '@/pages/AdminAddProduct';
-
 // Lazy loaded админские страницы
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
+const AdminAddProduct = lazy(() => import('@/pages/AdminAddProduct'));
 const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
 const AdminOrders = lazy(() => import('@/pages/AdminOrders'));

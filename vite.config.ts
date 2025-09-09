@@ -47,6 +47,19 @@ export default defineConfig(({ mode }) => ({
           ],
           'vendor-lodash': ['lodash'],
           'vendor-utils': ['zod', 'react-hook-form', 'date-fns', 'clsx', 'class-variance-authority'],
+          'vendor-cloudinary': [
+            'browser-image-compression',
+            '@/components/ui/cloudinary-video-upload',
+            '@/components/ui/CloudinaryUploadProgress', 
+            '@/hooks/useCloudinaryUpload',
+            '@/hooks/useCloudinaryVideoUpload',
+            '@/hooks/useStagedCloudinaryUpload',
+            '@/hooks/useOptimizedCloudinaryUpload',
+            '@/utils/cloudinaryUpload',
+            '@/utils/cloudinaryUtils',
+            '@/utils/directCloudinaryUpload',
+            '@/utils/secureCloudinary'
+          ],
         },
         // Optimized chunk file names for better caching
         chunkFileNames: (chunkInfo) => {
