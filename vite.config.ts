@@ -28,9 +28,15 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
   build: {
+    // CRITICAL: Prevent inline modules to fix Russian mobile network blocking
+    assetsInlineLimit: 0, // Never inline any assets as data URLs
+    
     // Optimized chunk splitting for better caching and loading reliability
     rollupOptions: {
       output: {
+        // CRITICAL: Prevent inline dynamic imports (prevents data: URLs)
+        inlineDynamicImports: false,
+        
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-supabase': ['@supabase/supabase-js'],
@@ -78,12 +84,18 @@ export default defineConfig(({ mode }) => ({
           return 'assets/[name]-[hash][extname]';
         }
       },
-      // Improved error recovery
+      // Improved error recovery for module loading failures
       onError: (error: any, defaultHandler: any) => {
         if (error.code === 'CHUNK_LOAD_ERROR') {
-          console.warn('Chunk load error detected, this will be handled by error boundaries');
+          console.warn('🚨 Chunk load error detected (possibly network blocking):', error);
+          console.info('💡 This may be due to inline module blocking on mobile networks');
           return;
         }
+        if (error.code === 'MODULE_NOT_FOUND') {
+          console.error('📦 Module loading failed:', error);
+          return;
+        }
+        console.error('🔥 Build error:', error);
         defaultHandler(error);
       }
     },

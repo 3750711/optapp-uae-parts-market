@@ -6,8 +6,17 @@ import { cleanupCorruptedCache } from './utils/localStorage';
 import { quarantineStaleRefreshTokens } from './auth/quarantineStaleRefresh';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupabase';
 import { registerServiceWorker } from './utils/serviceWorkerManager';
+import { ModuleLoadingBoundary } from './components/ModuleLoadingBoundary';
 
 import './index.css';
+
+// Log successful module loading for diagnostics
+console.log('✅ Main modules loaded successfully');
+console.log('📦 Module loading diagnostics:', {
+  timestamp: new Date().toISOString(),
+  userAgent: navigator.userAgent,
+  connection: (navigator as any).connection?.effectiveType || 'unknown'
+});
 
 // Clean up any corrupted localStorage data on app start
 cleanupCorruptedCache();
@@ -63,8 +72,10 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode},{hasErro
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <ModuleLoadingBoundary>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </ModuleLoadingBoundary>
   </React.StrictMode>
 );
