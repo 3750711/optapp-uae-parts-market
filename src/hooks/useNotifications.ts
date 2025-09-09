@@ -60,15 +60,8 @@ export const useNotifications = () => {
 
       setNotifications(processedNotifications);
     } catch (error) {
-      console.error('❌ [useNotifications] Error fetching notifications:', error);
-      const errorTitle = profile?.user_type === 'seller' ? 'Error' : 'Ошибка';
-      const errorDesc = profile?.user_type === 'seller' ? 'Failed to load notifications' : 'Не удалось загрузить уведомления';
-      
-      toast({
-        title: errorTitle,
-        description: errorDesc,
-        variant: "destructive"
-      });
+      console.warn('[useNotifications] network/CORS?', error);
+      setNotifications([]); // Critical: return empty array, don't crash UI
     } finally {
       setLoading(false);
     }

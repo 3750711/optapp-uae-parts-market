@@ -65,6 +65,20 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   
+  // Handle OPTIONS requests - never cache, always fetch fresh
+  if (request.method === 'OPTIONS') {
+    console.log('[SW] Handling OPTIONS request for:', url.pathname);
+    event.respondWith(fetch(request, { cache: 'no-store' }));
+    return;
+  }
+  
+  // Never cache runtime-config.js - critical for production config changes
+  if (url.pathname === '/runtime-config.js' || url.pathname === '/runtime-config.json') {
+    console.log('[SW] Bypassing cache for runtime config:', url.pathname);
+    event.respondWith(fetch(request, { cache: 'no-store' }));
+    return;
+  }
+  
   // Never cache development files or auth endpoints
   if (shouldNeverCache(url.pathname) || shouldNeverCache(request.url)) {
     console.log('[SW] Bypassing cache for:', url.pathname);

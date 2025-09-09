@@ -14,13 +14,18 @@ export const useFavorites = () => {
     queryFn: async () => {
       if (!user) return [];
       
-      const { data, error } = await supabase
-        .from('user_favorites')
-        .select('product_id')
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      return data.map(fav => fav.product_id);
+      try {
+        const { data, error } = await supabase
+          .from('user_favorites')
+          .select('product_id')
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        return data.map(fav => fav.product_id);
+      } catch (error) {
+        console.warn('[useFavorites] network/CORS?', error);
+        return []; // Critical: return empty array, don't crash UI
+      }
     },
     enabled: !!user,
   });
