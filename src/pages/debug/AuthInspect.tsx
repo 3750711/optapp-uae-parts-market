@@ -4,7 +4,6 @@ import { FLAGS } from '@/config/flags';
 import { decodeJwt } from '@/auth/jwtHelpers';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from '@/config/runtimeSupabase';
 import { getProjectRef } from '@/auth/projectRef';
-import { validateSessionIssuer } from '@/auth/authSessionManager';
 import { getRealtimeState, forceReconnect } from '@/utils/realtimeManager';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -72,7 +71,7 @@ export default function AuthInspect() {
         userId: user?.id || null,
         sessionExpiresAt: session?.expires_at || null,
         jwtMeta,
-        issuerValidation: session?.access_token ? validateSessionIssuer(session.access_token) : null
+        tokenIsValid: tokenTTL > 0
       },
       websocket: {
         expectedUrl: wsUrl,

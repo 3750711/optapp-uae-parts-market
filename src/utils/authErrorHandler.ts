@@ -1,7 +1,46 @@
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+/**
+ * Enhanced auth error handler that tries refresh before logout
+ * Replaces custom "smart" logout logic with standard Supabase patterns
+ */
+export async function handleAuthError(error: any, context: string = 'unknown'): Promise<boolean> {
+  // Network errors - don't logout
+  if (isNetworkError(error)) {
+    console.warn(`[AUTH] Network error in ${context}:`, error);
+    return true; // Handled, don't propagate
+  }
+
+  // Auth errors (401/403) - try refresh first
+  if (isAuthError(error)) {
+    console.warn(`[AUTH] Auth error in ${context}, attempting refresh:`, error);
+    
+    try {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.error('[AUTH] Refresh failed, signing out:', refreshError);
+        await supabase.auth.signOut();
+        toast.error('Session expired. Please log in again.');
+        return true;
+      }
+      
+      console.log('[AUTH] Session refreshed successfully');
+      return true; // Successfully refreshed
+    } catch (refreshError) {
+      console.error('[AUTH] Refresh attempt failed:', refreshError);
+      await supabase.auth.signOut();
+      toast.error('Session expired. Please log in again.');
+      return true;
+    }
+  }
+
+  return false; // Not handled, let caller handle
+}
+
 // Utility for handling authentication errors softly
 // Prevents aggressive signOut on temporary network issues
-
-import { toast } from 'sonner';
 
 export const isAuthError = (error: any): boolean => {
   return error?.status === 401 || 

@@ -67,9 +67,9 @@ const RealTimeImageUpload: React.FC<RealTimeImageUploadProps> = ({ onUpload, onD
     setUploading(true);
 
     try {
-      // Extract file path from public URL
-      const urlParts = imageUrl.split('/storage/v1/object/public/product-images/');
-      const filePath = urlParts[1] || imageUrl.split('/').pop();
+      // Extract file path from public URL using utility
+      const { extractStorageFilePath } = await import('@/utils/storageUrl');
+      const filePath = extractStorageFilePath(imageUrl, 'product-images');
       
       const { error } = await supabase.storage
         .from('product-images')

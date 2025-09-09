@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { getSupabaseClient } from '@/lib/supabaseClient';
 import { decodeJwt } from '@/auth/jwtHelpers';
 import { getRuntimeSupabaseUrl, isPreviewEnv } from '@/config/runtimeSupabase';
-import { validateSessionIssuer } from '@/auth/authSessionManager';
 
 export default function AuthState() {
   const [state, setState] = useState<any>({});
@@ -18,7 +17,7 @@ export default function AuthState() {
           runtimeSupabaseUrl: getRuntimeSupabaseUrl(),
           isPreviewEnv: isPreviewEnv(),
           hasSession: !!session,
-          issCheck: validateSessionIssuer(session?.access_token),
+          tokenValid: session?.access_token ? true : false,
           jwt: jwt ? { iss: jwt.iss, exp: jwt.exp, sub: jwt.sub } : null,
           timestamp: new Date().toISOString(),
         });
