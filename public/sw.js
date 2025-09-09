@@ -110,19 +110,43 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
+        console.log('[SW] Handling navigation:', url);
+        
         const preload = 'navigationPreload' in self.registration
           ? await self.registration.navigationPreload.getState().then(s => s.enabled ? event.preloadResponse : null).catch(() => null)
           : null;
+        
         const res = preload ? await preload : await fetch(request);
+        
+        // Проверяем, что ответ успешный
+        if (!res.ok) {
+          console.warn('[SW] Navigation failed with status:', res.status);
+          throw new Error(`Navigation failed: ${res.status}`);
+        }
+        
         const cache = await caches.open(RUNTIME_CACHE);
         // кэшируем корневой shell для быстрого возврата
-        cache.put('/', res.clone());
+        if (new URL(url).pathname === '/') {
+          cache.put('/', res.clone()).catch(e => console.warn('[SW] Cache put failed:', e));
+        }
         trimCache(RUNTIME_CACHE, MAX_RUNTIME_ENTRIES);
+        
+        console.log('[SW] Navigation successful:', url);
         return res;
-      } catch {
+      } catch (error) {
+        console.error('[SW] Navigation error for:', url, error);
+        
         // простой graceful degradation: вернём кэшированный shell, если он есть
         const cache = await caches.open(STATIC_CACHE);
-        return (await cache.match('/')) || new Response('Offline', { status: 503 });
+        const cachedResponse = await cache.match('/');
+        
+        if (cachedResponse) {
+          console.log('[SW] Returning cached shell for failed navigation');
+          return cachedResponse;
+        }
+        
+        // Если нет кэшированного shell, пробрасываем ошибку чтобы браузер обработал как обычно
+        throw error;
       }
     })());
     return;
