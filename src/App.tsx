@@ -18,6 +18,7 @@ import { performanceMonitor } from "@/utils/performanceMonitor";
 // import { useBackgroundSync } from "@/hooks/useBackgroundSync"; // TEMPORARILY DISABLED
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RouteChangeOverlay } from "@/components/routing/RouteChangeOverlay";
+import { RoutePreloader } from "@/components/routing/RoutePreloader";
 // import { UpdatePrompt } from "@/components/UpdatePrompt"; // TEMPORARILY DISABLED
 import { NetworkIndicator } from "@/components/NetworkIndicator";
 // import { ServiceWorkerStatus } from "@/components/ServiceWorkerStatus"; // TEMPORARILY DISABLED
@@ -77,6 +78,7 @@ const App = () => {
                         <Toaster />
                         <NetworkIndicator />
                         <Suspense fallback={<RouteLoader />}>
+                          <RoutePreloader />
                           <AppRoutes />
                         </Suspense>
                       </TooltipProvider>

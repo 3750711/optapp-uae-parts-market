@@ -57,7 +57,7 @@ type AuthContextType = {
   // Additional auth methods for backward compatibility
   sendPasswordResetEmail: (email: string) => Promise<{ error: any }>;
   updatePassword: (password: string) => Promise<{ error: any }>;
-  signInWithTelegram: (authData: any) => Promise<{ user: User | null; error: any }>;
+  signInWithTelegram: (authData: any) => Promise<{ user: User | null; error: any; telegramData?: any }>;
   completeFirstLogin: () => Promise<void>;
   
   // Legacy properties for backward compatibility
@@ -223,12 +223,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Core auth methods
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<{ user: User | null; error: any }> => {
     try {
-      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error; 
+      console.log('🔑 [AuthContext] Starting signInWithPassword for:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      
+      if (error) {
+        console.error('❌ [AuthContext] signInWithPassword error:', error);
+        return { user: null, error };
+      }
+      
+      if (data.user) {
+        console.log('✅ [AuthContext] signInWithPassword success for user:', data.user.id);
+        
+        // Add fallback mechanism - wait for AuthContext state update
+        const checkStateUpdate = () => new Promise<void>((resolve) => {
+          const timeout = setTimeout(() => {
+            console.warn('⚠️ [AuthContext] State update timeout, forcing manual update');
+            setUser(data.user);
+            setSession(data.session);
+            resolve();
+          }, 5000); // 5 second timeout
+          
+          // Check if state is already updated
+          if (user?.id === data.user.id) {
+            clearTimeout(timeout);
+            resolve();
+          } else {
+            // Poll for state update
+            const interval = setInterval(() => {
+              if (user?.id === data.user.id) {
+                clearTimeout(timeout);
+                clearInterval(interval);
+                resolve();
+              }
+            }, 100);
+          }
+        });
+        
+        // Don't await the state check, let it run in background
+        checkStateUpdate();
+      }
+      
       return { user: data.user, error: null };
     } catch (error) {
+      console.error('💥 [AuthContext] signIn exception:', error);
       return { user: null, error };
     }
   };
@@ -289,11 +332,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signInWithTelegram = async (authData: any): Promise<{ user: User | null; error: any }> => {
+  const signInWithTelegram = async (authData: any): Promise<{ user: User | null; error: any; telegramData?: any }> => {
     try {
-      console.log("Telegram auth not implemented yet:", authData);
-      return { user: null, error: new Error("Telegram auth not implemented") };
+      console.log('🚀 [AuthContext] Starting Telegram authentication:', authData.id);
+      
+      // Call the telegram-widget-auth Edge Function
+      const { data, error } = await supabase.functions.invoke('telegram-widget-auth', {
+        body: { authData }
+      });
+
+      if (error) {
+        console.error('❌ [AuthContext] Telegram Edge Function error:', error);
+        throw error;
+      }
+
+      if (!data.success) {
+        console.error('❌ [AuthContext] Telegram auth failed:', data.error);
+        throw new Error(data.error || 'Authentication failed');
+      }
+
+      console.log('✅ [AuthContext] Telegram Edge Function success:', { 
+        isNewUser: data.is_new_user,
+        requiresCompletion: data.requires_profile_completion,
+        requiresMerge: data.requires_merge,
+        alreadyLinked: data.already_linked
+      });
+
+      // Return the response data for the widget to handle UI flows
+      return { 
+        user: null, 
+        error: null,
+        telegramData: data
+      };
+      
     } catch (error) {
+      console.error('💥 [AuthContext] Telegram authentication error:', error);
       return { user: null, error };
     }
   };

@@ -121,15 +121,17 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
       toast.loading(t.loading);
 
-      // Call the telegram-widget-auth Edge Function
-      const { data, error } = await supabase.functions.invoke('telegram-widget-auth', {
-        body: { authData }
-      });
+      console.log('🚀 [TelegramWidget] Using AuthContext.signInWithTelegram');
+      
+      // Use AuthContext instead of direct supabase calls
+      const { signInWithTelegram } = useAuth();
+      const result = await signInWithTelegram(authData);
 
-      if (error) {
-        throw error;
+      if (result.error) {
+        throw result.error;
       }
 
+      const data = result.telegramData;
       if (!data.success) {
         throw new Error(data.error || 'Authentication failed');
       }
@@ -154,7 +156,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         return;
       }
 
-      console.log('🔍 Edge Function response:', data);
+      console.log('🔍 Telegram auth response:', data);
 
       // Check if profile completion is required
       if (data.requires_profile_completion) {
@@ -179,39 +181,44 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
   const handleDirectLogin = async (email: string, password: string, isNewUser: boolean, requiresProfileCompletion = false) => {
     try {
+      console.log('🔄 [TelegramWidget] Using AuthContext.signIn for:', email, 'isNew:', isNewUser);
+      
+      // Use AuthContext instead of direct supabase calls
+      const { signIn } = useAuth();
+      const { user: resultUser, error: signInError } = await signIn(email, password);
 
-      if (!isNewUser) {
-        // Existing user: use signInWithPassword
-        console.log('🔄 Using signInWithPassword for existing user:', email);
-        
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: password,
-        });
-
-        if (signInError) {
-          console.error('signInWithPassword error:', signInError);
-          throw signInError;
-        }
-      } else {
-        // New user: use signInWithPassword with credentials from Edge Function
-        console.log('🔄 Using signInWithPassword for new user:', email);
-        
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: password,
-        });
-
-        if (signInError) {
-          console.error('signInWithPassword error for new user:', signInError);
-          throw signInError;
-        }
+      if (signInError) {
+        console.error('❌ [TelegramWidget] AuthContext.signIn error:', signInError);
+        throw signInError;
       }
 
-      // Get current user for logging
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser) {
-        await logLoginSuccess('telegram', currentUser.id);
+      if (resultUser) {
+        console.log('✅ [TelegramWidget] AuthContext.signIn success for user:', resultUser.id);
+        await logLoginSuccess('telegram', resultUser.id);
+        
+        // Add profile loading retry mechanism
+        const waitForProfile = () => new Promise<void>((resolve) => {
+          const maxRetries = 10;
+          let retries = 0;
+          
+          const checkProfile = () => {
+            retries++;
+            if (profile && profile.id === resultUser.id) {
+              console.log('✅ [TelegramWidget] Profile loaded successfully');
+              resolve();
+            } else if (retries >= maxRetries) {
+              console.warn('⚠️ [TelegramWidget] Profile loading timeout, continuing anyway');
+              resolve();
+            } else {
+              setTimeout(checkProfile, 200); // Check every 200ms
+            }
+          };
+          
+          checkProfile();
+        });
+        
+        // Wait for profile to load before proceeding
+        await waitForProfile();
       }
 
       toast.dismiss();
@@ -233,9 +240,11 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 
   const handleMergeSuccess = async (email: string, password: string) => {
     try {
+      console.log('🔄 [TelegramWidget] Handling merge success for:', email);
       await handleDirectLogin(email, password, false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : t.mergeError;
+      console.error('❌ [TelegramWidget] Merge success error:', error);
       toast.error(errorMessage);
       onError?.(errorMessage);
     }
