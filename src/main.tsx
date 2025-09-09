@@ -45,10 +45,6 @@ quarantineStaleRefreshTokens().then(() => {
   console.warn('⚠️ Token quarantine check failed:', err);
 });
 
-// Register Service Worker for PWA functionality
-registerServiceWorker();
-console.log('[PWA] Registration attempted');
-
 // Supabase client uses adaptive dual-domain connection
 console.log('🌍 Supabase Client initialized with custom domain');
 
@@ -71,26 +67,24 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode},{hasErro
   }
 }
 
-// Check React dispatcher readiness before any React rendering
-const checkReactDispatcher = () => {
-  try {
-    const ReactInternals = (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
-    const dispatcher = ReactInternals?.ReactCurrentDispatcher?.current;
-    return dispatcher !== null && typeof React.useState === 'function';
-  } catch (error) {
-    console.warn('React dispatcher check failed:', error);
-    return false;
-  }
+// Module loading diagnostics for Service Worker issues
+const logModuleLoadingState = () => {
+  console.log('📊 [ModuleDiagnostics] Current loading state:', {
+    timestamp: new Date().toISOString(),
+    location: window.location.href,
+    userAgent: navigator.userAgent,
+    serviceWorkerSupport: 'serviceWorker' in navigator,
+    serviceWorkerController: navigator.serviceWorker?.controller?.scriptURL || 'none',
+    reactVersion: React.version,
+    documentReadyState: document.readyState
+  });
 };
 
-const initializeApp = (attempt = 1) => {
-  const maxAttempts = 100; // 10 seconds max wait
+const initializeApp = () => {
+  logModuleLoadingState();
+  console.log('✅ [ReactInit] Starting React app initialization');
   
-  console.log(`[ReactInit] Checking dispatcher readiness (attempt ${attempt}/${maxAttempts})`);
-  
-  if (checkReactDispatcher()) {
-    console.log('✅ [ReactInit] React dispatcher ready, rendering app');
-    
+  try {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <ModuleLoadingBoundary>
@@ -100,25 +94,17 @@ const initializeApp = (attempt = 1) => {
         </ModuleLoadingBoundary>
       </React.StrictMode>
     );
-  } else if (attempt < maxAttempts) {
-    console.warn(`⚠️ [ReactInit] Dispatcher not ready, retrying in 100ms (${attempt}/${maxAttempts})`);
     
-    // Update loading indicator with native DOM
-    const root = document.getElementById('root');
-    if (root) {
-      root.innerHTML = `
-        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui;">
-          <div style="text-align: center;">
-            <div style="margin-bottom: 16px; font-size: 18px;">Инициализация React...</div>
-            <div style="font-size: 14px; color: #666;">Попытка ${attempt} из ${maxAttempts}</div>
-          </div>
-        </div>
-      `;
-    }
+    console.log('✅ [ReactInit] React app initialized successfully');
     
-    setTimeout(() => initializeApp(attempt + 1), 100);
-  } else {
-    console.error('❌ [ReactInit] React dispatcher not ready after maximum attempts');
+    // Register Service Worker AFTER successful React initialization
+    setTimeout(() => {
+      registerServiceWorker();
+      console.log('[PWA] Service Worker registered after React initialization');
+    }, 1000);
+    
+  } catch (error) {
+    console.error('❌ [ReactInit] Failed to initialize React app:', error);
     
     // Show error UI with native DOM
     const root = document.getElementById('root');
@@ -126,11 +112,22 @@ const initializeApp = (attempt = 1) => {
       root.innerHTML = `
         <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui;">
           <div style="text-align: center; max-width: 400px; padding: 24px;">
-            <h2 style="color: #dc2626; margin-bottom: 16px;">Ошибка инициализации React</h2>
-            <p style="margin-bottom: 20px; color: #666;">React dispatcher не готов после ${maxAttempts} попыток.</p>
+            <h2 style="color: #dc2626; margin-bottom: 16px;">Ошибка загрузки приложения</h2>
+            <p style="margin-bottom: 20px; color: #666;">Возможная проблема с Service Worker или загрузкой модулей.</p>
+            <button onclick="
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(registrations => {
+                  registrations.forEach(registration => registration.unregister());
+                }).then(() => window.location.reload());
+              } else {
+                window.location.reload();
+              }
+            " style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px;">
+              Очистить SW и перезагрузить
+            </button>
             <button onclick="window.location.reload()" 
-                    style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
-              Обновить страницу
+                    style="background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
+              Просто перезагрузить
             </button>
           </div>
         </div>
@@ -139,5 +136,5 @@ const initializeApp = (attempt = 1) => {
   }
 };
 
-// Start initialization process - no React hooks involved until dispatcher is ready
+// Start initialization process - simplified without dispatcher checks
 initializeApp();

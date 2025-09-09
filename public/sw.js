@@ -184,6 +184,12 @@ self.addEventListener('fetch', (event) => {
     return; // Пропускаем все API запросы напрямую к серверу
   }
 
+  // 🚨 КРИТИЧЕСКАЯ БЕЗОПАСНОСТЬ: Исключаем main entry файл от SW обработки
+  if (request.url.includes('/assets/main-')) {
+    if (DEBUG) console.log('[SW] SKIP main entry file to prevent corruption:', request.url);
+    return; // Пропускаем main файл для предотвращения NS_ERROR_CORRUPTED_CONTENT
+  }
+
   // ⚡ КЕШИРОВАНИЕ СТАТИКИ: Cache First для JS/CSS
   const dest = request.destination;
   if (dest === 'script' || dest === 'style') {

@@ -2,8 +2,13 @@
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
-  // SW включен во всех окружениях после исправления проблем с динамическими импортами
-  console.log('[PWA] Service Worker registration enabled for all environments');
+  // Отключить SW в development для предотвращения блокировки main файлов
+  if (location.hostname.includes('sandbox.lovable.dev') || location.hostname.includes('localhost')) {
+    console.log('[PWA] Service Worker disabled in development to prevent main file corruption');
+    return;
+  }
+
+  console.log('[PWA] Service Worker registration enabled for production');
 
   // Статичный build ID - не используем Date.now() для избежания постоянных обновлений
   const versionTag = (window as any).__APP_BUILD_ID__ || 'v6-stable';

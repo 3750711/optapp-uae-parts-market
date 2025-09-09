@@ -37,6 +37,9 @@ export default defineConfig(({ mode }) => ({
         // CRITICAL: Prevent inline dynamic imports (prevents data: URLs)
         inlineDynamicImports: false,
         
+        // CRITICAL: Ensure .js extension for all entry files to prevent .tsx in production
+        entryFileNames: '[name]-[hash].js',
+        
         manualChunks: {
           // CRITICAL: React must be first chunk to load synchronously
           '0-react-core': ['react', 'react-dom', 'react/jsx-runtime'],
