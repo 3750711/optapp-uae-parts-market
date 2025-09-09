@@ -1,7 +1,7 @@
 /* SW: navigation-safe + prefetch-aware + warm cache
    Version bump if you change anything here:
 */
-const SW_VERSION = 'v3';
+const SW_VERSION = 'v4';
 const APP_SHELL_CACHE = `app-shell-${SW_VERSION}`;
 const HTML_FALLBACK_URL = '/index.html';
 
@@ -15,14 +15,34 @@ const ROUTE_WHITELIST = [
   /^\/product(\/.*)?$/,      // карточки товаров
 ];
 
-// Флаг логов — автоматически включается только в dev режиме:
-const DEBUG = false; // Установите true для отладки в production
+// Флаг логов — временно включен для диагностики Cloudinary проблемы:
+const DEBUG = true; // ВРЕМЕННО для исправления Cloudinary ошибок
 
 // Утилиты
 const isSameOrigin = (url) => {
   try {
     const u = new URL(url, self.location.origin);
     return u.origin === self.location.origin;
+  } catch {
+    return false;
+  }
+};
+
+const isExternalCDN = (url) => {
+  try {
+    const u = new URL(url);
+    const hostname = u.hostname.toLowerCase();
+    // Проверяем известные внешние CDN
+    const externalDomains = [
+      'cloudinary.com',
+      'res.cloudinary.com',
+      'cdn.cloudinary.com',
+      'images.cloudinary.com',
+      'cdn.jsdelivr.net',
+      'fonts.googleapis.com',
+      'fonts.gstatic.com'
+    ];
+    return externalDomains.some(domain => hostname.includes(domain));
   } catch {
     return false;
   }
@@ -79,8 +99,17 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
+  // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Исключаем внешние CDN (особенно Cloudinary)
+  if (isExternalCDN(request.url)) {
+    if (DEBUG) console.log('[SW] SKIP external CDN:', request.url);
+    return; // Пропускаем внешние CDN напрямую к сети
+  }
+
   // Обрабатываем только same-origin запросы
-  if (!isSameOrigin(request.url)) return;
+  if (!isSameOrigin(request.url)) {
+    if (DEBUG) console.log('[SW] SKIP non-same-origin:', request.url);
+    return;
+  }
 
   // Нас интересуют HTML-страницы: mode=navigate ИЛИ accept: text/html,
   // но исключаем prefetch заголовки и недокументные назначения.
@@ -104,20 +133,26 @@ self.addEventListener('fetch', (event) => {
     // App-Shell стратегия: Stale-While-Revalidate для HTML (index.html)
     event.respondWith((async () => {
       try {
+        if (DEBUG) console.log('[SW] Processing navigation:', request.url);
         // Пробуем сеть в первую очередь, чтобы не мешать <link rel="prefetch"> и SSR-заголовкам
         const network = await fetch(request);
         // Только успешные HTML кладём в кэш
         if (network && network.ok && (network.headers.get('content-type') || '').includes('text/html')) {
           const cache = await caches.open(APP_SHELL_CACHE);
           cache.put(HTML_FALLBACK_URL, network.clone());
+          if (DEBUG) console.log('[SW] Cached HTML for:', request.url);
         }
         return network;
       } catch (e) {
-        if (DEBUG) console.warn('[SW] network fail, fallback to cache', e);
+        if (DEBUG) console.warn('[SW] network fail, fallback to cache', request.url, e);
         const cache = await caches.open(APP_SHELL_CACHE);
         const cached = await cache.match(HTML_FALLBACK_URL);
-        if (cached) return cached;
+        if (cached) {
+          if (DEBUG) console.log('[SW] Served from cache:', request.url);
+          return cached;
+        }
         // Last resort: голая офлайн-заглушка
+        if (DEBUG) console.warn('[SW] Serving offline fallback for:', request.url);
         return new Response('<!doctype html><title>Offline</title><h1>Offline</h1>', {
           headers: { 'content-type': 'text/html' },
           status: 200,
