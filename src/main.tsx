@@ -71,14 +71,73 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode},{hasErro
   }
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ReactReadinessWrapper>
-      <ModuleLoadingBoundary>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
-      </ModuleLoadingBoundary>
-    </ReactReadinessWrapper>
-  </React.StrictMode>
-);
+// Check React dispatcher readiness before any React rendering
+const checkReactDispatcher = () => {
+  try {
+    const ReactInternals = (React as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+    const dispatcher = ReactInternals?.ReactCurrentDispatcher?.current;
+    return dispatcher !== null && typeof React.useState === 'function';
+  } catch (error) {
+    console.warn('React dispatcher check failed:', error);
+    return false;
+  }
+};
+
+const initializeApp = (attempt = 1) => {
+  const maxAttempts = 100; // 10 seconds max wait
+  
+  console.log(`[ReactInit] Checking dispatcher readiness (attempt ${attempt}/${maxAttempts})`);
+  
+  if (checkReactDispatcher()) {
+    console.log('✅ [ReactInit] React dispatcher ready, rendering app');
+    
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <React.StrictMode>
+        <ModuleLoadingBoundary>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </ModuleLoadingBoundary>
+      </React.StrictMode>
+    );
+  } else if (attempt < maxAttempts) {
+    console.warn(`⚠️ [ReactInit] Dispatcher not ready, retrying in 100ms (${attempt}/${maxAttempts})`);
+    
+    // Update loading indicator with native DOM
+    const root = document.getElementById('root');
+    if (root) {
+      root.innerHTML = `
+        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui;">
+          <div style="text-align: center;">
+            <div style="margin-bottom: 16px; font-size: 18px;">Инициализация React...</div>
+            <div style="font-size: 14px; color: #666;">Попытка ${attempt} из ${maxAttempts}</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    setTimeout(() => initializeApp(attempt + 1), 100);
+  } else {
+    console.error('❌ [ReactInit] React dispatcher not ready after maximum attempts');
+    
+    // Show error UI with native DOM
+    const root = document.getElementById('root');
+    if (root) {
+      root.innerHTML = `
+        <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: system-ui;">
+          <div style="text-align: center; max-width: 400px; padding: 24px;">
+            <h2 style="color: #dc2626; margin-bottom: 16px;">Ошибка инициализации React</h2>
+            <p style="margin-bottom: 20px; color: #666;">React dispatcher не готов после ${maxAttempts} попыток.</p>
+            <button onclick="window.location.reload()" 
+                    style="background: #3b82f6; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
+              Обновить страницу
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  }
+};
+
+// Start initialization process - no React hooks involved until dispatcher is ready
+initializeApp();
