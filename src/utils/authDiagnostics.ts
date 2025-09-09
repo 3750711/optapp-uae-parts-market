@@ -1,7 +1,7 @@
 // Enhanced authentication diagnostics and recovery utilities
 
 import { supabase } from "@/integrations/supabase/client";
-import { isNetworkError } from "./authSessionManager";
+import { isNetworkError } from "./authErrorHandler";
 
 export interface AuthDiagnosticResult {
   status: 'healthy' | 'degraded' | 'critical';
