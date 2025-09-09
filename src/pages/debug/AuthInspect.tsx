@@ -71,7 +71,6 @@ export default function AuthInspect() {
         tokenTTL: tokenTTL,
         tokenTTLMin: Math.floor(tokenTTL / 60),
         tokenExpired: tokenTTL <= 0,
-        sessionCreatedAt: session?.created_at,
         sessionExpiresAt: session?.expires_at,
         sessionRefreshToken: session?.refresh_token ? '✓ Present' : '✗ Missing'
       },
