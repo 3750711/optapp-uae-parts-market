@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { clearAuthStorageSafe } from './clearAuthStorage';
 import { getRuntimeAnonKey } from '@/config/runtimeSupabase';
+import { clearAuthOnCORSError } from '@/utils/clearAuthOnError';
 
 function getProjectRefFromAnon(anon?: string): string | null {
   if (!anon) return null;
@@ -34,9 +35,16 @@ export async function quarantineStaleRefreshTokens(): Promise<void> {
     // Small delay to allow SDK to initialize and attempt refresh
     await new Promise(resolve => setTimeout(resolve, 400));
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabase.auth.getSession();
     const anonKey = getRuntimeAnonKey();
     const hadStored = hasStoredTokenForRef(anonKey);
+
+    // При CORS/Network ошибках очищаем auth storage
+    if (error && (error.message.includes('CORS') || error.message.includes('NetworkError'))) {
+      console.warn('[AUTH] CORS/Network error detected, clearing auth storage');
+      clearAuthOnCORSError();
+      return;
+    }
 
     // Case from logs: 400 Invalid Refresh Token -> session == null, but keys remain
     if (!session && hadStored) {
@@ -44,6 +52,13 @@ export async function quarantineStaleRefreshTokens(): Promise<void> {
       clearAuthStorageSafe();
     }
   } catch (error) {
-    console.warn('[AUTH] Quarantine check failed:', error);
+    // Если ошибка связана с сетью/CORS - очищаем auth storage
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('CORS') || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
+      console.warn('[AUTH] Network/CORS error in quarantine check, clearing auth storage');
+      clearAuthOnCORSError();
+    } else {
+      console.warn('[AUTH] Quarantine check failed:', error);
+    }
   }
 }

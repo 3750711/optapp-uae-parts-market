@@ -4,6 +4,7 @@ import type { Database } from './types';
 import { validateSupabaseAnonKey, createErrorReport, getConfigSource } from '@/config/supabaseValidation';
 import { logConfigDiagnostics } from '@/config/configDebugger';
 import { supabaseFetch } from '@/utils/supabaseFetch';
+import { proxyHealthMonitor } from '@/utils/proxyHealthMonitor';
 
 // Read runtime configuration with validation
 const rt: any = (globalThis as any).__PB_RUNTIME__ || {};
@@ -70,7 +71,13 @@ if (validation.warnings.length > 0) {
 if (import.meta.env.DEV) {
   console.log('🔧 Для полной диагностики выполните: __debugSupabaseConfig()');
   // Auto-run diagnostics in dev mode
-  setTimeout(() => logConfigDiagnostics(), 1000);
+  setTimeout(() => {
+    logConfigDiagnostics();
+    // Check proxy health in dev mode
+    proxyHealthMonitor.getHealth().then(health => {
+      console.log('🌐 Proxy health status:', proxyHealthMonitor.getStatus());
+    });
+  }, 1000);
 }
 
 // Export backward compatible function
