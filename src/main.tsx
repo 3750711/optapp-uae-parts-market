@@ -5,7 +5,7 @@ import App from './App';
 import { cleanupCorruptedCache } from './utils/localStorage';
 import { quarantineStaleRefreshTokens } from './auth/quarantineStaleRefresh';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupabase';
-import { registerServiceWorker } from './utils/serviceWorkerManager';
+import { registerServiceWorker, cleanupCorruptedServiceWorker } from './utils/serviceWorkerManager';
 import { ModuleLoadingBoundary } from './components/ModuleLoadingBoundary';
 import { AppInitializer } from './components/AppInitializer';
 
@@ -143,6 +143,9 @@ const initializeApp = () => {
 
 // Start initialization process
 const startApp = async () => {
+  // 🚨 CRITICAL: Clean up corrupted service workers FIRST
+  await cleanupCorruptedServiceWorker();
+  
   await initializeTokens();
   initializeApp(); // No longer async
 };

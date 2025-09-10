@@ -1,4 +1,4 @@
-// Simplified Service Worker Manager - Minimal approach for maximum stability
+// Service Worker Manager - Minimal approach with NS_ERROR_CORRUPTED_CONTENT fix
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
@@ -13,8 +13,8 @@ export async function registerServiceWorker() {
   // 🔧 CRITICAL: Clean up old/conflicting service worker registrations first
   await cleanupOldServiceWorkers();
 
-  // Static build ID - simplified versioning
-  const versionTag = '3.1.0-stable';
+  // 🚨 CRITICAL: Version 3.2.0-minimal-fixed to prevent NS_ERROR_CORRUPTED_CONTENT
+  const versionTag = '3.2.0-minimal-fixed';
   const swUrl = `/sw-minimal.js?v=${encodeURIComponent(versionTag)}`;
 
   try {
@@ -60,6 +60,13 @@ async function cleanupOldServiceWorkers() {
     const currentOrigin = location.origin + '/';
     
     for (const registration of registrations) {
+      // 🚨 CRITICAL: Remove ALL /sw.js registrations to fix NS_ERROR_CORRUPTED_CONTENT
+      if (registration.active?.scriptURL.includes('/sw.js')) {
+        console.log('[PWA] 🚨 REMOVING CORRUPTED SW: /sw.js ->', registration.scope);
+        await registration.unregister();
+        continue;
+      }
+      
       // Keep only our current minimal SW, remove all others
       if (registration.scope !== currentOrigin || 
           !registration.active?.scriptURL.includes('sw-minimal.js')) {
@@ -68,13 +75,14 @@ async function cleanupOldServiceWorkers() {
       }
     }
     
-    // Clear old caches that might conflict
+    // 🚨 CRITICAL: Clear caches that cause NS_ERROR_CORRUPTED_CONTENT
     const cacheNames = await caches.keys();
     for (const cacheName of cacheNames) {
       if (cacheName.includes('app-shell-') || 
           cacheName.includes('runtime-') || 
-          (cacheName.includes('supabase') || cacheName.includes('auth'))) {
-        console.log('[PWA] Clearing old cache:', cacheName);
+          cacheName.includes('supabase') || 
+          cacheName.includes('auth')) {
+        console.log('[PWA] 🚨 CLEARING CORRUPTED CACHE:', cacheName);
         await caches.delete(cacheName);
       }
     }
@@ -83,9 +91,42 @@ async function cleanupOldServiceWorkers() {
   }
 }
 
+// 🚨 CRITICAL: Special cleanup function for NS_ERROR_CORRUPTED_CONTENT fix
+export async function cleanupCorruptedServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  
+  try {
+    console.log('[PWA] 🚨 CRITICAL CLEANUP: Removing corrupted service workers');
+    
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    
+    for (const registration of registrations) {
+      // ONLY remove /sw.js registrations, keep sw-minimal.js
+      if (registration.active?.scriptURL.includes('/sw.js') && 
+          !registration.active?.scriptURL.includes('sw-minimal.js')) {
+        console.log('[PWA] 🚨 FORCE REMOVING CORRUPTED SW:', registration.active.scriptURL);
+        await registration.unregister();
+      }
+    }
+    
+    // Clear specific corrupted caches
+    const cacheNames = await caches.keys();
+    for (const cacheName of cacheNames) {
+      if (cacheName.includes('app-shell-') || cacheName.includes('runtime-')) {
+        console.log('[PWA] 🚨 FORCE CLEARING CORRUPTED CACHE:', cacheName);
+        await caches.delete(cacheName);
+      }
+    }
+    
+    console.log('[PWA] ✅ Corrupted service worker cleanup completed');
+  } catch (error) {
+    console.error('[PWA] Failed to cleanup corrupted service worker:', error);
+  }
+}
+
 // Legacy compatibility
 export const swManager = {
   register: registerServiceWorker,
-  getVersion: () => Promise.resolve('3.1.0-stable'),
+  getVersion: () => Promise.resolve('3.2.0-minimal-fixed'),
   getRegistration: () => navigator.serviceWorker?.getRegistration('/'),
 };
