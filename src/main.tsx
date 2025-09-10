@@ -8,6 +8,7 @@ import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupaba
 import { registerServiceWorker } from './utils/serviceWorkerManager';
 import { ModuleLoadingBoundary } from './components/ModuleLoadingBoundary';
 import { ReactReadinessWrapper } from './components/ReactReadinessWrapper';
+import { runReactDiagnostics } from './utils/reactDiagnostics';
 
 import './index.css';
 
@@ -38,12 +39,15 @@ const runtimeConfig = {
 };
 console.info('🔍 Supabase runtime config:', runtimeConfig);
 
-// Auto-quarantine stale refresh tokens BEFORE mounting React app
-quarantineStaleRefreshTokens().then(() => {
-  console.log('🧹 Token quarantine check completed');
-}).catch(err => {
-  console.warn('⚠️ Token quarantine check failed:', err);
-});
+// Auto-quarantine stale refresh tokens BEFORE mounting React app (blocking)
+const initializeTokens = async () => {
+  try {
+    await quarantineStaleRefreshTokens();
+    console.log('🧹 Token quarantine check completed');
+  } catch (err) {
+    console.warn('⚠️ Token quarantine check failed:', err);
+  }
+};
 
 // Supabase client uses adaptive dual-domain connection
 console.log('🌍 Supabase Client initialized with custom domain');
@@ -80,16 +84,29 @@ const logModuleLoadingState = () => {
   });
 };
 
-const initializeApp = () => {
+const initializeApp = async () => {
   logModuleLoadingState();
   console.log('✅ [ReactInit] Starting React app initialization');
+  
+  // Check React dispatcher readiness
+  const diagnostics = runReactDiagnostics();
+  if (diagnostics.internalState !== 'ready') {
+    console.warn('⚠️ React dispatcher not ready, retrying...', diagnostics);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const retryDiagnostics = runReactDiagnostics();
+    if (retryDiagnostics.internalState !== 'ready') {
+      console.error('❌ React dispatcher still not ready after retry', retryDiagnostics);
+    }
+  }
   
   try {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <ModuleLoadingBoundary>
           <ErrorBoundary>
-            <App />
+            <ReactReadinessWrapper>
+              <App />
+            </ReactReadinessWrapper>
           </ErrorBoundary>
         </ModuleLoadingBoundary>
       </React.StrictMode>
@@ -136,5 +153,12 @@ const initializeApp = () => {
   }
 };
 
-// Start initialization process - simplified without dispatcher checks
-initializeApp();
+// Start initialization process with proper sequencing
+const startApp = async () => {
+  await initializeTokens();
+  await initializeApp();
+};
+
+startApp().catch(error => {
+  console.error('❌ Failed to start app:', error);
+});

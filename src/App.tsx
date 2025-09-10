@@ -1,7 +1,7 @@
 
 import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { SafeTooltipProvider } from "@/components/ui/SafeTooltipProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
@@ -63,7 +63,7 @@ const App = () => {
               <AuthErrorBoundary>
                 <BrowserRouter>
                   <LanguageProvider>
-                    <TooltipProvider>
+                    <SafeTooltipProvider>
                       <Toaster />
                       <NetworkIndicator />
                       
@@ -71,7 +71,7 @@ const App = () => {
                         <RoutePreloader />
                         <AppRoutes />
                       </Suspense>
-                    </TooltipProvider>
+                    </SafeTooltipProvider>
                   </LanguageProvider>
                 </BrowserRouter>
               </AuthErrorBoundary>
