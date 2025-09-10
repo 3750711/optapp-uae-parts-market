@@ -5,9 +5,11 @@ import { FLAGS } from '@/config/flags';
 export function useWakeUpHandler() {
   useEffect(() => {
     let timeout: any;
+    let retryTimeout: any; // Separate timeout for retries
     let isHealing = false; // Prevent multiple concurrent heals
     let errorCount = 0; // Circuit breaker error counter
     let lastActivity = Date.now(); // Activity tracking for throttling
+    let isMounted = true; // CRITICAL: Prevent memory leaks after unmount
     
     const debounce = (fn: () => void) => {
       clearTimeout(timeout);
@@ -23,9 +25,9 @@ export function useWakeUpHandler() {
     };
     
     const heal = async () => {
-      if (isHealing) {
+      if (!isMounted || isHealing) {
         if (FLAGS.DEBUG_AUTH) {
-          console.debug('[WAKE] Heal already in progress, skipping');
+          console.debug('[WAKE] Heal already in progress or unmounted, skipping');
         }
         return;
       }
@@ -101,8 +103,8 @@ export function useWakeUpHandler() {
             console.debug(`[WAKE] Scheduling retry in ${Math.round(delay)}ms`);
           }
           
-          setTimeout(() => {
-            if (errorCount < 3) heal();
+          retryTimeout = setTimeout(() => {
+            if (isMounted && errorCount < 3) heal(); // CRITICAL: Check isMounted
           }, delay);
         }
       } finally {
@@ -139,7 +141,9 @@ export function useWakeUpHandler() {
     }
     
     return () => {
+      isMounted = false; // CRITICAL: Prevent memory leaks
       clearTimeout(timeout);
+      clearTimeout(retryTimeout); // CRITICAL: Clear retry timeout
       if (intervalId) clearInterval(intervalId);
       
       document.removeEventListener('visibilitychange', debouncedHeal);
