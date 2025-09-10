@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { validateSupabaseAnonKey, createErrorReport, getConfigSource } from '@/config/supabaseValidation';
 import { logConfigDiagnostics } from '@/config/configDebugger';
-import { robustFetch } from '@/utils/robustFetch';
+import { supabaseFetch } from '@/utils/supabaseFetch';
 
 // Read runtime configuration with validation
 const rt: any = (globalThis as any).__PB_RUNTIME__ || {};
@@ -41,7 +41,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
   },
   global: { 
     headers: { 'x-client-info': 'partsbay-web' },
-    fetch: robustFetch
+    fetch: supabaseFetch
   }
 });
 
