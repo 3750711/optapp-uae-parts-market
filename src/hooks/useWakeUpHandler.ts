@@ -80,7 +80,7 @@ export function useWakeUpHandler() {
     window.addEventListener('pageshow', debouncedHeal); // Mobile PWA resume
     window.addEventListener('resume', debouncedHeal);   // Cordova/mobile apps
     
-    // PWA-specific: periodic token check every 5 minutes
+    // PWA-specific: periodic token check every 15 minutes (optimized)
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
                   (window as any).navigator?.standalone === true;
                   
@@ -90,10 +90,10 @@ export function useWakeUpHandler() {
         if (!document.hidden) { // Only when app is visible
           heal();
         }
-      }, 5 * 60 * 1000); // 5 minutes
+      }, 15 * 60 * 1000); // 15 minutes - optimized frequency
       
       if (FLAGS.DEBUG_AUTH) {
-        console.debug('[WAKE] PWA mode detected, enabled periodic token checks');
+        console.debug('[WAKE] PWA mode detected, enabled periodic token checks (15min intervals)');
       }
     }
     

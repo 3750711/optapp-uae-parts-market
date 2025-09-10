@@ -374,11 +374,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       document.addEventListener(event, updateActivity, { passive: true });
     });
     
-    // Session monitoring every 2 minutes
+    // Session monitoring every 10 minutes (optimized)
     monitorInterval = setInterval(async () => {
-      // Only check if user was recently active (within 10 minutes)
+      // Only check if user was recently active (within 20 minutes)
       const inactivePeriod = Date.now() - lastActivity;
-      if (inactivePeriod > 10 * 60 * 1000) return;
+      if (inactivePeriod > 20 * 60 * 1000) return;
       
       // Monitor for user/session mismatch
       if (user && !session) {
@@ -429,7 +429,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
-    }, 2 * 60 * 1000); // Every 2 minutes
+    }, 10 * 60 * 1000); // Every 10 minutes - optimized frequency
     
     return () => {
       clearInterval(monitorInterval);

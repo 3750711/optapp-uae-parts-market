@@ -28,20 +28,20 @@ export function useOptimizedProfile() {
       console.log('✅ [Profile] Profile loaded successfully for user:', user.id);
       return data;
     },
-    staleTime: 30000, // 30 seconds - reduced for better responsiveness
-    gcTime: 300000, // 5 minutes - keep in cache longer
+    staleTime: 5 * 60 * 1000, // 5 minutes - profile data is relatively stable
+    gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
     placeholderData: (previousData) => previousData,
-    refetchOnWindowFocus: 'always',
-    refetchOnReconnect: 'always',
+    refetchOnWindowFocus: false, // Don't refetch on every focus - reduces network requests
+    refetchOnReconnect: true, // Still refetch on reconnect for data consistency
     retry: (failureCount, error: any) => {
       // Don't retry AbortError or 4xx errors
       if (error?.name === 'AbortError' || (error?.status >= 400 && error?.status < 500)) {
         return false;
       }
-      // Increase retry count for better reliability
-      return failureCount < 3; // Retry up to 3 times for network errors
+      // Smart retry strategy for network reliability
+      return failureCount < 2; // Retry up to 2 times - balanced approach
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+    retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 5000), // Exponential backoff, faster recovery
   });
 
   // Handle AbortError logging without onError callback
