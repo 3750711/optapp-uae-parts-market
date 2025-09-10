@@ -162,11 +162,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
       return data;
     },
-    staleTime: 60000, // 1 minute
-    gcTime: 300000, // 5 minutes
+    staleTime: 300000, // 5 minutes - critical optimization
+    gcTime: 600000, // 10 minutes
     placeholderData: (previousData) => previousData,
-    refetchOnWindowFocus: 'always',
-    refetchOnReconnect: 'always',
+    refetchOnWindowFocus: false, // CRITICAL: Disabled to prevent excessive requests
+    refetchOnReconnect: false, // CRITICAL: Disabled to prevent excessive requests  
+    refetchOnMount: false, // Don't refetch if data exists
+    networkMode: 'online', // Only fetch when online
     retry: (failureCount, error: any) => {
       if (error?.name === 'AbortError' || (error?.status >= 400 && error?.status < 500)) {
         return false;
@@ -362,23 +364,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isPWA || !user) return;
     
     let lastActivity = Date.now();
+    let lastRateLimit = 0;
     let monitorInterval: any;
     
-    // Track user activity
+    // Throttled activity tracking (only update every 5 seconds)
     const updateActivity = () => {
-      lastActivity = Date.now();
+      const now = Date.now();
+      if (now - lastActivity > 5000) {
+        lastActivity = now;
+      }
     };
     
-    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    // Reduced activity events (only 3 most critical)
+    const activityEvents = ['mousedown', 'keypress', 'touchstart'];
     activityEvents.forEach(event => {
       document.addEventListener(event, updateActivity, { passive: true });
     });
     
-    // Session monitoring every 10 minutes (optimized)
+    // Session monitoring every 10 minutes with rate limiting
     monitorInterval = setInterval(async () => {
-      // Only check if user was recently active (within 20 minutes)
-      const inactivePeriod = Date.now() - lastActivity;
-      if (inactivePeriod > 20 * 60 * 1000) return;
+      const now = Date.now();
+      
+      // Rate limiting: no more than once every 5 minutes
+      if (now - lastRateLimit < 5 * 60 * 1000) return;
+      lastRateLimit = now;
+      
+      // Only check if user was recently active (within 30 minutes - increased)
+      const inactivePeriod = now - lastActivity;
+      if (inactivePeriod > 30 * 60 * 1000) return;
       
       // Monitor for user/session mismatch
       if (user && !session) {
@@ -411,17 +424,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      // Proactive token refresh 10 minutes before expiration
+      // Proactive token refresh 15 minutes before expiration (increased buffer)
       if (session?.expires_at) {
-        const now = Math.floor(Date.now() / 1000);
-        const expiresIn = session.expires_at - now;
+        const sessionNow = Math.floor(Date.now() / 1000);
+        const expiresIn = session.expires_at - sessionNow;
         
-        if (expiresIn < 600 && expiresIn > 0) { // Less than 10 minutes
+        if (expiresIn < 900 && expiresIn > 0) { // Less than 15 minutes
           if (FLAGS.DEBUG_AUTH) {
             console.debug('[PWA SESSION MONITOR] Token expires in', expiresIn, 'seconds, refreshing proactively');
           }
           
           try {
+            // Add 10-second timeout for API calls
+            const controller = new AbortController();
+            setTimeout(() => controller.abort(), 10000);
+            
             await supabase.auth.refreshSession();
           } catch (error) {
             console.warn('[PWA SESSION MONITOR] Proactive refresh failed:', error);

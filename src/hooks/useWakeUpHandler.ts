@@ -6,16 +6,34 @@ export function useWakeUpHandler() {
   useEffect(() => {
     let timeout: any;
     let isHealing = false; // Prevent multiple concurrent heals
+    let errorCount = 0; // Circuit breaker error counter
+    let lastActivity = Date.now(); // Activity tracking for throttling
     
     const debounce = (fn: () => void) => {
       clearTimeout(timeout);
       timeout = setTimeout(fn, 350);
     };
     
+    // Throttled activity tracking (only update every 30 seconds)
+    const updateActivity = () => {
+      const now = Date.now();
+      if (now - lastActivity > 30000) {
+        lastActivity = now;
+      }
+    };
+    
     const heal = async () => {
       if (isHealing) {
         if (FLAGS.DEBUG_AUTH) {
           console.debug('[WAKE] Heal already in progress, skipping');
+        }
+        return;
+      }
+      
+      // Circuit breaker: stop trying after 3 consecutive failures
+      if (errorCount >= 3) {
+        if (FLAGS.DEBUG_AUTH) {
+          console.debug('[WAKE] Circuit breaker active, skipping heal');
         }
         return;
       }
@@ -33,14 +51,15 @@ export function useWakeUpHandler() {
         const now = Math.floor(Date.now() / 1000);
         const expiresAt = data.session.expires_at || 0;
         
-        // Proactive refresh 5 minutes before expiration
-        if (expiresAt - now < 300) {
+        // Proactive refresh 10 minutes before expiration (increased buffer)
+        if (expiresAt - now < 600) {
           if (FLAGS.DEBUG_AUTH) {
             console.debug('[WAKE] Token expires soon, proactively refreshing');
           }
           
           await supabase.auth.refreshSession().catch((error) => {
             console.warn('[WAKE] Proactive refresh failed:', error);
+            throw error; // Re-throw to trigger circuit breaker
           });
         } else {
           // Normal refresh for session validation
@@ -56,9 +75,14 @@ export function useWakeUpHandler() {
           });
         }
         
+        // Reset error count on success
+        errorCount = 0;
+        
       } catch (error) {
+        errorCount++;
+        
         if (FLAGS.DEBUG_AUTH) {
-          console.debug('[WAKE] Heal failed:', error);
+          console.debug('[WAKE] Heal failed:', error, `(errors: ${errorCount}/3)`);
         }
         
         // Handle specific error cases
@@ -66,19 +90,36 @@ export function useWakeUpHandler() {
             error?.message?.includes('refresh_token_not_found')) {
           console.warn('🚨 [WAKE] Invalid refresh token detected, may need re-authentication');
         }
+        
+        // Exponential backoff with jitter for failed requests
+        if (errorCount < 3) {
+          const baseDelay = Math.min(1000 * Math.pow(2, errorCount - 1), 60000); // 1s, 2s, 4s, max 60s
+          const jitter = Math.random() * 1000; // Add up to 1s jitter
+          const delay = baseDelay + jitter;
+          
+          if (FLAGS.DEBUG_AUTH) {
+            console.debug(`[WAKE] Scheduling retry in ${Math.round(delay)}ms`);
+          }
+          
+          setTimeout(() => {
+            if (errorCount < 3) heal();
+          }, delay);
+        }
       } finally {
         isHealing = false;
       }
     };
 
-    const debouncedHeal = () => debounce(heal);
+    const debouncedHeal = () => {
+      updateActivity();
+      debounce(heal);
+    };
     
-    // Enhanced event listeners for mobile PWA support
+    // Optimized event listeners for mobile PWA support (removed 'resume' - was causing issues)
     document.addEventListener('visibilitychange', debouncedHeal);
     window.addEventListener('focus', debouncedHeal);
     window.addEventListener('online', debouncedHeal);
     window.addEventListener('pageshow', debouncedHeal); // Mobile PWA resume
-    window.addEventListener('resume', debouncedHeal);   // Cordova/mobile apps
     
     // PWA-specific: periodic token check every 15 minutes (optimized)
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
@@ -105,7 +146,6 @@ export function useWakeUpHandler() {
       window.removeEventListener('focus', debouncedHeal);
       window.removeEventListener('online', debouncedHeal);
       window.removeEventListener('pageshow', debouncedHeal);
-      window.removeEventListener('resume', debouncedHeal);
     };
   }, []);
 }

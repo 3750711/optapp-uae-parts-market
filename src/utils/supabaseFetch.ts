@@ -1,17 +1,24 @@
-// Health check для api.partsbay.ae прокси (optimized caching)
+// Full circuit breaker for api.partsbay.ae прокси
 let proxyHealth: 'unknown' | 'healthy' | 'failing' = 'unknown';
 let lastHealthCheck = 0;
+let circuitBreakerFailures = 0;
+let circuitBreakerOpenUntil = 0;
 
 const checkProxyHealth = async (): Promise<boolean> => {
   const now = Date.now();
-  // Cache health check for 5 minutes instead of 30 seconds
+  
+  // Circuit breaker: if too many failures, skip health check for 1 minute
+  if (circuitBreakerFailures >= 3 && now < circuitBreakerOpenUntil) {
+    return false;
+  }
+  
+  // Cache health check for 5 minutes
   if (now - lastHealthCheck < 5 * 60 * 1000 && proxyHealth !== 'unknown') {
     return proxyHealth === 'healthy';
   }
   
   try {
     const controller = new AbortController();
-    // Increased timeout for better reliability
     setTimeout(() => controller.abort(), 5000);
     
     const response = await fetch('https://api.partsbay.ae/rest/v1/', {
@@ -20,12 +27,31 @@ const checkProxyHealth = async (): Promise<boolean> => {
       mode: 'cors'
     });
     
-    proxyHealth = response.ok ? 'healthy' : 'failing';
+    const isHealthy = response.ok;
+    proxyHealth = isHealthy ? 'healthy' : 'failing';
     lastHealthCheck = now;
-    return proxyHealth === 'healthy';
+    
+    if (isHealthy) {
+      // Reset circuit breaker on success
+      circuitBreakerFailures = 0;
+      circuitBreakerOpenUntil = 0;
+    } else {
+      circuitBreakerFailures++;
+      if (circuitBreakerFailures >= 3) {
+        circuitBreakerOpenUntil = now + 60000; // 1 minute timeout
+      }
+    }
+    
+    return isHealthy;
   } catch {
     proxyHealth = 'failing';
     lastHealthCheck = now;
+    circuitBreakerFailures++;
+    
+    if (circuitBreakerFailures >= 3) {
+      circuitBreakerOpenUntil = now + 60000; // 1 minute timeout
+    }
+    
     return false;
   }
 };
@@ -34,66 +60,87 @@ export const supabaseFetch = async (url: RequestInfo | URL, options?: RequestIni
   const urlString = url.toString();
   const isProxyUrl = urlString.includes('api.partsbay.ae');
   
-  // Правильные CORS настройки для cross-origin запросов
+  // Enhanced fetch options with 15-second timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 seconds timeout
+  
   const fetchOptions = {
     ...options,
-    // НЕ используем credentials: 'same-origin' для cross-origin запросов
     credentials: isProxyUrl ? 'omit' : (options?.credentials || 'same-origin'),
-    // Кешируем preflight запросы
     mode: 'cors' as const,
+    signal: controller.signal,
   };
 
-  // Exponential backoff retry logic with 2 max attempts
+  // Jittered exponential backoff retry logic with 2 max attempts
   const maxRetries = 2;
   let lastError: Error;
   
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      // Если прокси недоступен, сразу используем fallback (only check on first attempt)
-      if (isProxyUrl && attempt === 0 && proxyHealth === 'failing') {
-        const directUrl = urlString.replace('api.partsbay.ae', 'vfiylfljiixqkjfqubyq.supabase.co');
-        console.log('🔄 Proxy known to be failing, using direct Supabase URL:', directUrl);
-        return await fetch(directUrl, { ...fetchOptions, credentials: 'omit' });
-      }
+  try {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        // Circuit breaker: if proxy is known to be failing, use fallback immediately
+        if (isProxyUrl && attempt === 0 && (proxyHealth === 'failing' || circuitBreakerFailures >= 3)) {
+          const directUrl = urlString.replace('api.partsbay.ae', 'vfiylfljiixqkjfqubyq.supabase.co');
+          console.log('🔄 Circuit breaker active or proxy failing, using direct Supabase URL:', directUrl);
+          return await fetch(directUrl, { ...fetchOptions, credentials: 'omit' });
+        }
 
-      const response = await fetch(url, fetchOptions);
-      
-      // Если прокси отвечает корректно, отмечаем как здоровый
-      if (isProxyUrl && response.status !== 502) {
-        proxyHealth = 'healthy';
-        lastHealthCheck = Date.now();
+        const response = await fetch(url, fetchOptions);
+        
+        // Update proxy health status
+        if (isProxyUrl && response.status !== 502) {
+          proxyHealth = 'healthy';
+          lastHealthCheck = Date.now();
+          // Reset circuit breaker on success
+          circuitBreakerFailures = 0;
+          circuitBreakerOpenUntil = 0;
+        }
+        
+        // Handle 502 proxy errors
+        if (response.status === 502 && isProxyUrl) {
+          const directUrl = urlString.replace('api.partsbay.ae', 'vfiylfljiixqkjfqubyq.supabase.co');
+          console.log('🔄 Proxy returned 502, falling back to direct Supabase URL:', directUrl);
+          proxyHealth = 'failing';
+          circuitBreakerFailures++;
+          return await fetch(directUrl, { ...fetchOptions, credentials: 'omit' });
+        }
+        
+        return response;
+      } catch (error) {
+        lastError = error as Error;
+        
+        // Update circuit breaker for network errors
+        if (isProxyUrl) {
+          circuitBreakerFailures++;
+          if (circuitBreakerFailures >= 3) {
+            circuitBreakerOpenUntil = Date.now() + 60000; // 1 minute timeout
+          }
+        }
+        
+        // Don't retry on the last attempt
+        if (attempt === maxRetries) break;
+        
+        // Jittered exponential backoff: 1s, 2s, 4s (max 10s with jitter)
+        const baseDelay = Math.min(1000 * Math.pow(2, attempt), 10000);
+        const jitter = Math.random() * 1000; // Up to 1s jitter
+        const delay = baseDelay + jitter;
+        
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.warn(`🔄 Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms:`, error);
       }
-      
-      // При 502 ошибке прокси - fallback на прямой URL
-      if (response.status === 502 && isProxyUrl) {
-        const directUrl = urlString.replace('api.partsbay.ae', 'vfiylfljiixqkjfqubyq.supabase.co');
-        console.log('🔄 Proxy returned 502, falling back to direct Supabase URL:', directUrl);
-        proxyHealth = 'failing';
-        return await fetch(directUrl, { ...fetchOptions, credentials: 'omit' });
-      }
-      
-      return response;
-    } catch (error) {
-      lastError = error as Error;
-      
-      // Don't retry on the last attempt
-      if (attempt === maxRetries) break;
-      
-      // Exponential backoff: 250ms, 500ms
-      const delay = 250 * Math.pow(2, attempt);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      console.warn(`🔄 Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms:`, error);
     }
+  } finally {
+    clearTimeout(timeoutId);
   }
   
-  // Network/CORS errors для прокси - fallback на прямой URL
+  // Final fallback for proxy URLs
   if (isProxyUrl) {
     const directUrl = urlString.replace('api.partsbay.ae', 'vfiylfljiixqkjfqubyq.supabase.co');
     console.log('🔄 All proxy attempts failed, falling back to direct Supabase URL:', directUrl);
     proxyHealth = 'failing';
     
     try {
+      // Only 1 retry for fallback URL to prevent excessive requests
       return await fetch(directUrl, { ...fetchOptions, credentials: 'omit' });
     } catch (fallbackError) {
       console.error('❌ Both proxy and direct URLs failed:', { original: lastError, fallback: fallbackError });
