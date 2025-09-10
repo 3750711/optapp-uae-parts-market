@@ -7,8 +7,7 @@ import { quarantineStaleRefreshTokens } from './auth/quarantineStaleRefresh';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupabase';
 import { registerServiceWorker } from './utils/serviceWorkerManager';
 import { ModuleLoadingBoundary } from './components/ModuleLoadingBoundary';
-import { ReactReadinessWrapper } from './components/ReactReadinessWrapper';
-import { waitForReactDispatcher, showNativeLoadingScreen, showReactErrorScreen } from './utils/waitForReactDispatcher';
+import { AppInitializer } from './components/AppInitializer';
 
 import './index.css';
 
@@ -84,35 +83,18 @@ const logModuleLoadingState = () => {
   });
 };
 
-const initializeApp = async () => {
+const initializeApp = () => {
   logModuleLoadingState();
   console.log('✅ [ReactInit] Starting React app initialization');
-  
-  const rootElement = document.getElementById('root')!;
-  
-  // Show native loading screen while checking dispatcher
-  showNativeLoadingScreen(rootElement);
-  
-  // Wait for React dispatcher to be ready using pure JavaScript
-  console.log('🔍 [ReactInit] Waiting for React dispatcher...');
-  const dispatcherResult = await waitForReactDispatcher(5000);
-  
-  if (!dispatcherResult.ready) {
-    console.error('❌ [ReactInit] React dispatcher not ready after timeout:', dispatcherResult);
-    showReactErrorScreen(rootElement, dispatcherResult.error || 'Dispatcher timeout');
-    return;
-  }
-  
-  console.log('✅ [ReactInit] React dispatcher confirmed ready, initializing React app');
   
   try {
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <ModuleLoadingBoundary>
           <ErrorBoundary>
-            <ReactReadinessWrapper>
+            <AppInitializer>
               <App />
-            </ReactReadinessWrapper>
+            </AppInitializer>
           </ErrorBoundary>
         </ModuleLoadingBoundary>
       </React.StrictMode>
@@ -159,10 +141,10 @@ const initializeApp = async () => {
   }
 };
 
-// Start initialization process with proper sequencing
+// Start initialization process
 const startApp = async () => {
   await initializeTokens();
-  await initializeApp();
+  initializeApp(); // No longer async
 };
 
 startApp().catch(error => {
