@@ -8,10 +8,13 @@ export async function registerServiceWorker() {
     return;
   }
 
-  console.log('[PWA] Minimal Service Worker registration enabled for production');
+  console.log('[PWA] Service Worker registration enabled for production');
+
+  // 🔧 CRITICAL: Clean up old/conflicting service worker registrations first
+  await cleanupOldServiceWorkers();
 
   // Static build ID - simplified versioning
-  const versionTag = '3.0.0-minimal';
+  const versionTag = '3.1.0-stable';
   const swUrl = `/sw-minimal.js?v=${encodeURIComponent(versionTag)}`;
 
   try {
@@ -50,10 +53,39 @@ export async function registerServiceWorker() {
   }
 }
 
-// Legacy compatibility - удалены неиспользуемые функции
+// 🧹 Clean up old/conflicting service worker registrations
+async function cleanupOldServiceWorkers() {
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    const currentOrigin = location.origin + '/';
+    
+    for (const registration of registrations) {
+      // Keep only our current minimal SW, remove all others
+      if (registration.scope !== currentOrigin || 
+          !registration.active?.scriptURL.includes('sw-minimal.js')) {
+        console.log('[PWA] Unregistering old/conflicting SW:', registration.scope);
+        await registration.unregister();
+      }
+    }
+    
+    // Clear old caches that might conflict
+    const cacheNames = await caches.keys();
+    for (const cacheName of cacheNames) {
+      if (cacheName.includes('app-shell-') || 
+          cacheName.includes('runtime-') || 
+          (cacheName.includes('supabase') || cacheName.includes('auth'))) {
+        console.log('[PWA] Clearing old cache:', cacheName);
+        await caches.delete(cacheName);
+      }
+    }
+  } catch (error) {
+    console.warn('[PWA] Failed to cleanup old service workers:', error);
+  }
+}
 
+// Legacy compatibility
 export const swManager = {
   register: registerServiceWorker,
-  getVersion: () => Promise.resolve('3.0.0-minimal'),
+  getVersion: () => Promise.resolve('3.1.0-stable'),
   getRegistration: () => navigator.serviceWorker?.getRegistration('/'),
 };

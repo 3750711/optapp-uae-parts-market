@@ -57,10 +57,20 @@ const isAPIPath = (url) => {
   try {
     const u = new URL(url, self.location.origin);
     const pathname = u.pathname;
-    // КРИТИЧЕСКИЕ API пути — они НЕ должны обрабатываться SW
+    const hostname = u.hostname;
+    
+    // 🚨 CRITICAL: Exclude all api.partsbay.ae requests (proxy domain)
+    if (hostname.includes('api.partsbay.ae')) {
+      return true;
+    }
+    
+    // 🚨 CRITICAL: Exclude all Supabase API paths  
     return pathname.startsWith('/rest/') || 
            pathname.startsWith('/auth/') || 
-           pathname.startsWith('/functions/');
+           pathname.startsWith('/functions/') ||
+           pathname.includes('supabase') ||
+           pathname.includes('session') ||
+           pathname.includes('token');
   } catch {
     return false;
   }
@@ -164,6 +174,13 @@ async function handleBackgroundSync(tag) {
   }
 }
 
+// Check if request has authentication headers
+const hasAuthHeaders = (request) => {
+  const auth = request.headers.get('authorization');
+  const cookie = request.headers.get('cookie');
+  return auth || (cookie && cookie.includes('sb-'));
+};
+
 // Навигации: только настоящие переходы на документ (SPA), без prefetch
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -171,6 +188,12 @@ self.addEventListener('fetch', (event) => {
   // 🚨 КРИТИЧЕСКАЯ БЕЗОПАСНОСТЬ: Исключаем внешние CDN (особенно Cloudinary)
   if (isExternalCDN(request.url)) {
     return; // Пропускаем внешние CDN напрямую к сети
+  }
+
+  // 🚨 КРИТИЧЕСКАЯ БЕЗОПАСНОСТЬ: Never cache requests with auth headers
+  if (hasAuthHeaders(request)) {
+    if (DEBUG) console.log('[SW] SKIP auth headers:', request.url);
+    return; // Пропускаем все запросы с авторизацией напрямую
   }
 
   // Обрабатываем только same-origin запросы

@@ -1,8 +1,21 @@
-// Minimal Service Worker - offline fallback only
-// Version: 2.1.0 - Simplified for stability
+// Minimal Service Worker - offline fallback only  
+// Version: 3.1.0 - Enhanced for PWA session stability
 
-const CACHE_NAME = 'offline-fallback-v2';
+const CACHE_NAME = 'offline-fallback-v3';
 const OFFLINE_HTML = '/index.html';
+
+// 🚨 Never cache requests with auth data
+const hasAuthData = (request) => {
+  const url = request.url;
+  const auth = request.headers.get('authorization');
+  const cookie = request.headers.get('cookie');
+  
+  // Check for api.partsbay.ae domain (our Supabase proxy)
+  if (url.includes('api.partsbay.ae')) return true;
+  
+  // Check for auth headers or supabase cookies
+  return auth || (cookie && cookie.includes('sb-'));
+};
 
 // Minimal install - just cache the offline fallback
 self.addEventListener('install', (event) => {
@@ -39,6 +52,11 @@ self.addEventListener('activate', (event) => {
 
 // Minimal fetch - only handle navigation requests for offline fallback
 self.addEventListener('fetch', (event) => {
+  // 🚨 CRITICAL: Never intercept auth-related requests
+  if (hasAuthData(event.request)) {
+    return; // Let auth requests pass through directly
+  }
+  
   // Only handle navigation requests (HTML pages)
   if (event.request.mode === 'navigate') {
     event.respondWith(

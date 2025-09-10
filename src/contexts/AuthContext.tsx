@@ -193,9 +193,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       if (cancelled) return;
       
+      // 🔍 Enhanced auth event logging for PWA debugging
       if (FLAGS.DEBUG_AUTH) {
-        console.debug('[AuthProvider] Auth state changed:', event, newSession?.user?.id, 
-          'hasUser:', !!newSession?.user, 'token:', !!newSession?.access_token);
+        console.debug('[AuthProvider] Auth state changed:', {
+          event,
+          userId: newSession?.user?.id,
+          hasUser: !!newSession?.user,
+          hasToken: !!newSession?.access_token,
+          expiresAt: newSession?.expires_at,
+          timestamp: new Date().toISOString(),
+          isVisible: !document.hidden,
+          userAgent: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'
+        });
+      }
+
+      // 🚨 Detect unexpected SIGNED_OUT events for debugging
+      if (event === 'SIGNED_OUT' && user && !document.hidden) {
+        console.warn('🚨 [AuthProvider] Unexpected SIGNED_OUT while user active:', {
+          previousUserId: user.id,
+          wasVisible: !document.hidden,
+          timestamp: new Date().toISOString()
+        });
       }
 
       // Update session and user state
@@ -267,6 +285,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       unsubRef.current?.();
     };
   }, []);
+
+  // 🔄 PWA Session Recovery: Handle visibility changes for session validation
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // App going to background - log for debugging
+        if (FLAGS.DEBUG_AUTH && user) {
+          console.debug('[AuthProvider] App backgrounded, user:', user.id);
+        }
+        return;
+      }
+
+      // App returning from background - validate session
+      if (user && session) {
+        if (FLAGS.DEBUG_AUTH) {
+          console.debug('[AuthProvider] App foregrounded, validating session for user:', user.id);
+        }
+
+        // Check if session is still valid
+        const sessionCheck = checkSessionSoft(session);
+        if (!sessionCheck.ok) {
+          if (FLAGS.DEBUG_AUTH) {
+            console.warn('[AuthProvider] Session invalid after background return:', sessionCheck.reason);
+          }
+          
+          // Force session refresh or logout if expired
+          if (sessionCheck.forceLogout) {
+            console.warn('🚨 [AuthProvider] Session expired, forcing logout');
+            signOut();
+            return;
+          }
+        }
+
+        // Additional session validation with Supabase
+        setTimeout(async () => {
+          try {
+            const { data } = await supabase.auth.getSession();
+            if (!data.session && user) {
+              console.warn('🚨 [AuthProvider] Lost session after background return, signing out');
+              signOut();
+            } else if (FLAGS.DEBUG_AUTH) {
+              console.debug('[AuthProvider] Session validated successfully after background return');
+            }
+          } catch (error) {
+            console.warn('[AuthProvider] Session validation failed:', error);
+          }
+        }, 100); // Small delay to ensure DOM is ready
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, session]); // Re-run when user or session changes
 
   // Core auth methods
   const signIn = async (email: string, password: string): Promise<{ user: User | null; error: any }> => {
