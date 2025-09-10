@@ -1,35 +1,26 @@
 import { useEffect } from 'react';
-import { pwaLifecycleManager } from '@/utils/pwaLifecycleManager';
-import { LifecycleOptions } from '@/types/pwa';
+import { simplifiedPWAManager } from '@/utils/simplifiedPWAManager';
 
-// Admin-specific PWA lifecycle hook with optimized settings
+// Simplified Admin PWA lifecycle hook 
 export const useAdminPWALifecycle = (id: string, onRefresh?: () => void) => {
   useEffect(() => {
-    const options: LifecycleOptions = {
+    return simplifiedPWAManager.register(id, {
       onVisibilityChange: (isHidden: boolean) => {
         if (!isHidden && onRefresh) {
-          // Мягкий рефреш только при возврате в админку
-          
-          setTimeout(onRefresh, 300); // Задержка для стабильности
+          // Soft refresh when returning to admin
+          setTimeout(onRefresh, 300);
         }
       },
-      onPageShow: (event: PageTransitionEvent) => {
-        if (event.persisted) {
-          
-          // НЕ делаем автоматический рефреш при bfcache - данные должны остаться
-        }
-      },
-      enableBfcacheOptimization: true,
-      skipFastSwitching: true,
-      debounceDelay: 500,
-    };
-
-    return pwaLifecycleManager.register(id, options);
+      onPageHide: () => {
+        // Admin might have unsaved changes
+        console.log('🔄 Admin page hidden - potential save point');
+      }
+    });
   }, [id, onRefresh]);
 
   return {
-    isPWA: pwaLifecycleManager.shouldOptimizeForPWA(),
-    forceSave: pwaLifecycleManager.forceSave,
-    status: pwaLifecycleManager.getPWAStatus(),
+    isPWA: simplifiedPWAManager.shouldOptimizeForPWA(),
+    forceSave: simplifiedPWAManager.forceSave,
+    status: simplifiedPWAManager.getPWAStatus(),
   };
 };

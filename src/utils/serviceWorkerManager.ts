@@ -1,18 +1,18 @@
-// src/utils/serviceWorkerManager.ts
+// Simplified Service Worker Manager - Minimal approach for maximum stability
 export async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
-  // Отключить SW в development для предотвращения блокировки main файлов
+  // Disable SW in development to prevent main file blocking
   if (location.hostname.includes('sandbox.lovable.dev') || location.hostname.includes('localhost')) {
     console.log('[PWA] Service Worker disabled in development to prevent main file corruption');
     return;
   }
 
-  console.log('[PWA] Service Worker registration enabled for production');
+  console.log('[PWA] Minimal Service Worker registration enabled for production');
 
-  // Статичный build ID - не используем Date.now() для избежания постоянных обновлений
-  const versionTag = (window as any).__APP_BUILD_ID__ || 'v6-stable';
-  const swUrl = `/sw.js?v=${encodeURIComponent(versionTag)}`;
+  // Static build ID - simplified versioning
+  const versionTag = '3.0.0-minimal';
+  const swUrl = `/sw-minimal.js?v=${encodeURIComponent(versionTag)}`;
 
   try {
     const reg = await navigator.serviceWorker.register(swUrl, { scope: '/' });
@@ -25,7 +25,7 @@ export async function registerServiceWorker() {
       if (!sw) return;
       
       hasNewVersion = true;
-      console.log('[PWA] New service worker found, installing...');
+      console.log('[PWA] New minimal service worker found, installing...');
       
       sw.addEventListener('statechange', () => {
         if (sw.state === 'installed' && reg.waiting) {
@@ -54,6 +54,6 @@ export async function registerServiceWorker() {
 
 export const swManager = {
   register: registerServiceWorker,
-  getVersion: () => Promise.resolve('v6-stable'),
+  getVersion: () => Promise.resolve('3.0.0-minimal'),
   getRegistration: () => navigator.serviceWorker?.getRegistration('/'),
 };

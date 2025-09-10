@@ -28,8 +28,8 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
   build: {
-    // CRITICAL: Prevent inline modules to fix Russian mobile network blocking
-    assetsInlineLimit: 0, // Never inline any assets as data URLs
+    // Conservative inlining - allow small assets for performance
+    assetsInlineLimit: 4096, // Allow small assets (4KB) to be inlined
     
     // Optimized chunk splitting for better caching and loading reliability
     rollupOptions: {
