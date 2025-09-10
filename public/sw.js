@@ -53,7 +53,7 @@ const isExternalCDN = (url) => {
   }
 };
 
-const isAPIPath = (url) => {
+const isAuthRequest = (url) => {
   try {
     const u = new URL(url, self.location.origin);
     const pathname = u.pathname;
@@ -65,12 +65,18 @@ const isAPIPath = (url) => {
     }
     
     // 🚨 CRITICAL: Exclude all Supabase API paths  
-    return pathname.startsWith('/rest/') || 
-           pathname.startsWith('/auth/') || 
-           pathname.startsWith('/functions/') ||
-           pathname.includes('supabase') ||
-           pathname.includes('session') ||
-           pathname.includes('token');
+    if (pathname.startsWith('/rest/') || 
+        pathname.startsWith('/auth/') || 
+        pathname.startsWith('/functions/') ||
+        pathname.startsWith('/v1/') ||
+        pathname.includes('supabase') ||
+        pathname.includes('session') ||
+        pathname.includes('token') ||
+        pathname.includes('refresh')) {
+      return true;
+    }
+    
+    return false;
   } catch {
     return false;
   }
@@ -178,7 +184,9 @@ async function handleBackgroundSync(tag) {
 const hasAuthHeaders = (request) => {
   const auth = request.headers.get('authorization');
   const cookie = request.headers.get('cookie');
-  return auth || (cookie && cookie.includes('sb-'));
+  const apiKey = request.headers.get('apikey');
+  
+  return !!(auth || apiKey || (cookie && (cookie.includes('sb-') || cookie.includes('supabase'))));
 };
 
 // Навигации: только настоящие переходы на документ (SPA), без prefetch
@@ -201,10 +209,10 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 🚨 КРИТИЧЕСКАЯ БЕЗОПАСНОСТЬ: API пути НЕ должны перехватываться SW
-  if (isAPIPath(request.url)) {
-    if (DEBUG) console.log('[SW] SKIP API path:', request.url);
-    return; // Пропускаем все API запросы напрямую к серверу
+  // 🚨 КРИТИЧЕСКАЯ БЕЗОПАСНОСТЬ: AUTH запросы НЕ должны перехватываться SW
+  if (isAuthRequest(request.url)) {
+    if (DEBUG) console.log('[SW] SKIP AUTH request:', request.url, request.method);
+    return; // Пропускаем все AUTH запросы напрямую к серверу
   }
 
   // 🚨 КРИТИЧЕСКАЯ БЕЗОПАСНОСТЬ: Исключаем main entry файл от SW обработки

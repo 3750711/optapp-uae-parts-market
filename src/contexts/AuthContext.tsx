@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { checkSessionSoft } from '@/auth/authSessionManager';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
 import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
+import { sessionBackupManager } from '@/auth/sessionBackup';
 import { FLAGS } from '@/config/flags';
 
 // Local timeout utility to avoid external dependencies
@@ -185,8 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Read runtime configuration for timeouts
     const RC = (window as any).__PB_RUNTIME__ || {};
-    const INIT_TIMEOUT = Number(RC.AUTH_INIT_TIMEOUT_MS ?? 20000);  // getSession timeout (увеличен для продакшена)
-    const WATCHDOG_TIMEOUT = Math.max(INIT_TIMEOUT + 5000, 25000);  // страховка с большим запасом
+    const INIT_TIMEOUT = Number(RC.AUTH_INIT_TIMEOUT_MS ?? 25000);  // Increased for production stability  
+    const WATCHDOG_TIMEOUT = Math.max(INIT_TIMEOUT + 5000, 30000);  // More buffer for slow connections
 
     // 1) Set up auth state subscription FIRST (before getSession)
     unsubRef.current?.();
@@ -225,9 +226,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       //   supabase.realtime.setAuth(newSession.access_token);
       // }
 
+      // 📦 Session Backup: Backup session on successful auth events
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        if (newSession) {
+          sessionBackupManager.backupSession(newSession);
+          if (FLAGS.DEBUG_AUTH) {
+            console.debug('[AuthProvider] Session backed up on:', event);
+          }
+        }
+      }
+
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        // Clear auth storage
+        // Clear auth storage and session backup
         clearAuthStorageSafe();
+        sessionBackupManager.clearBackup();
       }
 
       // End loading on key auth events
@@ -341,6 +353,193 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user, session]); // Re-run when user or session changes
+
+  // 🔍 PWA Session Monitoring: Detect and recover lost sessions
+  useEffect(() => {
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                  (window as any).navigator?.standalone === true;
+    
+    if (!isPWA || !user) return;
+    
+    let lastActivity = Date.now();
+    let monitorInterval: any;
+    
+    // Track user activity
+    const updateActivity = () => {
+      lastActivity = Date.now();
+    };
+    
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    activityEvents.forEach(event => {
+      document.addEventListener(event, updateActivity, { passive: true });
+    });
+    
+    // Session monitoring every 2 minutes
+    monitorInterval = setInterval(async () => {
+      // Only check if user was recently active (within 10 minutes)
+      const inactivePeriod = Date.now() - lastActivity;
+      if (inactivePeriod > 10 * 60 * 1000) return;
+      
+      // Monitor for user/session mismatch
+      if (user && !session) {
+        console.error('🚨 [PWA SESSION MONITOR] User exists but session lost!');
+        
+        // Try to restore from backup
+        const backupSession = sessionBackupManager.restoreSession();
+        if (backupSession) {
+          console.log('🔄 [PWA SESSION MONITOR] Attempting session restore from backup');
+          setSession(backupSession);
+          setUser(backupSession.user);
+          
+          // Validate restored session
+          try {
+            const { data } = await supabase.auth.getSession();
+            if (!data.session) {
+              console.warn('🚨 [PWA SESSION MONITOR] Backup restore failed, signing out');
+              signOut();
+            } else if (FLAGS.DEBUG_AUTH) {
+              console.debug('[PWA SESSION MONITOR] Session successfully restored from backup');
+            }
+          } catch (error) {
+            console.warn('[PWA SESSION MONITOR] Session validation failed after restore:', error);
+            signOut();
+          }
+        } else {
+          console.warn('🚨 [PWA SESSION MONITOR] No valid backup available, signing out');
+          signOut();
+        }
+        return;
+      }
+      
+      // Proactive token refresh 10 minutes before expiration
+      if (session?.expires_at) {
+        const now = Math.floor(Date.now() / 1000);
+        const expiresIn = session.expires_at - now;
+        
+        if (expiresIn < 600 && expiresIn > 0) { // Less than 10 minutes
+          if (FLAGS.DEBUG_AUTH) {
+            console.debug('[PWA SESSION MONITOR] Token expires in', expiresIn, 'seconds, refreshing proactively');
+          }
+          
+          try {
+            await supabase.auth.refreshSession();
+          } catch (error) {
+            console.warn('[PWA SESSION MONITOR] Proactive refresh failed:', error);
+          }
+        }
+      }
+      
+    }, 2 * 60 * 1000); // Every 2 minutes
+    
+    return () => {
+      clearInterval(monitorInterval);
+      activityEvents.forEach(event => {
+        document.removeEventListener(event, updateActivity);
+      });
+    };
+  }, [user, session]);
+
+  // 🏥 Session Recovery: Try to restore session on initialization if needed  
+  useEffect(() => {
+    const trySessionRestore = async () => {
+      // Only try restore if we have no session but should have one
+      if (user && !session && !loading) {
+        if (FLAGS.DEBUG_AUTH) {
+          console.debug('[AuthProvider] Attempting session recovery for user:', user.id);
+        }
+        
+        const backupSession = sessionBackupManager.restoreSession();
+        if (backupSession && backupSession.user?.id === user.id) {
+          console.log('🔄 [AuthProvider] Restoring session from backup');
+          setSession(backupSession);
+          
+          // Validate the restored session
+          try {
+            const { data } = await supabase.auth.getSession();
+            if (data.session) {
+              if (FLAGS.DEBUG_AUTH) {
+                console.debug('[AuthProvider] Session restore validated successfully');
+              }
+            } else {
+              console.warn('🚨 [AuthProvider] Session restore validation failed');
+              sessionBackupManager.clearBackup();
+            }
+          } catch (error) {
+            console.warn('[AuthProvider] Session restore validation error:', error);
+            sessionBackupManager.clearBackup();
+          }
+        }
+      }
+    };
+    
+    // Small delay to ensure auth state is settled
+    const timer = setTimeout(trySessionRestore, 500);
+    return () => clearTimeout(timer);
+  }, [user, session, loading]);
+
+  // Keep the existing visibility change handler
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // App going to background - log for debugging
+        if (FLAGS.DEBUG_AUTH && user) {
+          console.debug('[AuthProvider] App backgrounded, user:', user.id);
+        }
+        return;
+      }
+
+      // App returning from background - validate session
+      if (user && session) {
+        if (FLAGS.DEBUG_AUTH) {
+          console.debug('[AuthProvider] App foregrounded, validating session for user:', user.id);
+        }
+
+        // Check if session is still valid
+        const sessionCheck = checkSessionSoft(session);
+        if (!sessionCheck.ok) {
+          if (FLAGS.DEBUG_AUTH) {
+            console.warn('[AuthProvider] Session invalid after background return:', sessionCheck.reason);
+          }
+          
+          // Force session refresh or logout if expired
+          if (sessionCheck.forceLogout) {
+            console.warn('🚨 [AuthProvider] Session expired, forcing logout');
+            signOut();
+            return;
+          }
+        }
+
+        // Additional session validation with Supabase
+        setTimeout(async () => {
+          try {
+            const { data } = await supabase.auth.getSession();
+            if (!data.session && user) {
+              console.warn('🚨 [AuthProvider] Lost session after background return, attempting recovery');
+              
+              // Try backup restore before signing out
+              const backupSession = sessionBackupManager.restoreSession();
+              if (backupSession && backupSession.user?.id === user.id) {
+                setSession(backupSession);
+                console.log('🔄 [AuthProvider] Session restored from backup after background return');
+              } else {
+                signOut();
+              }
+            } else if (FLAGS.DEBUG_AUTH) {
+              console.debug('[AuthProvider] Session validated successfully after background return');
+            }
+          } catch (error) {
+            console.warn('[AuthProvider] Session validation failed:', error);
+          }
+        }, 100); // Small delay to ensure DOM is ready
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, session]);
 
   // Core auth methods
   const signIn = async (email: string, password: string): Promise<{ user: User | null; error: any }> => {

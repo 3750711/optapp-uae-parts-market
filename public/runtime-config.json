@@ -2,6 +2,11 @@
   "SUPABASE_URL": "https://api.partsbay.ae",
   "REALTIME_ENABLED": false,
   "DEBUG_AUTH": false,
+  "AUTH_INIT_TIMEOUT_MS": 25000,
+  "ENHANCED_PWA_PROTECTION": true,
+  "SESSION_BACKUP_ENABLED": true,
+  "SESSION_MONITORING": true,
+  "PWA_SESSION_PROTECTION": true,
   "REALTIME_PARAMS": {
     "eventsPerSecond": 10,
     "timeout": 30000,
