@@ -8,7 +8,7 @@ import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupaba
 import { registerServiceWorker } from './utils/serviceWorkerManager';
 import { ModuleLoadingBoundary } from './components/ModuleLoadingBoundary';
 import { ReactReadinessWrapper } from './components/ReactReadinessWrapper';
-import { runReactDiagnostics } from './utils/reactDiagnostics';
+import { waitForReactDispatcher, showNativeLoadingScreen, showReactErrorScreen } from './utils/waitForReactDispatcher';
 
 import './index.css';
 
@@ -88,16 +88,22 @@ const initializeApp = async () => {
   logModuleLoadingState();
   console.log('✅ [ReactInit] Starting React app initialization');
   
-  // Check React dispatcher readiness
-  const diagnostics = runReactDiagnostics();
-  if (diagnostics.internalState !== 'ready') {
-    console.warn('⚠️ React dispatcher not ready, retrying...', diagnostics);
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const retryDiagnostics = runReactDiagnostics();
-    if (retryDiagnostics.internalState !== 'ready') {
-      console.error('❌ React dispatcher still not ready after retry', retryDiagnostics);
-    }
+  const rootElement = document.getElementById('root')!;
+  
+  // Show native loading screen while checking dispatcher
+  showNativeLoadingScreen(rootElement);
+  
+  // Wait for React dispatcher to be ready using pure JavaScript
+  console.log('🔍 [ReactInit] Waiting for React dispatcher...');
+  const dispatcherResult = await waitForReactDispatcher(5000);
+  
+  if (!dispatcherResult.ready) {
+    console.error('❌ [ReactInit] React dispatcher not ready after timeout:', dispatcherResult);
+    showReactErrorScreen(rootElement, dispatcherResult.error || 'Dispatcher timeout');
+    return;
   }
+  
+  console.log('✅ [ReactInit] React dispatcher confirmed ready, initializing React app');
   
   try {
     ReactDOM.createRoot(document.getElementById('root')!).render(
