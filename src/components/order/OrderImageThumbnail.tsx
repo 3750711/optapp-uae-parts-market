@@ -23,6 +23,17 @@ export const OrderImageThumbnail: React.FC<OrderImageThumbnailProps> = ({ orderI
     );
   }
 
+  if (imageUrl) {
+    return (
+      <div className={cn("overflow-hidden", containerClasses)}>
+        <img
+          src={imageUrl}
+          alt="Фото заказа"
+          className="h-full w-full object-contain"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={containerClasses}>
