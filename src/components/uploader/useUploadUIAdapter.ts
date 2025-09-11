@@ -6,9 +6,11 @@ type AdapterOpts = {
   max?: number;
   onChange?: (okItems: any[]) => void;
   onComplete?: (okItems: any[]) => void;
+  existingUrls?: string[];
 };
 
 export function useUploadUIAdapter(opts: AdapterOpts = {}) {
+  const { max, onChange, onComplete, existingUrls } = opts;
   // НИЧЕГО не меняем в хуке — только используем
   const hook: any = useStagedCloudinaryUpload();
 
@@ -28,8 +30,22 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
     return isHeic;
   };
 
+  // Create existing items from URLs
+  const existingItems = useMemo(() => {
+    if (!existingUrls?.length) return [];
+    return existingUrls.map((url, index) => ({
+      id: `existing-${index}-${url}`,
+      status: "completed" as const,
+      cloudinaryUrl: url,
+      thumbUrl: url,
+      originalFile: { name: `Existing Photo ${index + 1}` },
+      progress: 100,
+      isHeic: false,
+    }));
+  }, [existingUrls]);
+
   // Мягкое извлечение полей из хука useStagedCloudinaryUpload
-  const items = (hook.uploadItems ?? []).map((item: any) => {
+  const uploadItems = (hook.uploadItems ?? []).map((item: any) => {
     let thumbUrl = item.thumbUrl;
     
     // Create preview URL if it doesn't exist
@@ -65,6 +81,9 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
       isHeic: item.file ? isHeicFile(item.file) : false
     };
   });
+
+  // Combine existing and upload items
+  const items = [...existingItems, ...uploadItems];
   
   const uploadFiles = hook.uploadFiles;
   const removeUploadItem = hook.removeUploadItem;

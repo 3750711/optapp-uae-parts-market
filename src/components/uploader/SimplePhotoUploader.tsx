@@ -9,6 +9,7 @@ type Props = {
   onComplete?: (okItems: any[]) => void;
   buttonText?: string;
   language?: Lang;
+  existingUrls?: string[];
 };
 
 export default function SimplePhotoUploader({
@@ -17,8 +18,9 @@ export default function SimplePhotoUploader({
   onComplete,
   buttonText,
   language = 'ru',
+  existingUrls,
 }: Props) {
-  const { items, uploadFiles, removeItem, retryItem } = useUploadUIAdapter({ max, onChange, onComplete });
+  const { items, uploadFiles, removeItem, retryItem } = useUploadUIAdapter({ max, onChange, onComplete, existingUrls });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = getSellerPagesTranslations(language);
   
@@ -113,23 +115,34 @@ export default function SimplePhotoUploader({
 
             {/* Кнопки управления: удалить / повторить */}
             <div className="absolute top-1 right-1 flex gap-1">
-              {it.status === "error" && (
-                <button
-                  type="button"
-                  onClick={() => retryItem?.(it.id)}
-                  className="px-2 py-1 rounded-md text-[11px] sm:text-xs bg-white/90 hover:bg-white transition-colors"
-                >
-                  {t.retry}
-                </button>
+              {/* Show "Saved" badge for existing photos */}
+              {it.id?.startsWith('existing-') && (
+                <div className="px-2 py-1 rounded-md text-xs bg-green-500 text-white">
+                  Saved
+                </div>
               )}
-              <button
-                type="button"
-                onClick={() => removeItem?.(it.id)}
-                className="px-2 py-1 rounded-md text-[11px] sm:text-xs bg-white/90 hover:bg-white transition-colors"
-                aria-label={t.delete}
-              >
-                {t.delete}
-              </button>
+              {/* Show retry/delete buttons only for new uploads */}
+              {!it.id?.startsWith('existing-') && (
+                <>
+                  {it.status === "error" && (
+                    <button
+                      type="button"
+                      onClick={() => retryItem?.(it.id)}
+                      className="px-2 py-1 rounded-md text-[11px] sm:text-xs bg-white/90 hover:bg-white transition-colors"
+                    >
+                      {t.retry}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeItem?.(it.id)}
+                    className="px-2 py-1 rounded-md text-[11px] sm:text-xs bg-white/90 hover:bg-white transition-colors"
+                    aria-label={t.delete}
+                  >
+                    {t.delete}
+                  </button>
+                </>
+              )}
             </div>
           </figure>
         ))}

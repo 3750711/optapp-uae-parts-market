@@ -26,7 +26,6 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
 import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
-import { ExistingPhotosGrid } from "./ExistingPhotosGrid";
 import { useConfirmationUpload } from "@/features/orders/confirm/useConfirmationUpload";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
@@ -351,12 +350,6 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               <div className="space-y-4">
                 <ProofExampleCard />
                 
-                {/* Existing Photos */}
-                <ExistingPhotosGrid 
-                  urls={step1Images} 
-                  title="Previously Uploaded Chat Screenshots" 
-                />
-
                 {/* Chat Screenshots Upload */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Purchase Confirmation Screenshot</h3>
@@ -370,6 +363,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   language="en"
                   onChange={step1Hook.handleChange}
                   onComplete={step1Hook.handleComplete}
+                  existingUrls={step1Images}
                   max={8}
                 />
 
@@ -398,12 +392,6 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               <div className="space-y-4">
                 <SignedProductExampleCard />
                 
-                {/* Existing Photos */}
-                <ExistingPhotosGrid 
-                  urls={step2Images} 
-                  title="Previously Uploaded Signed Product Photos" 
-                />
-
                 {/* Signed Product Upload */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Signed Product Photo</h3>
@@ -417,6 +405,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   language="en"
                   onChange={step2Hook.handleChange}
                   onComplete={step2Hook.handleComplete}
+                  existingUrls={step2Images}
                   max={8}
                 />
 
