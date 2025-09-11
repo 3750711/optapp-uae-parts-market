@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/sheet';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
-import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
+import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
 import { useConfirmationUpload } from "./useConfirmationUpload";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
@@ -331,6 +331,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               <div className="space-y-4">
                 <ProofExampleCard />
                 
+                {/* Chat Screenshots Upload */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Purchase Confirmation Screenshot</h3>
                   <p className="text-sm text-muted-foreground">
@@ -338,14 +339,14 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <MobileOptimizedImageUpload
-                  onUploadComplete={step1Hook.handleImagesUpload}
-                  existingImages={step1Hook.confirmImages}
-                  onImageDelete={step1Hook.handleImageDelete}
-                  maxImages={8}
-                  productId={orderId}
-                  disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
+                <SimplePhotoUploader
+                  max={8}
+                  onChange={step1Hook.handleImagesUpload}
+                  buttonText="Upload Chat Screenshot"
+                  language="en"
                 />
+
+                {/* Confirmation checkbox for uploaded images */}
 
                 {step1Hook.confirmImages.length > 0 && (
                   <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -372,6 +373,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               <div className="space-y-4">
                 <SignedProductExampleCard />
                 
+                {/* Signed Product Upload */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Signed Product Photo</h3>
                   <p className="text-sm text-muted-foreground">
@@ -379,14 +381,14 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <MobileOptimizedImageUpload
-                  onUploadComplete={step2Hook.handleImagesUpload}
-                  existingImages={step2Hook.confirmImages}
-                  onImageDelete={step2Hook.handleImageDelete}
-                  maxImages={8}
-                  productId={orderId}
-                  disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
+                <SimplePhotoUploader
+                  max={8}
+                  onChange={step2Hook.handleImagesUpload}
+                  buttonText="Upload Signed Product"
+                  language="en"
                 />
+
+                {/* Warning for incomplete step 1 */}
 
                 {/* Show step 1 is locked if not completed */}
                 {step1Images.length === 0 && (
