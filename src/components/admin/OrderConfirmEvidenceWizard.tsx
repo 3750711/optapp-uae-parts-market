@@ -25,7 +25,8 @@ import {
 } from '@/components/ui/sheet';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
-import UnifiedImageUpload from "@/components/admin/order/UnifiedImageUpload";
+import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
+import ExistingPhotosDisplay from "./ExistingPhotosDisplay";
 import { useConfirmationUpload } from "./useConfirmationUpload";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
@@ -339,12 +340,18 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <UnifiedImageUpload
+                <ExistingPhotosDisplay
                   images={step1Hook.confirmImages}
-                  onImagesUpload={step1Hook.handleImagesUpload}
                   onImageDelete={step1Hook.handleImageDelete}
-                  maxImages={8}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost}
+                  className="mb-4"
+                />
+
+                <SimplePhotoUploader
+                  max={8}
+                  onChange={step1Hook.handleImagesUpload}
+                  buttonText="Upload Chat Screenshot"
+                  language="en"
                 />
 
                 {step1Hook.confirmImages.length > 0 && (
@@ -380,12 +387,18 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <UnifiedImageUpload
+                <ExistingPhotosDisplay
                   images={step2Hook.confirmImages}
-                  onImagesUpload={step2Hook.handleImagesUpload}
                   onImageDelete={step2Hook.handleImageDelete}
-                  maxImages={8}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost}
+                  className="mb-4"
+                />
+
+                <SimplePhotoUploader
+                  max={8}
+                  onChange={step2Hook.handleImagesUpload}
+                  buttonText="Upload Signed Product"
+                  language="en"
                 />
 
                 {/* Show step 1 is locked if not completed */}
