@@ -8,7 +8,7 @@ import { ComponentFallback, EmptyState } from './FallbackComponents';
 
 // Direct imports instead of lazy loading to avoid TypeScript issues
 import { VirtualizedOrdersList } from './VirtualizedOrdersList';
-import { OptimizedOrderCard } from './OptimizedOrderCard';
+import { MobileOrderCard } from './MobileOrderCard';
 
 interface ResponsiveOrdersViewProps {
   orders: Order[];
@@ -49,22 +49,20 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
   const renderMobileCard = (order: Order) => {
     try {
       return (
-        <OptimizedOrderCard
+        <MobileOrderCard
           key={order.id}
           order={order}
           isSelected={selectedOrders.includes(order.id)}
-          onSelect={onSelectOrder}
+          onSelect={onSelectOrder || (() => {})}
           onEdit={onEdit}
           onDelete={onDelete}
           onViewDetails={onViewDetails}
           onQuickAction={onQuickAction}
-          isMobile={true}
-          showSelection={!!onSelectOrder}
         />
       );
     } catch (error) {
       console.error('Error rendering mobile card:', error);
-      return <ComponentFallback componentName="OptimizedOrderCard" />;
+      return <ComponentFallback componentName="MobileOrderCard" />;
     }
   };
 

@@ -1,7 +1,7 @@
 
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { FixedSizeGrid as Grid } from 'react-window';
-import { OptimizedOrderCard } from './OptimizedOrderCard';
+import { MemoizedAdminOrderCard } from './MemoizedAdminOrderCard';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -15,7 +15,7 @@ interface VirtualizedOrdersListProps {
   containerHeight?: number;
 }
 
-const CARD_HEIGHT = 350;
+const CARD_HEIGHT = 400;
 const CARD_WIDTH = 400;
 const GAP = 24;
 
@@ -66,15 +66,24 @@ export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
         width: style.width - GAP,
         height: style.height - GAP,
       }}>
-        <OptimizedOrderCard
-          order={order}
-          isSelected={isSelected}
-          onSelect={onSelectOrder}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onViewDetails={onViewDetails}
-          showSelection={!!onSelectOrder}
-        />
+        <div className={`relative ${isSelected ? 'ring-2 ring-primary ring-opacity-50' : ''}`}>
+          {onSelectOrder && (
+            <div className="absolute top-2 left-2 z-10">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onSelectOrder(order.id)}
+                className="bg-white shadow-sm"
+              />
+            </div>
+          )}
+          
+          <MemoizedAdminOrderCard
+            order={order}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onViewDetails={onViewDetails}
+          />
+        </div>
       </div>
     );
   });
@@ -100,16 +109,24 @@ export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
         {orders.map((order) => {
           const isSelected = selectedOrders.includes(order.id);
           return (
-            <OptimizedOrderCard
-              key={order.id}
-              order={order}
-              isSelected={isSelected}
-              onSelect={onSelectOrder}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onViewDetails={onViewDetails}
-              showSelection={!!onSelectOrder}
-            />
+            <div key={order.id} className={`relative ${isSelected ? 'ring-2 ring-primary ring-opacity-50' : ''}`}>
+              {onSelectOrder && (
+                <div className="absolute top-2 left-2 z-10">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onSelectOrder(order.id)}
+                    className="bg-white shadow-sm"
+                  />
+                </div>
+              )}
+              
+              <MemoizedAdminOrderCard
+                order={order}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onViewDetails={onViewDetails}
+              />
+            </div>
           );
         })}
       </div>
