@@ -43,18 +43,6 @@ export const OrderConfirmThumbnails = ({ orderId, onViewPhotos, onUpload }: Orde
   const hasProductImages = productImages.length > 0;
   const hasAnyImages = hasChatImages || hasProductImages;
 
-  // Debug logging for photo count discrepancy
-  console.log(`📸 [OrderConfirmThumbnails] Order ${orderId}:`, {
-    chatImages: chatImages,
-    chatImagesLength: chatImages.length,
-    productImages: productImages,
-    productImagesLength: productImages.length,
-    totalCount: chatImages.length + productImages.length,
-    hasChatImages,
-    hasProductImages,
-    hasAnyImages
-  });
-
   const renderThumbnails = (images: string[], category: string) => {
     const maxVisible = 3;
     const visibleImages = images.slice(0, maxVisible);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/ui/stepper";
 import { Loader2, Upload, Check, ArrowRight, ArrowLeft, Camera, FileSignature } from "lucide-react";
@@ -25,9 +25,8 @@ import {
 } from '@/components/ui/sheet';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
-import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
-
-import { useUploadUIAdapter } from "@/features/uploads/useUploadUIAdapter";
+import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
+import { useConfirmationUpload } from "./useConfirmationUpload";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
 
@@ -75,7 +74,22 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     enabled: open && !!orderId,
   });
 
-  // Simplified state management - no adapter layer needed
+  // Get hooks for each step
+  const step1Hook = useConfirmationUpload(
+    open && currentStep === 'chat_confirmation', 
+    orderId, 
+    () => {}, // We handle completion manually
+    'images-only',
+    'chat_screenshot'
+  );
+
+  const step2Hook = useConfirmationUpload(
+    open && currentStep === 'signed_product', 
+    orderId, 
+    () => {}, // We handle completion manually
+    'images-only',
+    'signed_product'
+  );
 
   // Load existing data when dialog opens
   useEffect(() => {
@@ -84,22 +98,10 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     const loadExistingData = async () => {
       setIsLoadingStepData(true);
       try {
-        // Fetch existing images for both categories
-        const [chatResult, signedResult] = await Promise.all([
-          supabase
-            .from('confirm_images')
-            .select('url')
-            .eq('order_id', orderId)
-            .eq('category', 'chat_screenshot'),
-          supabase
-            .from('confirm_images')
-            .select('url')
-            .eq('order_id', orderId)
-            .eq('category', 'signed_product')
+        const [chatImages, signedImages] = await Promise.all([
+          step1Hook.getImagesByCategory('chat_screenshot'),
+          step2Hook.getImagesByCategory('signed_product')
         ]);
-        
-        const chatImages = chatResult.data?.map(row => row.url) || [];
-        const signedImages = signedResult.data?.map(row => row.url) || [];
         
         setStep1Images(chatImages);
         setStep2Images(signedImages);
@@ -121,16 +123,16 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     };
 
     loadExistingData();
-  }, [open, orderId, profile?.user_type, selectedStepOverride]);
+  }, [open, step1Hook.getImagesByCategory, step2Hook.getImagesByCategory]);
 
-  // Helper functions to get completed URLs
-  const getStep1CompletedUrls = useCallback(() => {
-    return step1Images;
-  }, [step1Images]);
-
-  const getStep2CompletedUrls = useCallback(() => {
-    return step2Images;
-  }, [step2Images]);
+  // Update step images when uploads change
+  useEffect(() => {
+    if (currentStep === 'chat_confirmation') {
+      setStep1Images(step1Hook.confirmImages);
+    } else if (currentStep === 'signed_product') {
+      setStep2Images(step2Hook.confirmImages);
+    }
+  }, [currentStep, step1Hook.confirmImages, step2Hook.confirmImages]);
 
   // Define steps
   const steps: Array<{
@@ -153,48 +155,36 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     }
   ];
 
+  const currentHook = currentStep === 'chat_confirmation' ? step1Hook : step2Hook;
   const canProceedStep1 = step1Images.length > 0 && step1Confirmed;
   const canProceedStep2 = step2Images.length > 0;
   const canSaveCurrentStep = currentStep === 'chat_confirmation' ? canProceedStep1 : canProceedStep2;
-
-  // Track active uploads via state
-  const [isUploading, setIsUploading] = useState(false);
-
-  const hasActiveUploads = useCallback(() => {
-    return isUploading;
-  }, [isUploading]);
-
-  const isCurrentStepUploading = useCallback(() => {
-    return isUploading;
-  }, [isUploading]);
 
   // Step navigation
   const handleNext = useCallback(async () => {
     if (currentStep === 'chat_confirmation' && canProceedStep1) {
       // Save step 1 and move to step 2
       try {
-        const completedUrls = getStep1CompletedUrls();
-        await saveImages(completedUrls, 'chat_screenshot');
+        await step1Hook.handleSaveMedia();
         toast.success('Chat screenshot saved successfully');
         setCurrentStep('signed_product');
       } catch (error) {
         toast.error('Failed to save chat screenshot');
       }
     }
-  }, [currentStep, canProceedStep1, getStep1CompletedUrls]);
+  }, [currentStep, canProceedStep1, step1Hook]);
 
   const handleFinish = useCallback(async () => {
     if (currentStep === 'signed_product' && canProceedStep2) {
       try {
-        const completedUrls = getStep2CompletedUrls();
-        await saveImages(completedUrls, 'signed_product');
+        await step2Hook.handleSaveMedia();
         toast.success('Evidence uploaded successfully');
         onComplete();
       } catch (error) {
         toast.error('Failed to save signed product photo');
       }
     }
-  }, [currentStep, canProceedStep2, getStep2CompletedUrls, onComplete]);
+  }, [currentStep, canProceedStep2, step2Hook, onComplete]);
 
   const handleSkip = useCallback(() => {
     if (currentStep === 'signed_product') {
@@ -209,26 +199,9 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     }
   }, [currentStep]);
 
-  // Helper function to save images to database
-  const saveImages = async (urls: string[], category: 'chat_screenshot' | 'signed_product') => {
-    if (urls.length === 0) return;
-
-    const { error } = await supabase
-      .from('confirm_images')
-      .insert(
-        urls.map(url => ({
-          order_id: orderId,
-          url: url,
-          category
-        }))
-      );
-
-    if (error) throw error;
-  };
-
   // Prevent accidental closing during upload
-  const handleOpenChange = (newOpen: boolean) => {    
-    if (!newOpen && hasActiveUploads()) {
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && (step1Hook.isUploading || step2Hook.isUploading)) {
       return;
     }
     if (!newOpen) {
@@ -342,16 +315,22 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           </div>
         )}
 
-        {/* Session status component removed as new architecture handles this internally */}
-        
-        {(
+        <SessionStatusComponent
+          isComponentReady={currentHook.isComponentReady}
+          sessionLost={currentHook.sessionLost}
+          uploadError={currentHook.uploadError}
+          onSessionRecovery={currentHook.handleSessionRecovery}
+          onReset={currentHook.handleReset}
+          isSeller={profile?.user_type === 'seller'}
+        />
+
+        {currentHook.isComponentReady && !currentHook.sessionLost && (
           <>
             {/* Step 1: Chat Confirmation */}
             {currentStep === 'chat_confirmation' && (
               <div className="space-y-4">
                 <ProofExampleCard />
                 
-                {/* Chat Screenshots Upload */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Purchase Confirmation Screenshot</h3>
                   <p className="text-sm text-muted-foreground">
@@ -359,21 +338,15 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <SimplePhotoUploader
-                  buttonText="Upload Chat Screenshots"
-                  language="en"
-                  onChange={(urls) => {
-                    setStep1Images(urls);
-                  }}
-                  onComplete={(urls) => {
-                    setStep1Images(urls);
-                    setIsUploading(false);
-                  }}
-                  existingUrls={step1Images}
-                  max={8}
+                <MobileOptimizedImageUpload
+                  onUploadComplete={step1Hook.handleImagesUpload}
+                  existingImages={step1Hook.confirmImages}
+                  onImageDelete={step1Hook.handleImageDelete}
+                  maxImages={8}
+                  disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
                 />
 
-                {step1Images.length > 0 && (
+                {step1Hook.confirmImages.length > 0 && (
                   <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
                     <div className="flex items-start space-x-3">
                       <Checkbox
@@ -398,7 +371,6 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               <div className="space-y-4">
                 <SignedProductExampleCard />
                 
-                {/* Signed Product Upload */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Signed Product Photo</h3>
                   <p className="text-sm text-muted-foreground">
@@ -406,18 +378,12 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <SimplePhotoUploader
-                  buttonText="Upload Signed Product Photos"
-                  language="en"
-                  onChange={(urls) => {
-                    setStep2Images(urls);
-                  }}
-                  onComplete={(urls) => {
-                    setStep2Images(urls);
-                    setIsUploading(false);
-                  }}
-                  existingUrls={step2Images}
-                  max={8}
+                <MobileOptimizedImageUpload
+                  onUploadComplete={step2Hook.handleImagesUpload}
+                  existingImages={step2Hook.confirmImages}
+                  onImageDelete={step2Hook.handleImageDelete}
+                  maxImages={8}
+                  disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
                 />
 
                 {/* Show step 1 is locked if not completed */}
@@ -447,26 +413,24 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               setSelectedStepOverride(null);
               setCurrentStep('chat_confirmation');
             }}
-            disabled={false}
+            disabled={currentHook.isUploading}
           >
             Cancel
           </Button>
           <Button
             onClick={async () => {
               try {
-                const currentUrls = selectedStepOverride === 'chat_confirmation' ? getStep1CompletedUrls() : getStep2CompletedUrls();
-                const category = selectedStepOverride === 'chat_confirmation' ? 'chat_screenshot' : 'signed_product';
-                await saveImages(currentUrls, category);
+                await currentHook.handleSaveMedia();
                 toast.success(`${selectedStepOverride === 'chat_confirmation' ? 'Chat screenshots' : 'Signed product photos'} saved successfully`);
                 onComplete();
               } catch (error) {
                 toast.error('Failed to save');
               }
             }}
-            disabled={false}
+            disabled={!canSaveCurrentStep || currentHook.isUploading}
             className="bg-primary hover:bg-primary/90 flex items-center gap-2 flex-1"
           >
-            {isCurrentStepUploading() ? (
+            {currentHook.isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Saving...
@@ -490,7 +454,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           <Button 
             variant="outline"
             onClick={handleBack}
-            disabled={false}
+            disabled={currentHook.isUploading}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -502,10 +466,10 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
         {currentStep === 'chat_confirmation' ? (
           <Button
             onClick={handleNext}
-            disabled={!canSaveCurrentStep || isCurrentStepUploading()}
+            disabled={!canSaveCurrentStep || currentHook.isUploading}
             className="bg-primary hover:bg-primary/90 flex items-center gap-2 flex-1"
           >
-            {isCurrentStepUploading() ? (
+            {currentHook.isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Saving...
@@ -522,17 +486,17 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
             <Button
               onClick={handleSkip}
               variant="outline"
-              disabled={isCurrentStepUploading() || step1Images.length === 0}
+              disabled={currentHook.isUploading || step1Images.length === 0}
               className="flex items-center gap-2"
             >
               Skip Later
             </Button>
             <Button
               onClick={handleFinish}
-              disabled={!canSaveCurrentStep || isCurrentStepUploading() || step1Images.length === 0}
+              disabled={!canSaveCurrentStep || currentHook.isUploading || step1Images.length === 0}
               className="bg-green-600 hover:bg-green-700 flex items-center gap-2 flex-1"
             >
-              {isCurrentStepUploading() ? (
+              {currentHook.isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Saving...
@@ -557,7 +521,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           side="bottom" 
           className="h-[calc(100vh-2rem)] h-[calc(100dvh-2rem)] w-full flex flex-col p-0"
           onInteractOutside={(e) => {
-            if (hasActiveUploads()) {
+            if (step1Hook.isUploading || step2Hook.isUploading) {
               e.preventDefault();
             }
           }}

@@ -107,13 +107,12 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [localImages, setLocalImages] = useState<string[]>([]); // CRITICAL: Local state for immediate UI updates
   const [uploadError, setUploadError] = useState<{
     error: string;
     attempts: UploadAttempt[];
   } | null>(null);
 
-  const { data: existingImages = [], isLoading, isError } = useQuery({
+  const { data: images = [], isLoading, isError } = useQuery({
     queryKey: ['confirm-images', orderId],
     queryFn: async () => {
       console.log('🔍 Fetching confirmation images for orderId:', orderId);
@@ -135,16 +134,10 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
     }
   });
 
-  // CRITICAL: Combine existing and local images for display
-  const allImages = [...new Set([...existingImages, ...localImages])];
-
   // Removed duplicate handleImageUpload - using MobileOptimizedImageUpload's built-in upload system
 
   const handleImageDelete = async (url: string) => {
     if (!canEdit) return;
-
-    // CRITICAL FIX: Update local state immediately
-    setLocalImages(prev => prev.filter(img => img !== url));
 
     try {
       const { error } = await supabase
@@ -153,11 +146,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
         .eq('order_id', orderId)
         .eq('url', url);
 
-      if (error) {
-        // ROLLBACK: Add back to local state if database delete fails
-        setLocalImages(prev => [...prev, url]);
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Фото удалено",
@@ -198,7 +187,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
     );
   }
 
-  if (!canEdit && allImages.length === 0) {
+  if (!canEdit && images.length === 0) {
     return (
       <div className="text-center p-8 text-muted-foreground min-h-[200px] flex items-center justify-center">
         Подтверждающие фотографии не загружены.
@@ -209,14 +198,13 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
   return (
     <div className="space-y-4">
       <MobileOptimizedImageUpload
-        existingImages={allImages}
+        existingImages={images}
         onUploadComplete={async (urls) => {
           console.log('🎯 OrderConfirmationImages - onUploadComplete called:', {
             newUrls: urls,
-            existingImages: existingImages,
-            localImages: localImages,
+            existingImages: images,
             orderId: orderId,
-            totalAfter: existingImages.length + urls.length
+            totalAfter: images.length + urls.length
           });
           
           // MobileOptimizedImageUpload provides URLs after successful upload

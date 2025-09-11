@@ -1,8 +1,7 @@
-// Multiple fallback mechanisms for robust image upload with real XMLHttpRequest progress
+// Multiple fallback mechanisms for robust image upload
 import { uploadImageOptimized, DirectUploadResult } from './directCloudinaryUpload';
 import { uploadToCloudinary } from './cloudinaryUpload';
 import { supabase } from '@/integrations/supabase/client';
-import { uploadWithProgress, createProgressUploader } from './directCloudinaryProgressUpload';
 
 export interface UploadOptions {
   orderId?: string;
@@ -23,49 +22,15 @@ export interface UploadAttempt {
   error: string;
 }
 
-// Get Cloudinary signature helper
-const getCloudinarySignature = async (orderId?: string, sessionId?: string) => {
-  try {
-    console.log('🔐 Requesting Cloudinary signature...');
-    const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
-      body: { orderId, sessionId }
-    });
-    
-    if (error) {
-      console.error('❌ Signature request failed:', error);
-      throw new Error(`Signature request failed: ${error.message}`);
-    }
-    
-    if (!data?.success || !data?.data) {
-      console.error('❌ Invalid signature response:', data);
-      throw new Error('Invalid signature response format');
-    }
-    
-    console.log('✅ Cloudinary signature obtained');
-    return data.data;
-  } catch (error) {
-    console.error('❌ Signature error:', error);
-    throw error;
-  }
-};
-
 // Upload to Supabase Storage as final fallback
-const uploadToSupabaseStorage = async (file: File, productId?: string, onProgress?: (progress: number) => void): Promise<UploadResult> => {
+const uploadToSupabaseStorage = async (file: File, productId?: string): Promise<UploadResult> => {
   try {
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}_${file.name}`;
     const filePath = `products/${productId || 'temp'}/${fileName}`;
     
-    // Simulate progress for Supabase Storage (no real progress available)
-    const progressInterval = setInterval(() => {
-      const currentProgress = 20 + Math.min(70, Math.random() * 50);
-      onProgress?.(currentProgress);
-    }, 400);
-    
     const { error } = await supabase.storage
       .from('product-images')
       .upload(filePath, file);
-    
-    clearInterval(progressInterval);
     
     if (error) throw error;
     
@@ -73,7 +38,6 @@ const uploadToSupabaseStorage = async (file: File, productId?: string, onProgres
       .from('product-images')
       .getPublicUrl(filePath);
     
-    onProgress?.(100);
     return {
       success: true,
       url: data.publicUrl,
@@ -88,7 +52,7 @@ const uploadToSupabaseStorage = async (file: File, productId?: string, onProgres
   }
 };
 
-// Main fallback upload function with real XMLHttpRequest progress
+// Main fallback upload function with multiple retry mechanisms
 export const uploadWithMultipleFallbacks = async (
   file: File,
   options: UploadOptions
@@ -102,33 +66,27 @@ export const uploadWithMultipleFallbacks = async (
     sessionId: options.sessionId
   });
   
-  // Helper to call progress with proper scaling and method info
+  // Helper to call progress with method info
   const callProgress = (progress: number, method: string) => {
-    // Normalize progress to 0-100% range
-    const normalizedProgress = Math.max(0, Math.min(100, progress));
-    console.log(`📊 Progress update: ${normalizedProgress.toFixed(1)}% (${method})`);
+    console.log(`📊 Upload progress: ${progress}% using ${method}`);
     if (options.onProgress) {
-      options.onProgress(normalizedProgress, method);
+      options.onProgress(progress, method);
     }
   };
   
-  // Attempt 1: Direct Cloudinary with XMLHttpRequest and real progress
+  // Attempt 1: Direct Cloudinary with signed upload
   try {
-    console.log('🎯 Attempt 1: Direct Cloudinary with XMLHttpRequest progress');
-    callProgress(5, 'direct-cloudinary');
+    console.log('🎯 Attempt 1: Direct Cloudinary signed upload');
+    callProgress(10, 'direct-cloudinary');
     
-    // Get signature for direct upload
-    const signature = await getCloudinarySignature(options.orderId, options.sessionId);
-    
-    // Use XMLHttpRequest with real progress tracking
-    const result = await uploadWithProgress(file, signature, (progress) => {
-      // Scale real progress from 10% to 95% for direct cloudinary
-      const scaledProgress = 10 + (progress * 0.85);
-      callProgress(scaledProgress, 'direct-cloudinary');
+    const result = await uploadImageOptimized(file, {
+      orderId: options.orderId,
+      sessionId: options.sessionId,
+      onProgress: (progress) => callProgress(10 + (progress * 0.8), 'direct-cloudinary')
     });
     
     if (result.success && result.url) {
-      console.log('✅ Success with direct Cloudinary XMLHttpRequest');
+      console.log('✅ Success with direct Cloudinary');
       callProgress(100, 'direct-cloudinary');
       return { 
         success: true, 
@@ -144,21 +102,12 @@ export const uploadWithMultipleFallbacks = async (
     console.warn('❌ Direct Cloudinary failed:', errorMsg);
   }
   
-  // Attempt 2: Edge Function cloudinary-upload with smooth linear progress
+  // Attempt 2: Edge Function cloudinary-upload
   try {
-    console.log('🎯 Attempt 2: Edge Function upload with linear progress');
-    callProgress(10, 'edge-function');
-    
-    // Linear progress simulation for edge function (10% to 90%)
-    let currentProgress = 10;
-    const progressInterval = setInterval(() => {
-      currentProgress = Math.min(90, currentProgress + 2 + Math.random() * 3);
-      callProgress(currentProgress, 'edge-function');
-    }, 600);
+    console.log('🎯 Attempt 2: Edge Function upload');
+    callProgress(20, 'edge-function');
     
     const result = await uploadToCloudinary(file, options.productId);
-    
-    clearInterval(progressInterval);
     
     if (result.success && result.mainImageUrl) {
       console.log('✅ Success with Edge Function');
@@ -177,17 +126,16 @@ export const uploadWithMultipleFallbacks = async (
     console.warn('❌ Edge Function failed:', errorMsg);
   }
   
-  // Attempt 3: Supabase Storage as final fallback with smooth progress
+  // Attempt 3: Supabase Storage as final fallback
   try {
     console.log('🎯 Attempt 3: Supabase Storage fallback');
-    callProgress(15, 'supabase-storage');
+    callProgress(30, 'supabase-storage');
     
-    const result = await uploadToSupabaseStorage(file, options.productId, (progress) => {
-      callProgress(progress, 'supabase-storage');
-    });
+    const result = await uploadToSupabaseStorage(file, options.productId);
     
     if (result.success && result.url) {
       console.log('✅ Success with Supabase Storage');
+      callProgress(100, 'supabase-storage');
       return result;
     }
     

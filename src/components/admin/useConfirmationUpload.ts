@@ -3,7 +3,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
 
 export const useConfirmationUpload = (
   open: boolean, 
@@ -13,7 +12,6 @@ export const useConfirmationUpload = (
   category?: 'chat_screenshot' | 'signed_product'
 ) => {
   const { isAdmin, user, profile } = useAuth();
-  const queryClient = useQueryClient();
   
   const [confirmImages, setConfirmImages] = useState<string[]>([]);
   const [confirmVideos, setConfirmVideos] = useState<string[]>([]);
@@ -21,7 +19,6 @@ export const useConfirmationUpload = (
   const [isComponentReady, setIsComponentReady] = useState(false);
   const [sessionLost, setSessionLost] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const isUploading = isSaving;
 
@@ -60,71 +57,18 @@ export const useConfirmationUpload = (
     }
   }, [open, user]);
 
-  // Load existing images when dialog opens
-  useEffect(() => {
-    if (open && orderId && category && user) {
-      const loadExistingImages = async () => {
-        try {
-          const existingImages = await getImagesByCategory(category);
-          setConfirmImages(existingImages);
-        } catch (error) {
-          console.error('Error loading existing images:', error);
-        }
-      };
-      loadExistingImages();
-    }
-  }, [open, orderId, category, user, getImagesByCategory]);
-
   const handleImagesUpload = useCallback((urls: string[]) => {
-    // SimplePhotoUploader sends array of URLs directly, replace existing
     setConfirmImages(urls);
     setUploadError(null);
   }, []);
 
-  const handleImageDelete = useCallback(async (urlToDelete: string) => {
-    if (!orderId || !urlToDelete) {
-      console.error('Missing orderId or urlToDelete');
-      return;
-    }
-
-    try {
-      setIsDeleting(true);
-      setUploadError(null);
-
-      // Delete from database
-      const { error } = await supabase
-        .from('confirm_images')
-        .delete()
-        .eq('order_id', orderId)
-        .eq('url', urlToDelete);
-
-      if (error) {
-        console.error('Database error:', error);
-        throw error;
-      }
-
-      // Update local state only after successful database deletion
-      setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
-      
-      // Invalidate cache to refresh OrderConfirmThumbnails
-      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
-      if (category) {
-        queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId, category] });
-      }
-      
-      toast.success('Photo deleted successfully');
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      setUploadError('Failed to delete image. Please try again.');
-      toast.error('Failed to delete image');
-    } finally {
-      setIsDeleting(false);
-    }
-  }, [orderId, queryClient, category]);
-
   const handleVideosUpload = useCallback((urls: string[]) => {
     setConfirmVideos(urls);
     setUploadError(null);
+  }, []);
+
+  const handleImageDelete = useCallback((url: string) => {
+    setConfirmImages(prev => prev.filter(imageUrl => imageUrl !== url));
   }, []);
 
   const handleVideoDelete = useCallback((url: string) => {
@@ -169,12 +113,6 @@ export const useConfirmationUpload = (
         ? 'Your confirmation screenshot has been saved successfully.'
         : 'Confirmation media uploaded successfully';
 
-      // Invalidate cache to refresh OrderConfirmThumbnails
-      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
-      if (category) {
-        queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId, category] });
-      }
-
       toast.success(successMessage);
       onComplete();
       handleReset();
@@ -185,7 +123,7 @@ export const useConfirmationUpload = (
     } finally {
       setIsSaving(false);
     }
-  }, [user, confirmImages, orderId, onComplete, mode, category, queryClient]);
+  }, [user, confirmImages, orderId, onComplete, mode, category]);
 
   const handleSessionRecovery = useCallback(async () => {
     try {
@@ -208,21 +146,27 @@ export const useConfirmationUpload = (
   }, []);
 
   return {
+    // Admin status (for compatibility)
+    isAdmin: isAdmin === true,
+    hasAdminAccess: isAdmin === true,
+    isCheckingAdmin: isAdmin === null && !!user,
+    
+    // Upload state
     confirmImages,
     confirmVideos,
+    isUploading,
     uploadError,
     isComponentReady,
     sessionLost,
-    isSaving,
-    isUploading,
-    isDeleting,
+    
+    // Upload handlers
     handleImagesUpload,
-    handleImageDelete,
     handleVideosUpload,
+    handleImageDelete,
     handleVideoDelete,
     handleSaveMedia,
     handleSessionRecovery,
     handleReset,
-    getImagesByCategory,
+    getImagesByCategory
   };
 };

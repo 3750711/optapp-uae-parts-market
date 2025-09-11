@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { useSellerOrderFormLogic } from "@/hooks/useSellerOrderFormLogic";
 import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
 import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
-import { useSimpleOrderUpload } from '@/hooks/useSimpleOrderUpload';
+import { useStagedCloudinaryUpload } from "@/hooks/useStagedCloudinaryUpload";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,7 +27,7 @@ const SellerCreateOrder = () => {
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = getSellerPagesTranslations(language);
-  const { uploadFiles } = useSimpleOrderUpload();
+  const { attachToOrder } = useStagedCloudinaryUpload();
 
   const {
     formData,
@@ -142,12 +142,23 @@ const SellerCreateOrder = () => {
     }
   };
 
-  // Handle simple upload completion
+  // Handle attachment of staged images after order creation
   useEffect(() => {
     if (createdOrder && images.length > 0) {
-      console.log('✅ Order created with images:', createdOrder.id);
+      attachToOrder(createdOrder.id)
+        .then(() => {
+          console.log('✅ Staged images attached to order:', createdOrder.id);
+        })
+        .catch((error) => {
+          console.error('❌ Failed to attach staged images:', error);
+          toast({
+            title: "Предупреждение",
+            description: "Заказ создан, но не удалось привязать изображения",
+            variant: "destructive",
+          });
+        });
     }
-  }, [createdOrder, images]);
+  }, [createdOrder, attachToOrder, images, toast]);
 
   const isFormDisabled = isLoading || !canSubmit || isInitializing;
 
