@@ -64,7 +64,7 @@ export const useMobileOptimizedUpload = () => {
       // Update progress
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: 'uploading', progress: 10, isPrimary }
+          ? { ...p, status: 'uploading', progress: 10, isPrimary, method: 'initializing' }
           : p
       ));
 
@@ -75,7 +75,7 @@ export const useMobileOptimizedUpload = () => {
       }
 
       setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId ? { ...p, progress: 30 } : p
+        p.fileId === fileId ? { ...p, progress: 30, method: 'validating' } : p
       ));
 
       // Check for cancellation
@@ -91,21 +91,21 @@ export const useMobileOptimizedUpload = () => {
           orderId: options.productId,
           onProgress: (progress) => {
             setUploadProgress(prev => prev.map(p => 
-              p.fileId === fileId ? { ...p, progress } : p
+              p.fileId === fileId ? { ...p, progress, method: 'offline-queue' } : p
             ));
           }
         }, (success, url, error) => {
           if (success && url) {
             setUploadProgress(prev => prev.map(p => 
               p.fileId === fileId 
-                ? { ...p, status: 'success', progress: 100, mainImageUrl: url, isPrimary }
+                ? { ...p, status: 'success', progress: 100, mainImageUrl: url, isPrimary, method: 'offline-queue' }
                 : p
             ));
             trackUploadPerformance.end(file.name, true, 'offline-queue', file.size);
           } else {
             setUploadProgress(prev => prev.map(p => 
               p.fileId === fileId 
-                ? { ...p, status: 'error', error: error || 'Offline upload failed' }
+                ? { ...p, status: 'error', error: error || 'Offline upload failed', method: 'offline-queue' }
                 : p
             ));
             trackUploadPerformance.end(file.name, false, 'offline-queue', file.size, error);
@@ -117,7 +117,7 @@ export const useMobileOptimizedUpload = () => {
       }
 
       setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId ? { ...p, progress: 50 } : p
+        p.fileId === fileId ? { ...p, progress: 50, method: 'preparing' } : p
       ));
 
       // Use enhanced upload with multiple fallbacks
@@ -150,7 +150,7 @@ export const useMobileOptimizedUpload = () => {
       });
 
       setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId ? { ...p, progress: 90, mainImageUrl: result.url } : p
+        p.fileId === fileId ? { ...p, progress: 90, mainImageUrl: result.url, method: result.method } : p
       ));
 
       // Final success update
@@ -162,7 +162,8 @@ export const useMobileOptimizedUpload = () => {
               progress: 100, 
               mainImageUrl: result.url,
               publicId: result.url, // Use URL as publicId for fallback compatibility
-              isPrimary
+              isPrimary,
+              method: result.method
             }
           : p
       ));
@@ -214,7 +215,7 @@ export const useMobileOptimizedUpload = () => {
         // Final failure
         setUploadProgress(prev => prev.map(p => 
           p.fileId === fileId 
-            ? { ...p, status: 'error', error: errorMessage }
+            ? { ...p, status: 'error', error: errorMessage, method: 'failed' }
             : p
         ));
         
@@ -258,7 +259,8 @@ export const useMobileOptimizedUpload = () => {
       fileName: file.name,
       progress: 0,
       status: 'pending',
-      isPrimary: index === 0 // First file is considered primary
+      isPrimary: index === 0, // First file is considered primary
+      method: 'pending'
     }));
     
     setUploadProgress(initialProgress);

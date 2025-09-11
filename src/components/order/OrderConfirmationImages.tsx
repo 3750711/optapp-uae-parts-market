@@ -123,6 +123,12 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
         .eq('order_id', orderId)
         .order('created_at', { ascending: true });
 
+      console.log('📸 Fetched images result:', {
+        count: data?.length || 0,
+        urls: data?.map(img => img.url) || [],
+        error: error?.message
+      });
+
       if (error) throw error;
       return data?.map(img => img.url) || [];
     }
@@ -194,6 +200,13 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
       <MobileOptimizedImageUpload
         existingImages={images}
         onUploadComplete={async (urls) => {
+          console.log('🎯 OrderConfirmationImages - onUploadComplete called:', {
+            newUrls: urls,
+            existingImages: images,
+            orderId: orderId,
+            totalAfter: images.length + urls.length
+          });
+          
           // MobileOptimizedImageUpload provides URLs after successful upload
           if (Array.isArray(urls) && urls.length > 0) {
             console.log('💾 Saving new URLs to database:', urls);
@@ -205,21 +218,24 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
                 url
               }));
 
+              console.log('📝 Database insert payload:', imageInserts);
+
               const { error } = await supabase
                 .from('confirm_images')
                 .insert(imageInserts);
 
               if (!error) {
+                console.log('✅ Database save successful, invalidating cache...');
                 toast({
                   title: "Загрузка завершена",
                   description: `Загружено ${urls.length} подтверждающих фото`,
                 });
                 queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
               } else {
-                console.error('Database save error:', error);
+                console.error('❌ Database save error:', error);
                 toast({
-                  title: "Ошибка сохранения", 
-                  description: "Не удалось сохранить URLs фотографий",
+                  title: "Ошибка сохранения",
+                  description: "Не удалось сохранить URLs фотографий", 
                   variant: "destructive",
                 });
               }
@@ -231,6 +247,8 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
                 variant: "destructive",
               });
             }
+          } else {
+            console.warn('⚠️ No URLs provided or invalid format:', urls);
           }
         }}
         onImageDelete={canEdit ? handleImageDelete : undefined}

@@ -68,6 +68,7 @@ export const uploadWithMultipleFallbacks = async (
   
   // Helper to call progress with method info
   const callProgress = (progress: number, method: string) => {
+    console.log(`📊 Upload progress: ${progress}% using ${method}`);
     if (options.onProgress) {
       options.onProgress(progress, method);
     }
