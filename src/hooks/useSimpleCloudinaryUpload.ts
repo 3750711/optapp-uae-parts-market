@@ -6,7 +6,7 @@ interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
   error?: string;
   url?: string;
 }
@@ -25,74 +25,151 @@ export const useSimpleCloudinaryUpload = () => {
     fileId: string,
     options: UploadOptions = {}
   ): Promise<string> => {
-    try {
-      console.log('📤 Starting simple Cloudinary upload:', file.name);
+    return new Promise(async (resolve, reject) => {
+      try {
+        console.log('📤 Starting real-time Cloudinary upload:', file.name);
 
-      // Update progress - starting upload
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, status: 'uploading', progress: 10 }
-          : p
-      ));
+        // Update progress - starting upload
+        setUploadProgress(prev => prev.map(p => 
+          p.fileId === fileId 
+            ? { ...p, status: 'uploading', progress: 0 }
+            : p
+        ));
 
-      // Convert file to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+        const folder = options.productId ? `products/${options.productId}` : 'uploads';
 
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, progress: 30 }
-          : p
-      ));
+        // Get signed upload parameters
+        const { data: signData, error: signError } = await supabase.functions.invoke('cloudinary-sign', {
+          body: { folder }
+        });
 
-      // Call Cloudinary upload function
-      const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
-        body: {
-          base64,
-          name: file.name,
-          type: file.type,
-          folder: options.productId ? `products/${options.productId}` : 'uploads'
+        if (signError || !signData?.success) {
+          throw new Error(signData?.error || 'Failed to generate upload signature');
         }
-      });
 
-      if (error) {
-        throw new Error(error.message || 'Upload failed');
-      }
+        // Create FormData for direct Cloudinary upload
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Add signed parameters
+        Object.entries(signData.formData as Record<string, string>).forEach(([key, value]) => {
+          formData.append(key, value);
+        });
 
-      if (!data?.success || !data?.mainImageUrl) {
-        throw new Error(data?.error || 'Upload failed');
-      }
+        // Create XMLHttpRequest for real progress tracking
+        const xhr = new XMLHttpRequest();
 
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { 
-              ...p, 
-              status: 'success', 
-              progress: 100,
-              url: data.mainImageUrl
+        // Handle upload progress
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 90); // Reserve 10% for processing
+            setUploadProgress(prev => prev.map(p => 
+              p.fileId === fileId 
+                ? { ...p, progress, status: 'uploading' }
+                : p
+            ));
+          }
+        };
+
+        // Handle upload completion
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              
+              // Set processing state
+              setUploadProgress(prev => prev.map(p => 
+                p.fileId === fileId 
+                  ? { ...p, progress: 95, status: 'processing' }
+                  : p
+              ));
+
+              // Clean the public_id by removing version prefix and file extension
+              const cleanPublicId = response.public_id
+                .replace(/^v\d+\//, '') // Remove version prefix like v1234567890/
+                .replace(/\.[^/.]+$/, ''); // Remove file extension
+
+              // Generate the final WebP URL
+              const mainImageUrl = `https://res.cloudinary.com/dcuziurrb/image/upload/f_webp,q_auto:good,c_limit,w_1200/${cleanPublicId}`;
+
+              setUploadProgress(prev => prev.map(p => 
+                p.fileId === fileId 
+                  ? { 
+                      ...p, 
+                      status: 'success', 
+                      progress: 100,
+                      url: mainImageUrl
+                    }
+                  : p
+              ));
+
+              console.log('✅ Real-time Cloudinary upload successful:', mainImageUrl);
+              resolve(mainImageUrl);
+            } catch (parseError) {
+              console.error('💥 Failed to parse Cloudinary response:', parseError);
+              setUploadProgress(prev => prev.map(p => 
+                p.fileId === fileId 
+                  ? { ...p, status: 'error', error: 'Failed to process response' }
+                  : p
+              ));
+              reject(new Error('Failed to process response'));
             }
-          : p
-      ));
+          } else {
+            const errorMessage = `Upload failed with status ${xhr.status}`;
+            console.error('💥 Cloudinary upload error:', errorMessage);
+            setUploadProgress(prev => prev.map(p => 
+              p.fileId === fileId 
+                ? { ...p, status: 'error', error: errorMessage }
+                : p
+            ));
+            reject(new Error(errorMessage));
+          }
+        };
 
-      console.log('✅ Simple Cloudinary upload successful:', data.mainImageUrl);
-      return data.mainImageUrl;
+        // Handle upload errors
+        xhr.onerror = () => {
+          const errorMessage = 'Network error during upload';
+          console.error('💥 Upload network error');
+          setUploadProgress(prev => prev.map(p => 
+            p.fileId === fileId 
+              ? { ...p, status: 'error', error: errorMessage }
+              : p
+          ));
+          reject(new Error(errorMessage));
+        };
 
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-      console.error('💥 Simple upload error:', errorMessage);
+        // Handle upload timeout
+        xhr.ontimeout = () => {
+          const errorMessage = 'Upload timeout';
+          console.error('💥 Upload timeout');
+          setUploadProgress(prev => prev.map(p => 
+            p.fileId === fileId 
+              ? { ...p, status: 'error', error: errorMessage }
+              : p
+          ));
+          reject(new Error(errorMessage));
+        };
 
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, status: 'error', error: errorMessage }
-          : p
-      ));
+        // Set timeout to 2 minutes
+        xhr.timeout = 120000;
 
-      throw error;
-    }
+        // Start the upload
+        xhr.open('POST', signData.uploadUrl);
+        xhr.send(formData);
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+        console.error('💥 Upload setup error:', errorMessage);
+
+        setUploadProgress(prev => prev.map(p => 
+          p.fileId === fileId 
+            ? { ...p, status: 'error', error: errorMessage }
+            : p
+        ));
+
+        reject(error);
+      }
+    });
   }, []);
 
   const uploadFiles = useCallback(async (
