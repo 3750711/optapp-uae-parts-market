@@ -339,7 +339,8 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 </div>
 
                 <MobileOptimizedImageUpload
-                  onUploadComplete={step1Hook.handleImagesUpload}
+                  onFilesUpload={step1Hook.handleFilesUpload}
+                  uploadProgress={step1Hook.uploadProgress}
                   existingImages={step1Hook.confirmImages}
                   onImageDelete={step1Hook.handleImageDelete}
                   maxImages={8}
@@ -379,7 +380,8 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 </div>
 
                 <MobileOptimizedImageUpload
-                  onUploadComplete={step2Hook.handleImagesUpload}
+                  onFilesUpload={step2Hook.handleFilesUpload}
+                  uploadProgress={step2Hook.uploadProgress}
                   existingImages={step2Hook.confirmImages}
                   onImageDelete={step2Hook.handleImageDelete}
                   maxImages={8}

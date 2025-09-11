@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-interface UploadProgress {
+export interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;

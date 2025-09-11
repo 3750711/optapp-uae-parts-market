@@ -8,8 +8,12 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import UploadProgressIndicator from './optimized-image-upload/UploadProgressIndicator';
 
+import { UploadProgress } from '@/hooks/useSimpleCloudinaryUpload';
+
 interface MobileOptimizedImageUploadProps {
-  onUploadComplete: (urls: string[]) => void;
+  onUploadComplete?: (urls: string[]) => void;
+  onFilesUpload?: (files: File[]) => Promise<void>;
+  uploadProgress?: UploadProgress[];
   maxImages?: number;
   existingImages?: string[];
   onImageDelete?: (url:string) => void;
@@ -27,6 +31,8 @@ interface MobileOptimizedImageUploadProps {
 
 export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProps> = ({
   onUploadComplete,
+  onFilesUpload,
+  uploadProgress: externalUploadProgress,
   maxImages = 30,
   existingImages = [],
   onImageDelete,
@@ -51,11 +57,15 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   
   const { toast } = useToast();
   const { 
-    isUploading, 
-    uploadProgress, 
+    isUploading: internalIsUploading, 
+    uploadProgress: internalUploadProgress, 
     uploadFiles, 
     clearProgress
   } = useSimpleCloudinaryUpload();
+
+  // Use external or internal upload progress and state
+  const isUploading = externalUploadProgress ? externalUploadProgress.some(p => p.status === 'uploading' || p.status === 'processing') : internalIsUploading;
+  const uploadProgress = externalUploadProgress || internalUploadProgress;
 
   const handleFileSelect = useCallback(async (files: FileList) => {
     const MAX_PHOTO_SIZE_MB = 50;
@@ -103,15 +113,20 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       return;
     }
 
-    const uploadedUrls = await uploadFiles(validFiles, {
-      productId,
-      disableToast,
-    });
-    
-    if (uploadedUrls.length > 0) {
-      onUploadComplete(uploadedUrls);
+    // Use external upload handler if provided, otherwise use internal
+    if (onFilesUpload) {
+      await onFilesUpload(validFiles);
+    } else if (onUploadComplete) {
+      const uploadedUrls = await uploadFiles(validFiles, {
+        productId,
+        disableToast,
+      });
+      
+      if (uploadedUrls.length > 0) {
+        onUploadComplete(uploadedUrls);
+      }
     }
-  }, [existingImages.length, maxImages, onUploadComplete, uploadFiles, productId, toast, disableToast]);
+  }, [existingImages.length, maxImages, onUploadComplete, onFilesUpload, uploadFiles, productId, toast, disableToast]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

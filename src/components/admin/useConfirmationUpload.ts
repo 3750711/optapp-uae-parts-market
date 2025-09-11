@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSimpleCloudinaryUpload } from '@/hooks/useSimpleCloudinaryUpload';
 
 export const useConfirmationUpload = (
   open: boolean, 
@@ -20,7 +21,15 @@ export const useConfirmationUpload = (
   const [sessionLost, setSessionLost] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const isUploading = isSaving;
+  // Initialize upload hook for progress tracking
+  const { 
+    isUploading: isCloudinaryUploading, 
+    uploadProgress, 
+    uploadFiles, 
+    clearProgress 
+  } = useSimpleCloudinaryUpload();
+
+  const isUploading = isSaving || isCloudinaryUploading;
 
   // Function to get existing images by category
   const getImagesByCategory = useCallback(async (targetCategory: 'chat_screenshot' | 'signed_product') => {
@@ -143,7 +152,21 @@ export const useConfirmationUpload = (
     setConfirmVideos([]);
     setUploadError(null);
     setIsSaving(false);
-  }, []);
+    clearProgress();
+  }, [clearProgress]);
+
+  // New handler for direct file upload with progress
+  const handleFilesUpload = useCallback(async (files: File[]) => {
+    try {
+      setUploadError(null);
+      const urls = await uploadFiles(files, { productId: orderId });
+      setConfirmImages(prev => [...prev, ...urls]);
+    } catch (error) {
+      console.error('File upload error:', error);
+      setUploadError('Failed to upload files. Please try again.');
+      toast.error('Failed to upload files');
+    }
+  }, [uploadFiles, orderId]);
 
   return {
     // Admin status (for compatibility)
@@ -158,6 +181,7 @@ export const useConfirmationUpload = (
     uploadError,
     isComponentReady,
     sessionLost,
+    uploadProgress,
     
     // Upload handlers
     handleImagesUpload,
@@ -167,6 +191,7 @@ export const useConfirmationUpload = (
     handleSaveMedia,
     handleSessionRecovery,
     handleReset,
+    handleFilesUpload,
     getImagesByCategory
   };
 };
