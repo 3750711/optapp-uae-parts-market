@@ -25,9 +25,9 @@ import {
 } from '@/components/ui/sheet';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
-import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
+import { SimplePhotoUploader } from "@/features/uploads/SimplePhotoUploader";
 import ExistingPhotosDisplay from "./ExistingPhotosDisplay";
-import { useConfirmationUpload } from "./useConfirmationUpload";
+import { useConfirmationUpload } from "@/features/orders/confirm/useConfirmationUpload";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
 
@@ -75,22 +75,9 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     enabled: open && !!orderId,
   });
 
-  // Get hooks for each step
-  const step1Hook = useConfirmationUpload(
-    open && currentStep === 'chat_confirmation', 
-    orderId, 
-    () => {}, // We handle completion manually
-    'images-only',
-    'chat_screenshot'
-  );
-
-  const step2Hook = useConfirmationUpload(
-    open && currentStep === 'signed_product', 
-    orderId, 
-    () => {}, // We handle completion manually
-    'images-only',
-    'signed_product'
-  );
+  // Get hooks for each step with new architecture
+  const step1Hook = useConfirmationUpload();
+  const step2Hook = useConfirmationUpload();
 
   // Load existing data when dialog opens
   useEffect(() => {
@@ -99,10 +86,22 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     const loadExistingData = async () => {
       setIsLoadingStepData(true);
       try {
-        const [chatImages, signedImages] = await Promise.all([
-          step1Hook.getImagesByCategory('chat_screenshot'),
-          step2Hook.getImagesByCategory('signed_product')
+        // Fetch existing images for both categories
+        const [chatResult, signedResult] = await Promise.all([
+          supabase
+            .from('confirm_images')
+            .select('image_url')
+            .eq('order_id', orderId)
+            .eq('category', 'chat_screenshot'),
+          supabase
+            .from('confirm_images')
+            .select('image_url')
+            .eq('order_id', orderId)
+            .eq('category', 'signed_product')
         ]);
+        
+        const chatImages = chatResult.data?.map(row => row.image_url) || [];
+        const signedImages = signedResult.data?.map(row => row.image_url) || [];
         
         setStep1Images(chatImages);
         setStep2Images(signedImages);
@@ -124,29 +123,16 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     };
 
     loadExistingData();
-  }, [open, step1Hook.getImagesByCategory, step2Hook.getImagesByCategory]);
+  }, [open, orderId, profile?.user_type, selectedStepOverride]);
 
   // Update step images when uploads change
   useEffect(() => {
     if (currentStep === 'chat_confirmation') {
-      setStep1Images(step1Hook.confirmImages);
+      setStep1Images(step1Hook.confirmedUrls);
     } else if (currentStep === 'signed_product') {
-      setStep2Images(step2Hook.confirmImages);
+      setStep2Images(step2Hook.confirmedUrls);
     }
-
-    // Debug logging for photo count discrepancy
-    console.log(`🔧 [OrderConfirmEvidenceWizard] Order ${orderId} - Step ${currentStep}:`, {
-      step1HookImages: step1Hook.confirmImages,
-      step1HookLength: step1Hook.confirmImages.length,
-      step2HookImages: step2Hook.confirmImages,
-      step2HookLength: step2Hook.confirmImages.length,
-      step1Images: step1Images,
-      step1ImagesLength: step1Images.length,
-      step2Images: step2Images,
-      step2ImagesLength: step2Images.length,
-      currentStep
-    });
-  }, [currentStep, step1Hook.confirmImages, step2Hook.confirmImages, step1Images, step2Images, orderId]);
+  }, [currentStep, step1Hook.confirmedUrls, step2Hook.confirmedUrls]);
 
   // Define steps
   const steps: Array<{
@@ -169,36 +155,51 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     }
   ];
 
-  const currentHook = currentStep === 'chat_confirmation' ? step1Hook : step2Hook;
   const canProceedStep1 = step1Images.length > 0 && step1Confirmed;
   const canProceedStep2 = step2Images.length > 0;
   const canSaveCurrentStep = currentStep === 'chat_confirmation' ? canProceedStep1 : canProceedStep2;
+
+  // Helper to check if there are active uploads
+  const hasActiveUploads = useCallback(() => {
+    return step1Hook.items.some(item => 
+      item.status === 'uploading' || item.status === 'compressing'
+    ) || step2Hook.items.some(item => 
+      item.status === 'uploading' || item.status === 'compressing'
+    );
+  }, [step1Hook.items, step2Hook.items]);
+
+  const isCurrentStepUploading = useCallback(() => {
+    const currentItems = currentStep === 'chat_confirmation' ? step1Hook.items : step2Hook.items;
+    return currentItems.some(item => 
+      item.status === 'uploading' || item.status === 'compressing'
+    );
+  }, [currentStep, step1Hook.items, step2Hook.items]);
 
   // Step navigation
   const handleNext = useCallback(async () => {
     if (currentStep === 'chat_confirmation' && canProceedStep1) {
       // Save step 1 and move to step 2
       try {
-        await step1Hook.handleSaveMedia();
+        await saveImages(step1Hook.confirmedUrls, 'chat_screenshot');
         toast.success('Chat screenshot saved successfully');
         setCurrentStep('signed_product');
       } catch (error) {
         toast.error('Failed to save chat screenshot');
       }
     }
-  }, [currentStep, canProceedStep1, step1Hook]);
+  }, [currentStep, canProceedStep1, step1Hook.confirmedUrls]);
 
   const handleFinish = useCallback(async () => {
     if (currentStep === 'signed_product' && canProceedStep2) {
       try {
-        await step2Hook.handleSaveMedia();
+        await saveImages(step2Hook.confirmedUrls, 'signed_product');
         toast.success('Evidence uploaded successfully');
         onComplete();
       } catch (error) {
         toast.error('Failed to save signed product photo');
       }
     }
-  }, [currentStep, canProceedStep2, step2Hook, onComplete]);
+  }, [currentStep, canProceedStep2, step2Hook.confirmedUrls, onComplete]);
 
   const handleSkip = useCallback(() => {
     if (currentStep === 'signed_product') {
@@ -213,9 +214,26 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     }
   }, [currentStep]);
 
+  // Helper function to save images to database
+  const saveImages = async (urls: string[], category: 'chat_screenshot' | 'signed_product') => {
+    if (urls.length === 0) return;
+
+    const { error } = await supabase
+      .from('confirm_images')
+      .insert(
+        urls.map(url => ({
+          order_id: orderId,
+          image_url: url,
+          category
+        }))
+      );
+
+    if (error) throw error;
+  };
+
   // Prevent accidental closing during upload
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen && (step1Hook.isUploading || step2Hook.isUploading)) {
+  const handleOpenChange = (newOpen: boolean) => {    
+    if (!newOpen && hasActiveUploads()) {
       return;
     }
     if (!newOpen) {
@@ -329,16 +347,9 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           </div>
         )}
 
-        <SessionStatusComponent
-          isComponentReady={currentHook.isComponentReady}
-          sessionLost={currentHook.sessionLost}
-          uploadError={currentHook.uploadError}
-          onSessionRecovery={currentHook.handleSessionRecovery}
-          onReset={currentHook.handleReset}
-          isSeller={profile?.user_type === 'seller'}
-        />
-
-        {currentHook.isComponentReady && !currentHook.sessionLost && (
+        {/* Session status component removed as new architecture handles this internally */}
+        
+        {(
           <>
             {/* Step 1: Chat Confirmation */}
             {currentStep === 'chat_confirmation' && (
@@ -353,23 +364,14 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <ExistingPhotosDisplay
-                  images={step1Hook.confirmImages}
-                  onImageDelete={step1Hook.handleImageDelete}
-                  disabled={!currentHook.isComponentReady || currentHook.sessionLost}
-                  isDeleting={step1Hook.isDeleting}
-                  className="mb-4"
-                />
-
                 <SimplePhotoUploader
+                  existingUrls={step1Images}
+                  onChange={step1Hook.handleChange}
+                  onComplete={step1Hook.handleComplete}
                   max={8}
-                  onChange={step1Hook.handleImagesUpload}
-                  onComplete={() => console.log('Step 1 photos uploaded')}
-                  buttonText="Upload Chat Screenshot"
-                  language="en"
                 />
 
-                {step1Hook.confirmImages.length > 0 && (
+                {step1Hook.confirmedUrls.length > 0 && (
                   <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
                     <div className="flex items-start space-x-3">
                       <Checkbox
@@ -402,20 +404,11 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <ExistingPhotosDisplay
-                  images={step2Hook.confirmImages}
-                  onImageDelete={step2Hook.handleImageDelete}
-                  disabled={!currentHook.isComponentReady || currentHook.sessionLost}
-                  isDeleting={step2Hook.isDeleting}
-                  className="mb-4"
-                />
-
                 <SimplePhotoUploader
+                  existingUrls={step2Images}
+                  onChange={step2Hook.handleChange}
+                  onComplete={step2Hook.handleComplete}
                   max={8}
-                  onChange={step2Hook.handleImagesUpload}
-                  onComplete={() => console.log('Step 2 photos uploaded')}
-                  buttonText="Upload Signed Product"
-                  language="en"
                 />
 
                 {/* Show step 1 is locked if not completed */}
@@ -445,24 +438,26 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               setSelectedStepOverride(null);
               setCurrentStep('chat_confirmation');
             }}
-            disabled={currentHook.isUploading}
+            disabled={false}
           >
             Cancel
           </Button>
           <Button
             onClick={async () => {
               try {
-                await currentHook.handleSaveMedia();
+                const currentUrls = selectedStepOverride === 'chat_confirmation' ? step1Hook.confirmedUrls : step2Hook.confirmedUrls;
+                const category = selectedStepOverride === 'chat_confirmation' ? 'chat_screenshot' : 'signed_product';
+                await saveImages(currentUrls, category);
                 toast.success(`${selectedStepOverride === 'chat_confirmation' ? 'Chat screenshots' : 'Signed product photos'} saved successfully`);
                 onComplete();
               } catch (error) {
                 toast.error('Failed to save');
               }
             }}
-            disabled={!canSaveCurrentStep || currentHook.isUploading}
+            disabled={false}
             className="bg-primary hover:bg-primary/90 flex items-center gap-2 flex-1"
           >
-            {currentHook.isUploading ? (
+            {isCurrentStepUploading() ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Saving...
@@ -486,7 +481,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           <Button 
             variant="outline"
             onClick={handleBack}
-            disabled={currentHook.isUploading}
+            disabled={false}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -498,10 +493,10 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
         {currentStep === 'chat_confirmation' ? (
           <Button
             onClick={handleNext}
-            disabled={!canSaveCurrentStep || currentHook.isUploading}
+            disabled={!canSaveCurrentStep || isCurrentStepUploading()}
             className="bg-primary hover:bg-primary/90 flex items-center gap-2 flex-1"
           >
-            {currentHook.isUploading ? (
+            {isCurrentStepUploading() ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Saving...
@@ -518,17 +513,17 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
             <Button
               onClick={handleSkip}
               variant="outline"
-              disabled={currentHook.isUploading || step1Images.length === 0}
+              disabled={isCurrentStepUploading() || step1Images.length === 0}
               className="flex items-center gap-2"
             >
               Skip Later
             </Button>
             <Button
               onClick={handleFinish}
-              disabled={!canSaveCurrentStep || currentHook.isUploading || step1Images.length === 0}
+              disabled={!canSaveCurrentStep || isCurrentStepUploading() || step1Images.length === 0}
               className="bg-green-600 hover:bg-green-700 flex items-center gap-2 flex-1"
             >
-              {currentHook.isUploading ? (
+              {isCurrentStepUploading() ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Saving...
@@ -553,7 +548,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           side="bottom" 
           className="h-[calc(100vh-2rem)] h-[calc(100dvh-2rem)] w-full flex flex-col p-0"
           onInteractOutside={(e) => {
-            if (step1Hook.isUploading || step2Hook.isUploading) {
+            if (hasActiveUploads()) {
               e.preventDefault();
             }
           }}
