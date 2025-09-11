@@ -7,6 +7,7 @@ interface ExistingPhotosDisplayProps {
   images: string[];
   onImageDelete?: (url: string) => void;
   disabled?: boolean;
+  isDeleting?: boolean;
   className?: string;
 }
 
@@ -14,6 +15,7 @@ const ExistingPhotosDisplay: React.FC<ExistingPhotosDisplayProps> = ({
   images,
   onImageDelete,
   disabled = false,
+  isDeleting = false,
   className
 }) => {
   if (images.length === 0) {
@@ -39,11 +41,15 @@ const ExistingPhotosDisplay: React.FC<ExistingPhotosDisplayProps> = ({
             {onImageDelete && !disabled && (
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors">
                 <Button
+                  type="button"
                   size="sm"
                   variant="destructive"
                   className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => onImageDelete(imageUrl)}
-                  disabled={disabled}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onImageDelete?.(imageUrl);
+                  }}
+                  disabled={disabled || isDeleting}
                 >
                   <X className="h-3 w-3" />
                 </Button>

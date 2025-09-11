@@ -19,6 +19,7 @@ export const useConfirmationUpload = (
   const [isComponentReady, setIsComponentReady] = useState(false);
   const [sessionLost, setSessionLost] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isUploading = isSaving;
 
@@ -57,16 +58,60 @@ export const useConfirmationUpload = (
     }
   }, [open, user]);
 
+  // Load existing images when dialog opens
+  useEffect(() => {
+    if (open && orderId && category && user) {
+      const loadExistingImages = async () => {
+        try {
+          const existingImages = await getImagesByCategory(category);
+          setConfirmImages(existingImages);
+        } catch (error) {
+          console.error('Error loading existing images:', error);
+        }
+      };
+      loadExistingImages();
+    }
+  }, [open, orderId, category, user, getImagesByCategory]);
+
   const handleImagesUpload = useCallback((urls: string[]) => {
     // SimplePhotoUploader sends array of URLs directly, append to existing
     setConfirmImages(prev => [...prev, ...urls]);
     setUploadError(null);
   }, []);
 
-  const handleImageDelete = useCallback((urlToDelete: string) => {
-    setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
-    setUploadError(null);
-  }, []);
+  const handleImageDelete = useCallback(async (urlToDelete: string) => {
+    if (!orderId || !urlToDelete) {
+      console.error('Missing orderId or urlToDelete');
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      setUploadError(null);
+
+      // Delete from database
+      const { error } = await supabase
+        .from('confirm_images')
+        .delete()
+        .eq('order_id', orderId)
+        .eq('url', urlToDelete);
+
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      // Update local state only after successful database deletion
+      setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
+      toast.success('Photo deleted successfully');
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      setUploadError('Failed to delete image. Please try again.');
+      toast.error('Failed to delete image');
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [orderId]);
 
   const handleVideosUpload = useCallback((urls: string[]) => {
     setConfirmVideos(urls);
@@ -155,6 +200,7 @@ export const useConfirmationUpload = (
     sessionLost,
     isSaving,
     isUploading,
+    isDeleting,
     handleImagesUpload,
     handleImageDelete,
     handleVideosUpload,

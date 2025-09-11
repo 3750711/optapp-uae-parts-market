@@ -344,6 +344,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   images={step1Hook.confirmImages}
                   onImageDelete={step1Hook.handleImageDelete}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost}
+                  isDeleting={step1Hook.isDeleting}
                   className="mb-4"
                 />
 
@@ -391,6 +392,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   images={step2Hook.confirmImages}
                   onImageDelete={step2Hook.handleImageDelete}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost}
+                  isDeleting={step2Hook.isDeleting}
                   className="mb-4"
                 />
 
