@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useState } from "react";
+import { useMemo, useCallback, useState, useEffect } from "react";
 import { useStagedCloudinaryUpload } from "@/hooks/useStagedCloudinaryUpload";
 import { extractPublicIdFromUrl, getProductImageUrl } from "@/utils/cloudinaryUtils";
 
@@ -120,7 +120,7 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
   const attachToOrder = hook.attachToOrder;
 
   // Call onChange when items change
-  useMemo(() => {
+  useEffect(() => {
     const okItems = items.filter(item => 
       item.status === 'completed' && item.cloudinaryUrl
     );
@@ -130,7 +130,7 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
   }, [items, onChange]);
 
   // Call onComplete when all done
-  useMemo(() => {
+  useEffect(() => {
     if (items.length > 0 && 
         items.every(item => item.status === 'completed' || item.status === 'error')) {
       const okItems = items.filter(item => 

@@ -75,34 +75,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     enabled: open && !!orderId,
   });
 
-  // Get upload adapters for each step - single source of truth
-  const step1Adapter = useUploadUIAdapter({
-    existingUrls: step1Images,
-    onChange: (items: any[]) => {
-      const completedUrls = items
-        .filter(item => item.status === 'completed' && item.cloudinaryUrl)
-        .map(item => item.cloudinaryUrl);
-      setStep1Images(completedUrls);
-    },
-    onComplete: (urls) => {
-      setStep1Images(urls);
-    },
-    max: 8
-  });
-
-  const step2Adapter = useUploadUIAdapter({
-    existingUrls: step2Images,
-    onChange: (items: any[]) => {
-      const completedUrls = items
-        .filter(item => item.status === 'completed' && item.cloudinaryUrl)
-        .map(item => item.cloudinaryUrl);
-      setStep2Images(completedUrls);
-    },
-    onComplete: (urls) => {
-      setStep2Images(urls);
-    },
-    max: 8
-  });
+  // Simplified state management - no adapter layer needed
 
   // Load existing data when dialog opens
   useEffect(() => {
@@ -150,18 +123,14 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     loadExistingData();
   }, [open, orderId, profile?.user_type, selectedStepOverride]);
 
-  // Helper functions to get completed URLs from adapters
+  // Helper functions to get completed URLs
   const getStep1CompletedUrls = useCallback(() => {
-    return step1Adapter.items
-      .filter(item => item.status === 'completed' && item.cloudinaryUrl)
-      .map(item => item.cloudinaryUrl);
-  }, [step1Adapter.items]);
+    return step1Images;
+  }, [step1Images]);
 
   const getStep2CompletedUrls = useCallback(() => {
-    return step2Adapter.items
-      .filter(item => item.status === 'completed' && item.cloudinaryUrl)
-      .map(item => item.cloudinaryUrl);
-  }, [step2Adapter.items]);
+    return step2Images;
+  }, [step2Images]);
 
   // Define steps
   const steps: Array<{
@@ -188,22 +157,16 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   const canProceedStep2 = step2Images.length > 0;
   const canSaveCurrentStep = currentStep === 'chat_confirmation' ? canProceedStep1 : canProceedStep2;
 
+  // Track active uploads via state
+  const [isUploading, setIsUploading] = useState(false);
+
   const hasActiveUploads = useCallback(() => {
-    const step1HasActive = step1Adapter.items.some((item: any) => 
-      item.status === 'compressing' || item.status === 'uploading' || item.status === 'idle'
-    );
-    const step2HasActive = step2Adapter.items.some((item: any) => 
-      item.status === 'compressing' || item.status === 'uploading' || item.status === 'idle'
-    );
-    return step1HasActive || step2HasActive;
-  }, [step1Adapter.items, step2Adapter.items]);
+    return isUploading;
+  }, [isUploading]);
 
   const isCurrentStepUploading = useCallback(() => {
-    const currentAdapter = currentStep === 'chat_confirmation' ? step1Adapter : step2Adapter;
-    return currentAdapter.items.some((item: any) => 
-      item.status === 'compressing' || item.status === 'uploading' || item.status === 'idle'
-    );
-  }, [currentStep, step1Adapter.items, step2Adapter.items]);
+    return isUploading;
+  }, [isUploading]);
 
   // Step navigation
   const handleNext = useCallback(async () => {
@@ -399,14 +362,13 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 <SimplePhotoUploader
                   buttonText="Upload Chat Screenshots"
                   language="en"
-                  onChange={(items) => {
-                    // SimplePhotoUploader calls onChange with UploadItem[], but we need to handle it properly
-                    const completedUrls = items
-                      .filter(item => item.status === 'completed' && item.cloudinaryUrl)
-                      .map(item => item.cloudinaryUrl);
-                    setStep1Images(completedUrls);
+                  onChange={(urls) => {
+                    setStep1Images(urls);
                   }}
-                  onComplete={(urls) => setStep1Images(urls)}
+                  onComplete={(urls) => {
+                    setStep1Images(urls);
+                    setIsUploading(false);
+                  }}
                   existingUrls={step1Images}
                   max={8}
                 />
@@ -447,14 +409,13 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 <SimplePhotoUploader
                   buttonText="Upload Signed Product Photos"
                   language="en"
-                  onChange={(items) => {
-                    // SimplePhotoUploader calls onChange with UploadItem[], but we need to handle it properly
-                    const completedUrls = items
-                      .filter(item => item.status === 'completed' && item.cloudinaryUrl)
-                      .map(item => item.cloudinaryUrl);
-                    setStep2Images(completedUrls);
+                  onChange={(urls) => {
+                    setStep2Images(urls);
                   }}
-                  onComplete={(urls) => setStep2Images(urls)}
+                  onComplete={(urls) => {
+                    setStep2Images(urls);
+                    setIsUploading(false);
+                  }}
                   existingUrls={step2Images}
                   max={8}
                 />
