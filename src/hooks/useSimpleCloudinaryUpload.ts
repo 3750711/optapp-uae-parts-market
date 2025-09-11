@@ -43,8 +43,22 @@ export const useSimpleCloudinaryUpload = () => {
           body: { folder }
         });
 
-        if (signError || !signData?.success) {
-          throw new Error(signData?.error || 'Failed to generate upload signature');
+        console.log('🔐 Sign response:', { signData, signError });
+
+        if (signError) {
+          throw new Error(`Sign request failed: ${signError.message}`);
+        }
+        
+        if (!signData) {
+          throw new Error('No response from sign function');
+        }
+        
+        if (!signData.success) {
+          throw new Error(signData.error || 'Failed to generate upload signature');
+        }
+        
+        if (!signData.formData || !signData.uploadUrl) {
+          throw new Error('Invalid response from sign function - missing formData or uploadUrl');
         }
 
         // Create FormData for direct Cloudinary upload
