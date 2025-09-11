@@ -27,6 +27,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
 import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
 import { useConfirmationUpload } from "@/features/orders/confirm/useConfirmationUpload";
+import { useUploadUIAdapter } from "@/components/uploader/useUploadUIAdapter";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
 
@@ -74,9 +75,24 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     enabled: open && !!orderId,
   });
 
-  // Get hooks for each step with unified architecture
+  // Get hooks for each step
   const step1Hook = useConfirmationUpload(step1Images);
   const step2Hook = useConfirmationUpload(step2Images);
+
+  // Get upload adapters to track upload status
+  const step1Adapter = useUploadUIAdapter({
+    existingUrls: step1Images,
+    onChange: step1Hook.handleChange,
+    onComplete: step1Hook.handleComplete,
+    max: 8
+  });
+
+  const step2Adapter = useUploadUIAdapter({
+    existingUrls: step2Images,
+    onChange: step2Hook.handleChange,
+    onComplete: step2Hook.handleComplete,
+    max: 8
+  });
 
   // Load existing data when dialog opens
   useEffect(() => {
@@ -89,18 +105,18 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
         const [chatResult, signedResult] = await Promise.all([
           supabase
             .from('confirm_images')
-            .select('image_url')
+            .select('url')
             .eq('order_id', orderId)
             .eq('category', 'chat_screenshot'),
           supabase
             .from('confirm_images')
-            .select('image_url')
+            .select('url')
             .eq('order_id', orderId)
             .eq('category', 'signed_product')
         ]);
         
-        const chatImages = chatResult.data?.map(row => row.image_url) || [];
-        const signedImages = signedResult.data?.map(row => row.image_url) || [];
+        const chatImages = chatResult.data?.map(row => row.url) || [];
+        const signedImages = signedResult.data?.map(row => row.url) || [];
         
         setStep1Images(chatImages);
         setStep2Images(signedImages);
@@ -159,12 +175,21 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   const canSaveCurrentStep = currentStep === 'chat_confirmation' ? canProceedStep1 : canProceedStep2;
 
   const hasActiveUploads = useCallback(() => {
-    return step1Hook.isUploading || step2Hook.isUploading;
-  }, [step1Hook.isUploading, step2Hook.isUploading]);
+    const step1HasActive = step1Adapter.items.some((item: any) => 
+      item.status === 'compressing' || item.status === 'uploading' || item.status === 'idle'
+    );
+    const step2HasActive = step2Adapter.items.some((item: any) => 
+      item.status === 'compressing' || item.status === 'uploading' || item.status === 'idle'
+    );
+    return step1HasActive || step2HasActive;
+  }, [step1Adapter.items, step2Adapter.items]);
 
   const isCurrentStepUploading = useCallback(() => {
-    return currentStep === 'chat_confirmation' ? step1Hook.isUploading : step2Hook.isUploading;
-  }, [currentStep, step1Hook.isUploading, step2Hook.isUploading]);
+    const currentAdapter = currentStep === 'chat_confirmation' ? step1Adapter : step2Adapter;
+    return currentAdapter.items.some((item: any) => 
+      item.status === 'compressing' || item.status === 'uploading' || item.status === 'idle'
+    );
+  }, [currentStep, step1Adapter.items, step2Adapter.items]);
 
   // Step navigation
   const handleNext = useCallback(async () => {
