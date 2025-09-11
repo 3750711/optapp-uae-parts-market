@@ -133,7 +133,20 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     } else if (currentStep === 'signed_product') {
       setStep2Images(step2Hook.confirmImages);
     }
-  }, [currentStep, step1Hook.confirmImages, step2Hook.confirmImages]);
+
+    // Debug logging for photo count discrepancy
+    console.log(`🔧 [OrderConfirmEvidenceWizard] Order ${orderId} - Step ${currentStep}:`, {
+      step1HookImages: step1Hook.confirmImages,
+      step1HookLength: step1Hook.confirmImages.length,
+      step2HookImages: step2Hook.confirmImages,
+      step2HookLength: step2Hook.confirmImages.length,
+      step1Images: step1Images,
+      step1ImagesLength: step1Images.length,
+      step2Images: step2Images,
+      step2ImagesLength: step2Images.length,
+      currentStep
+    });
+  }, [currentStep, step1Hook.confirmImages, step2Hook.confirmImages, step1Images, step2Images, orderId]);
 
   // Define steps
   const steps: Array<{
