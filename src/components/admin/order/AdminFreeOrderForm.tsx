@@ -176,7 +176,7 @@ export const AdminFreeOrderForm = () => {
     e.preventDefault();
 
     // Validate required fields
-    if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId || !formData.brandId) {
+    if (!formData.title || formData.price === undefined || formData.price === null || formData.price === '' || !formData.sellerId || !formData.buyerOptId || !formData.brandId) {
       toast({
         title: "Заполните обязательные поля",
         description: "Необходимо заполнить название, цену, бренд, продавца и OPT_ID покупателя",
