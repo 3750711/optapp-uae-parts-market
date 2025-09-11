@@ -14,6 +14,7 @@ interface UploadProgress {
   mainImageUrl?: string;
   publicId?: string;
   isPrimary?: boolean;
+  method?: string; // Track current method being used
 }
 
 interface BatchUploadOptions {
@@ -123,9 +124,15 @@ export const useMobileOptimizedUpload = () => {
       
       const result = await uploadWithMultipleFallbacks(file, {
         orderId: options.productId, // Use productId as orderId for confirmation photos
-        onProgress: (progress) => {
+        sessionId: `upload-${Date.now()}`, // Generate session ID for consistency
+        productId: options.productId,
+        onProgress: (progress, method) => {
           setUploadProgress(prev => prev.map(p => 
-            p.fileId === fileId ? { ...p, progress: 50 + (progress * 0.4) } : p // 50-90%
+            p.fileId === fileId ? { 
+              ...p, 
+              progress: Math.min(95, 50 + (progress * 0.45)), // 50-95%
+              method: method || p.method
+            } : p
           ));
         }
       });

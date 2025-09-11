@@ -7,7 +7,7 @@ export interface UploadOptions {
   orderId?: string;
   sessionId?: string;
   productId?: string;
-  onProgress?: (progress: number) => void;
+  onProgress?: (progress: number, method?: string) => void;
 }
 
 export interface UploadResult {
@@ -66,17 +66,27 @@ export const uploadWithMultipleFallbacks = async (
     sessionId: options.sessionId
   });
   
+  // Helper to call progress with method info
+  const callProgress = (progress: number, method: string) => {
+    if (options.onProgress) {
+      options.onProgress(progress, method);
+    }
+  };
+  
   // Attempt 1: Direct Cloudinary with signed upload
   try {
     console.log('🎯 Attempt 1: Direct Cloudinary signed upload');
+    callProgress(10, 'direct-cloudinary');
+    
     const result = await uploadImageOptimized(file, {
       orderId: options.orderId,
       sessionId: options.sessionId,
-      onProgress: options.onProgress
+      onProgress: (progress) => callProgress(10 + (progress * 0.8), 'direct-cloudinary')
     });
     
     if (result.success && result.url) {
       console.log('✅ Success with direct Cloudinary');
+      callProgress(100, 'direct-cloudinary');
       return { 
         success: true, 
         url: result.url, 
@@ -94,10 +104,13 @@ export const uploadWithMultipleFallbacks = async (
   // Attempt 2: Edge Function cloudinary-upload
   try {
     console.log('🎯 Attempt 2: Edge Function upload');
+    callProgress(20, 'edge-function');
+    
     const result = await uploadToCloudinary(file, options.productId);
     
     if (result.success && result.mainImageUrl) {
       console.log('✅ Success with Edge Function');
+      callProgress(100, 'edge-function');
       return { 
         success: true, 
         url: result.mainImageUrl, 
@@ -115,10 +128,13 @@ export const uploadWithMultipleFallbacks = async (
   // Attempt 3: Supabase Storage as final fallback
   try {
     console.log('🎯 Attempt 3: Supabase Storage fallback');
+    callProgress(30, 'supabase-storage');
+    
     const result = await uploadToSupabaseStorage(file, options.productId);
     
     if (result.success && result.url) {
       console.log('✅ Success with Supabase Storage');
+      callProgress(100, 'supabase-storage');
       return result;
     }
     

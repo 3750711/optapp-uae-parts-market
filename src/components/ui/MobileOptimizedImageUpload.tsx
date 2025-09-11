@@ -5,6 +5,7 @@ import { Upload, X, Camera, Star, StarOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { cn } from "@/lib/utils";
+import DetailedProgressIndicator from '@/components/ui/DetailedProgressIndicator';
 import { UploadProgressCard } from "@/components/ui/image-upload/UploadProgressCard";
 import { shouldCompressFile, formatFileSize } from "@/utils/smartImageCompression";
 import { useAuth } from "@/contexts/AuthContext";
@@ -255,12 +256,25 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         />
         </Button>
 
-        {/* Show upload progress */}
-        <UploadProgressCard
-          uploadProgress={uploadProgress}
-          isUploading={isUploading}
-          onClearProgress={clearProgress}
-          formatFileSize={formatFileSize}
+        {/* Show detailed upload progress */}
+        <DetailedProgressIndicator
+          uploads={uploadProgress.map(p => ({
+            id: p.fileId,
+            fileName: p.fileName,
+            progress: p.progress,
+            status: p.status,
+            method: p.publicId && p.progress > 50 ? 'direct-cloudinary' : undefined,
+            error: p.error
+          }))}
+          onClear={clearProgress}
+          onRetry={(id) => {
+            // Find the file and retry upload
+            const progressItem = uploadProgress.find(p => p.fileId === id);
+            if (progressItem) {
+              const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+              fileInput?.click();
+            }
+          }}
         />
 
         {/* Cancel button */}
@@ -379,12 +393,25 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         />
       </Button>
 
-      {/* Show upload progress */}
-      <UploadProgressCard
-        uploadProgress={uploadProgress}
-        isUploading={isUploading}
-        onClearProgress={clearProgress}
-        formatFileSize={formatFileSize}
+      {/* Show detailed upload progress */}
+      <DetailedProgressIndicator
+        uploads={uploadProgress.map(p => ({
+          id: p.fileId,
+          fileName: p.fileName,
+          progress: p.progress,
+          status: p.status,
+          method: p.publicId && p.progress > 50 ? 'direct-cloudinary' : undefined,
+          error: p.error
+        }))}
+        onClear={clearProgress}
+        onRetry={(id) => {
+          // Find the file and retry upload
+          const progressItem = uploadProgress.find(p => p.fileId === id);
+          if (progressItem) {
+            const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+            fileInput?.click();
+          }
+        }}
       />
 
       {/* Cancel button */}

@@ -151,8 +151,10 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
           if (navigator.onLine) {
             const result = await uploadWithMultipleFallbacks(file, { 
               orderId,
-              onProgress: (progress) => {
-                console.log(`📊 Upload progress for ${file.name}: ${progress}%`);
+              sessionId: `confirm-${Date.now()}`,
+              productId: orderId,
+              onProgress: (progress, method) => {
+                console.log(`📊 Upload progress for ${file.name}: ${progress}% via ${method || 'unknown'}`);
               }
             });
             
