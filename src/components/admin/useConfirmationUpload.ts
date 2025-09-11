@@ -58,18 +58,19 @@ export const useConfirmationUpload = (
   }, [open, user]);
 
   const handleImagesUpload = useCallback((urls: string[]) => {
-    // SimplePhotoUploader sends array of URLs directly
+    // UnifiedImageUpload sends complete array of URLs
     setConfirmImages(urls);
+    setUploadError(null);
+  }, []);
+
+  const handleImageDelete = useCallback((urlToDelete: string) => {
+    setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
     setUploadError(null);
   }, []);
 
   const handleVideosUpload = useCallback((urls: string[]) => {
     setConfirmVideos(urls);
     setUploadError(null);
-  }, []);
-
-  const handleImageDelete = useCallback((url: string) => {
-    setConfirmImages(prev => prev.filter(imageUrl => imageUrl !== url));
   }, []);
 
   const handleVideoDelete = useCallback((url: string) => {
@@ -147,27 +148,20 @@ export const useConfirmationUpload = (
   }, []);
 
   return {
-    // Admin status (for compatibility)
-    isAdmin: isAdmin === true,
-    hasAdminAccess: isAdmin === true,
-    isCheckingAdmin: isAdmin === null && !!user,
-    
-    // Upload state
     confirmImages,
     confirmVideos,
-    isUploading,
     uploadError,
     isComponentReady,
     sessionLost,
-    
-    // Upload handlers
+    isSaving,
+    isUploading,
     handleImagesUpload,
-    handleVideosUpload,
     handleImageDelete,
+    handleVideosUpload,
     handleVideoDelete,
     handleSaveMedia,
     handleSessionRecovery,
     handleReset,
-    getImagesByCategory
+    getImagesByCategory,
   };
 };

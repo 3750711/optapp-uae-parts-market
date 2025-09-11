@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/sheet';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
-import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
+import UnifiedImageUpload from "@/components/admin/order/UnifiedImageUpload";
 import { useConfirmationUpload } from "./useConfirmationUpload";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
@@ -339,14 +339,13 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <SimplePhotoUploader
-                  max={8}
-                  onChange={step1Hook.handleImagesUpload}
-                  buttonText="Upload Chat Screenshot"
-                  language="en"
+                <UnifiedImageUpload
+                  images={step1Hook.confirmImages}
+                  onImagesUpload={step1Hook.handleImagesUpload}
+                  onImageDelete={step1Hook.handleImageDelete}
+                  maxImages={8}
+                  disabled={!currentHook.isComponentReady || currentHook.sessionLost}
                 />
-
-                {/* Confirmation checkbox for uploaded images */}
 
                 {step1Hook.confirmImages.length > 0 && (
                   <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -381,14 +380,13 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <SimplePhotoUploader
-                  max={8}
-                  onChange={step2Hook.handleImagesUpload}
-                  buttonText="Upload Signed Product"
-                  language="en"
+                <UnifiedImageUpload
+                  images={step2Hook.confirmImages}
+                  onImagesUpload={step2Hook.handleImagesUpload}
+                  onImageDelete={step2Hook.handleImageDelete}
+                  maxImages={8}
+                  disabled={!currentHook.isComponentReady || currentHook.sessionLost}
                 />
-
-                {/* Warning for incomplete step 1 */}
 
                 {/* Show step 1 is locked if not completed */}
                 {step1Images.length === 0 && (
