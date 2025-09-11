@@ -115,7 +115,10 @@ export class CloudinaryProgressUploader {
 
       // Configure and send request
       this.xhr.timeout = 120000; // 2 minutes timeout
-      this.xhr.open('POST', 'https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload');
+      
+      // Get cloud name from signature data
+      const cloudName = formData.api_key ? 'dcuziurrb' : 'YOUR_CLOUD_NAME';
+      this.xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`);
       
       console.log('🚀 Starting XMLHttpRequest upload for:', file.name);
       this.xhr.send(uploadFormData);

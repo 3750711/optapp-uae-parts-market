@@ -49,8 +49,22 @@ Deno.serve(async (req) => {
 
     // Public endpoint - no authentication required for staging uploads
 
-    // Parse request body
-    const { orderId, sessionId }: SignRequest = await req.json();
+    // Parse request body with error handling
+    let requestBody: SignRequest;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      console.error('❌ JSON parsing failed:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid JSON in request body' 
+        }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    
+    const { orderId, sessionId } = requestBody;
 
     // FIXED: More flexible identifier validation
     const isValidIdentifier = (str: string) => {
@@ -153,10 +167,26 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Edge function error:', error);
+    console.error('❌ Edge function critical error:', error);
+    console.error('📋 Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: corsHeaders }
+      JSON.stringify({ 
+        success: false,
+        error: 'Signature generation failed', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      { 
+        status: 500, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
     );
   }
 });
