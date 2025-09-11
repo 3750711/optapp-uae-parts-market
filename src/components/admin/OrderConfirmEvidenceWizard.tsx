@@ -26,7 +26,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
 import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
-import { useConfirmationUpload } from "@/features/orders/confirm/useConfirmationUpload";
+
 import { useUploadUIAdapter } from "@/components/uploader/useUploadUIAdapter";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
@@ -75,22 +75,32 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     enabled: open && !!orderId,
   });
 
-  // Get hooks for each step
-  const step1Hook = useConfirmationUpload(step1Images);
-  const step2Hook = useConfirmationUpload(step2Images);
-
-  // Get upload adapters to track upload status
+  // Get upload adapters for each step - single source of truth
   const step1Adapter = useUploadUIAdapter({
     existingUrls: step1Images,
-    onChange: step1Hook.handleChange,
-    onComplete: step1Hook.handleComplete,
+    onChange: (items: any[]) => {
+      const completedUrls = items
+        .filter(item => item.status === 'completed' && item.cloudinaryUrl)
+        .map(item => item.cloudinaryUrl);
+      setStep1Images(completedUrls);
+    },
+    onComplete: (urls) => {
+      setStep1Images(urls);
+    },
     max: 8
   });
 
   const step2Adapter = useUploadUIAdapter({
     existingUrls: step2Images,
-    onChange: step2Hook.handleChange,
-    onComplete: step2Hook.handleComplete,
+    onChange: (items: any[]) => {
+      const completedUrls = items
+        .filter(item => item.status === 'completed' && item.cloudinaryUrl)
+        .map(item => item.cloudinaryUrl);
+      setStep2Images(completedUrls);
+    },
+    onComplete: (urls) => {
+      setStep2Images(urls);
+    },
     max: 8
   });
 
@@ -140,14 +150,18 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     loadExistingData();
   }, [open, orderId, profile?.user_type, selectedStepOverride]);
 
-  // Update step images when uploads change
-  useEffect(() => {
-    if (currentStep === 'chat_confirmation') {
-      setStep1Images(step1Hook.confirmedUrls);
-    } else if (currentStep === 'signed_product') {
-      setStep2Images(step2Hook.confirmedUrls);
-    }
-  }, [currentStep, step1Hook.confirmedUrls, step2Hook.confirmedUrls]);
+  // Helper functions to get completed URLs from adapters
+  const getStep1CompletedUrls = useCallback(() => {
+    return step1Adapter.items
+      .filter(item => item.status === 'completed' && item.cloudinaryUrl)
+      .map(item => item.cloudinaryUrl);
+  }, [step1Adapter.items]);
+
+  const getStep2CompletedUrls = useCallback(() => {
+    return step2Adapter.items
+      .filter(item => item.status === 'completed' && item.cloudinaryUrl)
+      .map(item => item.cloudinaryUrl);
+  }, [step2Adapter.items]);
 
   // Define steps
   const steps: Array<{
@@ -196,26 +210,28 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     if (currentStep === 'chat_confirmation' && canProceedStep1) {
       // Save step 1 and move to step 2
       try {
-        await saveImages(step1Hook.confirmedUrls, 'chat_screenshot');
+        const completedUrls = getStep1CompletedUrls();
+        await saveImages(completedUrls, 'chat_screenshot');
         toast.success('Chat screenshot saved successfully');
         setCurrentStep('signed_product');
       } catch (error) {
         toast.error('Failed to save chat screenshot');
       }
     }
-  }, [currentStep, canProceedStep1, step1Hook.confirmedUrls]);
+  }, [currentStep, canProceedStep1, getStep1CompletedUrls]);
 
   const handleFinish = useCallback(async () => {
     if (currentStep === 'signed_product' && canProceedStep2) {
       try {
-        await saveImages(step2Hook.confirmedUrls, 'signed_product');
+        const completedUrls = getStep2CompletedUrls();
+        await saveImages(completedUrls, 'signed_product');
         toast.success('Evidence uploaded successfully');
         onComplete();
       } catch (error) {
         toast.error('Failed to save signed product photo');
       }
     }
-  }, [currentStep, canProceedStep2, step2Hook.confirmedUrls, onComplete]);
+  }, [currentStep, canProceedStep2, getStep2CompletedUrls, onComplete]);
 
   const handleSkip = useCallback(() => {
     if (currentStep === 'signed_product') {
@@ -383,13 +399,19 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 <SimplePhotoUploader
                   buttonText="Upload Chat Screenshots"
                   language="en"
-                  onChange={step1Hook.handleChange}
-                  onComplete={step1Hook.handleComplete}
+                  onChange={(items) => {
+                    // SimplePhotoUploader calls onChange with UploadItem[], but we need to handle it properly
+                    const completedUrls = items
+                      .filter(item => item.status === 'completed' && item.cloudinaryUrl)
+                      .map(item => item.cloudinaryUrl);
+                    setStep1Images(completedUrls);
+                  }}
+                  onComplete={(urls) => setStep1Images(urls)}
                   existingUrls={step1Images}
                   max={8}
                 />
 
-                {step1Hook.confirmedUrls.length > 0 && (
+                {step1Images.length > 0 && (
                   <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
                     <div className="flex items-start space-x-3">
                       <Checkbox
@@ -425,8 +447,14 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 <SimplePhotoUploader
                   buttonText="Upload Signed Product Photos"
                   language="en"
-                  onChange={step2Hook.handleChange}
-                  onComplete={step2Hook.handleComplete}
+                  onChange={(items) => {
+                    // SimplePhotoUploader calls onChange with UploadItem[], but we need to handle it properly
+                    const completedUrls = items
+                      .filter(item => item.status === 'completed' && item.cloudinaryUrl)
+                      .map(item => item.cloudinaryUrl);
+                    setStep2Images(completedUrls);
+                  }}
+                  onComplete={(urls) => setStep2Images(urls)}
                   existingUrls={step2Images}
                   max={8}
                 />
@@ -465,7 +493,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
           <Button
             onClick={async () => {
               try {
-                const currentUrls = selectedStepOverride === 'chat_confirmation' ? step1Hook.confirmedUrls : step2Hook.confirmedUrls;
+                const currentUrls = selectedStepOverride === 'chat_confirmation' ? getStep1CompletedUrls() : getStep2CompletedUrls();
                 const category = selectedStepOverride === 'chat_confirmation' ? 'chat_screenshot' : 'signed_product';
                 await saveImages(currentUrls, category);
                 toast.success(`${selectedStepOverride === 'chat_confirmation' ? 'Chat screenshots' : 'Signed product photos'} saved successfully`);
