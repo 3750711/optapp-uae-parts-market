@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useConfirmationUpload = (
   open: boolean, 
@@ -12,6 +13,7 @@ export const useConfirmationUpload = (
   category?: 'chat_screenshot' | 'signed_product'
 ) => {
   const { isAdmin, user, profile } = useAuth();
+  const queryClient = useQueryClient();
   
   const [confirmImages, setConfirmImages] = useState<string[]>([]);
   const [confirmVideos, setConfirmVideos] = useState<string[]>([]);
@@ -103,6 +105,13 @@ export const useConfirmationUpload = (
 
       // Update local state only after successful database deletion
       setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
+      
+      // Invalidate cache to refresh OrderConfirmThumbnails
+      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
+      if (category) {
+        queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId, category] });
+      }
+      
       toast.success('Photo deleted successfully');
     } catch (error) {
       console.error('Error deleting image:', error);
@@ -111,7 +120,7 @@ export const useConfirmationUpload = (
     } finally {
       setIsDeleting(false);
     }
-  }, [orderId]);
+  }, [orderId, queryClient, category]);
 
   const handleVideosUpload = useCallback((urls: string[]) => {
     setConfirmVideos(urls);
@@ -160,6 +169,12 @@ export const useConfirmationUpload = (
         ? 'Your confirmation screenshot has been saved successfully.'
         : 'Confirmation media uploaded successfully';
 
+      // Invalidate cache to refresh OrderConfirmThumbnails
+      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
+      if (category) {
+        queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId, category] });
+      }
+
       toast.success(successMessage);
       onComplete();
       handleReset();
@@ -170,7 +185,7 @@ export const useConfirmationUpload = (
     } finally {
       setIsSaving(false);
     }
-  }, [user, confirmImages, orderId, onComplete, mode, category]);
+  }, [user, confirmImages, orderId, onComplete, mode, category, queryClient]);
 
   const handleSessionRecovery = useCallback(async () => {
     try {
