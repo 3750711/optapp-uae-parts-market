@@ -9,12 +9,13 @@ interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
   error?: string;
   mainImageUrl?: string;
   publicId?: string;
   isPrimary?: boolean;
   method?: string; // Track current method being used
+  speed?: number; // Track upload speed
 }
 
 interface BatchUploadOptions {
@@ -131,6 +132,7 @@ export const useMobileOptimizedUpload = () => {
             p.fileId === fileId ? { 
               ...p, 
               progress: Math.min(95, 50 + (progress * 0.45)), // 50-95%
+              status: progress < 100 ? 'uploading' : 'processing',
               method: method || p.method
             } : p
           ));

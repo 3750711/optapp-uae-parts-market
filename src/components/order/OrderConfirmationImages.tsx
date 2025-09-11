@@ -128,122 +128,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
     }
   });
 
-  const handleImageUpload = async (files: File[]) => {
-    if (!canEdit || files.length === 0) return;
-    
-    console.log('📸 Starting confirmation image upload:', {
-      orderId,
-      filesCount: files.length,
-      fileNames: files.map(f => f.name)
-    });
-
-    setUploadError(null);
-    const uploadedUrls: string[] = [];
-    const allAttempts: UploadAttempt[] = [];
-
-    try {
-      // Process files one by one for better error tracking
-      for (const file of files) {
-        uploadMetrics.start(file.name);
-        
-        try {
-          // Try online upload first
-          if (navigator.onLine) {
-            const result = await uploadWithMultipleFallbacks(file, { 
-              orderId,
-              sessionId: `confirm-${Date.now()}`,
-              productId: orderId,
-              onProgress: (progress, method) => {
-                console.log(`📊 Upload progress for ${file.name}: ${progress}% via ${method || 'unknown'}`);
-              }
-            });
-            
-            if (result.success && result.url) {
-              uploadedUrls.push(result.url);
-              uploadMetrics.end(file.name, true, result.method || 'unknown', file.size);
-              console.log('✅ File uploaded successfully:', file.name, result.method);
-            } else {
-              // Parse attempts from error message
-              const errorAttempts = result.error?.includes('Tried') ? 
-                [{ method: 'all-methods', error: result.error }] : 
-                [{ method: 'upload-failed', error: result.error || 'Unknown error' }];
-              
-              allAttempts.push(...errorAttempts);
-              uploadMetrics.end(file.name, false, 'failed', file.size, result.error);
-              
-              throw new Error(result.error || 'Upload failed');
-            }
-          } else {
-            // Add to offline queue
-            console.log('📴 Offline - adding to queue:', file.name);
-            offlineQueue.add(file, { orderId }, (success, url, error) => {
-              if (success && url) {
-                console.log('✅ Offline upload completed:', file.name);
-                // Refresh the images query
-                queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
-              } else {
-                console.error('❌ Offline upload failed:', file.name, error);
-              }
-            });
-            
-            uploadMetrics.end(file.name, false, 'offline-queued', file.size, 'Added to offline queue');
-          }
-        } catch (error) {
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-          console.error('❌ File upload error:', file.name, errorMsg);
-          allAttempts.push({ method: 'file-processing', error: errorMsg });
-          uploadMetrics.end(file.name, false, 'error', file.size, errorMsg);
-        }
-      }
-
-      // Save uploaded URLs to database
-      if (uploadedUrls.length > 0) {
-        console.log('💾 Saving URLs to database:', uploadedUrls);
-        
-        const imageInserts = uploadedUrls.map(url => ({
-          order_id: orderId,
-          url
-        }));
-
-        const { error } = await supabase
-          .from('confirm_images')
-          .insert(imageInserts);
-
-        if (error) throw error;
-
-        toast({
-          title: "Загрузка завершена",
-          description: `Загружено ${uploadedUrls.length} подтверждающих фото`,
-        });
-
-        queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
-      }
-
-      // Show error diagnostics if some uploads failed
-      if (allAttempts.length > 0) {
-        setUploadError({
-          error: `Не удалось загрузить ${files.length - uploadedUrls.length} из ${files.length} файлов`,
-          attempts: allAttempts
-        });
-      }
-
-    } catch (error) {
-      console.error('❌ Database save error:', error);
-      
-      setUploadError({
-        error: error instanceof Error ? error.message : 'Unknown error',
-        attempts: allAttempts.length > 0 ? allAttempts : [
-          { method: 'database-save', error: 'Не удалось сохранить URLs в базу данных' }
-        ]
-      });
-      
-      toast({
-        title: "Ошибка сохранения",
-        description: "Не удалось сохранить URLs фотографий",
-        variant: "destructive",
-      });
-    }
-  };
+  // Removed duplicate handleImageUpload - using MobileOptimizedImageUpload's built-in upload system
 
   const handleImageDelete = async (url: string) => {
     if (!canEdit) return;
@@ -308,34 +193,44 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
     <div className="space-y-4">
       <MobileOptimizedImageUpload
         existingImages={images}
-        onUploadComplete={(urls) => {
+        onUploadComplete={async (urls) => {
           // MobileOptimizedImageUpload provides URLs after successful upload
           if (Array.isArray(urls) && urls.length > 0) {
-            // URLs are already uploaded, just save them to database
-            const imageInserts = urls.map(url => ({
-              order_id: orderId,
-              url
-            }));
+            console.log('💾 Saving new URLs to database:', urls);
+            
+            try {
+              // URLs are already uploaded, just save them to database
+              const imageInserts = urls.map(url => ({
+                order_id: orderId,
+                url
+              }));
 
-            supabase
-              .from('confirm_images')
-              .insert(imageInserts)
-              .then(({ error }) => {
-                if (!error) {
-                  toast({
-                    title: "Загрузка завершена",
-                    description: `Загружено ${urls.length} подтверждающих фото`,
-                  });
-                  queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
-                } else {
-                  console.error('Database save error:', error);
-                  toast({
-                    title: "Ошибка сохранения",
-                    description: "Не удалось сохранить URLs фотографий",
-                    variant: "destructive",
-                  });
-                }
+              const { error } = await supabase
+                .from('confirm_images')
+                .insert(imageInserts);
+
+              if (!error) {
+                toast({
+                  title: "Загрузка завершена",
+                  description: `Загружено ${urls.length} подтверждающих фото`,
+                });
+                queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
+              } else {
+                console.error('Database save error:', error);
+                toast({
+                  title: "Ошибка сохранения", 
+                  description: "Не удалось сохранить URLs фотографий",
+                  variant: "destructive",
+                });
+              }
+            } catch (error) {
+              console.error('❌ Database save error:', error);
+              toast({
+                title: "Ошибка сохранения",
+                description: "Не удалось сохранить URLs фотографий", 
+                variant: "destructive",
               });
+            }
           }
         }}
         onImageDelete={canEdit ? handleImageDelete : undefined}

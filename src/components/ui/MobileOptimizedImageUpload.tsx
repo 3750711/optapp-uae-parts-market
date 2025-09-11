@@ -263,8 +263,9 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             fileName: p.fileName,
             progress: p.progress,
             status: p.status,
-            method: p.publicId && p.progress > 50 ? 'direct-cloudinary' : undefined,
-            error: p.error
+            method: p.method,
+            error: p.error,
+            speed: p.speed
           }))}
           onClear={clearProgress}
           onRetry={(id) => {
@@ -400,8 +401,9 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           fileName: p.fileName,
           progress: p.progress,
           status: p.status,
-          method: p.publicId && p.progress > 50 ? 'direct-cloudinary' : undefined,
-          error: p.error
+          method: p.method,
+          error: p.error,
+          speed: p.speed
         }))}
         onClear={clearProgress}
         onRetry={(id) => {
