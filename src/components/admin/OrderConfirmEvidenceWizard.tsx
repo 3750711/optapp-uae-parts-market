@@ -25,8 +25,8 @@ import {
 } from '@/components/ui/sheet';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
-import { SimplePhotoUploader } from "@/features/uploads/SimplePhotoUploader";
-import ExistingPhotosDisplay from "./ExistingPhotosDisplay";
+import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
+import { ExistingPhotosGrid } from "./ExistingPhotosGrid";
 import { useConfirmationUpload } from "@/features/orders/confirm/useConfirmationUpload";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
@@ -159,21 +159,16 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   const canProceedStep2 = step2Images.length > 0;
   const canSaveCurrentStep = currentStep === 'chat_confirmation' ? canProceedStep1 : canProceedStep2;
 
-  // Helper to check if there are active uploads
+  // Track loading state for uploads
+  const [isUploading, setIsUploading] = useState(false);
+
   const hasActiveUploads = useCallback(() => {
-    return step1Hook.items.some(item => 
-      item.status === 'uploading' || item.status === 'compressing'
-    ) || step2Hook.items.some(item => 
-      item.status === 'uploading' || item.status === 'compressing'
-    );
-  }, [step1Hook.items, step2Hook.items]);
+    return isUploading;
+  }, [isUploading]);
 
   const isCurrentStepUploading = useCallback(() => {
-    const currentItems = currentStep === 'chat_confirmation' ? step1Hook.items : step2Hook.items;
-    return currentItems.some(item => 
-      item.status === 'uploading' || item.status === 'compressing'
-    );
-  }, [currentStep, step1Hook.items, step2Hook.items]);
+    return isUploading;
+  }, [isUploading]);
 
   // Step navigation
   const handleNext = useCallback(async () => {
@@ -356,6 +351,12 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               <div className="space-y-4">
                 <ProofExampleCard />
                 
+                {/* Existing Photos */}
+                <ExistingPhotosGrid 
+                  urls={step1Images} 
+                  title="Previously Uploaded Chat Screenshots" 
+                />
+
                 {/* Chat Screenshots Upload */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Purchase Confirmation Screenshot</h3>
@@ -365,7 +366,8 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 </div>
 
                 <SimplePhotoUploader
-                  existingUrls={step1Images}
+                  buttonText="Upload Chat Screenshots"
+                  language="en"
                   onChange={step1Hook.handleChange}
                   onComplete={step1Hook.handleComplete}
                   max={8}
@@ -396,6 +398,12 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
               <div className="space-y-4">
                 <SignedProductExampleCard />
                 
+                {/* Existing Photos */}
+                <ExistingPhotosGrid 
+                  urls={step2Images} 
+                  title="Previously Uploaded Signed Product Photos" 
+                />
+
                 {/* Signed Product Upload */}
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium">Upload Signed Product Photo</h3>
@@ -405,7 +413,8 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 </div>
 
                 <SimplePhotoUploader
-                  existingUrls={step2Images}
+                  buttonText="Upload Signed Product Photos"
+                  language="en"
                   onChange={step2Hook.handleChange}
                   onComplete={step2Hook.handleComplete}
                   max={8}

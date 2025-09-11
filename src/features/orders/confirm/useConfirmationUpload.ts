@@ -1,28 +1,19 @@
-import { useMemo, useState, useCallback } from 'react';
-import { UploadItem } from '@/features/uploads/types';
+import { useState, useCallback } from 'react';
 
 export function useConfirmationUpload() {
-  const [items, setItems] = useState<UploadItem[]>([]);
-
-  const confirmedUrls = useMemo(
-    () => items.filter((x) => x.status === 'completed' && x.url).map((x) => x.url!),
-    [items]
-  );
+  const [confirmedUrls, setConfirmedUrls] = useState<string[]>([]);
 
   // вызывается на любой апдейт uploader-а
-  const handleChange = useCallback((next: UploadItem[]) => {
-    setItems(next);
+  const handleChange = useCallback((urls: string[]) => {
+    setConfirmedUrls(urls);
   }, []);
 
   // когда все активные завершены
   const handleComplete = useCallback((urls: string[]) => {
-    // уже пришли итоговые урлы — можно делать side-effect (напр., в form state)
-    // но состояние items уже синхронизировано через handleChange
-    // здесь ничего не трогаем, просто оставляем хук чистым
+    setConfirmedUrls(urls);
   }, []);
 
   return {
-    items,
     confirmedUrls,
     handleChange,
     handleComplete,
