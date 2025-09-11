@@ -6,7 +6,7 @@ interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
   error?: string;
   url?: string;
 }
@@ -20,79 +20,118 @@ export const useSimpleCloudinaryUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
 
+  // Auto-clear completed uploads after delay
+  const clearCompletedAfterDelay = useCallback(() => {
+    setTimeout(() => {
+      setUploadProgress(prev => prev.filter(p => p.status !== 'success' && p.status !== 'error'));
+    }, 3000);
+  }, []);
+
   const uploadSingleFile = useCallback(async (
     file: File,
     fileId: string,
     options: UploadOptions = {}
   ): Promise<string> => {
-    try {
-      console.log('📤 Starting simple Cloudinary upload:', file.name);
+    return new Promise((resolve, reject) => {
+      console.log('📤 Starting XMLHttpRequest upload:', file.name);
 
       // Update progress - starting upload
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: 'uploading', progress: 10 }
+          ? { ...p, status: 'uploading', progress: 0 }
           : p
       ));
 
-      // Convert file to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      
+      // Append file and metadata
+      formData.append('file', file);
+      formData.append('name', file.name);
+      formData.append('type', file.type);
+      formData.append('folder', options.productId ? `products/${options.productId}` : 'uploads');
 
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, progress: 30 }
-          : p
-      ));
-
-      // Call Cloudinary upload function
-      const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
-        body: {
-          base64,
-          name: file.name,
-          type: file.type,
-          folder: options.productId ? `products/${options.productId}` : 'uploads'
+      // Track upload progress
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded / e.total) * 90); // Reserve 10% for server processing
+          setUploadProgress(prev => prev.map(p => 
+            p.fileId === fileId 
+              ? { ...p, progress, status: 'uploading' }
+              : p
+          ));
         }
       });
 
-      if (error) {
-        throw new Error(error.message || 'Upload failed');
-      }
+      // Handle successful response
+      xhr.addEventListener('load', () => {
+        try {
+          if (xhr.status === 200) {
+            const response = JSON.parse(xhr.responseText);
+            
+            if (response.success && response.mainImageUrl) {
+              // Show processing status briefly
+              setUploadProgress(prev => prev.map(p => 
+                p.fileId === fileId 
+                  ? { ...p, status: 'processing', progress: 95 }
+                  : p
+              ));
 
-      if (!data?.success || !data?.mainImageUrl) {
-        throw new Error(data?.error || 'Upload failed');
-      }
-
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { 
-              ...p, 
-              status: 'success', 
-              progress: 100,
-              url: data.mainImageUrl
+              // Complete after short delay
+              setTimeout(() => {
+                setUploadProgress(prev => prev.map(p => 
+                  p.fileId === fileId 
+                    ? { 
+                        ...p, 
+                        status: 'success', 
+                        progress: 100,
+                        url: response.mainImageUrl
+                      }
+                    : p
+                ));
+                
+                console.log('✅ XMLHttpRequest upload successful:', response.mainImageUrl);
+                resolve(response.mainImageUrl);
+              }, 300);
+            } else {
+              throw new Error(response.error || 'Upload failed');
             }
-          : p
-      ));
+          } else {
+            throw new Error(`HTTP ${xhr.status}: ${xhr.statusText}`);
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+          console.error('💥 Upload response error:', errorMessage);
+          
+          setUploadProgress(prev => prev.map(p => 
+            p.fileId === fileId 
+              ? { ...p, status: 'error', error: errorMessage }
+              : p
+          ));
+          
+          reject(error);
+        }
+      });
 
-      console.log('✅ Simple Cloudinary upload successful:', data.mainImageUrl);
-      return data.mainImageUrl;
+      // Handle network errors
+      xhr.addEventListener('error', () => {
+        const errorMessage = 'Network error during upload';
+        console.error('💥 Network error:', errorMessage);
+        
+        setUploadProgress(prev => prev.map(p => 
+          p.fileId === fileId 
+            ? { ...p, status: 'error', error: errorMessage }
+            : p
+        ));
+        
+        reject(new Error(errorMessage));
+      });
 
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-      console.error('💥 Simple upload error:', errorMessage);
-
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, status: 'error', error: errorMessage }
-          : p
-      ));
-
-      throw error;
-    }
+      // Open connection and send
+      xhr.open('POST', `${supabase.supabaseUrl}/functions/v1/cloudinary-upload`);
+      xhr.setRequestHeader('Authorization', `Bearer ${supabase.supabaseKey}`);
+      xhr.send(formData);
+    });
   }, []);
 
   const uploadFiles = useCallback(async (
@@ -143,11 +182,16 @@ export const useSimpleCloudinaryUpload = () => {
         }
       }
 
+      // Clear completed uploads after delay for better UX
+      if (uploadedUrls.length > 0) {
+        clearCompletedAfterDelay();
+      }
+
       return uploadedUrls;
     } finally {
       setIsUploading(false);
     }
-  }, [uploadSingleFile]);
+  }, [uploadSingleFile, clearCompletedAfterDelay]);
 
   const clearProgress = useCallback(() => {
     setUploadProgress([]);
