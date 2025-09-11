@@ -8,8 +8,10 @@ interface UploadItem {
   id: string;
   file: File;
   progress: number;
-  status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'processing' | 'success' | 'error' | 'retrying';
   error?: string;
+  attempt?: number;
+  maxRetries?: number;
 }
 
 interface UploadProgressIndicatorProps {
@@ -37,6 +39,8 @@ const UploadProgressIndicator: React.FC<UploadProgressIndicatorProps> = ({
       case 'uploading':
       case 'processing':
         return <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />;
+      case 'retrying':
+        return <Loader2 className="h-4 w-4 text-orange-600 animate-spin" />;
       default:
         return <Upload className="h-4 w-4 text-gray-400" />;
     }
@@ -51,6 +55,8 @@ const UploadProgressIndicator: React.FC<UploadProgressIndicatorProps> = ({
       case 'uploading':
       case 'processing':
         return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'retrying':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -90,6 +96,7 @@ const UploadProgressIndicator: React.FC<UploadProgressIndicatorProps> = ({
                   {upload.status === 'processing' && 'Обработка'}
                   {upload.status === 'success' && 'Готово'}
                   {upload.status === 'error' && 'Ошибка'}
+                  {upload.status === 'retrying' && `Повтор ${upload.attempt}/${upload.maxRetries}`}
                 </Badge>
               </div>
               <span className="text-gray-500">
@@ -101,7 +108,7 @@ const UploadProgressIndicator: React.FC<UploadProgressIndicatorProps> = ({
               <Progress value={upload.progress} className="h-1" />
             )}
             
-            {upload.status === 'error' && upload.error && (
+            {(upload.status === 'error' || upload.status === 'retrying') && upload.error && (
               <p className="text-xs text-red-600 mt-1">
                 {upload.error}
               </p>

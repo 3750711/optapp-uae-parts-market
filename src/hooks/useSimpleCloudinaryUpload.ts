@@ -6,9 +6,11 @@ export interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
+  status: 'pending' | 'uploading' | 'processing' | 'success' | 'error' | 'retrying';
   error?: string;
   url?: string;
+  attempt?: number;
+  maxRetries?: number;
 }
 
 interface UploadOptions {
@@ -27,111 +29,197 @@ export const useSimpleCloudinaryUpload = () => {
     }, 3000);
   }, []);
 
+  // Check if error is retryable
+  const isRetryableError = (error: any, status?: number): boolean => {
+    // Network errors
+    if (!navigator.onLine) return true;
+    if (error?.code === 'NETWORK_ERROR') return true;
+    if (error?.message?.includes('network')) return true;
+    if (error?.message?.includes('fetch')) return true;
+    
+    // Temporary server errors
+    if (status && status >= 500) return true;
+    if (status === 408) return true; // Request Timeout
+    if (status === 429) return true; // Too Many Requests
+    
+    // Permanent errors - don't retry
+    if (status === 401 || status === 403 || status === 404) return false;
+    
+    return true; // Default to retry for unknown errors
+  };
+
+  // Upload with retry mechanism
+  const uploadWithRetry = async (
+    file: File,
+    fileId: string,
+    options: UploadOptions = {},
+    maxRetries = 3
+  ): Promise<string> => {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`📤 Upload attempt ${attempt}/${maxRetries} for ${file.name}`);
+        
+        // Update progress with attempt info
+        setUploadProgress(prev => prev.map(p => 
+          p.fileId === fileId 
+            ? { 
+                ...p, 
+                status: attempt > 1 ? 'retrying' : 'uploading', 
+                progress: 0,
+                attempt,
+                maxRetries
+              }
+            : p
+        ));
+
+        // Perform the actual upload
+        const result = await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          const formData = new FormData();
+          
+          // Append file and metadata
+          formData.append('file', file);
+          formData.append('name', file.name);
+          formData.append('type', file.type);
+          formData.append('folder', options.productId ? `products/${options.productId}` : 'uploads');
+
+          // Track upload progress
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const progress = Math.round((e.loaded / e.total) * 90); // Reserve 10% for server processing
+              setUploadProgress(prev => prev.map(p => 
+                p.fileId === fileId 
+                  ? { ...p, progress, status: 'uploading' }
+                  : p
+              ));
+            }
+          });
+
+          // Handle successful response
+          xhr.addEventListener('load', () => {
+            try {
+              if (xhr.status === 200) {
+                const response = JSON.parse(xhr.responseText);
+                
+                if (response.success && response.mainImageUrl) {
+                  // Show processing status briefly
+                  setUploadProgress(prev => prev.map(p => 
+                    p.fileId === fileId 
+                      ? { ...p, status: 'processing', progress: 95 }
+                      : p
+                  ));
+
+                  // Complete after short delay
+                  setTimeout(() => {
+                    setUploadProgress(prev => prev.map(p => 
+                      p.fileId === fileId 
+                        ? { 
+                            ...p, 
+                            status: 'success', 
+                            progress: 100,
+                            url: response.mainImageUrl
+                          }
+                        : p
+                    ));
+                    
+                    console.log('✅ XMLHttpRequest upload successful:', response.mainImageUrl);
+                    resolve(response.mainImageUrl);
+                  }, 300);
+                } else {
+                  const error = new Error(response.error || 'Upload failed');
+                  (error as any).status = xhr.status;
+                  reject(error);
+                }
+              } else {
+                const error = new Error(`HTTP ${xhr.status}: ${xhr.statusText}`);
+                (error as any).status = xhr.status;
+                reject(error);
+              }
+            } catch (error) {
+              (error as any).status = xhr.status;
+              reject(error);
+            }
+          });
+
+          // Handle network errors
+          xhr.addEventListener('error', () => {
+            const error = new Error('Network error during upload');
+            (error as any).code = 'NETWORK_ERROR';
+            reject(error);
+          });
+
+          // Handle timeout
+          xhr.addEventListener('timeout', () => {
+            const error = new Error('Upload timeout');
+            (error as any).code = 'TIMEOUT_ERROR';
+            reject(error);
+          });
+
+          // Set timeout (30 seconds per attempt)
+          xhr.timeout = 30000;
+
+          // Open connection and send
+          xhr.open('POST', `${supabase.supabaseUrl}/functions/v1/cloudinary-upload`);
+          xhr.setRequestHeader('Authorization', `Bearer ${supabase.supabaseKey}`);
+          xhr.send(formData);
+        });
+
+        return result; // Success - return the result
+        
+      } catch (error) {
+        lastError = error;
+        console.error(`❌ Upload attempt ${attempt} failed:`, error);
+        
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const status = (error as any)?.status;
+        
+        // Check if we should retry
+        if (attempt < maxRetries && isRetryableError(error, status)) {
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          console.log(`⏳ Waiting ${delay}ms before retry...`);
+          
+          // Show retry status with countdown
+          setUploadProgress(prev => prev.map(p => 
+            p.fileId === fileId 
+              ? { 
+                  ...p, 
+                  status: 'retrying', 
+                  error: `${errorMessage} (попытка ${attempt + 1}/${maxRetries} через ${delay/1000}с)`,
+                  attempt: attempt + 1,
+                  maxRetries
+                }
+              : p
+          ));
+          
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          // Final failure - update status
+          setUploadProgress(prev => prev.map(p => 
+            p.fileId === fileId 
+              ? { 
+                  ...p, 
+                  status: 'error', 
+                  error: `${errorMessage} (после ${maxRetries} попыток)`
+                }
+              : p
+          ));
+          break;
+        }
+      }
+    }
+    
+    throw new Error(`Upload failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
+  };
+
   const uploadSingleFile = useCallback(async (
     file: File,
     fileId: string,
     options: UploadOptions = {}
   ): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      console.log('📤 Starting XMLHttpRequest upload:', file.name);
-
-      // Update progress - starting upload
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, status: 'uploading', progress: 0 }
-          : p
-      ));
-
-      const xhr = new XMLHttpRequest();
-      const formData = new FormData();
-      
-      // Append file and metadata
-      formData.append('file', file);
-      formData.append('name', file.name);
-      formData.append('type', file.type);
-      formData.append('folder', options.productId ? `products/${options.productId}` : 'uploads');
-
-      // Track upload progress
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const progress = Math.round((e.loaded / e.total) * 90); // Reserve 10% for server processing
-          setUploadProgress(prev => prev.map(p => 
-            p.fileId === fileId 
-              ? { ...p, progress, status: 'uploading' }
-              : p
-          ));
-        }
-      });
-
-      // Handle successful response
-      xhr.addEventListener('load', () => {
-        try {
-          if (xhr.status === 200) {
-            const response = JSON.parse(xhr.responseText);
-            
-            if (response.success && response.mainImageUrl) {
-              // Show processing status briefly
-              setUploadProgress(prev => prev.map(p => 
-                p.fileId === fileId 
-                  ? { ...p, status: 'processing', progress: 95 }
-                  : p
-              ));
-
-              // Complete after short delay
-              setTimeout(() => {
-                setUploadProgress(prev => prev.map(p => 
-                  p.fileId === fileId 
-                    ? { 
-                        ...p, 
-                        status: 'success', 
-                        progress: 100,
-                        url: response.mainImageUrl
-                      }
-                    : p
-                ));
-                
-                console.log('✅ XMLHttpRequest upload successful:', response.mainImageUrl);
-                resolve(response.mainImageUrl);
-              }, 300);
-            } else {
-              throw new Error(response.error || 'Upload failed');
-            }
-          } else {
-            throw new Error(`HTTP ${xhr.status}: ${xhr.statusText}`);
-          }
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-          console.error('💥 Upload response error:', errorMessage);
-          
-          setUploadProgress(prev => prev.map(p => 
-            p.fileId === fileId 
-              ? { ...p, status: 'error', error: errorMessage }
-              : p
-          ));
-          
-          reject(error);
-        }
-      });
-
-      // Handle network errors
-      xhr.addEventListener('error', () => {
-        const errorMessage = 'Network error during upload';
-        console.error('💥 Network error:', errorMessage);
-        
-        setUploadProgress(prev => prev.map(p => 
-          p.fileId === fileId 
-            ? { ...p, status: 'error', error: errorMessage }
-            : p
-        ));
-        
-        reject(new Error(errorMessage));
-      });
-
-      // Open connection and send
-      xhr.open('POST', `${supabase.supabaseUrl}/functions/v1/cloudinary-upload`);
-      xhr.setRequestHeader('Authorization', `Bearer ${supabase.supabaseKey}`);
-      xhr.send(formData);
-    });
+    return uploadWithRetry(file, fileId, options);
   }, []);
 
   const uploadFiles = useCallback(async (
