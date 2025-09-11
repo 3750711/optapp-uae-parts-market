@@ -67,7 +67,7 @@ export const SimplePhotoUploader: React.FC<Props> = ({
             />
 
             {/* прогресс/статус поверх */}
-            {it.status !== 'completed' && it.status !== 'error' && (
+            {(it.status !== 'completed' && it.status !== 'error' && it.status !== 'idle') && (
               <div className="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur p-2">
                 <div className="h-1 w-full bg-white/20 rounded">
                   <div

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { useStagedCloudinaryUpload } from "@/hooks/useStagedCloudinaryUpload";
 import { extractPublicIdFromUrl, getProductImageUrl } from "@/utils/cloudinaryUtils";
 
@@ -11,8 +11,8 @@ type AdapterOpts = {
 
 export function useUploadUIAdapter(opts: AdapterOpts = {}) {
   const { max, onChange, onComplete, existingUrls } = opts;
-  // НИЧЕГО не меняем в хуке — только используем
-  const hook: any = useStagedCloudinaryUpload();
+  const hook = useStagedCloudinaryUpload();
+  const [localUploadItems, setLocalUploadItems] = useState<any[]>([]);
 
   // Helper function to detect HEIC files
   const isHeicFile = (file: File): boolean => {
@@ -44,56 +44,107 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
     }));
   }, [existingUrls]);
 
-  // Мягкое извлечение полей из хука useStagedCloudinaryUpload
-  const uploadItems = (hook.uploadItems ?? []).map((item: any) => {
-    let thumbUrl = item.thumbUrl;
+  // Map uploadItems from hook with local state
+  const uploadItems = useMemo(() => {
+    // Merge hook items with local state
+    const hookItems = (hook.uploadItems ?? []);
     
-    // Create preview URL if it doesn't exist
-    if (!thumbUrl && item.file) {
-      if (isHeicFile(item.file)) {
-        // For HEIC files, try to generate Cloudinary preview if we have a URL
-        if (item.url) {
-          const publicId = extractPublicIdFromUrl(item.url);
-          if (publicId) {
-            thumbUrl = getProductImageUrl(publicId, 'thumbnail');
+    return hookItems.map((item: any) => {
+      // Find local item for progress updates
+      const localItem = localUploadItems.find(li => li.id === item.id);
+      
+      let thumbUrl = item.thumbUrl;
+      
+      // Create preview URL if it doesn't exist
+      if (!thumbUrl && item.file) {
+        if (isHeicFile(item.file)) {
+          if (item.url) {
+            const publicId = extractPublicIdFromUrl(item.url);
+            if (publicId) {
+              thumbUrl = getProductImageUrl(publicId, 'thumbnail');
+            } else {
+              thumbUrl = "/placeholder-heic.svg";
+            }
           } else {
-            thumbUrl = "/placeholder-heic.svg"; // Fallback placeholder
+            thumbUrl = "/placeholder-heic.svg";
           }
         } else {
-          thumbUrl = "/placeholder-heic.svg"; // This should be a placeholder image
+          // Create blob URL for regular files
+          thumbUrl = URL.createObjectURL(item.file);
         }
-      } else {
-        // Create blob URL for regular files
-        thumbUrl = URL.createObjectURL(item.file);
       }
-    }
-    
-    return {
-      ...item,
-      thumbUrl,
-      // Правильное имя файла  
-      originalFile: { name: item.file?.name || 'Unknown' },
-      // Правильный URL после загрузки 
-      cloudinaryUrl: item.url,
-      // Статус в правильном формате
-      status: item.status === 'success' ? 'completed' : item.status,
-      // Add HEIC flag for UI handling
-      isHeic: item.file ? isHeicFile(item.file) : false
-    };
-  });
+      
+      return {
+        ...item,
+        thumbUrl,
+        originalFile: { name: item.file?.name || 'Unknown' },
+        cloudinaryUrl: item.url,
+        // Use local progress if available
+        progress: localItem?.progress ?? item.progress ?? 0,
+        // Map status correctly
+        status: item.status === 'success' ? 'completed' : 
+                item.status === 'pending' ? 'idle' : 
+                item.status,
+        isHeic: item.file ? isHeicFile(item.file) : false
+      };
+    });
+  }, [hook.uploadItems, localUploadItems]);
 
   // Combine existing and upload items
   const items = [...existingItems, ...uploadItems];
   
-  const uploadFiles = hook.uploadFiles;
+  // Enhanced uploadFiles with progress tracking
+  const uploadFiles = useCallback(async (files: File[]) => {
+    if (!hook.uploadFiles) return;
+    
+    // Initialize local items for progress tracking
+    const newItems = files.map(file => ({
+      id: crypto.randomUUID(),
+      file,
+      progress: 0,
+      status: 'idle'
+    }));
+    
+    setLocalUploadItems(prev => [...prev, ...newItems]);
+    
+    // Call hook's uploadFiles
+    await hook.uploadFiles(files);
+    
+    // Clear local items after upload
+    setLocalUploadItems([]);
+  }, [hook.uploadFiles]);
+
   const removeUploadItem = hook.removeUploadItem;
   const removeStagedUrl = hook.removeStagedUrl;
-  const retryItem = null; // пока не реализован в оригинальном хуке
+  const retryItem = null; 
   const attachToOrder = hook.attachToOrder;
+
+  // Call onChange when items change
+  useMemo(() => {
+    const okItems = items.filter(item => 
+      item.status === 'completed' && item.cloudinaryUrl
+    );
+    if (onChange) {
+      onChange(okItems.map(item => item.cloudinaryUrl));
+    }
+  }, [items, onChange]);
+
+  // Call onComplete when all done
+  useMemo(() => {
+    if (items.length > 0 && 
+        items.every(item => item.status === 'completed' || item.status === 'error')) {
+      const okItems = items.filter(item => 
+        item.status === 'completed' && item.cloudinaryUrl
+      );
+      if (onComplete) {
+        onComplete(okItems.map(item => item.cloudinaryUrl));
+      }
+    }
+  }, [items, onComplete]);
 
   const api = useMemo(() => ({
     items,
-    uploadFiles: (files: File[]) => uploadFiles?.(files),
+    uploadFiles,
     removeItem: (id: string) => {
       // Пробуем удаление из uploadItems по ID и из stagedUrls по URL
       removeUploadItem?.(id);
@@ -105,9 +156,9 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
     },
     retryItem: (id: string) => retryItem?.(id),
     attachToOrder,
-    // Добавляем функцию для очистки всех элементов
     clearItems: () => {
       hook.clearStaging?.();
+      setLocalUploadItems([]);
     }
   }), [items, uploadFiles, removeUploadItem, removeStagedUrl, retryItem, attachToOrder, hook]);
 

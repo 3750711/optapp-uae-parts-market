@@ -668,6 +668,7 @@ export const useStagedCloudinaryUpload = () => {
             
             item.status = 'success';
             item.url = result.url;
+            console.log(`✅ Upload complete for ${item.file.name}: ${item.url}`);
             newUrls.push(result.url);
             setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
             
@@ -725,6 +726,7 @@ export const useStagedCloudinaryUpload = () => {
           
           item.status = 'success';
           item.url = result.url;
+          console.log(`✅ Upload complete for ${item.file.name}: ${item.url}`);
           newUrls.push(result.url);
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
           
