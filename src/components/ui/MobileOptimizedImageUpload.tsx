@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useSimpleCloudinaryUpload } from "@/hooks/useSimpleCloudinaryUpload";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import UploadProgressIndicator from "@/components/ui/optimized-image-upload/UploadProgressIndicator";
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -161,17 +160,37 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         />
         </Button>
 
-        {/* Professional upload progress indicator */}
-        <UploadProgressIndicator 
-          uploads={uploadProgress.map(p => ({
-            id: p.fileId,
-            file: new File([], p.fileName),
-            progress: p.progress,
-            status: p.status,
-            error: p.error
-          }))}
-          onClear={clearProgress}
-        />
+        {/* Show simple upload progress */}
+        {uploadProgress.length > 0 && (
+          <div className="space-y-2">
+            {uploadProgress.map(p => (
+              <div key={p.fileId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                <span className="text-sm truncate flex-1">{p.fileName}</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-20 bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all" 
+                      style={{ width: `${p.progress}%` }}
+                    />
+                  </div>
+                  <span className="text-xs w-12">{p.progress}%</span>
+                  {p.status === 'error' && (
+                    <span className="text-xs text-red-500">Error</span>
+                  )}
+                </div>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={clearProgress}
+              className="w-full"
+            >
+              Clear
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -258,17 +277,37 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         />
       </Button>
 
-      {/* Professional upload progress indicator */}
-      <UploadProgressIndicator 
-        uploads={uploadProgress.map(p => ({
-          id: p.fileId,
-          file: new File([], p.fileName),
-          progress: p.progress,
-          status: p.status,
-          error: p.error
-        }))}
-        onClear={clearProgress}
-      />
+      {/* Show simple upload progress */}
+      {uploadProgress.length > 0 && (
+        <div className="space-y-2">
+          {uploadProgress.map(p => (
+            <div key={p.fileId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+              <span className="text-sm truncate flex-1">{p.fileName}</span>
+              <div className="flex items-center gap-2">
+                <div className="w-20 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-600 h-2 rounded-full transition-all" 
+                    style={{ width: `${p.progress}%` }}
+                  />
+                </div>
+                <span className="text-xs w-12">{p.progress}%</span>
+                {p.status === 'error' && (
+                  <span className="text-xs text-red-500">Error</span>
+                )}
+              </div>
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={clearProgress}
+            className="w-full"
+          >
+            Clear
+          </Button>
+        </div>
+      )}
 
       {existingImages.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

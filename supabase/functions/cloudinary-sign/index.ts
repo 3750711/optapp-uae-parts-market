@@ -1,123 +1,162 @@
-// CORS headers with updated allowlist
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
-  'Access-Control-Max-Age': '86400',
-}
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
-const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
+// SHA-1 implementation for Cloudinary signature
+const sha1 = async (text: string): Promise<string> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hash = await crypto.subtle.digest('SHA-1', data);
+  return Array.from(new Uint8Array(hash))
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
+};
+
+interface SignRequest {
+  orderId?: string;
+  sessionId?: string;
+}
 
 interface SignResponse {
-  success: boolean;
-  uploadUrl?: string;
-  formData?: Record<string, string>;
-  error?: string;
-}
-
-// Helper function for guaranteed JSON responses
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders
-    }
-  });
+  cloud_name: string;
+  api_key: string;
+  timestamp: number;
+  folder: string;
+  public_id: string;
+  signature: string;
+  upload_url: string;
 }
 
 Deno.serve(async (req) => {
-  // Generate unique request ID for logging
-  const rid = `sign_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-  
-  // Handle CORS preflight requests  
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { 
-      status: 204, 
-      headers: corsHeaders 
-    });
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log(`📥 [${rid}] Incoming sign request: ${req.method}`);
-    
-    const apiKey = Deno.env.get('CLOUDINARY_API_KEY')?.trim();
-    const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET')?.trim();
-    const uploadPreset = Deno.env.get('CLOUDINARY_UPLOAD_PRESET')?.trim();
-    
-    if (!apiKey || !apiSecret || !uploadPreset) {
-      console.error(`❌ [${rid}] Missing Cloudinary credentials`);
-      return jsonResponse({
-        success: false,
-        error: 'Cloudinary credentials not configured properly'
-      }, 500);
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+      return new Response(
+        JSON.stringify({ error: 'Method not allowed' }),
+        { status: 405, headers: corsHeaders }
+      );
     }
 
-    // Get request parameters
-    const requestData = await req.json();
-    const { folder = 'uploads' } = requestData;
-    
-    console.log(`📁 [${rid}] Generating signature for folder: ${folder}`);
+    // Public endpoint - no authentication required for staging uploads
 
-    // Generate optimized public_id
-    const timestamp = Date.now();
-    const publicId = `${folder}/upload_${timestamp}_${Math.random().toString(36).substring(7)}`;
-    
-    // Unified transformation for all media formats - convert to WebP for images
-    const transformation = 'f_webp,q_auto:good,c_limit,w_1200';
-    
-    // Parameters for signing
-    const signParams = {
-      folder,
-      public_id: publicId,
-      timestamp: Math.round(timestamp / 1000).toString(),
-      transformation
-    };
+    // Parse request body
+    const { orderId, sessionId }: SignRequest = await req.json();
 
-    // Generate signature
-    const stringToSign = Object.keys(signParams)
-      .sort()
-      .map(key => `${key}=${signParams[key as keyof typeof signParams]}`)
-      .join('&') + apiSecret;
+    // FIXED: More flexible identifier validation
+    const isValidIdentifier = (str: string) => {
+      if (!str) return false;
       
-    console.log(`🔐 [${rid}] String to sign: ${stringToSign.substring(0, 100)}...`);
+      // Accept:
+      // 1. Any valid UUID (not only v4)
+      // 2. Strings longer than 10 chars (for legacy IDs)
+      // 3. Numeric IDs converted to string
+      
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+      const isLegacyId = str.length >= 10 && /^[a-zA-Z0-9_-]+$/.test(str);
+      
+      return isUUID || isLegacyId;
+    };
+
+    let targetId: string;
+    let folder: string;
     
-    const encoder = new TextEncoder();
-    const data = encoder.encode(stringToSign);
-    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    console.log('🔍 Validating identifiers:', { orderId, sessionId });
     
-    // Upload URL for auto detection
-    const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
-    
-    // Form data for the upload
-    const formData: Record<string, string> = {
-      api_key: apiKey,
-      timestamp: signParams.timestamp,
-      public_id: publicId,
+    if (orderId && isValidIdentifier(orderId)) {
+      targetId = orderId;
+      folder = `orders/${orderId}`;
+      console.log('✅ Using orderId:', { targetId, folder });
+    } else if (sessionId && isValidIdentifier(sessionId)) {
+      targetId = sessionId;
+      folder = `staging/${sessionId}`;
+      console.log('✅ Using sessionId:', { targetId, folder });
+    } else {
+      // FALLBACK: Use temporary ID instead of error
+      targetId = `temp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      folder = `temp/${targetId}`;
+      
+      console.warn('⚠️ Using fallback ID:', { 
+        targetId, 
+        folder, 
+        originalOrderId: orderId, 
+        originalSessionId: sessionId 
+      });
+    }
+
+    // Get Cloudinary credentials
+    const CLOUD_NAME = Deno.env.get('CLOUDINARY_CLOUD_NAME');
+    const API_KEY = Deno.env.get('CLOUDINARY_API_KEY');
+    const API_SECRET = Deno.env.get('CLOUDINARY_API_SECRET');
+
+    if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
+      console.error('Missing Cloudinary credentials');
+      const missing = [];
+      if (!CLOUD_NAME) missing.push('CLOUDINARY_CLOUD_NAME');
+      if (!API_KEY) missing.push('CLOUDINARY_API_KEY');
+      if (!API_SECRET) missing.push('CLOUDINARY_API_SECRET');
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Server configuration error', 
+          missing 
+        }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+
+    // Generate signature parameters
+    const timestamp = Math.floor(Date.now() / 1000);
+    const public_id = `o_${targetId}_${timestamp}_${crypto.randomUUID().slice(0, 8)}`;
+
+    // Create signature string (alphabetically sorted parameters)
+    const signatureString = `folder=${folder}&public_id=${public_id}&timestamp=${timestamp}`;
+    const signature = await sha1(signatureString + API_SECRET);
+
+    const signatureData: SignResponse = {
+      cloud_name: CLOUD_NAME,
+      api_key: API_KEY,
+      timestamp,
       folder,
-      transformation,
-      signature
+      public_id,
+      signature,
+      upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
     };
 
-    console.log(`✅ [${rid}] Signature generated successfully for publicId: ${publicId}`);
-    
-    const response: SignResponse = {
+    // Return canonical contract: {success: true, data: {...}}
+    const response = {
       success: true,
-      uploadUrl,
-      formData
+      data: signatureData
     };
 
-    return jsonResponse(response, 200);
+    console.log('Generated Cloudinary signature for targetId:', targetId, 'folder:', folder);
+
+    return new Response(
+      JSON.stringify(response),
+      { 
+        status: 200, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    );
 
   } catch (error) {
-    console.error(`❌ [${rid}] Unexpected error in cloudinary-sign:`, error);
-    const errorResponse: SignResponse = {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
-
-    return jsonResponse(errorResponse, 500);
+    console.error('Edge function error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { status: 500, headers: corsHeaders }
+    );
   }
 });
