@@ -218,7 +218,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
       .insert(
         urls.map(url => ({
           order_id: orderId,
-          image_url: url,
+          url: url,
           category
         }))
       );

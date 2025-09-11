@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useStagedCloudinaryUpload } from '@/hooks/useStagedCloudinaryUpload';
+import { useSimpleOrderUpload } from '@/hooks/useSimpleOrderUpload';
 import { Button } from '@/components/ui/button';
 import { X, Upload } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -21,7 +21,7 @@ export const OrderImageUpload: React.FC<OrderImageUploadProps> = ({
   sessionId
 }) => {
   const [allImages, setAllImages] = useState<string[]>(existingImages);
-  const { uploadFiles, uploadItems, isUploading } = useStagedCloudinaryUpload();
+  const { uploadFiles, isUploading } = useSimpleOrderUpload();
   const [isDragOver, setIsDragOver] = useState(false);
 
   // Sync with external changes
@@ -149,15 +149,6 @@ export const OrderImageUpload: React.FC<OrderImageUploadProps> = ({
                 <LoadingSpinner size="lg" />
                 <div className="space-y-2">
                   <p className="font-medium text-foreground">Загрузка изображений...</p>
-                  {uploadItems.map((item, index) => (
-                    <div key={item.id} className="text-sm text-muted-foreground">
-                      Файл {index + 1}: {item.status === 'compressing' && 'Сжатие...'}
-                      {item.status === 'signing' && 'Получение подписи...'}
-                      {item.status === 'uploading' && `Загрузка... ${item.progress}%`}
-                      {item.status === 'success' && '✅ Готово'}
-                      {item.status === 'error' && `❌ Ошибка: ${item.error}`}
-                    </div>
-                  ))}
                 </div>
               </div>
             ) : (

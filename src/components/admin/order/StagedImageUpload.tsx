@@ -1,7 +1,7 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload, X, Loader } from "lucide-react";
-import { useStagedCloudinaryUpload } from "@/hooks/useStagedCloudinaryUpload";
+import { useSimpleOrderUpload } from '@/hooks/useSimpleOrderUpload';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface StagedImageUploadProps {
@@ -15,13 +15,8 @@ export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
   maxImages = 25,
   disabled = false
 }) => {
-  const {
-    stagedUrls,
-    uploadItems,
-    isUploading,
-    uploadFiles,
-    removeStagedUrl
-  } = useStagedCloudinaryUpload();
+  const [stagedUrls, setStagedUrls] = useState<string[]>([]);
+  const { uploadFiles, isUploading } = useSimpleOrderUpload();
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -49,79 +44,24 @@ export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
     }
 
     const newUrls = await uploadFiles(validFiles);
-    onImagesChange([...stagedUrls, ...newUrls]);
+    const updatedUrls = [...stagedUrls, ...newUrls];
+    setStagedUrls(updatedUrls);
+    onImagesChange(updatedUrls);
     
     // Clear the input
     event.target.value = '';
   }, [stagedUrls, maxImages, uploadFiles, onImagesChange]);
 
   const handleRemoveImage = useCallback(async (url: string) => {
-    await removeStagedUrl(url);
     const updatedUrls = stagedUrls.filter(u => u !== url);
+    setStagedUrls(updatedUrls);
     onImagesChange(updatedUrls);
-  }, [removeStagedUrl, stagedUrls, onImagesChange]);
-
-  // Update parent when staged URLs change
-  React.useEffect(() => {
-    onImagesChange(stagedUrls);
   }, [stagedUrls, onImagesChange]);
 
   const canUploadMore = stagedUrls.length < maxImages;
 
   return (
     <div className="space-y-4">
-      {/* Upload Progress */}
-      {uploadItems.length > 0 && (
-        <div className="space-y-2">
-          {uploadItems.map(item => (
-            <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <div className="flex-1">
-                <div className="text-sm font-medium truncate">{item.file.name}</div>
-                <div className="text-xs text-muted-foreground capitalize">
-                  {item.status === 'compressing' ? 'Сжатие...' : 
-                   item.status === 'uploading' ? `Загрузка ${item.progress}%` : 
-                   item.status === 'success' ? 'Готово' :
-                   item.status === 'error' ? 'Ошибка' : 'Ожидание'}
-                  {item.metadata?.heic && ' • HEIC: оригинал загружен'}
-                  {item.metadata?.networkType && ` • ${item.metadata.networkType.toUpperCase()}`}
-                </div>
-                {item.compressedSize && item.originalSize && (
-                  <div className="text-xs text-green-600">
-                    Сжато на {Math.round((1 - item.compressedSize / item.originalSize) * 100)}%
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {item.status === 'error' && item.error && (
-                  <span className="text-xs text-red-600 max-w-24 truncate" title={item.error}>
-                    {item.error}
-                  </span>
-                )}
-                {item.status === 'uploading' && (
-                  <div className="w-16 bg-gray-200 rounded-full h-1.5">
-                    <div 
-                      className="bg-blue-500 h-1.5 rounded-full transition-all duration-300" 
-                      style={{ width: `${item.progress}%` }}
-                    />
-                  </div>
-                )}
-                {item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading' ? (
-                  <Loader className="h-4 w-4 animate-spin text-blue-500" />
-                ) : item.status === 'success' ? (
-                  <div className="h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
-                    <div className="h-2 w-2 bg-white rounded-full" />
-                  </div>
-                ) : (
-                  <div className="h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
-                    <div className="h-1 w-1 bg-white rounded-full" />
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Upload Button */}
       {canUploadMore && (
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
@@ -141,7 +81,14 @@ export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
               disabled={disabled || isUploading}
               onClick={() => document.getElementById('file-upload')?.click()}
             >
-              {isUploading ? 'Загрузка...' : 'Выбрать файлы'}
+              {isUploading ? (
+                <>
+                  <Loader className="h-4 w-4 animate-spin mr-2" />
+                  Загрузка...
+                </>
+              ) : (
+                'Выбрать файлы'
+              )}
             </Button>
             <input
               id="file-upload"
@@ -189,33 +136,11 @@ export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
         </div>
       )}
 
-      {/* Info Alert with statistics */}
+      {/* Info Alert */}
       {stagedUrls.length > 0 && (
         <Alert>
           <AlertDescription>
             Изображения загружены в промежуточное хранилище. После создания заказа они будут автоматически привязаны к нему.
-            {uploadItems.length > 0 && (
-              <div className="mt-2 text-xs text-muted-foreground">
-                {(() => {
-                  const totalOriginal = uploadItems.reduce((sum, item) => sum + (item.originalSize || 0), 0);
-                  const totalCompressed = uploadItems.reduce((sum, item) => sum + (item.compressedSize || 0), 0);
-                  const savings = totalOriginal > 0 ? Math.round((1 - totalCompressed / totalOriginal) * 100) : 0;
-                  const networkType = uploadItems[0]?.metadata?.networkType;
-                  
-                  return (
-                    <>
-                      {totalOriginal > 0 && (
-                        <span>
-                          Экономия места: {savings}% • 
-                          {Math.round(totalOriginal / 1024 / 1024 * 10) / 10}MB → {Math.round(totalCompressed / 1024 / 1024 * 10) / 10}MB
-                        </span>
-                      )}
-                      {networkType && <span> • Сеть: {networkType.toUpperCase()}</span>}
-                    </>
-                  );
-                })()}
-              </div>
-            )}
           </AlertDescription>
         </Alert>
       )}
