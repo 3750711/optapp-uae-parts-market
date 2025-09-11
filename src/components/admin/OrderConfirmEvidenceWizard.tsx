@@ -364,6 +364,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 <SimplePhotoUploader
                   max={8}
                   onChange={step1Hook.handleImagesUpload}
+                  onComplete={() => console.log('Step 1 photos uploaded')}
                   buttonText="Upload Chat Screenshot"
                   language="en"
                 />
@@ -412,6 +413,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 <SimplePhotoUploader
                   max={8}
                   onChange={step2Hook.handleImagesUpload}
+                  onComplete={() => console.log('Step 2 photos uploaded')}
                   buttonText="Upload Signed Product"
                   language="en"
                 />

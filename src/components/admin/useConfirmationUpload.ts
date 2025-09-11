@@ -76,8 +76,8 @@ export const useConfirmationUpload = (
   }, [open, orderId, category, user, getImagesByCategory]);
 
   const handleImagesUpload = useCallback((urls: string[]) => {
-    // SimplePhotoUploader sends array of URLs directly, append to existing
-    setConfirmImages(prev => [...prev, ...urls]);
+    // SimplePhotoUploader sends array of URLs directly, replace existing
+    setConfirmImages(urls);
     setUploadError(null);
   }, []);
 
