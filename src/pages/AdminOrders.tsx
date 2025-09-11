@@ -199,6 +199,31 @@ const AdminOrders = () => {
                 />
               )}
 
+              {/* Upper Pagination */}
+              {totalCount > 0 && (
+                <>
+                  {isMobile ? (
+                    <MobilePagination
+                      currentPage={currentPage}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                      onPageChange={handlePageChange}
+                      hasNextPage={hasNextPage}
+                      hasPreviousPage={hasPreviousPage}
+                    />
+                  ) : (
+                    <OrdersPagination
+                      currentPage={currentPage}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                      onPageChange={handlePageChange}
+                      hasNextPage={hasNextPage}
+                      hasPreviousPage={hasPreviousPage}
+                    />
+                  )}
+                </>
+              )}
+
               <ResponsiveOrdersView
                 orders={orders}
                 selectedOrders={selectedOrders}
