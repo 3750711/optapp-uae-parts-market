@@ -27,7 +27,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
 import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
 
-import { useUploadUIAdapter } from "@/components/uploader/useUploadUIAdapter";
+import { useUploadUIAdapter } from "@/features/uploads/useUploadUIAdapter";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
 

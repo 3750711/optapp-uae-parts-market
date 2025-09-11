@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { useUploadUIAdapter } from "./useUploadUIAdapter";
+import { useUploadUIAdapter } from "../../features/uploads/useUploadUIAdapter";
 import { Lang } from "@/types/i18n";
 import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 
