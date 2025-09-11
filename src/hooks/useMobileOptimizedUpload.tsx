@@ -1,8 +1,9 @@
 import { useState, useCallback, useRef } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
+import { uploadWithMultipleFallbacks } from "@/utils/uploadWithFallback";
+import { offlineQueue } from "@/utils/offlineQueue";
+import { trackUploadPerformance } from "@/utils/uploadMetrics";
 import { validateImageForMarketplace, logImageProcessing } from "@/utils/imageProcessingUtils";
-import { getBatchImageUrls } from "@/utils/cloudinaryUtils";
 
 interface UploadProgress {
   fileId: string;
@@ -35,7 +36,7 @@ export const useMobileOptimizedUpload = () => {
            window.innerWidth <= 768;
   }, []);
 
-  // Upload single file directly to Cloudinary
+  // Enhanced upload function with multiple fallbacks
   const uploadSingleFile = useCallback(async (
     file: File, 
     fileId: string, 
@@ -43,16 +44,20 @@ export const useMobileOptimizedUpload = () => {
     retryCount = 0,
     isPrimary = false
   ): Promise<string> => {
-    const maxRetries = options.maxRetries || 3;
+    const maxRetries = options.maxRetries || 2; // Reduced retries since we have fallbacks
     
     try {
-      console.log('🚀 Starting Cloudinary upload:', {
+      console.log('🚀 Starting enhanced upload:', {
         fileName: file.name,
         fileId,
         productId: options.productId,
         isPrimary,
-        retryCount
+        retryCount,
+        orderId: options.productId // Use productId as orderId for confirmation photos
       });
+
+      // Start performance tracking
+      trackUploadPerformance.start(file.name);
 
       // Update progress
       setUploadProgress(prev => prev.map(p => 
@@ -76,39 +81,68 @@ export const useMobileOptimizedUpload = () => {
         throw new Error('Upload cancelled');
       }
 
-      // Create custom public_id
-      const customPublicId = `product_${options.productId || Date.now()}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      // Check network status
+      if (!navigator.onLine) {
+        console.log('📴 Offline detected - adding to queue');
+        
+        offlineQueue.add(file, { 
+          orderId: options.productId,
+          onProgress: (progress) => {
+            setUploadProgress(prev => prev.map(p => 
+              p.fileId === fileId ? { ...p, progress } : p
+            ));
+          }
+        }, (success, url, error) => {
+          if (success && url) {
+            setUploadProgress(prev => prev.map(p => 
+              p.fileId === fileId 
+                ? { ...p, status: 'success', progress: 100, mainImageUrl: url, isPrimary }
+                : p
+            ));
+            trackUploadPerformance.end(file.name, true, 'offline-queue', file.size);
+          } else {
+            setUploadProgress(prev => prev.map(p => 
+              p.fileId === fileId 
+                ? { ...p, status: 'error', error: error || 'Offline upload failed' }
+                : p
+            ));
+            trackUploadPerformance.end(file.name, false, 'offline-queue', file.size, error);
+          }
+        });
+        
+        // Return placeholder - actual upload happens in background
+        throw new Error('Added to offline queue');
+      }
 
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId ? { ...p, progress: 50 } : p
       ));
 
-      // Upload directly to Cloudinary
-      console.log('☁️ Uploading to Cloudinary...');
-      const result = await uploadDirectToCloudinary(file, options.productId, customPublicId);
+      // Use enhanced upload with multiple fallbacks
+      console.log('☁️ Using enhanced upload with fallbacks...');
+      
+      const result = await uploadWithMultipleFallbacks(file, {
+        orderId: options.productId, // Use productId as orderId for confirmation photos
+        onProgress: (progress) => {
+          setUploadProgress(prev => prev.map(p => 
+            p.fileId === fileId ? { ...p, progress: 50 + (progress * 0.4) } : p // 50-90%
+          ));
+        }
+      });
 
-      if (!result.success || !result.mainImageUrl || !result.publicId) {
-        throw new Error(result.error || 'Cloudinary upload failed');
+      if (!result.success || !result.url) {
+        throw new Error(result.error || 'Enhanced upload failed');
       }
 
-      console.log('✅ Cloudinary upload completed:', {
-        mainImageUrl: result.mainImageUrl,
-        publicId: result.publicId,
+      console.log('✅ Enhanced upload completed:', {
+        url: result.url,
+        method: result.method,
         isPrimary
       });
 
       setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId ? { ...p, progress: 80, mainImageUrl: result.mainImageUrl, publicId: result.publicId } : p
+        p.fileId === fileId ? { ...p, progress: 90, mainImageUrl: result.url } : p
       ));
-
-      // Generate image variants using public_id
-      const batchUrls = getBatchImageUrls(result.publicId);
-
-      console.log('🎨 Generated image variants:', {
-        thumbnail: batchUrls.thumbnail,
-        card: batchUrls.card,
-        detail: batchUrls.detail
-      });
 
       // Final success update
       setUploadProgress(prev => prev.map(p => 
@@ -117,28 +151,31 @@ export const useMobileOptimizedUpload = () => {
               ...p, 
               status: 'success', 
               progress: 100, 
-              mainImageUrl: result.mainImageUrl,
-              publicId: result.publicId,
+              mainImageUrl: result.url,
+              publicId: result.url, // Use URL as publicId for fallback compatibility
               isPrimary
             }
           : p
       ));
 
-      logImageProcessing('CloudinaryUploadSuccess', { 
+      trackUploadPerformance.end(file.name, true, result.method || 'unknown', file.size);
+
+      logImageProcessing('EnhancedUploadSuccess', { 
         fileName: file.name,
         originalSize: file.size,
-        mainImageUrl: result.mainImageUrl,
-        publicId: result.publicId,
+        url: result.url,
+        method: result.method,
         retryCount,
         productId: options.productId,
         isPrimary
       });
 
-      return result.mainImageUrl;
+      return result.url;
+      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       
-      console.error('💥 Cloudinary upload error:', {
+      console.error('💥 Enhanced upload error:', {
         fileName: file.name,
         error: errorMessage,
         retryCount,
@@ -147,7 +184,9 @@ export const useMobileOptimizedUpload = () => {
         isPrimary
       });
 
-      logImageProcessing('CloudinaryUploadError', {
+      trackUploadPerformance.end(file.name, false, 'error', file.size, errorMessage);
+
+      logImageProcessing('EnhancedUploadError', {
         fileName: file.name,
         error: errorMessage,
         retryCount,
@@ -155,10 +194,10 @@ export const useMobileOptimizedUpload = () => {
         isPrimary
       });
 
-      if (retryCount < maxRetries && !cancelRef.current) {
+      if (retryCount < maxRetries && !cancelRef.current && navigator.onLine) {
         // Retry with exponential backoff
         const delay = Math.pow(2, retryCount) * 1000;
-        console.log(`🔄 Retrying Cloudinary upload in ${delay}ms...`);
+        console.log(`🔄 Retrying enhanced upload in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
         return uploadSingleFile(file, fileId, options, retryCount + 1, isPrimary);
