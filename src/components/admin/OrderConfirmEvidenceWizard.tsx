@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Stepper } from "@/components/ui/stepper";
 import { Loader2, Upload, Check, ArrowRight, ArrowLeft, Camera, FileSignature } from "lucide-react";
@@ -27,6 +27,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
 import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
 import { useConfirmationUpload } from "@/features/orders/confirm/useConfirmationUpload";
+import { useUploadUIAdapter } from "@/components/uploader/useUploadUIAdapter";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
 
@@ -77,6 +78,21 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   // Get hooks for each step with new architecture
   const step1Hook = useConfirmationUpload();
   const step2Hook = useConfirmationUpload();
+
+  // Get upload adapters to track upload status
+  const step1Adapter = useUploadUIAdapter({
+    existingUrls: step1Images,
+    onChange: step1Hook.handleChange,
+    onComplete: step1Hook.handleComplete,
+    max: 8
+  });
+
+  const step2Adapter = useUploadUIAdapter({
+    existingUrls: step2Images,
+    onChange: step2Hook.handleChange,
+    onComplete: step2Hook.handleComplete,
+    max: 8
+  });
 
   // Load existing data when dialog opens
   useEffect(() => {
@@ -158,16 +174,22 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   const canProceedStep2 = step2Images.length > 0;
   const canSaveCurrentStep = currentStep === 'chat_confirmation' ? canProceedStep1 : canProceedStep2;
 
-  // Track loading state for uploads
-  const [isUploading, setIsUploading] = useState(false);
-
   const hasActiveUploads = useCallback(() => {
-    return isUploading;
-  }, [isUploading]);
+    const step1HasActive = step1Adapter.items.some((item: any) => 
+      item.status === 'compressing' || item.status === 'uploading' || item.status === 'idle'
+    );
+    const step2HasActive = step2Adapter.items.some((item: any) => 
+      item.status === 'compressing' || item.status === 'uploading' || item.status === 'idle'
+    );
+    return step1HasActive || step2HasActive;
+  }, [step1Adapter.items, step2Adapter.items]);
 
   const isCurrentStepUploading = useCallback(() => {
-    return isUploading;
-  }, [isUploading]);
+    const currentAdapter = currentStep === 'chat_confirmation' ? step1Adapter : step2Adapter;
+    return currentAdapter.items.some((item: any) => 
+      item.status === 'compressing' || item.status === 'uploading' || item.status === 'idle'
+    );
+  }, [currentStep, step1Adapter.items, step2Adapter.items]);
 
   // Step navigation
   const handleNext = useCallback(async () => {
