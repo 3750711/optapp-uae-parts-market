@@ -70,7 +70,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   const handleFileSelect = useCallback(async (files: FileList) => {
     const MAX_PHOTO_SIZE_MB = 50;
     const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
-    const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+    const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'image/heic', 'image/heif'];
 
     if (existingImages.length + files.length > maxImages) {
       if (!disableToast) {
@@ -270,7 +270,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         <input
           type="file"
           multiple
-          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,image/heic,image/heif"
           onChange={handleFileChange}
           className="absolute inset-0 cursor-pointer opacity-0"
           disabled={disabled}
