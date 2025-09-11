@@ -66,23 +66,29 @@ export const uploadWithMultipleFallbacks = async (
     sessionId: options.sessionId
   });
   
-  // Helper to call progress with method info
+  // Helper to call progress with proper scaling and method info
   const callProgress = (progress: number, method: string) => {
-    console.log(`📊 Upload progress: ${progress}% using ${method}`);
+    // Normalize progress to 0-100% range
+    const normalizedProgress = Math.max(0, Math.min(100, progress));
+    console.log(`📊 Upload progress: ${normalizedProgress}% using ${method}`);
     if (options.onProgress) {
-      options.onProgress(progress, method);
+      options.onProgress(normalizedProgress, method);
     }
   };
   
-  // Attempt 1: Direct Cloudinary with signed upload
+  // Attempt 1: Direct Cloudinary with signed upload (5-90% progress range)
   try {
     console.log('🎯 Attempt 1: Direct Cloudinary signed upload');
-    callProgress(10, 'direct-cloudinary');
+    callProgress(5, 'direct-cloudinary');
     
     const result = await uploadImageOptimized(file, {
       orderId: options.orderId,
       sessionId: options.sessionId,
-      onProgress: (progress) => callProgress(10 + (progress * 0.8), 'direct-cloudinary')
+      onProgress: (progress) => {
+        // Scale progress from 5% to 90% for direct cloudinary
+        const scaledProgress = 5 + (progress * 0.85);
+        callProgress(scaledProgress, 'direct-cloudinary');
+      }
     });
     
     if (result.success && result.url) {
@@ -102,12 +108,20 @@ export const uploadWithMultipleFallbacks = async (
     console.warn('❌ Direct Cloudinary failed:', errorMsg);
   }
   
-  // Attempt 2: Edge Function cloudinary-upload
+  // Attempt 2: Edge Function cloudinary-upload (10-90% progress range)
   try {
     console.log('🎯 Attempt 2: Edge Function upload');
-    callProgress(20, 'edge-function');
+    callProgress(10, 'edge-function');
+    
+    // Simulate progress for edge function since we don't have real progress
+    const progressInterval = setInterval(() => {
+      const currentProgress = Math.min(85, 15 + Math.random() * 30);
+      callProgress(currentProgress, 'edge-function');
+    }, 500);
     
     const result = await uploadToCloudinary(file, options.productId);
+    
+    clearInterval(progressInterval);
     
     if (result.success && result.mainImageUrl) {
       console.log('✅ Success with Edge Function');
@@ -126,12 +140,20 @@ export const uploadWithMultipleFallbacks = async (
     console.warn('❌ Edge Function failed:', errorMsg);
   }
   
-  // Attempt 3: Supabase Storage as final fallback
+  // Attempt 3: Supabase Storage as final fallback (15-90% progress range)
   try {
     console.log('🎯 Attempt 3: Supabase Storage fallback');
-    callProgress(30, 'supabase-storage');
+    callProgress(15, 'supabase-storage');
+    
+    // Simulate progress for supabase storage
+    const progressInterval = setInterval(() => {
+      const currentProgress = Math.min(85, 20 + Math.random() * 40);
+      callProgress(currentProgress, 'supabase-storage');
+    }, 300);
     
     const result = await uploadToSupabaseStorage(file, options.productId);
+    
+    clearInterval(progressInterval);
     
     if (result.success && result.url) {
       console.log('✅ Success with Supabase Storage');

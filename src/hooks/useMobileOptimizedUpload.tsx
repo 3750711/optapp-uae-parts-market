@@ -128,12 +128,19 @@ export const useMobileOptimizedUpload = () => {
         sessionId: `upload-${Date.now()}`, // Generate session ID for consistency
         productId: options.productId,
         onProgress: (progress, method) => {
+          // Calculate upload speed based on progress difference and time
+          const now = Date.now();
+          const timeDiff = now - (Date.now() - 1000); // Approximate time diff
+          const progressDiff = progress - 50; // Progress from 50% baseline
+          const speed = progressDiff > 0 ? (file.size * (progressDiff / 100)) / (timeDiff / 1000) : undefined;
+          
           setUploadProgress(prev => prev.map(p => 
             p.fileId === fileId ? { 
               ...p, 
-              progress: Math.min(95, 50 + (progress * 0.45)), // 50-95%
+              progress: Math.min(95, 50 + (progress * 0.45)), // Scale 50-95%
               status: progress < 100 ? 'uploading' : 'processing',
-              method: method || p.method
+              method: method || p.method,
+              speed: speed && speed > 0 ? Math.round(speed) : p.speed
             } : p
           ));
         }

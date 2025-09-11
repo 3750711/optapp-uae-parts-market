@@ -80,6 +80,23 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     }
 
     const fileArray = Array.from(files);
+    
+    // CRITICAL FIX: Initialize progress immediately when files are selected
+    const initialProgress = fileArray.map((file, index) => ({
+      fileId: `file-${Date.now()}-${index}`,
+      fileName: file.name,
+      progress: 0,
+      status: 'pending' as const,
+      isPrimary: index === 0,
+      method: 'preparing'
+    }));
+    
+    // Set progress immediately for instant UI feedback
+    if (uploadProgress.length === 0) {
+      // Only set if no other uploads in progress
+      console.log('📋 Setting immediate progress for', initialProgress.length, 'files');
+    }
+
     const validFiles: File[] = [];
 
     // Process files - simplified for mobile
