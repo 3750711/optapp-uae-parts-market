@@ -59,115 +59,11 @@ const RETRY_DELAY_BASE = 1000;
 const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
 const SUPPORTED_FORMATS = ['mp4', 'mov', 'webm', 'avi'];
 
-// IndexedDB for persistence
-const UPLOAD_DB_NAME = 'chunked_video_uploads';
-const UPLOAD_DB_VERSION = 1;
-const UPLOAD_STORE_NAME = 'uploads';
-
-class UploadPersistence {
-  private db: IDBDatabase | null = null;
-
-  async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(UPLOAD_DB_NAME, UPLOAD_DB_VERSION);
-      
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve();
-      };
-      
-      request.onupgradeneeded = () => {
-        const db = request.result;
-        if (!db.objectStoreNames.contains(UPLOAD_STORE_NAME)) {
-          const store = db.createObjectStore(UPLOAD_STORE_NAME, { keyPath: 'id' });
-          store.createIndex('orderId', 'orderId');
-          store.createIndex('status', 'status');
-        }
-      };
-    });
-  }
-
-  async saveUpload(upload: ChunkedUploadItem): Promise<void> {
-    if (!this.db) await this.init();
-    
-    const transaction = this.db!.transaction([UPLOAD_STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(UPLOAD_STORE_NAME);
-    
-    // Serialize File object
-    const serializedUpload = {
-      ...upload,
-      file: {
-        name: upload.file.name,
-        size: upload.file.size,
-        type: upload.file.type,
-        lastModified: upload.file.lastModified
-      }
-    };
-    
-    await store.put(serializedUpload);
-  }
-
-  async getUploads(orderId: string): Promise<ChunkedUploadItem[]> {
-    if (!this.db) await this.init();
-    
-    const transaction = this.db!.transaction([UPLOAD_STORE_NAME], 'readonly');
-    const store = transaction.objectStore(UPLOAD_STORE_NAME);
-    const index = store.index('orderId');
-    
-    return new Promise((resolve, reject) => {
-      const request = index.getAll(orderId);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  async deleteUpload(id: string): Promise<void> {
-    if (!this.db) await this.init();
-    
-    const transaction = this.db!.transaction([UPLOAD_STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(UPLOAD_STORE_NAME);
-    await store.delete(id);
-  }
-}
-
-const persistence = new UploadPersistence();
-
 export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
   const [uploads, setUploads] = useState<ChunkedUploadItem[]>([]);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(true); // Сразу true
   const activeUploads = useRef<Map<string, AbortController>>(new Map());
   const uploadStartTimes = useRef<Map<string, number>>(new Map());
-
-  // Initialize and restore uploads from IndexedDB
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        await persistence.init();
-        const savedUploads = await persistence.getUploads(orderId);
-        
-        // Filter out completed/cancelled uploads and reset uploading ones to paused
-        const validUploads = savedUploads
-          .filter(upload => upload.status !== 'success' && upload.status !== 'cancelled')
-          .map(upload => ({
-            ...upload,
-            status: upload.status === 'uploading' ? 'paused' as const : upload.status,
-            chunks: upload.chunks.map(chunk => ({
-              ...chunk,
-              status: chunk.status === 'uploading' ? 'pending' as const : chunk.status
-            }))
-          }));
-          
-        setUploads(validUploads);
-        setIsInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize upload persistence:', error);
-        setIsInitialized(true);
-      }
-    };
-
-    initialize();
-  }, [orderId]);
 
   // Validate file
   const validateFile = (file: File): { valid: boolean; error?: string } => {
@@ -222,7 +118,8 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
 
     if (error) throw new Error(`Signature error: ${error.message}`);
     if (!data?.success) throw new Error(data?.error || 'Failed to get signature');
-
+    
+    console.log('🔐 Received signature:', data.data);
     return data.data;
   };
 
@@ -243,7 +140,7 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
       }
 
       try {
-        console.log(`📤 Uploading chunk ${chunk.index + 1} (${chunkData.size} bytes) for upload_id ${signature.upload_id}`);
+        console.log(`📤 Uploading chunk ${chunk.index + 1} (${chunkData.size} bytes)`);
 
         const formData = new FormData();
         formData.append('file', chunkData);
@@ -254,17 +151,6 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         formData.append('folder', signature.folder);
         formData.append('resource_type', signature.resource_type);
         formData.append('upload_id', signature.upload_id);
-        
-        console.log(`🔐 FormData parameters:`, {
-          api_key: signature.api_key,
-          timestamp: signature.timestamp,
-          signature: signature.signature,
-          public_id: signature.public_id,
-          folder: signature.folder,
-          resource_type: signature.resource_type,
-          upload_id: signature.upload_id,
-          chunk_range: `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
-        });
 
         const response = await fetch(
           `https://api.cloudinary.com/v1_1/${signature.cloud_name}/video/upload`,
@@ -272,62 +158,56 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
             method: 'POST',
             body: formData,
             headers: {
-              'Content-Range': `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
+              'Content-Range': `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`,
+              'X-Unique-Upload-Id': signature.upload_id
             },
             signal: abortController.signal
           }
         );
 
+        const responseText = await response.text();
+        console.log(`Response status: ${response.status}, body:`, responseText);
+
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          throw new Error(`HTTP ${response.status}: ${responseText}`);
         }
 
-        const result = await response.json();
+        const result = JSON.parse(responseText);
         
         if (result.error) {
           throw new Error(result.error.message || 'Chunk upload failed');
         }
 
-        // Check if this is the final chunk with complete video info
+        // Обработка последнего чанка
         if (result.secure_url && result.public_id) {
-          console.log(`✅ Final chunk received with URL: ${result.secure_url}`);
-          // Save the final video URL and metadata
+          console.log('✅ Final chunk uploaded, video ready:', result.secure_url);
           setUploads(prev => prev.map(upload => 
             upload.id === uploadId ? {
               ...upload,
               cloudinaryUrl: result.secure_url,
               publicId: result.public_id,
-              thumbnail: result.thumbnail_url,
-              chunks: upload.chunks.map(c => 
-                c.index === chunk.index 
-                  ? { ...c, status: 'completed' as const, etag: result.etag }
-                  : c
-              )
-            } : upload
-          ));
-        } else {
-          // Regular chunk completion
-          setUploads(prev => prev.map(upload => 
-            upload.id === uploadId ? {
-              ...upload,
-              chunks: upload.chunks.map(c => 
-                c.index === chunk.index 
-                  ? { ...c, status: 'completed' as const, etag: result.etag }
-                  : c
-              )
+              thumbnail: result.thumbnail_url
             } : upload
           ));
         }
 
-        console.log(`✅ Chunk ${chunk.index + 1} uploaded`, {
-          hasUrl: !!result.secure_url,
-          chunkIndex: chunk.index
-        });
+        // Обновление статуса чанка
+        setUploads(prev => prev.map(upload => 
+          upload.id === uploadId ? {
+            ...upload,
+            chunks: upload.chunks.map(c => 
+              c.index === chunk.index 
+                ? { ...c, status: 'completed' as const, etag: result.etag || 'done' }
+                : c
+            )
+          } : upload
+        ));
 
         return result.etag || 'completed';
 
       } catch (error: any) {
         lastError = error;
+        console.error(`Chunk ${chunk.index} upload error:`, error);
         
         if (error.name === 'AbortError' || abortController.signal.aborted) {
           throw new Error('Upload cancelled');
@@ -335,19 +215,8 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
 
         if (attempt < MAX_RETRIES) {
           const delay = RETRY_DELAY_BASE * Math.pow(2, attempt);
+          console.log(`⏳ Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
-          
-          // Update retry count
-          setUploads(prev => prev.map(upload => 
-            upload.id === uploadId ? {
-              ...upload,
-              chunks: upload.chunks.map(c => 
-                c.index === chunk.index 
-                  ? { ...c, retryCount: attempt + 1 }
-                  : c
-              )
-            } : upload
-          ));
         }
       }
     }
@@ -462,7 +331,6 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
 
       // Clean up - activeUploads is managed locally above
       uploadStartTimes.current.delete(uploadId);
-      await persistence.deleteUpload(uploadId);
 
       toast({
         title: "Видео загружено",
@@ -541,11 +409,6 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
 
     if (newUploads.length > 0) {
       setUploads(prev => [...prev, ...newUploads]);
-      
-      // Save to IndexedDB
-      newUploads.forEach(upload => {
-        persistence.saveUpload(upload).catch(console.error);
-      });
     }
   }, [orderId, uploads.length]);
 
@@ -576,7 +439,6 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
     }
 
     setUploads(prev => prev.filter(u => u.id !== uploadId));
-    await persistence.deleteUpload(uploadId);
   }, []);
 
   const retryUpload = useCallback((uploadId: string) => {
