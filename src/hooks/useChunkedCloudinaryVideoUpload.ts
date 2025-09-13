@@ -263,7 +263,7 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
           folder: signature.folder,
           resource_type: signature.resource_type,
           upload_id: signature.upload_id,
-          content_range: `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
+          chunk_range: `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
         });
 
         const response = await fetch(
@@ -272,8 +272,7 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
             method: 'POST',
             body: formData,
             headers: {
-              'Content-Range': `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`,
-              'X-Unique-Upload-Id': signature.upload_id
+              'Content-Range': `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
             },
             signal: abortController.signal
           }
