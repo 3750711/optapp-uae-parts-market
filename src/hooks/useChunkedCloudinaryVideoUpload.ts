@@ -47,6 +47,7 @@ interface CloudinarySignature {
   signature: string;
   public_id: string;
   folder: string;
+  upload_id: string;
 }
 
 // Constants
@@ -249,14 +250,16 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         formData.append('public_id', signature.public_id);
         formData.append('folder', signature.folder);
         formData.append('resource_type', 'video');
-        formData.append('chunk_size', CHUNK_SIZE.toString());
-        formData.append('chunk_index', chunk.index.toString());
+        formData.append('upload_id', signature.upload_id);
 
         const response = await fetch(
           `https://api.cloudinary.com/v1_1/${signature.cloud_name}/video/upload`,
           {
             method: 'POST',
             body: formData,
+            headers: {
+              'Content-Range': `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
+            },
             signal: abortController.signal
           }
         );
@@ -314,48 +317,6 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
     throw lastError || new Error('Chunk upload failed after retries');
   };
 
-  // Finalize upload
-  const finalizeUpload = async (
-    uploadId: string,
-    signature: CloudinarySignature,
-    chunks: ChunkInfo[]
-  ): Promise<UploadedVideo> => {
-    const formData = new FormData();
-    formData.append('api_key', signature.api_key);
-    formData.append('timestamp', signature.timestamp.toString());
-    formData.append('signature', signature.signature);
-    formData.append('public_id', signature.public_id);
-    formData.append('resource_type', 'video');
-    formData.append('final', 'true');
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${signature.cloud_name}/video/upload`,
-      {
-        method: 'POST',
-        body: formData
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`Finalization failed: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    
-    if (result.error) {
-      throw new Error(result.error.message || 'Finalization failed');
-    }
-
-    return {
-      public_id: result.public_id,
-      secure_url: result.secure_url,
-      format: result.format,
-      bytes: result.bytes,
-      duration: result.duration,
-      width: result.width,
-      height: result.height
-    };
-  };
 
   // Start upload for a single file
   const startUpload = async (uploadId: string) => {
@@ -441,8 +402,11 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         await Promise.race(Array.from(activeUploads));
       }
 
-      // Finalize the upload
-      const result = await finalizeUpload(uploadId, signature, upload.chunks);
+      // Check if we have the final result from the last chunk
+      const currentUpload = uploads.find(u => u.id === uploadId);
+      if (!currentUpload?.cloudinaryUrl) {
+        throw new Error('Upload completed but no video URL received');
+      }
 
       // Update to success
       setUploads(prev => prev.map(u => 
@@ -451,9 +415,7 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
               ...u, 
               status: 'success',
               progress: 100,
-              uploadedBytes: u.totalBytes,
-              cloudinaryUrl: result.secure_url,
-              publicId: result.public_id
+              uploadedBytes: u.totalBytes
             }
           : u
       ));
@@ -467,7 +429,17 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         description: `${upload.file.name} успешно загружен`,
       });
 
-      return result;
+      // Return the current upload data with cloudinary info
+      const finalUpload = uploads.find(u => u.id === uploadId);
+      return {
+        public_id: finalUpload?.publicId || '',
+        secure_url: finalUpload?.cloudinaryUrl || '',
+        format: 'mp4',
+        bytes: upload.file.size,
+        duration: 0,
+        width: 0,
+        height: 0
+      };
 
     } catch (error: any) {
       console.error('Upload failed:', error);
