@@ -53,7 +53,7 @@ interface CloudinarySignature {
 
 // Constants
 const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunks
-const MAX_CONCURRENT_CHUNKS = 3;
+const MAX_CONCURRENT_CHUNKS = 1; // Sequential upload required for video
 const MAX_RETRIES = 5;
 const RETRY_DELAY_BASE = 1000;
 const MAX_FILE_SIZE = 1024 * 1024 * 1024; // 1GB
@@ -272,7 +272,8 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
             method: 'POST',
             body: formData,
             headers: {
-              'Content-Range': `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
+              'Content-Range': `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`,
+              'X-Unique-Upload-Id': signature.upload_id
             },
             signal: abortController.signal
           }
@@ -288,17 +289,41 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
           throw new Error(result.error.message || 'Chunk upload failed');
         }
 
-        // Update chunk status
-        setUploads(prev => prev.map(upload => 
-          upload.id === uploadId ? {
-            ...upload,
-            chunks: upload.chunks.map(c => 
-              c.index === chunk.index 
-                ? { ...c, status: 'completed' as const, etag: result.etag }
-                : c
-            )
-          } : upload
-        ));
+        // Check if this is the final chunk with complete video info
+        if (result.secure_url && result.public_id) {
+          console.log(`✅ Final chunk received with URL: ${result.secure_url}`);
+          // Save the final video URL and metadata
+          setUploads(prev => prev.map(upload => 
+            upload.id === uploadId ? {
+              ...upload,
+              cloudinaryUrl: result.secure_url,
+              publicId: result.public_id,
+              thumbnail: result.thumbnail_url,
+              chunks: upload.chunks.map(c => 
+                c.index === chunk.index 
+                  ? { ...c, status: 'completed' as const, etag: result.etag }
+                  : c
+              )
+            } : upload
+          ));
+        } else {
+          // Regular chunk completion
+          setUploads(prev => prev.map(upload => 
+            upload.id === uploadId ? {
+              ...upload,
+              chunks: upload.chunks.map(c => 
+                c.index === chunk.index 
+                  ? { ...c, status: 'completed' as const, etag: result.etag }
+                  : c
+              )
+            } : upload
+          ));
+        }
+
+        console.log(`✅ Chunk ${chunk.index + 1} uploaded`, {
+          hasUrl: !!result.secure_url,
+          chunkIndex: chunk.index
+        });
 
         return result.etag || 'completed';
 
@@ -416,9 +441,11 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         await Promise.race(Array.from(activeUploads));
       }
 
-      // Check if we have the final result from the last chunk
+      // Wait a moment for state to update, then check for final URL
+      await new Promise(resolve => setTimeout(resolve, 100));
       const currentUpload = uploads.find(u => u.id === uploadId);
       if (!currentUpload?.cloudinaryUrl) {
+        console.error('No video URL received after all chunks uploaded');
         throw new Error('Upload completed but no video URL received');
       }
 
