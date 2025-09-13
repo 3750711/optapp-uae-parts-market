@@ -30,6 +30,8 @@ interface SignResponse {
   public_id: string;
   signature: string;
   upload_url: string;
+  // Additional fields for chunked uploads
+  chunk_size?: number;
 }
 
 Deno.serve(async (req) => {
@@ -130,7 +132,8 @@ Deno.serve(async (req) => {
       folder,
       public_id,
       signature,
-      upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
+      upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      chunk_size: 6 * 1024 * 1024 // 6MB chunks for large uploads
     };
 
     // Return canonical contract: {success: true, data: {...}}

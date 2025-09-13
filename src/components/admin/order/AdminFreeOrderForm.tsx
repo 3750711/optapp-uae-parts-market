@@ -3,7 +3,7 @@ import { useAdminFreeOrderSubmission } from '@/hooks/admin-order/useAdminFreeOrd
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
 import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
-import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
+import ChunkedVideoUploader from '@/components/ui/ChunkedVideoUploader';
 import { CreatedOrderView } from './CreatedOrderView';
 import { TelegramOrderParser } from './TelegramOrderParser';
 import { Button } from '@/components/ui/button';
@@ -104,7 +104,8 @@ export const AdminFreeOrderForm = () => {
     setAllImages(completedUrls);
   };
 
-  const onVideoUpload = (urls: string[]) => {
+  const onVideoUpload = (uploadedVideos: any[]) => {
+    const urls = uploadedVideos.map(video => video.secure_url);
     setVideos(prev => [...prev, ...urls]);
   };
 
@@ -345,12 +346,11 @@ export const AdminFreeOrderForm = () => {
       </MobileFormSection>
 
       <MobileFormSection title="Видео">
-        <CloudinaryVideoUpload
-          videos={videos}
-          onUpload={onVideoUpload}
-          onDelete={onVideoDelete}
-          disabled={isFormDisabled}
+        <ChunkedVideoUploader
+          orderId={formData.orderId || 'temp'}
+          onUploaded={onVideoUpload}
           maxVideos={3}
+          disabled={isFormDisabled}
         />
       </MobileFormSection>
 
