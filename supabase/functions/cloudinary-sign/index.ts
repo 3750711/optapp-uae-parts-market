@@ -28,6 +28,7 @@ interface SignResponse {
   timestamp: number;
   folder: string;
   public_id: string;
+  resource_type: string;
   signature: string;
   upload_url: string;
   // Additional fields for chunked uploads
@@ -165,8 +166,11 @@ Deno.serve(async (req) => {
     const upload_id = crypto.randomUUID(); // Generate unique upload_id for chunked upload
 
     // Create signature string (alphabetically sorted parameters)
-    const signatureString = `folder=${folder}&public_id=${public_id}&timestamp=${timestamp}&upload_id=${upload_id}`;
+    const signatureString = `folder=${folder}&public_id=${public_id}&resource_type=video&timestamp=${timestamp}&upload_id=${upload_id}`;
     const signature = await sha1(signatureString + API_SECRET);
+    
+    console.log(`🔐 Signature string: folder=${folder}&public_id=${public_id}&resource_type=video&timestamp=${timestamp}&upload_id=${upload_id}&[SECRET]`);
+    console.log(`🔐 Generated signature: ${signature}`);
 
     const signatureData: SignResponse = {
       cloud_name: CLOUD_NAME,
@@ -174,6 +178,7 @@ Deno.serve(async (req) => {
       timestamp,
       folder,
       public_id,
+      resource_type: 'video',
       signature,
       upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`,
       chunk_size: 6 * 1024 * 1024, // 6MB chunks for large uploads

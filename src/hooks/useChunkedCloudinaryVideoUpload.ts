@@ -47,6 +47,7 @@ interface CloudinarySignature {
   signature: string;
   public_id: string;
   folder: string;
+  resource_type: string;
   upload_id: string;
 }
 
@@ -242,6 +243,8 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
       }
 
       try {
+        console.log(`📤 Uploading chunk ${chunk.index + 1} (${chunkData.size} bytes) for upload_id ${signature.upload_id}`);
+
         const formData = new FormData();
         formData.append('file', chunkData);
         formData.append('api_key', signature.api_key);
@@ -249,8 +252,19 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         formData.append('signature', signature.signature);
         formData.append('public_id', signature.public_id);
         formData.append('folder', signature.folder);
-        formData.append('resource_type', 'video');
+        formData.append('resource_type', signature.resource_type);
         formData.append('upload_id', signature.upload_id);
+        
+        console.log(`🔐 FormData parameters:`, {
+          api_key: signature.api_key,
+          timestamp: signature.timestamp,
+          signature: signature.signature,
+          public_id: signature.public_id,
+          folder: signature.folder,
+          resource_type: signature.resource_type,
+          upload_id: signature.upload_id,
+          content_range: `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
+        });
 
         const response = await fetch(
           `https://api.cloudinary.com/v1_1/${signature.cloud_name}/video/upload`,
