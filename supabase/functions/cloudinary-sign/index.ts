@@ -49,7 +49,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Public endpoint - no authentication required for staging uploads
+    // Authentication required
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // Initialize Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
+    );
+
+    // Verify user authentication
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // Check user role (admin or seller)
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('user_type')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile || !['admin', 'seller'].includes(profile.user_type)) {
+      return new Response(
+        JSON.stringify({ error: 'Insufficient permissions' }),
+        { status: 403, headers: corsHeaders }
+      );
+    }
 
     // Parse request body
     const { orderId, sessionId }: SignRequest = await req.json();
@@ -132,7 +173,7 @@ Deno.serve(async (req) => {
       folder,
       public_id,
       signature,
-      upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload_large`,
       chunk_size: 6 * 1024 * 1024 // 6MB chunks for large uploads
     };
 

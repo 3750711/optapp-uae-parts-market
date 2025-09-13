@@ -173,6 +173,11 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
       return { valid: false, error: `Файл превышает максимальный размер ${MAX_FILE_SIZE / (1024 * 1024 * 1024)}GB` };
     }
 
+    // Check MIME type first
+    if (!file.type.startsWith('video/')) {
+      return { valid: false, error: 'Неверный тип файла. Пожалуйста, загрузите видео файл.' };
+    }
+
     const extension = file.name.split('.').pop()?.toLowerCase();
     if (!extension || !SUPPORTED_FORMATS.includes(extension)) {
       return { valid: false, error: `Поддерживаются только форматы: ${SUPPORTED_FORMATS.join(', ')}` };
@@ -372,69 +377,69 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
       const signature = await getSignature();
       const pendingChunks = upload.chunks.filter(c => c.status !== 'completed');
       
-      // Upload chunks in parallel batches
-      const uploadPromises: Promise<void>[] = [];
-      let concurrentUploads = 0;
+      // Upload chunks with proper concurrency control
+      const activeUploads = new Set<Promise<void>>();
+      let chunkIndex = 0;
 
-      for (const chunk of pendingChunks) {
-        if (concurrentUploads >= MAX_CONCURRENT_CHUNKS) {
-          await Promise.race(uploadPromises);
-          // Remove completed promises
-          const completedIndex = uploadPromises.findIndex(p => p === p);
-          if (completedIndex >= 0) {
-            uploadPromises.splice(completedIndex, 1);
-            concurrentUploads--;
-          }
-        }
+      const processNextChunk = async (): Promise<void> => {
+        if (chunkIndex >= pendingChunks.length) return;
+        
+        const chunk = pendingChunks[chunkIndex++];
+        
+        try {
+          await uploadChunk(uploadId, chunk, upload.file, signature, abortController);
+          
+          // Update progress after each chunk
+          const currentUpload = uploads.find(u => u.id === uploadId);
+          if (currentUpload) {
+            const completedChunks = currentUpload.chunks.filter(c => c.status === 'completed').length;
+            const progress = Math.round((completedChunks / currentUpload.chunks.length) * 100);
+            const uploadedBytes = completedChunks * CHUNK_SIZE;
+            
+            // Calculate speed and ETA
+            const elapsed = Date.now() - uploadStartTimes.current.get(uploadId)!;
+            const speed = uploadedBytes / (elapsed / 1000);
+            const remainingBytes = currentUpload.totalBytes - uploadedBytes;
+            const eta = remainingBytes / speed;
 
-        const uploadPromise = uploadChunk(uploadId, chunk, upload.file, signature, abortController)
-          .then(() => {
-            // Update progress
-            const currentUpload = uploads.find(u => u.id === uploadId);
-            if (currentUpload) {
-              const completedChunks = currentUpload.chunks.filter(c => c.status === 'completed').length + 1;
-              const progress = Math.round((completedChunks / currentUpload.chunks.length) * 100);
-              const uploadedBytes = completedChunks * CHUNK_SIZE;
-              
-              // Calculate speed and ETA
-              const elapsed = Date.now() - uploadStartTimes.current.get(uploadId)!;
-              const speed = uploadedBytes / (elapsed / 1000);
-              const remainingBytes = currentUpload.totalBytes - uploadedBytes;
-              const eta = remainingBytes / speed;
-
-              setUploads(prev => prev.map(u => 
-                u.id === uploadId 
-                  ? { 
-                      ...u, 
-                      progress, 
-                      uploadedBytes,
-                      uploadSpeed: speed,
-                      eta: eta > 0 ? eta : undefined
-                    }
-                  : u
-              ));
-            }
-          })
-          .catch(error => {
             setUploads(prev => prev.map(u => 
-              u.id === uploadId ? {
-                ...u,
-                chunks: u.chunks.map(c => 
-                  c.index === chunk.index 
-                    ? { ...c, status: 'error' as const }
-                    : c
-                )
-              } : u
+              u.id === uploadId 
+                ? { 
+                    ...u, 
+                    progress, 
+                    uploadedBytes,
+                    uploadSpeed: speed,
+                    eta: eta > 0 ? eta : undefined
+                  }
+                : u
             ));
-            throw error;
-          });
+          }
+        } catch (error) {
+          console.error(`Chunk ${chunk.index} upload error:`, error);
+          throw error;
+        }
+      };
 
-        uploadPromises.push(uploadPromise);
-        concurrentUploads++;
+      // Start initial batch of concurrent uploads
+      for (let i = 0; i < Math.min(MAX_CONCURRENT_CHUNKS, pendingChunks.length); i++) {
+        const uploadPromise = processNextChunk();
+        activeUploads.add(uploadPromise);
+        
+        uploadPromise.finally(() => {
+          activeUploads.delete(uploadPromise);
+          // Start next chunk if available and upload still active
+          if (chunkIndex < pendingChunks.length && upload.status === 'uploading') {
+            const nextUpload = processNextChunk();
+            activeUploads.add(nextUpload);
+            nextUpload.finally(() => activeUploads.delete(nextUpload));
+          }
+        });
       }
-
-      // Wait for all chunks to complete
-      await Promise.all(uploadPromises);
+      
+      // Wait for all uploads to complete
+      while (activeUploads.size > 0) {
+        await Promise.race(Array.from(activeUploads));
+      }
 
       // Finalize the upload
       const result = await finalizeUpload(uploadId, signature, upload.chunks);
@@ -453,8 +458,7 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
           : u
       ));
 
-      // Clean up
-      activeUploads.current.delete(uploadId);
+      // Clean up - activeUploads is managed locally above
       uploadStartTimes.current.delete(uploadId);
       await persistence.deleteUpload(uploadId);
 
@@ -478,7 +482,7 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
           : u
       ));
 
-      activeUploads.current.delete(uploadId);
+      // Clean up - activeUploads is managed locally above
       uploadStartTimes.current.delete(uploadId);
 
       toast({
