@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
       folder,
       public_id,
       signature,
-      upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload_large`,
+      upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`,
       chunk_size: 6 * 1024 * 1024 // 6MB chunks for large uploads
     };
 

@@ -253,7 +253,7 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         formData.append('chunk_index', chunk.index.toString());
 
         const response = await fetch(
-          `https://api.cloudinary.com/v1_1/${signature.cloud_name}/video/upload_large`,
+          `https://api.cloudinary.com/v1_1/${signature.cloud_name}/video/upload`,
           {
             method: 'POST',
             body: formData,
@@ -329,7 +329,7 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
     formData.append('final', 'true');
 
     const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${signature.cloud_name}/video/upload_large`,
+      `https://api.cloudinary.com/v1_1/${signature.cloud_name}/video/upload`,
       {
         method: 'POST',
         body: formData
