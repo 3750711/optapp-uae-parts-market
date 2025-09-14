@@ -514,8 +514,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         });
         
-        // Don't await the state check, let it run in background
-        checkStateUpdate();
+        // Wait for state update to complete before returning
+        await checkStateUpdate();
       }
       
       return { user: data.user, error: null };

@@ -153,7 +153,10 @@ const Login = () => {
         description: t.welcomeBack,
       });
       
-      navigate(from, { replace: true });
+      // Add delay to allow AuthContext state to stabilize before navigation
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 300);
     } catch (err) {
       console.error('Login error:', err);
       setAuthError(createAuthError(AuthErrorType.NETWORK_ERROR));

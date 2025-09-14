@@ -1,5 +1,5 @@
-import React from 'react';
-import { Navigate, useLocation } from "react-router-dom";
+import React, { useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthWithProfile } from "@/hooks/useAuthWithProfile";
 import { devLog } from "@/utils/logger";
 import { redirectProtection } from "@/utils/redirectProtection";
@@ -11,6 +11,8 @@ interface HomeRedirectProps {
 const HomeRedirect = ({ children }: HomeRedirectProps) => {
   const { user, profile, isLoading } = useAuthWithProfile();
   const location = useLocation();
+  const navigate = useNavigate();
+  const hasRedirectedRef = useRef(false);
   
   console.log("🚀 HomeRedirect: Auth state check:", { 
     user: !!user, 
@@ -82,10 +84,18 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
       }
     }
     
-    // Perform redirect if needed
+    // Perform redirect if needed with delay to prevent race conditions
     if (redirectTarget && redirectProtection.canRedirect(location.pathname, redirectTarget)) {
-      console.log("🚀 HomeRedirect: Redirecting to:", redirectTarget);
-      return <Navigate to={redirectTarget} replace />;
+      console.log("🚀 HomeRedirect: Scheduling redirect to:", redirectTarget);
+      
+      // Use delayed redirect to prevent NS_BINDING_ABORTED
+      if (!hasRedirectedRef.current) {
+        hasRedirectedRef.current = true;
+        setTimeout(() => {
+          console.log("🚀 HomeRedirect: Executing delayed redirect to:", redirectTarget);
+          navigate(redirectTarget, { replace: true });
+        }, 100);
+      }
     }
   }
   
