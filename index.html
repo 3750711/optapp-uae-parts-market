@@ -9,8 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Preload critical CSS to prevent FOUC -->
-    <link rel="modulepreload" href="/src/main.tsx">
+    <!-- Critical resources will be preloaded by Vite automatically -->
     
     <!-- Google Fonts - async loading to prevent FOUT -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -82,6 +81,6 @@
         document.head.appendChild(script);
       }
     </script>
-    <script type="module" src="/src/main.tsx"></script>
+    <!-- Main script will be injected by Vite build process -->
   </body>
 </html>

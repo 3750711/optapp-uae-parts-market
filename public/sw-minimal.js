@@ -1,7 +1,7 @@
 // Minimal Service Worker - offline fallback only with NS_ERROR_CORRUPTED_CONTENT fix
-// Version: 3.2.0 - Enhanced auth protection and JavaScript file safety
+// Version: 3.2.1 - Fixed .tsx production build references
 
-const CACHE_NAME = 'offline-fallback-v3-2';
+const CACHE_NAME = 'offline-fallback-v3-2-1';
 const OFFLINE_HTML = '/index.html';
 
 // 🚨 CRITICAL: Enhanced auth request detection to prevent corruption
