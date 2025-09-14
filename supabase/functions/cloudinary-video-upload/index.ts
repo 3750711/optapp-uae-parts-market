@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
     let file: File | null = null;
     let productId: string | undefined;
     let customPublicId: string | undefined;
+    let isChunkedUpload = false;
 
     const contentType = req.headers.get('content-type') || '';
     
@@ -92,7 +93,7 @@ Deno.serve(async (req) => {
       // Проверяем, это чанкованная загрузка?
       const chunkIndex = formData.get('chunkIndex');
       const totalChunks = formData.get('totalChunks');
-      const isChunkedUpload = chunkIndex !== null && totalChunks !== null;
+      isChunkedUpload = chunkIndex !== null && totalChunks !== null;
 
       if (isChunkedUpload) {
         const isLastChunk = formData.get('isLastChunk') === 'true';
@@ -114,6 +115,31 @@ Deno.serve(async (req) => {
         
         // Для последнего чанка продолжаем обычную обработку
         console.log('🎬 Processing final chunk, creating video...');
+        
+        // Валидация последнего чанка с использованием оригинальных данных
+        const fileExtension = fileName.split('.').pop()?.toLowerCase();
+        console.log('🔍 Final chunk validation:', {
+          fileName: fileName,
+          extension: fileExtension,
+          allowedFormats: ALLOWED_VIDEO_FORMATS,
+          totalFileSize: fileSize
+        });
+        
+        if (!fileExtension || !ALLOWED_VIDEO_FORMATS.includes(fileExtension)) {
+          throw new Error(`Unsupported video format. Allowed: ${ALLOWED_VIDEO_FORMATS.join(', ')}`);
+        }
+
+        // Проверка размера файла для чанкованной загрузки
+        const fileSizeMB = fileSize / (1024 * 1024);
+        console.log('📏 Final chunk size check:', {
+          sizeBytes: fileSize,
+          sizeMB: fileSizeMB.toFixed(2),
+          maxMB: MAX_VIDEO_SIZE_MB
+        });
+        
+        if (fileSizeMB > MAX_VIDEO_SIZE_MB) {
+          throw new Error(`Video file too large. Max size: ${MAX_VIDEO_SIZE_MB}MB, your file: ${fileSizeMB.toFixed(2)}MB`);
+        }
       }
     } else {
       // Fallback JSON path (base64)
@@ -141,41 +167,45 @@ Deno.serve(async (req) => {
       throw new Error('No video file provided');
     }
 
-    // Унифицированная валидация файлов
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
-    console.log('🔍 File validation:', {
-      fileName: file.name,
-      extension: fileExtension,
-      allowedFormats: ALLOWED_VIDEO_FORMATS,
-      fileType: file.type
-    });
-    
-    if (!fileExtension || !ALLOWED_VIDEO_FORMATS.includes(fileExtension)) {
-      throw new Error(`Unsupported video format. Allowed: ${ALLOWED_VIDEO_FORMATS.join(', ')}`);
-    }
+    // Валидация только для не-чанкованных загрузок
+    // (для чанкованных загрузок валидация уже выполнена выше)
+    if (!isChunkedUpload) {
+      // Унифицированная валидация файлов для обычных загрузок
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      console.log('🔍 File validation:', {
+        fileName: file.name,
+        extension: fileExtension,
+        allowedFormats: ALLOWED_VIDEO_FORMATS,
+        fileType: file.type
+      });
+      
+      if (!fileExtension || !ALLOWED_VIDEO_FORMATS.includes(fileExtension)) {
+        throw new Error(`Unsupported video format. Allowed: ${ALLOWED_VIDEO_FORMATS.join(', ')}`);
+      }
 
-    // Унифицированная проверка MIME типов
-    const allowedMimeTypes = [
-      'video/mp4', 
-      'video/webm', 
-      'video/quicktime', 
-      'video/x-msvideo'
-    ];
-    
-    if (!allowedMimeTypes.includes(file.type) && !file.type.startsWith('video/')) {
-      throw new Error(`Invalid MIME type: ${file.type}. Expected video file.`);
-    }
+      // Унифицированная проверка MIME типов
+      const allowedMimeTypes = [
+        'video/mp4', 
+        'video/webm', 
+        'video/quicktime', 
+        'video/x-msvideo'
+      ];
+      
+      if (!allowedMimeTypes.includes(file.type) && !file.type.startsWith('video/')) {
+        throw new Error(`Invalid MIME type: ${file.type}. Expected video file.`);
+      }
 
-    // Унифицированная проверка размера файла (20MB как у изображений)
-    const fileSizeMB = file.size / (1024 * 1024);
-    console.log('📏 File size check:', {
-      sizeBytes: file.size,
-      sizeMB: fileSizeMB.toFixed(2),
-      maxMB: MAX_VIDEO_SIZE_MB
-    });
-    
-    if (fileSizeMB > MAX_VIDEO_SIZE_MB) {
-      throw new Error(`Video file too large. Max size: ${MAX_VIDEO_SIZE_MB}MB, your file: ${fileSizeMB.toFixed(2)}MB`);
+      // Унифицированная проверка размера файла (20MB как у изображений)
+      const fileSizeMB = file.size / (1024 * 1024);
+      console.log('📏 File size check:', {
+        sizeBytes: file.size,
+        sizeMB: fileSizeMB.toFixed(2),
+        maxMB: MAX_VIDEO_SIZE_MB
+      });
+      
+      if (fileSizeMB > MAX_VIDEO_SIZE_MB) {
+        throw new Error(`Video file too large. Max size: ${MAX_VIDEO_SIZE_MB}MB, your file: ${fileSizeMB.toFixed(2)}MB`);
+      }
     }
 
     console.log('📹 Starting video upload to Cloudinary:', {
