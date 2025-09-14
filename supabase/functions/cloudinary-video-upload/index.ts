@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         console.log('🎬 Processing final chunk, creating video...');
         
         // Валидация последнего чанка с использованием оригинальных данных
-        const fileExtension = fileName.split('.').pop()?.toLowerCase();
+        fileExtension = fileName.split('.').pop()?.toLowerCase();
         console.log('🔍 Final chunk validation:', {
           fileName: fileName,
           extension: fileExtension,
@@ -167,11 +167,14 @@ Deno.serve(async (req) => {
       throw new Error('No video file provided');
     }
 
+    // Определяем fileExtension в глобальной области видимости
+    let fileExtension: string | undefined;
+    
     // Валидация только для не-чанкованных загрузок
     // (для чанкованных загрузок валидация уже выполнена выше)
     if (!isChunkedUpload) {
       // Унифицированная валидация файлов для обычных загрузок
-      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      fileExtension = file.name.split('.').pop()?.toLowerCase();
       console.log('🔍 File validation:', {
         fileName: file.name,
         extension: fileExtension,
