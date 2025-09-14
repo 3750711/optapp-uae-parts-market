@@ -49,6 +49,7 @@ interface CloudinarySignature {
   folder: string;
   resource_type: string;
   upload_id: string;
+  chunk_size?: number;
 }
 
 // Constants
@@ -148,7 +149,19 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         formData.append('timestamp', signature.timestamp.toString());
         formData.append('signature', signature.signature);
         formData.append('public_id', signature.public_id);
+        formData.append('folder', signature.folder); // ДОБАВИТЬ!
+        formData.append('resource_type', signature.resource_type); // ДОБАВИТЬ!
         formData.append('upload_id', signature.upload_id);
+
+        // Логирование для отладки
+        console.log('🔐 Sending chunk with params:', {
+          chunk_index: chunk.index,
+          chunk_size: chunkData.size,
+          upload_id: signature.upload_id,
+          folder: signature.folder,
+          resource_type: signature.resource_type,
+          content_range: `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
+        });
 
         const response = await fetch(
           `https://api.cloudinary.com/v1_1/${signature.cloud_name}/video/upload`,
@@ -156,7 +169,8 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
             method: 'POST',
             body: formData,
             headers: {
-              'Content-Range': `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
+              'Content-Range': `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`,
+              'X-Unique-Upload-Id': signature.upload_id
             },
             signal: abortController.signal
           }
@@ -166,7 +180,15 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         console.log(`Response status: ${response.status}, body:`, responseText);
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${responseText}`);
+          console.error(`❌ Chunk upload failed: ${response.status}`, responseText);
+          
+          // Парсим ошибку Cloudinary
+          try {
+            const errorData = JSON.parse(responseText);
+            throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+          } catch {
+            throw new Error(`HTTP ${response.status}: ${responseText}`);
+          }
         }
 
         const result = JSON.parse(responseText);
@@ -175,20 +197,27 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
           throw new Error(result.error.message || 'Chunk upload failed');
         }
 
-        // Обработка последнего чанка
+        // Обработка успешного ответа
+        console.log(`✅ Chunk ${chunk.index + 1} uploaded`, {
+          hasUrl: !!result.secure_url,
+          hasPublicId: !!result.public_id,
+          done: result.done
+        });
+
+        // Сохраняем URL если это последний чанк
         if (result.secure_url && result.public_id) {
-          console.log('✅ Final chunk uploaded, video ready:', result.secure_url);
+          console.log('🎬 Final chunk uploaded, video ready:', result.secure_url);
           setUploads(prev => prev.map(upload => 
             upload.id === uploadId ? {
               ...upload,
               cloudinaryUrl: result.secure_url,
               publicId: result.public_id,
-              thumbnail: result.thumbnail_url
+              thumbnail: result.thumbnail_url || result.secure_url.replace(/\.(mp4|mov|webm|avi)$/i, '.jpg')
             } : upload
           ));
         }
 
-        // Обновление статуса чанка
+        // Обновляем статус чанка
         setUploads(prev => prev.map(upload => 
           upload.id === uploadId ? {
             ...upload,
@@ -204,15 +233,27 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
 
       } catch (error: any) {
         lastError = error;
-        console.error(`Chunk ${chunk.index} upload error:`, error);
+        console.error(`❌ Chunk ${chunk.index} error:`, error.message);
         
         if (error.name === 'AbortError' || abortController.signal.aborted) {
           throw new Error('Upload cancelled');
         }
 
+        // Обновляем счетчик повторов
+        setUploads(prev => prev.map(upload => 
+          upload.id === uploadId ? {
+            ...upload,
+            chunks: upload.chunks.map(c => 
+              c.index === chunk.index 
+                ? { ...c, retryCount: attempt + 1 }
+                : c
+            )
+          } : upload
+        ));
+
         if (attempt < MAX_RETRIES) {
           const delay = RETRY_DELAY_BASE * Math.pow(2, attempt);
-          console.log(`⏳ Retrying in ${delay}ms...`);
+          console.log(`⏳ Retrying chunk ${chunk.index + 1} in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
@@ -307,11 +348,12 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
       }
 
       // Wait a moment for state to update, then check for final URL
-      await new Promise(resolve => setTimeout(resolve, 100));
-      const currentUpload = uploads.find(u => u.id === uploadId);
-      if (!currentUpload?.cloudinaryUrl) {
-        console.error('No video URL received after all chunks uploaded');
-        throw new Error('Upload completed but no video URL received');
+      await new Promise(resolve => setTimeout(resolve, 500)); // Даем время на обновление state
+      
+      const finalUpload = uploads.find(u => u.id === uploadId);
+      if (!finalUpload?.cloudinaryUrl) {
+        console.error('No video URL received. Final upload state:', finalUpload);
+        throw new Error('Upload completed but no video URL received. Please try again.');
       }
 
       // Update to success
@@ -335,10 +377,10 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
       });
 
       // Return the current upload data with cloudinary info
-      const finalUpload = uploads.find(u => u.id === uploadId);
+      const completedUpload = uploads.find(u => u.id === uploadId);
       return {
-        public_id: finalUpload?.publicId || '',
-        secure_url: finalUpload?.cloudinaryUrl || '',
+        public_id: completedUpload?.publicId || '',
+        secure_url: completedUpload?.cloudinaryUrl || '',
         format: 'mp4',
         bytes: upload.file.size,
         duration: 0,
