@@ -35,10 +35,31 @@ if (!validation.isValid) {
 // Create Supabase client with runtime configuration
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { 
-    persistSession: true, 
-    autoRefreshToken: true, 
-    detectSessionInUrl: true, 
-    flowType: 'pkce' 
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    // Добавляем кастомные настройки storage
+    storage: {
+      getItem: (key) => {
+        if (typeof window !== 'undefined') {
+          return window.localStorage.getItem(key);
+        }
+        return null;
+      },
+      setItem: (key, value) => {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(key, value);
+        }
+      },
+      removeItem: (key) => {
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(key);
+        }
+      },
+    },
+    storageKey: 'partsbay-auth-token', // Уникальный ключ
+    debug: import.meta.env.DEV, // Отключаем debug для продакшена
   },
   global: { 
     headers: { 'x-client-info': 'partsbay-web' },

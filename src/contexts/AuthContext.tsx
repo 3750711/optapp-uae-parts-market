@@ -325,31 +325,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Additional session validation with timeout protection
-        const controller = new AbortController();
-        setTimeout(() => controller.abort(), 5000); // 5-second timeout
-        
-        setTimeout(async () => {
-          try {
-            const { data } = await supabase.auth.getSession();
-            if (!data.session && user) {
-              // Try backup restore before signing out
-              const backupSession = sessionBackupManager.restoreSession();
-              if (backupSession && backupSession.user?.id === user.id) {
-                setSession(backupSession);
-                console.log('🔄 Session restored from backup after background return');
-              } else {
-                signOut();
-              }
-            } else if (FLAGS.DEBUG_AUTH) {
-              console.debug('[AuthProvider] Session validated successfully after background return');
-            }
-          } catch (error) {
-            if (error.name !== 'AbortError') {
-              console.warn('[AuthProvider] Session validation failed:', error);
-            }
-          }
-        }, 100);
+        // Session validation removed - let Supabase SDK manage sessions
       }
     };
 
@@ -430,7 +406,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const sessionNow = Math.floor(Date.now() / 1000);
         const expiresIn = session.expires_at - sessionNow;
         
-        if (expiresIn < 900 && expiresIn > 0) { // Less than 15 minutes
+        if (expiresIn < 1800 && expiresIn > 0) { // Less than 30 minutes
           if (FLAGS.DEBUG_AUTH) {
             console.debug('[PWA SESSION MONITOR] Token expires in', expiresIn, 'seconds, refreshing proactively');
           }
@@ -447,7 +423,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
-    }, 10 * 60 * 1000); // Every 10 minutes - optimized frequency
+    }, 30 * 60 * 1000); // Every 30 minutes - optimized frequency
     
     return () => {
       clearInterval(monitorInterval);

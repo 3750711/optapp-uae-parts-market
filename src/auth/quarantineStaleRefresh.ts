@@ -32,33 +32,23 @@ function hasStoredTokenForRef(anon?: string): boolean {
  */
 export async function quarantineStaleRefreshTokens(): Promise<void> {
   try {
-    // Small delay to allow SDK to initialize and attempt refresh
-    await new Promise(resolve => setTimeout(resolve, 400));
+    // Увеличиваем задержку до 2 секунд
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     const { data: { session }, error } = await supabase.auth.getSession();
-    const anonKey = getRuntimeAnonKey();
-    const hadStored = hasStoredTokenForRef(anonKey);
-
-    // При CORS/Network ошибках очищаем auth storage
-    if (error && (error.message.includes('CORS') || error.message.includes('NetworkError'))) {
-      console.warn('[AUTH] CORS/Network error detected, clearing auth storage');
-      clearAuthOnCORSError();
+    
+    // Только очищаем если явная ошибка refresh token
+    if (error?.message?.includes('Invalid Refresh Token')) {
+      console.warn('[AUTH] Invalid refresh token detected, clearing storage');
+      clearAuthStorageSafe();
       return;
     }
-
-    // Case from logs: 400 Invalid Refresh Token -> session == null, but keys remain
-    if (!session && hadStored) {
-      console.warn('[AUTH] Quarantine stale refresh token (clearing project storage)');
-      clearAuthStorageSafe();
-    }
+    
+    // НЕ очищаем storage просто потому что нет сессии
+    // Пусть Supabase сам управляет жизненным циклом токенов
+    
   } catch (error) {
-    // Если ошибка связана с сетью/CORS - очищаем auth storage
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('CORS') || errorMessage.includes('NetworkError') || errorMessage.includes('fetch')) {
-      console.warn('[AUTH] Network/CORS error in quarantine check, clearing auth storage');
-      clearAuthOnCORSError();
-    } else {
-      console.warn('[AUTH] Quarantine check failed:', error);
-    }
+    console.warn('[AUTH] Quarantine check failed:', error);
+    // Не очищаем при ошибках сети
   }
 }

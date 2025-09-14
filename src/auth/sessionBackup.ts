@@ -12,8 +12,8 @@ interface SessionBackup {
  * Prevents session loss during app backgrounding/foregrounding cycles
  */
 class SessionBackupManager {
-  private static readonly BACKUP_KEY = 'pb_session_backup';
-  private static readonly MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+  private static readonly BACKUP_KEY = 'pb_session_backup_v2';
+  private static readonly MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 дней
   
   /**
    * Backup current session to localStorage with security checks
@@ -37,8 +37,16 @@ class SessionBackupManager {
         expiresAt: session.expires_at * 1000 // Convert to milliseconds
       };
       
-      localStorage.setItem(SessionBackupManager.BACKUP_KEY, JSON.stringify(backup));
-      return true;
+      // Используем try-catch для quota exceeded
+      try {
+        localStorage.setItem(SessionBackupManager.BACKUP_KEY, JSON.stringify(backup));
+        return true;
+      } catch (e) {
+        // Очищаем старые данные если нет места
+        this.cleanupOldData();
+        localStorage.setItem(SessionBackupManager.BACKUP_KEY, JSON.stringify(backup));
+        return true;
+      }
     } catch (error) {
       console.warn('[SessionBackup] Failed to backup session:', error);
       return false;
@@ -101,6 +109,20 @@ class SessionBackupManager {
     }
   }
   
+  /**
+   * Cleanup old Supabase data when storage is full
+   */
+  private cleanupOldData(): void {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('sb-') && !key.includes(SessionBackupManager.BACKUP_KEY)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+  }
+
   /**
    * Get backup info for debugging
    */
