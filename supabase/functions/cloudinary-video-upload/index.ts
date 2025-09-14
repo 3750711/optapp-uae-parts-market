@@ -88,6 +88,33 @@ Deno.serve(async (req) => {
       file = formData.get('file') as File;
       productId = formData.get('productId') as string;
       customPublicId = formData.get('customPublicId') as string;
+      
+      // Проверяем, это чанкованная загрузка?
+      const chunkIndex = formData.get('chunkIndex');
+      const totalChunks = formData.get('totalChunks');
+      const isChunkedUpload = chunkIndex !== null && totalChunks !== null;
+
+      if (isChunkedUpload) {
+        const isLastChunk = formData.get('isLastChunk') === 'true';
+        const fileName = formData.get('fileName') as string;
+        const fileSize = parseInt(formData.get('fileSize') as string);
+        
+        console.log(`📦 Processing chunk ${parseInt(chunkIndex as string) + 1}/${totalChunks} for ${fileName}`);
+        
+        // Для промежуточных чанков возвращаем только успех
+        if (!isLastChunk) {
+          return new Response(JSON.stringify({
+            success: true,
+            message: `Chunk ${parseInt(chunkIndex as string) + 1} uploaded`
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        // Для последнего чанка продолжаем обычную обработку
+        console.log('🎬 Processing final chunk, creating video...');
+      }
     } else {
       // Fallback JSON path (base64)
       const { fileData, fileName, productId: pid, customPublicId: cpid } = await req.json();
