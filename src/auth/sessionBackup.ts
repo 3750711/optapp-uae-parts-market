@@ -5,6 +5,7 @@ interface SessionBackup {
   timestamp: number;
   userAgent: string;
   expiresAt: number;
+  version?: number;
 }
 
 /**
@@ -34,7 +35,8 @@ class SessionBackupManager {
         session,
         timestamp: Date.now(),
         userAgent: navigator.userAgent,
-        expiresAt: session.expires_at * 1000 // Convert to milliseconds
+        expiresAt: session.expires_at * 1000, // Convert to milliseconds
+        version: 2
       };
       
       // Используем try-catch для quota exceeded
