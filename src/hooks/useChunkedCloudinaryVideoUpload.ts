@@ -151,16 +151,19 @@ export const useChunkedCloudinaryVideoUpload = (orderId: string) => {
         formData.append('public_id', signature.public_id);
         formData.append('folder', signature.folder); // ДОБАВИТЬ!
         formData.append('resource_type', signature.resource_type); // ДОБАВИТЬ!
-        formData.append('upload_id', signature.upload_id);
+        // NOTE: upload_id should NOT be in FormData, only in X-Unique-Upload-Id header
 
-        // Логирование для отладки
+        // Логирование для отладки  
         console.log('🔐 Sending chunk with params:', {
           chunk_index: chunk.index,
           chunk_size: chunkData.size,
-          upload_id: signature.upload_id,
+          api_key: signature.api_key,
+          timestamp: signature.timestamp,
+          public_id: signature.public_id,
           folder: signature.folder,
           resource_type: signature.resource_type,
-          content_range: `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`
+          content_range: `bytes ${chunk.start}-${chunk.end - 1}/${file.size}`,
+          upload_id_in_header: signature.upload_id // Only in header, not FormData
         });
 
         const response = await fetch(

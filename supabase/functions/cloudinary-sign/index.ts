@@ -166,11 +166,13 @@ Deno.serve(async (req) => {
     const upload_id = crypto.randomUUID(); // Generate unique upload_id for chunked upload
 
     // Create signature string (alphabetically sorted parameters)
-    const signatureString = `folder=${folder}&public_id=${public_id}&resource_type=video&timestamp=${timestamp}&upload_id=${upload_id}`;
+    // NOTE: upload_id should NOT be included in signature, only in X-Unique-Upload-Id header
+    const signatureString = `folder=${folder}&public_id=${public_id}&resource_type=video&timestamp=${timestamp}`;
     const signature = await sha1(signatureString + API_SECRET);
     
-    console.log(`🔐 Signature string: folder=${folder}&public_id=${public_id}&resource_type=video&timestamp=${timestamp}&upload_id=${upload_id}&[SECRET]`);
+    console.log(`🔐 Signature string (without upload_id): ${signatureString}&[SECRET]`);
     console.log(`🔐 Generated signature: ${signature}`);
+    console.log(`🔐 Upload ID for header: ${upload_id}`);
 
     const signatureData: SignResponse = {
       cloud_name: CLOUD_NAME,
