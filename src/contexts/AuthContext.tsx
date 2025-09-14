@@ -538,6 +538,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Очищаем кэш профиля перед выходом
+    queryClient.removeQueries({ queryKey: ['profile'] });
+    
+    // Затем выполняем logout
     await supabase.auth.signOut(); 
     // State cleanup handled by onAuthStateChange
   };
