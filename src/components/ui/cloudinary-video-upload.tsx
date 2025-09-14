@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Video, Upload, X, Loader2, Play, Film } from 'lucide-react';
+import { Video, Upload, X, Loader2, Play, Film, Pause } from 'lucide-react';
 import { useCloudinaryVideoUpload } from '@/hooks/useCloudinaryVideoUpload';
 import { cn } from '@/lib/utils';
-import { UploadProgressCard } from '@/components/ui/image-upload/UploadProgressCard';
+import { Progress } from '@/components/ui/progress';
+import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
@@ -36,7 +37,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
   className,
   disabled = false,
 }) => {
-  const { uploadMultipleVideos, isUploading, uploadProgress, clearProgress } = useCloudinaryVideoUpload();
+  const { uploadMultipleVideos, isUploading, uploadProgress, clearProgress, pauseUpload, resumeUpload } = useCloudinaryVideoUpload();
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = getSellerPagesTranslations(language);
@@ -131,12 +132,52 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
           />
         </Button>
 
-        <UploadProgressCard
-          uploadProgress={uploadProgress}
-          isUploading={isUploading}
-          onClearProgress={clearProgress}
-          formatFileSize={formatFileSize}
-        />
+        {uploadProgress.length > 0 && (
+          <div className="space-y-2 mt-4">
+            {uploadProgress.map((progress) => (
+              <Card key={progress.fileId} className="p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium truncate flex-1">
+                    {progress.fileName}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {progress.status === 'uploading' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => pauseUpload(progress.fileId)}
+                      >
+                        <Pause className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {progress.status === 'paused' && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => resumeUpload(progress.fileId)}
+                      >
+                        <Play className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {progress.progress}%
+                    </span>
+                  </div>
+                </div>
+                
+                <Progress value={progress.progress} className="h-2" />
+                
+                {progress.status === 'error' && (
+                  <p className="text-xs text-red-500 mt-1">{progress.error}</p>
+                )}
+                
+                {progress.status === 'success' && (
+                  <p className="text-xs text-green-500 mt-1">✓ Загружено</p>
+                )}
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
@@ -210,12 +251,52 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
         )}
       </div>
 
-      <UploadProgressCard
-        uploadProgress={uploadProgress}
-        isUploading={isUploading}
-        onClearProgress={clearProgress}
-        formatFileSize={formatFileSize}
-      />
+      {uploadProgress.length > 0 && (
+        <div className="space-y-2 mt-4">
+          {uploadProgress.map((progress) => (
+            <Card key={progress.fileId} className="p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium truncate flex-1">
+                  {progress.fileName}
+                </span>
+                <div className="flex items-center gap-2">
+                  {progress.status === 'uploading' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => pauseUpload(progress.fileId)}
+                    >
+                      <Pause className="h-4 w-4" />
+                    </Button>
+                  )}
+                  {progress.status === 'paused' && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => resumeUpload(progress.fileId)}
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {progress.progress}%
+                  </span>
+                </div>
+              </div>
+              
+              <Progress value={progress.progress} className="h-2" />
+              
+              {progress.status === 'error' && (
+                <p className="text-xs text-red-500 mt-1">{progress.error}</p>
+              )}
+              
+              {progress.status === 'success' && (
+                <p className="text-xs text-green-500 mt-1">✓ Загружено</p>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
       
       <p className="text-xs text-gray-500">
         {t.videoUpload.supportedFormats.replace('{maxVideos}', maxVideos.toString())}

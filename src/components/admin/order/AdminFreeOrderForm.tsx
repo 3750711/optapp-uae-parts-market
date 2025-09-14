@@ -3,7 +3,7 @@ import { useAdminFreeOrderSubmission } from '@/hooks/admin-order/useAdminFreeOrd
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
 import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
-import { SimpleChunkedVideoUpload } from '@/components/ui/SimpleChunkedVideoUpload';
+import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { TelegramOrderParser } from './TelegramOrderParser';
 import { Button } from '@/components/ui/button';
@@ -104,11 +104,13 @@ export const AdminFreeOrderForm = () => {
     setAllImages(completedUrls);
   };
 
-  const onVideoUpload = (urls: string[]) => {
+  const handleVideoUpload = (urls: string[]) => {
+    console.log('🎬 Videos uploaded:', urls);
     setVideos(prev => [...prev, ...urls]);
   };
 
-  const onVideoDelete = (url: string) => {
+  const handleVideoDelete = (url: string) => {
+    console.log('🗑️ Video deleted:', url);
     setVideos(prev => prev.filter(video => video !== url));
   };
 
@@ -345,11 +347,12 @@ export const AdminFreeOrderForm = () => {
       </MobileFormSection>
 
       <MobileFormSection title="Видео">
-        <SimpleChunkedVideoUpload
+        <CloudinaryVideoUpload
           videos={videos}
-          onUpload={onVideoUpload}
-          onDelete={onVideoDelete}
+          onUpload={handleVideoUpload}
+          onDelete={handleVideoDelete}
           maxVideos={3}
+          productId={formData.orderId || `admin-order-${Date.now()}`}
           disabled={isFormDisabled}
         />
       </MobileFormSection>
