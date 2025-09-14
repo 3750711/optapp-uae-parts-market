@@ -221,7 +221,7 @@ self.addEventListener('fetch', (event) => {
     return; // Пропускаем main файл для предотвращения NS_ERROR_CORRUPTED_CONTENT
   }
 
-  // ⚡ КЕШИРОВАНИЕ СТАТИКИ: Cache First для JS/CSS (исключая видео и большие файлы)
+  // ⚡ КЕШИРОВАНИЕ СТАТИКИ: Cache First для JS/CSS
   const dest = request.destination;
   if (dest === 'script' || dest === 'style') {
     event.respondWith((async () => {
@@ -234,18 +234,6 @@ self.addEventListener('fetch', (event) => {
       
       try {
         const response = await fetch(request);
-        
-        // Don't cache video files or large media
-        const contentType = response.headers.get('Content-Type');
-        const contentLength = parseInt(response.headers.get('Content-Length') || '0');
-        
-        if (contentType?.startsWith('video/') || 
-            contentType?.startsWith('audio/') ||
-            contentLength > 10 * 1024 * 1024) { // 10MB limit
-          if (DEBUG) console.log('[SW] SKIP caching large media:', request.url, contentType);
-          return response; // Don't cache large media files
-        }
-        
         if (response.ok) {
           cache.put(request, response.clone());
           if (DEBUG) console.log('[SW] Cached static:', request.url);

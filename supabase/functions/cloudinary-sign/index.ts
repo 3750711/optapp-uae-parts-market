@@ -28,12 +28,8 @@ interface SignResponse {
   timestamp: number;
   folder: string;
   public_id: string;
-  resource_type: string;
   signature: string;
   upload_url: string;
-  // Additional fields for chunked uploads
-  chunk_size?: number;
-  upload_id?: string;
 }
 
 Deno.serve(async (req) => {
@@ -51,48 +47,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Authentication required
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization header required' }),
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
-    // Check user role (admin or seller)
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('user_type')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile || !['admin', 'seller'].includes(profile.user_type)) {
-      return new Response(
-        JSON.stringify({ error: 'Insufficient permissions' }),
-        { status: 403, headers: corsHeaders }
-      );
-    }
+    // Public endpoint - no authentication required for staging uploads
 
     // Parse request body
     const { orderId, sessionId }: SignRequest = await req.json();
@@ -163,16 +118,10 @@ Deno.serve(async (req) => {
     // Generate signature parameters
     const timestamp = Math.floor(Date.now() / 1000);
     const public_id = `o_${targetId}_${timestamp}_${crypto.randomUUID().slice(0, 8)}`;
-    const upload_id = crypto.randomUUID(); // Generate unique upload_id for chunked upload
 
     // Create signature string (alphabetically sorted parameters)
-    // NOTE: upload_id should NOT be included in signature, only in X-Unique-Upload-Id header
-    const signatureString = `folder=${folder}&public_id=${public_id}&resource_type=video&timestamp=${timestamp}`;
+    const signatureString = `folder=${folder}&public_id=${public_id}&timestamp=${timestamp}`;
     const signature = await sha1(signatureString + API_SECRET);
-    
-    console.log(`🔐 Signature string (without upload_id): ${signatureString}&[SECRET]`);
-    console.log(`🔐 Generated signature: ${signature}`);
-    console.log(`🔐 Upload ID for header: ${upload_id}`);
 
     const signatureData: SignResponse = {
       cloud_name: CLOUD_NAME,
@@ -180,11 +129,8 @@ Deno.serve(async (req) => {
       timestamp,
       folder,
       public_id,
-      resource_type: 'video',
       signature,
-      upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/video/upload`,
-      chunk_size: 6 * 1024 * 1024, // 6MB chunks for large uploads
-      upload_id: upload_id
+      upload_url: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`
     };
 
     // Return canonical contract: {success: true, data: {...}}

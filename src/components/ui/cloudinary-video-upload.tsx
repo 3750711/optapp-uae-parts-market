@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Video, Upload, X, Loader2, Play, Pause, Plus } from 'lucide-react';
+import { Video, Upload, X, Loader2, Play, Film } from 'lucide-react';
 import { useCloudinaryVideoUpload } from '@/hooks/useCloudinaryVideoUpload';
 import { cn } from '@/lib/utils';
-import { Progress } from '@/components/ui/progress';
+import { UploadProgressCard } from '@/components/ui/image-upload/UploadProgressCard';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
@@ -36,7 +36,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
   className,
   disabled = false,
 }) => {
-  const { uploadMultipleVideos, isUploading, uploadProgress, clearProgress, pauseUpload, resumeUpload } = useCloudinaryVideoUpload();
+  const { uploadMultipleVideos, isUploading, uploadProgress, clearProgress } = useCloudinaryVideoUpload();
   const { toast } = useToast();
   const { language } = useLanguage();
   const t = getSellerPagesTranslations(language);
@@ -44,8 +44,10 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || isUploading) return;
 
-    const MAX_VIDEO_SIZE_MB = 20;
+    // Синхронизированные лимиты с функцией загрузки
+    const MAX_VIDEO_SIZE_MB = 20; // Синхронизировано с функцией
     const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+    const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/mov'];
     
     const files = Array.from(e.target.files);
     if (videos.length + files.length > maxVideos) {
@@ -91,175 +93,161 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
       onUpload(uploadedUrls);
     }
 
+    // Clear file input
     e.target.value = "";
   };
 
-  // Compact Upload Progress Component
-  const UploadProgress = () => (
-    uploadProgress.length > 0 && (
-      <div className="space-y-1">
-        {uploadProgress.map((progress) => (
-          <div key={progress.fileId} className="bg-muted/30 rounded p-2">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs truncate flex-1 max-w-[160px] sm:max-w-[200px]">
-                {progress.fileName}
-              </span>
-              <div className="flex items-center gap-1 shrink-0">
-                {progress.status === 'uploading' && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-5 w-5 p-0"
-                    onClick={() => pauseUpload(progress.fileId)}
-                  >
-                    <Pause className="h-3 w-3" />
-                  </Button>
-                )}
-                {progress.status === 'paused' && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-5 w-5 p-0"
-                    onClick={() => resumeUpload(progress.fileId)}
-                  >
-                    <Play className="h-3 w-3" />
-                  </Button>
-                )}
-                <span className="text-xs text-muted-foreground text-right min-w-[30px]">
-                  {progress.progress}%
-                </span>
-              </div>
-            </div>
-            
-            <Progress value={progress.progress} className="h-1" />
-            
-            {progress.status === 'error' && (
-              <p className="text-xs text-destructive mt-1 truncate">{progress.error}</p>
-            )}
-          </div>
-        ))}
-      </div>
-    )
-  );
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
-  // Compact Video Gallery Component
-  const VideoGallery = ({ showDelete = true }) => (
-    videos.length > 0 && (
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        {videos.map((url, i) => (
-          <div key={i} className="relative group bg-muted rounded overflow-hidden h-16 sm:h-20">
-            <video 
-              src={url} 
-              className="w-full h-full object-cover"
-              controls
-              preload="metadata"
-            />
-            {showDelete && (
-              <Button
-                size="sm"
-                variant="destructive"
-                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-5 w-5 p-0"
-                onClick={() => onDelete(url)}
-                disabled={disabled}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
-    )
-  );
-
-  // Compact Upload Zone Component
-  const UploadZone = () => (
-    <div 
-      className={cn(
-        "border-2 border-dashed border-border rounded p-2 text-center hover:border-primary/50 transition-colors",
-        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-      )}
-      onClick={() => !disabled && !isUploading && document.getElementById(`video-input-${productId}`)?.click()}
-    >
-      <input
-        id={`video-input-${productId}`}
-        type="file"
-        accept={getVideoAcceptAttribute()}
-        multiple
-        onChange={handleFileChange}
-        className="hidden"
-        disabled={disabled || isUploading}
-      />
-      
-      {isUploading ? (
-        <div className="flex items-center justify-center gap-2 py-1">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          <span className="text-xs text-muted-foreground">Загрузка...</span>
-        </div>
-      ) : (
-        <div className="flex items-center justify-center gap-2 py-1">
-          <Plus className="h-3 w-3 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Добавить видео</span>
-        </div>
-      )}
-    </div>
-  );
-
-  // Show only button mode
+  // Показывать только кнопку
   if (showOnlyButton) {
     return (
-      <div className={cn("space-y-2", className)}>
+      <div className={cn("w-full space-y-4", className)}>
         <Button
           type="button"
           variant="outline"
           disabled={disabled || isUploading || videos.length >= maxVideos}
-          size="sm"
-          className="w-full h-8"
-          onClick={() => document.getElementById(`video-input-button-${productId}`)?.click()}
+          className="w-full h-12 relative"
         >
           {isUploading ? (
-            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
-            <Plus className="mr-1 h-3 w-3" />
+            buttonIcon
           )}
-          {isUploading ? "Загрузка..." : buttonText}
+          {isUploading ? t.videoUpload.uploadingToCloudinary : buttonText}
           <input
-            id={`video-input-button-${productId}`}
             type="file"
             accept={getVideoAcceptAttribute()}
             multiple
             onChange={handleFileChange}
-            className="hidden"
+            className="absolute inset-0 opacity-0 cursor-pointer"
             disabled={disabled || isUploading}
           />
         </Button>
 
-        <UploadProgress />
+        <UploadProgressCard
+          uploadProgress={uploadProgress}
+          isUploading={isUploading}
+          onClearProgress={clearProgress}
+          formatFileSize={formatFileSize}
+        />
       </div>
     );
   }
 
-  // Show gallery only mode
-  if (showGalleryOnly) {
+  // Показывать только галерею
+  if (showGalleryOnly && videos.length > 0) {
     return (
-      <div className={cn("space-y-2", className)}>
-        <VideoGallery showDelete={!disabled} />
+      <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-4", className)}>
+        {videos.map((url, i) => (
+          <div key={i} className="relative aspect-video rounded-lg overflow-hidden border">
+            <video src={url} controls className="w-full h-full object-cover" />
+            <div className="absolute top-2 left-2 bg-black bg-opacity-50 rounded px-2 py-1 text-white text-xs flex items-center gap-1">
+              <Film className="w-3 h-3" />
+              Cloudinary
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
 
-  // Full component (default)
+  // Полный компонент (по умолчанию)
   return (
-    <div className={cn("space-y-2", className)}>
-      <UploadProgress />
+    <div className={cn("space-y-4", className)}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {videos.map((url, i) => (
+          <div key={i} className="relative aspect-video rounded-lg overflow-hidden border">
+            <video src={url} controls className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => onDelete(url)}
+              className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-70"
+              disabled={disabled}
+            >
+              <X size={16} />
+            </button>
+            <div className="absolute top-2 left-2 bg-black bg-opacity-50 rounded px-2 py-1 text-white text-xs flex items-center gap-1">
+              <Film className="w-3 h-3" />
+              Cloudinary
+            </div>
+          </div>
+        ))}
+        
+        {videos.length < maxVideos && (
+          <div 
+            className={cn(
+              "border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center aspect-video relative",
+              disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-gray-50"
+            )}
+          >
+            {isUploading ? (
+              <div className="flex flex-col items-center">
+                <Loader2 className="animate-spin h-6 w-6 mb-2" />
+                <span className="text-xs text-gray-500">{t.videoUpload.uploadingToCloudinary}</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl text-gray-400 font-bold">+</div>
+                <p className="text-xs text-gray-500">{t.videoUpload.addVideo}</p>
+              </>
+            )}
+            <input
+              type="file"
+              accept={getVideoAcceptAttribute()}
+              multiple
+              onChange={handleFileChange}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              disabled={disabled || isUploading}
+            />
+          </div>
+        )}
+      </div>
+
+      <UploadProgressCard
+        uploadProgress={uploadProgress}
+        isUploading={isUploading}
+        onClearProgress={clearProgress}
+        formatFileSize={formatFileSize}
+      />
       
-      <VideoGallery />
-
-      {videos.length < maxVideos && <UploadZone />}
-
-      {videos.length > 0 && (
-        <div className="text-xs text-muted-foreground text-center">
-          {videos.length}/{maxVideos}
-        </div>
+      <p className="text-xs text-gray-500">
+        {t.videoUpload.supportedFormats.replace('{maxVideos}', maxVideos.toString())}
+      </p>
+      
+      {videos.length < maxVideos && (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled || isUploading}
+          className="flex items-center gap-2 mt-2 w-full md:w-auto relative"
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t.videoUpload.uploadingToCloudinary}
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              {t.videoUpload.chooseVideos}
+            </>
+          )}
+          <input
+            type="file"
+            accept={getVideoAcceptAttribute()}
+            multiple
+            onChange={handleFileChange}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+            disabled={disabled || isUploading}
+          />
+        </Button>
       )}
     </div>
   );

@@ -1,9 +1,9 @@
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export interface CloudinaryVideoUploadResult {
+interface CloudinaryVideoUploadResult {
   success: boolean;
   cloudinaryUrl?: string;
   publicId?: string;
@@ -23,20 +23,18 @@ interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'paused';
+  status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
   cloudinaryUrl?: string;
   publicId?: string;
   duration?: number;
   thumbnailUrl?: string;
-  xhr?: XMLHttpRequest;
 }
 
 export const useCloudinaryVideoUpload = () => {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
-  const activeUploads = useRef<Map<string, XMLHttpRequest>>(new Map());
 
   const uploadVideo = async (
     file: File,
@@ -45,191 +43,142 @@ export const useCloudinaryVideoUpload = () => {
   ): Promise<CloudinaryVideoUploadResult> => {
     const fileId = `${file.name}-${Date.now()}`;
     
-    return new Promise((resolve, reject) => {
-      try {
-        console.log('📤 Starting video upload with XMLHttpRequest:', {
-          fileName: file.name,
-          fileSize: file.size,
-          productId
-        });
-
-        // Add to progress tracking
-        const progressItem: UploadProgress = {
-          fileId,
-          fileName: file.name,
-          progress: 0,
-          status: 'pending'
-        };
-        
-        setUploadProgress(prev => [...prev, progressItem]);
-
-        // Create FormData
-        const formData = new FormData();
-        formData.append('file', file);
-        if (productId) {
-          formData.append('productId', productId);
-        }
-        if (customPublicId) {
-          formData.append('customPublicId', customPublicId);
-        }
-
-        // Create XMLHttpRequest for progress tracking
-        const xhr = new XMLHttpRequest();
-        activeUploads.current.set(fileId, xhr);
-
-        // Track upload progress
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 100);
-            console.log(`📊 Upload progress: ${percentComplete}%`);
-            
-            setUploadProgress(prev => 
-              prev.map(p => p.fileId === fileId 
-                ? { ...p, progress: percentComplete, status: 'uploading' } 
-                : p
-              )
-            );
-          }
-        };
-
-        // Handle completion
-        xhr.onload = async () => {
-          try {
-            if (xhr.status >= 200 && xhr.status < 300) {
-              const data = JSON.parse(xhr.responseText);
-              
-              if (data?.success) {
-                console.log('✅ Upload successful:', data);
-                
-                setUploadProgress(prev => 
-                  prev.map(p => p.fileId === fileId 
-                    ? { 
-                        ...p, 
-                        status: 'success', 
-                        progress: 100,
-                        cloudinaryUrl: data.cloudinaryUrl,
-                        publicId: data.publicId,
-                        duration: data.duration,
-                        thumbnailUrl: data.thumbnailUrl
-                      } 
-                    : p
-                  )
-                );
-                
-                resolve({
-                  success: true,
-                  cloudinaryUrl: data.cloudinaryUrl,
-                  publicId: data.publicId,
-                  thumbnailUrl: data.thumbnailUrl,
-                  originalSize: data.originalSize,
-                  compressedSize: data.compressedSize,
-                  format: data.format,
-                  duration: data.duration,
-                  width: data.width,
-                  height: data.height,
-                  bitRate: data.bitRate,
-                  frameRate: data.frameRate
-                });
-              } else {
-                throw new Error(data?.error || 'Upload failed');
-              }
-            } else {
-              throw new Error(`HTTP ${xhr.status}: ${xhr.statusText}`);
-            }
-          } catch (error) {
-            console.error('❌ Upload error:', error);
-            setUploadProgress(prev => 
-              prev.map(p => p.fileId === fileId 
-                ? { ...p, status: 'error', error: error.message } 
-                : p
-              )
-            );
-            reject(error);
-          } finally {
-            activeUploads.current.delete(fileId);
-          }
-        };
-
-        // Handle errors
-        xhr.onerror = () => {
-          const error = new Error('Network error occurred');
-          console.error('❌ Network error');
-          setUploadProgress(prev => 
-            prev.map(p => p.fileId === fileId 
-              ? { ...p, status: 'error', error: 'Network error' } 
-              : p
-            )
-          );
-          activeUploads.current.delete(fileId);
-          reject(error);
-        };
-
-        // Handle abort
-        xhr.onabort = () => {
-          console.log('⏸️ Upload paused');
-          setUploadProgress(prev => 
-            prev.map(p => p.fileId === fileId 
-              ? { ...p, status: 'paused' } 
-              : p
-            )
-          );
-          activeUploads.current.delete(fileId);
-        };
-
-        // Get the upload URL from Supabase
-        const getUploadUrl = async () => {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            throw new Error('No session found');
-          }
-
-          // Send request
-          xhr.open('POST', `${supabase.supabaseUrl}/functions/v1/cloudinary-video-upload`);
-          xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
-          xhr.send(formData);
-
-          // Update status to uploading
-          setUploadProgress(prev => 
-            prev.map(p => p.fileId === fileId 
-              ? { ...p, status: 'uploading' } 
-              : p
-            )
-          );
-        };
-
-        getUploadUrl().catch(reject);
-
-      } catch (error) {
-        console.error('💥 Exception in uploadVideo:', error);
-        setUploadProgress(prev => 
-          prev.map(p => p.fileId === fileId 
-            ? { ...p, status: 'error', error: error.message } 
-            : p
-          )
-        );
-        reject(error);
-      }
-    });
-  };
-
-  const pauseUpload = (fileId: string) => {
-    const xhr = activeUploads.current.get(fileId);
-    if (xhr) {
-      xhr.abort();
-      console.log('⏸️ Paused upload:', fileId);
-    }
-  };
-
-  const resumeUpload = async (fileId: string) => {
-    // Find the paused upload
-    const pausedUpload = uploadProgress.find(p => p.fileId === fileId && p.status === 'paused');
-    if (pausedUpload) {
-      // In a real implementation, you would need to store the file reference
-      // For now, show a message to re-select the file
-      toast({
-        title: "Возобновление загрузки",
-        description: "Пожалуйста, выберите файл заново для продолжения загрузки",
+    try {
+      console.log('📤 Starting video upload with FormData:', {
+        fileName: file.name,
+        fileSize: file.size,
+        productId,
+        customPublicId
       });
+
+      // Add to progress tracking
+      const progressItem: UploadProgress = {
+        fileId,
+        fileName: file.name,
+        progress: 0,
+        status: 'pending'
+      };
+      
+      setUploadProgress(prev => [...prev, progressItem]);
+
+      // Update progress to uploading
+      setUploadProgress(prev => 
+        prev.map(p => p.fileId === fileId ? { ...p, status: 'uploading', progress: 25 } : p)
+      );
+
+      // Create FormData for direct upload (same as photos)
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      if (productId) {
+        formData.append('productId', productId);
+      }
+      
+      if (customPublicId) {
+        formData.append('customPublicId', customPublicId);
+      }
+      
+      console.log('☁️ Uploading video with FormData to Cloudinary...');
+      
+      // Update progress
+      setUploadProgress(prev => 
+        prev.map(p => p.fileId === fileId ? { ...p, progress: 50 } : p)
+      );
+      
+      // Use the dedicated video upload function with FormData
+      const { data, error } = await supabase.functions.invoke('cloudinary-video-upload', {
+        body: formData
+      });
+
+      console.log('📥 Cloudinary video function response:', {
+        data,
+        error,
+        hasData: !!data,
+        hasError: !!error
+      });
+
+      if (error) {
+        console.error('❌ Cloudinary video function error:', error);
+        setUploadProgress(prev => 
+          prev.map(p => p.fileId === fileId ? { 
+            ...p, 
+            status: 'error', 
+            progress: 0,
+            error: error.message || 'Failed to upload video to Cloudinary'
+          } : p)
+        );
+        return {
+          success: false,
+          error: error.message || 'Failed to upload video to Cloudinary'
+        };
+      }
+
+      if (data?.success) {
+        console.log('✅ Cloudinary video upload SUCCESS:', {
+          cloudinaryUrl: data.cloudinaryUrl,
+          publicId: data.publicId,
+          format: data.format,
+          sizeKB: Math.round((data.originalSize || 0) / 1024),
+          duration: data.duration,
+          thumbnailUrl: data.thumbnailUrl
+        });
+        
+        // Update progress to success
+        setUploadProgress(prev => 
+          prev.map(p => p.fileId === fileId ? { 
+            ...p, 
+            status: 'success', 
+            progress: 100,
+            cloudinaryUrl: data.cloudinaryUrl,
+            publicId: data.publicId,
+            duration: data.duration,
+            thumbnailUrl: data.thumbnailUrl
+          } : p)
+        );
+        
+        return {
+          success: true,
+          cloudinaryUrl: data.cloudinaryUrl,
+          publicId: data.publicId,
+          thumbnailUrl: data.thumbnailUrl,
+          originalSize: data.originalSize,
+          compressedSize: data.compressedSize,
+          format: data.format,
+          duration: data.duration,
+          width: data.width,
+          height: data.height,
+          bitRate: data.bitRate,
+          frameRate: data.frameRate
+        };
+      } else {
+        console.error('❌ Cloudinary video upload failed:', data?.error);
+        setUploadProgress(prev => 
+          prev.map(p => p.fileId === fileId ? { 
+            ...p, 
+            status: 'error', 
+            progress: 0,
+            error: data?.error || 'Unknown error occurred'
+          } : p)
+        );
+        return {
+          success: false,
+          error: data?.error || 'Unknown error occurred'
+        };
+      }
+    } catch (error) {
+      console.error('💥 EXCEPTION in uploadVideo:', error);
+      setUploadProgress(prev => 
+        prev.map(p => p.fileId === fileId ? { 
+          ...p, 
+          status: 'error', 
+          progress: 0,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        } : p)
+      );
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   };
 
@@ -285,14 +234,11 @@ export const useCloudinaryVideoUpload = () => {
   const clearProgress = () => {
     console.log('🧹 Clearing upload progress');
     setUploadProgress([]);
-    activeUploads.current.clear();
   };
 
   return {
     uploadVideo,
     uploadMultipleVideos,
-    pauseUpload,
-    resumeUpload,
     isUploading,
     uploadProgress,
     clearProgress

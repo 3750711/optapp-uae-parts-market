@@ -104,13 +104,11 @@ export const AdminFreeOrderForm = () => {
     setAllImages(completedUrls);
   };
 
-  const handleVideoUpload = (urls: string[]) => {
-    console.log('🎬 Videos uploaded:', urls);
+  const onVideoUpload = (urls: string[]) => {
     setVideos(prev => [...prev, ...urls]);
   };
 
-  const handleVideoDelete = (url: string) => {
-    console.log('🗑️ Video deleted:', url);
+  const onVideoDelete = (url: string) => {
     setVideos(prev => prev.filter(video => video !== url));
   };
 
@@ -349,11 +347,10 @@ export const AdminFreeOrderForm = () => {
       <MobileFormSection title="Видео">
         <CloudinaryVideoUpload
           videos={videos}
-          onUpload={handleVideoUpload}
-          onDelete={handleVideoDelete}
-          maxVideos={3}
-          productId={formData.orderId || `admin-order-${Date.now()}`}
+          onUpload={onVideoUpload}
+          onDelete={onVideoDelete}
           disabled={isFormDisabled}
+          maxVideos={3}
         />
       </MobileFormSection>
 
