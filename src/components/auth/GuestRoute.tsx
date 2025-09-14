@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { devLog } from "@/utils/logger";
 import { redirectProtection } from "@/utils/redirectProtection";
@@ -10,6 +11,7 @@ interface GuestRouteProps {
 const GuestRoute = ({ children }: GuestRouteProps) => {
   const { user, profile, isLoading, isProfileLoading } = useAuth();
   const location = useLocation();
+  const queryClient = useQueryClient();
   
   console.log("🔐 GuestRoute: Auth state check:", { 
     user: !!user, 
@@ -28,6 +30,18 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
     userType: profile?.user_type
   });
   
+  // CRITICAL: Detect state mismatch (profile exists but user doesn't)
+  if (!user && profile) {
+    console.error("🚨 GuestRoute: CRITICAL STATE MISMATCH - profile exists without user!", {
+      profile: !!profile,
+      user: !!user,
+      timestamp: new Date().toISOString()
+    });
+    // Force cache clear and return null to prevent showing invalid state
+    queryClient.removeQueries({ queryKey: ['profile'] });
+    return null;
+  }
+
   // Show loading while checking authentication or profile
   if (isLoading || (user && isProfileLoading)) {
     console.log("🔐 GuestRoute: Showing loading state", { isLoading, isProfileLoading, hasUser: !!user });

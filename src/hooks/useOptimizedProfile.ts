@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
+import React from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useOptimizedProfile() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   
   const result = useQuery({
     queryKey: ['profile', user?.id],
@@ -36,8 +38,7 @@ export function useOptimizedProfile() {
       return data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes - profile data is relatively stable
-    gcTime: 15 * 60 * 1000, // 15 minutes - keep in cache longer
-    placeholderData: (previousData) => previousData,
+    gcTime: 5 * 60 * 1000, // 5 minutes - reduced to prevent stale data
     refetchOnWindowFocus: false, // CRITICAL: Disabled to prevent excessive requests
     refetchOnReconnect: false, // CRITICAL: Disabled to prevent excessive requests
     refetchOnMount: false, // Don't refetch if data exists
@@ -57,6 +58,14 @@ export function useOptimizedProfile() {
   if (process.env.NODE_ENV === 'development' && result.error?.name !== 'AbortError' && result.error) {
     console.warn('[PROFILE_QUERY] Failed to load profile:', result.error);
   }
+
+  // CRITICAL: Clear profile cache if user disappears (prevents data leaks)
+  React.useEffect(() => {
+    if (!user && result.data) {
+      console.warn('🧹 [useOptimizedProfile] Clearing stale profile data for missing user');
+      queryClient.removeQueries({ queryKey: ['profile'] });
+    }
+  }, [user, result.data, queryClient]);
 
   return result;
 }

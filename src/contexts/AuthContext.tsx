@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { checkSessionSoft } from '@/auth/authSessionManager';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
@@ -90,6 +90,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const useAuth = () => useContext(AuthContext)!;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Get query client for cache management
+  const queryClient = useQueryClient();
+  
   // Check React dispatcher readiness before using any hooks
   const checkDispatcher = () => {
     try {
@@ -163,8 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return data;
     },
     staleTime: 300000, // 5 minutes - critical optimization
-    gcTime: 600000, // 10 minutes
-    placeholderData: (previousData) => previousData,
+    gcTime: 300000, // 5 minutes - reduced to prevent stale data
     refetchOnWindowFocus: false, // CRITICAL: Disabled to prevent excessive requests
     refetchOnReconnect: false, // CRITICAL: Disabled to prevent excessive requests  
     refetchOnMount: false, // Don't refetch if data exists
@@ -181,6 +183,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const profile = profileQuery.data || null;
   const isAdmin = profile?.user_type === 'admin';
   const isCheckingAdmin = !!user && profileQuery.isLoading;
+
+  // CRITICAL: Clear profile cache if user disappears (prevents data leaks)
+  useEffect(() => {
+    if (!user && profileQuery.data) {
+      console.warn('🧹 [AuthContext] Clearing stale profile data for missing user');
+      queryClient.removeQueries({ queryKey: ['profile'] });
+    }
+  }, [user, profileQuery, queryClient]);
 
   // Initialize auth state with improved timeout handling
   useEffect(() => {
@@ -239,7 +249,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        // Clear auth storage and session backup
+        // CRITICAL: Clear profile cache FIRST to prevent data leaks
+        queryClient.removeQueries({ queryKey: ['profile'] });
+        // Then clear auth storage and session backup
         clearAuthStorageSafe();
         sessionBackupManager.clearBackup();
       }
