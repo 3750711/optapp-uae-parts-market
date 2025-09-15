@@ -112,7 +112,7 @@ const handler = async (req: Request): Promise<Response> => {
       type: 'recovery',
       email: userEmail,
       options: {
-        redirectTo: `${Deno.env.get('SITE_URL') || 'https://partsbay.ae'}/reset-password`,
+        redirectTo: `https://partsbay.ae/reset-password`,
       }
     });
 

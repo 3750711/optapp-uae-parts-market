@@ -23,27 +23,39 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label = 'timeout'
   }
 }
 
-// Parse recovery tokens from URL hash
+// Parse recovery tokens from URL hash or query params
 function parseRecoveryTokensFromUrl() {
   try {
+    // First try hash parameters (new format)
     const hash = window.location.hash?.substring(1);
-    if (!hash) return null;
+    if (hash) {
+      const params = new URLSearchParams(hash);
+      const type = params.get('type');
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const expiresIn = params.get('expires_in');
+      
+      if (type === 'recovery' && accessToken && refreshToken) {
+        console.log('🔑 [AuthContext] Recovery tokens found in URL hash');
+        return {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_in: expiresIn ? parseInt(expiresIn, 10) : 3600,
+          token_type: 'bearer',
+          user: null // Will be populated by Supabase
+        };
+      }
+    }
     
-    const params = new URLSearchParams(hash);
-    const type = params.get('type');
-    const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
-    const expiresIn = params.get('expires_in');
+    // Then try query parameters (old format from Supabase auth links)
+    const urlParams = new URLSearchParams(window.location.search);
+    const type = urlParams.get('type');
+    const token = urlParams.get('token');
     
-    if (type === 'recovery' && accessToken && refreshToken) {
-      console.log('🔑 [AuthContext] Recovery tokens found in URL');
-      return {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_in: expiresIn ? parseInt(expiresIn, 10) : 3600,
-        token_type: 'bearer',
-        user: null // Will be populated by Supabase
-      };
+    if (type === 'recovery' && token) {
+      console.log('🔑 [AuthContext] Recovery token found in URL query (old format)');
+      // For old format, let Supabase SDK handle the URL automatically
+      return 'HANDLE_VIA_SDK';
     }
     
     return null;
@@ -314,7 +326,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const recoveryTokens = parseRecoveryTokensFromUrl();
         if (recoveryTokens) {
-          console.log('🔄 [AuthContext] Setting recovery session from URL tokens');
+          // Handle old format (query params) - let SDK process URL automatically
+          if (recoveryTokens === 'HANDLE_VIA_SDK') {
+            console.log('🔄 [AuthContext] Detected old format recovery URL, letting SDK handle it...');
+            // Don't clear URL or set session manually, let Supabase SDK do its thing
+            return;
+          }
+          
+          // Handle new format (hash params) - set session manually
+          console.log('🔄 [AuthContext] Setting recovery session from URL hash tokens');
           
           // Clear URL hash to prevent reprocessing
           if (window.location.hash) {

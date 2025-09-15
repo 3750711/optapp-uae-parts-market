@@ -47,21 +47,30 @@ const ResetPassword = () => {
     let timeoutId: NodeJS.Timeout;
     
     const validateResetSession = () => {
-      // Check URL parameters for recovery type (simplified)
+      // Check URL parameters for recovery type (both query and hash)
       const urlType = searchParams.get('type');
+      const queryToken = searchParams.get('token');
       const hasRecoveryType = urlType === 'recovery' || window.location.hash.includes('type=recovery');
+      const hasToken = queryToken || window.location.hash.includes('access_token=');
       
       console.log('Reset password validation:', { 
         type: urlType || (hasRecoveryType ? 'recovery' : 'unknown'),
-        hasAccessToken: window.location.hash.includes('access_token='),
+        hasToken: hasToken,
         authStatus: status,
-        hasUser: !!user
+        hasUser: !!user,
+        urlFormat: queryToken ? 'query' : 'hash'
       });
       
       // Check if this is a recovery session
-      if (!hasRecoveryType) {
-        console.log('Not a recovery request - invalid');
+      if (!hasRecoveryType || !hasToken) {
+        console.log('Not a valid recovery request');
         setValidationState('invalid');
+        return;
+      }
+      
+      // If this is old format (query params), wait for Supabase SDK to handle URL
+      if (queryToken && !user && status === 'checking') {
+        console.log('Waiting for Supabase SDK to handle recovery URL...');
         return;
       }
       
