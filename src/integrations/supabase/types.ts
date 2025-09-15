@@ -1969,6 +1969,15 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
+      check_ip_rate_limit: {
+        Args: {
+          p_action: string
+          p_ip_address: string
+          p_limit?: number
+          p_window_hours?: number
+        }
+        Returns: Json
+      }
       check_no_hardcoded_function_urls: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2034,6 +2043,10 @@ export type Database = {
       cleanup_old_login_attempts: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      cleanup_old_security_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       cleanup_orphaned_pending_offers: {
         Args: Record<PropertyKey, never>

@@ -188,9 +188,46 @@ const handler = async (req: Request): Promise<Response> => {
       // Стандартное уведомление о сбросе пароля
       console.log("Password reset requested for email:", email, "optId:", optId || "none");
 
-      // Get client IP and user agent for security logging
+      // Get client IP and user agent for security logging and rate limiting
       const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
       const userAgent = req.headers.get('user-agent') || 'unknown';
+
+      // Check IP-based rate limit (10 attempts per hour per IP)
+      const { data: rateLimitCheck, error: rateLimitError } = await supabase.rpc('check_ip_rate_limit', {
+        p_ip_address: clientIP,
+        p_action: 'password_reset_request',
+        p_limit: 10,
+        p_window_hours: 1
+      });
+
+      if (rateLimitError || !rateLimitCheck?.allowed) {
+        await supabase.rpc('log_security_event', {
+          p_action: 'password_reset_rate_limit',
+          p_user_id: null,
+          p_email: email,
+          p_ip_address: clientIP,
+          p_user_agent: userAgent,
+          p_success: false,
+          p_error_message: 'IP rate limit exceeded',
+          p_details: {
+            reason: 'IP rate limit exceeded',
+            limit: 10,
+            window_hours: 1,
+            remaining: rateLimitCheck?.remaining || 0
+          }
+        });
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: 'Слишком много попыток с вашего IP-адреса. Попробуйте позже.'
+          }),
+          { 
+            status: 429, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
 
       // Validate user exists before creating reset code
       const { data: userExists, error: validationError } = await supabase.rpc(
