@@ -250,33 +250,27 @@ const ForgotPassword = () => {
         passwordLength: data.newPassword.length
       });
       
-      // Сначала проверяем код
-      const { data: verifyResult, error: verifyError } = await supabase.rpc('verify_reset_code', {
-        p_email: sentToEmail,
-        p_code: codeValue
+      // Используем Edge Function для сброса пароля с административными правами
+      const { data: result, error } = await supabase.functions.invoke('admin-password-reset', {
+        body: {
+          email: sentToEmail,
+          code: codeValue,
+          newPassword: data.newPassword
+        }
       });
 
-      if (verifyError) throw verifyError;
-      
-      if (!verifyResult.success) {
-        console.error("Code verification failed:", verifyResult);
+      if (error) throw error;
+      console.log("API response:", result);
+
+      if (!result.success) {
+        console.error("Password reset failed:", result);
         toast({
-          title: "Ошибка",
-          description: verifyResult.message || "Неверный код подтверждения",
+          title: "Ошибка", 
+          description: result.message || "Не удалось изменить пароль",
           variant: "destructive",
         });
         return;
       }
-
-      // Если код верный, меняем пароль через Supabase Auth API
-      const { error: passwordError } = await supabase.auth.updateUser({
-        password: data.newPassword
-      });
-
-      if (passwordError) throw passwordError;
-
-      const result = { success: true };
-      console.log("API response:", result);
 
       // Если дошли до этой точки, значит все успешно
       console.log("Password reset successful!");
