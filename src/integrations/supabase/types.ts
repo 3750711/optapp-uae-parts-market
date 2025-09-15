@@ -738,36 +738,6 @@ export type Database = {
           },
         ]
       }
-      password_reset_codes: {
-        Row: {
-          code: string
-          created_at: string | null
-          email: string
-          expires_at: string
-          id: string
-          opt_id: string | null
-          used: boolean | null
-        }
-        Insert: {
-          code: string
-          created_at?: string | null
-          email: string
-          expires_at: string
-          id?: string
-          opt_id?: string | null
-          used?: boolean | null
-        }
-        Update: {
-          code?: string
-          created_at?: string | null
-          email?: string
-          expires_at?: string
-          id?: string
-          opt_id?: string | null
-          used?: boolean | null
-        }
-        Relationships: []
-      }
       preverified_emails: {
         Row: {
           created_at: string
@@ -1396,45 +1366,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      security_logs: {
-        Row: {
-          action: string
-          created_at: string
-          email: string | null
-          error_message: string | null
-          id: string
-          ip_address: unknown | null
-          metadata: Json | null
-          success: boolean
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          action: string
-          created_at?: string
-          email?: string | null
-          error_message?: string | null
-          id?: string
-          ip_address?: unknown | null
-          metadata?: Json | null
-          success?: boolean
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          action?: string
-          created_at?: string
-          email?: string | null
-          error_message?: string | null
-          id?: string
-          ip_address?: unknown | null
-          metadata?: Json | null
-          success?: boolean
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
       }
       store_car_brands: {
         Row: {
@@ -2671,10 +2602,6 @@ export type Database = {
         Returns: Json
       }
       verify_email_verification_code: {
-        Args: { p_code: string; p_email: string }
-        Returns: Json
-      }
-      verify_reset_code: {
         Args: { p_code: string; p_email: string }
         Returns: Json
       }

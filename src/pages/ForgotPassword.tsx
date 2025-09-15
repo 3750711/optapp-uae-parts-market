@@ -68,29 +68,21 @@ const ForgotPassword = () => {
     
     try {
       const inputType = detectInputType(data.emailOrOptId);
-      let emailToUse = data.emailOrOptId;
+      let email = data.emailOrOptId;
+      let optId: string | undefined;
 
-      // If OPT ID, look up the email
       if (inputType === 'opt_id') {
-        console.log("Detected OPT ID, searching for email...");
-        const foundEmail = await getEmailByOptId(data.emailOrOptId);
-        
-        if (!foundEmail) {
-          toast({
-            title: "Ошибка",
-            description: "OPT ID не найден",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        emailToUse = foundEmail;
-        console.log("Found email for OPT ID:", emailToUse);
+        console.log('Detected OPT ID input, will send to Edge Function');
+        optId = data.emailOrOptId;
+        email = ''; // Edge Function will find email by OPT ID
       }
 
-      // Use standard Supabase password reset
-      const { error } = await supabase.auth.resetPasswordForEmail(emailToUse, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Call our Edge Function instead of direct Supabase method
+      const { data: result, error } = await supabase.functions.invoke('send-reset-email', {
+        body: { 
+          email: inputType === 'email' ? email : undefined,
+          optId: inputType === 'opt_id' ? optId : undefined
+        }
       });
 
       if (error) {
@@ -103,12 +95,20 @@ const ForgotPassword = () => {
         return;
       }
 
-      setEmail(emailToUse);
+      // Set display values for success message
+      if (inputType === 'opt_id') {
+        setEmail(`пользователя с OPT ID ${optId}`);
+      } else {
+        setEmail(email);
+      }
+      
       setIsEmailSent(true);
       
       toast({
         title: "Письмо отправлено",
-        description: `Ссылка для сброса пароля отправлена на ${emailToUse}`,
+        description: optId 
+          ? `Ссылка для сброса пароля отправлена на email, связанный с OPT ID ${optId}`
+          : `Ссылка для сброса пароля отправлена на ${email}`,
       });
       
     } catch (error) {

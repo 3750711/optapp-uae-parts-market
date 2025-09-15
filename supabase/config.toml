@@ -63,6 +63,9 @@ max_frequency = "5s"
 [functions.compress-order-images]
 verify_jwt = false
 
+[functions.send-reset-email]
+verify_jwt = false
+
 [functions.send-password-reset]
 verify_jwt = false
 
