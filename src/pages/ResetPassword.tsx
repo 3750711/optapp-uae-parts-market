@@ -24,6 +24,31 @@ const formSchema = z.object({
   path: ["confirmPassword"],
 });
 
+// Password strength checker
+const checkPasswordStrength = (password: string) => {
+  let score = 0;
+  let feedback = [];
+  
+  if (password.length >= 8) score += 1;
+  else feedback.push("минимум 8 символов");
+  
+  if (/[A-Z]/.test(password)) score += 1;
+  else feedback.push("заглавная буква");
+  
+  if (/[a-z]/.test(password)) score += 1;
+  else feedback.push("строчная буква");
+  
+  if (/[0-9]/.test(password)) score += 1;
+  else feedback.push("цифра");
+  
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+  else feedback.push("специальный символ");
+  
+  const strength = score === 5 ? "strong" : score >= 3 ? "medium" : "weak";
+  
+  return { score, strength, feedback };
+};
+
 type FormData = z.infer<typeof formSchema>;
 
 const ResetPassword = () => {
@@ -32,6 +57,7 @@ const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [validationState, setValidationState] = useState<'checking' | 'valid' | 'invalid' | 'timeout'>('checking');
+  const [showInvalidAfterDelay, setShowInvalidAfterDelay] = useState(false);
   const [isTelegramUser, setIsTelegramUser] = useState(false);
 
   const form = useForm<FormData>({
@@ -105,19 +131,74 @@ const ResetPassword = () => {
     };
   }, [status, user, profile, validationState, isRecoveryMode]);
 
+  // Handle delayed error display to fix race condition
+  useEffect(() => {
+    if (validationState === 'invalid') {
+      const timer = setTimeout(() => {
+        setShowInvalidAfterDelay(true);
+      }, 500); // 500ms delay
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowInvalidAfterDelay(false);
+    }
+  }, [validationState]);
+
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     
     try {
-      const { error } = await updatePassword(data.password);
+      const { error } = await supabase.auth.updateUser({
+        password: data.password
+      });
 
       if (error) {
         console.error("Password update error:", error);
+        
+        // Detailed error handling
+        let errorMessage = "Не удалось обновить пароль";
+        let errorTitle = "Ошибка";
+        
+        if (error.message?.includes("New password should be different")) {
+          errorTitle = "Пароль не изменен";
+          errorMessage = "Новый пароль должен отличаться от текущего. Попробуйте другой пароль.";
+        } else if (error.message?.includes("Password should be")) {
+          errorTitle = "Слабый пароль";
+          errorMessage = "Пароль должен быть более надежным. Используйте комбинацию букв, цифр и символов.";
+        } else if (error.message?.includes("session_not_found") || error.message?.includes("invalid_session")) {
+          errorTitle = "Сессия истекла";
+          errorMessage = "Ваша сессия для сброса пароля истекла. Запросите новую ссылку для сброса.";
+        } else if (error.message?.includes("token_expired") || error.message?.includes("expired")) {
+          errorTitle = "Ссылка истекла";
+          errorMessage = "Ссылка для сброса пароля истекла. Запросите новую ссылку.";
+        } else if (error.message?.includes("network") || error.message?.includes("fetch")) {
+          errorTitle = "Проблема с соединением";
+          errorMessage = "Проверьте подключение к интернету и попробуйте еще раз.";
+        } else if (error.message?.includes("rate_limit")) {
+          errorTitle = "Слишком много попыток";
+          errorMessage = "Превышен лимит попыток изменения пароля. Попробуйте через несколько минут.";
+        } else if (error.message?.includes("weak_password")) {
+          errorTitle = "Слабый пароль";
+          errorMessage = "Пароль слишком простой. Используйте минимум 8 символов с буквами, цифрами и специальными символами.";
+        }
+        
         toast({
-          title: "Ошибка",
-          description: "Не удалось обновить пароль. Попробуйте еще раз.",
+          title: errorTitle,
+          description: errorMessage,
           variant: "destructive",
         });
+        
+        // Redirect to forgot password for expired sessions
+        if (error.message?.includes("session_not_found") || 
+            error.message?.includes("token_expired") || 
+            error.message?.includes("expired")) {
+          setTimeout(() => {
+            navigate('/forgot-password', {
+              state: { message: 'Ссылка истекла. Запросите новую ссылку для сброса пароля.' }
+            });
+          }, 3000);
+        }
+        
         return;
       }
 
@@ -142,7 +223,7 @@ const ResetPassword = () => {
         title: isTelegramUser ? "Пароль установлен" : "Пароль обновлен",
         description: isTelegramUser 
           ? "Ваш первый пароль успешно установлен. Теперь вы можете входить через email и пароль."
-          : "Ваш пароль успешно изменен. Теперь вы можете войти.",
+          : "Ваш пароль успешно изменен. Теперь вы можете войти с новым паролем.",
       });
 
       // Redirect to login page
@@ -157,9 +238,19 @@ const ResetPassword = () => {
       
     } catch (error) {
       console.error("Unexpected error:", error);
+      
+      // Handle unexpected errors
+      let errorMessage = "Произошла неожиданная ошибка";
+      
+      if (error instanceof TypeError && error.message?.includes("fetch")) {
+        errorMessage = "Проблема с подключением к серверу. Проверьте интернет-соединение.";
+      } else if (error instanceof Error) {
+        errorMessage = `Техническая ошибка: ${error.message}`;
+      }
+      
       toast({
-        title: "Ошибка",
-        description: "Произошла неожиданная ошибка",
+        title: "Системная ошибка",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -167,8 +258,8 @@ const ResetPassword = () => {
     }
   };
 
-  // Show loading while validating session
-  if (validationState === 'checking') {
+  // Show loading while validating session or during delayed error display
+  if (validationState === 'checking' || (validationState === 'invalid' && !showInvalidAfterDelay)) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center">
@@ -188,8 +279,8 @@ const ResetPassword = () => {
     );
   }
 
-  // Show error if session is invalid or timed out
-  if (validationState === 'invalid' || validationState === 'timeout') {
+  // Show error if session is invalid (with delay) or timed out
+  if ((validationState === 'invalid' && showInvalidAfterDelay) || validationState === 'timeout') {
     const isTimeout = validationState === 'timeout';
     
     return (
@@ -235,17 +326,30 @@ const ResetPassword = () => {
             <CardTitle className="text-2xl font-bold">
               {isTelegramUser ? "Установить пароль" : "Создать новый пароль"}
             </CardTitle>
+            
+            {/* Password requirements info */}
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-700">
+                <strong>Требования к паролю:</strong>
+              </p>
+              <ul className="text-xs text-blue-600 mt-1 space-y-1">
+                <li>• Минимум 6 символов (рекомендуется 8+)</li>
+                <li>• Хотя бы одна буква и одна цифра</li>
+                <li>• Должен отличаться от текущего пароля</li>
+              </ul>
+            </div>
+            
             {isTelegramUser && profile && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-700">
+              <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                <p className="text-sm text-green-700">
                   <strong>Telegram пользователь:</strong> {profile.first_name || profile.full_name}
                 </p>
                 {profile.opt_id && (
-                  <p className="text-sm text-blue-600">
+                  <p className="text-sm text-green-600">
                     <strong>OPT ID:</strong> {profile.opt_id}
                   </p>
                 )}
-                <p className="text-xs text-blue-600 mt-1">
+                <p className="text-xs text-green-600 mt-1">
                   Вы устанавливаете свой первый пароль для входа через email.
                 </p>
               </div>
@@ -268,9 +372,46 @@ const ResetPassword = () => {
                           {...field}
                           disabled={isLoading}
                         />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
+                       </FormControl>
+                       <FormMessage />
+                       
+                       {/* Password strength indicator */}
+                       {(() => {
+                         const passwordValue = form.watch('password');
+                         if (!passwordValue) return null;
+                         
+                         const passwordStrength = checkPasswordStrength(passwordValue);
+                         
+                         return (
+                           <div className="mt-2">
+                             <div className="flex items-center space-x-2">
+                               <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                 <div 
+                                   className={`h-2 rounded-full transition-all ${
+                                     passwordStrength.strength === 'strong' ? 'bg-green-500 w-full' :
+                                     passwordStrength.strength === 'medium' ? 'bg-yellow-500 w-2/3' :
+                                     'bg-red-500 w-1/3'
+                                   }`}
+                                 />
+                               </div>
+                               <span className={`text-xs ${
+                                 passwordStrength.strength === 'strong' ? 'text-green-600' :
+                                 passwordStrength.strength === 'medium' ? 'text-yellow-600' :
+                                 'text-red-600'
+                               }`}>
+                                 {passwordStrength.strength === 'strong' ? 'Надежный' :
+                                  passwordStrength.strength === 'medium' ? 'Средний' : 'Слабый'}
+                               </span>
+                             </div>
+                             {passwordStrength.feedback.length > 0 && (
+                               <p className="text-xs text-muted-foreground mt-1">
+                                 Добавьте: {passwordStrength.feedback.join(', ')}
+                               </p>
+                             )}
+                           </div>
+                         );
+                       })()}
+                     </FormItem>
                   )}
                 />
 
