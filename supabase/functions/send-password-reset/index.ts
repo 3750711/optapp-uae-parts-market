@@ -1,12 +1,10 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createServiceClient } from '../_shared/client.ts';
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createServiceClient();
 
 // Константа для базового URL
 const PARTSBAY_BASE_URL = "https://partsbay.ae";
@@ -190,7 +188,68 @@ const handler = async (req: Request): Promise<Response> => {
       // Стандартное уведомление о сбросе пароля
       console.log("Password reset requested for email:", email, "optId:", optId || "none");
 
-      // Создаем код сброса пароля через функцию базы данных
+      // Get client IP and user agent for security logging
+      const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+      const userAgent = req.headers.get('user-agent') || 'unknown';
+
+      // Validate user exists before creating reset code
+      const { data: userExists, error: validationError } = await supabase.rpc(
+        'validate_user_exists',
+        { p_email: email }
+      );
+
+      if (validationError) {
+        console.error("User validation error:", validationError);
+        
+        // Log security event
+        await supabase.rpc('log_security_event', {
+          p_action: 'password_reset_validation_error',
+          p_email: email,
+          p_ip_address: clientIP,
+          p_user_agent: userAgent,
+          p_success: false,
+          p_error_message: validationError.message
+        });
+
+        return new Response(
+          JSON.stringify({ 
+            success: true, // Return success to prevent email enumeration
+            message: "Если этот email существует, код для сброса пароля будет отправлен"
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      if (!userExists) {
+        console.log("User does not exist for email:", email);
+        
+        // Log security event - attempted reset for non-existent user
+        await supabase.rpc('log_security_event', {
+          p_action: 'password_reset_nonexistent_user',
+          p_email: email,
+          p_ip_address: clientIP,
+          p_user_agent: userAgent,
+          p_success: false,
+          p_error_message: 'User does not exist'
+        });
+
+        // Return success message to prevent email enumeration
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            message: "Если этот email существует, код для сброса пароля будет отправлен"
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      // User exists, proceed with creating reset code
       const { data: codeResult, error: codeError } = await supabase.rpc(
         'create_password_reset_code',
         { 
@@ -201,6 +260,17 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (codeError) {
         console.error("Database error:", codeError);
+        
+        // Log security event
+        await supabase.rpc('log_security_event', {
+          p_action: 'password_reset_code_creation_error',
+          p_email: email,
+          p_ip_address: clientIP,
+          p_user_agent: userAgent,
+          p_success: false,
+          p_error_message: codeError.message
+        });
+
         return new Response(
           JSON.stringify({ 
             success: false,

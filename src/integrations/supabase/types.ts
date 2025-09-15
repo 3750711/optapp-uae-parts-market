@@ -1397,6 +1397,45 @@ export type Database = {
           },
         ]
       }
+      security_logs: {
+        Row: {
+          action: string
+          created_at: string
+          email: string | null
+          error_message: string | null
+          id: string
+          ip_address: unknown | null
+          metadata: Json | null
+          success: boolean
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          email?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          email?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: unknown | null
+          metadata?: Json | null
+          success?: boolean
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       store_car_brands: {
         Row: {
           car_brand_id: string
@@ -2181,6 +2220,10 @@ export type Database = {
           total_revenue: number
         }[]
       }
+      get_user_id_by_email: {
+        Args: { p_email: string }
+        Returns: string
+      }
       gtrgm_compress: {
         Args: { "": unknown }
         Returns: unknown
@@ -2311,6 +2354,19 @@ export type Database = {
           p_context_data?: Json
           p_ip_address?: unknown
           p_user_agent?: string
+        }
+        Returns: undefined
+      }
+      log_security_event: {
+        Args: {
+          p_action: string
+          p_email?: string
+          p_error_message?: string
+          p_ip_address?: unknown
+          p_metadata?: Json
+          p_success?: boolean
+          p_user_agent?: string
+          p_user_id?: string
         }
         Returns: undefined
       }
@@ -2547,6 +2603,10 @@ export type Database = {
           p_user_type: Database["public"]["Enums"]["user_type"]
           p_verification_status: Database["public"]["Enums"]["verification_status"]
         }
+        Returns: boolean
+      }
+      validate_user_exists: {
+        Args: { p_email: string }
         Returns: boolean
       }
       vector_avg: {
