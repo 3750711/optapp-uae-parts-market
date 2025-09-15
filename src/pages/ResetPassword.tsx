@@ -30,6 +30,8 @@ const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [isTelegramUser, setIsTelegramUser] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -39,7 +41,7 @@ const ResetPassword = () => {
     }
   });
 
-  // Check password reset session
+  // Check password reset session and user profile
   useEffect(() => {
     const checkResetSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -56,6 +58,18 @@ const ResetPassword = () => {
       if (type !== 'recovery' || !accessToken) {
         setIsValidSession(false);
         return;
+      }
+
+      // Get user profile to check if it's a Telegram user
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile) {
+        setUserProfile(profile);
+        setIsTelegramUser(!!profile.telegram_id && !profile.has_password);
       }
       
       setIsValidSession(true);
@@ -82,15 +96,28 @@ const ResetPassword = () => {
         return;
       }
 
+      // If this is a Telegram user setting their first password, update has_password
+      if (isTelegramUser && userProfile) {
+        await supabase
+          .from('profiles')
+          .update({ has_password: true })
+          .eq('id', userProfile.id);
+      }
+
       toast({
-        title: "Пароль обновлен",
-        description: "Ваш пароль успешно изменен. Теперь вы можете войти.",
+        title: isTelegramUser ? "Пароль установлен" : "Пароль обновлен",
+        description: isTelegramUser 
+          ? "Ваш первый пароль успешно установлен. Теперь вы можете входить через email и пароль."
+          : "Ваш пароль успешно изменен. Теперь вы можете войти.",
       });
 
       // Redirect to login page
       setTimeout(() => {
         navigate('/login', { 
-          state: { message: 'Пароль успешно изменен. Войдите с новым паролем.' }
+          state: { message: isTelegramUser 
+            ? 'Пароль установлен. Войдите с новым паролем.' 
+            : 'Пароль успешно изменен. Войдите с новым паролем.' 
+          }
         });
       }, 2000);
       
@@ -159,7 +186,24 @@ const ResetPassword = () => {
             <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
               <Lock className="h-6 w-6 text-blue-600" />
             </div>
-            <CardTitle className="text-2xl font-bold">Создать новый пароль</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              {isTelegramUser ? "Установить пароль" : "Создать новый пароль"}
+            </CardTitle>
+            {isTelegramUser && userProfile && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Telegram пользователь:</strong> {userProfile.first_name || userProfile.full_name}
+                </p>
+                {userProfile.opt_id && (
+                  <p className="text-sm text-blue-600">
+                    <strong>OPT ID:</strong> {userProfile.opt_id}
+                  </p>
+                )}
+                <p className="text-xs text-blue-600 mt-1">
+                  Вы устанавливаете свой первый пароль для входа через email.
+                </p>
+              </div>
+            )}
           </CardHeader>
           
           <Form {...form}>
