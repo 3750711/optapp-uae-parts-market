@@ -87,8 +87,10 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     telegramData: TelegramAuthData;
   } | null>(null);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
-  const { user, profile, signInWithTelegram, signIn } = useAuth();
+  const { user, profile, signInWithTelegram, signIn, status } = useAuth();
   const { checkRateLimit } = useRateLimit();
+  const [ready, setReady] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
 
   // Generate deterministic password based on telegram_id
   const generateDeterministicPassword = async (telegramId: number): Promise<string> => {
@@ -257,6 +259,9 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   }, [user, profile]);
 
   useEffect(() => {
+    // Don't render widget if already authenticated
+    if (status !== 'guest') return;
+    
     console.log('🔍 TelegramLoginWidget: Setting up widget', {
       widgetRefExists: !!widgetRef.current,
       scriptLoaded: scriptLoadedRef.current,
@@ -269,48 +274,50 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       dataOnauth: handleTelegramAuth
     };
 
+    // Add watchdog timer for slow loading
+    const watchdogTimeout = setTimeout(() => {
+      if (!ready && widgetRef.current) {
+        console.warn('⚠️ TelegramLoginWidget: Script loading timeout after 8s');
+        setTimedOut(true);
+      }
+    }, 8000);
+
     // Load Telegram widget script if not already loaded
     if (!scriptLoadedRef.current && widgetRef.current) {
       console.log('🔍 TelegramLoginWidget: Creating and loading script');
       
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
-      script.setAttribute('data-telegram-login', 'Optnewads_bot'); // Configured bot username
+      script.setAttribute('data-telegram-login', 'Optnewads_bot');
       script.setAttribute('data-size', widgetSize);
       script.setAttribute('data-onauth', 'TelegramLoginWidget.dataOnauth(user)');
       script.setAttribute('data-request-access', 'write');
       script.async = true;
 
-      // ✅ ИСПРАВЛЕНИЕ: Добавляем обработчики загрузки для диагностики
       script.onload = () => {
         console.log('✅ TelegramLoginWidget: Script loaded successfully');
+        setReady(true);
       };
       
       script.onerror = (error) => {
         console.error('❌ TelegramLoginWidget: Script loading failed', error);
+        setTimedOut(true);
       };
 
       widgetRef.current.appendChild(script);
       scriptLoadedRef.current = true;
-      
-      console.log('🔍 TelegramLoginWidget: Script added to DOM', {
-        src: script.src,
-        attributes: Array.from(script.attributes).map(attr => `${attr.name}="${attr.value}"`),
-        parentElement: widgetRef.current.className
-      });
-    } else if (scriptLoadedRef.current) {
-      console.log('🔍 TelegramLoginWidget: Script already loaded, skipping');
-    } else if (!widgetRef.current) {
-      console.warn('⚠️ TelegramLoginWidget: widgetRef.current is null, cannot load script');
     }
 
     return () => {
-      // Cleanup
+      clearTimeout(watchdogTimeout);
       if (window.TelegramLoginWidget) {
         delete window.TelegramLoginWidget;
       }
     };
-  }, []);
+  }, [status]);
+
+  // Don't render widget if already authenticated
+  if (status !== 'guest') return null;
 
   return (
     <>
@@ -325,12 +332,35 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
             </p>
           </div>
         )}
+        
+        {/* Loading skeleton while script loads */}
+        {!ready && !timedOut && (
+          <div className="h-12 w-48 bg-muted animate-pulse rounded-md" />
+        )}
+        
         <div 
           ref={widgetRef} 
           className={isCompact ? 'telegram-widget-container' : 'telegram-widget-container scale-110'} 
           data-clarity-ignore="true"
           data-telegram-login="true"
         />
+        
+        {/* Fallback for slow/blocked Telegram */}
+        {timedOut && !ready && (
+          <div className="mt-3 text-sm text-amber-600 text-center">
+            Telegram медленно загружается. Попробуйте{' '}
+            <a 
+              href="https://t.me/Optnewads_bot" 
+              target="_blank" 
+              rel="noreferrer"
+              className="underline hover:no-underline"
+            >
+              открыть бота
+            </a>{' '}
+            в отдельной вкладке.
+          </div>
+        )}
+        
         <div className="text-center space-y-2"></div>
       </div>
 

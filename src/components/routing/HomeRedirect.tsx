@@ -9,7 +9,7 @@ interface HomeRedirectProps {
 }
 
 const HomeRedirect = ({ children }: HomeRedirectProps) => {
-  const { user, profile, isLoading } = useAuthWithProfile();
+  const { user, profile, isLoading, status } = useAuthWithProfile();
   const location = useLocation();
   const navigate = useNavigate();
   const hasRedirectedRef = useRef(false);
@@ -18,6 +18,7 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     user: !!user, 
     profile: !!profile, 
     isLoading,
+    status,
     userType: profile?.user_type,
     verificationStatus: profile?.verification_status,
     currentPath: location.pathname,
@@ -28,11 +29,12 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
     user: !!user, 
     profile: !!profile, 
     isLoading,
+    status,
     userType: profile?.user_type
   });
   
-  // Show loading while checking authentication
-  if (isLoading) {
+  // Show loading while checking authentication - prevents flicker
+  if (status === 'checking' || isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>
@@ -41,60 +43,32 @@ const HomeRedirect = ({ children }: HomeRedirectProps) => {
   }
   
   // If user is not authenticated, show home page
-  if (!user) {
+  if (status === 'guest' || !user) {
     console.log("🚀 HomeRedirect: No user, showing home page");
     return <>{children}</>;
   }
 
-  // Profile loads asynchronously, determine redirect only if available
-  if (profile) {
-    console.log("🚀 HomeRedirect: User authenticated, determining redirect", {
-      userType: profile.user_type,
-      verificationStatus: profile.verification_status,
-      authMethod: profile.auth_method,
-      profileCompleted: profile.profile_completed,
-      optId: profile.opt_id
-    });
+  // If user is authenticated, redirect immediately
+  if (status === 'authed' && user && profile) {
+    console.log("🚀 HomeRedirect: User authenticated, determining redirect");
     
     // Determine redirect target based on user state
-    let redirectTarget: string | null = null;
+    const redirectTarget = 
+      profile.user_type !== 'admin' && profile.verification_status !== 'verified' ? "/pending-approval" :
+      profile.user_type === 'buyer' ? "/buyer-dashboard" :
+      profile.user_type === 'seller' ? "/seller/dashboard" :
+      profile.user_type === 'admin' ? "/admin" : null;
     
-    // Non-admins who are not verified must go to pending-approval
-    if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
-      redirectTarget = "/pending-approval";
-      console.log("🚀 HomeRedirect: Unverified user -> pending-approval");
-    } else if (profile.verification_status === 'verified') {
-      // Verified users go to their respective dashboards
-      switch (profile.user_type) {
-        case 'buyer':
-          redirectTarget = "/buyer-dashboard";
-          console.log("🚀 HomeRedirect: Verified buyer -> buyer-dashboard");
-          break;
-        case 'seller':
-          redirectTarget = "/seller/dashboard";
-          console.log("🚀 HomeRedirect: Verified seller -> seller/dashboard");
-          break;
-        case 'admin':
-          redirectTarget = "/admin";
-          console.log("🚀 HomeRedirect: Verified admin -> admin");
-          break;
-        default:
-          console.log("🚀 HomeRedirect: Unknown user type, staying on home page");
-          break;
-      }
-    }
-    
-    // Perform redirect if needed with delay to prevent race conditions
+    // Perform immediate redirect
     if (redirectTarget && redirectProtection.canRedirect(location.pathname, redirectTarget)) {
-      console.log("🚀 HomeRedirect: Scheduling redirect to:", redirectTarget);
+      console.log("🚀 HomeRedirect: Redirecting to:", redirectTarget);
       
-      // Use delayed redirect to prevent NS_BINDING_ABORTED
       if (!hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
         setTimeout(() => {
-          console.log("🚀 HomeRedirect: Executing delayed redirect to:", redirectTarget);
+          console.log("🚀 HomeRedirect: Executing redirect to:", redirectTarget);
           navigate(redirectTarget, { replace: true });
-        }, 100);
+        }, 50);
       }
     }
   }

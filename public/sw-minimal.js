@@ -1,21 +1,26 @@
-// Minimal Service Worker - offline fallback only with NS_ERROR_CORRUPTED_CONTENT fix
-// Version: 3.2.1 - Fixed .tsx production build references
+// Minimal Service Worker - Enhanced privacy protection for api.partsbay.ae
+// Version: 3.3.0 - Strict private request skipping
 
-const CACHE_NAME = 'offline-fallback-v3-2-1';
+const CACHE_NAME = 'offline-fallback-v3-3-0';
 const OFFLINE_HTML = '/index.html';
 
-// 🚨 CRITICAL: Enhanced auth request detection to prevent corruption
-const isAuthRequest = (request) => {
-  const url = request.url;
+// 🚨 CRITICAL: Enhanced private request detection - never intercept these
+const SKIP = (url) => {
+  const u = new URL(url);
   
-  // Never intercept api.partsbay.ae (our Supabase proxy)
-  if (url.includes('api.partsbay.ae')) return true;
+  // Never intercept our Supabase proxy domain entirely
+  if (u.hostname.endsWith('api.partsbay.ae')) return true;
   
-  // Never intercept any Supabase-related requests
-  if (url.includes('supabase.co') || url.includes('supabase.com')) return true;
+  // Never intercept any Supabase domains
+  if (u.hostname.includes('supabase.co') || u.hostname.includes('supabase.com')) return true;
   
-  // Never intercept auth endpoints
-  if (url.includes('/auth/') || url.includes('/login') || url.includes('/logout')) return true;
+  // Never intercept auth/API/functions/storage/realtime paths
+  if (u.pathname.startsWith('/auth') ||
+      u.pathname.startsWith('/rest') ||
+      u.pathname.startsWith('/rpc') ||
+      u.pathname.startsWith('/functions') ||
+      u.pathname.startsWith('/storage') ||
+      u.pathname.startsWith('/realtime')) return true;
   
   return false;
 };
@@ -95,21 +100,20 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 🚨 CRITICAL: Minimal fetch - with NS_ERROR_CORRUPTED_CONTENT protection
+// 🚨 CRITICAL: Minimal fetch - strict private request skipping
 self.addEventListener('fetch', (event) => {
-  // 🚨 CRITICAL: Never intercept auth-related requests
-  if (hasAuthData(event.request)) {
-    console.log('🚨 SW: Skipping auth/api request:', event.request.url);
-    return; // Let auth requests pass through directly
+  // Skip ALL private requests - let them go to network directly
+  if (SKIP(event.request.url)) {
+    return; // Pass through to network without interception
   }
   
-  // 🚨 CRITICAL: Never intercept JavaScript/CSS files to prevent corruption
+  // Skip static assets to prevent corruption
   if (isStaticAsset(event.request)) {
     console.log('🚨 SW: Skipping static asset to prevent corruption:', event.request.url);
-    return; // Let static assets load normally
+    return;
   }
   
-  // Only handle navigation requests (HTML pages) for offline fallback
+  // Only handle navigation requests for offline fallback
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => {
@@ -118,7 +122,6 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
-  // Let all other requests go through normally - no caching to prevent corruption
 });
 
 // Handle messages from the main app

@@ -6,6 +6,7 @@ import { checkSessionSoft } from '@/auth/authSessionManager';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
 import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
 import { sessionBackupManager } from '@/auth/sessionBackup';
+import { refreshSessionOnce } from '@/utils/refreshMutex';
 import { FLAGS } from '@/config/flags';
 
 // Local timeout utility to avoid external dependencies
@@ -72,8 +73,8 @@ type AuthContextType = {
   authError: string | null;
   /** @deprecated Always false */
   needsFirstLoginCompletion: boolean;
-  /** @deprecated Always 'authed' when user exists */
-  status?: string;
+  /** Unified auth status: 'checking' | 'guest' | 'authed' */
+  status: 'checking' | 'guest' | 'authed';
   /** @deprecated No-op function */
   refreshProfile: () => Promise<void>;
   /** @deprecated No-op function */
@@ -183,6 +184,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const profile = profileQuery.data || null;
   const isAdmin = profile?.user_type === 'admin';
   const isCheckingAdmin = !!user && profileQuery.isLoading;
+  
+  // Unified status calculation
+  const status: 'checking' | 'guest' | 'authed' = 
+    loading || (user && profileQuery.isLoading) ? 'checking' :
+    user ? 'authed' : 'guest';
 
   // CRITICAL: Clear profile cache if user disappears (prevents data leaks)
   useEffect(() => {
@@ -428,7 +434,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const controller = new AbortController();
             setTimeout(() => controller.abort(), 10000);
             
-            await supabase.auth.refreshSession();
+            await refreshSessionOnce(supabase);
           } catch (error) {
             console.warn('[PWA SESSION MONITOR] Proactive refresh failed:', error);
           }
@@ -710,7 +716,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profileError: null,
     authError: null,
     needsFirstLoginCompletion: false,
-    status: user ? 'authed' : 'guest',
+    status,
     refreshProfile,
     retryProfileLoad,
     clearAuthError,

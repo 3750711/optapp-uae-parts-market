@@ -9,15 +9,15 @@ interface GuestRouteProps {
 }
 
 const GuestRoute = ({ children }: GuestRouteProps) => {
-  const { user, profile, isLoading, isProfileLoading } = useAuth();
+  const { user, profile, loading, status } = useAuth();
   const location = useLocation();
   const queryClient = useQueryClient();
   
   console.log("🔐 GuestRoute: Auth state check:", { 
     user: !!user, 
     profile: !!profile, 
-    isLoading,
-    isProfileLoading,
+    loading,
+    status,
     userType: profile?.user_type,
     verificationStatus: profile?.verification_status,
     timestamp: new Date().toISOString()
@@ -26,7 +26,8 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
   devLog("GuestRoute: Auth state:", { 
     user: !!user, 
     profile: !!profile, 
-    isLoading,
+    loading,
+    status,
     userType: profile?.user_type
   });
   
@@ -42,9 +43,9 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
     return null;
   }
 
-  // Show loading while checking authentication or profile
-  if (isLoading || (user && isProfileLoading)) {
-    console.log("🔐 GuestRoute: Showing loading state", { isLoading, isProfileLoading, hasUser: !!user });
+  // Show loading while checking authentication - prevents flicker
+  if (status === 'checking' || loading) {
+    console.log("🔐 GuestRoute: Showing loading state", { status, loading, hasUser: !!user });
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>
@@ -52,20 +53,9 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
     );
   }
   
-  // If user is authenticated, check verification status first
-  if (user && profile) {
-    console.log("🔐 GuestRoute: User authenticated, checking verification and redirect", {
-      userType: profile.user_type,
-      verificationStatus: profile.verification_status,
-      authMethod: profile.auth_method,
-      profileCompleted: profile.profile_completed,
-      optId: profile.opt_id,
-      timestamp: new Date().toISOString()
-    });
-    
-    devLog("GuestRoute: User authenticated, checking verification status");
-    
-    // Skip profile completion check - handled globally by ProfileCompletionRedirect
+  // If user is authenticated, redirect to appropriate dashboard  
+  if (status === 'authed' && user && profile) {
+    console.log("🔐 GuestRoute: User authenticated, redirecting based on verification and role");
     
     // Enforce: any non-admin user who is not verified must go to pending-approval
     if (profile.user_type !== 'admin' && profile.verification_status !== 'verified') {
@@ -75,32 +65,15 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
       }
     }
     
-    console.log("🔐 GuestRoute: User verified, checking role redirect");
-    devLog("GuestRoute: User verified, redirecting based on role");
-    
-    // Redirect authenticated users away from guest routes based on role
-    switch (profile.user_type) {
-      case 'seller':
-        console.log("🔐 GuestRoute: Redirecting seller to dashboard");
-        if (redirectProtection.canRedirect(location.pathname, "/seller/dashboard")) {
-          return <Navigate to="/seller/dashboard" replace />;
-        }
-        break;
-      case 'admin':
-        console.log("🔐 GuestRoute: Redirecting admin to admin panel");
-        if (redirectProtection.canRedirect(location.pathname, "/admin")) {
-          return <Navigate to="/admin" replace />;
-        }
-        break;
-      case 'buyer':
-        console.log("🔐 GuestRoute: Redirecting verified buyer to buyer dashboard");
-        if (redirectProtection.canRedirect(location.pathname, "/buyer-dashboard")) {
-          return <Navigate to="/buyer-dashboard" replace />;
-        }
-        break;
-      default:
-        console.log("🔐 GuestRoute: Unknown role - allowing guest access");
-        break;
+    // Redirect authenticated users based on role
+    const to = 
+      profile.user_type === 'admin' ? '/admin' :
+      profile.user_type === 'seller' ? '/seller/dashboard' :
+      profile.user_type === 'buyer' ? '/buyer-dashboard' : null;
+      
+    if (to && redirectProtection.canRedirect(location.pathname, to)) {
+      console.log("🔐 GuestRoute: Redirecting", profile.user_type, "to", to);
+      return <Navigate to={to} replace />;
     }
   }
   
