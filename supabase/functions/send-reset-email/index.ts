@@ -13,6 +13,21 @@ interface ResetEmailRequest {
   optId?: string;
 }
 
+// Function to replace Supabase domain with proxy domain
+const replaceWithProxyDomain = (url: string): string => {
+  const originalDomain = 'https://vfiylfljiixqkjfqubyq.supabase.co';
+  const proxyDomain = 'https://api.partsbay.ae';
+  
+  if (url.startsWith(originalDomain)) {
+    const newUrl = url.replace(originalDomain, proxyDomain);
+    console.log('Domain replacement:', { original: url, proxy: newUrl });
+    return newUrl;
+  }
+  
+  console.log('No domain replacement needed for URL:', url);
+  return url;
+};
+
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -119,6 +134,13 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    console.log('Original reset link generated');
+    
+    // Replace Supabase domain with proxy domain
+    const proxyResetLink = replaceWithProxyDomain(resetLink);
+    
+    console.log('Using proxy reset link for email');
+
     // Prepare email content
     const userName = userProfile?.full_name || 'Пользователь';
     const isTelegramUser = !!userProfile?.telegram_id;
@@ -166,12 +188,12 @@ const handler = async (req: Request): Promise<Response> => {
             <p>Для создания нового пароля нажмите на кнопку ниже:</p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetLink}" class="button">Восстановить пароль</a>
+              <a href="${proxyResetLink}" class="button">Восстановить пароль</a>
             </div>
             
             <p style="font-size: 14px; color: #666;">
               Или скопируйте и вставьте эту ссылку в браузер:<br>
-              <a href="${resetLink}" style="word-break: break-all;">${resetLink}</a>
+              <a href="${proxyResetLink}" style="word-break: break-all;">${proxyResetLink}</a>
             </p>
             
             <div style="border-top: 1px solid #e9ecef; padding-top: 20px; margin-top: 30px;">
