@@ -1970,12 +1970,19 @@ export type Database = {
         Returns: boolean
       }
       check_ip_rate_limit: {
-        Args: {
-          p_action: string
-          p_ip_address: string
-          p_limit?: number
-          p_window_hours?: number
-        }
+        Args:
+          | {
+              p_action: string
+              p_ip_address: string
+              p_limit?: number
+              p_window_hours?: number
+            }
+          | {
+              p_action: string
+              p_ip_address: unknown
+              p_limit?: number
+              p_window_minutes?: number
+            }
         Returns: Json
       }
       check_no_hardcoded_function_urls: {
@@ -2235,7 +2242,7 @@ export type Database = {
       }
       get_user_id_by_email: {
         Args: { p_email: string }
-        Returns: string
+        Returns: Json
       }
       gtrgm_compress: {
         Args: { "": unknown }
@@ -2371,17 +2378,25 @@ export type Database = {
         Returns: undefined
       }
       log_security_event: {
-        Args: {
-          p_action: string
-          p_email?: string
-          p_error_message?: string
-          p_ip_address?: unknown
-          p_metadata?: Json
-          p_success?: boolean
-          p_user_agent?: string
-          p_user_id?: string
-        }
-        Returns: undefined
+        Args:
+          | {
+              p_action: string
+              p_details?: Json
+              p_ip_address?: unknown
+              p_user_agent?: string
+              p_user_id?: string
+            }
+          | {
+              p_action: string
+              p_email?: string
+              p_error_message?: string
+              p_ip_address?: unknown
+              p_metadata?: Json
+              p_success?: boolean
+              p_user_agent?: string
+              p_user_id?: string
+            }
+        Returns: string
       }
       log_telegram_auth_debug: {
         Args: { debug_info: Json; user_id: string }
@@ -2548,6 +2563,10 @@ export type Database = {
       }
       send_email_verification_code: {
         Args: { p_email: string; p_ip_address?: unknown }
+        Returns: Json
+      }
+      send_password_reset_code: {
+        Args: { p_email: string; p_opt_id?: string }
         Returns: Json
       }
       send_verification_code: {
