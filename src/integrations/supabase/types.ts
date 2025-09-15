@@ -1108,6 +1108,7 @@ export type Database = {
           first_login_completed: boolean
           fts: unknown | null
           full_name: string | null
+          has_password: boolean | null
           id: string
           is_trusted_seller: boolean
           last_login: string | null
@@ -1142,6 +1143,7 @@ export type Database = {
           first_login_completed?: boolean
           fts?: unknown | null
           full_name?: string | null
+          has_password?: boolean | null
           id: string
           is_trusted_seller?: boolean
           last_login?: string | null
@@ -1176,6 +1178,7 @@ export type Database = {
           first_login_completed?: boolean
           fts?: unknown | null
           full_name?: string | null
+          has_password?: boolean | null
           id?: string
           is_trusted_seller?: boolean
           last_login?: string | null
@@ -1900,22 +1903,6 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: boolean
       }
-      check_ip_rate_limit: {
-        Args:
-          | {
-              p_action: string
-              p_ip_address: string
-              p_limit?: number
-              p_window_hours?: number
-            }
-          | {
-              p_action: string
-              p_ip_address: unknown
-              p_limit?: number
-              p_window_minutes?: number
-            }
-        Returns: Json
-      }
       check_no_hardcoded_function_urls: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -2308,28 +2295,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      log_security_event: {
-        Args:
-          | {
-              p_action: string
-              p_details?: Json
-              p_error_message?: string
-              p_ip_address?: unknown
-              p_user_agent?: string
-              p_user_id?: string
-            }
-          | {
-              p_action: string
-              p_email?: string
-              p_error_message?: string
-              p_ip_address?: unknown
-              p_metadata?: Json
-              p_success?: boolean
-              p_user_agent?: string
-              p_user_id?: string
-            }
-        Returns: string
-      }
       log_telegram_auth_debug: {
         Args: { debug_info: Json; user_id: string }
         Returns: undefined
@@ -2495,10 +2460,6 @@ export type Database = {
       }
       send_email_verification_code: {
         Args: { p_email: string; p_ip_address?: unknown }
-        Returns: Json
-      }
-      send_password_reset_code: {
-        Args: { p_email: string; p_opt_id?: string }
         Returns: Json
       }
       send_verification_code: {
