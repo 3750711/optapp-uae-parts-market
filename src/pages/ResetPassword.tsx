@@ -27,9 +27,9 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const ResetPassword = () => {
+  const { user, status, profile, updatePassword, isRecoveryMode, clearRecoveryMode } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, status, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [validationState, setValidationState] = useState<'checking' | 'valid' | 'invalid' | 'timeout'>('checking');
   const [isTelegramUser, setIsTelegramUser] = useState(false);
@@ -47,30 +47,17 @@ const ResetPassword = () => {
     let timeoutId: NodeJS.Timeout;
     
     const validateResetSession = () => {
-      // Check URL parameters for recovery type (both query and hash)
-      const urlType = searchParams.get('type');
-      const queryToken = searchParams.get('token');
-      const hasRecoveryType = urlType === 'recovery' || window.location.hash.includes('type=recovery');
-      const hasToken = queryToken || window.location.hash.includes('access_token=');
-      
       console.log('Reset password validation:', { 
-        type: urlType || (hasRecoveryType ? 'recovery' : 'unknown'),
-        hasToken: hasToken,
+        isRecoveryMode,
         authStatus: status,
         hasUser: !!user,
-        urlFormat: queryToken ? 'query' : 'hash'
+        validationMethod: 'recovery_flag'
       });
       
-      // Check if this is a recovery session
-      if (!hasRecoveryType || !hasToken) {
-        console.log('Not a valid recovery request');
+      // Use recovery mode flag instead of URL parsing
+      if (!isRecoveryMode) {
+        console.log('Not in recovery mode');
         setValidationState('invalid');
-        return;
-      }
-      
-      // If this is old format (query params), wait for Supabase SDK to handle URL
-      if (queryToken && !user && status === 'checking') {
-        console.log('Waiting for Supabase SDK to handle recovery URL...');
         return;
       }
       
@@ -116,15 +103,13 @@ const ResetPassword = () => {
         clearTimeout(timeoutId);
       }
     };
-  }, [searchParams, status, user, profile, validationState]);
+  }, [status, user, profile, validationState, isRecoveryMode]);
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: data.password
-      });
+      const { error } = await updatePassword(data.password);
 
       if (error) {
         console.error("Password update error:", error);
@@ -138,11 +123,20 @@ const ResetPassword = () => {
 
       // If this is a Telegram user setting their first password, update has_password
       if (isTelegramUser && profile) {
-        await supabase
+        const { error: profileUpdateError } = await supabase
           .from('profiles')
           .update({ has_password: true })
           .eq('id', profile.id);
+        
+        if (profileUpdateError) {
+          console.error('Error updating profile:', profileUpdateError);
+        } else {
+          console.log('✅ Profile updated - has_password set to true');
+        }
       }
+
+      // Clear recovery mode flag
+      clearRecoveryMode();
 
       toast({
         title: isTelegramUser ? "Пароль установлен" : "Пароль обновлен",

@@ -89,6 +89,7 @@ type AuthContextType = {
   profile: any;
   isAdmin: boolean;
   isCheckingAdmin: boolean;
+  isRecoveryMode: boolean;
   
   // Core auth methods
   signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
@@ -103,6 +104,7 @@ type AuthContextType = {
   updatePassword: (password: string) => Promise<{ error: any }>;
   signInWithTelegram: (authData: any) => Promise<{ user: User | null; error: any; telegramData?: any }>;
   completeFirstLogin: () => Promise<void>;
+  clearRecoveryMode: () => void;
   
   // Legacy properties for backward compatibility
   /** @deprecated Use profile directly */
@@ -181,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const unsubRef = useRef<() => void>();
   const endedRef = useRef(false); // Prevent multiple setLoading(false) calls
 
@@ -299,6 +302,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
         // CRITICAL: Clear profile cache FIRST to prevent data leaks
         queryClient.removeQueries({ queryKey: ['profile'] });
+        // Clear recovery mode flag
+        setIsRecoveryMode(false);
         // Then clear auth storage and session backup
         clearAuthStorageSafe();
         sessionBackupManager.clearBackup();
@@ -326,6 +331,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const recoveryTokens = parseRecoveryTokensFromUrl();
         if (recoveryTokens) {
+          // Set recovery mode flag BEFORE processing
+          setIsRecoveryMode(true);
+          console.log('🔄 [AuthContext] Recovery mode activated');
+          
           // Handle old format (query params) - let SDK process URL automatically
           if (recoveryTokens === 'HANDLE_VIA_SDK') {
             console.log('🔄 [AuthContext] Detected old format recovery URL, letting SDK handle it...');
@@ -346,6 +355,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (sessionError) {
             console.error('❌ [AuthContext] Failed to set recovery session:', sessionError);
+            setIsRecoveryMode(false);
           } else if (sessionData.session) {
             console.log('✅ [AuthContext] Recovery session established for user:', sessionData.session.user?.id);
           }
@@ -681,6 +691,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updatePassword = async (password: string) => {
     try {
       const { error } = await supabase.auth.updateUser({ password });
+      if (!error) {
+        // Clear recovery mode flag after successful password update
+        setIsRecoveryMode(false);
+        console.log('🔄 [AuthContext] Recovery mode cleared after password update');
+      }
       return { error };
     } catch (error) {
       return { error };
@@ -775,6 +790,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // No-op - use debugging tools instead
   };
 
+  const clearRecoveryMode = () => {
+    console.log('🔄 [AuthContext] Clearing recovery mode');
+    setIsRecoveryMode(false);
+  };
+
   const value = useMemo<AuthContextType>(() => ({
     // Core unified state
     user, 
@@ -783,6 +803,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile,
     isAdmin,
     isCheckingAdmin,
+    isRecoveryMode,
     
     // Core methods
     signIn, 
@@ -793,6 +814,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updatePassword,
     signInWithTelegram,
     completeFirstLogin,
+    clearRecoveryMode,
     
     // Legacy properties for backward compatibility
     isLoading: loading || isCheckingAdmin,
@@ -806,7 +828,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearAuthError,
     forceReauth,
     runDiagnostic
-  }), [user, session, loading, profile, isAdmin, isCheckingAdmin]);
+  }), [user, session, loading, profile, isAdmin, isCheckingAdmin, isRecoveryMode]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
