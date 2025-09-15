@@ -3,7 +3,6 @@ import { decodeJwt } from '@/auth/jwtHelpers';
 import { getRuntimeSupabaseUrl, isPreviewEnv } from '@/config/runtimeSupabase';
 import { getProjectRef } from '@/auth/projectRef';
 
-// Simplified: only validate token expiration, let Supabase SDK handle the rest
 export function checkSessionSoft(session: Session | null) {
   if (!session?.access_token) return { ok: false, forceLogout: false, reason: 'no_token' };
 
@@ -11,9 +10,24 @@ export function checkSessionSoft(session: Session | null) {
   const jwt: any = decodeJwt(session.access_token);
   const skew = 60;
   
-  // Only check expiration - let Supabase handle issuer validation
+  // КРИТИЧНО: Добавить проверку что JWT декодирован
+  if (!jwt) {
+    return { ok: false, forceLogout: true, reason: 'invalid_jwt' };
+  }
+  
+  // КРИТИЧНО: Проверить issuer (должен быть от Supabase)
+  if (jwt.iss && !jwt.iss.includes('supabase')) {
+    return { ok: false, forceLogout: true, reason: 'invalid_issuer' };
+  }
+  
+  // Проверка expiry
   if (jwt?.exp && jwt.exp + skew < now) {
     return { ok: false, forceLogout: true, reason: 'expired' };
+  }
+  
+  // КРИТИЧНО: Проверить что токен не из будущего (защита от clock skew атак)
+  if (jwt?.iat && jwt.iat - skew > now) {
+    return { ok: false, forceLogout: true, reason: 'future_token' };
   }
   
   return { ok: true, forceLogout: false };

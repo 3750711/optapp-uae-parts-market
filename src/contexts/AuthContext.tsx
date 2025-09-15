@@ -513,7 +513,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Add fallback mechanism - wait for AuthContext state update
         const checkStateUpdate = () => new Promise<void>((resolve) => {
-          const MAX_ATTEMPTS = 50; // Максимум 5 секунд (50 * 100ms)
+          const MAX_ATTEMPTS = 40; // Максимум 4 секунды (40 * 100ms) < 5s timeout
           let attempts = 0;
           
           const timeout = setTimeout(() => {
