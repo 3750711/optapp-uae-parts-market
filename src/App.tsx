@@ -15,6 +15,8 @@ import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RoutePreloader } from "@/components/routing/RoutePreloader";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
 import { checkAppVersion } from '@/utils/versionManager';
+import { setupViewportHeight } from '@/utils/viewport-fix';
+import '@/styles/universal-viewport.css';
 
 import { getQueryConfigForConnection } from "@/utils/networkUtils";
 
@@ -58,6 +60,12 @@ const App = () => {
   // Check version before anything else
   useEffect(() => {
     checkAppVersion();
+  }, []);
+  
+  // Setup universal viewport management
+  useEffect(() => {
+    const cleanup = setupViewportHeight();
+    return cleanup;
   }, []);
   
   return (

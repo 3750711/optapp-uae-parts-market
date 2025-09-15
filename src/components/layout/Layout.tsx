@@ -20,7 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children, className, language = 'ru' })
   }, [language]);
 
   return (
-    <div className="flex flex-col safe-height bg-background text-foreground">
+    <div className="flex flex-col safe-viewport safe-area-container bg-background text-foreground">
       <Header />
       <main className={className || ""}>{children}</main>
       <Footer language={language} />

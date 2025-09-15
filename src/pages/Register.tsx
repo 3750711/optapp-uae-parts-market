@@ -42,7 +42,7 @@ const Register = () => {
       </Helmet>
 
       <Layout language={language}>
-        <section className="safe-height bg-background">
+        <section className="safe-viewport safe-area-container bg-background">
           <div className="container mx-auto px-4 py-20">
             <div className="max-w-2xl mx-auto text-center">
               
