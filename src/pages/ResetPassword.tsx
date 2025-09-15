@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -28,9 +29,9 @@ type FormData = z.infer<typeof formSchema>;
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, status, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [validationState, setValidationState] = useState<'checking' | 'valid' | 'invalid' | 'timeout'>('checking');
   const [isTelegramUser, setIsTelegramUser] = useState(false);
 
   const form = useForm<FormData>({
@@ -41,74 +42,74 @@ const ResetPassword = () => {
     }
   });
 
-  // Check password reset session and user profile
+  // Validate reset password session
   useEffect(() => {
-    const checkResetSession = async () => {
-      // Check URL hash parameters first (common for Supabase auth redirects)
+    let timeoutId: NodeJS.Timeout;
+    
+    const validateResetSession = () => {
+      // Check URL parameters for recovery type
       const hash = window.location.hash.substring(1);
       const hashParams = new URLSearchParams(hash);
-      
-      // Check both URL search params and hash params
-      const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
       const type = searchParams.get('type') || hashParams.get('type');
+      const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
       
-      console.log('Reset password session check:', { 
-        hasAccessToken: !!accessToken, 
+      console.log('Reset password validation:', { 
         type, 
-        hashParams: hash ? Object.fromEntries(hashParams.entries()) : null,
-        searchParams: Object.fromEntries(searchParams.entries())
+        hasAccessToken: !!accessToken,
+        authStatus: status,
+        hasUser: !!user
       });
       
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session && !accessToken) {
-        console.log('No session and no access token found');
-        setIsValidSession(false);
+      // Check if this is a recovery session
+      if (type !== 'recovery' || !accessToken) {
+        console.log('Invalid reset password URL - missing type=recovery or access_token');
+        setValidationState('invalid');
         return;
       }
       
-      // Check if this is a password recovery session
-      if (type !== 'recovery') {
-        console.log('Invalid type for password reset:', type);
-        setIsValidSession(false);
-        return;
-      }
-      // Get user profile to check if it's a Telegram user
-      let userId = session?.user?.id;
-      
-      // If no session but we have access token, we need to wait for session establishment
-      if (!session && accessToken) {
-        console.log('Waiting for session to be established with access token');
-        // Give Supabase a moment to process the token from URL
-        setTimeout(() => {
-          checkResetSession();
-        }, 1000);
-        return;
+      // If AuthContext is still loading, wait for it
+      if (status === 'checking') {
+        console.log('Waiting for AuthContext to establish session...');
+        return; // Keep checking state
       }
       
-      if (!userId) {
-        console.log('No user ID available');
-        setIsValidSession(false);
+      // If we have a user, session is established
+      if (user && status === 'authed') {
+        console.log('Reset password session validated successfully');
+        setValidationState('valid');
+        
+        // Check if user is a Telegram user setting first password
+        if (profile) {
+          setIsTelegramUser(!!profile.telegram_id && !profile.has_password);
+        }
         return;
       }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (profile) {
-        setUserProfile(profile);
-        setIsTelegramUser(!!profile.telegram_id && !profile.has_password);
-        console.log('Profile loaded:', { telegram_id: !!profile.telegram_id, has_password: profile.has_password });
-      }
       
-      setIsValidSession(true);
+      // If no user after auth loading complete, session is invalid
+      if (status === 'guest') {
+        console.log('No user session established - invalid reset link');
+        setValidationState('invalid');
+        return;
+      }
     };
     
-    checkResetSession();
-  }, [searchParams]);
+    // Initial validation
+    validateResetSession();
+    
+    // Set timeout for session establishment (10 seconds)
+    timeoutId = setTimeout(() => {
+      if (validationState === 'checking') {
+        console.warn('Reset password session timeout - forcing invalid state');
+        setValidationState('timeout');
+      }
+    }, 10000);
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [searchParams, status, user, profile, validationState]);
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
@@ -129,11 +130,11 @@ const ResetPassword = () => {
       }
 
       // If this is a Telegram user setting their first password, update has_password
-      if (isTelegramUser && userProfile) {
+      if (isTelegramUser && profile) {
         await supabase
           .from('profiles')
           .update({ has_password: true })
-          .eq('id', userProfile.id);
+          .eq('id', profile.id);
       }
 
       toast({
@@ -165,15 +166,20 @@ const ResetPassword = () => {
     }
   };
 
-  // Show loading while checking session
-  if (isValidSession === null) {
+  // Show loading while validating session
+  if (validationState === 'checking') {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center">
           <Card className="w-full max-w-md">
-            <CardContent className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              <span>Проверка ссылки...</span>
+            <CardContent className="flex flex-col items-center justify-center p-8 space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="text-center">
+                <h3 className="font-medium">Проверка ссылки сброса пароля</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Устанавливаем безопасное соединение...
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -181,8 +187,10 @@ const ResetPassword = () => {
     );
   }
 
-  // Show error if session is invalid
-  if (!isValidSession) {
+  // Show error if session is invalid or timed out
+  if (validationState === 'invalid' || validationState === 'timeout') {
+    const isTimeout = validationState === 'timeout';
+    
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center">
@@ -191,11 +199,16 @@ const ResetPassword = () => {
               <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
                 <AlertCircle className="h-6 w-6 text-red-600" />
               </div>
-              <CardTitle className="text-2xl font-bold">Ссылка недействительна</CardTitle>
+              <CardTitle className="text-2xl font-bold">
+                {isTimeout ? 'Время ожидания истекло' : 'Ссылка недействительна'}
+              </CardTitle>
             </CardHeader>
             <CardContent className="text-center space-y-4">
               <p className="text-muted-foreground">
-                Ссылка для сброса пароля недействительна или истекла.
+                {isTimeout 
+                  ? 'Не удалось установить соединение для сброса пароля. Попробуйте запросить новую ссылку.'
+                  : 'Ссылка для сброса пароля недействительна или истекла.'
+                }
               </p>
               <Button 
                 onClick={() => navigate('/forgot-password')}
@@ -221,14 +234,14 @@ const ResetPassword = () => {
             <CardTitle className="text-2xl font-bold">
               {isTelegramUser ? "Установить пароль" : "Создать новый пароль"}
             </CardTitle>
-            {isTelegramUser && userProfile && (
+            {isTelegramUser && profile && (
               <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-700">
-                  <strong>Telegram пользователь:</strong> {userProfile.first_name || userProfile.full_name}
+                  <strong>Telegram пользователь:</strong> {profile.first_name || profile.full_name}
                 </p>
-                {userProfile.opt_id && (
+                {profile.opt_id && (
                   <p className="text-sm text-blue-600">
-                    <strong>OPT ID:</strong> {userProfile.opt_id}
+                    <strong>OPT ID:</strong> {profile.opt_id}
                   </p>
                 )}
                 <p className="text-xs text-blue-600 mt-1">
