@@ -1,26 +1,155 @@
-
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Info } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Lock, Loader2, AlertCircle } from "lucide-react";
+
+const formSchema = z.object({
+  password: z.string()
+    .min(6, { message: "Пароль должен содержать не менее 6 символов" })
+    .regex(/[A-Za-z]/, { message: "Пароль должен содержать хотя бы одну букву" })
+    .regex(/[0-9]/, { message: "Пароль должен содержать хотя бы одну цифру" }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Пароли не совпадают",
+  path: ["confirmPassword"],
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 const ResetPassword = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
 
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+    }
+  });
+
+  // Check password reset session
   useEffect(() => {
-    // Автоматически перенаправляем через 3 секунды
-    const timer = setTimeout(() => {
-      navigate('/forgot-password', { replace: true });
-    }, 3000);
+    const checkResetSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setIsValidSession(false);
+        return;
+      }
+      
+      // Check if this is a password recovery session
+      const accessToken = searchParams.get('access_token');
+      const type = searchParams.get('type');
+      
+      if (type !== 'recovery' || !accessToken) {
+        setIsValidSession(false);
+        return;
+      }
+      
+      setIsValidSession(true);
+    };
+    
+    checkResetSession();
+  }, [searchParams]);
 
-    return () => clearTimeout(timer);
-  }, [navigate]);
+  const onSubmit = async (data: FormData) => {
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: data.password
+      });
 
-  const handleRedirect = () => {
-    navigate('/forgot-password', { replace: true });
+      if (error) {
+        console.error("Password update error:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось обновить пароль. Попробуйте еще раз.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Пароль обновлен",
+        description: "Ваш пароль успешно изменен. Теперь вы можете войти.",
+      });
+
+      // Redirect to login page
+      setTimeout(() => {
+        navigate('/login', { 
+          state: { message: 'Пароль успешно изменен. Войдите с новым паролем.' }
+        });
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast({
+        title: "Ошибка",
+        description: "Произошла неожиданная ошибка",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Show loading while checking session
+  if (isValidSession === null) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span>Проверка ссылки...</span>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Show error if session is invalid
+  if (!isValidSession) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center">
+          <Card className="w-full max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <CardTitle className="text-2xl font-bold">Ссылка недействительна</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center space-y-4">
+              <p className="text-muted-foreground">
+                Ссылка для сброса пароля недействительна или истекла.
+              </p>
+              <Button 
+                onClick={() => navigate('/forgot-password')}
+                className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+              >
+                Запросить новую ссылку
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -28,43 +157,71 @@ const ResetPassword = () => {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <Info className="h-6 w-6 text-blue-600" />
+              <Lock className="h-6 w-6 text-blue-600" />
             </div>
-            <CardTitle className="text-2xl font-bold">Система сброса пароля обновлена</CardTitle>
+            <CardTitle className="text-2xl font-bold">Создать новый пароль</CardTitle>
           </CardHeader>
           
-          <CardContent className="space-y-4 text-center">
-            <p className="text-muted-foreground">
-              Мы обновили систему сброса пароля. Теперь все операции по сбросу пароля 
-              выполняются через страницу "Забыли пароль".
-            </p>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>Что изменилось:</strong>
-              </p>
-              <ul className="text-sm text-blue-700 mt-2 space-y-1 text-left">
-                <li>• Единая система с кодами подтверждения</li>
-                <li>• Улучшенная безопасность</li>
-                <li>• Поддержка OPT ID и email</li>
-                <li>• Защита от спама</li>
-              </ul>
-            </div>
-            
-            <div className="pt-4">
-              <p className="text-sm text-muted-foreground mb-4">
-                Вы будете перенаправлены автоматически через несколько секунд...
-              </p>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Новый пароль</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Введите новый пароль"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Подтвердите пароль</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="password" 
+                          placeholder="Повторите новый пароль"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
               
-              <Button 
-                onClick={handleRedirect}
-                className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-              >
-                Перейти к сбросу пароля
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </div>
-          </CardContent>
+              <CardContent className="pt-0">
+                <Button 
+                  type="submit" 
+                  className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Обновление пароля...
+                    </>
+                  ) : (
+                    "Обновить пароль"
+                  )}
+                </Button>
+              </CardContent>
+            </form>
+          </Form>
         </Card>
       </div>
     </Layout>
