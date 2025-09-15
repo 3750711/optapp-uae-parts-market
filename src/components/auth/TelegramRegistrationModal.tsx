@@ -560,12 +560,25 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
 return (
   <Dialog 
     open={open}
+    onOpenChange={handleClose}
   >
     <DialogContent 
       className="sm:max-w-md" 
-      onPointerDownOutside={(e) => e.preventDefault()}
-      onEscapeKeyDown={(e) => e.preventDefault()}
-      hideCloseButton
+      onPointerDownOutside={(e) => {
+        if (currentStep !== 'creating' && !isLoading) {
+          handleClose();
+        } else {
+          e.preventDefault();
+        }
+      }}
+      onEscapeKeyDown={(e) => {
+        if (currentStep !== 'creating' && !isLoading) {
+          handleClose();
+        } else {
+          e.preventDefault();
+        }
+      }}
+      hideCloseButton={currentStep === 'creating' || isLoading}
     >
         <DialogHeader>
           <DialogTitle>
