@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { logRateLimitHit } from '@/utils/authLogger';
 
 export type InputType = 'email' | 'opt_id';
 
@@ -22,32 +21,24 @@ export const detectInputType = (input: string): InputType => {
   return 'opt_id';
 };
 
-// Функция для получения email по OPT ID с защитой от rate limiting
+// Функция для получения email по OPT ID
 export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult> => {
   try {
     console.log('Searching for email by OPT ID:', optId);
     
-    // Добавляем второй параметр p_ip_address: null для разрешения перегрузки функции
-    const { data, error } = await supabase.rpc('get_email_by_opt_id', {
-      p_opt_id: optId
-    });
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('opt_id', optId)
+      .single();
 
     if (error) {
       console.error('Error getting email by OPT ID:', error);
-      console.error('Full error details:', error);
-      
-      // Проверяем, является ли ошибка связанной с rate limiting
-      if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
-        await logRateLimitHit('opt_id', { optId });
-        return { email: null, isRateLimited: true };
-      }
-      
       return { email: null, isRateLimited: false };
     }
 
-    console.log('Found email for OPT ID:', data ? '***@***.***' : 'not found');
-    console.log('Raw response data:', data);
-    return { email: data, isRateLimited: false };
+    console.log('Found email for OPT ID:', data?.email ? '***@***.***' : 'not found');
+    return { email: data?.email || null, isRateLimited: false };
     
   } catch (error) {
     console.error('Unexpected error in getEmailByOptId:', error);
@@ -60,11 +51,11 @@ export const checkOptIdExists = async (optId: string): Promise<boolean> => {
   try {
     console.log('Checking OPT ID existence:', optId);
     
-    // Use the rate-limited version with IP address parameter
-    const { data, error } = await supabase.rpc('check_opt_id_exists', {
-      p_opt_id: optId,
-      p_ip_address: null // Pass null since we don't need rate limiting for generation
-    });
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('opt_id')
+      .eq('opt_id', optId)
+      .single();
 
     if (error) {
       console.error('Error checking OPT ID:', error);
@@ -72,7 +63,7 @@ export const checkOptIdExists = async (optId: string): Promise<boolean> => {
       return true;
     }
 
-    console.log('OPT ID check result:', data);
+    console.log('OPT ID check result:', Boolean(data));
     return Boolean(data);
   } catch (error) {
     console.error('Unexpected error in checkOptIdExists:', error);
