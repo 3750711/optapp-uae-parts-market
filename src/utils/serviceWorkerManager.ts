@@ -13,8 +13,8 @@ export async function registerServiceWorker() {
   // 🔧 CRITICAL: Clean up old/conflicting service worker registrations first
   await cleanupOldServiceWorkers();
 
-  // 🚨 CRITICAL: Version 3.2.0-minimal-fixed to prevent NS_ERROR_CORRUPTED_CONTENT
-  const versionTag = '3.2.0-minimal-fixed';
+  // 🚨 CRITICAL: Version 3.5.0-orders-fix to prevent NS_ERROR_CORRUPTED_CONTENT
+  const versionTag = '3.5.0-orders-fix';
   const swUrl = `/sw-minimal.js?v=${encodeURIComponent(versionTag)}`;
 
   try {
@@ -127,6 +127,6 @@ export async function cleanupCorruptedServiceWorker() {
 // Legacy compatibility
 export const swManager = {
   register: registerServiceWorker,
-  getVersion: () => Promise.resolve('3.2.0-minimal-fixed'),
+  getVersion: () => Promise.resolve('3.5.0-orders-fix'),
   getRegistration: () => navigator.serviceWorker?.getRegistration('/'),
 };
