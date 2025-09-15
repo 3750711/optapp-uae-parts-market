@@ -106,6 +106,9 @@ type AuthContextType = {
   completeFirstLogin: () => Promise<void>;
   clearRecoveryMode: () => void;
   
+  // 🔒 БЕЗОПАСНАЯ функция для смены пароля через recovery токены
+  validateRecoveryAndResetPassword: (newPassword: string) => Promise<{ success: boolean; error?: any }>;
+  
   // Legacy properties for backward compatibility
   /** @deprecated Use profile directly */
   isLoading: boolean;
@@ -183,11 +186,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  // 🔒 Новое состояние для хранения recovery токенов БЕЗ автоматической авторизации
+  const [recoveryTokens, setRecoveryTokens] = useState<any>(null);
   // Initialize recovery mode synchronously by checking URL immediately
   const [isRecoveryMode, setIsRecoveryMode] = useState(() => {
     try {
-      const recoveryTokens = parseRecoveryTokensFromUrl();
-      const hasRecoveryTokens = !!recoveryTokens;
+      const tokens = parseRecoveryTokensFromUrl();
+      const hasRecoveryTokens = !!tokens;
       if (hasRecoveryTokens) {
         console.log('🔑 [AuthContext] Recovery mode detected synchronously during initialization');
       }
@@ -347,30 +352,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Recovery mode already set synchronously during initialization
           console.log('🔄 [AuthContext] Processing recovery tokens (recovery mode already active)');
           
-          // Handle old format (query params) - let SDK process URL automatically
+          // Handle old format (query params) - СОХРАНИТЬ информацию БЕЗ автоматической обработки SDK
           if (recoveryTokens === 'HANDLE_VIA_SDK') {
-            console.log('🔄 [AuthContext] Detected old format recovery URL, letting SDK handle it...');
-            // Don't clear URL or set session manually, let Supabase SDK do its thing
+            console.log('🔑 [AuthContext] Detected old format recovery URL - parsing manually for security');
+            
+            // Получить токены из query параметров для безопасного хранения
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const type = urlParams.get('type');
+            
+            if (type === 'recovery' && token) {
+              // Создать объект токенов для последующего использования
+              const oldFormatTokens = {
+                recovery_token: token,
+                type: 'recovery'
+              };
+              setRecoveryTokens(oldFormatTokens);
+              console.log('🔒 [AuthContext] Old format recovery tokens stored for secure password reset');
+            }
+            
+            // Очистить URL для безопасности
+            if (window.location.search.includes('type=recovery')) {
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+            
             return;
           }
           
-          // Handle new format (hash params) - set session manually
-          console.log('🔄 [AuthContext] Setting recovery session from URL hash tokens');
+          // Handle new format (hash params) - СОХРАНИТЬ токены БЕЗ установки сессии
+          console.log('🔑 [AuthContext] Recovery tokens detected - validation mode only');
+          
+          // Сохранить токены для валидации, но НЕ устанавливать сессию
+          setRecoveryTokens(recoveryTokens);
           
           // Clear URL hash to prevent reprocessing
           if (window.location.hash) {
             window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
           }
           
-          // Set session using recovery tokens
-          const { data: sessionData, error: sessionError } = await supabase.auth.setSession(recoveryTokens);
-          
-          if (sessionError) {
-            console.error('❌ [AuthContext] Failed to set recovery session:', sessionError);
-            setIsRecoveryMode(false);
-          } else if (sessionData.session) {
-            console.log('✅ [AuthContext] Recovery session established for user:', sessionData.session.user?.id);
-          }
+          // НЕ ВЫЗЫВАЕМ supabase.auth.setSession() - это и есть уязвимость!
+          console.log('🔒 [AuthContext] Recovery tokens stored for secure password reset');
           
           return; // Skip normal getSession() call since we handled recovery
         }
@@ -805,6 +826,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const clearRecoveryMode = () => {
     console.log('🔄 [AuthContext] Clearing recovery mode');
     setIsRecoveryMode(false);
+    setRecoveryTokens(null);
+  };
+
+  // 🔒 БЕЗОПАСНАЯ функция смены пароля через recovery токены
+  const validateRecoveryAndResetPassword = async (newPassword: string) => {
+    if (!recoveryTokens || !isRecoveryMode) {
+      return { success: false, error: new Error('No valid recovery session') };
+    }
+    
+    try {
+      console.log('🔒 [AuthContext] Validating recovery tokens and resetting password');
+      
+      // Проверяем тип токенов (новый hash формат vs старый query формат)
+      if (recoveryTokens.access_token && recoveryTokens.refresh_token) {
+        // Новый формат (hash параметры) - используем setSession
+        console.log('🔒 [AuthContext] Using new format recovery tokens');
+        
+        // Временно установить сессию ТОЛЬКО для смены пароля
+        const { data: sessionData, error: sessionError } = await supabase.auth.setSession(recoveryTokens);
+        
+        if (sessionError || !sessionData.session) {
+          console.error('Failed to validate recovery tokens:', sessionError);
+          return { success: false, error: sessionError || new Error('Invalid recovery tokens') };
+        }
+        
+        // Сменить пароль
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: newPassword
+        });
+        
+        if (updateError) {
+          return { success: false, error: updateError };
+        }
+        
+      } else if (recoveryTokens.recovery_token) {
+        // Старый формат (query параметры) - используем verifyOtp
+        console.log('🔒 [AuthContext] Using old format recovery token');
+        
+        // Использовать verifyOtp для валидации старого формата токена
+        const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: recoveryTokens.recovery_token,
+          type: 'recovery'
+        });
+        
+        if (verifyError || !verifyData.session) {
+          console.error('Failed to verify recovery token:', verifyError);
+          return { success: false, error: verifyError || new Error('Invalid recovery token') };
+        }
+        
+        // Сменить пароль используя временную сессию
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: newPassword
+        });
+        
+        if (updateError) {
+          return { success: false, error: updateError };
+        }
+        
+      } else {
+        return { success: false, error: new Error('Unknown recovery token format') };
+      }
+      
+      // ВАЖНО: Сразу выйти из временной сессии для безопасности
+      await supabase.auth.signOut();
+      
+      // Очистить recovery состояние
+      setIsRecoveryMode(false);
+      setRecoveryTokens(null);
+      
+      console.log('✅ Password reset successful - user must login with new password');
+      return { success: true };
+      
+    } catch (error) {
+      console.error('Recovery password reset error:', error);
+      return { success: false, error };
+    }
   };
 
   const value = useMemo<AuthContextType>(() => ({
@@ -827,6 +924,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithTelegram,
     completeFirstLogin,
     clearRecoveryMode,
+    validateRecoveryAndResetPassword,
     
     // Legacy properties for backward compatibility
     isLoading: loading || isCheckingAdmin,

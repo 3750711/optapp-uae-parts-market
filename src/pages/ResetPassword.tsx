@@ -52,13 +52,11 @@ const checkPasswordStrength = (password: string) => {
 type FormData = z.infer<typeof formSchema>;
 
 const ResetPassword = () => {
-  const { user, status, profile, updatePassword, isRecoveryMode, clearRecoveryMode } = useAuth();
+  const { isRecoveryMode, validateRecoveryAndResetPassword } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-  const [validationState, setValidationState] = useState<'checking' | 'valid' | 'invalid' | 'timeout'>('checking');
+  const [validationState, setValidationState] = useState<'checking' | 'valid' | 'invalid'>('checking');
   const [showInvalidAfterDelay, setShowInvalidAfterDelay] = useState(false);
-  const [isTelegramUser, setIsTelegramUser] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -68,97 +66,20 @@ const ResetPassword = () => {
     }
   });
 
-  // Validate reset password session
+  // Проверка recovery режима (БЕЗ ожидания авторизации пользователя)
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    const validateResetSession = () => {
-      console.log('🔍 [ResetPassword] Validating reset session', { 
-        isRecoveryMode,
-        authStatus: status,
-        hasUser: !!user,
-        validationMethod: 'recovery_flag',
-        currentUrl: window.location.href
-      });
-      
-      // Fallback: проверяем URL напрямую, если AuthContext еще загружается
-      const hasRecoveryInUrl = () => {
-        try {
-          const hash = window.location.hash?.substring(1);
-          if (hash) {
-            const params = new URLSearchParams(hash);
-            if (params.get('type') === 'recovery' && params.get('access_token')) {
-              return true;
-            }
-          }
-          
-          const urlParams = new URLSearchParams(window.location.search);
-          if (urlParams.get('type') === 'recovery' && urlParams.get('token')) {
-            return true;
-          }
-          
-          return false;
-        } catch {
-          return false;
-        }
-      };
-      
-      // Если контекст еще загружается, проверяем URL напрямую как fallback
-      if (status === 'checking') {
-        if (hasRecoveryInUrl()) {
-          console.log('🔍 [ResetPassword] Recovery tokens detected in URL (fallback check)');
-          setValidationState('checking');
-        } else if (!isRecoveryMode) {
-          console.log('⏳ [ResetPassword] Waiting for AuthContext to process recovery mode...');
-          setValidationState('checking');
-        }
-        return;
-      }
-      
-      // Use recovery mode flag instead of URL parsing
-      if (!isRecoveryMode) {
-        console.log('❌ [ResetPassword] Not in recovery mode');
-        setValidationState('invalid');
-        return;
-      }
-      
-      // If we have a user, session is established
-      if (user && status === 'authed') {
-        console.log('✅ [ResetPassword] Valid recovery session established');
+    const timer = setTimeout(() => {
+      if (isRecoveryMode) {
+        console.log('✅ Valid recovery tokens detected');
         setValidationState('valid');
-        
-        // Check if user is a Telegram user setting first password
-        if (profile) {
-          setIsTelegramUser(!!profile.telegram_id && !profile.has_password);
-        }
-        return;
-      }
-      
-      // If no user after auth loading complete, session is invalid
-      if (status === 'guest') {
-        console.log('❌ [ResetPassword] No user session established - invalid reset link');
+      } else {
+        console.log('❌ No valid recovery tokens');
         setValidationState('invalid');
-        return;
       }
-    };
+    }, 500); // Небольшая задержка для инициализации AuthContext
     
-    // Initial validation
-    validateResetSession();
-    
-    // Set timeout for session establishment (10 seconds)
-    timeoutId = setTimeout(() => {
-      if (validationState === 'checking') {
-        console.warn('Reset password session timeout - forcing invalid state');
-        setValidationState('timeout');
-      }
-    }, 10000);
-    
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [status, user, profile, validationState, isRecoveryMode]);
+    return () => clearTimeout(timer);
+  }, [isRecoveryMode]);
 
   // Handle delayed error display to fix race condition
   useEffect(() => {
@@ -173,42 +94,33 @@ const ResetPassword = () => {
     }
   }, [validationState]);
 
+  // НОВАЯ функция отправки формы - использует безопасную функцию
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: data.password
-      });
-
-      if (error) {
-        console.error("Password update error:", error);
+      // Использовать специальную функцию для recovery
+      const result = await validateRecoveryAndResetPassword(data.password);
+      
+      if (!result.success) {
+        const error = result.error;
         
-        // Detailed error handling
+        // Детальная обработка ошибок
         let errorMessage = "Не удалось обновить пароль";
         let errorTitle = "Ошибка";
         
-        if (error.message?.includes("New password should be different")) {
+        if (error?.message?.includes("New password should be different")) {
           errorTitle = "Пароль не изменен";
           errorMessage = "Новый пароль должен отличаться от текущего. Попробуйте другой пароль.";
-        } else if (error.message?.includes("Password should be")) {
-          errorTitle = "Слабый пароль";
-          errorMessage = "Пароль должен быть более надежным. Используйте комбинацию букв, цифр и символов.";
-        } else if (error.message?.includes("session_not_found") || error.message?.includes("invalid_session")) {
-          errorTitle = "Сессия истекла";
-          errorMessage = "Ваша сессия для сброса пароля истекла. Запросите новую ссылку для сброса.";
-        } else if (error.message?.includes("token_expired") || error.message?.includes("expired")) {
+        } else if (error?.message?.includes("session_not_found") || error?.message?.includes("invalid")) {
           errorTitle = "Ссылка истекла";
           errorMessage = "Ссылка для сброса пароля истекла. Запросите новую ссылку.";
-        } else if (error.message?.includes("network") || error.message?.includes("fetch")) {
-          errorTitle = "Проблема с соединением";
-          errorMessage = "Проверьте подключение к интернету и попробуйте еще раз.";
-        } else if (error.message?.includes("rate_limit")) {
-          errorTitle = "Слишком много попыток";
-          errorMessage = "Превышен лимит попыток изменения пароля. Попробуйте через несколько минут.";
-        } else if (error.message?.includes("weak_password")) {
-          errorTitle = "Слабый пароль";
-          errorMessage = "Пароль слишком простой. Используйте минимум 8 символов с буквами, цифрами и специальными символами.";
+          
+          setTimeout(() => {
+            navigate('/forgot-password', {
+              state: { message: 'Ссылка истекла. Запросите новую ссылку для сброса пароля.' }
+            });
+          }, 3000);
         }
         
         toast({
@@ -217,50 +129,20 @@ const ResetPassword = () => {
           variant: "destructive",
         });
         
-        // Redirect to forgot password for expired sessions
-        if (error.message?.includes("session_not_found") || 
-            error.message?.includes("token_expired") || 
-            error.message?.includes("expired")) {
-          setTimeout(() => {
-            navigate('/forgot-password', {
-              state: { message: 'Ссылка истекла. Запросите новую ссылку для сброса пароля.' }
-            });
-          }, 3000);
-        }
-        
         return;
       }
 
-      // If this is a Telegram user setting their first password, update has_password
-      if (isTelegramUser && profile) {
-        const { error: profileUpdateError } = await supabase
-          .from('profiles')
-          .update({ has_password: true })
-          .eq('id', profile.id);
-        
-        if (profileUpdateError) {
-          console.error('Error updating profile:', profileUpdateError);
-        } else {
-          console.log('✅ Profile updated - has_password set to true');
-        }
-      }
-
-      // Clear recovery mode flag
-      clearRecoveryMode();
-
+      // Успех - пароль изменен (пользователь НЕ авторизован)
       toast({
-        title: isTelegramUser ? "Пароль установлен" : "Пароль обновлен",
-        description: isTelegramUser 
-          ? "Ваш первый пароль успешно установлен. Теперь вы можете входить через email и пароль."
-          : "Ваш пароль успешно изменен. Теперь вы можете войти с новым паролем.",
+        title: "Пароль успешно изменен",
+        description: "Теперь войдите в аккаунт с новым паролем.",
       });
 
-      // Redirect to login page
+      // Перенаправление на login (пользователь НЕ авторизован)
       setTimeout(() => {
         navigate('/login', { 
-          state: { message: isTelegramUser 
-            ? 'Пароль установлен. Войдите с новым паролем.' 
-            : 'Пароль успешно изменен. Войдите с новым паролем.' 
+          state: { 
+            message: 'Пароль успешно изменен. Войдите с новым паролем.'
           }
         });
       }, 2000);
@@ -268,18 +150,9 @@ const ResetPassword = () => {
     } catch (error) {
       console.error("Unexpected error:", error);
       
-      // Handle unexpected errors
-      let errorMessage = "Произошла неожиданная ошибка";
-      
-      if (error instanceof TypeError && error.message?.includes("fetch")) {
-        errorMessage = "Проблема с подключением к серверу. Проверьте интернет-соединение.";
-      } else if (error instanceof Error) {
-        errorMessage = `Техническая ошибка: ${error.message}`;
-      }
-      
       toast({
         title: "Системная ошибка",
-        description: errorMessage,
+        description: "Произошла неожиданная ошибка при смене пароля",
         variant: "destructive",
       });
     } finally {
@@ -308,10 +181,8 @@ const ResetPassword = () => {
     );
   }
 
-  // Show error if session is invalid (with delay) or timed out
-  if ((validationState === 'invalid' && showInvalidAfterDelay) || validationState === 'timeout') {
-    const isTimeout = validationState === 'timeout';
-    
+  // Show error if session is invalid (with delay)
+  if (validationState === 'invalid' && showInvalidAfterDelay) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center">
@@ -320,16 +191,11 @@ const ResetPassword = () => {
               <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
                 <AlertCircle className="h-6 w-6 text-red-600" />
               </div>
-              <CardTitle className="text-2xl font-bold">
-                {isTimeout ? 'Время ожидания истекло' : 'Ссылка недействительна'}
-              </CardTitle>
+              <CardTitle className="text-2xl font-bold">Ссылка недействительна</CardTitle>
             </CardHeader>
             <CardContent className="text-center space-y-4">
               <p className="text-muted-foreground">
-                {isTimeout 
-                  ? 'Не удалось установить соединение для сброса пароля. Попробуйте запросить новую ссылку.'
-                  : 'Ссылка для сброса пароля недействительна или истекла.'
-                }
+                Ссылка для сброса пароля недействительна или истекла.
               </p>
               <Button 
                 onClick={() => navigate('/forgot-password')}
@@ -344,6 +210,7 @@ const ResetPassword = () => {
     );
   }
 
+  // Показать форму сброса пароля (пользователь НЕ авторизован)
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 flex justify-center">
@@ -352,37 +219,14 @@ const ResetPassword = () => {
             <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
               <Lock className="h-6 w-6 text-blue-600" />
             </div>
-            <CardTitle className="text-2xl font-bold">
-              {isTelegramUser ? "Установить пароль" : "Создать новый пароль"}
-            </CardTitle>
+            <CardTitle className="text-2xl font-bold">Создать новый пароль</CardTitle>
             
-            {/* Password requirements info */}
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-700">
-                <strong>Требования к паролю:</strong>
+            {/* Информационное сообщение о безопасности */}
+            <div className="mt-4 p-3 bg-amber-50 rounded-lg">
+              <p className="text-sm text-amber-700">
+                🔒 После смены пароля вам нужно будет войти в аккаунт заново
               </p>
-              <ul className="text-xs text-blue-600 mt-1 space-y-1">
-                <li>• Минимум 6 символов (рекомендуется 8+)</li>
-                <li>• Хотя бы одна буква и одна цифра</li>
-                <li>• Должен отличаться от текущего пароля</li>
-              </ul>
             </div>
-            
-            {isTelegramUser && profile && (
-              <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                <p className="text-sm text-green-700">
-                  <strong>Telegram пользователь:</strong> {profile.first_name || profile.full_name}
-                </p>
-                {profile.opt_id && (
-                  <p className="text-sm text-green-600">
-                    <strong>OPT ID:</strong> {profile.opt_id}
-                  </p>
-                )}
-                <p className="text-xs text-green-600 mt-1">
-                  Вы устанавливаете свой первый пароль для входа через email.
-                </p>
-              </div>
-            )}
           </CardHeader>
           
           <Form {...form}>
