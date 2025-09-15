@@ -23,6 +23,36 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label = 'timeout'
   }
 }
 
+// Parse recovery tokens from URL hash
+function parseRecoveryTokensFromUrl() {
+  try {
+    const hash = window.location.hash?.substring(1);
+    if (!hash) return null;
+    
+    const params = new URLSearchParams(hash);
+    const type = params.get('type');
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const expiresIn = params.get('expires_in');
+    
+    if (type === 'recovery' && accessToken && refreshToken) {
+      console.log('🔑 [AuthContext] Recovery tokens found in URL');
+      return {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_in: expiresIn ? parseInt(expiresIn, 10) : 3600,
+        token_type: 'bearer',
+        user: null // Will be populated by Supabase
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.warn('[AuthContext] Error parsing recovery tokens:', error);
+    return null;
+  }
+}
+
 // Simplified type definition for profile updates
 type ProfileUpdate = {
   first_name?: string;
@@ -279,9 +309,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     unsubRef.current = () => data.subscription.unsubscribe();
 
-    // 2) Try to restore session with timeout (don't block app forever)
+    // 2) Handle recovery tokens from URL if present
     (async () => {
       try {
+        const recoveryTokens = parseRecoveryTokensFromUrl();
+        if (recoveryTokens) {
+          console.log('🔄 [AuthContext] Setting recovery session from URL tokens');
+          
+          // Clear URL hash to prevent reprocessing
+          if (window.location.hash) {
+            window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+          }
+          
+          // Set session using recovery tokens
+          const { data: sessionData, error: sessionError } = await supabase.auth.setSession(recoveryTokens);
+          
+          if (sessionError) {
+            console.error('❌ [AuthContext] Failed to set recovery session:', sessionError);
+          } else if (sessionData.session) {
+            console.log('✅ [AuthContext] Recovery session established for user:', sessionData.session.user?.id);
+          }
+          
+          return; // Skip normal getSession() call since we handled recovery
+        }
+        
+        // 3) Normal session restore if no recovery tokens
         const startTime = Date.now();
         await withTimeout(supabase.auth.getSession(), INIT_TIMEOUT, 'getSession-timeout');
         
@@ -289,20 +341,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('[AuthProvider] getSession completed in', Date.now() - startTime, 'ms');
         }
       } catch (error) {
-        console.warn('[AuthProvider] getSession failed/timeout on init:', error);
+        console.warn('[AuthProvider] Session initialization failed/timeout:', error);
       } finally {
         // If no auth events came through, end loading anyway
         if (!cancelled && !endedRef.current) {
           endedRef.current = true;
           setLoading(false);
           if (FLAGS.DEBUG_AUTH) {
-            console.log('[AuthProvider] Loading ended by getSession finally block');
+            console.log('[AuthProvider] Loading ended by session initialization finally block');
           }
         }
       }
     })();
 
-    // 3) Watchdog timer - force loading=false after configurable timeout
+    // 4) Watchdog timer - force loading=false after configurable timeout
     const watchdog = setTimeout(() => {
       if (!cancelled && !endedRef.current) {
         console.warn(`[AuthProvider] Watchdog: forcing loading=false after ${WATCHDOG_TIMEOUT}ms`);

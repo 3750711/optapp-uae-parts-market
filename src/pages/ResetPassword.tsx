@@ -47,22 +47,20 @@ const ResetPassword = () => {
     let timeoutId: NodeJS.Timeout;
     
     const validateResetSession = () => {
-      // Check URL parameters for recovery type
-      const hash = window.location.hash.substring(1);
-      const hashParams = new URLSearchParams(hash);
-      const type = searchParams.get('type') || hashParams.get('type');
-      const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
+      // Check URL parameters for recovery type (simplified)
+      const urlType = searchParams.get('type');
+      const hasRecoveryType = urlType === 'recovery' || window.location.hash.includes('type=recovery');
       
       console.log('Reset password validation:', { 
-        type, 
-        hasAccessToken: !!accessToken,
+        type: urlType || (hasRecoveryType ? 'recovery' : 'unknown'),
+        hasAccessToken: window.location.hash.includes('access_token='),
         authStatus: status,
         hasUser: !!user
       });
       
       // Check if this is a recovery session
-      if (type !== 'recovery' || !accessToken) {
-        console.log('Invalid reset password URL - missing type=recovery or access_token');
+      if (!hasRecoveryType) {
+        console.log('Not a recovery request - invalid');
         setValidationState('invalid');
         return;
       }
@@ -75,7 +73,7 @@ const ResetPassword = () => {
       
       // If we have a user, session is established
       if (user && status === 'authed') {
-        console.log('Reset password session validated successfully');
+        console.log('Valid recovery session established');
         setValidationState('valid');
         
         // Check if user is a Telegram user setting first password
