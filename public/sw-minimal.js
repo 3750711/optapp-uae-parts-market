@@ -1,7 +1,7 @@
 // Minimal Service Worker - Enhanced privacy protection for api.partsbay.ae
 // Version: 3.3.0 - Strict private request skipping
 
-const CACHE_NAME = 'offline-fallback-v3-3-0';
+const CACHE_NAME = 'offline-fallback-v3-4-0';
 const OFFLINE_HTML = '/index.html';
 
 // 🚨 CRITICAL: Enhanced private request detection - never intercept these

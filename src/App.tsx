@@ -1,5 +1,5 @@
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { SafeTooltipProvider } from "@/components/ui/SafeTooltipProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,6 +14,7 @@ import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RoutePreloader } from "@/components/routing/RoutePreloader";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
+import { checkAppVersion } from '@/utils/versionManager';
 
 import { getQueryConfigForConnection } from "@/utils/networkUtils";
 
@@ -54,6 +55,11 @@ const RouteLoader = React.memo(() => (
 ));
 
 const App = () => {
+  // Check version before anything else
+  useEffect(() => {
+    checkAppVersion();
+  }, []);
+  
   return (
     <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
       <HelmetProvider>
