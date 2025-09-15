@@ -204,7 +204,11 @@ serve(async (req) => {
         p_user_id: null,
         p_ip_address: clientIP,
         p_user_agent: userAgent,
-        p_error_message: error instanceof Error ? error.message : 'Unknown error'
+        p_error_message: error instanceof Error ? error.message : 'Unknown error',
+        p_details: {
+          error_type: 'system_error',
+          timestamp: new Date().toISOString()
+        }
       });
     } catch (logError) {
       console.error('Error logging security event:', logError);

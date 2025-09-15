@@ -2382,6 +2382,7 @@ export type Database = {
           | {
               p_action: string
               p_details?: Json
+              p_error_message?: string
               p_ip_address?: unknown
               p_user_agent?: string
               p_user_id?: string
