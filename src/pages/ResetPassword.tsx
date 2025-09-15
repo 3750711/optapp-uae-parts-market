@@ -44,32 +44,64 @@ const ResetPassword = () => {
   // Check password reset session and user profile
   useEffect(() => {
     const checkResetSession = async () => {
+      // Check URL hash parameters first (common for Supabase auth redirects)
+      const hash = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hash);
+      
+      // Check both URL search params and hash params
+      const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
+      const type = searchParams.get('type') || hashParams.get('type');
+      
+      console.log('Reset password session check:', { 
+        hasAccessToken: !!accessToken, 
+        type, 
+        hashParams: hash ? Object.fromEntries(hashParams.entries()) : null,
+        searchParams: Object.fromEntries(searchParams.entries())
+      });
+      
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (!session && !accessToken) {
+        console.log('No session and no access token found');
         setIsValidSession(false);
         return;
       }
       
       // Check if this is a password recovery session
-      const accessToken = searchParams.get('access_token');
-      const type = searchParams.get('type');
+      if (type !== 'recovery') {
+        console.log('Invalid type for password reset:', type);
+        setIsValidSession(false);
+        return;
+      }
+      // Get user profile to check if it's a Telegram user
+      let userId = session?.user?.id;
       
-      if (type !== 'recovery' || !accessToken) {
+      // If no session but we have access token, we need to wait for session establishment
+      if (!session && accessToken) {
+        console.log('Waiting for session to be established with access token');
+        // Give Supabase a moment to process the token from URL
+        setTimeout(() => {
+          checkResetSession();
+        }, 1000);
+        return;
+      }
+      
+      if (!userId) {
+        console.log('No user ID available');
         setIsValidSession(false);
         return;
       }
 
-      // Get user profile to check if it's a Telegram user
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', userId)
         .single();
 
       if (profile) {
         setUserProfile(profile);
         setIsTelegramUser(!!profile.telegram_id && !profile.has_password);
+        console.log('Profile loaded:', { telegram_id: !!profile.telegram_id, has_password: profile.has_password });
       }
       
       setIsValidSession(true);

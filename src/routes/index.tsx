@@ -163,9 +163,7 @@ const AppRoutes: React.FC = () => {
               </GuestRoute>
             } />
             <Route path="/reset-password" element={
-              <GuestRoute>
-                <ResetPassword />
-              </GuestRoute>
+              <ResetPassword />
             } />
             <Route path="/verify-email" element={
               <VerifyEmail />
