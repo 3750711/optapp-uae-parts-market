@@ -183,7 +183,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  // Initialize recovery mode synchronously by checking URL immediately
+  const [isRecoveryMode, setIsRecoveryMode] = useState(() => {
+    try {
+      const recoveryTokens = parseRecoveryTokensFromUrl();
+      const hasRecoveryTokens = !!recoveryTokens;
+      if (hasRecoveryTokens) {
+        console.log('🔑 [AuthContext] Recovery mode detected synchronously during initialization');
+      }
+      return hasRecoveryTokens;
+    } catch (error) {
+      console.warn('[AuthContext] Error during synchronous recovery check:', error);
+      return false;
+    }
+  });
   const unsubRef = useRef<() => void>();
   const endedRef = useRef(false); // Prevent multiple setLoading(false) calls
 
@@ -331,9 +344,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const recoveryTokens = parseRecoveryTokensFromUrl();
         if (recoveryTokens) {
-          // Set recovery mode flag BEFORE processing
-          setIsRecoveryMode(true);
-          console.log('🔄 [AuthContext] Recovery mode activated');
+          // Recovery mode already set synchronously during initialization
+          console.log('🔄 [AuthContext] Processing recovery tokens (recovery mode already active)');
           
           // Handle old format (query params) - let SDK process URL automatically
           if (recoveryTokens === 'HANDLE_VIA_SDK') {

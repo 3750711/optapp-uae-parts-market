@@ -73,29 +73,58 @@ const ResetPassword = () => {
     let timeoutId: NodeJS.Timeout;
     
     const validateResetSession = () => {
-      console.log('Reset password validation:', { 
+      console.log('🔍 [ResetPassword] Validating reset session', { 
         isRecoveryMode,
         authStatus: status,
         hasUser: !!user,
-        validationMethod: 'recovery_flag'
+        validationMethod: 'recovery_flag',
+        currentUrl: window.location.href
       });
+      
+      // Fallback: проверяем URL напрямую, если AuthContext еще загружается
+      const hasRecoveryInUrl = () => {
+        try {
+          const hash = window.location.hash?.substring(1);
+          if (hash) {
+            const params = new URLSearchParams(hash);
+            if (params.get('type') === 'recovery' && params.get('access_token')) {
+              return true;
+            }
+          }
+          
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('type') === 'recovery' && urlParams.get('token')) {
+            return true;
+          }
+          
+          return false;
+        } catch {
+          return false;
+        }
+      };
+      
+      // Если контекст еще загружается, проверяем URL напрямую как fallback
+      if (status === 'checking') {
+        if (hasRecoveryInUrl()) {
+          console.log('🔍 [ResetPassword] Recovery tokens detected in URL (fallback check)');
+          setValidationState('checking');
+        } else if (!isRecoveryMode) {
+          console.log('⏳ [ResetPassword] Waiting for AuthContext to process recovery mode...');
+          setValidationState('checking');
+        }
+        return;
+      }
       
       // Use recovery mode flag instead of URL parsing
       if (!isRecoveryMode) {
-        console.log('Not in recovery mode');
+        console.log('❌ [ResetPassword] Not in recovery mode');
         setValidationState('invalid');
         return;
       }
       
-      // If AuthContext is still loading, wait for it
-      if (status === 'checking') {
-        console.log('Waiting for AuthContext to establish session...');
-        return; // Keep checking state
-      }
-      
       // If we have a user, session is established
       if (user && status === 'authed') {
-        console.log('Valid recovery session established');
+        console.log('✅ [ResetPassword] Valid recovery session established');
         setValidationState('valid');
         
         // Check if user is a Telegram user setting first password
@@ -107,7 +136,7 @@ const ResetPassword = () => {
       
       // If no user after auth loading complete, session is invalid
       if (status === 'guest') {
-        console.log('No user session established - invalid reset link');
+        console.log('❌ [ResetPassword] No user session established - invalid reset link');
         setValidationState('invalid');
         return;
       }
@@ -136,7 +165,7 @@ const ResetPassword = () => {
     if (validationState === 'invalid') {
       const timer = setTimeout(() => {
         setShowInvalidAfterDelay(true);
-      }, 500); // 500ms delay
+      }, 1000); // Увеличенная задержка для исправления race condition
       
       return () => clearTimeout(timer);
     } else {
