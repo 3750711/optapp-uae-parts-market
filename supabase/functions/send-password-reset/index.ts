@@ -268,8 +268,8 @@ const handler = async (req: Request): Promise<Response> => {
       const { data: codeResult, error: codeError } = await supabase.rpc(
         'send_password_reset_code',
         { 
-          user_email: email,
-          opt_user_id: optId || null
+          p_email: email,
+          p_opt_id: optId || null
         }
       );
 
