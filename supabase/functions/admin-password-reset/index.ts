@@ -44,11 +44,13 @@ serve(async (req) => {
       // Log security event
       await supabase.rpc('log_security_event', {
         p_action: 'password_reset_verification_error',
-        p_email: email,
+        p_user_id: null,
         p_ip_address: clientIP,
         p_user_agent: userAgent,
-        p_success: false,
-        p_error_message: verifyError.message
+        p_error_message: verifyError.message,
+        p_details: {
+          email: email
+        }
       });
 
       return new Response(
@@ -63,11 +65,13 @@ serve(async (req) => {
       // Log security event for invalid code
       await supabase.rpc('log_security_event', {
         p_action: 'password_reset_invalid_code',
-        p_email: email,
+        p_user_id: null,
         p_ip_address: clientIP,
         p_user_agent: userAgent,
-        p_success: false,
-        p_error_message: 'Invalid or expired reset code'
+        p_error_message: 'Invalid or expired reset code',
+        p_details: {
+          email: email
+        }
       });
 
       return new Response(
@@ -79,51 +83,34 @@ serve(async (req) => {
     console.log('Code verified successfully, proceeding to password reset');
 
     // Get user ID by email from profiles table (more efficient and reliable)
-    let userId: string;
-    try {
-      const { data: userIdResult, error: userIdError } = await supabase.rpc('get_user_id_by_email', {
-        p_email: email
-      });
-      
-      if (userIdError) {
-        console.error('Error getting user ID:', userIdError);
-        
-        // Log security event
-        await supabase.rpc('log_security_event', {
-          p_action: 'password_reset_user_lookup_error',
-          p_email: email,
-          p_ip_address: clientIP,
-          p_user_agent: userAgent,
-          p_success: false,
-          p_error_message: userIdError.message
-        });
+    const { data: userProfile, error: userIdError } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .eq('email', email)
+      .single();
 
-        return new Response(
-          JSON.stringify({ success: false, message: 'Ошибка при поиске пользователя' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    if (userIdError || !userProfile) {
+      console.error('Error getting user profile:', userIdError);
       
-      userId = userIdResult;
-      console.log('Found user ID for email:', email);
-    } catch (error: any) {
-      console.error('User not found for email:', email, 'Error:', error.message);
-      
-      // Log security event
       await supabase.rpc('log_security_event', {
-        p_action: 'password_reset_user_not_found',
-        p_email: email,
+        p_action: 'password_reset_user_lookup_error',
+        p_user_id: null,
         p_ip_address: clientIP,
         p_user_agent: userAgent,
-        p_success: false,
-        p_error_message: 'User not found in profiles'
+        p_error_message: userIdError?.message || 'User not found',
+        p_details: {
+          email: email
+        }
       });
 
       return new Response(
-        JSON.stringify({ success: false, message: 'Пользователь не найден' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, message: 'Ошибка при поиске пользователя' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const userId = userProfile.id;
+    console.log('Found user ID for email:', email);
 
     // Update user password using admin API with retry mechanism
     console.log('Updating password for user ID:', userId);
@@ -169,12 +156,13 @@ serve(async (req) => {
       // Log security event
       await supabase.rpc('log_security_event', {
         p_action: 'password_reset_update_failed',
-        p_email: email,
         p_user_id: userId,
         p_ip_address: clientIP,
         p_user_agent: userAgent,
-        p_success: false,
-        p_error_message: updateResult.error?.message || 'Password update failed after retries'
+        p_error_message: updateResult.error?.message || 'Password update failed after retries',
+        p_details: {
+          email: email
+        }
       });
 
       return new Response(
@@ -188,11 +176,13 @@ serve(async (req) => {
     // Log successful password reset
     await supabase.rpc('log_security_event', {
       p_action: 'password_reset_successful',
-      p_email: email,
       p_user_id: userId,
       p_ip_address: clientIP,
       p_user_agent: userAgent,
-      p_success: true
+      p_error_message: null,
+      p_details: {
+        email: email
+      }
     });
 
     return new Response(
@@ -211,9 +201,9 @@ serve(async (req) => {
       const supabase = createServiceClient();
       await supabase.rpc('log_security_event', {
         p_action: 'password_reset_system_error',
+        p_user_id: null,
         p_ip_address: clientIP,
         p_user_agent: userAgent,
-        p_success: false,
         p_error_message: error instanceof Error ? error.message : 'Unknown error'
       });
     } catch (logError) {

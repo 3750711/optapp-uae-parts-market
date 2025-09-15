@@ -197,23 +197,22 @@ const handler = async (req: Request): Promise<Response> => {
         p_ip_address: clientIP,
         p_action: 'password_reset_request',
         p_limit: 10,
-        p_window_hours: 1
+        p_window_minutes: 60
       });
 
       if (rateLimitError || !rateLimitCheck?.allowed) {
         await supabase.rpc('log_security_event', {
           p_action: 'password_reset_rate_limit',
           p_user_id: null,
-          p_email: email,
           p_ip_address: clientIP,
           p_user_agent: userAgent,
-          p_success: false,
           p_error_message: 'IP rate limit exceeded',
           p_details: {
             reason: 'IP rate limit exceeded',
             limit: 10,
-            window_hours: 1,
-            remaining: rateLimitCheck?.remaining || 0
+            window_minutes: 60,
+            remaining: rateLimitCheck?.remaining || 0,
+            email: email
           }
         });
 
@@ -230,22 +229,26 @@ const handler = async (req: Request): Promise<Response> => {
       }
 
       // Validate user exists before creating reset code
-      const { data: userExists, error: validationError } = await supabase.rpc(
-        'validate_user_exists',
-        { p_email: email }
-      );
+      const { data: userProfile, error: validationError } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('email', email)
+        .single();
 
-      if (validationError) {
+      if (validationError || !userProfile) {
         console.error("User validation error:", validationError);
         
         // Log security event
         await supabase.rpc('log_security_event', {
-          p_action: 'password_reset_validation_error',
-          p_email: email,
+          p_action: 'password_reset_nonexistent_user',
+          p_user_id: null,
           p_ip_address: clientIP,
           p_user_agent: userAgent,
-          p_success: false,
-          p_error_message: validationError.message
+          p_error_message: validationError?.message || 'User does not exist',
+          p_details: {
+            email: email,
+            validation_error: validationError?.message
+          }
         });
 
         return new Response(
@@ -260,35 +263,10 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      if (!userExists) {
-        console.log("User does not exist for email:", email);
-        
-        // Log security event - attempted reset for non-existent user
-        await supabase.rpc('log_security_event', {
-          p_action: 'password_reset_nonexistent_user',
-          p_email: email,
-          p_ip_address: clientIP,
-          p_user_agent: userAgent,
-          p_success: false,
-          p_error_message: 'User does not exist'
-        });
-
-        // Return success message to prevent email enumeration
-        return new Response(
-          JSON.stringify({ 
-            success: true,
-            message: "Если этот email существует, код для сброса пароля будет отправлен"
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
-      }
-
       // User exists, proceed with creating reset code
+
       const { data: codeResult, error: codeError } = await supabase.rpc(
-        'create_password_reset_code',
+        'send_password_reset_code',
         { 
           p_email: email,
           p_opt_id: optId || null
@@ -301,11 +279,14 @@ const handler = async (req: Request): Promise<Response> => {
         // Log security event
         await supabase.rpc('log_security_event', {
           p_action: 'password_reset_code_creation_error',
-          p_email: email,
+          p_user_id: userProfile.id,
           p_ip_address: clientIP,
           p_user_agent: userAgent,
-          p_success: false,
-          p_error_message: codeError.message
+          p_error_message: codeError.message,
+          p_details: {
+            email: email,
+            opt_id: optId
+          }
         });
 
         return new Response(
@@ -324,17 +305,34 @@ const handler = async (req: Request): Promise<Response> => {
         );
       }
 
-      if (!codeResult.success) {
+      const resetCode = codeResult?.code || codeResult;
+
+      if (!resetCode) {
         return new Response(
-          JSON.stringify(codeResult),
+          JSON.stringify({
+            success: false,
+            message: "Слишком много попыток. Попробуйте позже."
+          }),
           {
-            status: 429, // Too Many Requests
+            status: 429,
             headers: { "Content-Type": "application/json", ...corsHeaders },
           }
         );
       }
 
-      const resetCode = codeResult.code;
+      // Log successful code creation
+      await supabase.rpc('log_security_event', {
+        p_action: 'password_reset_code_created',
+        p_user_id: userProfile.id,
+        p_ip_address: clientIP,
+        p_user_agent: userAgent,
+        p_error_message: null,
+        p_details: {
+          email: email,
+          opt_id: optId,
+          code_length: resetCode.length
+        }
+      });
       console.log("Generated reset code:", resetCode ? "***" : "empty");
 
       // HTML шаблон для сброса пароля с кодом
