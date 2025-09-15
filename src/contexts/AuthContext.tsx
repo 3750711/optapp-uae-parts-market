@@ -314,7 +314,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
       clearTimeout(watchdog);
-      unsubRef.current?.();
+      // КРИТИЧНО: Добавить проверку и вызов unsubscribe
+      if (unsubRef.current) {
+        unsubRef.current();
+        unsubRef.current = undefined;
+      }
     };
   }, []);
 
@@ -509,27 +513,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Add fallback mechanism - wait for AuthContext state update
         const checkStateUpdate = () => new Promise<void>((resolve) => {
+          const MAX_ATTEMPTS = 50; // Максимум 5 секунд (50 * 100ms)
+          let attempts = 0;
+          
           const timeout = setTimeout(() => {
             console.warn('⚠️ [AuthContext] State update timeout, forcing manual update');
             setUser(data.user);
             setSession(data.session);
+            clearInterval(interval); // КРИТИЧНО: очистить интервал
             resolve();
-          }, 5000); // 5 second timeout
+          }, 5000);
           
-          // Check if state is already updated
-          if (user?.id === data.user.id) {
-            clearTimeout(timeout);
-            resolve();
-          } else {
-            // Poll for state update
-            const interval = setInterval(() => {
-              if (user?.id === data.user.id) {
-                clearTimeout(timeout);
-                clearInterval(interval);
-                resolve();
-              }
-            }, 100);
-          }
+          const interval = setInterval(() => {
+            attempts++;
+            if (user?.id === data.user.id) {
+              clearTimeout(timeout);
+              clearInterval(interval);
+              resolve();
+            } else if (attempts >= MAX_ATTEMPTS) {
+              // КРИТИЧНО: Остановить polling после максимума попыток
+              console.warn('⚠️ [AuthContext] Max polling attempts reached');
+              clearTimeout(timeout);
+              clearInterval(interval);
+              setUser(data.user);
+              setSession(data.session);
+              resolve();
+            }
+          }, 100);
         });
         
         // Wait for state update to complete before returning
