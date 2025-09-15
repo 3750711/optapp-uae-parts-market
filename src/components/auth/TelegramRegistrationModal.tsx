@@ -54,6 +54,7 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
   const [isLoading, setIsLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
+  const [showExitWarning, setShowExitWarning] = useState(false);
 
   const locations = [
     { value: 'dubai', label: t.locations.dubai },
@@ -508,6 +509,35 @@ export const TelegramRegistrationModal: React.FC<TelegramRegistrationModalProps>
       </div>
     </div>
   );
+
+  const handleClose = () => {
+    if (currentStep === 'creating' || isLoading) {
+      // Не позволяем закрыть во время создания аккаунта
+      return;
+    }
+    
+    if (currentStep !== 'account-type' && !showExitWarning) {
+      // Показываем предупреждение при первой попытке закрыть
+      setShowExitWarning(true);
+      toast({
+        title: actualLanguage === 'en' ? "Registration incomplete" : "Регистрация не завершена",
+        description: actualLanguage === 'en' 
+          ? "You need to complete registration to use the platform. Continue registration?"
+          : "Необходимо завершить регистрацию для использования платформы. Продолжить регистрацию?",
+      });
+      
+      // Автоматически скрываем предупреждение через 5 секунд
+      setTimeout(() => setShowExitWarning(false), 5000);
+      return;
+    }
+    
+    // Если уже показали предупреждение или на первом шаге - позволяем закрыть
+    if (showExitWarning || currentStep === 'account-type') {
+      onOpenChange(false);
+      // Выход из системы если регистрация не завершена
+      supabase.auth.signOut();
+    }
+  };
 
   const renderCurrentStep = () => {
     switch (currentStep) {

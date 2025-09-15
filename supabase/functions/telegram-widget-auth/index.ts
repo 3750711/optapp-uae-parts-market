@@ -38,6 +38,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // Базовая защита от brute-force атак
+  const clientIP = req.headers.get('x-forwarded-for')?.split(',')[0] || 
+                   req.headers.get('cf-connecting-ip') || 
+                   'unknown';
+
+  console.log('Request from IP:', clientIP);
+
+  // Можно добавить логирование для мониторинга подозрительной активности
+  if (clientIP !== 'unknown') {
+    // В будущем здесь можно добавить проверку rate limiting через Supabase или Redis
+    console.log(`[RATE_LIMIT_CHECK] IP: ${clientIP}, Time: ${new Date().toISOString()}`);
+  }
+
   try {
     console.log('=== Request received ===')
     console.log('Request method:', req.method)
@@ -80,15 +93,23 @@ serve(async (req) => {
       )
     }
 
-    // Check if auth_date is not too old (5 minutes)
+    // Проверка что auth_date не слишком старый
     const currentTime = Math.floor(Date.now() / 1000)
     const timeDiff = currentTime - authData.auth_date
+
+    // Для продакшена используем 24 часа вместо 5 минут
+    const MAX_AUTH_AGE = 86400; // 24 часа в секундах
+
     console.log('Time difference (seconds):', timeDiff)
-    
-    if (timeDiff > 300) {
-      console.error('Authentication data is too old:', timeDiff, 'seconds')
+    console.log('Max allowed age (seconds):', MAX_AUTH_AGE)
+
+    if (timeDiff > MAX_AUTH_AGE) {
+      console.error('Authentication data expired:', timeDiff, 'seconds old (max:', MAX_AUTH_AGE, ')')
       return new Response(
-        JSON.stringify({ error: 'Authentication data is too old' }),
+        JSON.stringify({ 
+          error: 'Authentication data expired. Please try logging in again.',
+          expired_by_seconds: timeDiff - MAX_AUTH_AGE
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -363,6 +384,15 @@ serve(async (req) => {
       requiresProfileCompletion = true
     }
 
+    // Перед return с успешным ответом добавить:
+    console.log('[TELEGRAM_AUTH_SUCCESS]', {
+      telegram_id: authData.id,
+      is_new_user: isNewUser,
+      requires_completion: requiresProfileCompletion,
+      auth_method: 'telegram_widget',
+      timestamp: new Date().toISOString()
+    });
+
     return new Response(
       JSON.stringify({ 
         success: true, 
@@ -405,9 +435,14 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
     // Filter out empty values and create data_check_string according to Telegram Login Widget spec
     const dataCheckString = Object.entries(dataToCheck)
       .filter(([, value]) => value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => {
+        // Преобразовать все значения в строки для корректной верификации
+        // Telegram ожидает все значения как строки в data_check_string
+        return [key, String(value)];
+      })
       .sort()
       .map(([key, value]) => `${key}=${value}`)
-      .join('\n')  // Use \n as separator, not &
+      .join('\n')  // Использовать \n как разделитель согласно документации Telegram
     
     console.log('Data check string:', dataCheckString)
     

@@ -511,39 +511,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.user) {
         console.log('✅ [AuthContext] signInWithPassword success for user:', data.user.id);
         
-        // Add fallback mechanism - wait for AuthContext state update
-        const checkStateUpdate = () => new Promise<void>((resolve) => {
-          const MAX_ATTEMPTS = 40; // Максимум 4 секунды (40 * 100ms) < 5s timeout
-          let attempts = 0;
+        // Улучшенный механизм ожидания обновления состояния
+        const waitForStateUpdate = () => new Promise<void>((resolve) => {
+          const MAX_WAIT_TIME = 5000; // 5 секунд максимум
+          const CHECK_INTERVAL = 100; // Проверка каждые 100ms
+          const startTime = Date.now();
           
-          const timeout = setTimeout(() => {
-            console.warn('⚠️ [AuthContext] State update timeout, forcing manual update');
-            setUser(data.user);
-            setSession(data.session);
-            clearInterval(interval); // КРИТИЧНО: очистить интервал
-            resolve();
-          }, 5000);
-          
-          const interval = setInterval(() => {
-            attempts++;
+          const checkState = () => {
+            // Проверяем обновилось ли состояние
             if (user?.id === data.user.id) {
-              clearTimeout(timeout);
-              clearInterval(interval);
+              console.log('✅ [AuthContext] State updated successfully');
               resolve();
-            } else if (attempts >= MAX_ATTEMPTS) {
-              // КРИТИЧНО: Остановить polling после максимума попыток
-              console.warn('⚠️ [AuthContext] Max polling attempts reached');
-              clearTimeout(timeout);
-              clearInterval(interval);
+              return;
+            }
+            
+            // Проверяем таймаут
+            if (Date.now() - startTime > MAX_WAIT_TIME) {
+              console.warn('⚠️ [AuthContext] State update timeout, forcing update');
               setUser(data.user);
               setSession(data.session);
               resolve();
+              return;
             }
-          }, 100);
+            
+            // Продолжаем проверку
+            setTimeout(checkState, CHECK_INTERVAL);
+          };
+          
+          // Начинаем проверку
+          checkState();
         });
         
-        // Wait for state update to complete before returning
-        await checkStateUpdate();
+        // Ждем обновления состояния
+        await waitForStateUpdate();
       }
       
       return { user: data.user, error: null };
