@@ -597,8 +597,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Additional methods for backward compatibility
   const sendPasswordResetEmail = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const { data, error } = await supabase.functions.invoke('send-reset-email', {
+        body: { email }
       });
       return { error };
     } catch (error) {
