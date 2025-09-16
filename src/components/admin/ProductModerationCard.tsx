@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { InlineEditableField } from '@/components/ui/InlineEditableField';
+import { InlineNumberField } from '@/components/admin/InlineNumberField';
 import AdminTitleEditor from '@/components/admin/AdminTitleEditor';
 import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
 import { Button } from '@/components/ui/button';
@@ -306,12 +307,13 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Цена
             </label>
-            <InlineEditableField
+            <InlineNumberField
               value={product.price}
               onSave={(value) => handleFieldUpdate('price', value)}
-              type="number"
-              placeholder="0"
               prefix="$"
+              step={0.01}
+              min={0}
+              max={99999}
               className="mt-1"
               displayClassName="text-sm font-medium"
             />
@@ -321,12 +323,13 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Места
             </label>
-            <InlineEditableField
+            <InlineNumberField
               value={product.place_number || 1}
               onSave={(value) => handleFieldUpdate('place_number', value)}
-              type="number"
-              placeholder="1"
+              suffix=" шт"
+              step={1}
               min={1}
+              max={100}
               className="mt-1"
               displayClassName="text-sm font-medium"
             />
@@ -336,12 +339,13 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
               Доставка
             </label>
-            <InlineEditableField
+            <InlineNumberField
               value={product.delivery_price || 0}
               onSave={(value) => handleFieldUpdate('delivery_price', value)}
-              type="number"
-              placeholder="0"
               prefix="$"
+              step={0.01}
+              min={0}
+              max={9999}
               className="mt-1"
               displayClassName="text-sm font-medium"
             />
