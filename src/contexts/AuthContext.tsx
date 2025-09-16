@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from '@/config/runtimeSupabase';
 import { checkSessionSoft } from '@/auth/authSessionManager';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
 import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
@@ -841,74 +843,99 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Проверяем тип токенов (новый hash формат vs старый query формат)
       if (recoveryTokens.access_token && recoveryTokens.refresh_token) {
         // Новый формат (hash параметры) - КРИТИЧНО: НЕ создаем сессию в приложении!
-        console.log('🔒 [AuthContext] Using new format recovery tokens - direct API call');
-        
-        // БЕЗОПАСНАЯ ЗАМЕНА: Прямой API вызов без создания сессии в приложении
-        const response = await fetch(`${supabase.auth.url}/user`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${recoveryTokens.access_token}`,
-            'apikey': supabase.auth.anonKey
-          },
-          body: JSON.stringify({ password: newPassword })
-        });
+        console.log('🔒 [AuthContext] Using isolated client for password reset');
 
-        if (!response.ok) {
-          const error = await response.json().catch(() => ({ msg: 'Failed to update password' }));
-          console.error('Direct API password update failed:', error);
-          return { success: false, error: new Error(error.msg || 'Failed to update password') };
-        }
-        
-        console.log('✅ Password updated via direct API - no session created');
-        
-      } else if (recoveryTokens.recovery_token) {
-        // Старый формат (query параметры) - также используем прямой API вызов
-        console.log('🔒 [AuthContext] Using old format recovery token - direct API call');
-        
-        // БЕЗОПАСНАЯ ЗАМЕНА: Прямой API вызов для верификации и смены пароля
-        const verifyResponse = await fetch(`${supabase.auth.url}/verify`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabase.auth.anonKey
-          },
-          body: JSON.stringify({
-            token_hash: recoveryTokens.recovery_token,
-            type: 'recovery'
-          })
-        });
+        // Создаем временный клиент который НЕ будет обновлять состояние приложения
+        const tempClient = createClient(
+          getRuntimeSupabaseUrl() || 'https://api.partsbay.ae',
+          getRuntimeAnonKey() || supabase.auth.anonKey,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false,
+              detectSessionInUrl: false,
+              storage: {
+                // Пустой storage чтобы не сохранять сессию
+                getItem: () => null,
+                setItem: () => {},
+                removeItem: () => {}
+              }
+            }
+          }
+        );
 
-        if (!verifyResponse.ok) {
-          const error = await verifyResponse.json().catch(() => ({ msg: 'Invalid recovery token' }));
-          console.error('Recovery token verification failed:', error);
-          return { success: false, error: new Error(error.msg || 'Invalid recovery token') };
-        }
-
-        const verifyData = await verifyResponse.json();
-        
-        // Используем временный access_token для смены пароля
-        if (verifyData.access_token) {
-          const updateResponse = await fetch(`${supabase.auth.url}/user`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${verifyData.access_token}`,
-              'apikey': supabase.auth.anonKey
-            },
-            body: JSON.stringify({ password: newPassword })
+        // Устанавливаем сессию ТОЛЬКО во временном клиенте
+        const { data: sessionData, error: sessionError } = 
+          await tempClient.auth.setSession({
+            access_token: recoveryTokens.access_token,
+            refresh_token: recoveryTokens.refresh_token
           });
 
-          if (!updateResponse.ok) {
-            const error = await updateResponse.json().catch(() => ({ msg: 'Failed to update password' }));
-            console.error('Password update after verification failed:', error);
-            return { success: false, error: new Error(error.msg || 'Failed to update password') };
-          }
-          
-          console.log('✅ Password updated via direct API after token verification');
-        } else {
-          return { success: false, error: new Error('No access token received from verification') };
+        if (sessionError || !sessionData.session) {
+          console.error('Failed to validate recovery tokens:', sessionError);
+          return { 
+            success: false, 
+            error: sessionError || new Error('Invalid recovery tokens') 
+          };
         }
+
+        // Меняем пароль через временный клиент
+        const { error: updateError } = await tempClient.auth.updateUser({
+          password: newPassword
+        });
+
+        if (updateError) {
+          console.error('Password update failed:', updateError);
+          return { success: false, error: updateError };
+        }
+
+        console.log('✅ Password updated via isolated client - no session created in main app');
+        
+      } else if (recoveryTokens.recovery_token) {
+        // Старый формат (query параметры) - также используем изолированный клиент
+        console.log('🔒 [AuthContext] Using isolated client for old format recovery token');
+        
+        // Создаем временный клиент для старого формата токенов
+        const tempClient = createClient(
+          getRuntimeSupabaseUrl() || 'https://api.partsbay.ae',
+          getRuntimeAnonKey() || supabase.auth.anonKey,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false,
+              detectSessionInUrl: false,
+              storage: {
+                // Пустой storage чтобы не сохранять сессию
+                getItem: () => null,
+                setItem: () => {},
+                removeItem: () => {}
+              }
+            }
+          }
+        );
+
+        // Верифицируем recovery токен через временный клиент
+        const { data: verifyData, error: verifyError } = await tempClient.auth.verifyOtp({
+          token_hash: recoveryTokens.recovery_token,
+          type: 'recovery'
+        });
+
+        if (verifyError || !verifyData.session) {
+          console.error('Recovery token verification failed:', verifyError);
+          return { success: false, error: verifyError || new Error('Invalid recovery token') };
+        }
+
+        // Меняем пароль через временный клиент
+        const { error: updateError } = await tempClient.auth.updateUser({
+          password: newPassword
+        });
+
+        if (updateError) {
+          console.error('Password update failed:', updateError);
+          return { success: false, error: updateError };
+        }
+        
+        console.log('✅ Password updated via isolated client for old format token');
         
       } else {
         return { success: false, error: new Error('Unknown recovery token format') };
