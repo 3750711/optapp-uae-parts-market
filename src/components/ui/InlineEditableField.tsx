@@ -131,8 +131,8 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
 
   if (isEditing) {
     return (
-      <div className={cn("relative", className)}>
-        <div className="space-y-2">
+      <div className={cn("relative w-full", className)}>
+        <div className="space-y-2 w-full">
           {/* Show original value for context with diff highlighting */}
           <div className="text-xs text-muted-foreground flex items-center gap-2">
             <span>Текущее: {displayValue()}</span>
@@ -158,7 +158,9 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               className={cn(
-                "text-base bg-background border-primary focus:border-primary transition-all duration-200",
+                "min-w-0 flex-1 bg-background border-primary focus:border-primary transition-all duration-200",
+                isMobile && "min-w-[250px] text-base",
+                !isMobile && "min-w-[200px]",
                 isLoading && "animate-pulse border-orange-300",
                 hasChanges && !isLoading && "border-orange-400 bg-orange-50/30",
                 justSaved && "border-green-400 bg-green-50/30",
