@@ -86,10 +86,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
       setTimeout(() => {
         setIsEditing(false);
         setJustSaved(false);
-      }, 800);
-      
-      // Keep the edited value for immediate display
-      setEditValue(valueToSave.toString());
+      }, 500);
     } catch (err) {
       setError('Не удалось сохранить изменения');
       setEditValue(value.toString()); // Revert on error
@@ -160,7 +157,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
               className={cn(
                 "min-w-0 flex-1 bg-background border-primary focus:border-primary transition-all duration-200",
                 isMobile && "min-w-[250px] text-base",
-                !isMobile && "min-w-[200px]",
+                !isMobile && "min-w-[200px] max-w-[300px]",
                 isLoading && "animate-pulse border-orange-300",
                 hasChanges && !isLoading && "border-orange-400 bg-orange-50/30",
                 justSaved && "border-green-400 bg-green-50/30",
@@ -180,16 +177,16 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
                 onClick={handleSave}
                 disabled={isLoading || justSaved}
                 className={cn(
-                  `${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 touch-target transition-all duration-200`,
+                  "h-10 w-10 p-0 touch-target transition-all duration-200",
                   justSaved 
                     ? "text-green-600 bg-green-100 hover:bg-green-100" 
                     : "text-green-600 hover:text-green-700 hover:bg-green-50"
                 )}
               >
                 {isLoading ? (
-                  <Loader2 className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} animate-spin`} />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Check className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
+                  <Check className="h-5 w-5" />
                 )}
               </Button>
               <Button
@@ -197,9 +194,9 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
                 variant="ghost"
                 onClick={handleCancel}
                 disabled={isLoading || justSaved}
-                className={`${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 text-red-600 hover:text-red-700 hover:bg-red-50 touch-target`}
+                className="h-10 w-10 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 touch-target"
               >
-                <X className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
+                <X className="h-5 w-5" />
               </Button>
             </div>
           </div>
