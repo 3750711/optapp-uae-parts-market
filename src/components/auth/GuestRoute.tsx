@@ -69,7 +69,7 @@ const GuestRoute = ({ children }: GuestRouteProps) => {
     const to = 
       profile.user_type === 'admin' ? '/admin' :
       profile.user_type === 'seller' ? '/seller/dashboard' :
-      profile.user_type === 'buyer' ? '/buyer-dashboard' : null;
+      profile.user_type === 'buyer' ? '/buyer-dashboard' : '/profile';
       
     if (to && redirectProtection.canRedirect(location.pathname, to)) {
       console.log("🔐 GuestRoute: Redirecting", profile.user_type, "to", to);
