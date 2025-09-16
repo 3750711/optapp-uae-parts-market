@@ -338,7 +338,7 @@ export const AdminFreeOrderForm = () => {
       <MobileFormSection title="Изображения">
         <SimplePhotoUploader
           onChange={onImagesUpload}
-          max={10}
+          max={50}
           language="ru"
           buttonText="Загрузить изображения"
         />

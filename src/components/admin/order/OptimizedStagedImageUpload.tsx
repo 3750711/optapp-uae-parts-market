@@ -14,7 +14,7 @@ interface OptimizedStagedImageUploadProps {
 
 export const OptimizedStagedImageUpload: React.FC<OptimizedStagedImageUploadProps> = ({
   onImagesChange,
-  maxImages = 10,
+  maxImages = 50,
   disabled = false
 }) => {
   const {

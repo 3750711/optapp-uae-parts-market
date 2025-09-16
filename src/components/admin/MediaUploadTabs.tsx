@@ -32,7 +32,7 @@ export const MediaUploadTabs: React.FC<MediaUploadTabsProps> = ({
   isSeller = false,
   showVideos = true,
   imageAccept = "image/*",
-  maxImages = 10,
+  maxImages = 50,
 }) => {
   const t = {
     photos: isSeller ? "Photos" : "Фото",

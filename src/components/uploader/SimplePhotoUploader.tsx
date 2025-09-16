@@ -12,7 +12,7 @@ type Props = {
 };
 
 export default function SimplePhotoUploader({
-  max = 20,
+  max = 50,
   onChange,
   onComplete,
   buttonText,
