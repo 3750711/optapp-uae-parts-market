@@ -1,4 +1,5 @@
-import { useLazyProfiles } from '@/hooks/useLazyProfiles';
+import { OrderFormData } from '@/types/order';
+import { normalizeDecimal } from '@/utils/number';
 
 export interface ParsedTelegramOrder {
   title: string;
@@ -184,14 +185,14 @@ export function validateParsedOrder(data: ParsedTelegramOrder): string[] {
     errors.push('Количество мест должно быть положительным числом');
   }
 
-  const price = parseFloat(data.price);
-  if (isNaN(price) || price <= 0) {
+  const price = normalizeDecimal(data.price);
+  if (price <= 0) {
     errors.push('Стоимость должна быть положительным числом');
   }
 
   if (data.delivery_price) {
-    const deliveryPrice = parseFloat(data.delivery_price);
-    if (isNaN(deliveryPrice) || deliveryPrice < 0) {
+    const deliveryPrice = normalizeDecimal(data.delivery_price);
+    if (deliveryPrice < 0) {
       errors.push('Стоимость доставки должна быть неотрицательным числом');
     }
   }

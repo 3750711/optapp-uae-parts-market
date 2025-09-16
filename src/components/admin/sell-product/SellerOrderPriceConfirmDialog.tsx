@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MobileKeyboardOptimizedDialog } from "@/components/ui/MobileKeyboardOptimizedDialog";
 import TouchOptimizedInput from "@/components/ui/TouchOptimizedInput";
 import { PriceConfirmationStyles } from "./PriceConfirmationStyles";
+import { normalizeDecimal } from "@/utils/number";
 
 interface SellerOrderPriceConfirmDialogProps {
   open: boolean;
@@ -44,8 +45,8 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
   };
 
   const handleSubmit = () => {
-    const numPrice = parseFloat(productPrice);
-    if (isNaN(numPrice) || numPrice <= 0) {
+    const numPrice = normalizeDecimal(productPrice);
+    if (numPrice <= 0) {
       return;
     }
     
@@ -57,7 +58,7 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
     onConfirm(numPrice);
   };
 
-  const isPriceUnchanged = parseFloat(productPrice) === currentProductPrice;
+  const isPriceUnchanged = normalizeDecimal(productPrice) === currentProductPrice;
 
   return (
     <>
@@ -85,9 +86,9 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
               type="number"
               value={productPrice}
               onChange={handlePriceChange}
-              min="0"
-              step="0.01"
-              inputMode="decimal"
+              min="1"
+              step="1"
+              inputMode="numeric"
               className="text-lg font-medium touch-target"
               placeholder="Enter product price"
               required
@@ -132,8 +133,7 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
               onClick={handleSubmit}
               disabled={
                 isSubmitting || 
-                parseFloat(productPrice) <= 0 || 
-                isNaN(parseFloat(productPrice)) ||
+                normalizeDecimal(productPrice) <= 0 ||
                 (isPriceUnchanged && !noPriceChangeConfirmed)
               }
               className="flex-1 touch-target min-h-[44px] font-medium"

@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeDecimal } from '@/utils/number';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -135,7 +136,7 @@ export const validateImportRow = async (
 
   // Изменена валидация цены для поддержки долговых заказов
   const priceValue = row[columnMapping.price] || '0';
-  const price = parseFloat(priceValue.toString().replace(/[^\d.,]/g, '').replace(',', '.'));
+  const price = normalizeDecimal(priceValue.toString().replace(/[^\d.,]/g, '').replace(',', '.'));
   
   // Проверяем является ли заказ долговым
   const isDebt = isDebtOrder(title);
@@ -198,8 +199,8 @@ export const validateImportRow = async (
 
   // Validate delivery price
   const deliveryPriceValue = row[columnMapping.deliveryPrice] || '0';
-  const deliveryPrice = parseFloat(deliveryPriceValue.toString().replace(/[^\d.,]/g, '').replace(',', '.'));
-  if (isNaN(deliveryPrice)) {
+  const deliveryPrice = normalizeDecimal(deliveryPriceValue.toString().replace(/[^\d.,]/g, '').replace(',', '.'));
+  if (deliveryPrice < 0) {
     warnings.push('Некорректная цена доставки, будет использовано значение 0');
   }
 

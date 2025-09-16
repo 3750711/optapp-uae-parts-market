@@ -1,5 +1,6 @@
 
-import { CreatedOrder } from '@/types/order';
+import { CreatedOrder, OrderFormData } from '@/types/order';
+import { normalizeDecimal } from '@/utils/number';
 
 /**
  * Безопасное получение номера заказа в виде строки
@@ -29,7 +30,7 @@ export const isValidOrderNumber = (orderNumber: any): boolean => {
  */
 export const getOrderPriceSafe = (order: CreatedOrder | any): number => {
   if (!order?.price) return 0;
-  return typeof order.price === 'number' ? order.price : parseFloat(order.price) || 0;
+  return typeof order.price === 'number' ? order.price : normalizeDecimal(order.price);
 };
 
 /**

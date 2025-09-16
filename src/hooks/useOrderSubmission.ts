@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { OrderFormData } from './useOrderForm';
+import { normalizeDecimal } from '@/utils/number';
 
 interface UseOrderSubmissionProps {
   productId?: string | null;
@@ -20,14 +21,14 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
       const orderData = {
         id: Date.now().toString(),
         title: formData.title,
-        price: parseFloat(formData.price),
+        price: normalizeDecimal(formData.price),
         description: formData.description,
         brand: formData.brand,
         model: formData.model,
         buyer_phone: formData.buyerPhone,
         buyer_name: formData.buyerName,
         buyer_opt_id: formData.buyerOptId,
-        delivery_price: formData.delivery_price ? parseFloat(formData.delivery_price) : 0,
+        delivery_price: formData.delivery_price ? normalizeDecimal(formData.delivery_price) : 0,
         place_number: formData.place_number ? parseInt(formData.place_number) : 1,
         images,
         videos,

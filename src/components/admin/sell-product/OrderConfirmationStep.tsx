@@ -322,14 +322,14 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">{sp.priceLabel}</Label>
-              <InlineEditableField
-                value={editableData.price}
-                onSave={(value) => handleFieldUpdate('price', value)}
-                type="price"
-                min={0.01}
-                step="0.01"
-                className="text-base font-semibold"
-              />
+                <InlineEditableField
+                  value={editableData.price}
+                  onSave={(value) => handleFieldUpdate('price', value)}
+                  type="price"
+                  min={1}
+                  step="1"
+                  className="text-base font-semibold"
+                />
             </div>
             <div>
               <Label className="text-sm font-medium text-muted-foreground">{sp.brandLabel}</Label>
@@ -396,7 +396,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
                   onSave={(value) => handleFieldUpdate('deliveryPrice', value)}
                   type="price"
                   min={0}
-                  step="0.01"
+                  step="1"
                   className="text-base"
                 />
               </div>

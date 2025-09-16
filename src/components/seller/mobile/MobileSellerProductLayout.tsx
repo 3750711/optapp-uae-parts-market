@@ -115,10 +115,10 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
                 type="price"
                 suffix=" $"
                 displayClassName="text-2xl font-bold text-primary"
-                placeholder="0.00"
+                placeholder="0"
                 required
-                min={0}
-                step="0.01"
+                min={1}
+                step="1"
               />
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
@@ -187,9 +187,9 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
                 type="price"
                 suffix=" $"
                 displayClassName="text-lg font-bold text-secondary"
-                placeholder="0.00"
+                placeholder="0"
                 min={0}
-                step="0.01"
+                step="1"
                 disabled={product.status === 'active'}
                 disabledMessage="Cannot change delivery price for published products"
               />

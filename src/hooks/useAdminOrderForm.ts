@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
+import { normalizeDecimal } from '@/utils/number';
 
 type Order = Database['public']['Tables']['orders']['Row'];
 
@@ -83,10 +84,10 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos, on
         title: values.title,
         brand: values.brand.trim() || order.brand, // Use existing brand if new one is empty
         model: values.model?.trim() || '', // Use empty string instead of null
-        price: parseFloat(values.price) || 0,
+        price: normalizeDecimal(values.price),
         place_number: parseInt(values.place_number, 10) || 1,
         description: values.description || null,
-        delivery_price_confirm: parseFloat(values.delivery_price_confirm) || null,
+        delivery_price_confirm: values.delivery_price_confirm ? normalizeDecimal(values.delivery_price_confirm) : null,
         delivery_method: values.delivery_method,
         images: orderImages,
         status: values.status,
@@ -124,11 +125,11 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos, on
         title: values.title,
         brand: values.brand.trim() || order?.brand,
         model: values.model?.trim() || '',
-        price: parseFloat(values.price) || 0,
+        price: normalizeDecimal(values.price),
         place_number: parseInt(values.place_number, 10) || 1,
         status: values.status,
         description: values.description || null,
-        delivery_price_confirm: parseFloat(values.delivery_price_confirm) || null,
+        delivery_price_confirm: values.delivery_price_confirm ? normalizeDecimal(values.delivery_price_confirm) : null,
         delivery_method: values.delivery_method,
         images: orderImages,
         is_modified: true

@@ -2,6 +2,7 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderFormData, BuyerProfile, ValidationError } from '@/types/order';
+import { normalizeDecimal } from '@/utils/number';
 
 // Функция нормализации OPT_ID - приводим к единому формату
 const normalizeOptId = (optId: string): string => {
@@ -99,7 +100,7 @@ export const useAdminOrderValidation = () => {
     if (!formData.title?.trim()) {
       errors.push({ field: 'title', message: 'Название заказа обязательно' });
     }
-    if (!formData.price || parseFloat(formData.price) <= 0) {
+    if (!formData.price || normalizeDecimal(formData.price) <= 0) {
       errors.push({ field: 'price', message: 'Цена должна быть больше 0' });
     }
     if (!formData.buyerOptId?.trim()) {

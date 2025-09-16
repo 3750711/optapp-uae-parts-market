@@ -291,7 +291,8 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
                     <Input 
                       {...field} 
                       type="number" 
-                      step="0.01"
+                      step="1"
+                      inputMode="numeric"
                       onBlur={() => validateField('price', field.value)}
                       className={`h-12 md:h-10 ${validationErrors.price ? 'border-red-500' : ''}`}
                     />
@@ -357,7 +358,7 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
                 <FormItem>
                   <FormLabel className="text-sm md:text-base">Подтвержденная стоимость доставки ($)</FormLabel>
                   <FormControl>
-                    <Input {...field} type="number" step="0.01" className="h-12 md:h-10" />
+                    <Input {...field} type="number" step="1" inputMode="numeric" className="h-12 md:h-10" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
