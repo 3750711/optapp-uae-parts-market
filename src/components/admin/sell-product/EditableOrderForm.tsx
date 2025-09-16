@@ -250,8 +250,8 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
       en: "Product name is required"
     },
     priceRequired: {
-      ru: "Цена должна быть больше 0",
-      en: "Price must be greater than 0"
+      ru: "Цена должна быть нулем или положительным целым числом",
+      en: "Price must be zero or a positive integer"
     },
     placesRequired: {
       ru: "Количество мест должно быть больше 0",
@@ -328,10 +328,10 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
       return false;
     }
 
-    if (editableData.price <= 0) {
+    if (editableData.price < 0) {
       toast({
         title: t('validationError'),
-        description: t('priceRequired'),
+        description: "Цена должна быть нулем или положительным целым числом",
         variant: "destructive",
       });
       return false;

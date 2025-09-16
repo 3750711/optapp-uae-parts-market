@@ -50,7 +50,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
 
   const handleSubmit = () => {
     const numPrice = normalizeDecimal(price);
-    if (isNaN(numPrice) || numPrice <= 0) {
+    if (isNaN(numPrice) || numPrice < 0) {
       return;
     }
     
@@ -121,7 +121,7 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
           className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
           disabled={
             isSubmitting || 
-            normalizeDecimal(price) <= 0 ||
+            normalizeDecimal(price) < 0 ||
             (isPriceUnchanged && !noDiscountConfirmed)
           }
         >

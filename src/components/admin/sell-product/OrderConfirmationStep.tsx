@@ -177,10 +177,10 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
       return false;
     }
 
-    if (editableData.price <= 0) {
+    if (editableData.price < 0) {
       toast({
         title: sp.validationError,
-        description: sp.priceRequired,
+        description: "Price must be zero or a positive integer",
         variant: "destructive",
       });
       return false;
@@ -326,7 +326,7 @@ const OrderConfirmationStep: React.FC<OrderConfirmationStepProps> = ({
                   value={editableData.price}
                   onSave={(value) => handleFieldUpdate('price', value)}
                   type="price"
-                  min={1}
+                  min={0}
                   step="1"
                   className="text-base font-semibold"
                 />

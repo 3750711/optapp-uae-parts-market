@@ -19,7 +19,7 @@ import { Lang } from "@/types/i18n";
 // Create schema function that accepts translations
 export const createProductSchema = (t: ProductValidationMessages) => z.object({
   title: z.string().min(3, { message: t.titleMinLength }),
-  price: z.string().min(1, { message: t.priceRequired }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: t.priceInvalid }),
+  price: z.string().min(1, { message: t.priceRequired }).refine((val) => !isNaN(Number(val)) && Number(val) >= 0, { message: t.priceInvalid }),
   brandId: z.string().min(1, { message: t.brandRequired }),
   modelId: z.string().optional(),
   placeNumber: z.string().min(1, { message: t.placesRequired }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, { message: t.placesInvalid }),

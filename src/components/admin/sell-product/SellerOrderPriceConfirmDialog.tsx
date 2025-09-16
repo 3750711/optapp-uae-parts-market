@@ -46,7 +46,7 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
 
   const handleSubmit = () => {
     const numPrice = normalizeDecimal(productPrice);
-    if (numPrice <= 0) {
+    if (numPrice < 0) {
       return;
     }
     
@@ -86,7 +86,7 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
               type="number"
               value={productPrice}
               onChange={handlePriceChange}
-              min="1"
+              min="0"
               step="1"
               inputMode="numeric"
               className="text-lg font-medium touch-target"
@@ -133,7 +133,7 @@ const SellerOrderPriceConfirmDialog: React.FC<SellerOrderPriceConfirmDialogProps
               onClick={handleSubmit}
               disabled={
                 isSubmitting || 
-                normalizeDecimal(productPrice) <= 0 ||
+                normalizeDecimal(productPrice) < 0 ||
                 (isPriceUnchanged && !noPriceChangeConfirmed)
               }
               className="flex-1 touch-target min-h-[44px] font-medium"

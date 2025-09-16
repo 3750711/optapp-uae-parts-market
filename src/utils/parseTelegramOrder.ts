@@ -186,8 +186,8 @@ export function validateParsedOrder(data: ParsedTelegramOrder): string[] {
   }
 
   const price = normalizeDecimal(data.price);
-  if (price <= 0) {
-    errors.push('Стоимость должна быть положительным числом');
+  if (price < 0) {
+    errors.push('Стоимость должна быть неотрицательным числом');
   }
 
   if (data.delivery_price) {

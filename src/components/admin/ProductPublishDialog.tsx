@@ -29,14 +29,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { normalizeDecimal } from '@/utils/number';
 
 const formSchema = z.object({
   delivery_price: z.string().refine(
     (val) => {
-      const num = parseFloat(val);
+      const num = normalizeDecimal(val);
       return !isNaN(num) && num >= 0;
     },
-    { message: "Стоимость доставки должна быть неотрицательным числом" }
+    { message: "Стоимость доставки должна быть неотрицательным целым числом" }
   ),
 });
 
@@ -101,7 +102,7 @@ Nose cut (Ноускат) высокий - $260
         .from('products')
         .update({
           status: 'active',
-          delivery_price: parseFloat(values.delivery_price),
+          delivery_price: normalizeDecimal(values.delivery_price),
         })
         .eq('id', product.id);
 
