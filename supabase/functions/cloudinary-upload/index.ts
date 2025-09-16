@@ -70,71 +70,26 @@ Deno.serve(async (req) => {
       }, 500);
     }
 
-    // Backend protection: Check for photo limit if order_id is provided
+    // Handle both input formats and extract all data in one read
     const authHeader = req.headers.get('authorization');
-    let orderId: string | null = null;
-    
-    // Extract order_id from request (if provided)
-    try {
-      if (contentType.includes('application/json')) {
-        const requestData = await req.json();
-        orderId = requestData.order_id;
-      } else if (contentType.includes('multipart/form-data')) {
-        const formData = await req.formData();
-        orderId = formData.get('order_id') as string;
-      }
-    } catch (e) {
-      // Continue without order_id check if extraction fails
-    }
-
-    // If order_id provided, check photo limit
-    if (orderId && authHeader) {
-      try {
-        const { createServiceClient } = await import('../_shared/client.ts');
-        const adminClient = createServiceClient();
-        
-        const { data: orderData, error: orderError } = await adminClient
-          .from('orders')
-          .select('images')
-          .eq('id', orderId)
-          .single();
-
-        if (orderError) {
-          console.error(`❌ [${rid}] Error checking order photos:`, orderError);
-        } else if (orderData && Array.isArray(orderData.images)) {
-          const currentPhotoCount = orderData.images.length;
-          console.log(`📊 [${rid}] Current photo count for order ${orderId}: ${currentPhotoCount}`);
-          
-          if (currentPhotoCount >= 50) {
-            console.error(`❌ [${rid}] Photo limit exceeded: ${currentPhotoCount}/50`);
-            return jsonResponse({
-              success: false,
-              error: `Photo limit exceeded. Maximum 50 photos allowed per order. Current count: ${currentPhotoCount}`,
-              currentCount: currentPhotoCount,
-              maxCount: 50
-            }, 400);
-          }
-        }
-      } catch (limitError) {
-        console.error(`❌ [${rid}] Error during photo limit check:`, limitError);
-        // Continue with upload even if limit check fails
-      }
-    }
-
-    // Handle both input formats: multipart/form-data and application/json
     let file: File | null = null;
     let folder = 'products'; // default folder
+    let orderId: string | null = null;
+    let requestData: any = null;
+    let formData: FormData | null = null;
     
+    // Single read of request body based on content type
     if (contentType.includes('multipart/form-data')) {
-      // multipart/form-data: fields file, folder
+      // multipart/form-data: extract file, folder, and order_id in one read
       console.log(`📁 [${rid}] Processing FormData upload...`);
       try {
-        const formData = await req.formData();
+        formData = await req.formData();
         file = formData.get('file') as File;
         const folderParam = formData.get('folder') as string;
         if (folderParam) folder = folderParam;
+        orderId = formData.get('order_id') as string;
         
-        console.log(`📁 [${rid}] FormData processed: file=${!!file}, name=${file?.name}, type=${file?.type}, size=${file?.size}, folder=${folder}`);
+        console.log(`📁 [${rid}] FormData processed: file=${!!file}, name=${file?.name}, type=${file?.type}, size=${file?.size}, folder=${folder}, order_id=${orderId}`);
       } catch (error) {
         console.error(`❌ [${rid}] Error processing FormData:`, error);
         return jsonResponse({
@@ -143,13 +98,14 @@ Deno.serve(async (req) => {
         }, 400);
       }
     } else {
-      // application/json: fields base64, name, type, folder
+      // application/json: extract base64, name, type, folder, and order_id in one read
       console.log(`📄 [${rid}] Processing JSON upload...`);
       try {
-        const requestData = await req.json();
-        console.log(`📄 [${rid}] JSON data received: base64=${!!requestData.base64}, name=${requestData.name}, type=${requestData.type}, folder=${requestData.folder}`);
+        requestData = await req.json();
+        console.log(`📄 [${rid}] JSON data received: base64=${!!requestData.base64}, name=${requestData.name}, type=${requestData.type}, folder=${requestData.folder}, order_id=${requestData.order_id}`);
         
-        const { base64, name, type, folder: folderParam } = requestData;
+        const { base64, name, type, folder: folderParam, order_id } = requestData;
+        orderId = order_id;
         if (base64 && name && type) {
           const base64Data = base64.startsWith('data:') 
             ? base64.split(',')[1] 
@@ -165,6 +121,40 @@ Deno.serve(async (req) => {
           success: false,
           error: 'Invalid JSON in request body'
         }, 400);
+      }
+    }
+
+    // Backend protection: Check for photo limit if order_id is provided
+    if (orderId && authHeader) {
+      try {
+        const { createServiceClient } = await import('../_shared/client.ts');
+        const adminClient = createServiceClient();
+        
+        const { data: orderData, error: orderError } = await adminClient
+          .from('orders')
+          .select('images')
+          .eq('id', orderId)
+          .single();
+
+        if (orderError) {
+          console.error(`❌ [${rid}] Error checking order photos:`, orderError);
+        } else if (orderData && Array.isArray(orderData.images)) {
+          const currentPhotoCount = orderData.images.length;
+          console.log(`📊ሱ[${rid}] Current photo count for order ${orderId}: ${currentPhotoCount}`);
+          
+          if (currentPhotoCount >= 50) {
+            console.error(`❌ [${rid}] Photo limit exceeded: ${currentPhotoCount}/50`);
+            return jsonResponse({
+              success: false,
+              error: `Photo limit exceeded. Maximum 50 photos allowed per order. Current count: ${currentPhotoCount}`,
+              currentCount: currentPhotoCount,
+              maxCount: 50
+            }, 400);
+          }
+        }
+      } catch (limitError) {
+        console.error(`❌ [${rid}] Error during photo limit check:`, limitError);
+        // Continue with upload even if limit check fails
       }
     }
 
