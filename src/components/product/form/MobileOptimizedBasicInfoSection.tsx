@@ -101,7 +101,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
               <FormControl>
                 <Input
                   type="number"
-                  inputMode="decimal"
+                  inputMode="numeric"
                   placeholder="100"
                   {...field}
                   className="mobile-input bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200"
@@ -163,7 +163,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
             <FormControl>
               <Input
                 type="number"
-                inputMode="decimal"
+                inputMode="numeric"
                 placeholder="0"
                 {...field}
                 className="mobile-input bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200"

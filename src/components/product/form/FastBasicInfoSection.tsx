@@ -51,8 +51,8 @@ const FastBasicInfoSection = memo<FastBasicInfoSectionProps>(({ form }) => {
               <FormControl>
                 <Input 
                   type="number"
-                  step="0.01"
-                  inputMode="decimal"
+                  step="1"
+                  inputMode="numeric"
                   className="mobile-input"
                   {...field}
                 />
@@ -71,8 +71,8 @@ const FastBasicInfoSection = memo<FastBasicInfoSectionProps>(({ form }) => {
               <FormControl>
                 <Input 
                   type="number"
-                  step="0.01"
-                  inputMode="decimal"
+                  step="1"
+                  inputMode="numeric"
                   placeholder={t.placeholders.deliveryPrice}
                   className="mobile-input"
                   {...field}

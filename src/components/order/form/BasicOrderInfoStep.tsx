@@ -86,11 +86,11 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
             id="price"
             type="number"
             min="0"
-            step="0.01"
+            step="1"
             value={formData.price}
             onChange={(e) => onInputChange('price', e.target.value)}
-            placeholder="0.00"
-            inputMode="decimal"
+            placeholder="0"
+            inputMode="numeric"
             touched={touchedFields.has('price')}
             error={getFieldError('price')}
             success={touchedFields.has('price') && isFieldValid('price')}
@@ -108,11 +108,11 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
             id="delivery_price"
             type="number"
             min="0"
-            step="0.01"
+            step="1"
             value={formData.delivery_price}
             onChange={(e) => onInputChange('delivery_price', e.target.value)}
-            placeholder="0.00"
-            inputMode="decimal"
+            placeholder="0"
+            inputMode="numeric"
           />
         </div>
 

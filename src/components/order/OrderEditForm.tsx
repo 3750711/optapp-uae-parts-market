@@ -118,7 +118,7 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
           onChange={(e) => setFormData({ ...formData, price: normalizeDecimal(e.target.value) })}
           required
           min="0"
-          step="0.01"
+          step="1"
         />
       </div>
 

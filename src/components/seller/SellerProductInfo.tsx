@@ -59,10 +59,10 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
             type="price"
             suffix=" $"
             displayClassName="text-2xl font-bold text-primary"
-            placeholder="0.00"
+            placeholder="0"
             required
             min={0}
-            step="0.01"
+            step="1"
           />
         </div>
 
@@ -96,9 +96,9 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
               type="price"
               suffix=" $"
               displayClassName="text-lg font-semibold text-secondary"
-              placeholder="0.00"
+              placeholder="0"
               min={0}
-              step="0.01"
+              step="1"
               disabled={product.status === 'active'}
               disabledMessage="Cannot change delivery price for published products"
             />

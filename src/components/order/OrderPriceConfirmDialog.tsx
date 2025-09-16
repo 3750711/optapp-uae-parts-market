@@ -77,17 +77,17 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="price">{t.priceLabel}</Label>
-          <TouchOptimizedInput
-            id="price"
-            type="number"
-            value={price}
-            onChange={handlePriceChange}
-            min="0"
-            step="0.01"
-            inputMode="decimal"
-            className="text-lg"
-            placeholder={t.pricePlaceholder}
-          />
+            <TouchOptimizedInput
+              id="price"
+              type="number"
+              value={price}
+              onChange={handlePriceChange}
+              min="0"
+              step="1"
+              inputMode="numeric"
+              className="text-lg"
+              placeholder="0"
+            />
         </div>
         
         {isPriceUnchanged && (

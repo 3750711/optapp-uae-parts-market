@@ -51,8 +51,8 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
               <FormControl>
                 <Input 
                   type="number"
-                  step="0.01"
-                  inputMode="decimal"
+                  step="1"
+                  inputMode="numeric"
                   {...field}
                 />
               </FormControl>
@@ -70,8 +70,8 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
               <FormControl>
                 <Input 
                   type="number"
-                  step="0.01"
-                  inputMode="decimal"
+                  step="1"
+                  inputMode="numeric"
                   placeholder={t.placeholders.deliveryPrice}
                   {...field}
                 />

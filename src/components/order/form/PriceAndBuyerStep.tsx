@@ -155,15 +155,15 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
             Цена ($) *
           </Label>
           <TouchOptimizedInput 
-            id="price" 
-            type="number" 
+            id="price"
+            type="number"
             value={formData.price}
             onChange={(e) => onInputChange('price', e.target.value)}
             required 
-            placeholder="0.00"
-            step="0.01"
+            placeholder="0"
+            step="1"
             min="0"
-            inputMode="decimal"
+            inputMode="numeric"
             touched={touchedFields.has('price')}
             error={getFieldError('price')}
             success={touchedFields.has('price') && isFieldValid('price')}
@@ -183,10 +183,10 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
             type="number"
             value={formData.delivery_price}
             onChange={(e) => onInputChange('delivery_price', e.target.value)}
-            placeholder="0.00"
-            step="0.01"
+            placeholder="0"
+            step="1"
             min="0"
-            inputMode="decimal"
+            inputMode="numeric"
           />
         </div>
       </div>

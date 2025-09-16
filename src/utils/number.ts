@@ -6,6 +6,7 @@
 /**
  * Normalizes decimal input by accepting both comma and dot as decimal separators
  * Handles null/undefined/empty values gracefully
+ * Always returns integer values for prices
  */
 export function normalizeDecimal(input: string | number | null | undefined): number {
   if (input == null || input === '') return 0;
@@ -19,20 +20,20 @@ export function normalizeDecimal(input: string | number | null | undefined): num
   // Parse the number
   const parsed = Number(normalized);
   
-  // Return 0 for invalid numbers, otherwise return the parsed value
-  return Number.isFinite(parsed) ? parsed : 0;
+  // Return 0 for invalid numbers, otherwise return the rounded integer value
+  return Number.isFinite(parsed) ? Math.round(parsed) : 0;
 }
 
 /**
- * Formats a number for display with proper decimal separator based on locale
+ * Formats a number for display as integer (no decimal places)
  */
 export function formatPrice(value: number, locale: string = 'ru-RU'): string {
   if (!Number.isFinite(value)) return '0';
   
   return new Intl.NumberFormat(locale, {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(value);
+    maximumFractionDigits: 0,
+  }).format(Math.round(value));
 }
 
 /**

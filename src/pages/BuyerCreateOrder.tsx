@@ -556,15 +556,15 @@ const BuyerCreateOrder = () => {
                 <div className="space-y-2">
                   <Label htmlFor="price">Цена ($) *</Label>
                   <Input 
-                    id="price" 
+                    id="price"
                     type="number" 
                     value={formData.price}
                     onChange={(e) => handleInputChange('price', e.target.value)}
                     required 
-                    placeholder="0.00"
-                    step="0.01"
+                    placeholder="0"
+                    step="1"
                     min="0"
-                    inputMode="decimal"
+                    inputMode="numeric"
                   />
                 </div>
                 <div className="space-y-2">
@@ -574,10 +574,10 @@ const BuyerCreateOrder = () => {
                     type="number"
                     value={formData.delivery_price}
                     onChange={(e) => handleInputChange('delivery_price', e.target.value)}
-                    placeholder="0.00"
-                    step="0.01"
+                    placeholder="0"
+                    step="1"
                     min="0"
-                    inputMode="decimal"
+                    inputMode="numeric"
                   />
                 </div>
               </div>

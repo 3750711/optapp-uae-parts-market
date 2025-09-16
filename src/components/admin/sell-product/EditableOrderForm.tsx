@@ -509,10 +509,10 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
               id="price"
               type="number"
               min="0"
-              step="0.01"
+              step="1"
               value={editableData.price}
               onChange={(e) => updateField('price', normalizeDecimal(e.target.value))}
-              placeholder="0.00"
+              placeholder="0"
               disabled={isSubmitting}
             />
           </div>
@@ -544,10 +544,10 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
                 id="deliveryPrice"
                 type="number"
                 min="0"
-                step="0.01"
+                step="1"
                 value={editableData.deliveryPrice}
                 onChange={(e) => updateField('deliveryPrice', normalizeDecimal(e.target.value))}
-                placeholder="0.00"
+                placeholder="0"
                 disabled={isSubmitting}
               />
             </div>

@@ -177,9 +177,9 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                 value={formData.price || ''}
                 onChange={(e) => handleInputChange('price', e.target.value)}
                 placeholder="0"
-                step="0.01"
+                step="1"
                 min="0"
-                inputMode="decimal"
+                inputMode="numeric"
                 disabled={disabled}
                 className="bg-white"
               />
@@ -193,9 +193,9 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                 value={formData.delivery_price || ''}
                 onChange={(e) => handleInputChange('delivery_price', e.target.value)}
                 placeholder="0"
-                step="0.01"
+                step="1"
                 min="0"
-                inputMode="decimal"
+                inputMode="numeric"
                 disabled={disabled}
                 className="bg-white"
               />

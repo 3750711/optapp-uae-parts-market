@@ -28,10 +28,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           value={price}
           onChange={(e) => onPriceChange(e.target.value)}
           required 
-          placeholder="0.00"
-          step="0.01"
+          placeholder="0"
+          step="1"
           min="0"
-          inputMode="decimal"
+          inputMode="numeric"
           disabled={disabled}
         />
       </div>
@@ -42,10 +42,10 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           type="number"
           value={deliveryPrice}
           onChange={(e) => onDeliveryPriceChange(e.target.value)}
-          placeholder="0.00"
-          step="0.01"
+          placeholder="0"
+          step="1"
           min="0"
-          inputMode="decimal"
+          inputMode="numeric"
           disabled={disabled}
         />
       </div>
