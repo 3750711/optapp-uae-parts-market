@@ -34,7 +34,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   images,
   onUpload,
   onDelete,
-  maxImages = 10,
+  maxImages = 50,
   storageBucket = "product-images",
   filePrefix = "", // Default empty prefix
   translations

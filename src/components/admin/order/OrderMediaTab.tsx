@@ -53,7 +53,7 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
         <CardContent className="pt-0">
           <MobileOptimizedImageUpload
             onUploadComplete={handleImageUpload}
-            maxImages={20}
+            maxImages={50}
             existingImages={orderImages}
             onImageDelete={handleImageDelete}
             productId={order?.id}

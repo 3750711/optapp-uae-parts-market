@@ -252,7 +252,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
           }
         }}
         onImageDelete={canEdit ? handleImageDelete : undefined}
-        maxImages={20}
+        maxImages={50}
         productId={orderId}
         disabled={!canEdit}
         buttonText="Загрузить подтверждающие фото"

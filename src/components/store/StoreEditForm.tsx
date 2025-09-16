@@ -300,7 +300,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                      images={images}
                      onUpload={(uploadedUrls) => setImages([...images, ...uploadedUrls])}
                      onDelete={(url) => setImages(images.filter(img => img !== url))}
-                     maxImages={10}
+                     maxImages={50}
                      translations={t.imageUpload}
                    />
                 </div>

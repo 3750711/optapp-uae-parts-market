@@ -46,7 +46,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
   primaryImage,
   orderId,
   disabled = false,
-  maxImages = 25,
+  maxImages = 50,
   maxVideos = 3,
 }) => {
   const [dragActive, setDragActive] = useState(false);

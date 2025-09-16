@@ -15,7 +15,7 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
   onImagesUpload,
   onImageDelete,
   disabled = false,
-  maxImages = 25
+  maxImages = 50
 }) => {
   return (
     <UnifiedImageUpload

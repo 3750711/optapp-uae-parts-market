@@ -25,7 +25,7 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
   onImageDelete,
   onPrimaryImageChange,
   primaryImage,
-  maxImages = 25,
+  maxImages = 50,
   storageBucket = "product-images",
   showUpload = true
 }) => {

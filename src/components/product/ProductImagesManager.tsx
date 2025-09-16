@@ -25,7 +25,7 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
   onImageDelete,
   onPrimaryImageChange,
   primaryImage,
-  maxImages = 25,
+  maxImages = 50,
   storageBucket = STORAGE_BUCKETS.PRODUCT_IMAGES // Используем константу
 }) => {
   const { toast } = useToast();

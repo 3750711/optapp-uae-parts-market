@@ -15,7 +15,7 @@ interface OrderImageUploadProps {
 
 export const OrderImageUpload: React.FC<OrderImageUploadProps> = ({
   onImagesChange,
-  maxImages = 25,
+  maxImages = 50,
   disabled = false,
   existingImages = [],
   sessionId

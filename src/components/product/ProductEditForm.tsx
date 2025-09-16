@@ -219,7 +219,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           onVideosChange={isCreator ? setVideos : () => {}}
           onPrimaryImageChange={isCreator ? handlePrimaryImageChange : undefined}
           primaryImage={primaryImage}
-          maxImages={25}
+          maxImages={50}
           storageBucket="product-images"
         />
       </div>

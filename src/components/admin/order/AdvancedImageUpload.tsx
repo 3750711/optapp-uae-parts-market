@@ -28,7 +28,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
   primaryImage,
   orderId,
   disabled = false,
-  maxImages = 25
+  maxImages = 50
 }) => {
   const [uploadQueue, setUploadQueue] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);

@@ -33,7 +33,7 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
   onImagesUpload,
   onImageDelete,
   disabled = false,
-  maxImages = 25
+  maxImages = 50
 }) => {
   const { uploadFiles, isUploading } = useCloudinaryUpload();
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);

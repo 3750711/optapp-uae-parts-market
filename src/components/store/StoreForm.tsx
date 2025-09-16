@@ -256,7 +256,7 @@ const StoreForm: React.FC<StoreFormProps> = ({ initialData, onSuccess }) => {
                   images={images}
                   onUpload={(uploadedUrls) => setImages([...images, ...uploadedUrls])}
                   onDelete={(url) => setImages(images.filter(img => img !== url))}
-                  maxImages={10}
+                  maxImages={50}
                 />
               </div>
             </div>

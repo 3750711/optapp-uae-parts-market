@@ -12,7 +12,7 @@ interface StagedImageUploadProps {
 
 export const StagedImageUpload: React.FC<StagedImageUploadProps> = ({
   onImagesChange,
-  maxImages = 25,
+  maxImages = 50,
   disabled = false
 }) => {
   const {

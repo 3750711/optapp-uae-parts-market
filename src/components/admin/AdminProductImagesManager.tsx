@@ -230,7 +230,7 @@ export const AdminProductImagesManager = ({
         images={images}
         onUpload={handleImageUpload}
         onDelete={handleImageDelete}
-        maxImages={25}
+        maxImages={50}
       />
     </div>
   );

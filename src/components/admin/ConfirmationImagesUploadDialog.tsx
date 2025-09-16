@@ -306,7 +306,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
             disabled={isDisabled}
             isSeller={isSeller}
             showVideos={!isImageOnlyMode}
-            maxImages={isImageOnlyMode ? 8 : 16}
+            maxImages={isImageOnlyMode ? 20 : 30}
           />
 
           <UploadedFilesInfo

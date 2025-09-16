@@ -34,7 +34,7 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
   primaryImage,
   orderId,
   disabled = false,
-  maxImages = 25,
+  maxImages = 50,
   maxVideos = 3
 }) => {
   const { 

@@ -110,7 +110,7 @@ export const StorePhotosTab: React.FC<StorePhotosTabProps> = ({
       {canEdit ? (
         <MobileOptimizedImageUpload
           onUploadComplete={handleImageUpload}
-          maxImages={20}
+          maxImages={50}
           existingImages={storeImages}
           onImageDelete={handleImageDelete}
           productId={storeId}
@@ -120,7 +120,7 @@ export const StorePhotosTab: React.FC<StorePhotosTabProps> = ({
       ) : (
         <MobileOptimizedImageUpload
           onUploadComplete={() => {}}
-          maxImages={20}
+          maxImages={50}
           existingImages={storeImages}
           productId={storeId}
           showGalleryOnly={true}

@@ -25,7 +25,7 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
   onVideosChange,
   onPrimaryImageChange,
   primaryImage,
-  maxImages = 25,
+  maxImages = 50,
   storageBucket = "product-images"
 }) => {
   return (
