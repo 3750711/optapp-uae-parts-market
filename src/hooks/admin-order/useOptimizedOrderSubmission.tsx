@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { OrderFormData, CreatedOrder, OrderStatus } from '@/types/order';
 import { deduplicateArray } from '@/utils/deduplication';
+import { normalizeDecimal } from '@/utils/number';
 
 const validateOrderStatus = (status: string): OrderStatus | null => {
   const validOrderStatuses: OrderStatus[] = ['created', 'seller_confirmed', 'admin_confirmed', 'processed', 'shipped', 'delivered', 'cancelled'];
@@ -78,7 +79,7 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
       const { data: orderId, error: orderError } = await supabase
         .rpc('admin_create_order', {
           p_title: formData.title,
-          p_price: parseFloat(formData.price),
+          p_price: normalizeDecimal(formData.price),
           p_seller_id: formData.sellerId,
           p_buyer_id: buyerProfile.id,
           p_description: formData.text_order || '',
@@ -88,7 +89,7 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
           p_delivery_method: formData.deliveryMethod,
           p_place_number: parseInt(formData.place_number) || 1,
           p_text_order: formData.text_order || '',
-          p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null,
+          p_delivery_price_confirm: formData.delivery_price ? normalizeDecimal(formData.delivery_price) : null,
           p_images: deduplicateArray(images),
           p_video_url: deduplicateArray(videos),
           p_product_id: null,

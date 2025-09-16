@@ -6,6 +6,7 @@ import { FileUp, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeDecimal } from '@/utils/number';
 
 interface OrdersImportButtonProps {
   onImportComplete?: () => void;
@@ -95,12 +96,12 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
           // Базовые данные заказа
           const orderData: any = {
             title: row['Название'] || row['Title'] || 'Импорт из Excel',
-            price: parseFloat(row['Цена'] || row['Price'] || '0'),
+            price: normalizeDecimal(row['Цена'] || row['Price'] || '0'),
             brand: row['Бренд'] || row['Brand'] || '',
             model: row['Модель'] || row['Model'] || '',
             place_number: parseInt(row['Количество мест'] || row['Places'] || '1'),
             text_order: row['Дополнительная информация'] || row['Description'] || '',
-            delivery_price_confirm: parseFloat(row['Цена доставки'] || row['Delivery Price'] || '0'),
+            delivery_price_confirm: normalizeDecimal(row['Цена доставки'] || row['Delivery Price'] || '0'),
             status: 'created' as const,
             order_created_type: 'free_order' as const,
             delivery_method: 'cargo_rf' as const,

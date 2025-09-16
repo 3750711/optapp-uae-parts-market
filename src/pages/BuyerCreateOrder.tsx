@@ -13,6 +13,7 @@ import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { normalizeDecimal } from "@/utils/number";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -255,11 +256,12 @@ const BuyerCreateOrder = () => {
       return;
     }
 
-    // Updated price validation to allow 0 and negative prices
-    if (!formData.price || isNaN(parseFloat(formData.price))) {
+    // Updated price validation to allow 0 but not negative prices
+    const normalizedPrice = normalizeDecimal(formData.price);
+    if (!formData.price || normalizedPrice < 0) {
       toast({
         title: "Ошибка",
-        description: "Укажите корректную цену",
+        description: "Цена не может быть отрицательной",
         variant: "destructive",
       });
       return;
@@ -367,12 +369,12 @@ const BuyerCreateOrder = () => {
 
       console.log("Next order number will be:", nextOrderNumber);
 
-      const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
+      const deliveryPrice = formData.delivery_price ? normalizeDecimal(formData.delivery_price) : null;
       
       const orderPayload = {
         order_number: nextOrderNumber,
         title: formData.title,
-        price: parseFloat(formData.price),
+        price: normalizeDecimal(formData.price),
         quantity: parseInt(formData.quantity),
         seller_id: sellerData.id,
         order_seller_name: sellerData.full_name || 'Unknown',

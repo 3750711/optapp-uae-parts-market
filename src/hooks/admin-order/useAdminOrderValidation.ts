@@ -100,8 +100,8 @@ export const useAdminOrderValidation = () => {
     if (!formData.title?.trim()) {
       errors.push({ field: 'title', message: 'Название заказа обязательно' });
     }
-    if (!formData.price || normalizeDecimal(formData.price) <= 0) {
-      errors.push({ field: 'price', message: 'Цена должна быть больше 0' });
+    if (!formData.price || normalizeDecimal(formData.price) < 0) {
+      errors.push({ field: 'price', message: 'Цена не может быть отрицательной' });
     }
     if (!formData.buyerOptId?.trim()) {
       errors.push({ field: 'buyerOptId', message: 'OPT_ID покупателя обязателен' });

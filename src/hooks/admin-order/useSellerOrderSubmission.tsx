@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { OrderFormData } from '@/types/order';
+import { normalizeDecimal } from '@/utils/number';
 
 interface SellerOrderSubmissionResult {
   isLoading: boolean;
@@ -79,7 +80,7 @@ export const useSellerOrderSubmission = (): SellerOrderSubmissionResult => {
       const { data: orderId, error: orderError } = await supabase
         .rpc('seller_create_order', {
           p_title: formData.title,
-          p_price: parseFloat(formData.price),
+          p_price: normalizeDecimal(formData.price),
           p_place_number: parseInt(formData.place_number) || 1,
           p_order_seller_name: null, // Будет установлено автоматически
           p_buyer_id: buyerProfile.id,
@@ -93,7 +94,7 @@ export const useSellerOrderSubmission = (): SellerOrderSubmissionResult => {
           p_product_id: null,
           p_delivery_method: formData.deliveryMethod || 'cargo_rf',
           p_text_order: formData.text_order || null,
-          p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null
+          p_delivery_price_confirm: formData.delivery_price ? normalizeDecimal(formData.delivery_price) : null
         });
 
       if (orderError) {

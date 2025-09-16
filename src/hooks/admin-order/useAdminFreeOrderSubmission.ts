@@ -52,8 +52,8 @@ export const useAdminFreeOrderSubmission = (): FreeOrderSubmissionResult => {
       if (formData.price === undefined || formData.price === null || formData.price === '') {
         throw new Error('Цена обязательна');
       }
-      if (Number(formData.price) <= 0) {
-        throw new Error('Цена должна быть больше 0');
+      if (Number(formData.price) < 0) {
+        throw new Error('Цена не может быть отрицательной');
       }
       if (!formData.sellerId) {
         throw new Error('Продавец должен быть выбран');
