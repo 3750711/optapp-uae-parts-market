@@ -158,6 +158,10 @@ const AdminProductModeration: React.FC = () => {
                 key={product.id}
                 product={product}
                 onUpdate={refetch}
+                debouncedSearchTerm={searchTerm || ''}
+                statusFilter={statusFilter || 'pending'}
+                sellerFilter={sellerFilter || 'all'}
+                pageSize={12}
               />
             ))}
           </div>

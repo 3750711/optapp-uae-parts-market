@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 
@@ -30,11 +30,20 @@ interface Product {
 interface ProductModerationCardProps {
   product: Product;
   onUpdate: () => void;
+  // Filter parameters for cache key
+  debouncedSearchTerm?: string;
+  statusFilter?: string;
+  sellerFilter?: string;
+  pageSize?: number;
 }
 
 const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   product,
-  onUpdate
+  onUpdate,
+  debouncedSearchTerm = '',
+  statusFilter = 'pending',
+  sellerFilter = 'all',
+  pageSize = 12
 }) => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [brandId, setBrandId] = useState<string>('');
@@ -96,49 +105,96 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
   const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
 
-  const handleFieldUpdate = async (field: string, value: string | number) => {
-    try {
-      // Optimistic update
-      queryClient.setQueryData(['admin-products'], (oldData: any) => {
-        if (!oldData?.pages) return oldData;
+  // Create mutation for field updates with proper cache management
+  const updateFieldMutation = useMutation({
+    mutationFn: async ({ productId, field, value }: { 
+      productId: string; 
+      field: string; 
+      value: string | number 
+    }) => {
+      const { data, error } = await supabase
+        .from('products')
+        .update({ [field]: value })
+        .eq('id', productId)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    onMutate: async ({ productId, field, value }) => {
+      // Construct the proper cache key with filter parameters
+      const cacheKey = ['admin-products', { debouncedSearchTerm, statusFilter, sellerFilter, pageSize }];
+      
+      // Cancel outgoing refetches to prevent optimistic update conflicts
+      await queryClient.cancelQueries({ queryKey: cacheKey });
+      
+      // Save previous data for rollback
+      const previousData = queryClient.getQueryData(cacheKey);
+      
+      // Optimistic update using correct data structure
+      queryClient.setQueryData(cacheKey, (old: any) => {
+        if (!old?.pages) return old;
         
         return {
-          ...oldData,
-          pages: oldData.pages.map((page: any) => ({
+          ...old,
+          pages: old.pages.map((page: any) => ({
             ...page,
             data: page.data.map((p: any) => 
-              p.id === product.id ? { ...p, [field]: value } : p
+              p.id === productId 
+                ? { ...p, [field]: value }
+                : p
             )
           }))
         };
       });
-
-      const { error } = await supabase
-        .from('products')
-        .update({ [field]: value })
-        .eq('id', product.id);
-
-      if (error) throw error;
-
-      // Invalidate cache to ensure fresh data
-      await queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-
-      // No toast here - InlineEditableField now provides its own feedback
-    } catch (error) {
-      // Rollback optimistic update on error
-      await queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       
-      console.error('Error updating product:', error);
-      // Only show toast for unexpected errors, not validation errors
-      if (!error.message?.includes('validation')) {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось обновить поле",
-          variant: "destructive",
+      return { previousData, cacheKey };
+    },
+    onError: (err, variables, context) => {
+      // Rollback optimistic update on error
+      if (context?.previousData && context?.cacheKey) {
+        queryClient.setQueryData(context.cacheKey, context.previousData);
+      }
+      
+      console.error('Error updating product field:', err);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось сохранить изменения",
+        variant: "destructive",
+      });
+    },
+    onSuccess: (data, variables, context) => {
+      // Update cache with server response
+      if (context?.cacheKey) {
+        queryClient.setQueryData(context.cacheKey, (old: any) => {
+          if (!old?.pages) return old;
+          
+          return {
+            ...old,
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              data: page.data.map((p: any) => 
+                p.id === variables.productId ? data : p
+              )
+            }))
+          };
         });
       }
-      throw error;
+    },
+    onSettled: () => {
+      // Invalidate to ensure synchronization with server
+      const cacheKey = ['admin-products', { debouncedSearchTerm, statusFilter, sellerFilter, pageSize }];
+      queryClient.invalidateQueries({ queryKey: cacheKey });
     }
+  });
+
+  const handleFieldUpdate = async (field: string, value: string | number) => {
+    await updateFieldMutation.mutateAsync({ 
+      productId: product.id, 
+      field, 
+      value 
+    });
   };
 
   const handleBrandChange = async (selectedBrandId: string, brandName: string) => {
@@ -189,8 +245,9 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
       if (error) throw error;
 
-      // Invalidate cache to refresh data
-      await queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      // Invalidate cache to refresh data using proper cache key
+      const cacheKey = ['admin-products', { debouncedSearchTerm, statusFilter, sellerFilter, pageSize }];
+      await queryClient.invalidateQueries({ queryKey: cacheKey });
 
       toast({
         title: "Товар опубликован",
