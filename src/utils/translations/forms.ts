@@ -247,7 +247,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       maxValue: 'মান খুব বড়',
       titleRequired: 'পণ্যের শিরোনাম আবশ্যক',
       priceRequired: 'দাম আবশ্যক',
-      pricePositive: 'দাম 0 এর চেয়ে বড় হতে হবে',
+      pricePositive: 'দাম শূন্য বা ধনাত্মক পূর্ণ সংখ্যা হতে হবে',
       deliveryPricePositive: 'ডেলিভারি মূল্য 0 এর চেয়ে বড় বা সমান হতে হবে',
       placeNumberPositive: 'স্থান নম্বর 0 এর চেয়ে বড় হতে হবে',
     },
@@ -330,7 +330,7 @@ export interface ProductValidationMessages {
 const productValidationRu: ProductValidationMessages = {
   titleMinLength: 'Название должно содержать не менее 3 символов',
   priceRequired: 'Укажите цену товара',
-  priceInvalid: 'Цена должна быть положительным числом',
+  priceInvalid: 'Цена должна быть нулем или положительным целым числом',
   brandRequired: 'Выберите марку автомобиля',
   placesRequired: 'Укажите количество мест',
   placesInvalid: 'Количество мест должно быть положительным целым числом',
@@ -340,7 +340,7 @@ const productValidationRu: ProductValidationMessages = {
 const productValidationEn: ProductValidationMessages = {
   titleMinLength: 'Title must contain at least 3 characters',
   priceRequired: 'Please specify product price',
-  priceInvalid: 'Price must be a positive number',
+  priceInvalid: 'Price must be zero or a positive integer',
   brandRequired: 'Please select car brand',
   placesRequired: 'Please specify number of places',
   placesInvalid: 'Number of places must be a positive integer',
@@ -350,7 +350,7 @@ const productValidationEn: ProductValidationMessages = {
 const productValidationBn: ProductValidationMessages = {
   titleMinLength: 'শিরোনাম কমপক্ষে ৩টি অক্ষর থাকতে হবে',
   priceRequired: 'দয়া করে পণ্যের মূল্য নির্দিষ্ট করুন',
-  priceInvalid: 'মূল্য একটি ধনাত্মক সংখ্যা হতে হবে',
+  priceInvalid: 'মূল্য শূন্য বা ধনাত্মক পূর্ণ সংখ্যা হতে হবে',
   brandRequired: 'দয়া করে গাড়ির ব্র্যান্ড নির্বাচন করুন',
   placesRequired: 'দয়া করে জায়গার সংখ্যা নির্দিষ্ট করুন',
   placesInvalid: 'জায়গার সংখ্যা একটি ধনাত্মক পূর্ণ সংখ্যা হতে হবে',

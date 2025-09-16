@@ -1,6 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
+import { normalizeDecimal } from '@/utils/number';
 
 export interface OrderFormData {
   title: string;
@@ -79,7 +80,7 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
   const isFieldValid = useCallback((field: string) => {
     const value = formData[field];
     if (field === 'title') return value.length >= 3;
-    if (field === 'price') return parseFloat(value) >= 0;
+    if (field === 'price') return normalizeDecimal(value) >= 0;
     if (field === 'buyerOptId') return value.length > 0;
     return true;
   }, [formData]);
@@ -91,7 +92,7 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
     if (field === 'title' && value.length < 3) {
       return 'Название должно содержать минимум 3 символа';
     }
-    if (field === 'price' && parseFloat(value) < 0) {
+    if (field === 'price' && normalizeDecimal(value) < 0) {
       return 'Цена не может быть отрицательной';
     }
     if (field === 'buyerOptId' && value.length === 0) {
