@@ -56,7 +56,6 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [validationState, setValidationState] = useState<'checking' | 'valid' | 'invalid'>('checking');
-  const [showInvalidAfterDelay, setShowInvalidAfterDelay] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -76,23 +75,10 @@ const ResetPassword = () => {
         console.log('❌ No valid recovery tokens');
         setValidationState('invalid');
       }
-    }, 500); // Небольшая задержка для инициализации AuthContext
+    }, 100); // Минимальная задержка для инициализации AuthContext
     
     return () => clearTimeout(timer);
   }, [isRecoveryMode]);
-
-  // Handle delayed error display to fix race condition
-  useEffect(() => {
-    if (validationState === 'invalid') {
-      const timer = setTimeout(() => {
-        setShowInvalidAfterDelay(true);
-      }, 1000); // Увеличенная задержка для исправления race condition
-      
-      return () => clearTimeout(timer);
-    } else {
-      setShowInvalidAfterDelay(false);
-    }
-  }, [validationState]);
 
   // НОВАЯ функция отправки формы - использует безопасную функцию
   const onSubmit = async (data: FormData) => {
@@ -160,8 +146,8 @@ const ResetPassword = () => {
     }
   };
 
-  // Show loading while validating session or during delayed error display
-  if (validationState === 'checking' || (validationState === 'invalid' && !showInvalidAfterDelay)) {
+  // Show loading while validating session
+  if (validationState === 'checking') {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center">
@@ -169,9 +155,9 @@ const ResetPassword = () => {
             <CardContent className="flex flex-col items-center justify-center p-8 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <div className="text-center">
-                <h3 className="font-medium">Проверка ссылки сброса пароля</h3>
+                <h3 className="font-medium">Подготовка формы</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Устанавливаем безопасное соединение...
+                  Пожалуйста, подождите...
                 </p>
               </div>
             </CardContent>
@@ -181,8 +167,8 @@ const ResetPassword = () => {
     );
   }
 
-  // Show error if session is invalid (with delay)
-  if (validationState === 'invalid' && showInvalidAfterDelay) {
+  // Show error if session is invalid
+  if (validationState === 'invalid') {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center">
