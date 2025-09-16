@@ -79,11 +79,12 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
           {/* Название товара */}
           <div className="space-y-2">
             <Label htmlFor="title">{t.createOrderForm.productTitle}</Label>
-            <Input
+            <Textarea
               id="title"
               value={formData.title || ''}
               onChange={(e) => handleInputChange('title', e.target.value)}
               placeholder={t.createOrderForm.productTitlePlaceholder}
+              rows={3}
               disabled={disabled}
               className="bg-white"
             />
