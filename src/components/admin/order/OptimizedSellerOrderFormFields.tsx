@@ -98,11 +98,12 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
           {/* Название товара */}
           <div className="space-y-2">
             <Label htmlFor="title">Название товара *</Label>
-            <Input
+            <Textarea
               id="title"
               value={formData.title || ''}
               onChange={(e) => handleInputChange('title', e.target.value)}
               placeholder="Введите название товара..."
+              rows={3}
               disabled={disabled}
               className="bg-white"
             />
