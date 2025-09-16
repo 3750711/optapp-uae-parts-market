@@ -43,7 +43,7 @@ const MediaSection = React.memo<MediaSectionProps>(({
         <div className="flex-1">
           <MobileOptimizedImageUpload
             onUploadComplete={handleMobileOptimizedImageUpload}
-            maxImages={30}
+            maxImages={50}
             existingImages={imageUrls}
             onImageDelete={onImageDelete}
             onSetPrimaryImage={onSetPrimaryImage}
@@ -74,7 +74,7 @@ const MediaSection = React.memo<MediaSectionProps>(({
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between text-sm">
             <span className="text-green-800">
-              📁 Медиафайлов: {totalMediaCount} (📸 Фото: {imageUrls.length}/30, 🎥 Видео: {videoUrls.length}/2)
+              📁 Медиафайлов: {totalMediaCount} (📸 Фото: {imageUrls.length}/50, 🎥 Видео: {videoUrls.length}/2)
             </span>
           </div>
         </div>

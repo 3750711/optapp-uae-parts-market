@@ -33,7 +33,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   onUploadComplete,
   onFilesUpload,
   uploadProgress: externalUploadProgress,
-  maxImages = 30,
+  maxImages = 50,
   existingImages = [],
   onImageDelete,
   onSetPrimaryImage,

@@ -329,7 +329,7 @@ export const ProductEditDialog: React.FC<ProductEditDialogProps> = ({
               <h3 className="text-lg font-medium">Фотографии товара</h3>
               <MobileOptimizedImageUpload
                 onUploadComplete={handleImageUpload}
-                maxImages={30}
+                maxImages={50}
                 existingImages={imageUrls}
                 onImageDelete={handleImageDelete}
                 onSetPrimaryImage={setPrimaryImage}

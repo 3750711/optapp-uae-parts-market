@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAdminFreeOrderSubmission } from '@/hooks/admin-order/useAdminFreeOrderSubmission';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
+import { useOrderPhotoCount } from '@/hooks/useOrderPhotoCount';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
 import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
@@ -30,6 +31,9 @@ export const AdminFreeOrderForm = () => {
     resetCreatedOrder,
     clearError: clearSubmissionError,
   } = useAdminFreeOrderSubmission();
+
+  // Photo count tracking for the created order
+  const { currentCount, isLoading: countLoading, refreshCount, checkLimit } = useOrderPhotoCount(submittedOrder?.id);
 
   // Use existing admin form logic for data management
   const {
@@ -97,11 +101,36 @@ export const AdminFreeOrderForm = () => {
     }
   });
 
+  // Refresh count when order is created
+  useEffect(() => {
+    if (submittedOrder?.id) {
+      refreshCount();
+    }
+  }, [submittedOrder?.id, refreshCount]);
+
   // Handle image uploads with SimplePhotoUploader format
   const onImagesUpload = (completedUrls: string[]) => {
     console.log('📸 Images uploaded:', completedUrls);
+    
+    if (submittedOrder?.id) {
+      const limitCheck = checkLimit(completedUrls.length);
+      if (!limitCheck.withinLimit) {
+        toast({
+          title: "Превышен лимит фото",
+          description: limitCheck.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     // SimplePhotoUploader onChange gives us completed URLs
     setAllImages(completedUrls);
+    
+    // Refresh count after upload if order exists
+    if (submittedOrder?.id) {
+      setTimeout(() => refreshCount(), 1000);
+    }
   };
 
   const onVideoUpload = (urls: string[]) => {
@@ -336,6 +365,24 @@ export const AdminFreeOrderForm = () => {
       </MobileFormSection>
 
       <MobileFormSection title="Изображения">
+        {submittedOrder?.id && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-blue-800">
+                📸 Фото в заказе: {countLoading ? '...' : currentCount}/50
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={refreshCount}
+                disabled={countLoading}
+              >
+                <RefreshCw className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        )}
         <SimplePhotoUploader
           onChange={onImagesUpload}
           max={50}

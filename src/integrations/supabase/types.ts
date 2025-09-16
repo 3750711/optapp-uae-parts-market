@@ -2007,6 +2007,10 @@ export type Database = {
           | { p_email: string; payload: Json }
         Returns: Json
       }
+      count_order_photos: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
       create_bilingual_notification: {
         Args: { p_data?: Json; p_type: string; p_user_id: string }
         Returns: string

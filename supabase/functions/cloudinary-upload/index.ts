@@ -70,6 +70,57 @@ Deno.serve(async (req) => {
       }, 500);
     }
 
+    // Backend protection: Check for photo limit if order_id is provided
+    const authHeader = req.headers.get('authorization');
+    let orderId: string | null = null;
+    
+    // Extract order_id from request (if provided)
+    try {
+      if (contentType.includes('application/json')) {
+        const requestData = await req.json();
+        orderId = requestData.order_id;
+      } else if (contentType.includes('multipart/form-data')) {
+        const formData = await req.formData();
+        orderId = formData.get('order_id') as string;
+      }
+    } catch (e) {
+      // Continue without order_id check if extraction fails
+    }
+
+    // If order_id provided, check photo limit
+    if (orderId && authHeader) {
+      try {
+        const { createServiceClient } = await import('../_shared/client.ts');
+        const adminClient = createServiceClient();
+        
+        const { data: orderData, error: orderError } = await adminClient
+          .from('orders')
+          .select('images')
+          .eq('id', orderId)
+          .single();
+
+        if (orderError) {
+          console.error(`❌ [${rid}] Error checking order photos:`, orderError);
+        } else if (orderData && Array.isArray(orderData.images)) {
+          const currentPhotoCount = orderData.images.length;
+          console.log(`📊 [${rid}] Current photo count for order ${orderId}: ${currentPhotoCount}`);
+          
+          if (currentPhotoCount >= 50) {
+            console.error(`❌ [${rid}] Photo limit exceeded: ${currentPhotoCount}/50`);
+            return jsonResponse({
+              success: false,
+              error: `Photo limit exceeded. Maximum 50 photos allowed per order. Current count: ${currentPhotoCount}`,
+              currentCount: currentPhotoCount,
+              maxCount: 50
+            }, 400);
+          }
+        }
+      } catch (limitError) {
+        console.error(`❌ [${rid}] Error during photo limit check:`, limitError);
+        // Continue with upload even if limit check fails
+      }
+    }
+
     // Handle both input formats: multipart/form-data and application/json
     let file: File | null = null;
     let folder = 'products'; // default folder
