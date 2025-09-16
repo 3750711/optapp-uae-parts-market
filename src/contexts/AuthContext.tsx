@@ -840,56 +840,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Проверяем тип токенов (новый hash формат vs старый query формат)
       if (recoveryTokens.access_token && recoveryTokens.refresh_token) {
-        // Новый формат (hash параметры) - используем setSession
-        console.log('🔒 [AuthContext] Using new format recovery tokens');
+        // Новый формат (hash параметры) - КРИТИЧНО: НЕ создаем сессию в приложении!
+        console.log('🔒 [AuthContext] Using new format recovery tokens - direct API call');
         
-        // Временно установить сессию ТОЛЬКО для смены пароля
-        const { data: sessionData, error: sessionError } = await supabase.auth.setSession(recoveryTokens);
-        
-        if (sessionError || !sessionData.session) {
-          console.error('Failed to validate recovery tokens:', sessionError);
-          return { success: false, error: sessionError || new Error('Invalid recovery tokens') };
-        }
-        
-        // Сменить пароль
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: newPassword
+        // БЕЗОПАСНАЯ ЗАМЕНА: Прямой API вызов без создания сессии в приложении
+        const response = await fetch(`${supabase.auth.url}/user`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${recoveryTokens.access_token}`,
+            'apikey': supabase.auth.anonKey
+          },
+          body: JSON.stringify({ password: newPassword })
         });
-        
-        if (updateError) {
-          return { success: false, error: updateError };
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({ msg: 'Failed to update password' }));
+          console.error('Direct API password update failed:', error);
+          return { success: false, error: new Error(error.msg || 'Failed to update password') };
         }
+        
+        console.log('✅ Password updated via direct API - no session created');
         
       } else if (recoveryTokens.recovery_token) {
-        // Старый формат (query параметры) - используем verifyOtp
-        console.log('🔒 [AuthContext] Using old format recovery token');
+        // Старый формат (query параметры) - также используем прямой API вызов
+        console.log('🔒 [AuthContext] Using old format recovery token - direct API call');
         
-        // Использовать verifyOtp для валидации старого формата токена
-        const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
-          token_hash: recoveryTokens.recovery_token,
-          type: 'recovery'
+        // БЕЗОПАСНАЯ ЗАМЕНА: Прямой API вызов для верификации и смены пароля
+        const verifyResponse = await fetch(`${supabase.auth.url}/verify`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabase.auth.anonKey
+          },
+          body: JSON.stringify({
+            token_hash: recoveryTokens.recovery_token,
+            type: 'recovery'
+          })
         });
-        
-        if (verifyError || !verifyData.session) {
-          console.error('Failed to verify recovery token:', verifyError);
-          return { success: false, error: verifyError || new Error('Invalid recovery token') };
+
+        if (!verifyResponse.ok) {
+          const error = await verifyResponse.json().catch(() => ({ msg: 'Invalid recovery token' }));
+          console.error('Recovery token verification failed:', error);
+          return { success: false, error: new Error(error.msg || 'Invalid recovery token') };
         }
+
+        const verifyData = await verifyResponse.json();
         
-        // Сменить пароль используя временную сессию
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: newPassword
-        });
-        
-        if (updateError) {
-          return { success: false, error: updateError };
+        // Используем временный access_token для смены пароля
+        if (verifyData.access_token) {
+          const updateResponse = await fetch(`${supabase.auth.url}/user`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${verifyData.access_token}`,
+              'apikey': supabase.auth.anonKey
+            },
+            body: JSON.stringify({ password: newPassword })
+          });
+
+          if (!updateResponse.ok) {
+            const error = await updateResponse.json().catch(() => ({ msg: 'Failed to update password' }));
+            console.error('Password update after verification failed:', error);
+            return { success: false, error: new Error(error.msg || 'Failed to update password') };
+          }
+          
+          console.log('✅ Password updated via direct API after token verification');
+        } else {
+          return { success: false, error: new Error('No access token received from verification') };
         }
         
       } else {
         return { success: false, error: new Error('Unknown recovery token format') };
       }
       
-      // ВАЖНО: Сразу выйти из временной сессии для безопасности
-      await supabase.auth.signOut();
+      // НЕ вызываем signOut() - пользователь никогда не был авторизован в приложении!
       
       // Очистить recovery состояние
       setIsRecoveryMode(false);
