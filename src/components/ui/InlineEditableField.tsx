@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Check, X, Edit3 } from 'lucide-react';
+import { Check, X, Edit3, Loader2, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { normalizeDecimal } from '@/utils/number';
@@ -47,6 +47,7 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
   const [editValue, setEditValue] = useState(value.toString());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
@@ -79,11 +80,18 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
         : editValue.trim();
       
       await onSave(valueToSave);
-      setIsEditing(false);
+      
+      // Show success feedback
+      setJustSaved(true);
+      setTimeout(() => {
+        setIsEditing(false);
+        setJustSaved(false);
+      }, 800);
+      
       // Keep the edited value for immediate display
       setEditValue(valueToSave.toString());
     } catch (err) {
-      setError('Failed to save changes');
+      setError('Не удалось сохранить изменения');
       setEditValue(value.toString()); // Revert on error
       // Error already handled by onSave rejection
     } finally {
@@ -95,7 +103,13 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
     setEditValue(value.toString());
     setIsEditing(false);
     setError(null);
+    setJustSaved(false);
   }, [value]);
+
+  const handleRetry = useCallback(() => {
+    setError(null);
+    handleSave();
+  }, [handleSave]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isLoading) {
@@ -113,14 +127,27 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
     return `${prefix || ''}${value}${suffix || ''}`;
   };
 
+  const hasChanges = editValue.toString() !== value.toString();
+
   if (isEditing) {
     return (
       <div className={cn("relative", className)}>
         <div className="space-y-2">
-          {/* Show original value for context */}
-          <div className="text-xs text-muted-foreground">
-            Текущее: {displayValue()}
+          {/* Show original value for context with diff highlighting */}
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            <span>Текущее: {displayValue()}</span>
+            {hasChanges && (
+              <span className="text-orange-600 font-medium">→ изменено</span>
+            )}
           </div>
+          
+          {/* Success feedback */}
+          {justSaved && (
+            <div className="flex items-center gap-1 text-green-600 text-sm animate-fade-in">
+              <Check className="h-3 w-3" />
+              <span>Сохранено</span>
+            </div>
+          )}
           
           <div className="flex items-center gap-2">
             <Input
@@ -131,7 +158,10 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
               className={cn(
-                "text-base bg-background border-primary focus:border-primary",
+                "text-base bg-background border-primary focus:border-primary transition-all duration-200",
+                isLoading && "animate-pulse border-orange-300",
+                hasChanges && !isLoading && "border-orange-400 bg-orange-50/30",
+                justSaved && "border-green-400 bg-green-50/30",
                 inputClassName
               )}
               maxLength={maxLength}
@@ -139,23 +169,32 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
               max={max}
               step={step}
               inputMode={type === 'number' || type === 'price' ? 'numeric' : 'text'}
-              disabled={isLoading}
+              disabled={isLoading || justSaved}
             />
             <div className="flex gap-1">
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={handleSave}
-                disabled={isLoading}
-                className={`${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 text-green-600 hover:text-green-700 hover:bg-green-50 touch-target`}
+                disabled={isLoading || justSaved}
+                className={cn(
+                  `${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 touch-target transition-all duration-200`,
+                  justSaved 
+                    ? "text-green-600 bg-green-100 hover:bg-green-100" 
+                    : "text-green-600 hover:text-green-700 hover:bg-green-50"
+                )}
               >
-                <Check className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
+                {isLoading ? (
+                  <Loader2 className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'} animate-spin`} />
+                ) : (
+                  <Check className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
+                )}
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={handleCancel}
-                disabled={isLoading}
+                disabled={isLoading || justSaved}
                 className={`${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 text-red-600 hover:text-red-700 hover:bg-red-50 touch-target`}
               >
                 <X className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
@@ -163,8 +202,23 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
             </div>
           </div>
         </div>
+        
+        {/* Enhanced error display with retry button */}
         {error && (
-          <p className="text-sm text-red-600 mt-1">{error}</p>
+          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center gap-2">
+              <p className="text-sm text-red-600 flex-1">{error}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleRetry}
+                className="text-xs py-1 px-2 h-auto text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Повторить
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     );

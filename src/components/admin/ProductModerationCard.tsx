@@ -122,20 +122,20 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       // Invalidate cache to ensure fresh data
       await queryClient.invalidateQueries({ queryKey: ['admin-products'] });
 
-      toast({
-        title: "Поле обновлено",
-        description: `${field} успешно обновлено`,
-      });
+      // No toast here - InlineEditableField now provides its own feedback
     } catch (error) {
       // Rollback optimistic update on error
       await queryClient.invalidateQueries({ queryKey: ['admin-products'] });
       
       console.error('Error updating product:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось обновить поле",
-        variant: "destructive",
-      });
+      // Only show toast for unexpected errors, not validation errors
+      if (!error.message?.includes('validation')) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось обновить поле",
+          variant: "destructive",
+        });
+      }
       throw error;
     }
   };
