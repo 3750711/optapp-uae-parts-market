@@ -400,6 +400,7 @@ export interface SellerPagesTranslations {
   // Media section
   media?: {
     uploadPhotos: string;
+    addMorePhotos: string;
     uploadVideos: string;
     smartUpload: string;
     cancelUpload: string;
@@ -411,6 +412,7 @@ export interface SellerPagesTranslations {
     uploadedVideos: string;
     mediaCount: string;
     smartQuality: string;
+    photoCount: string;
   };
 }
 
@@ -812,6 +814,7 @@ const ru: SellerPagesTranslations = {
 
   media: {
     uploadPhotos: 'Загрузить фото',
+    addMorePhotos: 'Добавить ещё фото',
     uploadVideos: 'Загрузить видео',
     smartUpload: 'Умная загрузка...',
     cancelUpload: 'Отменить загрузку',
@@ -823,6 +826,7 @@ const ru: SellerPagesTranslations = {
     uploadedVideos: 'Загруженные видео',
     mediaCount: 'Медиафайлы',
     smartQuality: 'Умное качество',
+    photoCount: 'Фото: {count} из {max}',
   },
 };
 
@@ -1224,6 +1228,7 @@ const en: SellerPagesTranslations = {
   
   media: {
     uploadPhotos: 'Upload Photos',
+    addMorePhotos: 'Add More Photos',
     uploadVideos: 'Upload Videos',
     smartUpload: 'Smart Upload...',
     cancelUpload: 'Cancel Upload',
@@ -1235,6 +1240,7 @@ const en: SellerPagesTranslations = {
     uploadedVideos: 'Uploaded Videos',
     mediaCount: 'Media Files',
     smartQuality: 'Smart Quality',
+    photoCount: 'Photos: {count} of {max}',
   },
 };
 
@@ -1636,6 +1642,7 @@ const bn: SellerPagesTranslations = {
 
   media: {
     uploadPhotos: 'ছবি আপলোড করুন',
+    addMorePhotos: 'আরও ছবি যোগ করুন',
     uploadVideos: 'ভিডিও আপলোড করুন',
     smartUpload: 'স্মার্ট আপলোড...',
     cancelUpload: 'আপলোড বাতিল করুন',
@@ -1646,7 +1653,8 @@ const bn: SellerPagesTranslations = {
     smartCompressionDescription: 'ছোট ফাইল (<400KB) মূল গুণমান বজায় রাখে\nবড় ফাইলগুলি বিস্তারিত হারানো ছাড়াই অভিযোজিত সংকোচন হয়',
     uploadedVideos: 'আপলোড করা ভিডিও',
     mediaCount: 'মিডিয়া ফাইল',
-    smartQuality: 'স্মার্ট গুণমান',
+    smartQuality: 'স্মার্ট মান',
+    photoCount: 'ছবি: {count} এর মধ্যে {max}',
   },
 };
 
