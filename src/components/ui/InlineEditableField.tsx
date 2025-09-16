@@ -50,6 +50,13 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
+  // Sync editValue with external value changes (but not during editing)
+  useEffect(() => {
+    if (!isEditing) {
+      setEditValue(value.toString());
+    }
+  }, [value, isEditing]);
+
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
@@ -109,45 +116,51 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
   if (isEditing) {
     return (
       <div className={cn("relative", className)}>
-        <div className="flex items-center gap-2">
-          <Input
-            ref={inputRef}
-            type={type === 'price' ? 'number' : type}
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onBlur={handleSave}
-            placeholder={placeholder}
-            className={cn(
-              "text-base bg-background border-primary focus:border-primary",
-              inputClassName
-            )}
-            maxLength={maxLength}
-            min={min}
-            max={max}
-            step={step}
-            inputMode={type === 'number' || type === 'price' ? 'numeric' : 'text'}
-            disabled={isLoading}
-          />
-          <div className="flex gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleSave}
+        <div className="space-y-2">
+          {/* Show original value for context */}
+          <div className="text-xs text-muted-foreground">
+            Текущее: {displayValue()}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Input
+              ref={inputRef}
+              type={type === 'price' ? 'number' : type}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              className={cn(
+                "text-base bg-background border-primary focus:border-primary",
+                inputClassName
+              )}
+              maxLength={maxLength}
+              min={min}
+              max={max}
+              step={step}
+              inputMode={type === 'number' || type === 'price' ? 'numeric' : 'text'}
               disabled={isLoading}
-              className={`${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 text-green-600 hover:text-green-700 hover:bg-green-50 touch-target`}
-            >
-              <Check className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleCancel}
-              disabled={isLoading}
-              className={`${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 text-red-600 hover:text-red-700 hover:bg-red-50 touch-target`}
-            >
-              <X className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
-            </Button>
+            />
+            <div className="flex gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleSave}
+                disabled={isLoading}
+                className={`${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 text-green-600 hover:text-green-700 hover:bg-green-50 touch-target`}
+              >
+                <Check className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleCancel}
+                disabled={isLoading}
+                className={`${isMobile ? 'h-10 w-10' : 'h-8 w-8'} p-0 text-red-600 hover:text-red-700 hover:bg-red-50 touch-target`}
+              >
+                <X className={`${isMobile ? 'h-5 w-5' : 'h-4 w-4'}`} />
+              </Button>
+            </div>
           </div>
         </div>
         {error && (
