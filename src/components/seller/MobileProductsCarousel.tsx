@@ -32,14 +32,14 @@ const MobileProductsCarousel = () => {
         }}
         className="w-full"
       >
-        <CarouselContent className="-ml-2">
+        <CarouselContent className="-ml-1">
           {products.map((product) => {
             // Get primary image or first image
             const primaryImage = product.product_images?.find(img => img.is_primary);
             const imageUrl = primaryImage?.url || product.product_images?.[0]?.url;
             
             return (
-              <CarouselItem key={product.id} className="pl-2 basis-auto">
+              <CarouselItem key={product.id} className="pl-1 basis-[120px]">
                 <CompactProductCard
                   title={product.title}
                   brand={product.brand}
