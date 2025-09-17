@@ -15,7 +15,7 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
   imageUrl
 }) => {
   return (
-    <div className="bg-card border border-border rounded-lg p-4 flex-shrink-0 shadow-sm w-[120px] h-[180px] flex flex-col">
+    <div className="bg-card border border-border rounded-lg p-4 flex-shrink-0 shadow-sm w-[160px] h-[220px] flex flex-col">
       {/* Image */}
       <div className="aspect-square w-full mb-4 rounded-md overflow-hidden bg-muted flex-shrink-0">
         {imageUrl ? (

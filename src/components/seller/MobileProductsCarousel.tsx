@@ -33,7 +33,7 @@ const MobileProductsCarousel = () => {
             const imageUrl = primaryImage?.url || product.product_images?.[0]?.url;
             
             return (
-              <CarouselItem key={product.id} className="pl-1 basis-[120px]">
+              <CarouselItem key={product.id} className="pl-1 basis-[160px]">
                 <CompactProductCard
                   title={product.title}
                   brand={product.brand}
