@@ -41,7 +41,7 @@ export async function getLocalTelegramAccounts(): Promise<string[]> {
  */
 export function getTelegramForDisplay(telegram: string, localAccounts: string[]): string {
   if (!telegram) {
-    return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
+    return '@Nastya_PostingLots_OptCargo';
   }
   
   // Normalize telegram username for comparison
@@ -52,9 +52,9 @@ export function getTelegramForDisplay(telegram: string, localAccounts: string[])
   
   if (isLocalAccount) {
     // Show real telegram for local accounts
-    return `Для заказа пишите @${normalizedTelegram}`;
+    return `@${normalizedTelegram}`;
   } else {
     // Redirect to central contact for non-local accounts
-    return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
+    return '@Nastya_PostingLots_OptCargo';
   }
 }
