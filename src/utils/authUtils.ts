@@ -30,7 +30,7 @@ export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult
       .from('profiles')
       .select('email')
       .eq('opt_id', optId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error getting email by OPT ID:', error);
@@ -55,7 +55,7 @@ export const checkOptIdExists = async (optId: string): Promise<boolean> => {
       .from('profiles')
       .select('opt_id')
       .eq('opt_id', optId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error checking OPT ID:', error);
@@ -63,8 +63,8 @@ export const checkOptIdExists = async (optId: string): Promise<boolean> => {
       return true;
     }
 
-    console.log('OPT ID check result:', Boolean(data));
-    return Boolean(data);
+    console.log('OPT ID check result:', data !== null);
+    return data !== null;
   } catch (error) {
     console.error('Unexpected error in checkOptIdExists:', error);
     // Return true to be safe - will try another ID
