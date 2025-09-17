@@ -41,11 +41,11 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     let transformations: string[];
     
     if (size === 'thumbnail' && config.height) {
-      // For thumbnails, use exact dimensions with c_fill for better cropping
+      // For thumbnails, use c_fit to preserve image proportions
       transformations = [
         `w_${config.width}`,
         `h_${config.height}`,
-        `c_fill`,
+        `c_fit`,
         `q_${config.quality}`,
         `f_${format}`,
         'fl_progressive'
