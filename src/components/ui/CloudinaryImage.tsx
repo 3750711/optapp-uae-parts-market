@@ -27,9 +27,9 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
 
   // Size configurations for different use cases
   const sizeConfig = {
-    thumbnail: { width: 150, quality: 'auto:low' },
-    card: { width: 400, quality: 'auto:low' },
-    detail: { width: 800, quality: 'auto:good' }
+    thumbnail: { width: 120, height: 90, quality: 'auto:low' as const },
+    card: { width: 400, height: undefined, quality: 'auto:low' as const },
+    detail: { width: 800, height: undefined, quality: 'auto:good' as const }
   };
 
   const config = sizeConfig[size];
@@ -37,15 +37,31 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
   // Generate optimized Cloudinary URL with correct cloud name
   const generateCloudinaryUrl = (format: 'webp' | 'jpg' = 'webp') => {
     const baseUrl = 'https://res.cloudinary.com/dcuziurrb/image/upload';
-    const transformations = [
-      `w_${config.width}`,
-      `c_limit`,
-      `q_${config.quality}`,
-      `f_${format}`,
-      'fl_progressive'
-    ].join(',');
+    
+    let transformations: string[];
+    
+    if (size === 'thumbnail' && config.height) {
+      // For thumbnails, use exact dimensions with c_fill for better cropping
+      transformations = [
+        `w_${config.width}`,
+        `h_${config.height}`,
+        `c_fill`,
+        `q_${config.quality}`,
+        `f_${format}`,
+        'fl_progressive'
+      ];
+    } else {
+      // For other sizes, use original logic
+      transformations = [
+        `w_${config.width}`,
+        `c_limit`,
+        `q_${config.quality}`,
+        `f_${format}`,
+        'fl_progressive'
+      ];
+    }
 
-    return `${baseUrl}/${transformations}/${publicId}`;
+    return `${baseUrl}/${transformations.join(',')}/${publicId}`;
   };
 
   const webpUrl = generateCloudinaryUrl('webp');
