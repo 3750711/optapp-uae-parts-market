@@ -8,6 +8,7 @@ import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
 import { useOptimizedSellerDashboard } from "@/hooks/useOptimizedSellerDashboard";
 import { sellerDashboardTranslations, getSellerDashboardTranslations } from "@/utils/translations/sellerDashboard";
 import { useLanguage } from "@/hooks/useLanguage";
+import MobileProductsCarousel from "./MobileProductsCarousel";
 
 // SVG Icons as components for better performance
 const PlusCircleIcon = memo(() => (
@@ -186,6 +187,9 @@ const FastSellerDashboard = memo(() => {
           </Avatar>
         </Link>
       </div>
+      
+      {/* Mobile Products Carousel */}
+      <MobileProductsCarousel />
       
       <div className="dashboard-grid">
         {dashboardItems.map((item, index) => (
