@@ -325,7 +325,7 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
       console.log(`Sending remaining ${remainingImages.length} images in additional message(s)`);
       
       // Caption for the remaining images
-      const remainingCaption = `К заказу номер ${formattedOrderNumber}\n${orderData.seller_opt_id || ''}\n${orderData.buyer_opt_id || ''}`;
+      const remainingCaption = `К заказу номер ${formattedOrderNumber}\n===\n${orderData.seller_opt_id || ''}\n${orderData.buyer_opt_id || ''}`;
       
       // Split remaining images into chunks of MAX_IMAGES_PER_GROUP (10) for media groups
       const remainingChunks = [];
