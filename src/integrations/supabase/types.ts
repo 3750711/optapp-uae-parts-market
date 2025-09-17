@@ -1912,7 +1912,9 @@ export type Database = {
         }[]
       }
       check_opt_id_exists: {
-        Args: { p_ip_address?: unknown; p_opt_id: string }
+        Args:
+          | { check_opt_id: string }
+          | { p_ip_address?: unknown; p_opt_id: string }
         Returns: boolean
       }
       check_order_number_unique: {
