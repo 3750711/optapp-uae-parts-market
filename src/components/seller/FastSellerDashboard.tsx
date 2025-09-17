@@ -12,14 +12,14 @@ import MobileProductsCarousel from "./MobileProductsCarousel";
 
 // SVG Icons as components for better performance
 const PlusCircleIcon = memo(() => (
-  <svg className="h-8 w-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="h-10 w-10 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <circle cx="12" cy="12" r="10"/>
     <path d="M12 8v8M8 12h8"/>
   </svg>
 ));
 
 const FileTextIcon = memo(() => (
-  <svg className="h-8 w-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="h-10 w-10 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
     <polyline points="14,2 14,8 20,8"/>
     <line x1="16" y1="13" x2="8" y2="13"/>
@@ -29,7 +29,7 @@ const FileTextIcon = memo(() => (
 ));
 
 const ShoppingCartIcon = memo(() => (
-  <svg className="h-8 w-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="h-10 w-10 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <circle cx="9" cy="21" r="1"/>
     <circle cx="20" cy="21" r="1"/>
     <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
@@ -37,14 +37,14 @@ const ShoppingCartIcon = memo(() => (
 ));
 
 const DollarSignIcon = memo(() => (
-  <svg className="h-8 w-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="h-10 w-10 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <line x1="12" y1="1" x2="12" y2="23"/>
     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
   </svg>
 ));
 
 const ShoppingBagIcon = memo(() => (
-  <svg className="h-8 w-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="h-10 w-10 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
     <line x1="3" y1="6" x2="21" y2="6"/>
     <path d="M16 10a4 4 0 0 1-8 0"/>
@@ -52,7 +52,7 @@ const ShoppingBagIcon = memo(() => (
 ));
 
 const ListOrderedIcon = memo(() => (
-  <svg className="h-8 w-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="h-10 w-10 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <line x1="10" y1="6" x2="21" y2="6"/>
     <line x1="10" y1="12" x2="21" y2="12"/>
     <line x1="10" y1="18" x2="21" y2="18"/>
@@ -63,7 +63,7 @@ const ListOrderedIcon = memo(() => (
 ));
 
 const MessageCircleIcon = memo(() => (
-  <svg className="h-8 w-8 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="h-10 w-10 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
   </svg>
 ));
@@ -188,14 +188,22 @@ const FastSellerDashboard = memo(() => {
         </Link>
       </div>
       
-      {/* Mobile Products Carousel */}
-      <MobileProductsCarousel />
+      {/* Latest Products Section */}
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold mb-3 text-foreground">Последние товары</h3>
+        <div className="bg-gray-50 shadow-sm rounded-xl p-4">
+          <MobileProductsCarousel />
+        </div>
+      </div>
       
-      <div className="dashboard-grid">
+      {/* Management Section */}
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold mb-3 text-foreground">Управление</h3>
+        <div className="dashboard-grid">
         {dashboardItems.map((item, index) => (
           <Link key={index} to={item.to} className="block">
             <div className={`fast-card h-full bg-white rounded-lg border ${item.color} ${isMobile ? 'mobile-card touch-target' : ''}`}>
-              <div className={isMobile ? "pb-2 pt-4 px-6" : "pb-2 px-6 pt-6"}>
+              <div className={isMobile ? "pb-2 pt-3 px-4" : "pb-2 px-6 pt-6"}>
                 <div className="relative">
                   <item.icon />
                   {item.showBadge && !item.badgeLoading && item.badgeCount > 0 && (
@@ -211,8 +219,8 @@ const FastSellerDashboard = memo(() => {
                   )}
                 </div>
               </div>
-              <div className={`px-6 pb-6 ${isMobile ? "pt-0" : ""}`}>
-                <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold tracking-tight mb-2`}>
+              <div className={`${isMobile ? "px-4 pb-4 pt-0" : "px-6 pb-6"}`}>
+                <h3 className={`text-base font-medium tracking-tight mb-2`}>
                   {item.title}
                 </h3>
                 <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground leading-relaxed`}>
@@ -226,11 +234,11 @@ const FastSellerDashboard = memo(() => {
         {/* Contact admin card */}
         <div onClick={contactAdminItem.onClick} className="cursor-pointer">
           <div className={`fast-card h-full bg-white rounded-lg border ${contactAdminItem.color} ${isMobile ? 'mobile-card touch-target' : ''}`}>
-            <div className={isMobile ? "pb-2 pt-4 px-6" : "pb-2 px-6 pt-6"}>
+            <div className={isMobile ? "pb-2 pt-3 px-4" : "pb-2 px-6 pt-6"}>
               <contactAdminItem.icon />
             </div>
-            <div className={`px-6 pb-6 ${isMobile ? "pt-0" : ""}`}>
-              <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold tracking-tight mb-2`}>
+            <div className={`${isMobile ? "px-4 pb-4 pt-0" : "px-6 pb-6"}`}>
+              <h3 className={`text-base font-medium tracking-tight mb-2`}>
                 {contactAdminItem.title}
               </h3>
               <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground leading-relaxed`}>
@@ -239,6 +247,7 @@ const FastSellerDashboard = memo(() => {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

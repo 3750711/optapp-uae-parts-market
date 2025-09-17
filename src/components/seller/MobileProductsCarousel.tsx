@@ -5,24 +5,18 @@ import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carouse
 import CompactProductCard from '@/components/product/CompactProductCard';
 
 const MobileProductsCarousel = () => {
-  const isMobile = useIsMobileEnhanced();
   const { data: products, isLoading } = useLatestPublishedProducts();
-
-  // Only show on mobile devices
-  if (!isMobile) {
-    return null;
-  }
 
   // Don't show if loading or no products
   if (isLoading || !products || products.length === 0) {
     return null;
   }
 
+  // Limit to maximum 10 products
+  const limitedProducts = products.slice(0, 10);
+
   return (
-    <div className="mb-6">
-      <h3 className="text-lg font-semibold mb-3 text-foreground">
-        Последние товары
-      </h3>
+    <div>
       
       <Carousel
         opts={{
@@ -33,7 +27,7 @@ const MobileProductsCarousel = () => {
         className="w-full"
       >
         <CarouselContent className="-ml-1">
-          {products.map((product) => {
+          {limitedProducts.map((product) => {
             // Get primary image or first image
             const primaryImage = product.product_images?.find(img => img.is_primary);
             const imageUrl = primaryImage?.url || product.product_images?.[0]?.url;
