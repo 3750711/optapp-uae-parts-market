@@ -58,26 +58,58 @@ export const MultiStepRegistration: React.FC<MultiStepRegistrationProps> = ({
   const { notifyAdminsNewUser } = useAdminNotifications();
   const translations = registrationTranslations[language];
 
-  // Generate unique 4-letter OPT_ID for sellers
+  // Generate unique 4-letter OPT_ID using server-side RPC function
   const generateUniqueOptId = async (): Promise<string> => {
-    let optId;
-    let attempts = 0;
-    const maxAttempts = 100;
-    
-    do {
-      // Generate 4 random uppercase letters
-      optId = '';
-      for (let i = 0; i < 4; i++) {
-        optId += String.fromCharCode(65 + Math.floor(Math.random() * 26));
-      }
-      attempts++;
+    try {
+      console.log('Calling RPC function to generate unique OPT_ID...');
       
-      if (attempts >= maxAttempts) {
-        throw new Error('Не удалось сгенерировать уникальный OPT_ID');
+      const { data, error } = await supabase.rpc('generate_unique_opt_id');
+      
+      if (error) {
+        console.error('RPC error:', error);
+        throw new Error(`Ошибка генерации OPT_ID: ${error.message}`);
       }
-    } while (await checkOptIdExists(optId));
-    
-    return optId;
+      
+      if (!data?.success || !data?.opt_id) {
+        console.error('Invalid RPC response:', data);
+        throw new Error('Некорректный ответ сервера при генерации OPT_ID');
+      }
+      
+      console.log('Generated OPT_ID:', data.opt_id, 'after', data.attempts, 'attempts');
+      return data.opt_id;
+      
+    } catch (error: any) {
+      console.error('Failed to generate OPT_ID via RPC:', error);
+      
+      // Fallback to client-side generation as last resort
+      console.log('Using fallback client-side generation...');
+      let optId;
+      let attempts = 0;
+      const maxAttempts = 10;
+      
+      do {
+        optId = '';
+        for (let i = 0; i < 4; i++) {
+          optId += String.fromCharCode(65 + Math.floor(Math.random() * 26));
+        }
+        attempts++;
+        
+        if (attempts >= maxAttempts) {
+          throw new Error('Не удалось сгенерировать уникальный OPT_ID');
+        }
+        
+        try {
+          const exists = await checkOptIdExists(optId);
+          if (!exists) break;
+        } catch (checkError) {
+          console.error('Error checking OPT_ID existence:', checkError);
+          // If we can't check, use current optId as fallback
+          break;
+        }
+      } while (true);
+      
+      return optId;
+    }
   };
 
   const handleRegistrationType = (type: RegistrationType) => {

@@ -2091,6 +2091,10 @@ export type Database = {
         Args: { p_path: string }
         Returns: string
       }
+      generate_unique_opt_id: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_admin_add_product_data: {
         Args: Record<PropertyKey, never>
         Returns: Json
