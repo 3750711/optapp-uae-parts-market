@@ -16,6 +16,7 @@ import ProfileErrorBoundary from "@/components/profile/ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import StoreEditForm from "@/components/store/StoreEditForm";
 import { DeleteAccountButton } from "@/components/profile/DeleteAccountButton";
+import { PasswordChangeSection } from "@/components/profile/PasswordChangeSection";
 import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
 import {
   AlertDialog,
@@ -279,6 +280,9 @@ const Profile = () => {
               {isSeller && user && (
                 <StoreEditForm sellerId={user.id} />
               )}
+              
+              {/* Password Change Section */}
+              <PasswordChangeSection />
             </div>
 
             {/* Desktop Layout */}
@@ -311,6 +315,9 @@ const Profile = () => {
                 {isSeller && user && (
                   <StoreEditForm sellerId={user.id} />
                 )}
+                
+                {/* Password Change Section */}
+                <PasswordChangeSection />
               </div>
             </div>
           </ProfileErrorBoundary>

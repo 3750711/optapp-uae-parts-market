@@ -189,6 +189,29 @@ export const profileTranslations = {
       imagesUploaded: "изображений загружено",
       selectImages: "Выбрать изображения",
       selectFiles: "Выберите файлы для загрузки"
+    },
+
+    // Password change section
+    passwordChange: {
+      title: "Смена пароля",
+      currentPassword: "Текущий пароль",
+      newPassword: "Новый пароль",
+      confirmPassword: "Подтвердить пароль",
+      currentPasswordPlaceholder: "Введите текущий пароль",
+      newPasswordPlaceholder: "Введите новый пароль",
+      confirmPasswordPlaceholder: "Подтвердите новый пароль",
+      changePassword: "Изменить пароль",
+      changing: "Изменение...",
+      success: "Пароль изменен",
+      successDesc: "Ваш пароль успешно изменен",
+      error: "Ошибка изменения пароля",
+      currentPasswordError: "Неверный текущий пароль",
+      passwordMismatch: "Пароли не совпадают",
+      weakPassword: "Слишком слабый пароль",
+      samePassword: "Новый пароль должен отличаться от текущего",
+      minLength: "Пароль должен содержать не менее 6 символов",
+      requireLetters: "Пароль должен содержать буквы",
+      requireNumbers: "Пароль должен содержать цифры"
     }
   },
   en: {
@@ -381,6 +404,29 @@ export const profileTranslations = {
       imagesUploaded: "images uploaded",
       selectImages: "Select Images",
       selectFiles: "Select files to upload"
+    },
+
+    // Password change section
+    passwordChange: {
+      title: "Change Password",
+      currentPassword: "Current Password",
+      newPassword: "New Password",
+      confirmPassword: "Confirm Password",
+      currentPasswordPlaceholder: "Enter current password",
+      newPasswordPlaceholder: "Enter new password",
+      confirmPasswordPlaceholder: "Confirm new password",
+      changePassword: "Change Password",
+      changing: "Changing...",
+      success: "Password Changed",
+      successDesc: "Your password has been successfully changed",
+      error: "Password Change Error",
+      currentPasswordError: "Incorrect current password",
+      passwordMismatch: "Passwords do not match",
+      weakPassword: "Password too weak",
+      samePassword: "New password must be different from current",
+      minLength: "Password must contain at least 6 characters",
+      requireLetters: "Password must contain letters",
+      requireNumbers: "Password must contain numbers"
     }
   },
   bn: {
@@ -573,6 +619,29 @@ export const profileTranslations = {
       imagesUploaded: "ছবি আপলোড হয়েছে",
       selectImages: "ছবি নির্বাচন করুন",
       selectFiles: "আপলোড করার জন্য ফাইল নির্বাচন করুন"
+    },
+
+    // Password change section
+    passwordChange: {
+      title: "পাসওয়ার্ড পরিবর্তন",
+      currentPassword: "বর্তমান পাসওয়ার্ড",
+      newPassword: "নতুন পাসওয়ার্ড",
+      confirmPassword: "পাসওয়ার্ড নিশ্চিত করুন",
+      currentPasswordPlaceholder: "বর্তমান পাসওয়ার্ড লিখুন",
+      newPasswordPlaceholder: "নতুন পাসওয়ার্ড লিখুন",
+      confirmPasswordPlaceholder: "নতুন পাসওয়ার্ড নিশ্চিত করুন",
+      changePassword: "পাসওয়ার্ড পরিবর্তন",
+      changing: "পরিবর্তন করা হচ্ছে...",
+      success: "পাসওয়ার্ড পরিবর্তিত",
+      successDesc: "আপনার পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে",
+      error: "পাসওয়ার্ড পরিবর্তন ত্রুটি",
+      currentPasswordError: "ভুল বর্তমান পাসওয়ার্ড",
+      passwordMismatch: "পাসওয়ার্ড মিলে না",
+      weakPassword: "পাসওয়ার্ড খুব দুর্বল",
+      samePassword: "নতুন পাসওয়ার্ড বর্তমান থেকে ভিন্ন হতে হবে",
+      minLength: "পাসওয়ার্ডে কমপক্ষে ৬টি অক্ষর থাকতে হবে",
+      requireLetters: "পাসওয়ার্ডে অক্ষর থাকতে হবে",
+      requireNumbers: "পাসওয়ার্ডে সংখ্যা থাকতে হবে"
     }
   }
 };
