@@ -193,12 +193,21 @@ export const useAdminProductCreation = () => {
         monitoring.updateStep('videos', { status: 'completed' });
       }
 
-      // Step 5: Send Telegram notification with exponential backoff
-      await monitoring.executeStep('telegram', async () => {
-        await executeWithBackoff(async () => {
-          await sendProductNotification(productId, 'product_published');
-        }, 3, 2000);
-        console.log(`✅ Telegram notification sent for published product ${productId}`);
+      // Step 5: Queue Telegram notification (fire-and-forget)
+      monitoring.executeStep('telegram', async () => {
+        // Send notification in background without blocking
+        supabase.functions.invoke('send-tg-product-once', {
+          body: { productId }
+        }).then(() => {
+          console.log(`✅ Telegram notification queued for product ${productId}`);
+        }).catch(error => {
+          console.error(`⚠️ Failed to queue Telegram notification for product ${productId}:`, error);
+        });
+        
+        console.log(`📨 Telegram notification being sent in background for product ${productId}`);
+      }).catch(error => {
+        console.error("⚠️ Telegram notification queueing failed (non-critical):", error);
+        monitoring.updateStep('telegram', { status: 'completed', error: 'Non-critical error' });
       });
 
       // Step 6: Update Cloudinary data (non-critical)
@@ -250,7 +259,7 @@ export const useAdminProductCreation = () => {
 
       toast({
         title: "Товар успешно создан",
-        description: `Товар для продавца ${selectedSeller.full_name} опубликован.`,
+        description: `Товар для продавца ${selectedSeller.full_name} опубликован. Уведомление отправляется в фоне.`,
       });
 
       console.log("✅ Product creation transaction completed successfully:", { productId });

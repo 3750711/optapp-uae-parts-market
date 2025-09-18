@@ -976,6 +976,9 @@ export type Database = {
           seller_name: string
           status: Database["public"]["Enums"]["product_status"]
           telegram_url: string | null
+          tg_notify_attempts: number
+          tg_notify_error: string | null
+          tg_notify_status: string
           title: string
           updated_at: string
           view_count: number | null
@@ -1006,6 +1009,9 @@ export type Database = {
           seller_name: string
           status?: Database["public"]["Enums"]["product_status"]
           telegram_url?: string | null
+          tg_notify_attempts?: number
+          tg_notify_error?: string | null
+          tg_notify_status?: string
           title: string
           updated_at?: string
           view_count?: number | null
@@ -1036,6 +1042,9 @@ export type Database = {
           seller_name?: string
           status?: Database["public"]["Enums"]["product_status"]
           telegram_url?: string | null
+          tg_notify_attempts?: number
+          tg_notify_error?: string | null
+          tg_notify_status?: string
           title?: string
           updated_at?: string
           view_count?: number | null
