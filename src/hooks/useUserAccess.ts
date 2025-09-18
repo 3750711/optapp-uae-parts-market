@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 const LAST_ROLE_KEY = 'pb:lastRole';
 
 export function useUserAccess() {
-  const { session } = useAuth();
+  const { session, loading } = useAuth();
   const queryClient = useQueryClient();
   const userId = session?.user?.id;
   
@@ -23,8 +23,9 @@ export function useUserAccess() {
     } catch {}
   }
   
-  // First load only if no role found anywhere
-  const isFirstLoad = !r1 && !r2 && !r3;
+  // First load only if authentication is still loading AND no role found anywhere
+  // If auth loading is complete (user is null/undefined), we're not in first load anymore
+  const isFirstLoad = loading && !r1 && !r2 && !r3;
   
   return { role, isFirstLoad, isAdmin: role === 'admin' };
 }
