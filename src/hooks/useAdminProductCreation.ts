@@ -30,6 +30,58 @@ export const useAdminProductCreation = () => {
     retryDelay: 1000
   });
 
+  // Validation helper function
+  const validateProductData = async (
+    values: AdminProductFormValues,
+    imageUrls: string[],
+    sellers: Array<{ id: string; full_name: string; opt_id?: string }>,
+    brands: Array<{ id: string; name: string }>,
+    brandModels: Array<{ id: string; name: string; brand_id: string }>
+  ) => {
+    if (imageUrls.length === 0) {
+      throw new Error("Добавьте хотя бы одну фотографию");
+    }
+
+    const selectedBrand = brands.find(brand => brand.id === values.brandId);
+    const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
+    
+    if (!selectedBrand) throw new Error("Не найдена выбранная марка автомобиля");
+    if (!selectedSeller) throw new Error("Не найден выбранный продавец");
+
+    let modelName = null;
+    if (values.modelId) {
+      const selectedModel = brandModels.find(model => model.id === values.modelId);
+      modelName = selectedModel?.name || null;
+    }
+
+    return { selectedBrand, selectedSeller, modelName };
+  };
+
+  // Network operation with exponential backoff
+  const executeWithBackoff = async <T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T> => {
+    let lastError: Error;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        if (attempt === maxRetries) break;
+        
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        console.warn(`Network operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms:`, lastError.message);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    
+    throw lastError!;
+  };
+
   const createProductWithTransaction = async ({
     values,
     imageUrls,
@@ -67,37 +119,8 @@ export const useAdminProductCreation = () => {
 
     try {
       // Step 1: Validate data
-      await monitoring.executeStep('validate', async () => {
-        if (imageUrls.length === 0) {
-          throw new Error("Добавьте хотя бы одну фотографию");
-        }
-
-        const selectedBrand = brands.find(brand => brand.id === values.brandId);
-        const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
-        
-        if (!selectedBrand) throw new Error("Не найдена выбранная марка автомобиля");
-        if (!selectedSeller) throw new Error("Не найден выбранный продавец");
-
-        let modelName = null;
-        if (values.modelId) {
-          const selectedModel = brandModels.find(model => model.id === values.modelId);
-          modelName = selectedModel?.name || null;
-        }
-
-        return { selectedBrand, selectedSeller, modelName };
-      });
-
       const { selectedBrand, selectedSeller, modelName } = await monitoring.executeStep('validate', async () => {
-        const selectedBrand = brands.find(brand => brand.id === values.brandId);
-        const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
-        
-        let modelName = null;
-        if (values.modelId) {
-          const selectedModel = brandModels.find(model => model.id === values.modelId);
-          modelName = selectedModel?.name || null;
-        }
-        
-        return { selectedBrand, selectedSeller, modelName };
+        return await validateProductData(values, imageUrls, sellers, brands, brandModels);
       });
 
       // Step 2: Create product
@@ -170,11 +193,13 @@ export const useAdminProductCreation = () => {
         monitoring.updateStep('videos', { status: 'completed' });
       }
 
-      // Step 5: Send Telegram notification
+      // Step 5: Send Telegram notification with exponential backoff
       await monitoring.executeStep('telegram', async () => {
-        await sendProductNotification(productId, 'product_published');
+        await executeWithBackoff(async () => {
+          await sendProductNotification(productId, 'product_published');
+        }, 3, 2000);
         console.log(`✅ Telegram notification sent for published product ${productId}`);
-      }, { retryAttempts: 2 });
+      });
 
       // Step 6: Update Cloudinary data (non-critical)
       await monitoring.executeStep('cloudinary', async () => {
@@ -210,8 +235,10 @@ export const useAdminProductCreation = () => {
           console.error("⚠️ Background tasks failed (non-critical):", error);
         });
 
-        // Also send admin notifications in background
-        notifyAdminsNewProduct(product.id).catch(error => {
+        // Also send admin notifications in background with backoff
+        executeWithBackoff(async () => {
+          await notifyAdminsNewProduct(product.id);
+        }, 2, 1500).catch(error => {
           console.error("⚠️ Admin notification failed (non-critical):", error);
         });
 
