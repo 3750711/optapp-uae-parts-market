@@ -33,7 +33,7 @@ export const useOptimizedAdminAddProduct = () => {
   const { data: allModels = [] } = useCachedAllModels();
   const { data: sellers = [], isLoading: isLoadingSellers } = useCachedSellers();
 
-  const { createProductWithTransaction, isCreating } = useAdminProductCreation();
+  const { createProductWithTransaction, isCreating, steps: progressSteps, totalProgress, resetMonitoring } = useAdminProductCreation();
 
   const form = useForm<AdminProductFormValues>({
     resolver: zodResolver(adminProductSchema),
@@ -336,5 +336,7 @@ export const useOptimizedAdminAddProduct = () => {
     // State management
     isPublished,
     resetFormAndState,
+    progressSteps,
+    totalProgress,
   };
 };

@@ -8,6 +8,7 @@ import ProductPreviewDialog from "@/components/admin/ProductPreviewDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import ProductCreationProgress from "@/components/admin/ProductCreationProgress";
 
 
 const AdminAddProduct = () => {
@@ -32,6 +33,8 @@ const AdminAddProduct = () => {
     handleConfirmPublish,
     isPublished,
     resetFormAndState,
+    progressSteps,
+    totalProgress,
   } = useOptimizedAdminAddProduct();
 
   const handleRefreshPage = () => {
@@ -91,6 +94,15 @@ const AdminAddProduct = () => {
           <div className="max-w-3xl mx-auto">
             <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
 
+            {/* Progress indicator during submission */}
+            {(isSubmitting || totalProgress > 0) && (
+              <div className="mb-6">
+                <ProductCreationProgress
+                  steps={progressSteps}
+                  totalProgress={totalProgress}
+                />
+              </div>
+            )}
             
             <AddProductForm
               form={form}

@@ -6,7 +6,7 @@ import { AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useTelegramNotification } from "@/hooks/useTelegramNotification";
-import { useAISearch } from "@/hooks/useAISearch";
+import { useProductCreationMonitoring } from "@/hooks/useProductCreationMonitoring";
 
 interface CreateProductParams {
   values: AdminProductFormValues;
@@ -24,7 +24,11 @@ export const useAdminProductCreation = () => {
   const [isCreating, setIsCreating] = useState(false);
   const { notifyAdminsNewProduct } = useAdminNotifications();
   const { sendProductNotification } = useTelegramNotification();
-  const { generateEmbeddingForProduct } = useAISearch();
+  const monitoring = useProductCreationMonitoring({
+    timeout: 30000,
+    retryAttempts: 3,
+    retryDelay: 1000
+  });
 
   const createProductWithTransaction = async ({
     values,
@@ -43,6 +47,17 @@ export const useAdminProductCreation = () => {
     setIsCreating(true);
     let productId: string | null = null;
     
+    // Initialize progress monitoring
+    monitoring.initializeSteps([
+      { id: 'validate', label: 'Проверка данных' },
+      { id: 'create', label: 'Создание товара' },
+      { id: 'images', label: 'Загрузка изображений' },
+      { id: 'videos', label: 'Загрузка видео' },
+      { id: 'telegram', label: 'Отправка уведомлений' },
+      { id: 'cloudinary', label: 'Обработка медиа' },
+      { id: 'background', label: 'Фоновые задачи' }
+    ]);
+    
     console.log("🚀 Starting admin product creation transaction:", {
       title: values.title,
       sellerId: values.sellerId,
@@ -51,80 +66,119 @@ export const useAdminProductCreation = () => {
     });
 
     try {
-      if (imageUrls.length === 0) {
-        throw new Error("Добавьте хотя бы одну фотографию");
-      }
+      // Step 1: Validate data
+      await monitoring.executeStep('validate', async () => {
+        if (imageUrls.length === 0) {
+          throw new Error("Добавьте хотя бы одну фотографию");
+        }
 
-      const selectedBrand = brands.find(brand => brand.id === values.brandId);
-      const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
-      
-      if (!selectedBrand) throw new Error("Не найдена выбранная марка автомобиля");
-      if (!selectedSeller) throw new Error("Не найден выбранный продавец");
+        const selectedBrand = brands.find(brand => brand.id === values.brandId);
+        const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
+        
+        if (!selectedBrand) throw new Error("Не найдена выбранная марка автомобиля");
+        if (!selectedSeller) throw new Error("Не найден выбранный продавец");
 
-      let modelName = null;
-      if (values.modelId) {
-        const selectedModel = brandModels.find(model => model.id === values.modelId);
-        modelName = selectedModel?.name || null;
-      }
+        let modelName = null;
+        if (values.modelId) {
+          const selectedModel = brandModels.find(model => model.id === values.modelId);
+          modelName = selectedModel?.name || null;
+        }
 
-      // --- Транзакция начинается ---
-
-      // 1. Создаем товар через admin RPC функцию
-      const { data: createdProductId, error: productError } = await supabase.rpc('admin_create_product', {
-        p_title: values.title,
-        p_price: Number(values.price),
-        p_condition: "Новый",
-        p_brand: selectedBrand.name,
-        p_model: modelName,
-        p_description: values.description || null,
-        p_seller_id: values.sellerId,
-        p_seller_name: selectedSeller.full_name,
-        p_status: 'pending', // Будет автоматически изменен на 'active' триггером для админов
-        p_place_number: Number(values.placeNumber) || 1,
-        p_delivery_price: Number(values.deliveryPrice) || 0,
+        return { selectedBrand, selectedSeller, modelName };
       });
 
-      if (productError) {
-        throw new Error(`Ошибка создания товара: ${productError.message}`);
-      }
-      productId = createdProductId;
-      console.log("✅ Product created successfully with admin RPC:", productId);
-
-      // Получаем созданный товар для дальнейшей работы
-      const { data: product, error: fetchError } = await supabase
-        .from('products')
-        .select()
-        .eq('id', productId)
-        .single();
-
-      if (fetchError) {
-        throw new Error(`Ошибка получения созданного товара: ${fetchError.message}`);
-      }
-
-      // 2. Добавляем изображения через admin RPC функцию
-      for (const url of imageUrls) {
-        const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
-          p_product_id: productId,
-          p_url: url,
-          p_is_primary: url === primaryImage
-        });
-        if (imageError) {
-          throw new Error(`Ошибка добавления изображения: ${imageError.message}`);
+      const { selectedBrand, selectedSeller, modelName } = await monitoring.executeStep('validate', async () => {
+        const selectedBrand = brands.find(brand => brand.id === values.brandId);
+        const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
+        
+        let modelName = null;
+        if (values.modelId) {
+          const selectedModel = brandModels.find(model => model.id === values.modelId);
+          modelName = selectedModel?.name || null;
         }
-      }
-      console.log(`✅ ${imageUrls.length} images inserted for product ${productId}`);
+        
+        return { selectedBrand, selectedSeller, modelName };
+      });
 
-      // 3. Отправляем Telegram уведомление о публикации товара
-      try {
+      // Step 2: Create product
+      const product = await monitoring.executeStep('create', async () => {
+        const { data: createdProductId, error: productError } = await supabase.rpc('admin_create_product', {
+          p_title: values.title,
+          p_price: Number(values.price),
+          p_condition: "Новый",
+          p_brand: selectedBrand.name,
+          p_model: modelName,
+          p_description: values.description || null,
+          p_seller_id: values.sellerId,
+          p_seller_name: selectedSeller.full_name,
+          p_status: 'pending', // Будет автоматически изменен на 'active' триггером для админов
+          p_place_number: Number(values.placeNumber) || 1,
+          p_delivery_price: Number(values.deliveryPrice) || 0,
+        });
+
+        if (productError) {
+          throw new Error(`Ошибка создания товара: ${productError.message}`);
+        }
+        
+        productId = createdProductId;
+        console.log("✅ Product created successfully with admin RPC:", productId);
+
+        // Получаем созданный товар для дальнейшей работы
+        const { data: product, error: fetchError } = await supabase
+          .from('products')
+          .select()
+          .eq('id', productId)
+          .single();
+
+        if (fetchError) {
+          throw new Error(`Ошибка получения созданного товара: ${fetchError.message}`);
+        }
+
+        return product;
+      });
+
+      // Step 3: Add images
+      await monitoring.executeStep('images', async () => {
+        for (const url of imageUrls) {
+          const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
+            p_product_id: productId,
+            p_url: url,
+            p_is_primary: url === primaryImage
+          });
+          if (imageError) {
+            throw new Error(`Ошибка добавления изображения: ${imageError.message}`);
+          }
+        }
+        console.log(`✅ ${imageUrls.length} images inserted for product ${productId}`);
+      });
+
+      // Step 4: Add videos
+      if (videoUrls.length > 0) {
+        await monitoring.executeStep('videos', async () => {
+          for (const videoUrl of videoUrls) {
+            const { error: videoError } = await supabase.rpc('admin_insert_product_video', {
+              p_product_id: productId,
+              p_url: videoUrl
+            });
+            if (videoError) {
+              throw new Error(`Ошибка добавления видео: ${videoError.message}`);
+            }
+          }
+          console.log(`✅ ${videoUrls.length} videos inserted for product ${productId}`);
+        });
+      } else {
+        monitoring.updateStep('videos', { status: 'completed' });
+      }
+
+      // Step 5: Send Telegram notification
+      await monitoring.executeStep('telegram', async () => {
         await sendProductNotification(productId, 'product_published');
         console.log(`✅ Telegram notification sent for published product ${productId}`);
-      } catch (telegramError) {
-        console.error("⚠️ Telegram notification failed (non-critical):", telegramError);
-      }
+      }, { retryAttempts: 2 });
 
-      // 4. Обновляем товар с Cloudinary данными (некритично, без отката)
-      if (primaryImage) {
-        try {
+      // Step 6: Update Cloudinary data (non-critical)
+      await monitoring.executeStep('cloudinary', async () => {
+        if (primaryImage) {
           const publicId = extractPublicIdFromUrl(primaryImage);
           if (publicId) {
             await supabase.from('products').update({
@@ -132,65 +186,40 @@ export const useAdminProductCreation = () => {
                 cloudinary_url: primaryImage
             }).eq('id', product.id);
           }
-        } catch (cloudinaryError) {
-          console.error("⚠️ Cloudinary processing error (non-critical):", cloudinaryError);
         }
-      }
+        console.log("✅ Cloudinary data updated");
+      }).catch(error => {
+        console.error("⚠️ Cloudinary processing error (non-critical):", error);
+        monitoring.updateStep('cloudinary', { status: 'completed', error: 'Non-critical error' });
+      });
 
-      // 5. Добавляем видео через admin RPC функцию
-      if (videoUrls.length > 0) {
-        for (const videoUrl of videoUrls) {
-          const { error: videoError } = await supabase.rpc('admin_insert_product_video', {
-            p_product_id: productId,
-            p_url: videoUrl
-          });
-          if (videoError) {
-            throw new Error(`Ошибка добавления видео: ${videoError.message}`);
-          }
-        }
-        console.log(`✅ ${videoUrls.length} videos inserted for product ${productId}`);
-      }
-
-      // 6. Генерируем embedding для нового товара (некритично)
-      try {
-        console.log(`🔍 Generating embedding for new product ${productId}`);
-        const embeddingResult = await generateEmbeddingForProduct(productId);
-        if (embeddingResult.success) {
-          console.log(`✅ Embedding generated successfully for product ${productId}`);
-        } else {
-          console.warn(`⚠️ Embedding generation failed for product ${productId}:`, embeddingResult.error);
-        }
-      } catch (embeddingError) {
-        console.error("⚠️ Embedding generation failed (non-critical):", embeddingError);
-      }
-
-      // 7. Генерируем синонимы для нового товара (некритично)
-      try {
-        console.log(`🔤 Generating synonyms for new product ${productId}`);
-        const { error: synonymError } = await supabase.functions.invoke('generate-product-synonyms', {
+      // Step 7: Start background tasks (AI embeddings and synonyms)
+      monitoring.executeStep('background', async () => {
+        // Start background processing - don't await this
+        supabase.functions.invoke('process-product-background', {
           body: {
             productId: product.id,
             title: values.title,
             brand: selectedBrand.name,
-            model: modelName
+            model: modelName,
+            tasks: ['embeddings', 'synonyms']
           }
+        }).then(() => {
+          console.log(`✅ Background tasks queued for product ${productId}`);
+        }).catch(error => {
+          console.error("⚠️ Background tasks failed (non-critical):", error);
         });
-        
-        if (synonymError) {
-          console.warn(`⚠️ Synonym generation failed for product ${productId}:`, synonymError);
-        } else {
-          console.log(`✅ Synonyms generated successfully for product ${productId}`);
-        }
-      } catch (synonymError) {
-        console.error("⚠️ Synonym generation failed (non-critical):", synonymError);
-      }
 
-      // 8. Отправляем уведомления администраторам о новом товаре на модерацию
-      try {
-        await notifyAdminsNewProduct(product.id);
-      } catch (adminNotificationError) {
-        console.error("⚠️ Admin notification failed (non-critical):", adminNotificationError);
-      }
+        // Also send admin notifications in background
+        notifyAdminsNewProduct(product.id).catch(error => {
+          console.error("⚠️ Admin notification failed (non-critical):", error);
+        });
+
+        console.log("✅ Background tasks initiated");
+      }).catch(error => {
+        console.error("⚠️ Background tasks failed (non-critical):", error);
+        monitoring.updateStep('background', { status: 'completed', error: 'Non-critical error' });
+      });
 
       toast({
         title: "Товар успешно создан",
@@ -231,6 +260,9 @@ export const useAdminProductCreation = () => {
 
   return {
     createProductWithTransaction,
-    isCreating
+    isCreating,
+    steps: monitoring.steps,
+    totalProgress: monitoring.totalProgress,
+    resetMonitoring: monitoring.reset
   };
 };
