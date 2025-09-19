@@ -27,13 +27,17 @@ export function resetTraceId(): void {
 
 // Fire-and-forget logging function
 export async function logUploadEvent(event: LogEvent): Promise<void> {
+  console.log('🔍 Starting upload log event:', event);
+  
   try {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      console.log('📝 Upload log skipped: no user session');
+      console.warn('📝 Upload log skipped: no user session');
       return;
     }
+
+    console.log('👤 User found for logging:', { id: user.id, email: user.email });
 
     const eventWithUser = {
       ...event,
@@ -41,18 +45,26 @@ export async function logUploadEvent(event: LogEvent): Promise<void> {
       trace_id: event.trace_id || getTraceId()
     };
 
+    console.log('📤 Sending upload log to Edge function:', eventWithUser);
+
     // Use supabase functions invoke instead of direct HTTP calls
-    const { error } = await supabase.functions.invoke('ingest-free-order-upload', {
+    const { data, error } = await supabase.functions.invoke('ingest-free-order-upload', {
       body: { events: [eventWithUser] }
     });
 
     if (error) {
-      console.error('📝 Upload log error:', error);
+      console.error('❌ Upload log error:', error);
+      // For debugging, let's see more details
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      throw error; // Temporarily throw to see the actual error
     } else {
-      console.log('📝 Upload log sent:', eventWithUser);
+      console.log('✅ Upload log sent successfully:', { eventWithUser, response: data });
     }
   } catch (error) {
-    // Silently fail - logging should not affect the main upload flow
-    console.error('📝 Upload log failed (ignored):', error);
+    // For debugging, let's see the actual errors instead of silently failing
+    console.error('💥 Upload log failed:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
+    // Temporarily comment out silent fail for debugging
+    // throw error;
   }
 }

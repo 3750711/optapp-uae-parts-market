@@ -1,4 +1,4 @@
-import { createEdgeFunctionClient } from '../_shared/client.ts';
+import { createServiceClient } from '../_shared/client.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,7 +34,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createEdgeFunctionClient();
+    const supabase = createServiceClient();
+    console.log('Using service client for logging uploads');
     
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
@@ -82,12 +83,19 @@ Deno.serve(async (req) => {
       .insert(eventsToInsert);
 
     if (insertError) {
-      console.error('Error inserting upload logs:', insertError);
-      return new Response(JSON.stringify({ error: 'Failed to store logs' }), {
+      console.error('❌ Error inserting upload logs:', {
+        error: insertError,
+        eventsCount: eventsToInsert.length,
+        userId: user.id,
+        sampleEvent: eventsToInsert[0]
+      });
+      return new Response(JSON.stringify({ error: 'Failed to store logs', details: insertError.message }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    console.log('✅ Successfully inserted', eventsToInsert.length, 'upload logs for user', user.id);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 202,
