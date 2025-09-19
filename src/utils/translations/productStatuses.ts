@@ -29,6 +29,7 @@ export interface ProductStatusTranslations {
     created: string;
     productDescription: string;
     places: string;
+    tgViews: string;
     totalOffers: string;
     waitingResponse: string;
     latestOffers: string;
@@ -117,6 +118,7 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         numberOfPlaces: "Количество мест",
         deliveryPrice: "Стоимость доставки",
         views: "Просмотры",
+        tgViews: "TG просмотры",
         created: "Создан",
         productDescription: "Описание товара",
         places: "Места",
@@ -205,6 +207,7 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         numberOfPlaces: "Number of Places",
         deliveryPrice: "Delivery Price",
         views: "Views",
+        tgViews: "TG Views",
         created: "Created",
         productDescription: "Product Description",
         places: "Places",
@@ -293,6 +296,7 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         numberOfPlaces: "স্থানের সংখ্যা",
         deliveryPrice: "ডেলিভারি খরচ",
         views: "দেখা হয়েছে",
+        tgViews: "TG ভিউ",
         created: "তৈরি",
         productDescription: "পণ্যের বিবরণ",
         places: "স্থান",

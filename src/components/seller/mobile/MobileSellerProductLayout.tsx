@@ -166,7 +166,7 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
                 <Eye className="h-4 w-4 text-blue-500" />
                 {product.tg_views_estimate || 0}
               </div>
-              <div className="text-xs text-muted-foreground">TG просмотры (оценка)</div>
+              <div className="text-xs text-muted-foreground">{t.labels.tgViews}</div>
             </div>
             <div className="bg-muted p-3 rounded-lg">
               <InlineEditableField
