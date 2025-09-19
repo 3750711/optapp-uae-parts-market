@@ -79,53 +79,10 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
       // Reset trace ID for new upload session
       resetTraceId();
       
-      // Track upload session start
-      const startTime = Date.now();
-      
       try {
         const result = await uploadFiles?.(files);
-        
-        // Log each file upload attempt
-        files.forEach((file, index) => {
-          const uploadItem = items.find(item => item.file?.name === file.name);
-          const duration = Date.now() - startTime;
-          
-          console.log(`📊 Logging upload event for file: ${file.name}`, {
-            url: uploadItem?.cloudinaryUrl,
-            status: uploadItem?.status,
-            hasError: !!uploadItem?.error
-          });
-          
-          logUploadEvent({
-            file_url: uploadItem?.cloudinaryUrl || undefined,
-            method: 'cloudinary-upload',
-            duration_ms: duration,
-            status: uploadItem?.status === 'success' ? 'success' : 'error',
-            error_details: uploadItem?.error || undefined
-          }).catch((error) => {
-            console.error('🚨 Upload logging failed for file:', file.name, error);
-          }); // Show logging errors temporarily
-        });
-        
         return result;
       } catch (error) {
-        // Log upload failure
-        const duration = Date.now() - startTime;
-        
-        console.log(`🚨 Logging upload failure for ${files.length} files`);
-        
-        files.forEach((file) => {
-          logUploadEvent({
-            file_url: undefined,
-            method: 'cloudinary-upload',
-            duration_ms: duration,
-            status: 'error',
-            error_details: error instanceof Error ? error.message : 'Upload failed'
-          }).catch((logError) => {
-            console.error('🚨 Upload error logging failed for file:', file.name, logError);
-          }); // Show logging errors temporarily
-        });
-        
         throw error;
       }
     },

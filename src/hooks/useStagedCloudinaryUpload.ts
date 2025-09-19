@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logUploadEvent } from '@/utils/uploadLogger';
 
 // Helper functions for new upload path
 const getRuntimeConfig = () => {
@@ -671,6 +672,16 @@ export const useStagedCloudinaryUpload = () => {
             newUrls.push(result.url);
             setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
             
+            // Log successful HEIC upload
+            logUploadEvent({
+              file_url: result.url,
+              method: 'cloudinary-upload',
+              duration_ms: Date.now() - Date.now(), // We don't track start time per file yet
+              status: 'success'
+            }).catch(error => {
+              console.error('🚨 Upload success logging failed for HEIC file:', item.file.name, error);
+            });
+            
             return; // Exit early for HEIC processing
           }
 
@@ -728,11 +739,32 @@ export const useStagedCloudinaryUpload = () => {
           newUrls.push(result.url);
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
           
+          // Log successful upload
+          logUploadEvent({
+            file_url: result.url,
+            method: 'cloudinary-upload',
+            duration_ms: Date.now() - Date.now(), // We don't track start time per file yet
+            status: 'success'
+          }).catch(error => {
+            console.error('🚨 Upload success logging failed for file:', item.file.name, error);
+          });
+          
         } catch (error) {
           console.error(`❌ Upload failed for ${item.file.name}:`, error);
           item.status = 'error';
           item.error = error instanceof Error ? error.message : 'Upload failed';
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, error: item.error } : p));
+          
+          // Log failed upload
+          logUploadEvent({
+            file_url: undefined,
+            method: 'cloudinary-upload', 
+            duration_ms: Date.now() - Date.now(), // We don't track start time per file yet
+            status: 'error',
+            error_details: error instanceof Error ? error.message : 'Upload failed'
+          }).catch(logError => {
+            console.error('🚨 Upload error logging failed for file:', item.file.name, logError);
+          });
         }
       });
 
