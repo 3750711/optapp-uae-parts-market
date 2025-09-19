@@ -31,12 +31,12 @@ const AdminFreeOrderUploadMonitoring = () => {
     queryFn: async () => {
       const offset = (page - 1) * pageSize;
       
-      // Get logs with user profiles
+      // Get logs with user profiles (left join to include logs without profiles)
       const { data: logs, error: logsError } = await supabase
         .from('free_order_upload_logs')
         .select(`
           *,
-          profiles!inner(email)
+          profiles(email)
         `)
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize - 1);
@@ -46,7 +46,7 @@ const AdminFreeOrderUploadMonitoring = () => {
       // Transform data to include user email
       const transformedLogs = logs?.map(log => ({
         ...log,
-        user_email: (log as any).profiles?.email || 'Unknown'
+        user_email: (log as any).profiles?.email || `ID: ${log.user_id || 'неизвестен'}`
       })) || [];
 
       return {
