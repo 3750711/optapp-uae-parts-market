@@ -181,9 +181,6 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
               <div className="text-xs text-muted-foreground">{t.labels.places}</div>
             </div>
           </div>
-          <div className="mt-3 text-xs text-muted-foreground text-center">
-            Оценка растёт постепенно, может отличаться от реальных просмотров
-          </div>
           {product.delivery_price !== null && product.delivery_price !== undefined && (
             <div className="mt-4 bg-muted p-3 rounded-lg">
               <div className="text-xs text-muted-foreground mb-1">{t.labels.deliveryPrice}</div>
