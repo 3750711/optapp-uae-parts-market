@@ -80,7 +80,7 @@ const SellerProductDetail = () => {
       
       try {
         const { data, error } = await supabase
-          .from('products')
+          .from('products_with_view_estimate')
           .select(`
             *,
             product_images(*),

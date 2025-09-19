@@ -47,6 +47,9 @@ export interface Product {
   has_active_offers?: boolean;
   max_offer_price?: number | null;
   offers_count?: number;
+  
+  // TG views estimate (only for sellers/admins)
+  tg_views_estimate?: number;
 }
 
 export interface SellerProfile {

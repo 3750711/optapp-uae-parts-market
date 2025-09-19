@@ -2,6 +2,7 @@ import React from "react";
 import ProductGallery from "@/components/product/ProductGallery";
 import SellerProductInfo from "@/components/seller/SellerProductInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
+import { TelegramViewsEstimate } from "@/components/product/seller/TelegramViewsEstimate";
 import { Product } from "@/types/product";
 
 interface SellerProductContentProps {
@@ -46,6 +47,9 @@ const SellerProductContent: React.FC<SellerProductContentProps> = ({
           updatePlaceNumber={updatePlaceNumber}
           updateDeliveryPrice={updateDeliveryPrice}
         />
+        
+        {/* TG Views Estimate - Only for sellers/admins */}
+        <TelegramViewsEstimate estimate={product.tg_views_estimate} />
         
         {/* Specifications */}
         {(product.brand || product.model || product.lot_number) && (

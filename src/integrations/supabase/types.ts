@@ -723,6 +723,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_view_estimate"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
@@ -838,6 +845,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "price_offers_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_view_estimate"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "price_offers_seller_id_fkey"
             columns: ["seller_id"]
             isOneToOne: false
@@ -886,6 +900,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "product_embeddings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products_with_view_estimate"
+            referencedColumns: ["id"]
+          },
         ]
       }
       product_images: {
@@ -918,6 +939,13 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_view_estimate"
+            referencedColumns: ["id"]
+          },
         ]
       }
       product_videos: {
@@ -945,6 +973,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_videos_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_view_estimate"
             referencedColumns: ["id"]
           },
         ]
@@ -1741,6 +1776,126 @@ export type Database = {
         }
         Relationships: []
       }
+      products_with_view_estimate: {
+        Row: {
+          admin_notification_sent_at: string | null
+          brand: string | null
+          cloudinary_public_id: string | null
+          cloudinary_url: string | null
+          condition: string | null
+          created_at: string | null
+          delivery_price: number | null
+          description: string | null
+          id: string | null
+          last_notification_sent_at: string | null
+          location: string | null
+          lot_number: number | null
+          model: string | null
+          optid_created: string | null
+          phone_url: string | null
+          place_number: number | null
+          preview_image_url: string | null
+          price: number | null
+          product_location: string | null
+          product_url: string | null
+          rating_seller: number | null
+          seller_id: string | null
+          seller_name: string | null
+          status: Database["public"]["Enums"]["product_status"] | null
+          telegram_url: string | null
+          tg_notify_attempts: number | null
+          tg_notify_error: string | null
+          tg_notify_status: string | null
+          tg_views_estimate: number | null
+          title: string | null
+          updated_at: string | null
+          view_count: number | null
+        }
+        Insert: {
+          admin_notification_sent_at?: string | null
+          brand?: string | null
+          cloudinary_public_id?: string | null
+          cloudinary_url?: string | null
+          condition?: string | null
+          created_at?: string | null
+          delivery_price?: number | null
+          description?: string | null
+          id?: string | null
+          last_notification_sent_at?: string | null
+          location?: string | null
+          lot_number?: number | null
+          model?: string | null
+          optid_created?: string | null
+          phone_url?: string | null
+          place_number?: number | null
+          preview_image_url?: string | null
+          price?: number | null
+          product_location?: string | null
+          product_url?: string | null
+          rating_seller?: number | null
+          seller_id?: string | null
+          seller_name?: string | null
+          status?: Database["public"]["Enums"]["product_status"] | null
+          telegram_url?: string | null
+          tg_notify_attempts?: number | null
+          tg_notify_error?: string | null
+          tg_notify_status?: string | null
+          tg_views_estimate?: never
+          title?: string | null
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          admin_notification_sent_at?: string | null
+          brand?: string | null
+          cloudinary_public_id?: string | null
+          cloudinary_url?: string | null
+          condition?: string | null
+          created_at?: string | null
+          delivery_price?: number | null
+          description?: string | null
+          id?: string | null
+          last_notification_sent_at?: string | null
+          location?: string | null
+          lot_number?: number | null
+          model?: string | null
+          optid_created?: string | null
+          phone_url?: string | null
+          place_number?: number | null
+          preview_image_url?: string | null
+          price?: number | null
+          product_location?: string | null
+          product_url?: string | null
+          rating_seller?: number | null
+          seller_id?: string | null
+          seller_name?: string | null
+          status?: Database["public"]["Enums"]["product_status"] | null
+          telegram_url?: string | null
+          tg_notify_attempts?: number | null
+          tg_notify_error?: string | null
+          tg_notify_status?: string | null
+          tg_views_estimate?: never
+          title?: string | null
+          updated_at?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "public_seller_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       public_seller_profiles: {
         Row: {
           company_name: string | null
@@ -2089,6 +2244,10 @@ export type Database = {
       diagnose_auth_state: {
         Args: { p_user_id?: string }
         Returns: Json
+      }
+      estimate_tg_views: {
+        Args: { p_created_at: string; p_id: string }
+        Returns: number
       }
       expire_old_price_offers: {
         Args: Record<PropertyKey, never>
