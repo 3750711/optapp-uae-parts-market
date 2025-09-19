@@ -10,18 +10,22 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getCommonTranslations } from '@/utils/translations/common';
 
 export const LatestProductsSection: React.FC = () => {
   const { mappedProducts, isLoading } = useOptimizedCatalogProducts({
     productsPerPage: 12,
     sortBy: 'newest'
   });
+  const { language } = useLanguage();
+  const c = getCommonTranslations(language);
 
   if (isLoading) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Последние товары</h3>
+          <h3 className="text-lg font-semibold">{c.sections.latestProducts}</h3>
           <Skeleton className="h-4 w-20" />
         </div>
         <Carousel className="w-full">
@@ -47,10 +51,10 @@ export const LatestProductsSection: React.FC = () => {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Последние товары</h3>
+          <h3 className="text-lg font-semibold">{c.sections.latestProducts}</h3>
         </div>
         <div className="text-center py-8 text-muted-foreground">
-          <p>Нет доступных товаров</p>
+          <p>{c.messages.noProductsAvailable}</p>
         </div>
       </div>
     );
@@ -59,12 +63,12 @@ export const LatestProductsSection: React.FC = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Последние товары</h3>
+        <h3 className="text-lg font-semibold">{c.sections.latestProducts}</h3>
         <Link 
           to="/catalog" 
           className="text-sm text-primary hover:text-primary/80 transition-colors"
         >
-          Посмотреть все →
+          {c.sections.viewAll} →
         </Link>
       </div>
       <Carousel className="w-full">

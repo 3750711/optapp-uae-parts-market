@@ -71,7 +71,15 @@ const en = {
     unauthorized: 'You are not authorized to perform this action',
     noPhoto: 'No Photo',
     productAlreadySold: 'Unfortunately, this product has already been sold',
-    productStatusCheckError: 'Failed to check product availability'
+    productStatusCheckError: 'Failed to check product availability',
+    noProductsAvailable: 'No products available'
+  },
+
+  // Common sections
+  sections: {
+    latestProducts: 'Latest Products',
+    management: 'Management',
+    viewAll: 'View All'
   },
 
   // Common errors
@@ -171,7 +179,15 @@ const ru = {
     unauthorized: 'У вас нет прав для выполнения этого действия',
     noPhoto: 'Нет фото',
     productAlreadySold: 'К сожалению, товар уже продан',
-    productStatusCheckError: 'Не удалось проверить доступность товара'
+    productStatusCheckError: 'Не удалось проверить доступность товара',
+    noProductsAvailable: 'Нет доступных товаров'
+  },
+
+  // Common sections
+  sections: {
+    latestProducts: 'Последние товары',
+    management: 'Управление',
+    viewAll: 'Посмотреть все'
   },
 
   // Common errors
@@ -271,7 +287,15 @@ const bn = {
     unauthorized: 'এই কাজটি সম্পাদন করার জন্য আপনার অনুমতি নেই',
     noPhoto: 'কোন ছবি নেই',
     productAlreadySold: 'দুঃখিত, এই পণ্যটি ইতিমধ্যে বিক্রি হয়ে গেছে',
-    productStatusCheckError: 'পণ্যের উপলব্ধতা যাচাই করতে ব্যর্থ হয়েছে'
+    productStatusCheckError: 'পণ্যের উপলব্ধতা যাচাই করতে ব্যর্থ হয়েছে',
+    noProductsAvailable: 'কোন পণ্য উপলব্ধ নেই'
+  },
+
+  // Common sections
+  sections: {
+    latestProducts: 'সর্বশেষ পণ্য',
+    management: 'ব্যবস্থাপনা',
+    viewAll: 'সব দেখুন'
   },
 
   // Common errors

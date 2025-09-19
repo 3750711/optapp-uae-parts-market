@@ -8,6 +8,7 @@ import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
 import { useOptimizedSellerDashboard } from "@/hooks/useOptimizedSellerDashboard";
 import { sellerDashboardTranslations, getSellerDashboardTranslations } from "@/utils/translations/sellerDashboard";
 import { useLanguage } from "@/hooks/useLanguage";
+import { getCommonTranslations } from "@/utils/translations/common";
 import MobileProductsCarousel from "./MobileProductsCarousel";
 
 // SVG Icons as components for better performance
@@ -84,6 +85,7 @@ const FastSellerDashboard = memo(() => {
   const { pendingOffersCount, isLoading: offersLoading } = useOptimizedSellerDashboard();
   const { language } = useLanguage();
   const t = getSellerDashboardTranslations(profile?.user_type === 'seller' ? language : 'ru');
+  const c = getCommonTranslations(language);
 
   useEffect(() => {
     const timer = startTimer('seller-dashboard-render');
@@ -190,7 +192,7 @@ const FastSellerDashboard = memo(() => {
       
       {/* Latest Products Section */}
       <div className="mt-4">
-        <h3 className="text-lg font-semibold mb-3 text-foreground">Последние товары</h3>
+        <h3 className="text-lg font-semibold mb-3 text-foreground">{c.sections.latestProducts}</h3>
         <div className="bg-gray-50 shadow-sm rounded-xl p-4">
           <MobileProductsCarousel />
         </div>
@@ -198,7 +200,7 @@ const FastSellerDashboard = memo(() => {
       
       {/* Management Section */}
       <div className="mt-4">
-        <h3 className="text-lg font-semibold mb-3 text-foreground">Управление</h3>
+        <h3 className="text-lg font-semibold mb-3 text-foreground">{c.sections.management}</h3>
         <div className="dashboard-grid">
         {dashboardItems.map((item, index) => (
           <Link key={index} to={item.to} className="block">
