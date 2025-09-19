@@ -16,7 +16,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   children, 
   fallback 
 }) => {
-  const { user, isAdmin, isCheckingAdmin, profile } = useAuth();
+  const { user, isAdmin, isCheckingAdmin, profile, loading } = useAuth();
   const location = useLocation();
 
   // Мемоизируем состояние для избежания лишних ре-рендеров
@@ -25,14 +25,15 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     isAdmin,
     role: profile?.user_type,
     isCheckingAdmin,
+    loading,
     userId: user?.id,
     userEmail: user?.email
-  }), [user, isAdmin, isCheckingAdmin, profile]);
+  }), [user, isAdmin, isCheckingAdmin, profile, loading]);
 
   devLog('🔍 AdminRoute state:', authState);
 
-  // Show spinner only when actually checking admin status
-  if (authState.isCheckingAdmin) {
+  // Show loading while auth is initializing or checking admin status
+  if (authState.loading || authState.isCheckingAdmin) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -49,7 +50,8 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   }
 
   // Не авторизован - перенаправляем на логин с сохранением текущего пути
-  if (!authState.hasUser) {
+  // Но только если не идет загрузка
+  if (!authState.hasUser && !authState.loading) {
     devLog('❌ User not authenticated, redirecting to login');
     const redirectPath = location.pathname !== '/login' ? `?from=${encodeURIComponent(location.pathname)}` : '';
     return <Navigate to={`/login${redirectPath}`} replace />;
