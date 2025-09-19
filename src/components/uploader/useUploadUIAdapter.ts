@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useStagedCloudinaryUpload } from "@/hooks/useStagedCloudinaryUpload";
 import { extractPublicIdFromUrl, getProductImageUrl } from "@/utils/cloudinaryUtils";
+import { logUploadEvent, resetTraceId } from "@/utils/uploadLogger";
 
 type AdapterOpts = {
   max?: number;
@@ -74,7 +75,48 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
 
   const api = useMemo(() => ({
     items,
-    uploadFiles: (files: File[]) => uploadFiles?.(files),
+    uploadFiles: async (files: File[]) => {
+      // Reset trace ID for new upload session
+      resetTraceId();
+      
+      // Track upload session start
+      const startTime = Date.now();
+      
+      try {
+        const result = await uploadFiles?.(files);
+        
+        // Log each file upload attempt
+        files.forEach((file, index) => {
+          const uploadItem = items.find(item => item.file?.name === file.name);
+          const duration = Date.now() - startTime;
+          
+          logUploadEvent({
+            file_url: uploadItem?.cloudinaryUrl || undefined,
+            method: 'cloudinary-upload',
+            duration_ms: duration,
+            status: uploadItem?.status === 'success' ? 'success' : 'error',
+            error_details: uploadItem?.error || undefined
+          }).catch(() => {}); // Silent fail
+        });
+        
+        return result;
+      } catch (error) {
+        // Log upload failure
+        const duration = Date.now() - startTime;
+        
+        files.forEach((file) => {
+          logUploadEvent({
+            file_url: undefined,
+            method: 'cloudinary-upload',
+            duration_ms: duration,
+            status: 'error',
+            error_details: error instanceof Error ? error.message : 'Upload failed'
+          }).catch(() => {}); // Silent fail
+        });
+        
+        throw error;
+      }
+    },
     removeItem: (id: string) => {
       // Пробуем удаление из uploadItems по ID и из stagedUrls по URL
       removeUploadItem?.(id);

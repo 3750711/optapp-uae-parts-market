@@ -30,6 +30,24 @@ const AdminSettings: React.FC = () => {
               </p>
             </div>
           </Button>
+
+          <Button
+            asChild
+            variant="outline"
+            className="flex items-start space-x-3 p-4 sm:p-6 h-auto justify-start bg-card hover:bg-accent transition-colors w-full text-left border border-border/50 hover:border-border min-h-[72px] touch-target"
+          >
+            <a href="/admin/monitoring/free-order-upload">
+              <MessageCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm sm:text-base text-foreground">
+                  Мониторинг загрузки фото в свободном заказе
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">
+                  Просмотр логов и статистики загрузки фотографий
+                </p>
+              </div>
+            </a>
+          </Button>
         </div>
       </div>
 

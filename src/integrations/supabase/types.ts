@@ -234,6 +234,45 @@ export type Database = {
         }
         Relationships: []
       }
+      free_order_upload_logs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_details: string | null
+          file_url: string | null
+          id: number
+          method: string | null
+          order_id: string | null
+          status: string
+          trace_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: string | null
+          file_url?: string | null
+          id?: number
+          method?: string | null
+          order_id?: string | null
+          status: string
+          trace_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: string | null
+          file_url?: string | null
+          id?: number
+          method?: string | null
+          order_id?: string | null
+          status?: string
+          trace_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       help_categories: {
         Row: {
           created_at: string
