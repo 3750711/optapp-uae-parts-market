@@ -9,6 +9,9 @@ interface LogEvent {
   status: 'success' | 'error';
   error_details?: string;
   trace_id?: string;
+  original_size?: number;
+  compressed_size?: number;
+  compression_ratio?: number;
 }
 
 // Generate trace ID for the session

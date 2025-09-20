@@ -45,6 +45,7 @@ interface StagedUploadItem {
   isHeic?: boolean;
   originalSize?: number;
   compressedSize?: number;
+  uploadStartTime?: number;
   metadata?: {
     width?: number;
     height?: number;
@@ -598,7 +599,8 @@ export const useStagedCloudinaryUpload = () => {
         isHeic: file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic') || 
                 file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heif') ||
                 file.type.includes('heic') || file.type.includes('heif'),
-        originalSize: file.size
+        originalSize: file.size,
+        uploadStartTime: Date.now()
       };
     });
     
@@ -669,15 +671,23 @@ export const useStagedCloudinaryUpload = () => {
             
             item.status = 'success';
             item.url = result.url;
+            item.compressedSize = item.originalSize; // HEIC files are uploaded without compression
             newUrls.push(result.url);
             setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
             
             // Log successful HEIC upload
+            const uploadDuration = item.uploadStartTime ? Date.now() - item.uploadStartTime : 0;
+            const compressionRatio = item.compressedSize && item.originalSize ? 
+              Math.round((1 - item.compressedSize / item.originalSize) * 100) / 100 : undefined;
+            
             logUploadEvent({
               file_url: result.url,
               method: 'cloudinary-upload',
-              duration_ms: Date.now() - Date.now(), // We don't track start time per file yet
-              status: 'success'
+              duration_ms: uploadDuration,
+              status: 'success',
+              original_size: item.originalSize,
+              compressed_size: item.compressedSize,
+              compression_ratio: compressionRatio
             }).catch(error => {
               console.error('🚨 Upload success logging failed for HEIC file:', item.file.name, error);
             });
@@ -704,7 +714,11 @@ export const useStagedCloudinaryUpload = () => {
               item.compressedSize = compressionResult.compressedSize;
             } else {
               console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
+              item.compressedSize = item.originalSize; // No compression, same size
             }
+          } else {
+            // Small file, no compression needed
+            item.compressedSize = item.originalSize;
           }
 
           // Step 2: Ensure signature
@@ -740,11 +754,18 @@ export const useStagedCloudinaryUpload = () => {
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
           
           // Log successful upload
+          const uploadDuration = item.uploadStartTime ? Date.now() - item.uploadStartTime : 0;
+          const compressionRatio = item.compressedSize && item.originalSize ? 
+            Math.round((1 - item.compressedSize / item.originalSize) * 100) / 100 : undefined;
+          
           logUploadEvent({
             file_url: result.url,
             method: 'cloudinary-upload',
-            duration_ms: Date.now() - Date.now(), // We don't track start time per file yet
-            status: 'success'
+            duration_ms: uploadDuration,
+            status: 'success',
+            original_size: item.originalSize,
+            compressed_size: item.compressedSize,
+            compression_ratio: compressionRatio
           }).catch(error => {
             console.error('🚨 Upload success logging failed for file:', item.file.name, error);
           });
@@ -756,12 +777,16 @@ export const useStagedCloudinaryUpload = () => {
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, error: item.error } : p));
           
           // Log failed upload
+          const uploadDuration = item.uploadStartTime ? Date.now() - item.uploadStartTime : 0;
+          
           logUploadEvent({
             file_url: undefined,
             method: 'cloudinary-upload', 
-            duration_ms: Date.now() - Date.now(), // We don't track start time per file yet
+            duration_ms: uploadDuration,
             status: 'error',
-            error_details: error instanceof Error ? error.message : 'Upload failed'
+            error_details: error instanceof Error ? error.message : 'Upload failed',
+            original_size: item.originalSize,
+            compressed_size: item.compressedSize
           }).catch(logError => {
             console.error('🚨 Upload error logging failed for file:', item.file.name, logError);
           });
