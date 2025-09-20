@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Search, Calendar, User, Activity, AlertCircle, ChevronDown, ChevronRight, Clock, LogIn, LogOut } from 'lucide-react';
+import { RefreshCw, Search, Calendar, User, Activity, AlertCircle, ChevronDown, ChevronRight, Clock, LogIn, LogOut, UserX, Timer, RotateCcw, Shield } from 'lucide-react';
 import { format, formatDuration, intervalToDuration } from 'date-fns';
 
 interface ActivityLog {
@@ -45,6 +45,10 @@ interface UserSession {
   is_active: boolean;
   session_duration?: string;
   unique_pages: number;
+  termination_reason: 'active' | 'explicit_logout' | 'new_login' | 'timeout' | 'forced_logout';
+  termination_details?: string;
+  last_activity_time?: string;
+  session_timeout_minutes?: number;
 }
 
 const EVENT_TYPE_COLORS = {
@@ -55,6 +59,34 @@ const EVENT_TYPE_COLORS = {
   api_error: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
   button_click: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
 };
+
+const TERMINATION_REASON_COLORS = {
+  'active': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  'explicit_logout': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  'new_login': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+  'timeout': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+  'forced_logout': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+};
+
+const TERMINATION_REASON_ICONS = {
+  'active': LogIn,
+  'explicit_logout': LogOut,
+  'new_login': RotateCcw,
+  'timeout': Timer,
+  'forced_logout': Shield
+};
+
+const TERMINATION_REASON_LABELS = {
+  'active': 'Активна',
+  'explicit_logout': 'Выход',
+  'new_login': 'Новый вход',
+  'timeout': 'Тайм-аут',
+  'forced_logout': 'Принудительно'
+};
+
+// Constants for session analysis
+const SESSION_TIMEOUT_MINUTES = 30;
+const LONG_SESSION_HOURS = 8;
 
 // Function to group logs by user sessions
 const groupLogsBySession = (logs: ActivityLog[]): UserSession[] => {
@@ -99,6 +131,9 @@ const groupLogsBySession = (logs: ActivityLog[]): UserSession[] => {
           logs_count: sortedLogs.length,
           is_active: true,
           unique_pages: uniquePages,
+          termination_reason: 'active',
+          termination_details: 'Сессия без явного входа (активна)',
+          last_activity_time: sortedLogs[sortedLogs.length - 1]?.created_at,
         });
       }
       return;
@@ -149,8 +184,45 @@ const groupLogsBySession = (logs: ActivityLog[]): UserSession[] => {
         sessionLogs.filter(log => log.path).map(log => log.path)
       ).size;
 
+      // Find last activity time
+      const lastActivityLog = sessionLogs[sessionLogs.length - 1];
+      const lastActivityTime = lastActivityLog?.created_at;
+
       let sessionDuration: string | undefined;
       const isActive = !logoutEvent && !nextLoginTime;
+      
+      // Determine termination reason
+      let terminationReason: UserSession['termination_reason'] = 'active';
+      let terminationDetails: string | undefined;
+      let sessionTimeoutMinutes: number | undefined;
+
+      if (logoutEvent) {
+        terminationReason = 'explicit_logout';
+        terminationDetails = 'Пользователь явно вышел из системы';
+      } else if (nextLoginTime) {
+        // Check if there was a timeout between last activity and next login
+        const timeSinceLastActivity = (nextLoginTime.getTime() - new Date(lastActivityTime).getTime()) / (1000 * 60);
+        if (timeSinceLastActivity > SESSION_TIMEOUT_MINUTES) {
+          terminationReason = 'timeout';
+          terminationDetails = `Сессия завершена по тайм-ауту после ${Math.round(timeSinceLastActivity)} минут неактивности`;
+          sessionTimeoutMinutes = Math.round(timeSinceLastActivity);
+        } else {
+          terminationReason = 'new_login';
+          terminationDetails = 'Сессия завершена новым входом пользователя';
+        }
+      } else {
+        // Check if current active session might be timed out
+        const now = new Date();
+        const timeSinceLastActivity = (now.getTime() - new Date(lastActivityTime).getTime()) / (1000 * 60);
+        if (timeSinceLastActivity > SESSION_TIMEOUT_MINUTES) {
+          terminationReason = 'timeout';
+          terminationDetails = `Сессия неактивна уже ${Math.round(timeSinceLastActivity)} минут (возможно завершена)`;
+          sessionTimeoutMinutes = Math.round(timeSinceLastActivity);
+        } else {
+          terminationReason = 'active';
+          terminationDetails = 'Сессия активна';
+        }
+      }
       
       if (sessionEndTime && !isActive) {
         const duration = intervalToDuration({
@@ -178,6 +250,10 @@ const groupLogsBySession = (logs: ActivityLog[]): UserSession[] => {
         is_active: isActive,
         session_duration: sessionDuration,
         unique_pages: uniquePages,
+        termination_reason: terminationReason,
+        termination_details: terminationDetails,
+        last_activity_time: lastActivityTime,
+        session_timeout_minutes: sessionTimeoutMinutes,
       });
     });
   });
@@ -507,16 +583,30 @@ export default function ActivityMonitor() {
                                   </div>
                                 </div>
                               )}
-                              <div className="flex items-center gap-2">
-                                <Badge variant={session.is_active ? "default" : "secondary"}>
-                                  {session.is_active ? "Активна" : "Завершена"}
-                                </Badge>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {(() => {
+                                  const IconComponent = TERMINATION_REASON_ICONS[session.termination_reason];
+                                  return (
+                                    <Badge 
+                                      className={TERMINATION_REASON_COLORS[session.termination_reason]}
+                                      title={session.termination_details}
+                                    >
+                                      <IconComponent className="h-3 w-3 mr-1" />
+                                      {TERMINATION_REASON_LABELS[session.termination_reason]}
+                                    </Badge>
+                                  );
+                                })()}
                                 <Badge variant="outline">
                                   {session.logs_count} действий
                                 </Badge>
                                 <Badge variant="outline">
                                   {session.unique_pages} страниц
                                 </Badge>
+                                {session.session_timeout_minutes && session.session_timeout_minutes > LONG_SESSION_HOURS * 60 && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Долгая неактивность
+                                  </Badge>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -526,6 +616,34 @@ export default function ActivityMonitor() {
                       <CollapsibleContent>
                         <CardContent className="pt-0">
                           <div className="border-t pt-4">
+                            {/* Session Termination Details */}
+                            <div className="mb-4 p-3 bg-muted/30 rounded-md">
+                              <div className="flex items-center justify-between text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Причина завершения:</span>
+                                  {(() => {
+                                    const IconComponent = TERMINATION_REASON_ICONS[session.termination_reason];
+                                    return (
+                                      <div className="flex items-center gap-1">
+                                        <IconComponent className="h-4 w-4" />
+                                        <span>{TERMINATION_REASON_LABELS[session.termination_reason]}</span>
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                                {session.last_activity_time && (
+                                  <div className="text-muted-foreground">
+                                    Последняя активность: {format(new Date(session.last_activity_time), 'dd.MM.yyyy HH:mm:ss')}
+                                  </div>
+                                )}
+                              </div>
+                              {session.termination_details && (
+                                <div className="text-sm text-muted-foreground mt-1">
+                                  {session.termination_details}
+                                </div>
+                              )}
+                            </div>
+                            
                             <Table>
                               <TableHeader>
                                 <TableRow>
