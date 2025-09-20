@@ -266,13 +266,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 text-xs text-gray-500">
-                  {product.optid_created && (
-                    <div className="flex items-center gap-1">
-                      <Hash className="h-3 w-3" />
-                      <span>{product.optid_created}</span>
-                    </div>
-                  )}
-
                   {product.rating_seller && (
                     <div className="flex items-center gap-1">
                       <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />

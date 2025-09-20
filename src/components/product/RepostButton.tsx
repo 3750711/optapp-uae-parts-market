@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
+import { Send, Clock, Loader2 } from "lucide-react";
 import { useProductRepost } from "@/hooks/useProductRepost";
 
 interface RepostButtonProps {
@@ -50,9 +51,10 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         variant="outline"
         size="sm"
         disabled
-        className="inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium"
+        className="inline-flex h-8 w-10 min-w-0 items-center justify-center rounded-lg px-2 text-xs font-medium"
+        title={`Через ${hoursLeft}ч`}
       >
-        Через {hoursLeft}ч
+        <Clock className="h-3 w-3" />
       </Button>
     );
   }
@@ -64,9 +66,10 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         variant="outline"
         size="sm"
         disabled
-        className="inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium bg-blue-50 border-blue-200 text-blue-600"
+        className="inline-flex h-8 w-10 min-w-0 items-center justify-center rounded-lg px-2 text-xs font-medium bg-blue-50 border-blue-200 text-blue-600"
+        title="В очереди"
       >
-        В очереди
+        <Loader2 className="h-3 w-3 animate-spin" />
       </Button>
     );
   }
@@ -77,9 +80,14 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
       size="sm"
       onClick={handleRepost}
       disabled={isLoading || isQueued}
-      className="inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium hover:bg-blue-50 hover:border-blue-300"
+      className="inline-flex h-8 w-10 min-w-0 items-center justify-center rounded-lg px-2 text-xs font-medium hover:bg-blue-50 hover:border-blue-300"
+      title={isLoading ? 'Добавление...' : 'Репост'}
     >
-      {isLoading ? 'Добавление...' : 'Репост'}
+      {isLoading ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Send className="h-3 w-3" />
+      )}
     </Button>
   );
 };
