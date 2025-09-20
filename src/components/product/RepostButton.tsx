@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Send, Loader2 } from "lucide-react";
 import { useProductRepost } from "@/hooks/useProductRepost";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
+import RepostPriceDialog from "./RepostPriceDialog";
 
 interface RepostButtonProps {
   productId: string;
   lastNotificationSentAt?: string | null;
   status: string;
   sellerId: string;
+  currentPrice: number;
+  productTitle: string;
   onRepostSuccess?: () => void;
 }
 
@@ -18,8 +21,11 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
   lastNotificationSentAt,
   status,
   sellerId,
+  currentPrice,
+  productTitle,
   onRepostSuccess
 }) => {
+  const [showPriceDialog, setShowPriceDialog] = useState(false);
   const { checkCanRepost, sendRepost, isReposting, queuedReposts } = useProductRepost();
   const { language } = useLanguage();
   const t = getProductStatusTranslations(language);
@@ -33,15 +39,16 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
   const isLoading = isReposting[productId] || false;
   const isQueued = !!queuedReposts[productId];
 
-  const handleRepost = async () => {
+  const handleRepost = () => {
     if (!canRepost || isLoading || isQueued) return;
+    // Open price dialog instead of direct confirmation
+    setShowPriceDialog(true);
+  };
+
+  const handleRepostConfirm = async (newPrice?: number) => {
+    setShowPriceDialog(false);
     
-    // Show confirmation dialog
-    const confirmed = window.confirm(t.repostMessages.confirmDialog);
-    
-    if (!confirmed) return;
-    
-    const success = await sendRepost(productId);
+    const success = await sendRepost(productId, newPrice);
     if (success && onRepostSuccess) {
       onRepostSuccess();
     }
@@ -78,22 +85,33 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleRepost}
-      disabled={isLoading || isQueued}
-      className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-sm font-medium hover:bg-blue-50 hover:border-blue-300"
-      title={isLoading ? t.actions.sending : t.actions.repost}
-    >
-      {isLoading ? (
-        <>
-          <Loader2 className="h-3 w-3 animate-spin mr-1" />
-          {t.actions.sending}
-        </>
-      ) : (
-        t.actions.repost
-      )}
-    </Button>
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleRepost}
+        disabled={isLoading || isQueued}
+        className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-sm font-medium hover:bg-blue-50 hover:border-blue-300"
+        title={isLoading ? t.actions.sending : t.actions.repost}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+            {t.actions.sending}
+          </>
+        ) : (
+          t.actions.repost
+        )}
+      </Button>
+
+      <RepostPriceDialog
+        open={showPriceDialog}
+        onOpenChange={setShowPriceDialog}
+        currentPrice={currentPrice}
+        productTitle={productTitle}
+        onConfirm={handleRepostConfirm}
+        isSubmitting={isLoading}
+      />
+    </>
   );
 };

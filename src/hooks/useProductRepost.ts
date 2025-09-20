@@ -53,8 +53,8 @@ export const useProductRepost = () => {
     };
   };
 
-  // Send repost notification via background queue
-  const sendRepost = async (productId: string) => {
+  // Send repost notification via background queue with optional price change
+  const sendRepost = async (productId: string, newPrice?: number) => {
     if (!user) {
       toast.error(t.repostMessages.loginRequired);
       return false;
@@ -67,10 +67,32 @@ export const useProductRepost = () => {
     setIsReposting(prev => ({ ...prev, [productId]: true }));
 
     try {
-      console.log(`📢 [ProductRepost] Queuing repost notification for product: ${productId}`);
+      console.log(`📢 [ProductRepost] Queuing repost notification for product: ${productId}${newPrice ? ` with new price: ${newPrice}` : ''}`);
+      
+      // If price is changed, update product price first
+      if (newPrice !== undefined) {
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ price: newPrice })
+          .eq('id', productId);
+
+        if (updateError) {
+          console.error(`💥 [ProductRepost] Error updating product price:`, updateError);
+          toast.error(t.repostMessages.queueError, {
+            description: 'Failed to update product price'
+          });
+          return false;
+        }
+        
+        console.log(`✅ [ProductRepost] Product price updated to ${newPrice}`);
+      }
       
       // Add to background sync queue for reliable delivery
-      const syncId = await queueForSync('product-repost', { productId });
+      const syncId = await queueForSync('product-repost', { 
+        productId, 
+        priceChanged: newPrice !== undefined,
+        newPrice 
+      });
       
       // Track queued repost
       setQueuedReposts(prev => ({ ...prev, [productId]: syncId }));

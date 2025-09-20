@@ -333,6 +333,8 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                     lastNotificationSentAt={product.last_notification_sent_at}
                     status={product.status}
                     sellerId={product.seller_id}
+                    currentPrice={product.price}
+                    productTitle={product.title}
                     onRepostSuccess={onRepostSuccess}
                   />
                 </div>

@@ -98,6 +98,16 @@ export interface ProductStatusTranslations {
     confirmDialog: string;
     cooldownTitle: string;
   };
+  repostPriceDialog: {
+    title: string;
+    description: string;
+    currentPrice: string;
+    newPrice: string;
+    keepCurrentPrice: string;
+    priceChanged: string;
+    sendRepost: string;
+    cancel: string;
+  };
 }
 
 export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): ProductStatusTranslations => {
@@ -201,6 +211,16 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         queueErrorDescription: "Попробуйте еще раз через несколько минут",
         confirmDialog: "Отправить репост товара в Telegram группу?\n\nПосле отправки следующий репост будет доступен через 72 часа.",
         cooldownTitle: "Через {hours}ч"
+      },
+      repostPriceDialog: {
+        title: "Изменить цену перед репостом",
+        description: "Вы можете изменить цену товара перед отправкой уведомления",
+        currentPrice: "Текущая цена",
+        newPrice: "Новая цена",
+        keepCurrentPrice: "Оставить текущую цену",
+        priceChanged: "Цена изменена",
+        sendRepost: "Отправить репост",
+        cancel: "Отмена"
       }
     },
     en: {
@@ -302,6 +322,16 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         queueErrorDescription: "Please try again in a few minutes",
         confirmDialog: "Send product repost to Telegram group?\n\nAfter sending, the next repost will be available in 72 hours.",
         cooldownTitle: "In {hours}h"
+      },
+      repostPriceDialog: {
+        title: "Change price before repost",
+        description: "You can change the product price before sending notification",
+        currentPrice: "Current price",
+        newPrice: "New price",
+        keepCurrentPrice: "Keep current price",
+        priceChanged: "Price changed",
+        sendRepost: "Send repost",
+        cancel: "Cancel"
       }
     },
     bn: {
@@ -403,6 +433,16 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         queueErrorDescription: "কয়েক মিনিট পরে আবার চেষ্টা করুন",
         confirmDialog: "টেলিগ্রাম গ্রুপে পণ্যের রিপোস্ট পাঠাবেন?\n\nপাঠানোর পর, পরবর্তী রিপোস্ট ৭২ ঘন্টা পর পাওয়া যাবে।",
         cooldownTitle: "{hours} ঘন্টায়"
+      },
+      repostPriceDialog: {
+        title: "রিপোস্টের আগে দাম পরিবর্তন করুন",
+        description: "আপনি নোটিফিকেশন পাঠানোর আগে পণ্যের দাম পরিবর্তন করতে পারেন",
+        currentPrice: "বর্তমান দাম",
+        newPrice: "নতুন দাম",
+        keepCurrentPrice: "বর্তমান দাম রাখুন",
+        priceChanged: "দাম পরিবর্তিত",
+        sendRepost: "রিপোস্ট পাঠান",
+        cancel: "বাতিল"
       }
     }
   };
