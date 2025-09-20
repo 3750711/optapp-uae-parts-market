@@ -257,10 +257,36 @@ export async function handleProductNotification(productId: string, notificationT
         console.log('Successfully updated notification timestamp for repost');
       }
       
+      // Log successful repost
+      await supabaseClient.from('event_logs').insert({
+        entity_type: 'product',
+        entity_id: productId,
+        action_type: 'repost',
+        details: { 
+          success: true, 
+          notification_type: 'repost',
+          lot_number: product.lot_number,
+          product_title: product.title
+        }
+      });
+      
       return result;
       
     } catch (error) {
       console.error('Error sending repost notification:', error);
+      
+      // Log failed repost
+      await supabaseClient.from('event_logs').insert({
+        entity_type: 'product',
+        entity_id: productId,
+        action_type: 'repost',
+        details: { 
+          success: false, 
+          error: error.message,
+          notification_type: 'repost'
+        }
+      });
+      
       return new Response(
         JSON.stringify({ success: false, message: `Failed to send repost notification: ${error.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
