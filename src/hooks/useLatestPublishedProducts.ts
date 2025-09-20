@@ -19,7 +19,7 @@ export const useLatestPublishedProducts = () => {
     queryKey: ['latest-published-products'],
     queryFn: async (): Promise<PublishedProduct[]> => {
       const { data, error } = await supabase
-        .from('products')
+        .from('products_with_view_estimate')
         .select(`
           id,
           title,
