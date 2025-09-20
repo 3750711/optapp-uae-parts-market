@@ -65,10 +65,10 @@ const RepostPriceDialog: React.FC<RepostPriceDialogProps> = ({
       open={open} 
       onOpenChange={onOpenChange}
       title={t.repostPriceDialog.title}
-      className="max-w-md mx-auto"
+      className="max-w-sm sm:max-w-md" // Адаптивный размер диалога
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <DialogDescription>
+        <DialogDescription className="text-sm text-muted-foreground">
           {t.repostPriceDialog.description}
         </DialogDescription>
 
@@ -85,34 +85,35 @@ const RepostPriceDialog: React.FC<RepostPriceDialogProps> = ({
               min="0"
               step="1"
               inputMode="numeric"
-              className="mt-1 text-lg"
+              className="mt-1 text-lg w-full h-12 sm:h-10" // Увеличенная touch-зона на мобильных
               disabled={isSubmitting}
             />
           </div>
 
+          {/* Предупреждение о SALE только при изменении цены */}
           {isPriceChanged && (
-            <div className="flex items-start space-x-2 p-3 bg-amber-50 border border-amber-200 rounded-md">
-              <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-amber-800">
+            <div className="flex items-start space-x-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
                 {t.repostPriceDialog.saleWarning}
               </p>
             </div>
           )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter>
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="flex-1"
+            className="w-full sm:w-auto h-12 sm:h-10 touch-target" // Адаптивные размеры кнопок
           >
             {t.repostPriceDialog.cancel}
           </Button>
           <Button
             type="submit"
-            className="flex-1"
+            className="w-full sm:w-auto h-12 sm:h-10 touch-target" // Адаптивные размеры кнопок
             disabled={isSubmitting || !isValidPrice}
           >
             {isSubmitting ? (

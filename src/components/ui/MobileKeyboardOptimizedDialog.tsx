@@ -75,39 +75,39 @@ export const MobileKeyboardOptimizedDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className={cn(
-          "w-full max-w-sm mx-auto",
-          "max-h-[85vh] overflow-hidden",
-          "transition-all duration-200 ease-in-out",
-          "safe-area-insets",
+          // Адаптивные размеры для всех устройств
+          "w-full max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl",
+          // Адаптивные отступы
+          "p-4 sm:p-6 md:p-8", 
+          // Адаптивные внешние отступы
+          "mx-2 sm:mx-4 md:mx-auto",
+          // Адаптивная высота
+          "max-h-[90vh] sm:max-h-[85vh] md:max-h-[80vh]",
+          // Переполнение контента
+          "overflow-hidden",
+          // Smooth transitions
+          "transition-all duration-300 ease-in-out",
+          // Мобильная оптимизация при клавиатуре
           isKeyboardVisible && [
-            "max-h-[50vh]",
-            "keyboard-visible"
+            "!max-h-[60vh] !fixed !top-4 !transform-none !translate-x-0 !translate-y-0",
+            "!left-2 !right-2 !mx-0"
           ],
           className
         )}
-        style={{
-          position: 'fixed',
-          top: isKeyboardVisible ? 'max(5vh, env(safe-area-inset-top, 0px))' : '50%',
-          left: '50%',
-          transform: isKeyboardVisible ? 'translateX(-50%)' : 'translate(-50%, -50%)',
-          // Use CSS transition instead of inline for better browser support
-          WebkitTransform: isKeyboardVisible ? 'translateX(-50%)' : 'translate(-50%, -50%)',
-        }}
       >
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="text-center">{title}</DialogTitle>
+        {/* Sticky Header */}
+        <DialogHeader className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border/50 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 py-3 sm:py-4">
+          <DialogTitle className="text-base sm:text-lg font-semibold text-center">{title}</DialogTitle>
         </DialogHeader>
         
+        {/* Scrollable Content */}
         <div 
           className={cn(
             "overflow-y-auto overflow-x-hidden",
-            "scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100",
-            isKeyboardVisible ? "max-h-[35vh]" : "max-h-[70vh]"
+            "flex-1 py-4",
+            // Адаптивная высота контента
+            isKeyboardVisible ? "max-h-[35vh]" : "max-h-[65vh] sm:max-h-[60vh] md:max-h-[55vh]"
           )}
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#d1d5db #f3f4f6'
-          }}
         >
           {children}
         </div>
