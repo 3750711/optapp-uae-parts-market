@@ -39,10 +39,15 @@ export const useLatestPublishedProducts = () => {
         .order('created_at', { ascending: false })
         .limit(10);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to load latest products:', error);
+        throw error;
+      }
       return data || [];
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2, // Повторные попытки при ошибке
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Экспоненциальная задержка
   });
 };
