@@ -77,6 +77,7 @@ const SellerListingsContent = () => {
             optid_created,
             lot_number,
             place_number,
+            last_notification_sent_at,
             product_images(
               url,
               is_primary
@@ -174,6 +175,22 @@ const SellerListingsContent = () => {
         type: 'active'
       });
     }, 1000);
+  };
+
+  const handleRepostSuccess = () => {
+    devLog("Product repost successful, refreshing data");
+    
+    // Invalidate and refetch to get updated last_notification_sent_at
+    queryClient.invalidateQueries({
+      queryKey: ['seller-products', user?.id, activeSearch]
+    });
+    
+    setTimeout(() => {
+      queryClient.refetchQueries({
+        queryKey: ['seller-products', user?.id, activeSearch],
+        type: 'active'
+      });
+    }, 500);
   };
 
   const handleRetry = async () => {
@@ -303,7 +320,8 @@ const SellerListingsContent = () => {
           delivery_price: product.delivery_price,
           optid_created: product.optid_created,
           lot_number: product.lot_number,
-          place_number: product.place_number
+          place_number: product.place_number,
+          last_notification_sent_at: product.last_notification_sent_at
         };
       });
     } catch (mappingError) {
@@ -403,6 +421,7 @@ const SellerListingsContent = () => {
             showAllStatuses={true}
             showSoldButton={true}
             onStatusChange={handleStatusChange}
+            onRepostSuccess={handleRepostSuccess}
             batchOffersData={batchOffersData}
           />
           

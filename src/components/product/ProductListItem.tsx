@@ -28,11 +28,12 @@ interface ProductListItemProps {
     has_pending_offer?: boolean;
   };
   batchOffersData?: any;
+  showSoldButton?: boolean;
+  onStatusChange?: (productId: string, newStatus: string) => void;
+  onRepostSuccess?: () => void; // Add repost success callback
   showOfferStatus?: boolean;
   showAuctionInfo?: boolean;
   lastUpdateTime?: Date;
-  showSoldButton?: boolean;
-  onStatusChange?: (productId: string, newStatus: string) => void;
 }
 
 const ProductListItem: React.FC<ProductListItemProps> = ({ 

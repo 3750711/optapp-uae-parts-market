@@ -228,6 +228,46 @@ export async function handleProductNotification(productId: string, notificationT
     );
   }
 
+  // Handle 'repost' notification type - send full ad with images and update timestamp
+  if (notificationType === 'repost') {
+    // For repost, send full ad with images like published product
+    console.log('Sending repost notification with images');
+    
+    try {
+      // Send the media group with images
+      const result = await sendImageMediaGroups(
+        images.map((image: any) => image.url), 
+        messageText, 
+        supabaseClient, 
+        productId,
+        PRODUCT_GROUP_CHAT_ID,
+        corsHeaders,
+        BOT_TOKEN
+      );
+      
+      // Update the notification timestamp for repost cooldown
+      const { error: updateError } = await supabaseClient
+        .from('products')
+        .update({ last_notification_sent_at: new Date().toISOString() })
+        .eq('id', productId);
+        
+      if (updateError) {
+        console.error('Error updating notification timestamp for repost:', updateError);
+      } else {
+        console.log('Successfully updated notification timestamp for repost');
+      }
+      
+      return result;
+      
+    } catch (error) {
+      console.error('Error sending repost notification:', error);
+      return new Response(
+        JSON.stringify({ success: false, message: `Failed to send repost notification: ${error.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+  }
+
   // Handle 'status_change' notification type
   if (notificationType === 'status_change') {
     // Skip notifications for pending status - no need to notify about moderation

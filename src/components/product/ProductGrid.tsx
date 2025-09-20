@@ -10,6 +10,7 @@ interface ProductGridProps {
   showAllStatuses?: boolean;
   showSoldButton?: boolean;
   onStatusChange?: () => void;
+  onRepostSuccess?: () => void; // Add repost success callback
   viewMode?: ViewMode;
   batchOffersData?: BatchOfferData[];
 }

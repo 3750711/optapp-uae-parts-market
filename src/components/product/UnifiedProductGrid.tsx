@@ -17,6 +17,7 @@ interface UnifiedProductGridProps {
   showAllStatuses?: boolean;
   showSoldButton?: boolean;
   onStatusChange?: () => void;
+  onRepostSuccess?: () => void; // Add repost callback
   viewMode?: ViewMode;
   containerHeight?: number;
   batchOffersData?: BatchOfferData[];
@@ -29,6 +30,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
   showAllStatuses = false,
   showSoldButton = false,
   onStatusChange,
+  onRepostSuccess,
   viewMode = 'list',
   containerHeight = 600,
   batchOffersData,
@@ -158,6 +160,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
             product={product}
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
+            onRepostSuccess={onRepostSuccess}
             batchOffersData={batchOffersData}
             useSimpleOfferButton={useSimpleOfferButton}
           />
@@ -188,15 +191,16 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
   if (viewMode === 'list') {
     return (
       <div className="space-y-3">
-        {visibleProducts.map((product) => (
-          <ProductListItem
-            key={product.id}
-            product={product} 
-            batchOffersData={batchOffersData}
-            showSoldButton={showSoldButton}
-            onStatusChange={onStatusChange}
-          />
-        ))}
+         {visibleProducts.map((product) => (
+           <ProductListItem
+             key={product.id}
+             product={product} 
+             batchOffersData={batchOffersData}
+             showSoldButton={showSoldButton}
+             onStatusChange={onStatusChange}
+             onRepostSuccess={onRepostSuccess}
+           />
+         ))}
       </div>
     );
   }
@@ -210,6 +214,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
             product={product} 
             showSoldButton={showSoldButton}
             onStatusChange={onStatusChange}
+            onRepostSuccess={onRepostSuccess}
             batchOffersData={batchOffersData}
             useSimpleOfferButton={useSimpleOfferButton}
           />

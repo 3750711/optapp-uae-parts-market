@@ -13,6 +13,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useNavigate } from "react-router-dom";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useDeliveryLogic } from "@/hooks/useDeliveryLogic";
+import { RepostButton } from "./RepostButton";
 
 export interface ProductProps {
   id: string;
@@ -42,6 +43,7 @@ export interface ProductProps {
   created_at?: string;
   updated_at?: string;
   optid_created?: string;
+  last_notification_sent_at?: string; // Add field for repost functionality
 }
 
 interface ProductCardProps {
@@ -53,6 +55,7 @@ interface ProductCardProps {
   useFallbackQueries?: boolean;
   batchOffersData?: import('@/hooks/use-price-offers-batch').BatchOfferData[];
   useSimpleOfferButton?: boolean;
+  onRepostSuccess?: () => void; // Add callback for repost success
 }
 
 const ProductCard = memo(({
@@ -64,6 +67,7 @@ const ProductCard = memo(({
   useFallbackQueries = false,
   batchOffersData,
   useSimpleOfferButton = false,
+  onRepostSuccess,
 }: ProductCardProps) => {
   const { user } = useAuth();
   const { hasAdminAccess } = useAdminAccess();
@@ -401,6 +405,19 @@ const ProductCard = memo(({
                 </Button>
               </>
             )}
+          </div>
+        )}
+
+        {/* Repost Button for Sellers */}
+        {user?.id === product.seller_id && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <RepostButton
+              productId={product.id}
+              lastNotificationSentAt={product.last_notification_sent_at}
+              status={product.status}
+              sellerId={product.seller_id}
+              onRepostSuccess={onRepostSuccess}
+            />
           </div>
         )}
       </div>
