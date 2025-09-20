@@ -89,6 +89,14 @@ export interface ProductStatusTranslations {
     sending: string;
     queued: string;
   };
+  repostMessages: {
+    loginRequired: string;
+    queuedSuccess: string;
+    queuedSuccessDescription: string;
+    queueError: string;
+    queueErrorDescription: string;
+    confirmDialog: string;
+  };
 }
 
 export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): ProductStatusTranslations => {
@@ -183,6 +191,14 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         repost: "Репост",
         sending: "Отправка...",
         queued: "В очереди"
+      },
+      repostMessages: {
+        loginRequired: "Необходимо войти в систему",
+        queuedSuccess: "Репост добавлен в очередь!",
+        queuedSuccessDescription: "Уведомление будет отправлено в ближайшее время",
+        queueError: "Ошибка при добавлении репоста в очередь",
+        queueErrorDescription: "Попробуйте еще раз через несколько минут",
+        confirmDialog: "Отправить репост товара в Telegram группу?\n\nПосле отправки следующий репост будет доступен через 72 часа."
       }
     },
     en: {
@@ -275,6 +291,14 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         repost: "Repost",
         sending: "Sending...",
         queued: "Queued"
+      },
+      repostMessages: {
+        loginRequired: "You need to log in",
+        queuedSuccess: "Repost added to queue!",
+        queuedSuccessDescription: "Notification will be sent shortly",
+        queueError: "Error adding repost to queue",
+        queueErrorDescription: "Please try again in a few minutes",
+        confirmDialog: "Send product repost to Telegram group?\n\nAfter sending, the next repost will be available in 72 hours."
       }
     },
     bn: {
@@ -367,6 +391,14 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         repost: "রিপোস্ট",
         sending: "পাঠানো হচ্ছে...",
         queued: "সারিতে"
+      },
+      repostMessages: {
+        loginRequired: "লগ ইন করা প্রয়োজন",
+        queuedSuccess: "রিপোস্ট সারিতে যোগ করা হয়েছে!",
+        queuedSuccessDescription: "শীঘ্রই নোটিফিকেশন পাঠানো হবে",
+        queueError: "রিপোস্ট সারিতে যোগ করতে ত্রুটি",
+        queueErrorDescription: "কয়েক মিনিট পরে আবার চেষ্টা করুন",
+        confirmDialog: "টেলিগ্রাম গ্রুপে পণ্যের রিপোস্ট পাঠাবেন?\n\nপাঠানোর পর, পরবর্তী রিপোস্ট ৭২ ঘন্টা পর পাওয়া যাবে।"
       }
     }
   };

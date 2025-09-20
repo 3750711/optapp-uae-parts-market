@@ -3,12 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBackgroundSync } from "./useBackgroundSync";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
 export const useProductRepost = () => {
   const [isReposting, setIsReposting] = useState<Record<string, boolean>>({});
   const [queuedReposts, setQueuedReposts] = useState<Record<string, string>>({}); // Track queued reposts by productId -> syncId
   const { user } = useAuth();
   const { queueForSync, getPendingCount } = useBackgroundSync();
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
 
   // Check if user can repost a product
   const checkCanRepost = (lastNotificationSentAt?: string | null) => {
@@ -52,7 +56,7 @@ export const useProductRepost = () => {
   // Send repost notification via background queue
   const sendRepost = async (productId: string) => {
     if (!user) {
-      toast.error('Необходимо войти в систему');
+      toast.error(t.repostMessages.loginRequired);
       return false;
     }
 
@@ -72,15 +76,15 @@ export const useProductRepost = () => {
       setQueuedReposts(prev => ({ ...prev, [productId]: syncId }));
       
       console.log(`✅ [ProductRepost] Repost queued successfully with ID: ${syncId}`);
-      toast.success('Репост добавлен в очередь!', {
-        description: 'Уведомление будет отправлено в ближайшее время'
+      toast.success(t.repostMessages.queuedSuccess, {
+        description: t.repostMessages.queuedSuccessDescription
       });
       return true;
 
     } catch (error) {
       console.error(`💥 [ProductRepost] Exception during repost queuing:`, error);
-      toast.error('Ошибка при добавлении репоста в очередь', {
-        description: 'Попробуйте еще раз через несколько минут'
+      toast.error(t.repostMessages.queueError, {
+        description: t.repostMessages.queueErrorDescription
       });
       return false;
     } finally {

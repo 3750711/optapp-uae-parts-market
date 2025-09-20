@@ -37,9 +37,7 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
     if (!canRepost || isLoading || isQueued) return;
     
     // Show confirmation dialog
-    const confirmed = window.confirm(
-      `Отправить репост товара в Telegram группу?\n\nПосле отправки следующий репост будет доступен через 72 часа.`
-    );
+    const confirmed = window.confirm(t.repostMessages.confirmDialog);
     
     if (!confirmed) return;
     
