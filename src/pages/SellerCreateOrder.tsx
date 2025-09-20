@@ -63,7 +63,7 @@ const SellerCreateOrder = () => {
   const onImagesUpload = useCallback((urls: string[]) => {
     console.log('📸 Images uploaded in seller order:', urls);
     setAllImages(urls);
-  }, [setAllImages]);
+  }, []); // Убираем setAllImages из зависимостей
 
   const onVideoUpload = useCallback((urls: string[]) => {
     setVideos((prev) => [...prev, ...urls]);
