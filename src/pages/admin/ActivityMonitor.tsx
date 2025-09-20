@@ -79,9 +79,9 @@ export default function ActivityMonitor() {
         query = query.ilike('profiles.email', `%${emailFilter}%`);
       }
 
-      if (eventTypeFilter) {
-        query = query.eq('action_type', eventTypeFilter);
-      }
+              if (eventTypeFilter && eventTypeFilter !== 'all') {
+                query = query.eq('action_type', eventTypeFilter);
+              }
 
       if (dateFromFilter) {
         query = query.gte('created_at', new Date(dateFromFilter).toISOString());
@@ -194,7 +194,7 @@ export default function ActivityMonitor() {
                     <SelectValue placeholder="Все типы" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Все типы</SelectItem>
+                    <SelectItem value="all">Все типы</SelectItem>
                     {eventTypes?.map((type: string) => (
                       <SelectItem key={type} value={type}>
                         {type}

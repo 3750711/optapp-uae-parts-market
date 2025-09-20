@@ -280,14 +280,14 @@ const ProductSearchFilters: React.FC<ProductSearchFiltersProps> = ({
                 <div className="space-y-2">
                   <label className="text-sm">Статус товара</label>
                   <Select
-                    value={statusFilter || ""}
-                    onValueChange={(value) => setStatusFilter(value || null)}
+                    value={statusFilter || "all"}
+                    onValueChange={(value) => setStatusFilter(value === "all" ? null : value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Все статусы" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Все статусы</SelectItem>
+                      <SelectItem value="all">Все статусы</SelectItem>
                       <SelectItem value="pending">Ожидает проверки</SelectItem>
                       <SelectItem value="active">Опубликован</SelectItem>
                       <SelectItem value="sold">Продан</SelectItem>
