@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -60,10 +60,20 @@ const SellerCreateOrder = () => {
     }
   });
 
+  // Ref для предотвращения бесконечного цикла изображений
+  const prevImagesRef = useRef<string[]>([]);
+  
   const onImagesUpload = useCallback((urls: string[]) => {
-    console.log('📸 Images uploaded in seller order:', urls);
-    setAllImages(urls);
-  }, []); // Убираем setAllImages из зависимостей
+    // Проверяем, действительно ли изображения изменились
+    const hasChanged = urls.length !== prevImagesRef.current.length || 
+      urls.some((url, index) => url !== prevImagesRef.current[index]);
+    
+    if (hasChanged) {
+      console.log('📸 Images uploaded in seller order:', urls);
+      setAllImages(urls);
+      prevImagesRef.current = urls;
+    }
+  }, [setAllImages]); // Только setAllImages в зависимостях
 
   const onVideoUpload = useCallback((urls: string[]) => {
     setVideos((prev) => [...prev, ...urls]);
