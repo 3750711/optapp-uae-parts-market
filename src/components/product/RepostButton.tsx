@@ -18,7 +18,7 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
   sellerId,
   onRepostSuccess
 }) => {
-  const { checkCanRepost, sendRepost, isReposting } = useProductRepost();
+  const { checkCanRepost, sendRepost, isReposting, queuedReposts } = useProductRepost();
 
   // Only show for active products
   if (status !== 'active') {
@@ -27,9 +27,17 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
 
   const { canRepost, hoursLeft } = checkCanRepost(lastNotificationSentAt);
   const isLoading = isReposting[productId] || false;
+  const isQueued = !!queuedReposts[productId];
 
   const handleRepost = async () => {
-    if (!canRepost || isLoading) return;
+    if (!canRepost || isLoading || isQueued) return;
+    
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `Отправить репост товара в Telegram группу?\n\nПосле отправки следующий репост будет доступен через 72 часа.`
+    );
+    
+    if (!confirmed) return;
     
     const success = await sendRepost(productId);
     if (success && onRepostSuccess) {
@@ -51,12 +59,27 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
     );
   }
 
+  // Show queued status
+  if (isQueued) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        disabled
+        className="w-full mt-2 text-xs bg-blue-50 border-blue-200 text-blue-600"
+      >
+        <RefreshCw className="h-3 w-3 mr-1" />
+        В очереди
+      </Button>
+    );
+  }
+
   return (
     <Button
       variant="outline"
       size="sm"
       onClick={handleRepost}
-      disabled={isLoading}
+      disabled={isLoading || isQueued}
       className="w-full mt-2 text-xs hover:bg-blue-50 hover:border-blue-300"
     >
       {isLoading ? (
@@ -64,7 +87,7 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
       ) : (
         <>📢</>
       )}
-      {isLoading ? 'Отправка...' : 'Репост'}
+      {isLoading ? 'Добавление...' : 'Репост'}
     </Button>
   );
 };

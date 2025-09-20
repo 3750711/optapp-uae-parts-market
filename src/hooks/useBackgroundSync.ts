@@ -133,6 +133,8 @@ export const useBackgroundSync = () => {
           return await syncPriceOffer(item.data);
         case 'product-create':
           return await syncProduct(item.data);
+        case 'product-repost':
+          return await syncProductRepost(item.data);
         default:
           console.warn('📱 BG Sync: Unknown sync type:', item.type);
           return false;
@@ -181,6 +183,31 @@ export const useBackgroundSync = () => {
       return !error;
     } catch (error) {
       console.error('Failed to sync product:', error);
+      return false;
+    }
+  }, []);
+
+  // Sync product repost
+  const syncProductRepost = useCallback(async (repostData: { productId: string }): Promise<boolean> => {
+    try {
+      console.log('📱 BG Sync: Sending product repost for', repostData.productId);
+      
+      const { error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: { 
+          productId: repostData.productId,
+          notificationType: 'repost'
+        }
+      });
+      
+      if (error) {
+        console.error('📱 BG Sync: Product repost failed:', error);
+        return false;
+      }
+      
+      console.log('📱 BG Sync: Product repost sent successfully');
+      return true;
+    } catch (error) {
+      console.error('📱 BG Sync: Failed to sync product repost:', error);
       return false;
     }
   }, []);

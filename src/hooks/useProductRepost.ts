@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useBackgroundSync } from "./useBackgroundSync";
 
 export const useProductRepost = () => {
   const [isReposting, setIsReposting] = useState<Record<string, boolean>>({});
+  const [queuedReposts, setQueuedReposts] = useState<Record<string, string>>({}); // Track queued reposts by productId -> syncId
   const { user } = useAuth();
+  const { queueForSync, getPendingCount } = useBackgroundSync();
 
   // Check if user can repost a product
   const checkCanRepost = (lastNotificationSentAt?: string | null) => {
@@ -46,42 +49,39 @@ export const useProductRepost = () => {
     };
   };
 
-  // Send repost notification
+  // Send repost notification via background queue
   const sendRepost = async (productId: string) => {
     if (!user) {
       toast.error('Необходимо войти в систему');
       return false;
     }
 
-    if (isReposting[productId]) {
+    if (isReposting[productId] || queuedReposts[productId]) {
       return false;
     }
 
     setIsReposting(prev => ({ ...prev, [productId]: true }));
 
     try {
-      console.log(`📢 [ProductRepost] Sending repost notification for product: ${productId}`);
+      console.log(`📢 [ProductRepost] Queuing repost notification for product: ${productId}`);
       
-      const { error } = await supabase.functions.invoke('send-telegram-notification', {
-        body: { 
-          productId,
-          notificationType: 'repost'
-        }
+      // Add to background sync queue for reliable delivery
+      const syncId = await queueForSync('product-repost', { productId });
+      
+      // Track queued repost
+      setQueuedReposts(prev => ({ ...prev, [productId]: syncId }));
+      
+      console.log(`✅ [ProductRepost] Repost queued successfully with ID: ${syncId}`);
+      toast.success('Репост добавлен в очередь!', {
+        description: 'Уведомление будет отправлено в ближайшее время'
       });
-
-      if (error) {
-        console.error(`❌ [ProductRepost] Repost failed:`, error);
-        toast.error('Ошибка при отправке репоста');
-        return false;
-      }
-
-      console.log(`✅ [ProductRepost] Repost sent successfully`);
-      toast.success('Репост отправлен в Telegram!');
       return true;
 
     } catch (error) {
-      console.error(`💥 [ProductRepost] Exception during repost:`, error);
-      toast.error('Ошибка при отправке репоста');
+      console.error(`💥 [ProductRepost] Exception during repost queuing:`, error);
+      toast.error('Ошибка при добавлении репоста в очередь', {
+        description: 'Попробуйте еще раз через несколько минут'
+      });
       return false;
     } finally {
       setIsReposting(prev => ({ ...prev, [productId]: false }));
@@ -91,6 +91,8 @@ export const useProductRepost = () => {
   return {
     checkCanRepost,
     sendRepost,
-    isReposting
+    isReposting,
+    queuedReposts,
+    pendingCount: getPendingCount()
   };
 };
