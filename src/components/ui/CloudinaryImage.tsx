@@ -5,7 +5,7 @@ interface CloudinaryImageProps {
   publicId: string;
   alt: string;
   className?: string;
-  size?: 'thumbnail' | 'card' | 'detail';
+  size?: 'thumbnail' | 'card' | 'detail' | 'telegramCard';
   priority?: boolean;
   onLoad?: () => void;
   onError?: () => void;
@@ -29,7 +29,8 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
   const sizeConfig = {
     thumbnail: { width: 120, height: 90, quality: 'auto:low' as const },
     card: { width: 400, height: undefined, quality: 'auto:low' as const },
-    detail: { width: 800, height: undefined, quality: 'auto:good' as const }
+    detail: { width: 800, height: undefined, quality: 'auto:good' as const },
+    telegramCard: { width: 720, height: 540, quality: 'auto:good' as const }
   };
 
   const config = sizeConfig[size];
@@ -40,7 +41,21 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     
     let transformations: string[];
     
-    if (size === 'thumbnail' && config.height) {
+    if (size === 'telegramCard') {
+      // Special transformations for telegram cards with sharpening
+      transformations = [
+        'f_auto',
+        'q_auto:good',
+        'dpr_auto',
+        'c_fill',
+        'g_auto',
+        'e_sharpen:100',
+        `w_${config.width}`,
+        `h_${config.height}`,
+        `f_${format}`,
+        'fl_progressive'
+      ];
+    } else if (size === 'thumbnail' && config.height) {
       // For thumbnails, use c_fit to preserve image proportions
       transformations = [
         `w_${config.width}`,

@@ -16,8 +16,7 @@ const MobileProductsCarousel = () => {
   const limitedProducts = products.slice(0, 10);
 
   return (
-    <div>
-      
+    <div className="overflow-x-auto snap-x snap-mandatory">
       <Carousel
         opts={{
           align: "start",
@@ -26,19 +25,28 @@ const MobileProductsCarousel = () => {
         }}
         className="w-full"
       >
-        <CarouselContent className="-ml-1">
+        <CarouselContent className="-ml-1 gap-3">
           {limitedProducts.map((product) => {
             // Get primary image or first image
             const primaryImage = product.product_images?.find(img => img.is_primary);
             const imageUrl = primaryImage?.url || product.product_images?.[0]?.url;
             
             return (
-              <CarouselItem key={product.id} className="pl-1 basis-[160px]">
+              <CarouselItem key={product.id} className="pl-1 basis-[160px] snap-start">
                 <CompactProductCard
                   title={product.title}
                   brand={product.brand}
                   model={product.model}
                   imageUrl={imageUrl}
+                  telegramStyleV2={true}
+                  heightVariant="compact"
+                  price={product.price}
+                  deliveryPrice={product.delivery_price}
+                  lotNumber={product.lot_number}
+                  condition={product.condition}
+                  description={product.description}
+                  sellerOptId={product.profiles?.opt_id}
+                  sellerTelegram={product.profiles?.telegram}
                 />
               </CarouselItem>
             );
