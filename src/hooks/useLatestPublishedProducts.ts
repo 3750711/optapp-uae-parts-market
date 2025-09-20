@@ -10,6 +10,7 @@ interface PublishedProduct {
   lot_number: number;
   condition: string;
   description?: string;
+  tg_views_estimate?: number;
   product_images?: Array<{ url: string; is_primary?: boolean }>;
 }
 
@@ -28,6 +29,7 @@ export const useLatestPublishedProducts = () => {
           lot_number,
           condition,
           description,
+          tg_views_estimate,
           product_images!inner (
             url,
             is_primary

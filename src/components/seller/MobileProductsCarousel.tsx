@@ -44,6 +44,7 @@ const MobileProductsCarousel = () => {
                   lotNumber={product.lot_number}
                   condition={product.condition}
                   description={product.description}
+                  tgViewsEstimate={product.tg_views_estimate}
                 />
               </CarouselItem>
             );
