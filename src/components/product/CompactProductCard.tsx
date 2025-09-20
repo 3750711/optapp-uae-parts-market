@@ -39,11 +39,6 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
   if (telegramStyleV2) {
     return (
       <div className={`bg-white rounded-[12px] overflow-hidden shadow-none border-0 p-0 w-[160px] ${containerHeight} flex flex-col flex-shrink-0 snap-start`}>
-        {/* Status line (optional) */}
-        <div className="px-2 pt-2 text-[12px] text-[#7a7a7a] leading-4">
-          Статус: Опубликован
-        </div>
-        
         {/* Image - 70-72% height */}
         <div className={`${imageHeight} w-full bg-muted flex-shrink-0 relative`}>
           {imageUrl ? (
