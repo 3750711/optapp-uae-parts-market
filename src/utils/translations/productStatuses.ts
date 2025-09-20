@@ -101,10 +101,8 @@ export interface ProductStatusTranslations {
   repostPriceDialog: {
     title: string;
     description: string;
-    currentPrice: string;
-    newPrice: string;
-    keepCurrentPrice: string;
-    priceChanged: string;
+    priceLabel: string;
+    saleWarning: string;
     sendRepost: string;
     cancel: string;
   };
@@ -213,12 +211,10 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         cooldownTitle: "Через {hours}ч"
       },
       repostPriceDialog: {
-        title: "Изменить цену перед репостом",
-        description: "Вы можете изменить цену товара перед отправкой уведомления",
-        currentPrice: "Текущая цена",
-        newPrice: "Новая цена",
-        keepCurrentPrice: "Оставить текущую цену",
-        priceChanged: "Цена изменена",
+        title: "Репост товара",
+        description: "Укажите цену для репоста",
+        priceLabel: "Цена ($)",
+        saleWarning: "При изменении цены лот будет помечен как SALE",
         sendRepost: "Отправить репост",
         cancel: "Отмена"
       }
@@ -324,12 +320,10 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         cooldownTitle: "In {hours}h"
       },
       repostPriceDialog: {
-        title: "Change price before repost",
-        description: "You can change the product price before sending notification",
-        currentPrice: "Current price",
-        newPrice: "New price",
-        keepCurrentPrice: "Keep current price",
-        priceChanged: "Price changed",
+        title: "Repost Product",
+        description: "Set price for repost",
+        priceLabel: "Price ($)",
+        saleWarning: "Changing the price will mark the lot as SALE",
         sendRepost: "Send repost",
         cancel: "Cancel"
       }
@@ -435,12 +429,10 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         cooldownTitle: "{hours} ঘন্টায়"
       },
       repostPriceDialog: {
-        title: "রিপোস্টের আগে দাম পরিবর্তন করুন",
-        description: "আপনি নোটিফিকেশন পাঠানোর আগে পণ্যের দাম পরিবর্তন করতে পারেন",
-        currentPrice: "বর্তমান দাম",
-        newPrice: "নতুন দাম",
-        keepCurrentPrice: "বর্তমান দাম রাখুন",
-        priceChanged: "দাম পরিবর্তিত",
+        title: "পণ্য রিপোস্ট",
+        description: "রিপোস্টের জন্য মূল্য নির্ধারণ করুন",
+        priceLabel: "মূল্য ($)",
+        saleWarning: "দাম পরিবর্তন করলে লটটি SALE হিসেবে চিহ্নিত হবে",
         sendRepost: "রিপোস্ট পাঠান",
         cancel: "বাতিল"
       }
