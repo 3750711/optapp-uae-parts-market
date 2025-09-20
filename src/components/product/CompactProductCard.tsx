@@ -31,10 +31,10 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
   // Combine brand and model for display with 📦 emoji
   const displayText = `📦 ${[brand, model].filter(Boolean).join(' ') || title}`;
   
-  // Calculate heights based on variant
-  const containerHeight = heightVariant === 'compact' ? 'h-[194px]' : 'h-[220px]'; // ~12% reduction
-  const imageHeight = heightVariant === 'compact' ? 'h-[140px]' : 'h-[171px]'; // ~72% of container
-  const textHeight = heightVariant === 'compact' ? 'h-[54px]' : 'h-[49px]';
+  // Calculate heights based on variant - увеличил для помещения текста
+  const containerHeight = heightVariant === 'compact' ? 'h-[240px]' : 'h-[260px]';
+  const imageHeight = heightVariant === 'compact' ? 'h-[140px]' : 'h-[171px]';
+  const textHeight = heightVariant === 'compact' ? 'h-[100px]' : 'h-[89px]';
   
   if (telegramStyleV2) {
     return (
@@ -64,8 +64,8 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
           )}
         </div>
         
-        {/* Text block */}
-        <div className="px-2 py-2 space-y-1 flex-1">
+        {/* Text block - фиксированная высота вместо flex-1 */}
+        <div className={`${textHeight} px-2 py-2 space-y-1 overflow-hidden`}>
           {/* LOT */}
           {lotNumber && (
             <p className="text-[14px] leading-tight text-[#222]">
