@@ -1834,6 +1834,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          ended_at: string | null
+          id: string
+          last_activity_time: string | null
+          session_timeout_minutes: number | null
+          started_at: string
+          termination_details: string | null
+          termination_reason: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          last_activity_time?: string | null
+          session_timeout_minutes?: number | null
+          started_at: string
+          termination_details?: string | null
+          termination_reason?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          ended_at?: string | null
+          id?: string
+          last_activity_time?: string | null
+          session_timeout_minutes?: number | null
+          started_at?: string
+          termination_details?: string | null
+          termination_reason?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       app_public_settings: {
