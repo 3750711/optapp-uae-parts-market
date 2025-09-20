@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, Search, Calendar, User, Activity, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { RefreshCw, Search, Calendar, User, Activity, AlertCircle, ChevronDown, ChevronRight, Clock, LogIn, LogOut } from 'lucide-react';
+import { format, formatDuration, intervalToDuration } from 'date-fns';
 
 interface ActivityLog {
   id: string;
@@ -31,6 +32,21 @@ interface ActivityLog {
   };
 }
 
+interface UserSession {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name?: string;
+  user_type?: string;
+  login_time: string;
+  logout_time?: string;
+  logs: ActivityLog[];
+  logs_count: number;
+  is_active: boolean;
+  session_duration?: string;
+  unique_pages: number;
+}
+
 const EVENT_TYPE_COLORS = {
   login: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
   logout: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
@@ -38,6 +54,138 @@ const EVENT_TYPE_COLORS = {
   client_error: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
   api_error: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
   button_click: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
+};
+
+// Function to group logs by user sessions
+const groupLogsBySession = (logs: ActivityLog[]): UserSession[] => {
+  if (!logs || logs.length === 0) return [];
+
+  // Group logs by user_id
+  const userLogs = logs.reduce((acc, log) => {
+    if (!log.user_id) return acc;
+    if (!acc[log.user_id]) acc[log.user_id] = [];
+    acc[log.user_id].push(log);
+    return acc;
+  }, {} as Record<string, ActivityLog[]>);
+
+  const sessions: UserSession[] = [];
+
+  // Process each user's logs
+  Object.entries(userLogs).forEach(([userId, userLogsList]) => {
+    // Sort logs by timestamp
+    const sortedLogs = userLogsList.sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    // Find all login events
+    const loginEvents = sortedLogs.filter(log => log.action_type === 'login');
+
+    if (loginEvents.length === 0) {
+      // If no login events, create a single session with all logs
+      if (sortedLogs.length > 0) {
+        const firstLog = sortedLogs[0];
+        const uniquePages = new Set(
+          sortedLogs.filter(log => log.path).map(log => log.path)
+        ).size;
+
+        sessions.push({
+          id: `${userId}-session-0`,
+          user_id: userId,
+          email: firstLog.profiles?.email || 'Unknown',
+          full_name: firstLog.profiles?.full_name,
+          user_type: firstLog.profiles?.user_type,
+          login_time: firstLog.created_at,
+          logs: sortedLogs,
+          logs_count: sortedLogs.length,
+          is_active: true,
+          unique_pages: uniquePages,
+        });
+      }
+      return;
+    }
+
+    // Create sessions from login events
+    loginEvents.forEach((loginEvent, index) => {
+      const loginTime = new Date(loginEvent.created_at);
+      
+      // Find the end of this session (next login or logout)
+      let sessionEndTime: Date | null = null;
+      let logoutEvent: ActivityLog | null = null;
+      
+      // Look for logout after this login
+      const subsequentLogs = sortedLogs.filter(log => 
+        new Date(log.created_at) >= loginTime
+      );
+      
+      const nextLogin = loginEvents[index + 1];
+      const nextLoginTime = nextLogin ? new Date(nextLogin.created_at) : null;
+      
+      // Find logout between this login and next login (or after last login)
+      for (const log of subsequentLogs) {
+        if (log.action_type === 'logout') {
+          const logoutTime = new Date(log.created_at);
+          if (!nextLoginTime || logoutTime < nextLoginTime) {
+            sessionEndTime = logoutTime;
+            logoutEvent = log;
+            break;
+          }
+        }
+      }
+      
+      // If no logout found, use next login time as session end
+      if (!sessionEndTime && nextLoginTime) {
+        sessionEndTime = nextLoginTime;
+      }
+
+      // Collect all logs for this session
+      const sessionLogs = sortedLogs.filter(log => {
+        const logTime = new Date(log.created_at);
+        return logTime >= loginTime && 
+               (!sessionEndTime || logTime <= sessionEndTime);
+      });
+
+      // Calculate session metrics
+      const uniquePages = new Set(
+        sessionLogs.filter(log => log.path).map(log => log.path)
+      ).size;
+
+      let sessionDuration: string | undefined;
+      const isActive = !logoutEvent && !nextLoginTime;
+      
+      if (sessionEndTime && !isActive) {
+        const duration = intervalToDuration({
+          start: loginTime,
+          end: sessionEndTime
+        });
+        
+        const parts = [];
+        if (duration.hours) parts.push(`${duration.hours}ч`);
+        if (duration.minutes) parts.push(`${duration.minutes}м`);
+        if (duration.seconds && parts.length === 0) parts.push(`${duration.seconds}с`);
+        sessionDuration = parts.join(' ') || '< 1м';
+      }
+
+      sessions.push({
+        id: `${userId}-session-${index}`,
+        user_id: userId,
+        email: loginEvent.profiles?.email || 'Unknown',
+        full_name: loginEvent.profiles?.full_name,
+        user_type: loginEvent.profiles?.user_type,
+        login_time: loginEvent.created_at,
+        logout_time: logoutEvent?.created_at,
+        logs: sessionLogs,
+        logs_count: sessionLogs.length,
+        is_active: isActive,
+        session_duration: sessionDuration,
+        unique_pages: uniquePages,
+      });
+    });
+  });
+
+  // Sort sessions by login time (newest first)
+  return sessions.sort((a, b) => 
+    new Date(b.login_time).getTime() - new Date(a.login_time).getTime()
+  );
 };
 
 export default function ActivityMonitor() {
@@ -48,14 +196,28 @@ export default function ActivityMonitor() {
   const [dateToFilter, setDateToFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
   
   const itemsPerPage = 20;
 
-  // Fetch activity logs with filters
-  const { data: activityData, isLoading, isError, refetch } = useQuery({
-    queryKey: ['activity-logs', currentPage, emailFilter, eventTypeFilter, dateFromFilter, dateToFilter],
+  // Toggle session expansion
+  const toggleSession = (sessionId: string) => {
+    setExpandedSessions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sessionId)) {
+        newSet.delete(sessionId);
+      } else {
+        newSet.add(sessionId);
+      }
+      return newSet;
+    });
+  };
+
+  // Fetch activity logs and group by sessions
+  const { data: sessionData, isLoading, isError, refetch } = useQuery({
+    queryKey: ['activity-sessions', currentPage, emailFilter, eventTypeFilter, dateFromFilter, dateToFilter],
     queryFn: async () => {
-      // Step 1: Get event logs without JOIN
+      // Step 1: Get all event logs without pagination first
       let query = supabase
         .from('event_logs')
         .select(`
@@ -84,11 +246,11 @@ export default function ActivityMonitor() {
 
       if (dateToFilter) {
         const toDate = new Date(dateToFilter);
-        toDate.setHours(23, 59, 59, 999); // End of day
+        toDate.setHours(23, 59, 59, 999);
         query = query.lte('created_at', toDate.toISOString());
       }
 
-      const { data: logs, error, count } = await query;
+      const { data: logs, error } = await query;
 
       if (error) throw error;
       if (!logs || logs.length === 0) return { data: [], count: 0 };
@@ -110,30 +272,32 @@ export default function ActivityMonitor() {
         }
       }
 
-      // Step 3: Create profiles map for quick lookup
+      // Step 3: Create profiles map and combine data
       const profilesMap = new Map(profiles.map(p => [p.id, p]));
-
-      // Step 4: Combine data
-      let logsWithProfiles = logs.map(log => ({
+      const logsWithProfiles = logs.map(log => ({
         ...log,
         profiles: log.user_id ? profilesMap.get(log.user_id) : null
       })) as ActivityLog[];
 
-      // Step 5: Apply email filter in memory (since we can't do it in SQL anymore)
+      // Step 4: Group logs by sessions
+      const allSessions = groupLogsBySession(logsWithProfiles);
+
+      // Step 5: Apply email filter to sessions
+      let filteredSessions = allSessions;
       if (emailFilter) {
-        logsWithProfiles = logsWithProfiles.filter(log => 
-          log.profiles?.email?.toLowerCase().includes(emailFilter.toLowerCase())
+        filteredSessions = allSessions.filter(session => 
+          session.email.toLowerCase().includes(emailFilter.toLowerCase())
         );
       }
 
-      // Step 6: Apply pagination to filtered results
+      // Step 6: Apply pagination to sessions
       const startIndex = (currentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
-      const paginatedLogs = logsWithProfiles.slice(startIndex, endIndex);
+      const paginatedSessions = filteredSessions.slice(startIndex, endIndex);
 
       return { 
-        data: paginatedLogs, 
-        count: logsWithProfiles.length 
+        data: paginatedSessions, 
+        count: filteredSessions.length 
       };
     },
     staleTime: 30000, // 30 seconds
@@ -159,9 +323,9 @@ export default function ActivityMonitor() {
 
   // Handle page navigation
   const totalPages = useMemo(() => {
-    if (!activityData?.count) return 1;
-    return Math.ceil(activityData.count / itemsPerPage);
-  }, [activityData?.count]);
+    if (!sessionData?.count) return 1;
+    return Math.ceil(sessionData.count / itemsPerPage);
+  }, [sessionData?.count]);
 
   const resetFilters = () => {
     setEmailFilter('');
@@ -279,10 +443,10 @@ export default function ActivityMonitor() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Лог активности
-              {activityData?.count && (
+              Пользовательские сессии
+              {sessionData?.count && (
                 <Badge variant="secondary">
-                  {activityData.count} событий
+                  {sessionData.count} сессий
                 </Badge>
               )}
             </CardTitle>
@@ -295,66 +459,135 @@ export default function ActivityMonitor() {
               </div>
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Время</TableHead>
-                      <TableHead>Пользователь</TableHead>
-                      <TableHead>Событие</TableHead>
-                      <TableHead>Путь</TableHead>
-                      <TableHead>Метаданные</TableHead>
-                      <TableHead>IP</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {activityData?.data?.map((log) => (
-                      <TableRow 
-                        key={log.id} 
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => setSelectedLog(log)}
-                      >
-                        <TableCell className="font-mono text-sm">
-                          {format(new Date(log.created_at), 'dd.MM.yyyy HH:mm:ss')}
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="font-medium">
-                              {log.profiles?.email || log.user_id || 'Системное событие'}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {log.profiles?.full_name || 'N/A'}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <Badge 
-                              className={EVENT_TYPE_COLORS[log.action_type as keyof typeof EVENT_TYPE_COLORS] || 'bg-gray-100 text-gray-800'}
-                            >
-                              {log.action_type}
-                            </Badge>
-                            {log.event_subtype && (
-                              <div className="text-sm text-muted-foreground">
-                                {log.event_subtype}
+                <div className="space-y-4">
+                  {sessionData?.data?.map((session) => (
+                  <Card key={session.id} className="border">
+                    <Collapsible 
+                      open={expandedSessions.has(session.id)}
+                      onOpenChange={() => toggleSession(session.id)}
+                    >
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/50 pb-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                              {expandedSessions.has(session.id) ? (
+                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                              ) : (
+                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                              )}
+                              <div className="flex items-center gap-2">
+                                <LogIn className="h-4 w-4 text-green-600" />
+                                <div>
+                                  <div className="font-medium text-lg">
+                                    {session.email}
+                                  </div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {session.full_name || 'Имя не указано'}
+                                  </div>
+                                </div>
                               </div>
-                            )}
+                            </div>
+                            <div className="flex items-center gap-4 text-sm">
+                              <div className="text-right">
+                                <div className="font-mono">
+                                  {format(new Date(session.login_time), 'dd.MM.yyyy HH:mm:ss')}
+                                </div>
+                                <div className="text-muted-foreground">
+                                  Время входа
+                                </div>
+                              </div>
+                              {session.session_duration && (
+                                <div className="text-right">
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {session.session_duration}
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    Длительность
+                                  </div>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2">
+                                <Badge variant={session.is_active ? "default" : "secondary"}>
+                                  {session.is_active ? "Активна" : "Завершена"}
+                                </Badge>
+                                <Badge variant="outline">
+                                  {session.logs_count} действий
+                                </Badge>
+                                <Badge variant="outline">
+                                  {session.unique_pages} страниц
+                                </Badge>
+                              </div>
+                            </div>
                           </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {log.path || 'N/A'}
-                        </TableCell>
-                        <TableCell className="max-w-xs">
-                          <div className="text-sm font-mono text-muted-foreground truncate">
-                            {formatMetadata(log.details)}
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      
+                      <CollapsibleContent>
+                        <CardContent className="pt-0">
+                          <div className="border-t pt-4">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Время</TableHead>
+                                  <TableHead>Событие</TableHead>
+                                  <TableHead>Путь</TableHead>
+                                  <TableHead>Метаданные</TableHead>
+                                  <TableHead>IP</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {session.logs.map((log) => (
+                                  <TableRow 
+                                    key={log.id}
+                                    className="cursor-pointer hover:bg-muted/50"
+                                    onClick={() => setSelectedLog(log)}
+                                  >
+                                    <TableCell className="font-mono text-sm">
+                                      {format(new Date(log.created_at), 'HH:mm:ss')}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="space-y-1">
+                                        <Badge 
+                                          className={EVENT_TYPE_COLORS[log.action_type as keyof typeof EVENT_TYPE_COLORS] || 'bg-gray-100 text-gray-800'}
+                                        >
+                                          {log.action_type}
+                                        </Badge>
+                                        {log.event_subtype && (
+                                          <div className="text-sm text-muted-foreground">
+                                            {log.event_subtype}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="font-mono text-sm">
+                                      {log.path || 'N/A'}
+                                    </TableCell>
+                                    <TableCell className="max-w-xs">
+                                      <div className="text-sm font-mono text-muted-foreground truncate">
+                                        {formatMetadata(log.details)}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="font-mono text-sm">
+                                      {log.ip_address || 'N/A'}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
                           </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {log.ip_address || 'N/A'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </Card>
+                ))}
+                
+                {sessionData?.data?.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Нет данных для отображения
+                  </div>
+                )}
+                </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
