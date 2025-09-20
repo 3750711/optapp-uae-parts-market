@@ -51,7 +51,7 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         variant="outline"
         size="sm"
         disabled
-        className="w-full mt-2 text-xs"
+        className="h-10 px-2 text-xs min-w-0 flex-shrink-0 whitespace-nowrap touch-manipulation"
       >
         <Clock className="h-3 w-3 mr-1" />
         Через {hoursLeft}ч
@@ -66,7 +66,7 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         variant="outline"
         size="sm"
         disabled
-        className="w-full mt-2 text-xs bg-blue-50 border-blue-200 text-blue-600"
+        className="h-10 px-2 text-xs min-w-0 flex-shrink-0 whitespace-nowrap touch-manipulation bg-blue-50 border-blue-200 text-blue-600"
       >
         <RefreshCw className="h-3 w-3 mr-1" />
         В очереди
@@ -80,7 +80,7 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
       size="sm"
       onClick={handleRepost}
       disabled={isLoading || isQueued}
-      className="w-full mt-2 text-xs hover:bg-blue-50 hover:border-blue-300"
+      className="h-10 px-2 text-xs min-w-0 flex-shrink-0 whitespace-nowrap touch-manipulation hover:bg-blue-50 hover:border-blue-300"
     >
       {isLoading ? (
         <RefreshCw className="h-3 w-3 mr-1 animate-spin" />

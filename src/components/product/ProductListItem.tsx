@@ -290,34 +290,31 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                       ${formatPrice(product.price)}
                     </div>
                     
-                    {showSoldButton && product.status === 'active' && onStatusChange && (
-                      <div 
-                        className="ml-2"
-                        onClick={isMobile ? (e) => e.stopPropagation() : undefined}
-                      >
-                        <ProductStatusChangeDialog
-                          productId={product.id}
-                          productName={product.title}
-                          onStatusChange={() => onStatusChange(product.id, 'sold')}
-                        />
-                      </div>
-                    )}
-                    
-                    {/* Repost Button for Sellers - only on /seller/listings */}
-                    {user?.id === product.seller_id && (
-                      <div 
-                        className="ml-2"
-                        onClick={isMobile ? (e) => e.stopPropagation() : undefined}
-                      >
-                        <RepostButton
-                          productId={product.id}
-                          lastNotificationSentAt={product.last_notification_sent_at}
-                          status={product.status}
-                          sellerId={product.seller_id}
-                          onRepostSuccess={onRepostSuccess}
-                        />
-                      </div>
-                    )}
+                    {/* Action buttons container - Sold and Repost buttons */}
+                    <div className="flex gap-1 ml-2">
+                      {showSoldButton && product.status === 'active' && onStatusChange && (
+                        <div onClick={isMobile ? (e) => e.stopPropagation() : undefined}>
+                          <ProductStatusChangeDialog
+                            productId={product.id}
+                            productName={product.title}
+                            onStatusChange={() => onStatusChange(product.id, 'sold')}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Repost Button for Sellers - only on /seller/listings */}
+                      {user?.id === product.seller_id && (
+                        <div onClick={isMobile ? (e) => e.stopPropagation() : undefined}>
+                          <RepostButton
+                            productId={product.id}
+                            lastNotificationSentAt={product.last_notification_sent_at}
+                            status={product.status}
+                            sellerId={product.seller_id}
+                            onRepostSuccess={onRepostSuccess}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   {showOfferStatus && product.user_offer_price && (
