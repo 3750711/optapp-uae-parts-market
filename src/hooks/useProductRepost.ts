@@ -96,12 +96,16 @@ export const useProductRepost = () => {
         console.log(`✅ [ProductRepost] Product price updated from ${oldPrice} to ${newPrice}`);
         
         try {
+          // Generate requestId for idempotency
+          const requestId = `repost-${productId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          
           // Add to background sync queue with old price for display
           const syncId = await queueForSync('product-repost', { 
             productId, 
             priceChanged: true,
             newPrice, 
-            oldPrice 
+            oldPrice,
+            requestId
           });
           
           // Track queued repost
@@ -134,10 +138,14 @@ export const useProductRepost = () => {
         }
       }
       
+      // Generate requestId for idempotency
+      const requestId = `repost-${productId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      
       // Add to background sync queue for reliable delivery (no price change case)
       const syncId = await queueForSync('product-repost', { 
         productId, 
-        priceChanged: false 
+        priceChanged: false,
+        requestId
       });
       
       // Track queued repost

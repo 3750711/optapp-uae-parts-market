@@ -188,9 +188,9 @@ export const useBackgroundSync = () => {
   }, []);
 
   // Sync product repost
-  const syncProductRepost = useCallback(async (repostData: { productId: string; priceChanged?: boolean; newPrice?: number; oldPrice?: number }): Promise<boolean> => {
+  const syncProductRepost = useCallback(async (repostData: { productId: string; priceChanged?: boolean; newPrice?: number; oldPrice?: number; requestId?: string }): Promise<boolean> => {
     try {
-      console.log('📱 BG Sync: Sending product repost for', repostData.productId, repostData.priceChanged ? `with price change: ${repostData.oldPrice} -> ${repostData.newPrice}` : '');
+      console.log('📱 BG Sync: Sending product repost for', repostData.productId, repostData.priceChanged ? `with price change: ${repostData.oldPrice} -> ${repostData.newPrice}` : '', `requestId: ${repostData.requestId}`);
       
       const { error } = await supabase.functions.invoke('send-telegram-notification', {
         body: { 
@@ -198,7 +198,8 @@ export const useBackgroundSync = () => {
           notificationType: 'repost',
           priceChanged: repostData.priceChanged,
           newPrice: repostData.newPrice,
-          oldPrice: repostData.oldPrice
+          oldPrice: repostData.oldPrice,
+          requestId: repostData.requestId
         }
       });
       

@@ -24,7 +24,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * IMPORTANT: This function is critical for business operations
  * and has been thoroughly tested. Modify with extreme caution.
  */
-export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>, req?: Request, priceChanged?: boolean, newPrice?: number, oldPrice?: number) {
+export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>, req?: Request, priceChanged?: boolean, newPrice?: number, oldPrice?: number, requestId?: string) {
   // Load local telegram accounts from database
   const localTelegramAccounts = await getLocalTelegramAccounts();
 
@@ -35,6 +35,41 @@ export async function handleProductNotification(productId: string, notificationT
       JSON.stringify({ error: 'Missing required parameter: productId' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
+  }
+
+  // Idempotency check: prevent duplicate requests with same requestId
+  if (requestId) {
+    console.log('Checking for duplicate request with ID:', requestId);
+    
+    const { data: existingLog, error: logError } = await supabaseClient
+      .from('event_logs')
+      .select('id, details')
+      .eq('action_type', 'product_repost')
+      .eq('entity_id', productId)
+      .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()) // Within last hour
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (!logError && existingLog) {
+      const duplicateRequest = existingLog.find(log => 
+        log.details && 
+        typeof log.details === 'object' && 
+        'request_id' in log.details && 
+        log.details.request_id === requestId
+      );
+      
+      if (duplicateRequest) {
+        console.log('Duplicate request detected, returning 409:', requestId);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Duplicate request', 
+            message: 'This repost request was already processed',
+            requestId 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 409 }
+        );
+      }
+    }
   }
 
   const productNotificationType = notificationType || 'status_change';
@@ -363,7 +398,8 @@ export async function handleProductNotification(productId: string, notificationT
           product_title: product.title,
           price_changed: priceChanged || false,
           new_price: priceChanged ? newPrice : undefined,
-          old_price: priceChanged ? oldPrice : undefined
+          old_price: priceChanged ? oldPrice : undefined,
+          request_id: requestId
         }
       });
       
@@ -384,7 +420,8 @@ export async function handleProductNotification(productId: string, notificationT
           notification_type: 'repost',
           price_changed: priceChanged || false,
           new_price: priceChanged ? newPrice : undefined,
-          old_price: priceChanged ? oldPrice : undefined
+          old_price: priceChanged ? oldPrice : undefined,
+          request_id: requestId
         }
       });
       
