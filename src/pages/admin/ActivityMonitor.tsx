@@ -55,6 +55,7 @@ export default function ActivityMonitor() {
   const { data: activityData, isLoading, isError, refetch } = useQuery({
     queryKey: ['activity-logs', currentPage, emailFilter, eventTypeFilter, dateFromFilter, dateToFilter],
     queryFn: async () => {
+      // Step 1: Get event logs without JOIN
       let query = supabase
         .from('event_logs')
         .select(`
@@ -67,21 +68,15 @@ export default function ActivityMonitor() {
           ip_address,
           user_agent,
           details,
-          created_at,
-          profiles(email, full_name, user_type)
+          created_at
         `)
         .eq('entity_type', 'user_activity')
-        .order('created_at', { ascending: false })
-        .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
+        .order('created_at', { ascending: false });
 
-      // Apply filters  
-      if (emailFilter) {
-        query = query.filter('profiles.email', 'ilike', `%${emailFilter}%`);
+      // Apply non-profile filters
+      if (eventTypeFilter && eventTypeFilter !== 'all') {
+        query = query.eq('action_type', eventTypeFilter);
       }
-
-              if (eventTypeFilter && eventTypeFilter !== 'all') {
-                query = query.eq('action_type', eventTypeFilter);
-              }
 
       if (dateFromFilter) {
         query = query.gte('created_at', new Date(dateFromFilter).toISOString());
@@ -93,11 +88,53 @@ export default function ActivityMonitor() {
         query = query.lte('created_at', toDate.toISOString());
       }
 
-      const { data, error, count } = await query;
+      const { data: logs, error, count } = await query;
 
       if (error) throw error;
+      if (!logs || logs.length === 0) return { data: [], count: 0 };
 
-      return { data: data as ActivityLog[], count };
+      // Step 2: Get unique user_ids and fetch profiles
+      const userIds = [...new Set(logs.map(log => log.user_id).filter(Boolean))] as string[];
+      let profiles: any[] = [];
+      
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, email, full_name, user_type')
+          .in('id', userIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+        } else {
+          profiles = profilesData || [];
+        }
+      }
+
+      // Step 3: Create profiles map for quick lookup
+      const profilesMap = new Map(profiles.map(p => [p.id, p]));
+
+      // Step 4: Combine data
+      let logsWithProfiles = logs.map(log => ({
+        ...log,
+        profiles: log.user_id ? profilesMap.get(log.user_id) : null
+      })) as ActivityLog[];
+
+      // Step 5: Apply email filter in memory (since we can't do it in SQL anymore)
+      if (emailFilter) {
+        logsWithProfiles = logsWithProfiles.filter(log => 
+          log.profiles?.email?.toLowerCase().includes(emailFilter.toLowerCase())
+        );
+      }
+
+      // Step 6: Apply pagination to filtered results
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedLogs = logsWithProfiles.slice(startIndex, endIndex);
+
+      return { 
+        data: paginatedLogs, 
+        count: logsWithProfiles.length 
+      };
     },
     staleTime: 30000, // 30 seconds
   });
