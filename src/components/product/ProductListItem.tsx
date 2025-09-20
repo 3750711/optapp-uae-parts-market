@@ -16,6 +16,7 @@ import { ru } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { formatPrice } from '@/utils/formatPrice';
 import { useMobileLayout } from '@/hooks/useMobileLayout';
+import { RepostButton } from './RepostButton';
 
 interface ProductListItemProps {
   product: ProductProps & {
@@ -44,6 +45,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   lastUpdateTime,
   showSoldButton = false,
   onStatusChange,
+  onRepostSuccess,
 }) => {
   const [isRecentUpdate, setIsRecentUpdate] = useState(false);
   const [priceChanged, setPriceChanged] = useState(false);
@@ -297,6 +299,22 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                           productId={product.id}
                           productName={product.title}
                           onStatusChange={() => onStatusChange(product.id, 'sold')}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Repost Button for Sellers - only on /seller/listings */}
+                    {user?.id === product.seller_id && (
+                      <div 
+                        className="ml-2"
+                        onClick={isMobile ? (e) => e.stopPropagation() : undefined}
+                      >
+                        <RepostButton
+                          productId={product.id}
+                          lastNotificationSentAt={product.last_notification_sent_at}
+                          status={product.status}
+                          sellerId={product.seller_id}
+                          onRepostSuccess={onRepostSuccess}
                         />
                       </div>
                     )}

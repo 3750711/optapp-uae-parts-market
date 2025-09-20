@@ -13,7 +13,6 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useNavigate } from "react-router-dom";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useDeliveryLogic } from "@/hooks/useDeliveryLogic";
-import { RepostButton } from "./RepostButton";
 
 export interface ProductProps {
   id: string;
@@ -408,18 +407,6 @@ const ProductCard = memo(({
           </div>
         )}
 
-        {/* Repost Button for Sellers */}
-        {user?.id === product.seller_id && (
-          <div onClick={(e) => e.stopPropagation()}>
-            <RepostButton
-              productId={product.id}
-              lastNotificationSentAt={product.last_notification_sent_at}
-              status={product.status}
-              sellerId={product.seller_id}
-              onRepostSuccess={onRepostSuccess}
-            />
-          </div>
-        )}
       </div>
     </Card>
   );
