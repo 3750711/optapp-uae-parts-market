@@ -85,6 +85,9 @@ export interface ProductStatusTranslations {
     edit: string;
     viewOffers: string;
     share: string;
+    repost: string;
+    sending: string;
+    queued: string;
   };
 }
 
@@ -176,7 +179,10 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         restore: "Восстановить",
         edit: "Редактировать",
         viewOffers: "Посмотреть предложения",
-        share: "Поделиться"
+        share: "Поделиться",
+        repost: "Репост",
+        sending: "Отправка...",
+        queued: "В очереди"
       }
     },
     en: {
@@ -265,7 +271,10 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         restore: "Restore",
         edit: "Edit",
         viewOffers: "View Offers",
-        share: "Share"
+        share: "Share",
+        repost: "Repost",
+        sending: "Sending...",
+        queued: "Queued"
       }
     },
     bn: {
@@ -354,7 +363,10 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         restore: "পুনরুদ্ধার",
         edit: "সম্পাদনা",
         viewOffers: "অফারগুলি দেখুন",
-        share: "শেয়ার করুন"
+        share: "শেয়ার করুন",
+        repost: "রিপোস্ট",
+        sending: "পাঠানো হচ্ছে...",
+        queued: "সারিতে"
       }
     }
   };

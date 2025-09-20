@@ -2,6 +2,8 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Send, Loader2 } from "lucide-react";
 import { useProductRepost } from "@/hooks/useProductRepost";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
 interface RepostButtonProps {
   productId: string;
@@ -19,6 +21,8 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
   onRepostSuccess
 }) => {
   const { checkCanRepost, sendRepost, isReposting, queuedReposts } = useProductRepost();
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
 
   // Only show for active products
   if (status !== 'active') {
@@ -67,10 +71,10 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         size="sm"
         disabled
         className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-sm font-medium bg-blue-50 border-blue-200 text-blue-600"
-        title="В очереди"
+        title={t.actions.queued}
       >
         <Loader2 className="h-3 w-3 animate-spin mr-1" />
-        В очереди
+        {t.actions.queued}
       </Button>
     );
   }
@@ -82,15 +86,15 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
       onClick={handleRepost}
       disabled={isLoading || isQueued}
       className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-sm font-medium hover:bg-blue-50 hover:border-blue-300"
-      title={isLoading ? 'Отправка...' : 'Репост'}
+      title={isLoading ? t.actions.sending : t.actions.repost}
     >
       {isLoading ? (
         <>
           <Loader2 className="h-3 w-3 animate-spin mr-1" />
-          Отправка...
+          {t.actions.sending}
         </>
       ) : (
-        'Репост'
+        t.actions.repost
       )}
     </Button>
   );

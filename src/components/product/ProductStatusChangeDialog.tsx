@@ -118,7 +118,7 @@ const ProductStatusChangeDialog = ({
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button variant="destructive" size="sm" className="inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium">
-          Sold
+          {t.actions.markSoldShort}
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
