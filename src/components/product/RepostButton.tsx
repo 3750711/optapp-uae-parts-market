@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Send, Clock, Loader2 } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { useProductRepost } from "@/hooks/useProductRepost";
 
 interface RepostButtonProps {
@@ -51,10 +51,10 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         variant="outline"
         size="sm"
         disabled
-        className="inline-flex h-8 w-10 min-w-0 items-center justify-center rounded-lg px-2 text-xs font-medium"
+        className="inline-flex h-8 w-12 min-w-0 items-center justify-center rounded-lg px-2 text-xs font-medium"
         title={`Через ${hoursLeft}ч`}
       >
-        <Clock className="h-3 w-3" />
+        {hoursLeft}H
       </Button>
     );
   }
