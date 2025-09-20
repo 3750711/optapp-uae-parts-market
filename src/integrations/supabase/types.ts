@@ -211,7 +211,11 @@ export type Database = {
           details: Json
           entity_id: string | null
           entity_type: string
+          event_subtype: string | null
           id: string
+          ip_address: unknown | null
+          path: string | null
+          user_agent: string | null
           user_id: string | null
         }
         Insert: {
@@ -220,7 +224,11 @@ export type Database = {
           details: Json
           entity_id?: string | null
           entity_type: string
+          event_subtype?: string | null
           id?: string
+          ip_address?: unknown | null
+          path?: string | null
+          user_agent?: string | null
           user_id?: string | null
         }
         Update: {
@@ -229,7 +237,11 @@ export type Database = {
           details?: Json
           entity_id?: string | null
           entity_type?: string
+          event_subtype?: string | null
           id?: string
+          ip_address?: unknown | null
+          path?: string | null
+          user_agent?: string | null
           user_id?: string | null
         }
         Relationships: []

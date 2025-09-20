@@ -14,6 +14,7 @@ import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RoutePreloader } from "@/components/routing/RoutePreloader";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
+import { ActivityTracking } from "@/components/ActivityTracking";
 import { checkAppVersion } from '@/utils/versionManager';
 import { setupViewportHeight } from '@/utils/viewport-fix';
 import '@/styles/universal-viewport.css';
@@ -78,6 +79,7 @@ const App = () => {
                 <BrowserRouter>
                   <LanguageProvider>
                     <SafeTooltipProvider>
+                      <ActivityTracking />
                       <Toaster />
                       <NetworkIndicator />
                       

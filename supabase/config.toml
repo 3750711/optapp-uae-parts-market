@@ -117,6 +117,9 @@ verify_jwt = true
 [functions.process-product-background]
 verify_jwt = false
 
+[functions.log-activity]
+verify_jwt = true
+
 [analytics]
 enabled = false
 port = 54327

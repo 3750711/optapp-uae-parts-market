@@ -10,6 +10,7 @@ import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
 import { sessionBackupManager } from '@/auth/sessionBackup';
 import { refreshSessionOnce } from '@/utils/refreshMutex';
 import { FLAGS } from '@/config/flags';
+import { logUserLogin, logUserLogout } from '@/utils/activityLogger';
 
 // Local timeout utility to avoid external dependencies
 async function withTimeout<T>(promise: Promise<T>, ms: number, label = 'timeout'): Promise<T> {
@@ -628,6 +629,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.user) {
         console.log('✅ [AuthContext] signInWithPassword success for user:', data.user.id);
         
+        // Log successful login activity
+        try {
+          await logUserLogin('email', data.user.id);
+        } catch (error) {
+          console.warn('Failed to log login activity:', error);
+        }
+        
         // Улучшенный механизм ожидания обновления состояния
         const waitForStateUpdate = () => new Promise<void>((resolve) => {
           const MAX_WAIT_TIME = 5000; // 5 секунд максимум
@@ -671,6 +679,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    // Log logout activity before signing out
+    try {
+      await logUserLogout(user?.id);
+    } catch (error) {
+      console.warn('Failed to log logout activity:', error);
+    }
+    
     // Очищаем кэш профиля перед выходом
     queryClient.removeQueries({ queryKey: ['profile'] });
     
