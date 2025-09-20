@@ -12,7 +12,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Tag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -118,10 +117,8 @@ const ProductStatusChangeDialog = ({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="destructive" size="sm" className="h-10 px-2 text-xs min-w-0 flex-shrink-0 whitespace-nowrap touch-manipulation">
-          <Tag className="mr-1 h-3 w-3" />
-          <span className="hidden sm:inline">{t.actions.markSold}</span>
-          <span className="sm:hidden">{t.actions.markSoldShort}</span>
+        <Button variant="destructive" size="sm" className="inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium">
+          Sold
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

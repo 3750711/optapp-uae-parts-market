@@ -291,7 +291,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                     </div>
                     
                     {/* Action buttons container - Sold and Repost buttons */}
-                    <div className="flex gap-1 ml-2">
+                    <div className="mt-2 flex w-full flex-row items-center gap-2 whitespace-nowrap overflow-hidden">
                       {showSoldButton && product.status === 'active' && onStatusChange && (
                         <div onClick={isMobile ? (e) => e.stopPropagation() : undefined}>
                           <ProductStatusChangeDialog

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Clock } from "lucide-react";
 import { useProductRepost } from "@/hooks/useProductRepost";
 
 interface RepostButtonProps {
@@ -51,9 +50,8 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         variant="outline"
         size="sm"
         disabled
-        className="h-10 px-2 text-xs min-w-0 flex-shrink-0 whitespace-nowrap touch-manipulation"
+        className="inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium"
       >
-        <Clock className="h-3 w-3 mr-1" />
         Через {hoursLeft}ч
       </Button>
     );
@@ -66,9 +64,8 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         variant="outline"
         size="sm"
         disabled
-        className="h-10 px-2 text-xs min-w-0 flex-shrink-0 whitespace-nowrap touch-manipulation bg-blue-50 border-blue-200 text-blue-600"
+        className="inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium bg-blue-50 border-blue-200 text-blue-600"
       >
-        <RefreshCw className="h-3 w-3 mr-1" />
         В очереди
       </Button>
     );
@@ -80,13 +77,8 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
       size="sm"
       onClick={handleRepost}
       disabled={isLoading || isQueued}
-      className="h-10 px-2 text-xs min-w-0 flex-shrink-0 whitespace-nowrap touch-manipulation hover:bg-blue-50 hover:border-blue-300"
+      className="inline-flex h-8 min-w-0 flex-1 items-center justify-center rounded-lg px-3 text-sm font-medium hover:bg-blue-50 hover:border-blue-300"
     >
-      {isLoading ? (
-        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
-      ) : (
-        <>📢</>
-      )}
       {isLoading ? 'Добавление...' : 'Репост'}
     </Button>
   );
