@@ -17,13 +17,14 @@ import { BOT_TOKEN, MIN_IMAGES_REQUIRED, PRODUCT_GROUP_CHAT_ID } from "./config.
 import { sendImageMediaGroups } from "./telegram-api.ts";
 import { logTelegramNotification } from "../shared/telegram-logger.ts";
 import { getLocalTelegramAccounts, getTelegramForDisplay } from "../shared/telegram-config.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 /**
  * Handles product status change notifications
  * IMPORTANT: This function is critical for business operations
  * and has been thoroughly tested. Modify with extreme caution.
  */
-export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>) {
+export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>, req?: Request) {
   // Load local telegram accounts from database
   const localTelegramAccounts = await getLocalTelegramAccounts();
 
@@ -233,7 +234,72 @@ export async function handleProductNotification(productId: string, notificationT
     // For repost, send full ad with images like published product
     console.log('Sending repost notification with images');
     
+    let userId: string | null = null;
+    
     try {
+      // Get authenticated user from JWT
+      const authHeader = req?.headers.get('Authorization');
+      if (!authHeader || !req) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'Authentication required for repost' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        );
+      }
+
+      // Create client with auth context to get user info
+      const authClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? "",
+        Deno.env.get('SUPABASE_ANON_KEY') ?? "",
+        { auth: { persistSession: false }, global: { headers: { Authorization: authHeader } } }
+      );
+
+      const { data: { user }, error: authError } = await authClient.auth.getUser();
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'Invalid authentication' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        );
+      }
+
+      userId = user.id;
+
+      // Get user profile to check if admin
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('user_type')
+        .eq('id', userId)
+        .single();
+
+      const isAdmin = profile?.user_type === 'admin';
+
+      // Check if user can repost this product (owner or admin)
+      if (!isAdmin && product.seller_id !== userId) {
+        return new Response(
+          JSON.stringify({ success: false, message: 'You can only repost your own products' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+        );
+      }
+
+      // Check repost cooldown (72 hours for non-admins)
+      if (!isAdmin && product.last_notification_sent_at) {
+        const lastNotificationTime = new Date(product.last_notification_sent_at).getTime();
+        const currentTime = new Date().getTime();
+        const timeDifferenceHours = (currentTime - lastNotificationTime) / (1000 * 60 * 60);
+        const REPOST_COOLDOWN_HOURS = 72;
+
+        if (timeDifferenceHours < REPOST_COOLDOWN_HOURS) {
+          const hoursLeft = Math.ceil(REPOST_COOLDOWN_HOURS - timeDifferenceHours);
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              message: `Repost cooldown active. Try again in ${hoursLeft} hours.`,
+              hoursLeft 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
+          );
+        }
+      }
+      
       // Send the media group with images
       const result = await sendImageMediaGroups(
         images.map((image: any) => image.url), 
@@ -261,6 +327,7 @@ export async function handleProductNotification(productId: string, notificationT
       await supabaseClient.from('event_logs').insert({
         entity_type: 'product',
         entity_id: productId,
+        user_id: userId,
         action_type: 'repost',
         details: { 
           success: true, 
@@ -275,10 +342,11 @@ export async function handleProductNotification(productId: string, notificationT
     } catch (error) {
       console.error('Error sending repost notification:', error);
       
-      // Log failed repost
+      // Log failed repost (include user_id if available)
       await supabaseClient.from('event_logs').insert({
         entity_type: 'product',
         entity_id: productId,
+        user_id: userId,
         action_type: 'repost',
         details: { 
           success: false, 

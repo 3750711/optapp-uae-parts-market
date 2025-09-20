@@ -56,7 +56,7 @@ serve(async (req) => {
       const notificationType = reqData.action === 'registered' ? 'registered' : 'regular';
       return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders, notificationType);
     } else if (reqData.productId) {
-      return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders);
+      return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders, req);
     } else {
       console.log('Invalid request data: missing required parameters');
       return new Response(
