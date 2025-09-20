@@ -90,15 +90,6 @@ const RepostPriceDialog: React.FC<RepostPriceDialogProps> = ({
             />
           </div>
 
-          {/* Предупреждение о SALE только при изменении цены */}
-          {isPriceChanged && (
-            <div className="flex items-start space-x-3 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-md">
-              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
-                {t.repostPriceDialog.saleWarning}
-              </p>
-            </div>
-          )}
         </div>
 
         <DialogFooter>
