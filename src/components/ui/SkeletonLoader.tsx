@@ -30,6 +30,23 @@ export const ProductGridSkeleton = React.memo(({ count = 6 }: { count?: number }
   </div>
 ));
 
+export const CompactProductCardSkeleton = React.memo(() => (
+  <div className="w-[160px] h-[280px] bg-gray-200 dark:bg-gray-700 animate-pulse rounded-xl">
+    {/* Image block (140px height) */}
+    <div className="h-[140px] bg-gray-300 dark:bg-gray-600 rounded-t-xl" />
+    {/* Text block (140px height) */}
+    <div className="p-2 space-y-2 h-[140px]">
+      <Skeleton className="h-4 bg-gray-300 dark:bg-gray-600 rounded" />
+      <Skeleton className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-3/4" />
+      <Skeleton className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2" />
+      <div className="pt-2">
+        <Skeleton className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-full" />
+        <Skeleton className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-2/3 mt-1" />
+      </div>
+    </div>
+  </div>
+));
+
 export const StepSkeleton = React.memo(() => (
   <div className="animate-pulse">
     <div className="flex items-center space-x-4 mb-8">
@@ -57,4 +74,5 @@ export const StepSkeleton = React.memo(() => (
 
 ProductCardSkeleton.displayName = "ProductCardSkeleton";
 ProductGridSkeleton.displayName = "ProductGridSkeleton";
+CompactProductCardSkeleton.displayName = "CompactProductCardSkeleton";
 StepSkeleton.displayName = "StepSkeleton";
