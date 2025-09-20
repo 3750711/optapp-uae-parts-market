@@ -172,7 +172,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
         )}
         onClick={isMobile ? handleProductClick : undefined}
       >
-        <div className="flex gap-4">
+        <div className="flex gap-3 sm:gap-4">
           {/* Recent Update Indicator */}
           {isRecentUpdate && (
             <div className="absolute top-2 right-2 z-10">
@@ -183,7 +183,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             </div>
           )}
 
-          {/* Product Image */}
+          {/* Product Image - Fixed square */}
           <div className="flex-shrink-0">
             <div 
               onClick={!isMobile ? handleProductClick : undefined} 
@@ -192,7 +192,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               <OptimizedImage
                 src={product.image || product.cloudinary_url || product.product_images?.[0]?.url || "/placeholder.svg"}
                 alt={product.title}
-                className="w-24 h-24 object-cover rounded-lg"
+                className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg aspect-square"
                 cloudinaryPublicId={product.cloudinary_public_id}
                 cloudinaryUrl={product.cloudinary_url}
                 size="thumbnail"
@@ -201,20 +201,29 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             </div>
           </div>
 
-          {/* Product Info */}
-          <div className="flex-1 min-w-0">
+          {/* Content Area */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            {/* Title and Status Badges Row */}
             <div className="flex items-start justify-between mb-2">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 pr-3">
+                {/* Product Title - max 2 lines */}
                 <div 
                   onClick={!isMobile ? handleProductClick : undefined}
                   className={cn(
-                    "text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2",
+                    "text-base sm:text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-2 mb-1",
                     !isMobile && "cursor-pointer"
                   )}
                 >
                   {product.title}
                 </div>
                 
+                {/* Brand and Model - subtext */}
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 mb-2">
+                  {product.brand && <span className="font-medium">{product.brand}</span>}
+                  {product.model && product.brand && <span>•</span>}
+                  {product.model && <span>{product.model}</span>}
+                </div>
+
                 {showOfferStatus && product.user_offer_status && (
                   <div className="flex items-center gap-2 mt-2">
                     <OfferStatusBadge status={product.user_offer_status} />
@@ -228,9 +237,10 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 )}
               </div>
               
-              <div className="flex flex-col items-end gap-1 ml-4">
+              {/* Status Badges - right aligned */}
+              <div className="flex flex-col items-end gap-1 flex-shrink-0">
                 {product.lot_number && (
-                  <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                  <Badge variant="outline" className="text-xs px-1.5 py-0.5 whitespace-nowrap">
                     Lot {product.lot_number}
                   </Badge>
                 )}
@@ -240,7 +250,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   </Badge>
                 )}
                 {product.status === 'pending' && (
-                  <Badge variant="warning" className="text-xs px-1.5 py-0.5">
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
                     <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                     modiration
                   </Badge>
@@ -251,87 +261,82 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                   </Badge>
                 )}
                 {maxCompetitorPrice > 0 && (
-                   <div className="text-xs text-green-600 font-medium mt-1">
+                   <div className="text-xs text-green-600 font-medium">
                      Offer ${formatPrice(maxCompetitorPrice)}
                    </div>
                 )}
               </div>
             </div>
 
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                {product.brand && <span className="font-medium">{product.brand}</span>}
-                {product.model && <span>• {product.model}</span>}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                  {product.rating_seller && (
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                      <span>{product.rating_seller.toFixed(1)}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="text-right">
-                  <div className="flex items-center justify-end gap-2 mb-1">
-                    <div className={cn(
-                      "text-xl font-bold text-gray-900 transition-all duration-300",
-                      priceChanged && "text-blue-600 animate-pulse"
-                    )}>
-                      ${formatPrice(product.price)}
-                    </div>
-                    
-                    {/* Action buttons container - Sold and Repost buttons */}
-                    <div className="mt-2 flex w-full flex-row items-center gap-2 whitespace-nowrap overflow-hidden">
-                      {showSoldButton && product.status === 'active' && onStatusChange && (
-                        <div onClick={isMobile ? (e) => e.stopPropagation() : undefined}>
-                          <ProductStatusChangeDialog
-                            productId={product.id}
-                            productName={product.title}
-                            onStatusChange={() => onStatusChange(product.id, 'sold')}
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Repost Button for Sellers - only on /seller/listings */}
-                      {user?.id === product.seller_id && (
-                        <div onClick={isMobile ? (e) => e.stopPropagation() : undefined}>
-                          <RepostButton
-                            productId={product.id}
-                            lastNotificationSentAt={product.last_notification_sent_at}
-                            status={product.status}
-                            sellerId={product.seller_id}
-                            onRepostSuccess={onRepostSuccess}
-                          />
-                        </div>
-                      )}
-                    </div>
+            {/* Price and Rating Row */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                {product.rating_seller && (
+                  <div className="flex items-center gap-1">
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    <span>{product.rating_seller.toFixed(1)}</span>
                   </div>
-                  
-                  {showOfferStatus && product.user_offer_price && (
-                    <div className={cn(
-                      "text-sm text-gray-600 transition-all duration-300",
-                      priceChanged && "text-blue-600 font-medium"
-                    )}>
-                      Ваше предложение: <span className="font-medium">${formatPrice(product.user_offer_price)}</span>
-                    </div>
-                  )}
-                  
-                  {product.user_offer_created_at && (
-                    <div className="text-xs text-gray-500 mt-1">
-                      {formatDistanceToNow(new Date(product.user_offer_created_at), { 
-                        addSuffix: true, 
-                        locale: ru 
-                      })}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
 
+              <div className="text-right">
+                <div className={cn(
+                  "text-xl sm:text-2xl font-bold text-gray-900 transition-all duration-300",
+                  priceChanged && "text-blue-600 animate-pulse"
+                )}>
+                  ${formatPrice(product.price)}
+                </div>
+                
+                {showOfferStatus && product.user_offer_price && (
+                  <div className={cn(
+                    "text-sm text-gray-600 transition-all duration-300 mt-1",
+                    priceChanged && "text-blue-600 font-medium"
+                  )}>
+                    Ваше предложение: <span className="font-medium">${formatPrice(product.user_offer_price)}</span>
+                  </div>
+                )}
+                
+                {product.user_offer_created_at && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formatDistanceToNow(new Date(product.user_offer_created_at), { 
+                      addSuffix: true, 
+                      locale: ru 
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
 
-              {/* Auction functionality removed - simplified to basic offer display */}
+            {/* Action Buttons Container - Bottom of card */}
+            <div className="flex flex-row gap-2 w-full mt-auto">
+              {showSoldButton && product.status === 'active' && onStatusChange && (
+                <div 
+                  onClick={isMobile ? (e) => e.stopPropagation() : undefined}
+                  className="flex-1"
+                >
+                  <ProductStatusChangeDialog
+                    productId={product.id}
+                    productName={product.title}
+                    onStatusChange={() => onStatusChange(product.id, 'sold')}
+                  />
+                </div>
+              )}
+              
+              {/* Repost Button for Sellers */}
+              {user?.id === product.seller_id && (
+                <div 
+                  onClick={isMobile ? (e) => e.stopPropagation() : undefined}
+                  className="flex-1"
+                >
+                  <RepostButton
+                    productId={product.id}
+                    lastNotificationSentAt={product.last_notification_sent_at}
+                    status={product.status}
+                    sellerId={product.seller_id}
+                    onRepostSuccess={onRepostSuccess}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
