@@ -51,7 +51,7 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         variant="outline"
         size="sm"
         disabled
-        className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-2 text-xs font-medium"
+        className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-sm font-medium"
         title={`Через ${hoursLeft}ч`}
       >
         {hoursLeft}H
@@ -66,10 +66,11 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         variant="outline"
         size="sm"
         disabled
-        className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-2 text-xs font-medium bg-blue-50 border-blue-200 text-blue-600"
+        className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-sm font-medium bg-blue-50 border-blue-200 text-blue-600"
         title="В очереди"
       >
-        <Loader2 className="h-3 w-3 animate-spin" />
+        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+        В очереди
       </Button>
     );
   }
@@ -80,13 +81,16 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
       size="sm"
       onClick={handleRepost}
       disabled={isLoading || isQueued}
-      className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-2 text-xs font-medium hover:bg-blue-50 hover:border-blue-300"
-      title={isLoading ? 'Добавление...' : 'Репост'}
+      className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-sm font-medium hover:bg-blue-50 hover:border-blue-300"
+      title={isLoading ? 'Отправка...' : 'Репост'}
     >
       {isLoading ? (
-        <Loader2 className="h-3 w-3 animate-spin" />
+        <>
+          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+          Отправка...
+        </>
       ) : (
-        <Send className="h-3 w-3" />
+        'Репост'
       )}
     </Button>
   );
