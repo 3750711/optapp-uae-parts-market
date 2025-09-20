@@ -97,6 +97,7 @@ const AdminSynonyms = lazy(() => import('@/pages/AdminSynonyms'));
 const AdminSellerStatistics = lazy(() => import('@/pages/admin/AdminSellerStatistics'));
 const AdminSettings = lazy(() => import('@/pages/AdminSettings'));
 const AdminFreeOrderUploadMonitoring = lazy(() => import('@/pages/admin/AdminFreeOrderUploadMonitoring'));
+const ActivityMonitor = lazy(() => import('@/pages/admin/ActivityMonitor'));
 
 // Mobile specific pages
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
@@ -519,6 +520,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/monitoring/free-order-upload" element={
               <AdminRoute>
                 <AdminFreeOrderUploadMonitoring />
+              </AdminRoute>
+            } />
+            <Route path="/admin/activity-monitor" element={
+              <AdminRoute>
+                <ActivityMonitor />
               </AdminRoute>
             } />
 

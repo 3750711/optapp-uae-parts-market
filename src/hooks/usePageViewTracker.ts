@@ -13,6 +13,8 @@ export const usePageViewTracker = () => {
   useEffect(() => {
     const currentPath = location.pathname + location.search;
     
+    console.log('🔍 [PageViewTracker] Path changed:', currentPath);
+    
     // Skip if same path (prevent duplicate logs on re-renders)
     if (lastPathRef.current === currentPath) {
       return;
