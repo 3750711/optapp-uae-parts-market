@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -60,18 +60,18 @@ const SellerCreateOrder = () => {
     }
   });
 
-  const onImagesUpload = (urls: string[]) => {
+  const onImagesUpload = useCallback((urls: string[]) => {
     console.log('📸 Images uploaded in seller order:', urls);
     setAllImages(urls);
-  };
+  }, [setAllImages]);
 
-  const onVideoUpload = (urls: string[]) => {
+  const onVideoUpload = useCallback((urls: string[]) => {
     setVideos((prev) => [...prev, ...urls]);
-  };
+  }, [setVideos]);
 
-  const onVideoDelete = (url: string) => {
+  const onVideoDelete = useCallback((url: string) => {
     setVideos((prev) => prev.filter((v) => v !== url));
-  };
+  }, [setVideos]);
 
   const handleGoBack = () => {
     navigate('/seller/dashboard');
