@@ -96,6 +96,7 @@ export interface ProductStatusTranslations {
     queueError: string;
     queueErrorDescription: string;
     confirmDialog: string;
+    cooldownTitle: string;
   };
 }
 
@@ -198,7 +199,8 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         queuedSuccessDescription: "Уведомление будет отправлено в ближайшее время",
         queueError: "Ошибка при добавлении репоста в очередь",
         queueErrorDescription: "Попробуйте еще раз через несколько минут",
-        confirmDialog: "Отправить репост товара в Telegram группу?\n\nПосле отправки следующий репост будет доступен через 72 часа."
+        confirmDialog: "Отправить репост товара в Telegram группу?\n\nПосле отправки следующий репост будет доступен через 72 часа.",
+        cooldownTitle: "Через {hours}ч"
       }
     },
     en: {
@@ -298,7 +300,8 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         queuedSuccessDescription: "Notification will be sent shortly",
         queueError: "Error adding repost to queue",
         queueErrorDescription: "Please try again in a few minutes",
-        confirmDialog: "Send product repost to Telegram group?\n\nAfter sending, the next repost will be available in 72 hours."
+        confirmDialog: "Send product repost to Telegram group?\n\nAfter sending, the next repost will be available in 72 hours.",
+        cooldownTitle: "In {hours}h"
       }
     },
     bn: {
@@ -398,7 +401,8 @@ export const getProductStatusTranslations = (language: 'ru' | 'en' | 'bn'): Prod
         queuedSuccessDescription: "শীঘ্রই নোটিফিকেশন পাঠানো হবে",
         queueError: "রিপোস্ট সারিতে যোগ করতে ত্রুটি",
         queueErrorDescription: "কয়েক মিনিট পরে আবার চেষ্টা করুন",
-        confirmDialog: "টেলিগ্রাম গ্রুপে পণ্যের রিপোস্ট পাঠাবেন?\n\nপাঠানোর পর, পরবর্তী রিপোস্ট ৭২ ঘন্টা পর পাওয়া যাবে।"
+        confirmDialog: "টেলিগ্রাম গ্রুপে পণ্যের রিপোস্ট পাঠাবেন?\n\nপাঠানোর পর, পরবর্তী রিপোস্ট ৭২ ঘন্টা পর পাওয়া যাবে।",
+        cooldownTitle: "{hours} ঘন্টায়"
       }
     }
   };

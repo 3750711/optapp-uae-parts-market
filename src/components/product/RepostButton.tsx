@@ -54,7 +54,7 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
         size="sm"
         disabled
         className="inline-flex h-8 flex-1 min-w-0 items-center justify-center rounded-lg px-3 text-sm font-medium"
-        title={`Через ${hoursLeft}ч`}
+        title={t.repostMessages.cooldownTitle.replace('{hours}', hoursLeft.toString())}
       >
         {hoursLeft}H
       </Button>
