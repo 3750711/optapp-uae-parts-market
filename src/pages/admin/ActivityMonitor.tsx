@@ -1,72 +1,25 @@
-import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label'; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Search, Calendar, User, Activity, AlertCircle, ChevronDown, ChevronRight, Clock, LogIn, LogOut, UserX, Timer, RotateCcw, Shield, BarChart3 } from 'lucide-react';
-import { format, formatDuration, intervalToDuration } from 'date-fns';
-
-interface ActivityLog {
-  id: string;
-  action_type: string;
-  entity_type: string;
-  event_subtype?: string;
-  user_id?: string;
-  path?: string;
-  ip_address?: string;
-  user_agent?: string;
-  details: any;
-  created_at: string;
-  profiles?: {
-    email: string;
-    full_name?: string;
-    user_type: string;
-  };
-}
-
-interface UserSession {
-  id: string;
-  user_id: string;
-  email: string;
-  full_name?: string;
-  user_type?: string;
-  login_time: string;
-  logout_time?: string;
-  logs: ActivityLog[];
-  logs_count: number;
-  is_active: boolean;
-  session_duration?: string;
-  unique_pages: number;
-  termination_reason: 'active' | 'explicit_logout' | 'new_login' | 'timeout' | 'forced_logout';
-  termination_details?: string;
-  last_activity_time?: string;
-  session_timeout_minutes?: number;
-}
-
-const EVENT_TYPE_COLORS = {
-  login: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  logout: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  page_view: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  client_error: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-  api_error: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-  button_click: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300'
-};
-
-const TERMINATION_REASON_COLORS = {
-  'active': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-  'explicit_logout': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  'new_login': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-  'timeout': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-  'forced_logout': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-};
+import { RefreshCw, Search, Activity, AlertCircle, Clock, LogIn, LogOut, Timer, RotateCcw, Shield, BarChart3, Database, Loader2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { 
+  useUserSessions, 
+  useSessionStats, 
+  useComputeUserSessions, 
+  getTerminationReasonColor, 
+  getTerminationReasonLabel, 
+  formatDuration,
+  isLongSession,
+  SESSION_TIMEOUT_MINUTES as TIMEOUT_MINS, 
+  LONG_SESSION_HOURS as LONG_HOURS
+} from '@/hooks/useUserSessions';
 
 const TERMINATION_REASON_ICONS = {
   'active': LogIn,
@@ -76,365 +29,47 @@ const TERMINATION_REASON_ICONS = {
   'forced_logout': Shield
 };
 
-const TERMINATION_REASON_LABELS = {
-  'active': 'Активна',
-  'explicit_logout': 'Выход',
-  'new_login': 'Новый вход',
-  'timeout': 'Тайм-аут',
-  'forced_logout': 'Принудительно'
-};
-
-// Constants for session analysis
-const SESSION_TIMEOUT_MINUTES = 30;
-const LONG_SESSION_HOURS = 8;
-
-// Function to group logs by user sessions
-const groupLogsBySession = (logs: ActivityLog[]): UserSession[] => {
-  if (!logs || logs.length === 0) return [];
-
-  // Group logs by user_id
-  const userLogs = logs.reduce((acc, log) => {
-    if (!log.user_id) return acc;
-    if (!acc[log.user_id]) acc[log.user_id] = [];
-    acc[log.user_id].push(log);
-    return acc;
-  }, {} as Record<string, ActivityLog[]>);
-
-  const sessions: UserSession[] = [];
-
-  // Process each user's logs
-  Object.entries(userLogs).forEach(([userId, userLogsList]) => {
-    // Sort logs by timestamp
-    const sortedLogs = userLogsList.sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
-
-    // Find all login events
-    const loginEvents = sortedLogs.filter(log => log.action_type === 'login');
-
-    if (loginEvents.length === 0) {
-      // If no login events, create a single session with all logs
-      if (sortedLogs.length > 0) {
-        const firstLog = sortedLogs[0];
-        const uniquePages = new Set(
-          sortedLogs.filter(log => log.path).map(log => log.path)
-        ).size;
-
-        sessions.push({
-          id: `${userId}-session-0`,
-          user_id: userId,
-          email: firstLog.profiles?.email || 'Unknown',
-          full_name: firstLog.profiles?.full_name,
-          user_type: firstLog.profiles?.user_type,
-          login_time: firstLog.created_at,
-          logs: sortedLogs,
-          logs_count: sortedLogs.length,
-          is_active: true,
-          unique_pages: uniquePages,
-          termination_reason: 'active',
-          termination_details: 'Сессия без явного входа (активна)',
-          last_activity_time: sortedLogs[sortedLogs.length - 1]?.created_at,
-        });
-      }
-      return;
-    }
-
-    // Create sessions from login events
-    loginEvents.forEach((loginEvent, index) => {
-      const loginTime = new Date(loginEvent.created_at);
-      
-      // Find the end of this session (next login or logout)
-      let sessionEndTime: Date | null = null;
-      let logoutEvent: ActivityLog | null = null;
-      
-      // Look for logout after this login
-      const subsequentLogs = sortedLogs.filter(log => 
-        new Date(log.created_at) >= loginTime
-      );
-      
-      const nextLogin = loginEvents[index + 1];
-      const nextLoginTime = nextLogin ? new Date(nextLogin.created_at) : null;
-      
-      // Find logout or forced logout between this login and next login (or after last login)
-      let forcedLogoutEvent: ActivityLog | null = null;
-      for (const log of subsequentLogs) {
-        if (log.action_type === 'logout') {
-          const logoutTime = new Date(log.created_at);
-          if (!nextLoginTime || logoutTime < nextLoginTime) {
-            sessionEndTime = logoutTime;
-            logoutEvent = log;
-            break;
-          }
-        }
-        // Check for forced logout events (admin actions)
-        if (log.action_type === 'admin_forced_logout' || 
-            (log.entity_type === 'user_session' && log.action_type === 'force_logout') ||
-            (log.details && typeof log.details === 'object' && 'forced_logout' in log.details)) {
-          const forceLogoutTime = new Date(log.created_at);
-          if (!nextLoginTime || forceLogoutTime < nextLoginTime) {
-            sessionEndTime = forceLogoutTime;
-            forcedLogoutEvent = log;
-            break;
-          }
-        }
-      }
-      
-      // If no logout found, use next login time as session end
-      if (!sessionEndTime && nextLoginTime) {
-        sessionEndTime = nextLoginTime;
-      }
-
-      // Collect all logs for this session
-      const sessionLogs = sortedLogs.filter(log => {
-        const logTime = new Date(log.created_at);
-        return logTime >= loginTime && 
-               (!sessionEndTime || logTime <= sessionEndTime);
-      });
-
-      // Calculate session metrics
-      const uniquePages = new Set(
-        sessionLogs.filter(log => log.path).map(log => log.path)
-      ).size;
-
-      // Find last activity time
-      const lastActivityLog = sessionLogs[sessionLogs.length - 1];
-      const lastActivityTime = lastActivityLog?.created_at;
-
-      let sessionDuration: string | undefined;
-      const isActive = !logoutEvent && !nextLoginTime;
-      
-      // Determine termination reason
-      let terminationReason: UserSession['termination_reason'] = 'active';
-      let terminationDetails: string | undefined;
-      let sessionTimeoutMinutes: number | undefined;
-
-      if (forcedLogoutEvent) {
-        terminationReason = 'forced_logout';
-        terminationDetails = `Сессия принудительно завершена администратором (${forcedLogoutEvent.created_at})`;
-      } else if (logoutEvent) {
-        terminationReason = 'explicit_logout';
-        terminationDetails = 'Пользователь явно вышел из системы';
-      } else if (nextLoginTime) {
-        // Check if there was a timeout between last activity and next login
-        const timeSinceLastActivity = (nextLoginTime.getTime() - new Date(lastActivityTime).getTime()) / (1000 * 60);
-        if (timeSinceLastActivity > SESSION_TIMEOUT_MINUTES) {
-          terminationReason = 'timeout';
-          terminationDetails = `Сессия завершена по тайм-ауту после ${Math.round(timeSinceLastActivity)} минут неактивности`;
-          sessionTimeoutMinutes = Math.round(timeSinceLastActivity);
-        } else {
-          terminationReason = 'new_login';
-          terminationDetails = 'Сессия завершена новым входом пользователя';
-        }
-      } else {
-        // Check if current active session might be timed out
-        const now = new Date();
-        const timeSinceLastActivity = (now.getTime() - new Date(lastActivityTime).getTime()) / (1000 * 60);
-        if (timeSinceLastActivity > SESSION_TIMEOUT_MINUTES) {
-          terminationReason = 'timeout';
-          terminationDetails = `Сессия неактивна уже ${Math.round(timeSinceLastActivity)} минут (возможно завершена)`;
-          sessionTimeoutMinutes = Math.round(timeSinceLastActivity);
-        } else {
-          terminationReason = 'active';
-          terminationDetails = 'Сессия активна';
-        }
-      }
-      
-      if (sessionEndTime && !isActive) {
-        const duration = intervalToDuration({
-          start: loginTime,
-          end: sessionEndTime
-        });
-        
-        const parts = [];
-        if (duration.hours) parts.push(`${duration.hours}ч`);
-        if (duration.minutes) parts.push(`${duration.minutes}м`);
-        if (duration.seconds && parts.length === 0) parts.push(`${duration.seconds}с`);
-        sessionDuration = parts.join(' ') || '< 1м';
-      }
-
-      sessions.push({
-        id: `${userId}-session-${index}`,
-        user_id: userId,
-        email: loginEvent.profiles?.email || 'Unknown',
-        full_name: loginEvent.profiles?.full_name,
-        user_type: loginEvent.profiles?.user_type,
-        login_time: loginEvent.created_at,
-        logout_time: logoutEvent?.created_at,
-        logs: sessionLogs,
-        logs_count: sessionLogs.length,
-        is_active: isActive,
-        session_duration: sessionDuration,
-        unique_pages: uniquePages,
-        termination_reason: terminationReason,
-        termination_details: terminationDetails,
-        last_activity_time: lastActivityTime,
-        session_timeout_minutes: sessionTimeoutMinutes,
-      });
-    });
-  });
-
-  // Sort sessions by login time (newest first)
-  return sessions.sort((a, b) => 
-    new Date(b.login_time).getTime() - new Date(a.login_time).getTime()
-  );
-};
-
 export default function ActivityMonitor() {
-  // Filters state
   const [emailFilter, setEmailFilter] = useState('');
-  const [eventTypeFilter, setEventTypeFilter] = useState('');
-  const [dateFromFilter, setDateFromFilter] = useState('');
-  const [dateToFilter, setDateToFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
-  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
+  const [reasonFilter, setReasonFilter] = useState('');
   
-  const itemsPerPage = 20;
+  const { data: sessions, isLoading, isError, refetch } = useUserSessions(200);
+  const { data: stats, isLoading: statsLoading } = useSessionStats();
+  const computeSessionsMutation = useComputeUserSessions();
 
-  // Toggle session expansion
-  const toggleSession = (sessionId: string) => {
-    setExpandedSessions(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(sessionId)) {
-        newSet.delete(sessionId);
-      } else {
-        newSet.add(sessionId);
-      }
-      return newSet;
-    });
-  };
-
-  // Fetch activity logs and group by sessions
-  const { data: sessionData, isLoading, isError, refetch } = useQuery({
-    queryKey: ['activity-sessions', currentPage, emailFilter, eventTypeFilter, dateFromFilter, dateToFilter],
-    queryFn: async () => {
-      // Step 1: Get all event logs without pagination first
-      let query = supabase
-        .from('event_logs')
-        .select(`
-          id,
-          action_type,
-          entity_type,
-          event_subtype,
-          user_id,
-          path,
-          ip_address,
-          user_agent,
-          details,
-          created_at
-        `)
-        .eq('entity_type', 'user_activity')
-        .order('created_at', { ascending: false });
-
-      // Apply non-profile filters
-      if (eventTypeFilter && eventTypeFilter !== 'all') {
-        query = query.eq('action_type', eventTypeFilter);
-      }
-
-      if (dateFromFilter) {
-        query = query.gte('created_at', new Date(dateFromFilter).toISOString());
-      }
-
-      if (dateToFilter) {
-        const toDate = new Date(dateToFilter);
-        toDate.setHours(23, 59, 59, 999);
-        query = query.lte('created_at', toDate.toISOString());
-      }
-
-      const { data: logs, error } = await query;
-
-      if (error) throw error;
-      if (!logs || logs.length === 0) return { data: [], count: 0 };
-
-      // Step 2: Get unique user_ids and fetch profiles
-      const userIds = [...new Set(logs.map(log => log.user_id).filter(Boolean))] as string[];
-      let profiles: any[] = [];
+  // Apply filters
+  const filteredSessions = React.useMemo(() => {
+    if (!sessions) return [];
+    
+    return sessions.filter(session => {
+      const emailMatch = !emailFilter || 
+        session.profiles?.email?.toLowerCase().includes(emailFilter.toLowerCase()) ||
+        session.profiles?.full_name?.toLowerCase().includes(emailFilter.toLowerCase());
       
-      if (userIds.length > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, email, full_name, user_type')
-          .in('id', userIds);
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-        } else {
-          profiles = profilesData || [];
-        }
-      }
-
-      // Step 3: Create profiles map and combine data
-      const profilesMap = new Map(profiles.map(p => [p.id, p]));
-      const logsWithProfiles = logs.map(log => ({
-        ...log,
-        profiles: log.user_id ? profilesMap.get(log.user_id) : null
-      })) as ActivityLog[];
-
-      // Step 4: Group logs by sessions
-      const allSessions = groupLogsBySession(logsWithProfiles);
-
-      // Step 5: Apply email filter to sessions
-      let filteredSessions = allSessions;
-      if (emailFilter) {
-        filteredSessions = allSessions.filter(session => 
-          session.email.toLowerCase().includes(emailFilter.toLowerCase())
-        );
-      }
-
-      // Step 6: Apply pagination to sessions
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      const paginatedSessions = filteredSessions.slice(startIndex, endIndex);
-
-      return { 
-        data: paginatedSessions, 
-        count: filteredSessions.length 
-      };
-    },
-    staleTime: 30000, // 30 seconds
-  });
-
-  // Get unique event types for filter dropdown
-  const { data: eventTypes } = useQuery({
-    queryKey: ['activity-event-types'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('event_logs')
-        .select('action_type')
-        .eq('entity_type', 'user_activity')
-        .order('action_type');
-
-      if (error) throw error;
-
-      const uniqueTypes = [...new Set(data.map(item => item.action_type))];
-      return uniqueTypes;
-    },
-    staleTime: 300000, // 5 minutes
-  });
-
-  // Handle page navigation
-  const totalPages = useMemo(() => {
-    if (!sessionData?.count) return 1;
-    return Math.ceil(sessionData.count / itemsPerPage);
-  }, [sessionData?.count]);
+      const reasonMatch = !reasonFilter || reasonFilter === 'all' || 
+        session.termination_reason === reasonFilter;
+      
+      return emailMatch && reasonMatch;
+    });
+  }, [sessions, emailFilter, reasonFilter]);
 
   const resetFilters = () => {
     setEmailFilter('');
-    setEventTypeFilter('');
-    setDateFromFilter('');
-    setDateToFilter('');
-    setCurrentPage(1);
+    setReasonFilter('');
   };
 
-  const formatMetadata = (metadata: any) => {
-    if (!metadata) return 'N/A';
+  const handleComputeSessions = () => {
+    computeSessionsMutation.mutate();
+  };
+
+  const getSessionDuration = (session: any) => {
+    const startTime = new Date(session.started_at).getTime();
+    const endTime = session.ended_at ? 
+      new Date(session.ended_at).getTime() : 
+      Date.now();
     
-    try {
-      const formatted = JSON.stringify(metadata, null, 2);
-      return formatted.length > 100 ? formatted.substring(0, 100) + '...' : formatted;
-    } catch {
-      return String(metadata).substring(0, 100);
-    }
+    const durationMinutes = (endTime - startTime) / (1000 * 60);
+    return formatDuration(durationMinutes);
   };
 
   if (isError) {
@@ -444,7 +79,7 @@ export default function ActivityMonitor() {
           <CardContent className="p-6">
             <div className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-5 w-5" />
-              <span>Ошибка загрузки данных активности</span>
+              <span>Ошибка загрузки данных сессий</span>
             </div>
           </CardContent>
         </Card>
@@ -456,9 +91,39 @@ export default function ActivityMonitor() {
     <AdminLayout>
       <div className="space-y-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Мониторинг активности</h1>
-          <p className="text-muted-foreground mt-2">Отслеживание действий пользователей</p>
+          <h1 className="text-3xl font-bold text-foreground">Мониторинг пользовательских сессий</h1>
+          <p className="text-muted-foreground mt-2">Отслеживание сессий с причинами завершения</p>
         </div>
+
+        {/* Compute Sessions Button */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              Управление сессиями
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={handleComputeSessions}
+                disabled={computeSessionsMutation.isPending}
+                className="flex items-center gap-2"
+              >
+                {computeSessionsMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Вычислить сессии
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Анализировать логи событий и обновить таблицу сессий
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Filters */}
         <Card>
           <CardHeader>
@@ -468,68 +133,50 @@ export default function ActivityMonitor() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="email-filter">Email пользователя</Label>
+                <Label htmlFor="email-filter">Поиск пользователя</Label>
                 <Input
                   id="email-filter"
-                  placeholder="user@example.com"
+                  placeholder="Email или имя"
                   value={emailFilter}
                   onChange={(e) => setEmailFilter(e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="event-type-filter">Тип события</Label>
-                <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
+                <Label htmlFor="reason-filter">Причина завершения</Label>
+                <Select value={reasonFilter} onValueChange={setReasonFilter}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Все типы" />
+                    <SelectValue placeholder="Все причины" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Все типы</SelectItem>
-                    {eventTypes?.map((type: string) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="all">Все причины</SelectItem>
+                    <SelectItem value="active">Активна</SelectItem>
+                    <SelectItem value="explicit_logout">Выход</SelectItem>
+                    <SelectItem value="new_login">Новый вход</SelectItem>
+                    <SelectItem value="timeout">Тайм-аут</SelectItem>
+                    <SelectItem value="forced_logout">Принуд. выход</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="date-from">Дата от</Label>
-                <Input
-                  id="date-from"
-                  type="date"
-                  value={dateFromFilter}
-                  onChange={(e) => setDateFromFilter(e.target.value)}
-                />
+              <div className="space-y-2 flex items-end">
+                <div className="flex gap-2 w-full">
+                  <Button onClick={() => refetch()} variant="outline" size="sm">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Обновить
+                  </Button>
+                  <Button onClick={resetFilters} variant="outline" size="sm">
+                    Сбросить фильтры
+                  </Button>
+                </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="date-to">Дата до</Label>
-                <Input
-                  id="date-to"
-                  type="date"
-                  value={dateToFilter}
-                  onChange={(e) => setDateToFilter(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              <Button onClick={() => refetch()} variant="outline" size="sm">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Обновить
-              </Button>
-              <Button onClick={resetFilters} variant="outline" size="sm">
-                Сбросить фильтры
-              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Session Statistics */}
+        {/* Statistics */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -538,147 +185,88 @@ export default function ActivityMonitor() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {sessionData?.data && (() => {
-              const sessions = sessionData.data;
-              const totalSessions = sessions.length;
-              
-              if (totalSessions === 0) {
-                return (
-                  <div className="text-center text-muted-foreground py-4">
-                    Нет данных для отображения статистики
+            {statsLoading ? (
+              <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                Загрузка статистики...
+              </div>
+            ) : stats ? (
+              <div className="space-y-6">
+                {/* Overview Stats */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="p-4 border rounded-lg text-center">
+                    <div className="text-2xl font-bold text-primary">{stats.totalSessions}</div>
+                    <div className="text-sm text-muted-foreground">Всего сессий</div>
                   </div>
-                );
-              }
-
-              // Calculate statistics by termination reason
-              const reasonStats = sessions.reduce((acc, session) => {
-                const reason = session.termination_reason;
-                if (!acc[reason]) {
-                  acc[reason] = {
-                    count: 0,
-                    totalDuration: 0,
-                    durations: []
-                  };
-                }
-                acc[reason].count++;
-                
-                // Calculate duration in minutes
-                if (session.login_time) {
-                  const loginTime = new Date(session.login_time);
-                  const endTime = session.logout_time 
-                    ? new Date(session.logout_time)
-                    : session.last_activity_time 
-                      ? new Date(session.last_activity_time)
-                      : new Date();
-                  
-                  const durationMinutes = (endTime.getTime() - loginTime.getTime()) / (1000 * 60);
-                  acc[reason].totalDuration += durationMinutes;
-                  acc[reason].durations.push(durationMinutes);
-                }
-                
-                return acc;
-              }, {} as Record<string, { count: number; totalDuration: number; durations: number[] }>);
-
-              // Count long sessions and inactive sessions
-              const longSessions = sessions.filter(session => {
-                if (!session.login_time) return false;
-                const loginTime = new Date(session.login_time);
-                const endTime = session.logout_time 
-                  ? new Date(session.logout_time)
-                  : session.last_activity_time 
-                    ? new Date(session.last_activity_time)
-                    : new Date();
-                const durationHours = (endTime.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
-                return durationHours > LONG_SESSION_HOURS;
-              }).length;
-
-              const inactiveSessions = sessions.filter(session => {
-                if (!session.last_activity_time) return false;
-                const now = new Date();
-                const lastActivity = new Date(session.last_activity_time);
-                const inactiveMinutes = (now.getTime() - lastActivity.getTime()) / (1000 * 60);
-                return inactiveMinutes > SESSION_TIMEOUT_MINUTES && session.termination_reason === 'active';
-              }).length;
-
-              return (
-                <div className="space-y-6">
-                  {/* Overview Stats */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="p-4 border rounded-lg text-center">
-                      <div className="text-2xl font-bold text-primary">{totalSessions}</div>
-                      <div className="text-sm text-muted-foreground">Всего сессий</div>
-                    </div>
-                    <div className="p-4 border rounded-lg text-center">
-                      <div className="text-2xl font-bold text-green-600">{reasonStats.active?.count || 0}</div>
-                      <div className="text-sm text-muted-foreground">Активных</div>
-                    </div>
-                    <div className="p-4 border rounded-lg text-center">
-                      <div className="text-2xl font-bold text-orange-600">{longSessions}</div>
-                      <div className="text-sm text-muted-foreground">Длинных (&gt;{LONG_SESSION_HOURS}ч)</div>
-                    </div>
-                    <div className="p-4 border rounded-lg text-center">
-                      <div className="text-2xl font-bold text-yellow-600">{inactiveSessions}</div>
-                      <div className="text-sm text-muted-foreground">Неактивных (&gt;{SESSION_TIMEOUT_MINUTES}м)</div>
-                    </div>
+                  <div className="p-4 border rounded-lg text-center">
+                    <div className="text-2xl font-bold text-green-600">{stats.activeSessions}</div>
+                    <div className="text-sm text-muted-foreground">Активных</div>
                   </div>
-
-                  {/* Termination Reasons */}
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Причины завершения сессий</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Object.entries(reasonStats).map(([reason, stats]) => {
-                        const percentage = ((stats.count / totalSessions) * 100).toFixed(1);
-                        const avgDuration = stats.durations.length > 0 
-                          ? (stats.totalDuration / stats.durations.length)
-                          : 0;
-                        
-                        const IconComponent = TERMINATION_REASON_ICONS[reason as keyof typeof TERMINATION_REASON_ICONS];
-                        
-                        return (
-                          <div key={reason} className="p-4 border rounded-lg">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge className={TERMINATION_REASON_COLORS[reason as keyof typeof TERMINATION_REASON_COLORS]}>
-                                <IconComponent className="h-3 w-3 mr-1" />
-                                {TERMINATION_REASON_LABELS[reason as keyof typeof TERMINATION_REASON_LABELS]}
-                              </Badge>
-                            </div>
-                            <div className="space-y-1 text-sm">
-                              <div className="flex justify-between">
-                                <span>Количество:</span>
-                                <span className="font-medium">{stats.count} ({percentage}%)</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Сред. длительность:</span>
-                                <span className="font-medium">
-                                  {avgDuration > 0 
-                                    ? avgDuration < 60 
-                                      ? `${Math.round(avgDuration)}м`
-                                      : `${Math.round(avgDuration / 60)}ч ${Math.round(avgDuration % 60)}м`
-                                    : 'N/A'
-                                  }
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                  <div className="p-4 border rounded-lg text-center">
+                    <div className="text-2xl font-bold text-orange-600">{stats.longSessions}</div>
+                    <div className="text-sm text-muted-foreground">Длинных (&gt;{LONG_HOURS}ч)</div>
+                  </div>
+                  <div className="p-4 border rounded-lg text-center">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {filteredSessions.length}
                     </div>
+                    <div className="text-sm text-muted-foreground">Отфильтровано</div>
                   </div>
                 </div>
-              );
-            })()}
+
+                {/* Termination Reasons */}
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Причины завершения сессий</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Object.entries(stats.terminationReasons).map(([reason, count]) => {
+                      const percentage = stats.totalSessions > 0 ? ((count / stats.totalSessions) * 100).toFixed(1) : '0';
+                      const avgDuration = stats.avgDurationByReason[reason] || 0;
+                      
+                      const IconComponent = TERMINATION_REASON_ICONS[reason as keyof typeof TERMINATION_REASON_ICONS];
+                      
+                      return (
+                        <div key={reason} className="p-4 border rounded-lg">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge className={getTerminationReasonColor(reason)}>
+                              <IconComponent className="h-3 w-3 mr-1" />
+                              {getTerminationReasonLabel(reason)}
+                            </Badge>
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span>Количество:</span>
+                              <span className="font-medium">{count} ({percentage}%)</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Сред. длительность:</span>
+                              <span className="font-medium">
+                                {avgDuration > 0 ? formatDuration(avgDuration) : 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground py-4">
+                Нет данных для статистики
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Activity Table */}
+        {/* Sessions Table */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
               Пользовательские сессии
-              {sessionData?.count && (
+              {filteredSessions && (
                 <Badge variant="secondary">
-                  {sessionData.count} сессий
+                  {filteredSessions.length} сессий
                 </Badge>
               )}
             </CardTitle>
@@ -686,280 +274,96 @@ export default function ActivityMonitor() {
           <CardContent>
             {isLoading ? (
               <div className="flex items-center justify-center p-8">
-                <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-                Загрузка...
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                Загрузка сессий...
               </div>
             ) : (
-              <>
-                <div className="space-y-4">
-                  {sessionData?.data?.map((session) => (
-                  <Card key={session.id} className="border">
-                    <Collapsible 
-                      open={expandedSessions.has(session.id)}
-                      onOpenChange={() => toggleSession(session.id)}
-                    >
-                      <CollapsibleTrigger asChild>
-                        <CardHeader className="cursor-pointer hover:bg-muted/50 pb-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              {expandedSessions.has(session.id) ? (
-                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                              ) : (
-                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                              )}
+              <div className="space-y-4">
+                {filteredSessions?.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Нет сессий для отображения. Возможно, нужно сначала вычислить сессии из логов событий.
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Пользователь</TableHead>
+                        <TableHead>Начало сессии</TableHead>
+                        <TableHead>Конец сессии</TableHead>
+                        <TableHead>Длительность</TableHead>
+                        <TableHead>Последняя активность</TableHead>
+                        <TableHead>Причина завершения</TableHead>
+                        <TableHead>Детали</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSessions?.map((session) => {
+                        const IconComponent = TERMINATION_REASON_ICONS[session.termination_reason];
+                        const isLong = isLongSession(session.started_at, session.ended_at);
+                        
+                        return (
+                          <TableRow key={session.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">
+                                  {session.profiles?.full_name || 'Не указано'}
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {session.profiles?.email}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {session.profiles?.user_type}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {format(new Date(session.started_at), 'dd.MM.yyyy HH:mm:ss')}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {session.ended_at ? 
+                                format(new Date(session.ended_at), 'dd.MM.yyyy HH:mm:ss') : 
+                                <Badge variant="outline" className="text-green-600">Активна</Badge>
+                              }
+                            </TableCell>
+                            <TableCell>
                               <div className="flex items-center gap-2">
-                                <LogIn className="h-4 w-4 text-green-600" />
-                                <div>
-                                  <div className="font-medium text-lg">
-                                    {session.email}
-                                  </div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {session.full_name || 'Имя не указано'}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="text-right">
-                                <div className="font-mono">
-                                  {format(new Date(session.login_time), 'dd.MM.yyyy HH:mm:ss')}
-                                </div>
-                                <div className="text-muted-foreground">
-                                  Время входа
-                                </div>
-                              </div>
-                              {session.session_duration && (
-                                <div className="text-right">
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {session.session_duration}
-                                  </div>
-                                  <div className="text-muted-foreground">
-                                    Длительность
-                                  </div>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {(() => {
-                                  const IconComponent = TERMINATION_REASON_ICONS[session.termination_reason];
-                                  return (
-                                    <Badge 
-                                      className={TERMINATION_REASON_COLORS[session.termination_reason]}
-                                      title={session.termination_details}
-                                    >
-                                      <IconComponent className="h-3 w-3 mr-1" />
-                                      {TERMINATION_REASON_LABELS[session.termination_reason]}
-                                    </Badge>
-                                  );
-                                })()}
-                                <Badge variant="outline">
-                                  {session.logs_count} действий
-                                </Badge>
-                                <Badge variant="outline">
-                                  {session.unique_pages} страниц
-                                </Badge>
-                                {session.session_timeout_minutes && session.session_timeout_minutes > LONG_SESSION_HOURS * 60 && (
+                                <Clock className="h-3 w-3" />
+                                {getSessionDuration(session)}
+                                {isLong && (
                                   <Badge variant="destructive" className="text-xs">
-                                    Долгая неактивность
+                                    Длинная
                                   </Badge>
                                 )}
                               </div>
-                            </div>
-                          </div>
-                        </CardHeader>
-                      </CollapsibleTrigger>
-                      
-                      <CollapsibleContent>
-                        <CardContent className="pt-0">
-                          <div className="border-t pt-4">
-                            {/* Session Termination Details */}
-                            <div className="mb-4 p-3 bg-muted/30 rounded-md">
-                              <div className="flex items-center justify-between text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">Причина завершения:</span>
-                                  {(() => {
-                                    const IconComponent = TERMINATION_REASON_ICONS[session.termination_reason];
-                                    return (
-                                      <div className="flex items-center gap-1">
-                                        <IconComponent className="h-4 w-4" />
-                                        <span>{TERMINATION_REASON_LABELS[session.termination_reason]}</span>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                                {session.last_activity_time && (
-                                  <div className="text-muted-foreground">
-                                    Последняя активность: {format(new Date(session.last_activity_time), 'dd.MM.yyyy HH:mm:ss')}
-                                  </div>
-                                )}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {session.last_activity_time ? 
+                                format(new Date(session.last_activity_time), 'dd.MM.yyyy HH:mm:ss') : 
+                                'N/A'
+                              }
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getTerminationReasonColor(session.termination_reason)}>
+                                <IconComponent className="h-3 w-3 mr-1" />
+                                {getTerminationReasonLabel(session.termination_reason)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-xs">
+                              <div className="text-sm text-muted-foreground truncate" title={session.termination_details || 'Нет деталей'}>
+                                {session.termination_details || 'Нет деталей'}
                               </div>
-                              {session.termination_details && (
-                                <div className="text-sm text-muted-foreground mt-1">
-                                  {session.termination_details}
-                                </div>
-                              )}
-                            </div>
-                            
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Время</TableHead>
-                                  <TableHead>Событие</TableHead>
-                                  <TableHead>Путь</TableHead>
-                                  <TableHead>Метаданные</TableHead>
-                                  <TableHead>IP</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {session.logs.map((log) => (
-                                  <TableRow 
-                                    key={log.id}
-                                    className="cursor-pointer hover:bg-muted/50"
-                                    onClick={() => setSelectedLog(log)}
-                                  >
-                                    <TableCell className="font-mono text-sm">
-                                      {format(new Date(log.created_at), 'HH:mm:ss')}
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="space-y-1">
-                                        <Badge 
-                                          className={EVENT_TYPE_COLORS[log.action_type as keyof typeof EVENT_TYPE_COLORS] || 'bg-gray-100 text-gray-800'}
-                                        >
-                                          {log.action_type}
-                                        </Badge>
-                                        {log.event_subtype && (
-                                          <div className="text-sm text-muted-foreground">
-                                            {log.event_subtype}
-                                          </div>
-                                        )}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="font-mono text-sm">
-                                      {log.path || 'N/A'}
-                                    </TableCell>
-                                    <TableCell className="max-w-xs">
-                                      <div className="text-sm font-mono text-muted-foreground truncate">
-                                        {formatMetadata(log.details)}
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="font-mono text-sm">
-                                      {log.ip_address || 'N/A'}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </CardContent>
-                      </CollapsibleContent>
-                    </Collapsible>
-                  </Card>
-                ))}
-                
-                {sessionData?.data?.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Нет данных для отображения
-                  </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 )}
-                </div>
-
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="text-sm text-muted-foreground">
-                      Страница {currentPage} из {totalPages}
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={currentPage <= 1}
-                        onClick={() => setCurrentPage(currentPage - 1)}
-                      >
-                        Назад
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={currentPage >= totalPages}
-                        onClick={() => setCurrentPage(currentPage + 1)}
-                      >
-                        Вперёд
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+              </div>
             )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Detail Dialog */}
-      <Dialog open={!!selectedLog} onOpenChange={() => setSelectedLog(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Детали события
-            </DialogTitle>
-          </DialogHeader>
-          
-          {selectedLog && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <strong>Время:</strong>
-                  <div className="font-mono">
-                    {format(new Date(selectedLog.created_at), 'dd.MM.yyyy HH:mm:ss')}
-                  </div>
-                </div>
-                <div>
-                  <strong>Тип события:</strong>
-                  <div>
-                    <Badge className={EVENT_TYPE_COLORS[selectedLog.action_type as keyof typeof EVENT_TYPE_COLORS] || 'bg-gray-100 text-gray-800'}>
-                      {selectedLog.action_type}
-                    </Badge>
-                    {selectedLog.event_subtype && (
-                      <div className="text-muted-foreground mt-1">
-                        Подтип: {selectedLog.event_subtype}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <strong>Пользователь:</strong>
-                  <div>{selectedLog.profiles?.email || selectedLog.user_id || 'Системное событие'}</div>
-                  <div className="text-muted-foreground">
-                    {selectedLog.profiles?.full_name || 'N/A'} {selectedLog.profiles?.user_type ? `(${selectedLog.profiles.user_type})` : ''}
-                  </div>
-                </div>
-                <div>
-                  <strong>IP адрес:</strong>
-                  <div className="font-mono">{selectedLog.ip_address || 'N/A'}</div>
-                </div>
-                <div className="col-span-2">
-                  <strong>Путь:</strong>
-                  <div className="font-mono">{selectedLog.path || 'N/A'}</div>
-                </div>
-                <div className="col-span-2">
-                  <strong>User Agent:</strong>
-                  <div className="font-mono text-xs break-all">
-                    {selectedLog.user_agent || 'N/A'}
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <strong>Метаданные:</strong>
-                <pre className="mt-2 p-3 bg-muted rounded-md text-xs font-mono whitespace-pre-wrap overflow-x-auto">
-                  {JSON.stringify(selectedLog.details, null, 2)}
-                </pre>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </AdminLayout>
   );
 }
