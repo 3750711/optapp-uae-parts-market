@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { RefreshCw, Search, Calendar, User, Activity, AlertCircle, ChevronDown, ChevronRight, Clock, LogIn, LogOut, UserX, Timer, RotateCcw, Shield } from 'lucide-react';
+import { RefreshCw, Search, Calendar, User, Activity, AlertCircle, ChevronDown, ChevronRight, Clock, LogIn, LogOut, UserX, Timer, RotateCcw, Shield, BarChart3 } from 'lucide-react';
 import { format, formatDuration, intervalToDuration } from 'date-fns';
 
 interface ActivityLog {
@@ -155,13 +155,25 @@ const groupLogsBySession = (logs: ActivityLog[]): UserSession[] => {
       const nextLogin = loginEvents[index + 1];
       const nextLoginTime = nextLogin ? new Date(nextLogin.created_at) : null;
       
-      // Find logout between this login and next login (or after last login)
+      // Find logout or forced logout between this login and next login (or after last login)
+      let forcedLogoutEvent: ActivityLog | null = null;
       for (const log of subsequentLogs) {
         if (log.action_type === 'logout') {
           const logoutTime = new Date(log.created_at);
           if (!nextLoginTime || logoutTime < nextLoginTime) {
             sessionEndTime = logoutTime;
             logoutEvent = log;
+            break;
+          }
+        }
+        // Check for forced logout events (admin actions)
+        if (log.action_type === 'admin_forced_logout' || 
+            (log.entity_type === 'user_session' && log.action_type === 'force_logout') ||
+            (log.details && typeof log.details === 'object' && 'forced_logout' in log.details)) {
+          const forceLogoutTime = new Date(log.created_at);
+          if (!nextLoginTime || forceLogoutTime < nextLoginTime) {
+            sessionEndTime = forceLogoutTime;
+            forcedLogoutEvent = log;
             break;
           }
         }
@@ -196,7 +208,10 @@ const groupLogsBySession = (logs: ActivityLog[]): UserSession[] => {
       let terminationDetails: string | undefined;
       let sessionTimeoutMinutes: number | undefined;
 
-      if (logoutEvent) {
+      if (forcedLogoutEvent) {
+        terminationReason = 'forced_logout';
+        terminationDetails = `Сессия принудительно завершена администратором (${forcedLogoutEvent.created_at})`;
+      } else if (logoutEvent) {
         terminationReason = 'explicit_logout';
         terminationDetails = 'Пользователь явно вышел из системы';
       } else if (nextLoginTime) {
@@ -511,6 +526,147 @@ export default function ActivityMonitor() {
                 Сбросить фильтры
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Session Statistics */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Статистика сессий
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {sessionData?.data && (() => {
+              const sessions = sessionData.data;
+              const totalSessions = sessions.length;
+              
+              if (totalSessions === 0) {
+                return (
+                  <div className="text-center text-muted-foreground py-4">
+                    Нет данных для отображения статистики
+                  </div>
+                );
+              }
+
+              // Calculate statistics by termination reason
+              const reasonStats = sessions.reduce((acc, session) => {
+                const reason = session.termination_reason;
+                if (!acc[reason]) {
+                  acc[reason] = {
+                    count: 0,
+                    totalDuration: 0,
+                    durations: []
+                  };
+                }
+                acc[reason].count++;
+                
+                // Calculate duration in minutes
+                if (session.login_time) {
+                  const loginTime = new Date(session.login_time);
+                  const endTime = session.logout_time 
+                    ? new Date(session.logout_time)
+                    : session.last_activity_time 
+                      ? new Date(session.last_activity_time)
+                      : new Date();
+                  
+                  const durationMinutes = (endTime.getTime() - loginTime.getTime()) / (1000 * 60);
+                  acc[reason].totalDuration += durationMinutes;
+                  acc[reason].durations.push(durationMinutes);
+                }
+                
+                return acc;
+              }, {} as Record<string, { count: number; totalDuration: number; durations: number[] }>);
+
+              // Count long sessions and inactive sessions
+              const longSessions = sessions.filter(session => {
+                if (!session.login_time) return false;
+                const loginTime = new Date(session.login_time);
+                const endTime = session.logout_time 
+                  ? new Date(session.logout_time)
+                  : session.last_activity_time 
+                    ? new Date(session.last_activity_time)
+                    : new Date();
+                const durationHours = (endTime.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
+                return durationHours > LONG_SESSION_HOURS;
+              }).length;
+
+              const inactiveSessions = sessions.filter(session => {
+                if (!session.last_activity_time) return false;
+                const now = new Date();
+                const lastActivity = new Date(session.last_activity_time);
+                const inactiveMinutes = (now.getTime() - lastActivity.getTime()) / (1000 * 60);
+                return inactiveMinutes > SESSION_TIMEOUT_MINUTES && session.termination_reason === 'active';
+              }).length;
+
+              return (
+                <div className="space-y-6">
+                  {/* Overview Stats */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-4 border rounded-lg text-center">
+                      <div className="text-2xl font-bold text-primary">{totalSessions}</div>
+                      <div className="text-sm text-muted-foreground">Всего сессий</div>
+                    </div>
+                    <div className="p-4 border rounded-lg text-center">
+                      <div className="text-2xl font-bold text-green-600">{reasonStats.active?.count || 0}</div>
+                      <div className="text-sm text-muted-foreground">Активных</div>
+                    </div>
+                    <div className="p-4 border rounded-lg text-center">
+                      <div className="text-2xl font-bold text-orange-600">{longSessions}</div>
+                      <div className="text-sm text-muted-foreground">Длинных (&gt;{LONG_SESSION_HOURS}ч)</div>
+                    </div>
+                    <div className="p-4 border rounded-lg text-center">
+                      <div className="text-2xl font-bold text-yellow-600">{inactiveSessions}</div>
+                      <div className="text-sm text-muted-foreground">Неактивных (&gt;{SESSION_TIMEOUT_MINUTES}м)</div>
+                    </div>
+                  </div>
+
+                  {/* Termination Reasons */}
+                  <div>
+                    <h3 className="text-lg font-medium mb-4">Причины завершения сессий</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Object.entries(reasonStats).map(([reason, stats]) => {
+                        const percentage = ((stats.count / totalSessions) * 100).toFixed(1);
+                        const avgDuration = stats.durations.length > 0 
+                          ? (stats.totalDuration / stats.durations.length)
+                          : 0;
+                        
+                        const IconComponent = TERMINATION_REASON_ICONS[reason as keyof typeof TERMINATION_REASON_ICONS];
+                        
+                        return (
+                          <div key={reason} className="p-4 border rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge className={TERMINATION_REASON_COLORS[reason as keyof typeof TERMINATION_REASON_COLORS]}>
+                                <IconComponent className="h-3 w-3 mr-1" />
+                                {TERMINATION_REASON_LABELS[reason as keyof typeof TERMINATION_REASON_LABELS]}
+                              </Badge>
+                            </div>
+                            <div className="space-y-1 text-sm">
+                              <div className="flex justify-between">
+                                <span>Количество:</span>
+                                <span className="font-medium">{stats.count} ({percentage}%)</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Сред. длительность:</span>
+                                <span className="font-medium">
+                                  {avgDuration > 0 
+                                    ? avgDuration < 60 
+                                      ? `${Math.round(avgDuration)}м`
+                                      : `${Math.round(avgDuration / 60)}ч ${Math.round(avgDuration % 60)}м`
+                                    : 'N/A'
+                                  }
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 
