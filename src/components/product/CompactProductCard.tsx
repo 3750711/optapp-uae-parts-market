@@ -32,9 +32,9 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
   const displayText = `📦 ${[brand, model].filter(Boolean).join(' ') || title}`;
   
   // Calculate heights based on variant - увеличил для помещения текста
-  const containerHeight = heightVariant === 'compact' ? 'h-[240px]' : 'h-[260px]';
+  const containerHeight = heightVariant === 'compact' ? 'h-[280px]' : 'h-[260px]';
   const imageHeight = heightVariant === 'compact' ? 'h-[140px]' : 'h-[171px]';
-  const textHeight = heightVariant === 'compact' ? 'h-[100px]' : 'h-[89px]';
+  const textHeight = heightVariant === 'compact' ? 'h-[140px]' : 'h-[89px]';
   
   if (telegramStyleV2) {
     return (
@@ -60,7 +60,7 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
         </div>
         
         {/* Text block - фиксированная высота вместо flex-1 */}
-        <div className={`${textHeight} px-2 py-2 space-y-1 overflow-hidden`}>
+        <div className={`${textHeight} px-2 py-2 space-y-0.5 overflow-hidden`}>
           {/* LOT */}
           {lotNumber && (
             <p className="text-[14px] leading-tight text-[#222]">
