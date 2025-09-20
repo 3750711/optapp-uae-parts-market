@@ -24,7 +24,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * IMPORTANT: This function is critical for business operations
  * and has been thoroughly tested. Modify with extreme caution.
  */
-export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>, req?: Request) {
+export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>, req?: Request, priceChanged?: boolean, newPrice?: number, oldPrice?: number) {
   // Load local telegram accounts from database
   const localTelegramAccounts = await getLocalTelegramAccounts();
 
@@ -133,6 +133,38 @@ export async function handleProductNotification(productId: string, notificationT
     messageText = [
       `😔 Жаль, но Лот #${product.lot_number} ${product.title}${brandModelText} уже ушел!`,
       `Кто-то оказался быстрее... в следующий раз повезет - будь начеку.`
+    ].join('\n');
+  } else if (notificationType === 'repost' && priceChanged) {
+    // Special repost message with SALE indicator and price change
+    const brandModelText = formatBrandModel(product.brand, product.model);
+    
+    const messageData = {
+      title: product.title,
+      brandModel: brandModelText,
+      price: product.price,
+      oldPrice: oldPrice,
+      deliveryPrice: product.delivery_price,
+      lotNumber: product.lot_number,
+      optId: product.optid_created || '',
+      telegram: product.telegram_url || '',
+      status: product.status
+    };
+    
+    // Format price with strikethrough old price and new price
+    const priceText = oldPrice && oldPrice !== messageData.price 
+      ? `~~${oldPrice} $~~ ${messageData.price} $🔥` 
+      : `${messageData.price} $🔥`;
+    
+    messageText = [
+      `LOT(лот) #${messageData.lotNumber}❗️SALE❗️`,
+      `📦 ${messageData.title}${messageData.brandModel}`,
+      `💰 Цена: ${priceText}`,
+      `🚚 Цена доставки: ${messageData.deliveryPrice} $`,
+      `🆔 OPT_ID продавца: ${messageData.optId}`,
+      `👤 Telegram продавца: ${getTelegramForDisplay(messageData.telegram, localTelegramAccounts)}`,
+      '',
+      `📊 Статус: ${messageData.status === 'active' ? 'Опубликован' : 
+             messageData.status === 'sold' ? 'Продан' : 'На модерации'}`
     ].join('\n');
   } else {
     // Standard notification for status changes or new products with brand and model

@@ -188,14 +188,17 @@ export const useBackgroundSync = () => {
   }, []);
 
   // Sync product repost
-  const syncProductRepost = useCallback(async (repostData: { productId: string }): Promise<boolean> => {
+  const syncProductRepost = useCallback(async (repostData: { productId: string; priceChanged?: boolean; newPrice?: number; oldPrice?: number }): Promise<boolean> => {
     try {
-      console.log('📱 BG Sync: Sending product repost for', repostData.productId);
+      console.log('📱 BG Sync: Sending product repost for', repostData.productId, repostData.priceChanged ? `with price change: ${repostData.oldPrice} -> ${repostData.newPrice}` : '');
       
       const { error } = await supabase.functions.invoke('send-telegram-notification', {
         body: { 
           productId: repostData.productId,
-          notificationType: 'repost'
+          notificationType: 'repost',
+          priceChanged: repostData.priceChanged,
+          newPrice: repostData.newPrice,
+          oldPrice: repostData.oldPrice
         }
       });
       
