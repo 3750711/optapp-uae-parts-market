@@ -678,7 +678,7 @@ export const useStagedCloudinaryUpload = () => {
             // Log successful HEIC upload
             const uploadDuration = item.uploadStartTime ? Date.now() - item.uploadStartTime : 0;
             const compressionRatio = item.compressedSize && item.originalSize ? 
-              Math.round((1 - item.compressedSize / item.originalSize) * 100) / 100 : undefined;
+              item.compressedSize / item.originalSize : undefined;
             
             logUploadEvent({
               file_url: result.url,
@@ -756,7 +756,7 @@ export const useStagedCloudinaryUpload = () => {
           // Log successful upload
           const uploadDuration = item.uploadStartTime ? Date.now() - item.uploadStartTime : 0;
           const compressionRatio = item.compressedSize && item.originalSize ? 
-            Math.round((1 - item.compressedSize / item.originalSize) * 100) / 100 : undefined;
+            item.compressedSize / item.originalSize : undefined;
           
           logUploadEvent({
             file_url: result.url,

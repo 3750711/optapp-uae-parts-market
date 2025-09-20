@@ -236,6 +236,8 @@ export type Database = {
       }
       free_order_upload_logs: {
         Row: {
+          compressed_size: number | null
+          compression_ratio: number | null
           created_at: string
           duration_ms: number | null
           error_details: string | null
@@ -243,11 +245,14 @@ export type Database = {
           id: number
           method: string | null
           order_id: string | null
+          original_size: number | null
           status: string
           trace_id: string | null
           user_id: string | null
         }
         Insert: {
+          compressed_size?: number | null
+          compression_ratio?: number | null
           created_at?: string
           duration_ms?: number | null
           error_details?: string | null
@@ -255,11 +260,14 @@ export type Database = {
           id?: number
           method?: string | null
           order_id?: string | null
+          original_size?: number | null
           status: string
           trace_id?: string | null
           user_id?: string | null
         }
         Update: {
+          compressed_size?: number | null
+          compression_ratio?: number | null
           created_at?: string
           duration_ms?: number | null
           error_details?: string | null
@@ -267,6 +275,7 @@ export type Database = {
           id?: number
           method?: string | null
           order_id?: string | null
+          original_size?: number | null
           status?: string
           trace_id?: string | null
           user_id?: string | null

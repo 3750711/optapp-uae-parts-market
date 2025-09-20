@@ -14,6 +14,9 @@ interface UploadEvent {
   status: 'success' | 'error';
   error_details?: string;
   trace_id?: string;
+  original_size?: number;
+  compressed_size?: number;
+  compression_ratio?: number;
 }
 
 interface RequestBody {
@@ -76,6 +79,9 @@ Deno.serve(async (req) => {
       status: event.status,
       error_details: event.error_details || null,
       trace_id: event.trace_id || null,
+      original_size: event.original_size || null,
+      compressed_size: event.compressed_size || null,
+      compression_ratio: event.compression_ratio || null,
     }));
 
     const { error: insertError } = await supabase
