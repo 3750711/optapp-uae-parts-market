@@ -41,10 +41,8 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import LanguageToggle from '@/components/auth/LanguageToggle';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getMainPageTranslations } from '@/utils/mainPageTranslations';
-import { allowedLocalesFor } from '@/utils/languageVisibility';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import HeaderSkeleton from './HeaderSkeleton';
 
@@ -57,7 +55,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { language, changeLanguage } = useLanguage();
+  const { language } = useLanguage();
   const t = getMainPageTranslations(language);
   const l = language === 'bn' ? {
     logoutSuccessTitle: 'সাইন আউট',
@@ -178,13 +176,6 @@ const Header = () => {
         <NavLinks />
 
         <div className="flex items-center space-x-3">
-          {/* Language Toggle - conditionally visible based on role and route */}
-          <LanguageToggle 
-            language={language}
-            onLanguageChange={changeLanguage}
-            allowedLanguages={allowedLocalesFor(profile?.user_type || null, location.pathname)}
-            className="mr-2"
-          />
           
           {/* Admin Panel Button */}
           {user && !loading && !isCheckingAdmin && isAdmin && (
