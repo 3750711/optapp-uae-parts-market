@@ -68,15 +68,15 @@ export default function ActivityMonitor() {
           user_agent,
           details,
           created_at,
-          profiles!inner(email, full_name, user_type)
+          profiles(email, full_name, user_type)
         `)
         .eq('entity_type', 'user_activity')
         .order('created_at', { ascending: false })
         .range((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage - 1);
 
-      // Apply filters
+      // Apply filters  
       if (emailFilter) {
-        query = query.ilike('profiles.email', `%${emailFilter}%`);
+        query = query.filter('profiles.email', 'ilike', `%${emailFilter}%`);
       }
 
               if (eventTypeFilter && eventTypeFilter !== 'all') {
@@ -281,7 +281,9 @@ export default function ActivityMonitor() {
                         </TableCell>
                         <TableCell>
                           <div className="space-y-1">
-                            <div className="font-medium">{log.profiles?.email}</div>
+                            <div className="font-medium">
+                              {log.profiles?.email || log.user_id || 'Системное событие'}
+                            </div>
                             <div className="text-sm text-muted-foreground">
                               {log.profiles?.full_name || 'N/A'}
                             </div>
@@ -383,9 +385,9 @@ export default function ActivityMonitor() {
                 </div>
                 <div>
                   <strong>Пользователь:</strong>
-                  <div>{selectedLog.profiles?.email}</div>
+                  <div>{selectedLog.profiles?.email || selectedLog.user_id || 'Системное событие'}</div>
                   <div className="text-muted-foreground">
-                    {selectedLog.profiles?.full_name || 'N/A'} ({selectedLog.profiles?.user_type})
+                    {selectedLog.profiles?.full_name || 'N/A'} {selectedLog.profiles?.user_type ? `(${selectedLog.profiles.user_type})` : ''}
                   </div>
                 </div>
                 <div>
