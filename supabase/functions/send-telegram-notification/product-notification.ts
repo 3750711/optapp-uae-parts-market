@@ -61,6 +61,23 @@ export async function handleProductNotification(productId: string, notificationT
 
   console.log('Successfully fetched product:', product.title, 'status:', product.status);
   
+  // STEP 1: Immediately update timestamp to prevent duplicate notifications
+  // This prevents race conditions where the trigger fires multiple times
+  const { error: lockError } = await supabaseClient
+    .from('products')
+    .update({ last_notification_sent_at: new Date().toISOString() })
+    .eq('id', productId);
+    
+  if (lockError) {
+    console.error('Error setting notification lock:', lockError);
+    return new Response(
+      JSON.stringify({ error: 'Failed to set notification lock' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
+  } else {
+    console.log('✅ Notification lock set - preventing duplicate calls');
+  }
+  
   // Check if there are any images for this product
   const images = product.product_images || [];
   const videos = product.product_videos || [];
@@ -189,16 +206,6 @@ export async function handleProductNotification(productId: string, notificationT
         }
       });
       
-      // Update the notification timestamp
-      const { error: updateError } = await supabaseClient
-        .from('products')
-        .update({ last_notification_sent_at: new Date().toISOString() })
-        .eq('id', productId);
-        
-      if (updateError) {
-        console.error('Error updating notification timestamp:', updateError);
-      }
-      
       return new Response(
         JSON.stringify({ success: true, message: 'Sold notification sent successfully' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -311,18 +318,6 @@ export async function handleProductNotification(productId: string, notificationT
         BOT_TOKEN
       );
       
-      // Update the notification timestamp for repost cooldown
-      const { error: updateError } = await supabaseClient
-        .from('products')
-        .update({ last_notification_sent_at: new Date().toISOString() })
-        .eq('id', productId);
-        
-      if (updateError) {
-        console.error('Error updating notification timestamp for repost:', updateError);
-      } else {
-        console.log('Successfully updated notification timestamp for repost');
-      }
-      
       // Log successful repost
       await supabaseClient.from('event_logs').insert({
         entity_type: 'product',
@@ -425,16 +420,6 @@ export async function handleProductNotification(productId: string, notificationT
           new_status: product.status
         }
       });
-      
-      // Update the notification timestamp
-      const { error: updateError } = await supabaseClient
-        .from('products')
-        .update({ last_notification_sent_at: new Date().toISOString() })
-        .eq('id', productId);
-        
-      if (updateError) {
-        console.error('Error updating notification timestamp:', updateError);
-      }
       
       return new Response(
         JSON.stringify({ success: true, message: 'Status change notification sent successfully' }),

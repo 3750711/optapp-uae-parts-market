@@ -208,31 +208,19 @@ export async function sendImageMediaGroups(
       }
     }
     
-    // Update the notification timestamp to indicate a successful send (only for product notifications, not order notifications)
-    if (allMediaGroupsSuccessful && productId) {
-      const { error: updateError } = await supabaseClient
-        .from('products')
-        .update({ 
-          last_notification_sent_at: new Date().toISOString() 
-        })
-        .eq('id', productId);
-        
-      if (updateError) {
-        console.error('Error updating notification timestamp:', updateError);
-      } else {
-        console.log('Successfully updated notification timestamp after sending');
-      }
-    } else if (!allMediaGroupsSuccessful && productId) {
-      // If some media groups failed, reset notification timestamp to allow retry
+    // Only reset notification timestamp if all media groups failed (to allow retry)
+    // If notification was partially successful, keep the timestamp to prevent spam
+    if (!allMediaGroupsSuccessful && productId && successfulBatches === 0) {
+      console.log('All media groups failed - resetting timestamp to allow retry');
       const { error: updateError } = await supabaseClient
         .from('products')
         .update({ last_notification_sent_at: null })
         .eq('id', productId);
         
       if (updateError) {
-        console.error('Error resetting notification timestamp after failure:', updateError);
+        console.error('Error resetting notification timestamp after complete failure:', updateError);
       } else {
-        console.log('Reset notification timestamp to allow retry after partial failure');
+        console.log('Reset notification timestamp to allow retry after complete failure');
       }
     }
     
