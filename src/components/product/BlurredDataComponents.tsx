@@ -19,7 +19,7 @@ const BlurredData: React.FC<BlurredDataProps> = ({ emoji, label, value, classNam
 };
 
 export const BlurredPrice: React.FC<{ price?: number | null }> = ({ price }) => (
-  <BlurredData emoji="🪙" label="Цена" value={price} />
+  <BlurredData emoji="💲" label="Цена" value={price} />
 );
 
 export const BlurredOptId: React.FC<{ optId?: string | null }> = ({ optId }) => (

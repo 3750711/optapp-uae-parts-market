@@ -10,13 +10,10 @@ interface CompactProductCardProps {
   // New props for telegramStyleV2 mode
   telegramStyleV2?: boolean;
   heightVariant?: 'normal' | 'compact';
-  price?: number;
   deliveryPrice?: number | null;
   lotNumber?: number;
   condition?: string;
   description?: string;
-  sellerOptId?: string | null;
-  sellerTelegram?: string | null;
 }
 
 const CompactProductCard: React.FC<CompactProductCardProps> = ({
@@ -26,16 +23,13 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
   imageUrl,
   telegramStyleV2 = false,
   heightVariant = 'normal',
-  price,
   deliveryPrice,
   lotNumber,
   condition,
-  description,
-  sellerOptId,
-  sellerTelegram
+  description
 }) => {
-  // Combine brand and model for display
-  const displayText = [brand, model].filter(Boolean).join(' ') || title;
+  // Combine brand and model for display with 📦 emoji
+  const displayText = `📦 ${[brand, model].filter(Boolean).join(' ') || title}`;
   
   // Calculate heights based on variant
   const containerHeight = heightVariant === 'compact' ? 'h-[194px]' : 'h-[220px]'; // ~12% reduction
@@ -79,22 +73,15 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
             </p>
           )}
           
-          {/* Title */}
+          {/* Title with 📦 emoji */}
           <p className="text-[15px] leading-tight text-[#222] font-[450] tracking-[-0.01em] line-clamp-2">
             {displayText}
           </p>
           
           {/* Emoji list */}
           <div className="space-y-0.5">
-            {/* Short description/type */}
-            {condition && (
-              <p className="text-[14px] leading-snug text-[#222]">
-                📦 {condition}
-              </p>
-            )}
-            
-            {/* Blurred price */}
-            <BlurredPrice price={price} />
+            {/* Blurred price - always shown */}
+            <BlurredPrice />
             
             {/* Delivery price (visible) */}
             {deliveryPrice && (
@@ -103,11 +90,11 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
               </p>
             )}
             
-            {/* Blurred OPT_ID */}
-            <BlurredOptId optId={sellerOptId} />
+            {/* Blurred OPT_ID - always shown */}
+            <BlurredOptId />
             
-            {/* Blurred Telegram */}
-            <BlurredTelegram telegram={sellerTelegram} />
+            {/* Blurred Telegram - always shown */}
+            <BlurredTelegram />
           </div>
         </div>
       </div>

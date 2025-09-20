@@ -40,13 +40,10 @@ const MobileProductsCarousel = () => {
                   imageUrl={imageUrl}
                   telegramStyleV2={true}
                   heightVariant="compact"
-                  price={product.price}
                   deliveryPrice={product.delivery_price}
                   lotNumber={product.lot_number}
                   condition={product.condition}
                   description={product.description}
-                  sellerOptId={product.profiles?.opt_id}
-                  sellerTelegram={product.profiles?.telegram}
                 />
               </CarouselItem>
             );
