@@ -95,22 +95,43 @@ export const useProductRepost = () => {
         
         console.log(`✅ [ProductRepost] Product price updated from ${oldPrice} to ${newPrice}`);
         
-        // Add to background sync queue with old price for display
-        const syncId = await queueForSync('product-repost', { 
-          productId, 
-          priceChanged: true,
-          newPrice, 
-          oldPrice 
-        });
-        
-        // Track queued repost
-        setQueuedReposts(prev => ({ ...prev, [productId]: syncId }));
-        
-        console.log(`✅ [ProductRepost] Repost queued successfully with ID: ${syncId}`);
-        toast.success(t.repostMessages.queuedSuccess, {
-          description: t.repostMessages.queuedSuccessDescription
-        });
-        return true;
+        try {
+          // Add to background sync queue with old price for display
+          const syncId = await queueForSync('product-repost', { 
+            productId, 
+            priceChanged: true,
+            newPrice, 
+            oldPrice 
+          });
+          
+          // Track queued repost
+          setQueuedReposts(prev => ({ ...prev, [productId]: syncId }));
+          
+          console.log(`✅ [ProductRepost] Repost queued successfully with ID: ${syncId}`);
+          toast.success(t.repostMessages.queuedSuccess, {
+            description: t.repostMessages.queuedSuccessDescription
+          });
+          return true;
+        } catch (queueError) {
+          console.error(`💥 [ProductRepost] Error queuing repost, rolling back price:`, queueError);
+          
+          // Rollback price change
+          const { error: rollbackError } = await supabase
+            .from('products')
+            .update({ price: oldPrice })
+            .eq('id', productId);
+            
+          if (rollbackError) {
+            console.error(`💥 [ProductRepost] Failed to rollback price:`, rollbackError);
+          } else {
+            console.log(`✅ [ProductRepost] Price rolled back to ${oldPrice}`);
+          }
+          
+          toast.error(t.repostMessages.queueError, {
+            description: t.repostMessages.queueErrorDescription
+          });
+          return false;
+        }
       }
       
       // Add to background sync queue for reliable delivery (no price change case)

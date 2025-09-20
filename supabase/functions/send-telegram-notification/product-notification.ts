@@ -355,12 +355,15 @@ export async function handleProductNotification(productId: string, notificationT
         entity_type: 'product',
         entity_id: productId,
         user_id: userId,
-        action_type: 'repost',
+        action_type: 'product_repost',
         details: { 
           success: true, 
           notification_type: 'repost',
           lot_number: product.lot_number,
-          product_title: product.title
+          product_title: product.title,
+          price_changed: priceChanged || false,
+          new_price: priceChanged ? newPrice : undefined,
+          old_price: priceChanged ? oldPrice : undefined
         }
       });
       
@@ -374,11 +377,14 @@ export async function handleProductNotification(productId: string, notificationT
         entity_type: 'product',
         entity_id: productId,
         user_id: userId,
-        action_type: 'repost',
+        action_type: 'product_repost',
         details: { 
           success: false, 
           error: error.message,
-          notification_type: 'repost'
+          notification_type: 'repost',
+          price_changed: priceChanged || false,
+          new_price: priceChanged ? newPrice : undefined,
+          old_price: priceChanged ? oldPrice : undefined
         }
       });
       
