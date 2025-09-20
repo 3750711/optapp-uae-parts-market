@@ -19,12 +19,33 @@ interface UploadLog {
   duration_ms: number | null;
   status: 'success' | 'error';
   error_details: string | null;
+  original_size: number | null;
+  compressed_size: number | null;
+  compression_ratio: number | null;
   user_email?: string;
 }
 
 const AdminFreeOrderUploadMonitoring = () => {
   const [page, setPage] = useState(1);
   const pageSize = 20;
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number | null): string => {
+    if (!bytes) return '—';
+    const kb = bytes / 1024;
+    const mb = kb / 1024;
+    if (mb >= 1) {
+      return `${mb.toFixed(1)} MB`;
+    }
+    return `${kb.toFixed(1)} KB`;
+  };
+
+  // Helper function to format compression ratio
+  const formatCompressionRatio = (ratio: number | null): string => {
+    if (!ratio) return '—';
+    const percentage = Math.round((1 - ratio) * 100);
+    return `${percentage}%`;
+  };
 
   const { data: logsData, isLoading, error } = useQuery({
     queryKey: ['freeOrderUploadLogs', page],
@@ -35,7 +56,17 @@ const AdminFreeOrderUploadMonitoring = () => {
       const { data: logs, error: logsError } = await supabase
         .from('free_order_upload_logs')
         .select(`
-          *,
+          id,
+          created_at,
+          user_id,
+          file_url,
+          method,
+          duration_ms,
+          status,
+          error_details,
+          original_size,
+          compressed_size,
+          compression_ratio,
           profiles(email)
         `)
         .order('created_at', { ascending: false })
@@ -101,6 +132,9 @@ const AdminFreeOrderUploadMonitoring = () => {
                         <th className="text-left p-2 font-medium">Статус</th>
                         <th className="text-left p-2 font-medium">Метод</th>
                         <th className="text-left p-2 font-medium">Время (мс)</th>
+                        <th className="text-left p-2 font-medium">Исходный размер</th>
+                        <th className="text-left p-2 font-medium">Сжатый размер</th>
+                        <th className="text-left p-2 font-medium">Сжатие</th>
                         <th className="text-left p-2 font-medium">Ошибка</th>
                       </tr>
                     </thead>
@@ -143,6 +177,17 @@ const AdminFreeOrderUploadMonitoring = () => {
                           </td>
                           <td className="p-2 text-sm">
                             {log.duration_ms ? `${log.duration_ms}` : '—'}
+                          </td>
+                          <td className="p-2 text-sm">
+                            {formatFileSize(log.original_size)}
+                          </td>
+                          <td className="p-2 text-sm">
+                            {formatFileSize(log.compressed_size)}
+                          </td>
+                          <td className="p-2 text-sm">
+                            <span className={log.compression_ratio && log.compression_ratio < 0.8 ? 'text-green-600 font-medium' : ''}>
+                              {formatCompressionRatio(log.compression_ratio)}
+                            </span>
                           </td>
                           <td className="p-2 text-sm">
                             {log.error_details ? (
