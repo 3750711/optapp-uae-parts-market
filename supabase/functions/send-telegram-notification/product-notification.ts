@@ -185,10 +185,8 @@ export async function handleProductNotification(productId: string, notificationT
       status: product.status
     };
     
-    // Format price with strikethrough old price and new price
-    const priceText = oldPrice && oldPrice !== messageData.price 
-      ? `~~${oldPrice} $~~ ${messageData.price} $🔥` 
-      : `${messageData.price} $🔥`;
+    // Show only new price with fire emoji for sale indication
+    const priceText = `${messageData.price} $🔥`;
     
     messageText = [
       `LOT(лот) #${messageData.lotNumber}❗️SALE❗️`,
