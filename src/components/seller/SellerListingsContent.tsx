@@ -70,7 +70,7 @@ const SellerListingsContent = () => {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name, first_name, last_name, public_share_token, public_share_enabled')
+        .select('first_name, last_name, public_share_token, public_share_enabled')
         .eq('id', user.id)
         .single();
         
