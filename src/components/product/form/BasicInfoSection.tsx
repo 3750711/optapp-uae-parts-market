@@ -41,58 +41,17 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
         )}
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="price"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t.labels.price}</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number"
-                  step="1"
-                  inputMode="numeric"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="deliveryPrice"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t.labels.deliveryPrice}</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number"
-                  step="1"
-                  inputMode="numeric"
-                  placeholder={t.placeholders.deliveryPrice}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
       <FormField
         control={form.control}
-        name="placeNumber"
+        name="price"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>{t.labels.placeNumber}</FormLabel>
+            <FormLabel>{t.labels.price}</FormLabel>
             <FormControl>
               <Input 
                 type="number"
-                min="1"
-                placeholder={t.placeholders.placeNumberText}
+                step="1"
+                inputMode="numeric"
                 {...field}
               />
             </FormControl>

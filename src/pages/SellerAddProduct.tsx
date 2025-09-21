@@ -65,33 +65,14 @@ const SellerAddProduct = () => {
   const isMobile = useIsMobile();
   const { notifyAdminsNewProduct } = useAdminNotifications();
 
-  // Use lazy car brands hook for better performance
-  const { 
-    brands, 
-    brandModels, 
-    allModels,
-    selectBrand,
-    findBrandIdByName,
-    findModelIdByName, 
-    isLoading: isLoadingCarData,
-    enableBrandsLoading,
-    enableAllModelsLoading,
-    shouldLoadBrands,
-    shouldLoadAllModels
-  } = useLazyCarBrands();
-
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       title: "",
       price: "",
-      brandId: "",
-      modelId: "",
-      placeNumber: "1",
       description: "",
-      deliveryPrice: "",
     },
-    mode: "onBlur", // Changed from onChange for better mobile performance
+    mode: "onBlur",
   });
 
   // Initialize mobile optimizations
@@ -103,19 +84,6 @@ const SellerAddProduct = () => {
       trackMobileFormMetrics.formComplete();
     };
   }, []);
-
-  // Load car brands when component mounts (lazy loading)
-  useEffect(() => {
-    enableBrandsLoading();
-  }, [enableBrandsLoading]);
-
-  // Initialize our title parser (only when needed)
-  const parseProductTitle = useMemo(() => {
-    if (brands.length > 0 && allModels.length > 0) {
-      return createProductTitleParser(brands, allModels);
-    }
-    return () => ({ brandId: null, modelId: null });
-  }, [brands, allModels]);
 
   // Get form data for autosave - use getValues instead of watch to avoid reactivity
   const getFormDataForAutosave = useCallback(() => form.getValues(), [form]);
@@ -133,8 +101,6 @@ const SellerAddProduct = () => {
     { label: sp.system?.addProductBreadcrumb || "Add Product" }
   ], [sp.system]);
 
-  const watchBrandId = form.watch("brandId");
-  const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
 
   useEffect(() => {
@@ -152,70 +118,6 @@ const SellerAddProduct = () => {
       setDraftLoaded(true);
     }
   }, [loadSavedData, form, isSubmitting, draftLoaded]);
-
-  // Handle title changes with debounce - optimized for mobile
-  const handleTitleChange = useCallback((title: string) => {
-    if (title && brands.length > 0 && !watchBrandId) {
-      // Enable all models loading if not already enabled
-      if (!shouldLoadAllModels) {
-        enableAllModelsLoading();
-      }
-      
-      console.log("Parsing title for auto-detection:", title);
-      const { brandId, modelId } = parseProductTitle(title);
-      
-      if (brandId) {
-        form.setValue("brandId", brandId, { shouldValidate: false });
-        
-        if (modelId) {
-          form.setValue("modelId", modelId, { shouldValidate: false });
-        }
-
-        toast({
-          title: t.messages.carDetected,
-          description: t.messages.carDetectedDescription,
-        });
-      }
-    }
-  }, [brands, parseProductTitle, form, watchBrandId, toast, shouldLoadAllModels, enableAllModelsLoading]);
-
-  // Debounced title processing - increased delay for mobile
-  useEffect(() => {
-    if (!watchTitle) return;
-    
-    const delay = isMobile ? 1000 : 500; // Longer delay on mobile
-    const timeoutId = setTimeout(() => {
-      handleTitleChange(watchTitle);
-    }, delay);
-
-    return () => clearTimeout(timeoutId);
-  }, [watchTitle, handleTitleChange, isMobile]);
-
-  // Handle brand and model changes - only if car data should load
-  useEffect(() => {
-    
-    if (watchBrandId) {
-      selectBrand(watchBrandId);
-      
-      // Reset model if it doesn't belong to the selected brand
-      if (watchModelId) {
-        const modelBelongsToBrand = brandModels.some(model => 
-          model.id === watchModelId && model.brand_id === watchBrandId
-        );
-        if (!modelBelongsToBrand) {
-          form.setValue("modelId", "", { shouldValidate: false });
-        }
-      }
-    }
-
-    // Validate model when brandModels change
-    if (watchModelId && brandModels.length > 0) {
-      const modelExists = brandModels.some(model => model.id === watchModelId);
-      if (!modelExists) {
-        form.setValue("modelId", "", { shouldValidate: false });
-      }
-    }
-  }, [watchBrandId, watchModelId, selectBrand, form, brandModels]);
 
   // Unified image upload handler
   const handleImageUpload = useCallback((urls: string[]) => {
@@ -279,33 +181,17 @@ const SellerAddProduct = () => {
     }
 
     try {
-      // Get brand and model names for the database (only if car data loaded)
-      let brandName = null;
-      let modelName = null;
-      
-      if (values.brandId) {
-        const selectedBrand = brands.find(brand => brand.id === values.brandId);
-        brandName = selectedBrand?.name || null;
-        
-        if (values.modelId) {
-          const selectedModel = brandModels.find(model => model.id === values.modelId);
-          modelName = selectedModel?.name || null;
-        }
-      }
-
-      console.log('🏭 Creating product with seller automatically assigned...', {
+      console.log('🏭 Creating simplified product with seller automatically assigned...', {
         title: values.title,
         sellerId: user.id,
         sellerName: profile?.full_name || '',
         imageCount: imageUrls.length,
         videoCount: videoUrls.length,
         primaryImage,
-        brandName,
-        modelName,
         timestamp: new Date().toISOString()
       });
       
-      // Determine product status based on seller trust level (like admin approach)
+      // Determine product status based on seller trust level
       const productStatus = profile?.is_trusted_seller ? 'active' : 'pending';
       
       console.log('👤 Seller trust status:', {
@@ -314,21 +200,21 @@ const SellerAddProduct = () => {
         sellerId: user.id
       });
 
-      // Create product using standard Supabase insert with automatic seller assignment
+      // Create simplified product with default values for admin fields
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
           title: values.title,
           price: Number(values.price),
-          condition: "Новый",
-          brand: brandName,
-          model: modelName,
+          condition: "Новый", // Default value
+          brand: null, // Will be set by admin
+          model: null, // Will be set by admin
           description: values.description || null,
           seller_id: user.id, // Automatically assign current user as seller
           seller_name: profile?.full_name || '',
           status: productStatus, // Use determined status based on trust level
-          place_number: Number(values.placeNumber) || 1,
-          delivery_price: Number(values.deliveryPrice) || 0,
+          place_number: 1, // Default value
+          delivery_price: 0, // Default value
         })
         .select()
         .single();
@@ -338,7 +224,7 @@ const SellerAddProduct = () => {
         throw productError;
       }
 
-      console.log('✅ Product created:', product.id);
+      console.log('✅ Simplified product created:', product.id);
 
       // Add images using mass insert (like admin)
       const imageInserts = imageUrls.map(url => ({
@@ -497,15 +383,10 @@ const SellerAddProduct = () => {
   }, [guardedSubmit, createProduct]);
 
   // Check if we should show loading state
-  const isInitialLoading = shouldLoadBrands && isLoadingCarData && brands.length === 0;
+  const isInitialLoading = false; // Simplified - no car data loading needed
 
   // Error Boundary (UI-level)
   try {
-    // Show loading state if initial car data is being loaded
-    if (isInitialLoading) {
-      return <LoadingState />;
-    }
-
     return (
       <GlobalErrorBoundary>
         <div className="container mx-auto px-4 py-8">
@@ -571,10 +452,6 @@ const SellerAddProduct = () => {
                       isSubmitting={isSubmitting || isMediaUploading}
                       imageUrls={imageUrls}
                       videoUrls={videoUrls}
-                      brands={brands}
-                      brandModels={brandModels}
-                      isLoadingCarData={isLoadingCarData}
-                      watchBrandId={form.watch("brandId")}
                       handleMobileOptimizedImageUpload={handleImageUpload}
                       setVideoUrls={setVideoUrls}
                       primaryImage={primaryImage}
@@ -597,10 +474,6 @@ const SellerAddProduct = () => {
                 isSubmitting={isSubmitting || isMediaUploading}
                 imageUrls={imageUrls}
                 videoUrls={videoUrls}
-                brands={brands}
-                brandModels={brandModels}
-                isLoadingCarData={isLoadingCarData}
-                watchBrandId={form.watch("brandId")}
                 handleMobileOptimizedImageUpload={handleImageUpload}
                 setVideoUrls={setVideoUrls}
                 primaryImage={primaryImage}

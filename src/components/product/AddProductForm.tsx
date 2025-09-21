@@ -16,16 +16,12 @@ import { z } from "zod";
 import { getProductValidationMessages, ProductValidationMessages } from "@/utils/translations/forms";
 import { Lang } from "@/types/i18n";
 
-// Create schema function that accepts translations
+// Create simplified schema function that accepts translations
 export const createProductSchema = (t: ProductValidationMessages) => z.object({
   title: z.string().min(3, { message: t.titleMinLength }),
   price: z.string().min(1, { message: t.priceRequired }).refine((val) => !isNaN(Number(val)) && Number(val) >= 0, { message: t.priceInvalid }),
-  brandId: z.string().min(1, { message: t.brandRequired }),
-  modelId: z.string().optional(),
-  placeNumber: z.string().min(1, { message: t.placesRequired }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, { message: t.placesInvalid }),
   description: z.string().optional(),
-  deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), { message: t.deliveryPriceInvalid }),
-  sellerId: z.string().optional(),
+  // Removed fields (will be set by admin): brandId, modelId, placeNumber, deliveryPrice, sellerId
 });
 
 // Default English schema for backward compatibility
@@ -43,17 +39,10 @@ interface AddProductFormProps {
   isSubmitting: boolean;
   imageUrls: string[];
   videoUrls: string[];
-  userId?: string;
-  brands: Array<{ id: string, name: string }>;
-  brandModels: Array<{ id: string, name: string, brand_id: string }>;
-  isLoadingCarData: boolean;
-  watchBrandId: string;
   handleMobileOptimizedImageUpload: (urls: string[]) => void;
   setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
-  sellers?: Array<{ id: string, full_name: string, opt_id?: string }>;
-  showSellerSelection?: boolean;
   onImageDelete?: (url: string) => void;
   onUploadStateChange?: (isUploading: boolean) => void;
 }
@@ -67,16 +56,10 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   isSubmitting,
   imageUrls,
   videoUrls,
-  brands,
-  brandModels,
-  isLoadingCarData,
-  watchBrandId,
   handleMobileOptimizedImageUpload,
   setVideoUrls,
   primaryImage,
   setPrimaryImage,
-  sellers = [],
-  showSellerSelection = false,
   onImageDelete,
   onUploadStateChange,
 }) => {
@@ -86,24 +69,8 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {showSellerSelection && sellers.length > 0 && (
-        <FormSectionWrapper title={t.sections.seller}>
-            <SellerSelectionSection form={form} sellers={sellers} />
-          </FormSectionWrapper>
-        )}
-
         <FormSectionWrapper title={t.sections.basicInformation}>
           <BasicInfoSection form={form} />
-        </FormSectionWrapper>
-
-        <FormSectionWrapper title={t.sections.carInformation}>
-          <CarInfoSection
-            form={form}
-            brands={brands}
-            models={brandModels}
-            watchBrandId={watchBrandId}
-            isLoadingCarData={isLoadingCarData}
-          />
         </FormSectionWrapper>
         
         <FormSectionWrapper title={t.sections.mediaFiles}>
