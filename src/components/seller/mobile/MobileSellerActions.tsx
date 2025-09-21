@@ -130,7 +130,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
               onClick={handleAddNewProduct}
             >
               <Plus className="h-4 w-4" />
-              Добавить новый товар
+              {sp.addProduct}
             </Button>
           )}
 
