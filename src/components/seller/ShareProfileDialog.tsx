@@ -42,18 +42,11 @@ const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
   const { language } = useLanguage();
   const t = getCommonTranslations(language);
 
-  // Generate the appropriate URL based on available tokens
+  // Generate the appropriate URL based on sellerId
   const getShareUrl = () => {
-    // Priority 1: Store with public token
-    if (storeInfo?.public_share_token && storeInfo?.public_share_enabled) {
-      return `${PRODUCTION_DOMAIN}/public-store/${storeInfo.public_share_token}`;
+    if (sellerId) {
+      return `${PRODUCTION_DOMAIN}/public-profile/${sellerId}`;
     }
-    
-    // Priority 2: Profile with public token  
-    if (profileInfo?.public_share_token && profileInfo?.public_share_enabled) {
-      return `${PRODUCTION_DOMAIN}/public-profile/${profileInfo.public_share_token}`;
-    }
-    
     return null;
   };
 
@@ -136,7 +129,11 @@ const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
     const subject = encodeURIComponent(`Check out ${sanitizedName || 'this seller'} on PartsBay`);
     const body = encodeURIComponent(`Good afternoon,\n\nYou can view my full catalog here${sanitizedName ? ` - ${sanitizedName}` : ''}:\n\n${profileUrl}\n\nBest regards`);
     
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+    const emailLink = document.createElement('a');
+    emailLink.href = `mailto:?subject=${subject}&body=${body}`;
+    emailLink.rel = 'noopener noreferrer';
+    emailLink.target = '_blank';
+    emailLink.click();
     setIsDialogOpen(false);
   };
 
@@ -165,6 +162,7 @@ const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
           size={isMobile ? "icon" : "default"}
           className={`bg-blue-500 hover:bg-blue-600 text-white border-blue-500 hover:border-blue-600 ${className}`}
           title={t.buttons.share}
+          aria-label={t.buttons.share}
         >
           <Share2 className="h-5 w-5" />
           {!isMobile && <span className="ml-2">{t.buttons.share}</span>}

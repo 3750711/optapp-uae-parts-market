@@ -28,21 +28,14 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     return null;
   }
 
-  // Check if we have either store or profile sharing enabled
-  const hasStoreShare = storeInfo?.public_share_token && storeInfo?.public_share_enabled;
-  const hasProfileShare = profileInfo?.public_share_token && profileInfo?.public_share_enabled;
-  const hasAnyShare = hasStoreShare || hasProfileShare;
-
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {hasAnyShare && (
-        <ShareProfileDialog
-          sellerId={sellerId}
-          sellerName={sellerName || 'My Store'}
-          storeInfo={storeInfo}
-          profileInfo={profileInfo}
-        />
-      )}
+      <ShareProfileDialog
+        sellerId={sellerId}
+        sellerName={sellerName || 'My Store'}
+        storeInfo={storeInfo}
+        profileInfo={profileInfo}
+      />
     </div>
   );
 };
