@@ -1,5 +1,5 @@
 // Simple version management for critical updates
-const CURRENT_VERSION = '3.5.0-orders-fix';
+const CURRENT_VERSION = '3.6.0-profile-fix';
 const VERSION_KEY = 'pb_app_version';
 
 export function checkAppVersion(): void {
