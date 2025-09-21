@@ -60,7 +60,7 @@ const FeaturedProductsSection = () => {
         .from('products')
         .select('*, product_images(url, is_primary), profiles:seller_id(*), cloudinary_public_id, cloudinary_url')
         .eq('status', 'active')
-        .order('created_at', { ascending: false })
+        .order('catalog_position', { ascending: false })
         .limit(8);
 
       if (error) throw error;

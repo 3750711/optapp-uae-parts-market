@@ -92,7 +92,7 @@ export const useOptimizedCatalogProducts = ({
   const buildSortQuery = (query: any, sortOption: SortOption) => {
     switch (sortOption) {
       case 'newest':
-        return query.order('created_at', { ascending: false });
+        return query.order('catalog_position', { ascending: false }).order('created_at', { ascending: false });
       case 'oldest':
         return query.order('created_at', { ascending: true });
       case 'price_asc':
@@ -104,7 +104,7 @@ export const useOptimizedCatalogProducts = ({
       case 'name_desc':
         return query.order('title', { ascending: false });
       default:
-        return query.order('created_at', { ascending: false });
+        return query.order('catalog_position', { ascending: false }).order('created_at', { ascending: false });
     }
   };
 
@@ -280,7 +280,7 @@ export const useOptimizedCatalogProducts = ({
           'rating_seller', 'delivery_price', 'optid_created',
           'cloudinary_public_id', 'cloudinary_url', 'lot_number',
           'place_number', 'view_count', 'product_location', 'telegram_url',
-          'phone_url', 'description'
+          'phone_url', 'description', 'catalog_position'
         ].join(', ');
         
         let query = supabase

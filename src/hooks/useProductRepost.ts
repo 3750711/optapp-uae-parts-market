@@ -71,10 +71,10 @@ export const useProductRepost = () => {
       
       // If price is changed, update product price first
       if (newPrice !== undefined) {
-        // Store old price for display purposes
+        // Store old price and catalog_position for display purposes
         const { data: currentProduct } = await supabase
           .from('products')
-          .select('price')
+          .select('price, catalog_position')
           .eq('id', productId)
           .single();
 
@@ -122,10 +122,13 @@ export const useProductRepost = () => {
         } catch (queueError) {
           console.error(`💥 [ProductRepost] Error queuing repost, rolling back price:`, queueError);
           
-          // Rollback price change
+          // Rollback price change and catalog_position
           const { error: rollbackError } = await supabase
             .from('products')
-            .update({ price: oldPrice })
+            .update({ 
+              price: oldPrice,
+              catalog_position: currentProduct?.catalog_position 
+            })
             .eq('id', productId);
             
           if (rollbackError) {
