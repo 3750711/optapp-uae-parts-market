@@ -28,18 +28,28 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const getShareUrl = () => {
     if (!sellerId) return null;
     
+    console.log('ContactButtons data:', { 
+      sellerId, 
+      storeInfo, 
+      profileInfo,
+      PRODUCTION_DOMAIN 
+    });
+    
     // Priority 1: Store with public token
     if (storeInfo?.public_share_token && storeInfo?.public_share_enabled) {
       const storeUrl = `${PRODUCTION_DOMAIN}/public-store/${storeInfo.public_share_token}`;
+      console.log('Using store URL:', storeUrl);
       return storeUrl;
     }
     
     // Priority 2: Profile with public token  
     if (profileInfo?.public_share_token && profileInfo?.public_share_enabled) {
       const profileUrl = `${PRODUCTION_DOMAIN}/public-profile/${profileInfo.public_share_token}`;
+      console.log('Using profile URL:', profileUrl);
       return profileUrl;
     }
     
+    console.log('No public sharing URL available');
     return null;
   };
 

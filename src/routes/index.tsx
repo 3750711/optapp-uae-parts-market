@@ -15,7 +15,6 @@ import BlockedPage from "@/pages/BlockedPage";
 import ForbiddenPage from "@/pages/403";
 import AuthState from "@/pages/debug/AuthState";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
-import { PublicRoutes } from '@/routes/public';
 
 // Lazy loaded публичные страницы
 const Index = lazy(() => import('@/pages/Index'));
@@ -133,10 +132,12 @@ const AppRoutes: React.FC = () => {
               </Suspense>
             } />
 
-            {/* Public routes - available to everyone */}
-            <PublicRoutes />
-
-            {/* Public store routes */}
+            {/* Публичные маршруты - доступны всем */}
+            <Route path="/" element={
+              <HomeRedirect>
+                <Index />
+              </HomeRedirect>
+            } />
             <Route path="/public-store/:token" element={<PublicStore />} />
             <Route path="/public-profile/:token" element={<PublicProfile />} />
             <Route path="/404" element={<NotFound />} />
