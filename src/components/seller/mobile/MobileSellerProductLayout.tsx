@@ -202,6 +202,34 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
       </Card>
 
 
+      {/* Product Info */}
+      <Card className="rounded-none border-0 shadow-none mb-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            {t.labels.productDescription}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <InlineEditableTextarea
+              value={product.description || ""}
+              onSave={updateDescription}
+              placeholder="Add product description..."
+              displayClassName="text-sm text-foreground/80 leading-relaxed"
+              emptyText="Click to add description"
+              maxLength={1000}
+            />
+          </div>
+          
+          <div className="bg-muted p-3 rounded-lg">
+            <div className="text-xs text-muted-foreground">
+              {t.labels.created}: {new Date(product.created_at).toLocaleDateString('en-US')}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Price Offers */}
       <CompactOffersSummary productId={product.id} />
 

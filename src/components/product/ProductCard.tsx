@@ -31,7 +31,7 @@ export interface ProductProps {
   product_location?: string;
   telegram_url?: string;
   phone_url?: string;
-  tg_views_estimate?: number;
+  view_count?: number;
   rating_seller?: number;
   cloudinary_url?: string;
   cloudinary_public_id?: string;
@@ -137,7 +137,7 @@ const ProductCard = memo(({
     product_location: product.product_location,
     telegram_url: product.telegram_url,
     phone_url: product.phone_url,
-    tg_views_estimate: product.tg_views_estimate,
+    view_count: product.view_count,
     rating_seller: product.rating_seller,
     cloudinary_url: product.cloudinary_url,
     cloudinary_public_id: product.cloudinary_public_id,
@@ -203,10 +203,10 @@ const ProductCard = memo(({
           </Badge>
 
           {/* View Count */}
-          {product.tg_views_estimate && product.tg_views_estimate > 0 && (
+          {product.view_count && product.view_count > 0 && (
             <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
               <Eye className="h-3 w-3" />
-              {product.tg_views_estimate}
+              {product.view_count}
             </div>
           )}
           

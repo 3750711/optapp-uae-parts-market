@@ -11,7 +11,6 @@ interface PublishedProduct {
   condition: string;
   description?: string;
   tg_views_estimate?: number;
-  catalog_position?: string;
   product_images?: Array<{ url: string; is_primary?: boolean }>;
 }
 

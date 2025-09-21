@@ -30,7 +30,7 @@ export type ProductType = {
   cloudinary_url?: string | null;
   lot_number?: number;
   place_number?: number;
-  tg_views_estimate?: number;
+  view_count?: number;
   product_location?: string;
   telegram_url?: string;
   phone_url?: string;
@@ -279,7 +279,7 @@ export const useOptimizedCatalogProducts = ({
           'seller_name', 'seller_id', 'status', 'created_at', 'updated_at',
           'rating_seller', 'delivery_price', 'optid_created',
           'cloudinary_public_id', 'cloudinary_url', 'lot_number',
-          'place_number', 'tg_views_estimate', 'product_location', 'telegram_url',
+          'place_number', 'view_count', 'product_location', 'telegram_url',
           'phone_url', 'description', 'catalog_position'
         ].join(', ');
         
@@ -376,7 +376,7 @@ export const useOptimizedCatalogProducts = ({
           rating_seller: typedProduct.rating_seller,
           lot_number: typedProduct.lot_number,
           place_number: typedProduct.place_number,
-          tg_views_estimate: typedProduct.tg_views_estimate,
+          view_count: typedProduct.view_count,
           product_location: typedProduct.product_location,
           telegram_url: typedProduct.telegram_url,
           phone_url: typedProduct.phone_url,

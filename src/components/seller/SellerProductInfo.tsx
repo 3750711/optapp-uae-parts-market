@@ -112,7 +112,7 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
             {t.labels.views}
           </div>
           <div className="text-lg font-semibold text-foreground">
-            {product.tg_views_estimate || 0}
+            {product.view_count || 0}
           </div>
         </div>
 
