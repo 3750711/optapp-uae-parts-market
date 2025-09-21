@@ -5,11 +5,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import OptimizedMediaSection from "@/components/product/form/OptimizedMediaSection";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getFormTranslations } from "@/utils/translations/forms";
+import { getCommonTranslations } from "@/utils/translations/common";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { toast } = useToast();
+  const { language } = useLanguage();
+  
+  // Получаем переводы
+  const t = getFormTranslations(language);
+  const c = getCommonTranslations(language);
   
   // Объединенное состояние формы
   const [formData, setFormData] = useState({
@@ -64,8 +72,8 @@ const SellerAddProduct = () => {
     // Быстрая валидация
     if (!formData.title.trim()) {
       toast({
-        title: "Ошибка",
-        description: "Введите название товара",
+        title: c.errors.title,
+        description: t.validation.titleRequired,
         variant: "destructive",
       });
       return;
@@ -73,8 +81,8 @@ const SellerAddProduct = () => {
 
     if (!formData.price || Number(formData.price) <= 0) {
       toast({
-        title: "Ошибка", 
-        description: "Введите корректную цену",
+        title: c.errors.title, 
+        description: t.validation.priceRequired,
         variant: "destructive",
       });
       return;
@@ -82,8 +90,8 @@ const SellerAddProduct = () => {
 
     if (imageUrls.length === 0) {
       toast({
-        title: "Ошибка",
-        description: "Добавьте хотя бы одно фото",
+        title: c.errors.title,
+        description: t.messages.imageRequired,
         variant: "destructive",
       });
       return;
@@ -91,8 +99,8 @@ const SellerAddProduct = () => {
 
     if (!user?.id) {
       toast({
-        title: "Ошибка",
-        description: "Пользователь не авторизован",
+        title: c.errors.title,
+        description: c.errors.accessDenied,
         variant: "destructive",
       });
       return;
@@ -136,7 +144,7 @@ const SellerAddProduct = () => {
         
       if (imageError) {
         console.error('❌ Error adding images:', imageError);
-        throw new Error(`Ошибка загрузки изображений: ${imageError.message}`);
+        throw new Error(`${c.messages.error}: ${imageError.message}`);
       }
       
       console.log(`✅ ${imageUrls.length} images added for product ${productId}`);
@@ -154,11 +162,11 @@ const SellerAddProduct = () => {
       }
 
       const successMessage = profile?.is_trusted_seller 
-        ? "Товар успешно опубликован"
-        : "Товар отправлен на модерацию и будет опубликован после проверки";
+        ? t.messages.productCreated
+        : `${t.messages.productCreated}. ${t.sections.productDescription}`;
 
       toast({
-        title: "Товар создан",
+        title: t.messages.productCreated,
         description: successMessage,
       });
 
@@ -167,8 +175,8 @@ const SellerAddProduct = () => {
     } catch (error) {
       console.error("💥 Error creating product:", error);
       toast({
-        title: "Ошибка",
-        description: "Не удалось создать товар. Попробуйте еще раз.",
+        title: c.errors.title,
+        description: c.messages.error,
         variant: "destructive",
       });
     } finally {
@@ -184,9 +192,9 @@ const SellerAddProduct = () => {
           onClick={() => navigate('/seller/dashboard')}
           className="mb-4"
         >
-          ← Назад к панели
+          ← {t.buttons.backToDashboard}
         </Button>
-        <h1 className="text-2xl font-bold">Добавить товар</h1>
+        <h1 className="text-2xl font-bold">{t.sections.addProduct}</h1>
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -204,13 +212,13 @@ const SellerAddProduct = () => {
         {/* Название товара */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            Название товара *
+            {t.labels.title} *
           </label>
           <input
             type="text"
             value={formData.title}
             onChange={(e) => updateForm('title', e.target.value)}
-            placeholder="Введите название товара"
+            placeholder={t.placeholders.title}
             className="w-full p-3 border border-input rounded-lg bg-background"
             required
             minLength={3}
@@ -221,13 +229,13 @@ const SellerAddProduct = () => {
         {/* Цена */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            Цена *
+            {t.labels.price} *
           </label>
           <input
             type="number"
             value={formData.price}
             onChange={(e) => updateForm('price', e.target.value)}
-            placeholder="Введите цену"
+            placeholder={t.placeholders.price}
             className="w-full p-3 border border-input rounded-lg bg-background"
             required
             min={1}
@@ -239,12 +247,12 @@ const SellerAddProduct = () => {
         {/* Описание (опционально) */}
         <div>
           <label className="block text-sm font-medium mb-1">
-            Описание (необязательно)
+            {t.labels.description} {t.optional}
           </label>
           <textarea
             value={formData.description}
             onChange={(e) => updateForm('description', e.target.value)}
-            placeholder="Описание товара (необязательно)"
+            placeholder={t.placeholders.description}
             className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
             disabled={isSubmitting}
           />
@@ -257,7 +265,7 @@ const SellerAddProduct = () => {
           className="w-full"
           size="lg"
         >
-          {isSubmitting ? "Публикация..." : "Опубликовать товар"}
+          {isSubmitting ? t.buttons.publishing : t.buttons.publish}
         </Button>
       </form>
     </div>
