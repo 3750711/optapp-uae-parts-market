@@ -6,8 +6,6 @@ import ProductGallery from "@/components/product/ProductGallery";
 import { Badge } from "@/components/ui/badge";
 import CompactOffersSummary from "./CompactOffersSummary";
 import MobileSellerActions from "./MobileSellerActions";
-import { InlineEditableField } from "@/components/ui/InlineEditableField";
-import { InlineEditableTextarea } from "@/components/ui/InlineEditableTextarea";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
@@ -17,13 +15,6 @@ interface MobileSellerProductLayoutProps {
   videoUrls: string[];
   selectedImage: string | null;
   onImageClick: (url: string) => void;
-  onProductUpdate: () => void;
-  updateTitle: (value: string | number) => Promise<void>;
-  updatePrice: (value: string | number) => Promise<void>;
-  updateDescription: (value: string | number) => Promise<void>;
-  updatePlaceNumber: (value: string | number) => Promise<void>;
-  updateDeliveryPrice: (value: string | number) => Promise<void>;
-  updateLocation: (value: string | number) => Promise<void>;
 }
 
 const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = React.memo(({
@@ -32,13 +23,6 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
   videoUrls,
   selectedImage,
   onImageClick,
-  onProductUpdate,
-  updateTitle,
-  updatePrice,
-  updateDescription,
-  updatePlaceNumber,
-  updateDeliveryPrice,
-  updateLocation,
 }) => {
   // Ensure we have a valid product before using hooks
   if (!product?.id) {
@@ -78,14 +62,9 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
           <div className="p-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex-1 min-w-0">
-                <InlineEditableField
-                  value={product.title}
-                  onSave={updateTitle}
-                  placeholder="Product title"
-                  displayClassName="text-lg font-bold line-clamp-2 text-foreground"
-                  className="mb-1"
-                  required
-                />
+                <h1 className="text-lg font-bold line-clamp-2 text-foreground mb-1">
+                  {product.title}
+                </h1>
                 {getSpecifications() && (
                   <div className="text-sm text-muted-foreground mt-1 flex gap-2">
                     {product.brand && (
@@ -109,17 +88,9 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
               {getStatusBadge()}
             </div>
             <div className="flex items-center justify-between">
-              <InlineEditableField
-                value={product.price}
-                onSave={updatePrice}
-                type="price"
-                suffix=" $"
-                displayClassName="text-2xl font-bold text-primary"
-                placeholder="0"
-                required
-                min={1}
-                step="1"
-              />
+              <div className="text-2xl font-bold text-primary">
+                ${product.price}
+              </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Eye className="h-4 w-4 text-blue-500" />
@@ -127,12 +98,9 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
                 </div>
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  <InlineEditableField
-                    value={product.product_location || "Dubai"}
-                    onSave={updateLocation}
-                    placeholder="Location"
-                    displayClassName="text-sm text-muted-foreground"
-                  />
+                  <span className="text-sm text-muted-foreground">
+                    {product.product_location || "Dubai"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -169,33 +137,16 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
               <div className="text-xs text-muted-foreground">{t.labels.tgViews}</div>
             </div>
             <div className="bg-muted p-3 rounded-lg">
-              <InlineEditableField
-                value={product.place_number || 1}
-                onSave={updatePlaceNumber}
-                type="number"
-                displayClassName="text-lg font-bold text-primary"
-                placeholder="1"
-                min={1}
-                required
-              />
+              <div className="text-lg font-bold text-primary">{product.place_number || 1}</div>
               <div className="text-xs text-muted-foreground">{t.labels.places}</div>
             </div>
           </div>
           {product.delivery_price !== null && product.delivery_price !== undefined && (
             <div className="mt-4 bg-muted p-3 rounded-lg">
               <div className="text-xs text-muted-foreground mb-1">{t.labels.deliveryPrice}</div>
-              <InlineEditableField
-                value={product.delivery_price}
-                onSave={updateDeliveryPrice}
-                type="price"
-                suffix=" $"
-                displayClassName="text-lg font-bold text-secondary"
-                placeholder="0"
-                min={0}
-                step="1"
-                disabled={product.status === 'active'}
-                disabledMessage="Cannot change delivery price for published products"
-              />
+              <div className="text-lg font-bold text-secondary">
+                ${product.delivery_price}
+              </div>
             </div>
           )}
         </CardContent>
@@ -212,14 +163,9 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <InlineEditableTextarea
-              value={product.description || ""}
-              onSave={updateDescription}
-              placeholder="Add product description..."
-              displayClassName="text-sm text-foreground/80 leading-relaxed"
-              emptyText="Click to add description"
-              maxLength={1000}
-            />
+            <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">
+              {product.description || "No description available"}
+            </div>
           </div>
           
           <div className="bg-muted p-3 rounded-lg">
@@ -237,7 +183,6 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
       {/* Sticky Actions */}
       <MobileSellerActions 
         product={product}
-        onProductUpdate={onProductUpdate}
       />
     </div>
   );

@@ -3,22 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DollarSign, Package, Eye, Calendar } from "lucide-react";
 import { Product } from "@/types/product";
-import { InlineEditableField } from "@/components/ui/InlineEditableField";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
 interface SellerProductInfoProps {
   product: Product;
-  updatePrice: (value: string | number) => Promise<void>;
-  updatePlaceNumber: (value: string | number) => Promise<void>;
-  updateDeliveryPrice: (value: string | number) => Promise<void>;
 }
 
 const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
   product,
-  updatePrice,
-  updatePlaceNumber,
-  updateDeliveryPrice,
 }) => {
   const { language } = useLanguage();
   const t = getProductStatusTranslations(language);
@@ -53,17 +46,9 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
             <DollarSign className="h-4 w-4" />
             {t.labels.price}
           </div>
-          <InlineEditableField
-            value={product.price}
-            onSave={updatePrice}
-            type="price"
-            suffix=" $"
-            displayClassName="text-2xl font-bold text-primary"
-            placeholder="0"
-            required
-            min={0}
-            step="1"
-          />
+          <div className="text-2xl font-bold text-primary">
+            ${product.price}
+          </div>
         </div>
 
         {/* Places */}
@@ -72,15 +57,9 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
             <Package className="h-4 w-4" />
             {t.labels.numberOfPlaces}
           </div>
-          <InlineEditableField
-            value={product.place_number || 1}
-            onSave={updatePlaceNumber}
-            type="number"
-            displayClassName="text-lg font-semibold text-primary"
-            placeholder="1"
-            min={1}
-            required
-          />
+          <div className="text-lg font-semibold text-primary">
+            {product.place_number || 1}
+          </div>
         </div>
 
         {/* Delivery Price */}
@@ -90,18 +69,9 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
               <DollarSign className="h-4 w-4" />
               {t.labels.deliveryPrice}
             </div>
-            <InlineEditableField
-              value={product.delivery_price}
-              onSave={updateDeliveryPrice}
-              type="price"
-              suffix=" $"
-              displayClassName="text-lg font-semibold text-secondary"
-              placeholder="0"
-              min={0}
-              step="1"
-              disabled={product.status === 'active'}
-              disabledMessage="Cannot change delivery price for published products"
-            />
+            <div className="text-lg font-semibold text-secondary">
+              ${product.delivery_price}
+            </div>
           </div>
         )}
 

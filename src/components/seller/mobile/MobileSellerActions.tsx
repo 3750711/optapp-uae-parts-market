@@ -23,12 +23,10 @@ import {
 
 interface MobileSellerActionsProps {
   product: Product;
-  onProductUpdate: () => void;
 }
 
 const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
   product,
-  onProductUpdate,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -54,7 +52,6 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
         title: sp.mobileActions.statusUpdated,
         description: sp.mobileActions.statusUpdateDescription,
       });
-      onProductUpdate();
     },
     onError: () => {
       toast({

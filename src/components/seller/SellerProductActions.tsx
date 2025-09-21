@@ -26,12 +26,10 @@ import {
 
 interface SellerProductActionsProps {
   product: Product;
-  onProductUpdate: () => void;
 }
 
 const SellerProductActions: React.FC<SellerProductActionsProps> = ({
   product,
-  onProductUpdate,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -62,7 +60,6 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
         title: sp.productActions?.updated || sp.mobileActions.statusUpdated,
         description: sp.mobileActions.statusUpdateDescription,
       });
-      onProductUpdate();
     },
     onError: (error) => {
       toast({

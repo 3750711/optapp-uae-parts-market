@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useInlineEdit } from "@/hooks/useInlineEdit";
+
 import { useMobileLayout } from "@/hooks/useMobileLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -39,20 +39,6 @@ const SellerProductDetail = () => {
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   
-  // Initialize inline edit hooks
-  const {
-    updateTitle,
-    updatePrice,
-    updateDescription,
-    updatePlaceNumber,
-    updateDeliveryPrice,
-    updateLocation,
-  } = useInlineEdit({
-    productId: id || '',
-    onUpdate: () => {
-      // Product update handled by React Query cache invalidation
-    }
-  });
   
   // Security check: ensure user is a seller
   useEffect(() => {
@@ -116,10 +102,6 @@ const SellerProductDetail = () => {
     navigate('/seller/listings');
   };
   
-  // Handle product updates
-  const handleProductUpdate = () => {
-    // Product update handled by React Query cache invalidation
-  };
   
   // Loading state
   if (isLoading && !product) {
@@ -196,13 +178,6 @@ const SellerProductDetail = () => {
             videoUrls={videoUrls}
             selectedImage={selectedImage}
             onImageClick={handleImageClick}
-            onProductUpdate={handleProductUpdate}
-            updateTitle={updateTitle}
-            updatePrice={updatePrice}
-            updateDescription={updateDescription}
-            updatePlaceNumber={updatePlaceNumber}
-            updateDeliveryPrice={updateDeliveryPrice}
-            updateLocation={updateLocation}
           />
         </SellerLayout>
       </ProductErrorBoundary>
@@ -245,7 +220,6 @@ const SellerProductDetail = () => {
           {/* Seller Action Buttons */}
           <SellerProductActions 
             product={product}
-            onProductUpdate={handleProductUpdate}
           />
           
           {/* Offers Summary */}
@@ -260,9 +234,6 @@ const SellerProductDetail = () => {
             videoUrls={videoUrls}
             selectedImage={selectedImage}
             onImageClick={handleImageClick}
-            updatePrice={updatePrice}
-            updatePlaceNumber={updatePlaceNumber}
-            updateDeliveryPrice={updateDeliveryPrice}
           />
         </div>
       </SellerLayout>

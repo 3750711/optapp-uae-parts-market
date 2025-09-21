@@ -11,9 +11,6 @@ interface SellerProductContentProps {
   videoUrls: string[];
   selectedImage: string | null;
   onImageClick: (url: string) => void;
-  updatePrice: (value: string | number) => Promise<void>;
-  updatePlaceNumber: (value: string | number) => Promise<void>;
-  updateDeliveryPrice: (value: string | number) => Promise<void>;
 }
 
 const SellerProductContent: React.FC<SellerProductContentProps> = ({
@@ -22,9 +19,6 @@ const SellerProductContent: React.FC<SellerProductContentProps> = ({
   videoUrls,
   selectedImage,
   onImageClick,
-  updatePrice,
-  updatePlaceNumber,
-  updateDeliveryPrice,
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -43,9 +37,6 @@ const SellerProductContent: React.FC<SellerProductContentProps> = ({
       <div className="space-y-6">
         <SellerProductInfo
           product={product}
-          updatePrice={updatePrice}
-          updatePlaceNumber={updatePlaceNumber}
-          updateDeliveryPrice={updateDeliveryPrice}
         />
         
         {/* TG Views Estimate - Only for sellers/admins */}
