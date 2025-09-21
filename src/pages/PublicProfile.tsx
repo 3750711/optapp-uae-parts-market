@@ -57,6 +57,8 @@ const PublicProfile = () => {
     try {
       setLoading(true);
       
+      console.log('🔍 [PublicProfile] Starting token validation for:', token);
+      
       // Validate token via Edge Function
       const { data: validation, error: validationError } = await supabase.functions.invoke(
         'validate-profile-token',
@@ -65,10 +67,25 @@ const PublicProfile = () => {
         }
       );
 
+      console.log('📋 [PublicProfile] Edge Function response:');
+      console.log('  - validation:', validation);
+      console.log('  - validationError:', validationError);
+      console.log('  - validation?.valid:', validation?.valid);
+      console.log('  - typeof validation:', typeof validation);
+      console.log('  - JSON.stringify(validation):', JSON.stringify(validation));
+      console.log('  - JSON.stringify(validationError):', JSON.stringify(validationError));
+
       if (validationError || !validation?.valid) {
+        console.error('❌ [PublicProfile] Token validation failed:');
+        console.error('  - validationError exists:', !!validationError);
+        console.error('  - validation?.valid:', validation?.valid);
+        console.error('  - Full validationError object:', validationError);
+        console.error('  - Full validation object:', validation);
         setError('Недействительная или просроченная ссылка');
         return;
       }
+
+      console.log('✅ [PublicProfile] Token validation successful, profile data:', validation.profile);
 
       const profileData = validation.profile;
       setProfile(profileData);
