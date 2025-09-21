@@ -53,7 +53,7 @@ const SellerListingsContent = () => {
     enabled: !!user?.id,
   });
 
-  // Profile data for contact buttons
+  // Profile data for share functionality 
   const { data: profileInfo } = useQuery({
     queryKey: ['seller-profile-info', user?.id],
     queryFn: async () => {
@@ -61,7 +61,7 @@ const SellerListingsContent = () => {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('phone, telegram')
+        .select('display_name, first_name, last_name')
         .eq('id', user.id)
         .single();
         
@@ -424,8 +424,10 @@ const SellerListingsContent = () => {
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold">{t.myShop}</h1>
           <ContactButtons
-            phone={profileInfo?.phone}
-            telegram={profileInfo?.telegram}
+            sellerId={user?.id}
+            sellerName={storeInfo?.name || profileInfo?.display_name || 
+              `${profileInfo?.first_name || ''} ${profileInfo?.last_name || ''}`.trim() || 
+              'Мой магазин'}
           />
         </div>
       </div>

@@ -1,49 +1,60 @@
 import React from 'react';
-import { MessageCircle, Send } from 'lucide-react';
+import { Share, Send } from 'lucide-react';
 
 interface ContactButtonsProps {
-  phone?: string;
-  telegram?: string;
+  sellerId?: string;
+  sellerName?: string;
   className?: string;
 }
 
 const ContactButtons: React.FC<ContactButtonsProps> = ({
-  phone,
-  telegram,
+  sellerId,
+  sellerName,
   className = ""
 }) => {
-  const handleWhatsAppClick = () => {
-    const whatsappPhone = phone || '+971501234567'; // fallback number
-    const url = `https://wa.me/${whatsappPhone.replace(/[^0-9+]/g, '')}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+  const handleWhatsAppShare = () => {
+    if (!sellerId) return;
+    
+    const publicUrl = `${window.location.origin}/public-seller-profile/${sellerId}`;
+    const message = `Посмотрите мой каталог автозапчастей${sellerName ? ` (${sellerName})` : ''}: ${publicUrl}`;
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
-  const handleTelegramClick = () => {
-    const telegramUsername = telegram || 'example_user'; // fallback username
-    const cleanUsername = telegramUsername.replace('@', '').replace('https://t.me/', '');
-    const url = `https://t.me/${cleanUsername}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+  const handleTelegramShare = () => {
+    if (!sellerId) return;
+    
+    const publicUrl = `${window.location.origin}/public-seller-profile/${sellerId}`;
+    const message = `Посмотрите мой каталог автозапчастей${sellerName ? ` (${sellerName})` : ''}`;
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent(message)}`;
+    
+    window.open(telegramUrl, '_blank', 'noopener,noreferrer');
   };
+
+  if (!sellerId) {
+    return null;
+  }
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {/* WhatsApp Button */}
+      {/* WhatsApp Share Button */}
       <button
-        onClick={handleWhatsAppClick}
+        onClick={handleWhatsAppShare}
         className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition-colors duration-200 flex items-center justify-center gap-2"
-        title="Связаться через WhatsApp"
+        title="Поделиться каталогом в WhatsApp"
       >
-        <MessageCircle className="h-6 w-6" />
+        <Share className="h-5 w-5" />
         <span className="hidden sm:inline">WhatsApp</span>
       </button>
 
-      {/* Telegram Button */}
+      {/* Telegram Share Button */}
       <button
-        onClick={handleTelegramClick}
+        onClick={handleTelegramShare}
         className="bg-sky-500 hover:bg-sky-600 text-white rounded-full p-2 transition-colors duration-200 flex items-center justify-center gap-2"
-        title="Связаться через Telegram"
+        title="Поделиться каталогом в Telegram"
       >
-        <Send className="h-6 w-6" />
+        <Send className="h-5 w-5" />
         <span className="hidden sm:inline">Telegram</span>
       </button>
     </div>
