@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star, Trash2, MessageSquare, Send } from "lucide-react";
+import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star, Trash2, MessageSquare, Send, Globe } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -169,6 +169,18 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
             >
               <ExternalLink className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'} text-blue-600`} />
             </Button>
+
+            {user.user_type === 'seller' && user.public_share_token && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => window.open(`/public-profile/${user.public_share_token}`, '_blank')}
+                className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-purple-100`}
+                title="Открыть Public Profile продавца"
+              >
+                <Globe className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'} text-purple-600`} />
+              </Button>
+            )}
 
             {user.verification_status !== 'verified' && (
               <Button

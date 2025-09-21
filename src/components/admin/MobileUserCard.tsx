@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ProfileType } from '@/components/profile/types';
 import { UserAvatar } from './UserAvatar';
 import { EnhancedStatusBadge } from './EnhancedStatusBadge';
-import { Star, ExternalLink, MoreVertical, Send } from 'lucide-react';
+import { Star, ExternalLink, MoreVertical, Send, Globe } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -119,6 +119,12 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Профиль
                   </DropdownMenuItem>
+                  {user.user_type === 'seller' && user.public_share_token && (
+                    <DropdownMenuItem onClick={() => window.open(`/public-profile/${user.public_share_token}`, '_blank')}>
+                      <Globe className="mr-2 h-4 w-4" />
+                      Публичный профиль
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleEdit}>
                     Редактировать
                   </DropdownMenuItem>

@@ -46,7 +46,8 @@ export const useOptimizedAdminUsers = (filters: UseOptimizedAdminUsersProps) => 
         const selectFields = [
           'id', 'email', 'full_name', 'company_name', 'opt_id', 'phone', 'telegram', 'telegram_id',
           'user_type', 'verification_status', 'opt_status', 'rating', 'communication_ability',
-          'created_at', 'avatar_url', 'location', 'is_trusted_seller', 'preferred_locale'
+          'created_at', 'avatar_url', 'location', 'is_trusted_seller', 'preferred_locale',
+          'public_share_token', 'public_share_enabled'
         ].join(', ');
 
         let query = supabase
