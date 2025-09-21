@@ -8,6 +8,7 @@ import { ProfileType } from '@/components/profile/types';
 import { UserAvatar } from './UserAvatar';
 import { EnhancedStatusBadge } from './EnhancedStatusBadge';
 import { Star, ExternalLink, MoreVertical, Send, Globe } from 'lucide-react';
+import { PRODUCTION_DOMAIN } from "@/utils/seoUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -120,7 +121,7 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
                     Профиль
                   </DropdownMenuItem>
                   {user.user_type === 'seller' && user.public_share_token && (
-                    <DropdownMenuItem onClick={() => window.open(`/public-profile/${user.public_share_token}`, '_blank')}>
+                    <DropdownMenuItem onClick={() => window.open(`${PRODUCTION_DOMAIN}/public-profile/${user.public_share_token}`, '_blank')}>
                       <Globe className="mr-2 h-4 w-4" />
                       Публичный профиль
                     </DropdownMenuItem>

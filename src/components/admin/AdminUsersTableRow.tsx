@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star, Trash2, MessageSquare, Send, Globe } from "lucide-react";
+import { PRODUCTION_DOMAIN } from "@/utils/seoUtils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,7 +175,7 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => window.open(`/public-profile/${user.public_share_token}`, '_blank')}
+                onClick={() => window.open(`${PRODUCTION_DOMAIN}/public-profile/${user.public_share_token}`, '_blank')}
                 className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-purple-100`}
                 title="Открыть Public Profile продавца"
               >
