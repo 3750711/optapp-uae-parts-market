@@ -27,6 +27,16 @@ export interface PublicProfileTranslations {
   products: (count: number) => string;
   noActiveProducts: string;
   viewAllProducts: string;
+  
+  // Product card elements
+  seller: string;
+  location: string;
+  lot: string;
+  place: string;
+  delivery: string;
+  call: string;
+  telegram: string;
+  noImage: string;
 }
 
 const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
@@ -57,6 +67,16 @@ const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
     products: (count: number) => `Products (${count})`,
     noActiveProducts: 'This seller has no active products yet',
     viewAllProducts: 'View all products',
+    
+    // Product card elements
+    seller: 'Seller',
+    location: 'Location', 
+    lot: 'Lot',
+    place: 'Place',
+    delivery: 'Delivery',
+    call: 'Call',
+    telegram: 'Telegram',
+    noImage: 'No image',
   },
   
   ru: {
@@ -86,6 +106,16 @@ const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
     products: (count: number) => `Товары (${count})`,
     noActiveProducts: 'У этого продавца пока нет активных товаров',
     viewAllProducts: 'Посмотреть все товары',
+    
+    // Product card elements
+    seller: 'Продавец',
+    location: 'Местоположение',
+    lot: 'Лот', 
+    place: 'Место',
+    delivery: 'Доставка',
+    call: 'Позвонить',
+    telegram: 'Telegram',
+    noImage: 'Нет изображения',
   },
   
   bn: {
@@ -115,6 +145,16 @@ const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
     products: (count: number) => `পণ্য (${count})`,
     noActiveProducts: 'এই বিক্রেতার এখনও কোনো সক্রিয় পণ্য নেই',
     viewAllProducts: 'সব পণ্য দেখুন',
+    
+    // Product card elements
+    seller: 'বিক্রেতা',
+    location: 'অবস্থান',
+    lot: 'লট',
+    place: 'স্থান', 
+    delivery: 'ডেলিভারি',
+    call: 'কল করুন',
+    telegram: 'টেলিগ্রাম',
+    noImage: 'কোনো ছবি নেই',
   },
 };
 

@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const LANGUAGE_STORAGE_KEY = 'login-language';
 const LANGUAGE_CHANGE_EVENT = 'language-change';
 
-export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'ru') => {
+export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'en') => {
   const { user, profile, updateProfile } = useAuth();
   
   const [language, setLanguage] = useState<'ru' | 'en' | 'bn'>(() => {
