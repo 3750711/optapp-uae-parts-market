@@ -163,8 +163,8 @@ export function InlineNumberField({
   if (simple) {
     return (
       <div className={cn(
-        "flex items-center justify-between gap-3 py-2",
-        "w-full max-w-full",
+        "flex items-center justify-between gap-3 py-3 px-3",
+        "w-full max-w-full rounded-lg border bg-card/50",
         className
       )}>
         {/* Label on the left */}

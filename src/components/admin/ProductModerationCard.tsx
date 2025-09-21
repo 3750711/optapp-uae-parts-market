@@ -270,7 +270,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         />
 
         {/* Цены - вертикальный layout */}
-        <div className="space-y-3">
+        <div className="space-y-6">
           <InlineNumberField
             label="Цена"
             value={product.price}
