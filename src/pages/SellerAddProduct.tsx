@@ -10,6 +10,7 @@ import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Layout from "@/components/layout/Layout";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -21,17 +22,30 @@ const SellerAddProduct = () => {
   const t = getFormTranslations(language);
   const c = getCommonTranslations(language);
   
-  // Объединенное состояние формы
-  const [formData, setFormData] = useState({
+  // Локальное состояние для мгновенного отображения (UX)
+  const [displayData, setDisplayData] = useState({
     title: "",
     price: "",
     description: ""
   });
+  
+  // Debounced значения для валидации и отправки (производительность)
+  const debouncedTitle = useDebounce(displayData.title, 300);
+  const debouncedPrice = useDebounce(displayData.price, 300);
+  const debouncedDescription = useDebounce(displayData.description, 300);
+  
+  // Объединенное состояние для валидации и отправки
+  const formData = {
+    title: debouncedTitle,
+    price: debouncedPrice,
+    description: debouncedDescription
+  };
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Обновление полей формы
-  const updateForm = (field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  // Обновление отображаемых значений (мгновенно)
+  const updateForm = (field: keyof typeof displayData, value: string) => {
+    setDisplayData(prev => ({ ...prev, [field]: value }));
   };
   
   // Состояния для изображений (НЕ МЕНЯЕМ)
@@ -213,7 +227,7 @@ const SellerAddProduct = () => {
                   {t.labels.title} *
                 </label>
                 <textarea
-                  value={formData.title}
+                  value={displayData.title}
                   onChange={(e) => updateForm('title', e.target.value)}
                   placeholder={t.placeholders.title}
                   className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
@@ -229,7 +243,7 @@ const SellerAddProduct = () => {
                 </label>
                 <input
                   type="number"
-                  value={formData.price}
+                  value={displayData.price}
                   onChange={(e) => updateForm('price', e.target.value)}
                   placeholder={t.placeholders.price}
                   className="w-full p-3 border border-input rounded-lg bg-background"
@@ -246,7 +260,7 @@ const SellerAddProduct = () => {
                   {t.labels.description} {t.optional}
                 </label>
                 <textarea
-                  value={formData.description}
+                  value={displayData.description}
                   onChange={(e) => updateForm('description', e.target.value)}
                   placeholder={t.placeholders.description}
                   className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
