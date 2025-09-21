@@ -9,6 +9,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import ProductCard from '@/components/product/ProductCard';
 import { Loader2, AlertCircle, User, Store, Star, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getPublicProfileTranslations } from '@/utils/translations/publicProfile';
+import Layout from '@/components/layout/Layout';
 
 type ProductStatus = 'active' | 'sold' | 'pending' | 'archived';
 
@@ -38,6 +41,8 @@ interface Product {
 
 const PublicProfile = () => {
   const { token } = useParams<{ token: string }>();
+  const { language } = useLanguage('en'); // English as default for public profiles
+  const t = getPublicProfileTranslations(language);  
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,13 +50,13 @@ const PublicProfile = () => {
 
   useEffect(() => {
     if (!token) {
-      setError('Токен не найден');
+      setError(t.tokenNotFound);
       setLoading(false);
       return;
     }
 
     validateTokenAndLoadData();
-  }, [token]);
+  }, [token, t]);
 
   const validateTokenAndLoadData = async () => {
     try {
@@ -81,7 +86,7 @@ const PublicProfile = () => {
         console.error('  - validation?.valid:', validation?.valid);
         console.error('  - Full validationError object:', validationError);
         console.error('  - Full validation object:', validation);
-        setError('Недействительная или просроченная ссылка');
+        setError(t.invalidOrExpiredLink);
         return;
       }
 
@@ -114,7 +119,7 @@ const PublicProfile = () => {
 
       if (productsError) {
         console.error('Error loading products:', productsError);
-        setError('Ошибка загрузки товаров');
+        setError(t.errorLoadingProducts);
         return;
       }
 
@@ -128,7 +133,7 @@ const PublicProfile = () => {
 
     } catch (error) {
       console.error('Error:', error);
-      setError('Произошла ошибка при загрузке данных');
+      setError(t.dataLoadingError);
     } finally {
       setLoading(false);
     }
@@ -139,7 +144,7 @@ const PublicProfile = () => {
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Загрузка профиля...</p>
+          <p className="text-muted-foreground">{t.loadingProfile}</p>
         </div>
       </div>
     );
@@ -152,16 +157,16 @@ const PublicProfile = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertCircle className="h-5 w-5" />
-              Ошибка доступа
+              {t.errorAccess}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              {error || 'Профиль не найден'}
+              {error || t.profileNotFound}
             </p>
             <Button asChild className="w-full">
               <Link to="/">
-                Перейти на главную
+                {t.goToHome}
               </Link>
             </Button>
           </CardContent>
@@ -170,15 +175,16 @@ const PublicProfile = () => {
     );
   }
 
-  const displayName = profile.company_name || profile.full_name || 'Продавец автозапчастей';
+  const displayName = profile.company_name || profile.full_name || t.autoPartsDealer;
 
   return (
-    <>
+    <Layout language={language}>
       <Helmet>
-        <title>{displayName} - Каталог автозапчастей | PartsBay</title>
-        <meta name="description" content={`Каталог автозапчастей от ${displayName}. Качественные запчасти с доставкой в ОАЭ.`} />
+        <title>{t.catalogTitle(displayName)}</title>
+        <meta name="description" content={t.catalogDescription(displayName)} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`https://partsbay.ae/public-profile/${token}`} />
+        <html lang={language} />
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-background to-muted">
@@ -203,7 +209,7 @@ const PublicProfile = () => {
                     {profile.verification_status === 'verified' && (
                       <Badge variant="default" className="flex items-center gap-1">
                         <ShieldCheck className="h-3 w-3" />
-                        Проверен
+                        {t.verified}
                       </Badge>
                     )}
                   </div>
@@ -212,40 +218,23 @@ const PublicProfile = () => {
                     <div className="flex items-center gap-2">
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                       <span className="font-medium">{profile.rating}</span>
-                      <span className="text-sm text-muted-foreground">рейтинг</span>
+                      <span className="text-sm text-muted-foreground">{t.rating}</span>
                     </div>
                   )}
                   
                   <p className="text-muted-foreground">
-                    Каталог качественных автозапчастей в ОАЭ
+                    {t.qualityAutoPartsCatalog}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Auth Required Alert */}
-          <Alert className="border-primary/20 bg-primary/5">
-            <AlertCircle className="h-4 w-4 text-primary" />
-            <AlertTitle className="text-primary">Полный доступ требует регистрации</AlertTitle>
-            <AlertDescription className="space-y-3">
-              <p>Для связи с продавцом и получения контактной информации необходимо зарегистрироваться на сайте.</p>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button asChild>
-                  <Link to="/auth">Войти / Регистрация</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/">Перейти на сайт</Link>
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-
           {/* Products Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-foreground">
-                Товары ({products.length})
+                {t.products(products.length)}
               </h2>
             </div>
 
@@ -253,11 +242,11 @@ const PublicProfile = () => {
               <Card>
                 <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground mb-4">
-                    У этого продавца пока нет активных товаров
+                    {t.noActiveProducts}
                   </p>
                   <Button asChild variant="outline">
                     <Link to="/">
-                      Посмотреть все товары
+                      {t.viewAllProducts}
                     </Link>
                   </Button>
                 </CardContent>
@@ -273,26 +262,9 @@ const PublicProfile = () => {
               </div>
             )}
           </div>
-
-          {/* Call to Action */}
-          <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="py-8 text-center space-y-4">
-              <h3 className="text-lg font-semibold text-primary">
-                Хотите увидеть больше товаров?
-              </h3>
-              <p className="text-muted-foreground">
-                Зарегистрируйтесь для доступа ко всем функциям сайта
-              </p>
-              <Button asChild size="lg">
-                <Link to="/auth">
-                  Присоединиться к PartsBay
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
-    </>
+    </Layout>
   );
 };
 

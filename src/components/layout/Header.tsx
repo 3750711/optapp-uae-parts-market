@@ -45,6 +45,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { getMainPageTranslations } from '@/utils/mainPageTranslations';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import HeaderSkeleton from './HeaderSkeleton';
+import LanguageToggle from '@/components/auth/LanguageToggle';
 
 
 const Header = () => {
@@ -55,7 +56,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { language } = useLanguage();
+  const { language, changeLanguage } = useLanguage();
   const t = getMainPageTranslations(language);
   const l = language === 'bn' ? {
     logoutSuccessTitle: 'সাইন আউট',
@@ -176,6 +177,15 @@ const Header = () => {
         <NavLinks />
 
         <div className="flex items-center space-x-3">
+          
+          {/* Language Toggle for public pages */}
+          {!user && (
+            <LanguageToggle 
+              language={language}
+              onLanguageChange={changeLanguage}
+              className="mr-2"
+            />
+          )}
           
           {/* Admin Panel Button */}
           {user && !loading && !isCheckingAdmin && isAdmin && (
