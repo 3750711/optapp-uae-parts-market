@@ -1241,6 +1241,10 @@ export type Database = {
           phone: string | null
           preferred_locale: string | null
           profile_completed: boolean | null
+          public_share_created_at: string | null
+          public_share_enabled: boolean | null
+          public_share_expires_at: string | null
+          public_share_token: string | null
           rating: number | null
           telegram: string | null
           telegram_edit_count: number | null
@@ -1276,6 +1280,10 @@ export type Database = {
           phone?: string | null
           preferred_locale?: string | null
           profile_completed?: boolean | null
+          public_share_created_at?: string | null
+          public_share_enabled?: boolean | null
+          public_share_expires_at?: string | null
+          public_share_token?: string | null
           rating?: number | null
           telegram?: string | null
           telegram_edit_count?: number | null
@@ -1311,6 +1319,10 @@ export type Database = {
           phone?: string | null
           preferred_locale?: string | null
           profile_completed?: boolean | null
+          public_share_created_at?: string | null
+          public_share_enabled?: boolean | null
+          public_share_expires_at?: string | null
+          public_share_token?: string | null
           rating?: number | null
           telegram?: string | null
           telegram_edit_count?: number | null
@@ -2412,6 +2424,10 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: Json
       }
+      disable_profile_public_access: {
+        Args: { p_profile_id: string }
+        Returns: boolean
+      }
       disable_store_public_access: {
         Args: { store_id: string }
         Returns: boolean
@@ -2663,6 +2679,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      regenerate_profile_share_token: {
+        Args: { p_profile_id: string }
+        Returns: string
       }
       regenerate_store_share_token: {
         Args: { store_id: string }
