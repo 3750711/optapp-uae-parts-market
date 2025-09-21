@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       .select('id, full_name, company_name, user_type, public_share_enabled, public_share_expires_at')
       .eq('public_share_token', token)
       .eq('public_share_enabled', true)
-      .gt('public_share_expires_at', new Date().toISOString())
+      .gt('public_share_expires_at', 'now()')
       .maybeSingle()
 
     if (error) {
