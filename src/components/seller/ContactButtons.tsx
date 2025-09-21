@@ -6,17 +6,46 @@ interface ContactButtonsProps {
   sellerId?: string;
   sellerName?: string;
   className?: string;
+  storeInfo?: {
+    id?: string;
+    public_share_token?: string;
+    public_share_enabled?: boolean;
+  } | null;
+  profileInfo?: {
+    public_share_token?: string;
+    public_share_enabled?: boolean;
+  } | null;
 }
 
 const ContactButtons: React.FC<ContactButtonsProps> = ({
   sellerId,
   sellerName,
-  className = ""
+  className = "",
+  storeInfo,
+  profileInfo
 }) => {
-  const handleWhatsAppShare = () => {
-    if (!sellerId) return;
+
+  const getShareUrl = () => {
+    if (!sellerId) return null;
     
-    const publicUrl = `${PRODUCTION_DOMAIN}/public-seller-profile/${sellerId}`;
+    // Priority 1: Store with public token
+    if (storeInfo?.public_share_token && storeInfo?.public_share_enabled) {
+      return `${PRODUCTION_DOMAIN}/public-store/${storeInfo.public_share_token}`;
+    }
+    
+    // Priority 2: Profile with public token  
+    if (profileInfo?.public_share_token && profileInfo?.public_share_enabled) {
+      return `${PRODUCTION_DOMAIN}/public-profile/${profileInfo.public_share_token}`;
+    }
+    
+    // Fallback: Old public profile system
+    return `${PRODUCTION_DOMAIN}/public-seller-profile/${sellerId}`;
+  };
+
+  const handleWhatsAppShare = () => {
+    const publicUrl = getShareUrl();
+    if (!publicUrl) return;
+    
     const message = `Посмотрите мой каталог автозапчастей${sellerName ? ` (${sellerName})` : ''}: ${publicUrl}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     
@@ -24,9 +53,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   };
 
   const handleTelegramShare = () => {
-    if (!sellerId) return;
+    const publicUrl = getShareUrl();
+    if (!publicUrl) return;
     
-    const publicUrl = `${PRODUCTION_DOMAIN}/public-seller-profile/${sellerId}`;
     const message = `Посмотрите мой каталог автозапчастей${sellerName ? ` (${sellerName})` : ''}`;
     const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent(message)}`;
     

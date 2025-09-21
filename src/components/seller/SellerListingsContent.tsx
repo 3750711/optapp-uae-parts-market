@@ -13,7 +13,7 @@ import { Product } from "@/types/product";
 import { ProductProps } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { AlertTriangle, RefreshCw, Search, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, RefreshCw, Search, ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerLi
 import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
 import ContactButtons from './ContactButtons';
+import { usePublicProfileShare } from '@/hooks/usePublicProfileShare';
 const SellerListingsContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -29,6 +30,14 @@ const SellerListingsContent = () => {
   const t = getSellerListingsPageTranslations(language);
   const c = getCommonTranslations(language);
   const ITEMS_PER_PAGE = 12;
+  
+  // Public sharing functionality
+  const { 
+    generatePublicLink, 
+    disablePublicAccess, 
+    isGenerating, 
+    isDisabling 
+  } = usePublicProfileShare();
   
   // Search state
   const [searchInput, setSearchInput] = useState("");
@@ -43,7 +52,7 @@ const SellerListingsContent = () => {
       
       const { data, error } = await supabase
         .from('stores')
-        .select('id, name, phone, telegram')
+        .select('id, name, phone, telegram, public_share_token, public_share_enabled')
         .eq('seller_id', user.id)
         .maybeSingle();
         
@@ -61,7 +70,7 @@ const SellerListingsContent = () => {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('display_name, first_name, last_name')
+        .select('display_name, first_name, last_name, public_share_token, public_share_enabled')
         .eq('id', user.id)
         .single();
         
@@ -428,9 +437,92 @@ const SellerListingsContent = () => {
             sellerName={storeInfo?.name || profileInfo?.display_name || 
               `${profileInfo?.first_name || ''} ${profileInfo?.last_name || ''}`.trim() || 
               'Мой магазин'}
+            storeInfo={storeInfo}
+            profileInfo={profileInfo}
           />
         </div>
       </div>
+
+      {/* Public Link Management */}
+      {profileInfo && (
+        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+          <CardContent className="pt-4">
+            <div className="flex flex-col space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-primary">Публичная ссылка на каталог</h3>
+                <Badge variant={profileInfo.public_share_enabled ? "default" : "secondary"}>
+                  {profileInfo.public_share_enabled ? "Включена" : "Отключена"}
+                </Badge>
+              </div>
+              
+              {profileInfo.public_share_enabled && profileInfo.public_share_token && (
+                <div className="bg-background/50 rounded-lg p-3 border">
+                  <p className="text-sm text-muted-foreground mb-2">Ваша публичная ссылка:</p>
+                  <code className="text-sm bg-muted px-2 py-1 rounded break-all">
+                    https://partsbay.ae/public-profile/{profileInfo.public_share_token}
+                  </code>
+                </div>
+              )}
+              
+              <div className="flex flex-wrap gap-2">
+                {profileInfo.public_share_enabled ? (
+                  <>
+                    <Button
+                      onClick={() => generatePublicLink(user?.id!)}
+                      disabled={isGenerating}
+                      size="sm"
+                      variant="outline"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Генерация...
+                        </>
+                      ) : (
+                        'Обновить ссылку'
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => disablePublicAccess(user?.id!)}
+                      disabled={isDisabling}
+                      size="sm"
+                      variant="destructive"
+                    >
+                      {isDisabling ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Отключение...
+                        </>
+                      ) : (
+                        'Отключить доступ'
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => generatePublicLink(user?.id!)}
+                    disabled={isGenerating}
+                    size="sm"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Включение...
+                      </>
+                    ) : (
+                      'Включить публичный доступ'
+                    )}
+                  </Button>
+                )}
+              </div>
+              
+              <p className="text-xs text-muted-foreground">
+                Публичная ссылка позволяет делиться вашим каталогом в WhatsApp и Telegram без требования регистрации для просмотра товаров.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Search */}
       <Card>
