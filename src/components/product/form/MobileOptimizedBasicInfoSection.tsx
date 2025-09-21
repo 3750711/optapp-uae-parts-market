@@ -111,26 +111,6 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
             </FormItem>
           )}
         />
-
-        <FormField
-          control={form.control}
-          name="placeNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-medium text-foreground">Количество мест *</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="1"
-                  {...field}
-                  className="mobile-input bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
       </div>
 
       {/* Description */}
@@ -146,27 +126,6 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
                 className="mobile-input resize-none bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200 min-h-[100px]"
                 rows={4}
                 {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      {/* Delivery Price */}
-      <FormField
-        control={form.control}
-        name="deliveryPrice"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel className="text-sm font-medium text-foreground">Стоимость доставки (AED)</FormLabel>
-            <FormControl>
-              <Input
-                type="number"
-                inputMode="numeric"
-                placeholder="0"
-                {...field}
-                className="mobile-input bg-background border-border focus:border-primary focus:ring-primary/20 transition-all duration-200"
               />
             </FormControl>
             <FormMessage />

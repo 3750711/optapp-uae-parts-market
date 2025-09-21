@@ -62,47 +62,7 @@ const FastBasicInfoSection = memo<FastBasicInfoSectionProps>(({ form }) => {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="deliveryPrice"
-          render={({ field }) => (
-            <FormItem className="mobile-form-item">
-              <FormLabel className="mobile-form-label">{t.labels.deliveryPrice}</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number"
-                  step="1"
-                  inputMode="numeric"
-                  placeholder={t.placeholders.deliveryPrice}
-                  className="mobile-input"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
       </div>
-
-      <FormField
-        control={form.control}
-        name="placeNumber"
-        render={({ field }) => (
-          <FormItem className="mobile-form-item">
-            <FormLabel className="mobile-form-label">{t.labels.placeNumber}</FormLabel>
-            <FormControl>
-              <Input 
-                type="number"
-                min="1"
-                placeholder={t.placeholders.placeNumberText}
-                className="mobile-input"
-                {...field}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
       
       <FormField
         control={form.control}

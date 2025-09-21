@@ -9,23 +9,16 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { getFormTranslations } from '@/utils/translations/forms';
 import { getCommonTranslations } from '@/utils/translations/common';
 
-// Lazy load heavy components
+// Lazy load components
 const OptimizedMediaSection = React.lazy(() => import('./form/OptimizedMediaSection'));
 const FastBasicInfoSection = memo(React.lazy(() => import('./form/FastBasicInfoSection')));
-const FastCarInfoSection = memo(React.lazy(() => import('./form/FastCarInfoSection')));
 
 interface MobileFastAddProductProps {
   form: UseFormReturn<ProductFormValues>;
   onSubmit: (values: ProductFormValues) => void;
   isSubmitting: boolean;
   imageUrls: string[];
-  videoUrls: string[];
-  brands: Array<{ id: string, name: string }>;
-  brandModels: Array<{ id: string, name: string, brand_id: string }>;
-  isLoadingCarData: boolean;
-  watchBrandId: string;
   handleMobileOptimizedImageUpload: (urls: string[]) => void;
-  setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
   onImageDelete?: (url: string) => void;
@@ -44,13 +37,7 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
   onSubmit,
   isSubmitting,
   imageUrls,
-  videoUrls,
-  brands,
-  brandModels,
-  isLoadingCarData,
-  watchBrandId,
   handleMobileOptimizedImageUpload,
-  setVideoUrls,
   primaryImage,
   setPrimaryImage,
   onImageDelete,
@@ -69,32 +56,18 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
     </Suspense>
   ), [form]);
 
-  const carInfoSection = useMemo(() => (
-    <Suspense fallback={<LoadingSpinner />}>
-      <FastCarInfoSection
-        form={form}
-        brands={brands}
-        models={brandModels}
-        watchBrandId={watchBrandId}
-        isLoadingCarData={isLoadingCarData}
-      />
-    </Suspense>
-  ), [form, brands, brandModels, watchBrandId, isLoadingCarData]);
-
   const mediaSection = useMemo(() => (
     <Suspense fallback={<LoadingSpinner />}>
       <OptimizedMediaSection 
         imageUrls={imageUrls}
-        videoUrls={videoUrls}
         handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
-        setVideoUrls={setVideoUrls}
         primaryImage={primaryImage}
         onSetPrimaryImage={setPrimaryImage}
         onImageDelete={onImageDelete}
         onUploadStateChange={onUploadStateChange}
       />
     </Suspense>
-  ), [imageUrls, videoUrls, handleMobileOptimizedImageUpload, setVideoUrls, primaryImage, setPrimaryImage, onImageDelete, onUploadStateChange]);
+  ), [imageUrls, handleMobileOptimizedImageUpload, primaryImage, setPrimaryImage, onImageDelete, onUploadStateChange]);
 
   const handleSubmitMemo = useCallback((values: ProductFormValues) => {
     onSubmit(values);
@@ -130,6 +103,19 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmitMemo)} className="space-y-6">
+            {/* Enhanced Media Files Section - First */}
+            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label={t.sections.mediaFiles}>
+              <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  {t.sections.mediaFiles}
+                </h2>
+              </div>
+              <div className="p-4">
+                {mediaSection}
+              </div>
+            </section>
+
             {/* Enhanced Basic Information Section */}
             <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label={t.sections.basicInformation}>
               <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
@@ -140,32 +126,6 @@ const MobileFastAddProduct: React.FC<MobileFastAddProductProps> = memo(({
               </div>
               <div className="p-4">
                 {basicInfoSection}
-              </div>
-            </section>
-
-            {/* Enhanced Car Information Section */}
-            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label={t.sections.carInformation}>
-              <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
-                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  {t.sections.carInformation}
-                </h2>
-              </div>
-              <div className="p-4">
-                {carInfoSection}
-              </div>
-            </section>
-            
-            {/* Enhanced Media Files Section */}
-            <section className="mobile-section bg-card shadow-sm border border-border/50 rounded-xl overflow-hidden" aria-label={t.sections.mediaFiles}>
-              <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-4 py-3 border-b border-border/30">
-                <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full"></div>
-                  {t.sections.mediaFiles}
-                </h2>
-              </div>
-              <div className="p-4">
-                {mediaSection}
               </div>
             </section>
             

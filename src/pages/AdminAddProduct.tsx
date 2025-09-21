@@ -109,17 +109,9 @@ const AdminAddProduct = () => {
               onSubmit={onSubmit}
               isSubmitting={isSubmitting}
               imageUrls={imageUrls}
-              videoUrls={videoUrls}
-              brands={brands}
-              brandModels={brandModels}
-              isLoadingCarData={isLoadingCarData}
-              watchBrandId={form.watch("brandId")}
               handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
-              setVideoUrls={setVideoUrls}
               primaryImage={primaryImage}
               setPrimaryImage={setPrimaryImage}
-              sellers={sellers}
-              showSellerSelection={true}
               onImageDelete={handleImageDelete}
             />
           </div>

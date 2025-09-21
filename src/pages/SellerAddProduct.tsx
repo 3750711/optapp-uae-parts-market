@@ -17,7 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useLazyCarBrands } from "@/hooks/useLazyCarBrands";
+
 import { createProductTitleParser } from "@/utils/productTitleParser";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
@@ -56,7 +56,7 @@ const SellerAddProduct = () => {
   const sp = getSellerPagesTranslations(language);
   const c = getCommonTranslations(language);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  
   const { guardedSubmit, isSubmitting } = useSubmissionGuard();
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
@@ -149,8 +149,7 @@ const SellerAddProduct = () => {
     console.log('🚀 createProduct called with values:', values);
     console.log('📊 Current state:', {
       userId: user?.id,
-      imageCount: imageUrls.length,
-      videoCount: videoUrls.length
+                       imageCount: imageUrls.length
     });
 
     if (imageUrls.length === 0) {
@@ -186,7 +185,6 @@ const SellerAddProduct = () => {
         sellerId: user.id,
         sellerName: profile?.full_name || '',
         imageCount: imageUrls.length,
-        videoCount: videoUrls.length,
         primaryImage,
         timestamp: new Date().toISOString()
       });
@@ -281,24 +279,6 @@ const SellerAddProduct = () => {
         }
       }
 
-      // Add videos using mass insert (like admin)
-      if (videoUrls.length > 0) {
-        const videoInserts = videoUrls.map(videoUrl => ({
-          product_id: product.id,
-          url: videoUrl
-        }));
-        
-        const { error: videoError } = await supabase
-          .from('product_videos')
-          .insert(videoInserts);
-          
-        if (videoError) {
-          console.error('❌ Error adding videos:', videoError);
-          // Non-critical error - don't rollback for videos
-        } else {
-          console.log(`✅ ${videoUrls.length} videos inserted for product ${product.id}`);
-        }
-      }
 
       // Send notifications based on product status
       if (profile?.is_trusted_seller) {
@@ -446,19 +426,17 @@ const SellerAddProduct = () => {
                 </CardHeader>
                 <CardContent>
                   <Suspense fallback={<LoadingState />}>
-                    <AddProductForm
-                      form={form}
-                      onSubmit={handleFormSubmit}
-                      isSubmitting={isSubmitting || isMediaUploading}
-                      imageUrls={imageUrls}
-                      videoUrls={videoUrls}
-                      handleMobileOptimizedImageUpload={handleImageUpload}
-                      setVideoUrls={setVideoUrls}
-                      primaryImage={primaryImage}
-                      setPrimaryImage={setPrimaryImage}
-                      onImageDelete={handleImageDelete}
-                      onUploadStateChange={handleUploadStateChange}
-                    />
+            <AddProductForm
+              form={form}
+              onSubmit={handleFormSubmit}
+              isSubmitting={isSubmitting || isMediaUploading}
+              imageUrls={imageUrls}
+              handleMobileOptimizedImageUpload={handleImageUpload}
+              primaryImage={primaryImage}
+              setPrimaryImage={setPrimaryImage}
+              onImageDelete={handleImageDelete}
+              onUploadStateChange={handleUploadStateChange}
+            />
                   </Suspense>
                 </CardContent>
               </Card>
@@ -473,9 +451,7 @@ const SellerAddProduct = () => {
                 onSubmit={handleFormSubmit}
                 isSubmitting={isSubmitting || isMediaUploading}
                 imageUrls={imageUrls}
-                videoUrls={videoUrls}
                 handleMobileOptimizedImageUpload={handleImageUpload}
-                setVideoUrls={setVideoUrls}
                 primaryImage={primaryImage}
                 setPrimaryImage={setPrimaryImage}
                 onImageDelete={handleImageDelete}

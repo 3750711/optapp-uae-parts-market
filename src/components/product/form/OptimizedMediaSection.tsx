@@ -12,9 +12,7 @@ import { toast } from "@/hooks/use-toast";
 
 interface OptimizedMediaSectionProps {
   imageUrls: string[];
-  videoUrls: string[];
   handleMobileOptimizedImageUpload: (urls: string[]) => void;
-  setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   onImageDelete?: (url: string) => void;
   onSetPrimaryImage?: (url: string) => void;
   primaryImage?: string;
@@ -25,9 +23,7 @@ interface OptimizedMediaSectionProps {
 
 const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   imageUrls,
-  videoUrls, // Kept for compatibility but not used
   handleMobileOptimizedImageUpload,
-  setVideoUrls, // Kept for compatibility but not used
   onImageDelete,
   onSetPrimaryImage,
   primaryImage,

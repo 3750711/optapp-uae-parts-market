@@ -7,9 +7,7 @@ import { Form } from "@/components/ui/form";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 import FormSectionWrapper from './form/FormSectionWrapper';
-import SellerSelectionSection from './form/SellerSelectionSection';
 import BasicInfoSection from "./form/BasicInfoSection";
-import CarInfoSection from "./form/CarInfoSection";
 
 // Экспортируем базовую схему для seller страниц
 import { z } from "zod";
@@ -38,9 +36,7 @@ interface AddProductFormProps {
   onSubmit: (values: FormValues) => void;
   isSubmitting: boolean;
   imageUrls: string[];
-  videoUrls: string[];
   handleMobileOptimizedImageUpload: (urls: string[]) => void;
-  setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
   onImageDelete?: (url: string) => void;
@@ -55,9 +51,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   onSubmit,
   isSubmitting,
   imageUrls,
-  videoUrls,
   handleMobileOptimizedImageUpload,
-  setVideoUrls,
   primaryImage,
   setPrimaryImage,
   onImageDelete,
@@ -69,23 +63,21 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormSectionWrapper title={t.sections.basicInformation}>
-          <BasicInfoSection form={form} />
-        </FormSectionWrapper>
-        
         <FormSectionWrapper title={t.sections.mediaFiles}>
           <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
             <OptimizedMediaSection 
               imageUrls={imageUrls}
-              videoUrls={videoUrls}
               handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
-              setVideoUrls={setVideoUrls}
               primaryImage={primaryImage}
               onSetPrimaryImage={setPrimaryImage}
               onImageDelete={onImageDelete}
               onUploadStateChange={onUploadStateChange}
             />
           </Suspense>
+        </FormSectionWrapper>
+        
+        <FormSectionWrapper title={t.sections.basicInformation}>
+          <BasicInfoSection form={form} />
         </FormSectionWrapper>
         
         <Button 
