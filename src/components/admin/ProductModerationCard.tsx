@@ -73,7 +73,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     findModelNameById
   } = useAllCarBrands();
 
-  // Инициализация только при mount
+  // Инициализация car selection при изменении данных
   useEffect(() => {
     if (!brands.length || !product.brand) return;
     
@@ -83,7 +83,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     )?.id || '';
     
     setCarSelection({ brandId, modelId });
-  }, []); // Только при mount!
+  }, [brands, allModels, product.brand, product.model]);
 
   // Универсальная мутация
   const updateMutation = useMutation({
@@ -133,19 +133,29 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     }
   });
 
-  // Упрощенные обработчики
-  const handleFieldUpdate = async (field: string, value: any) => {
-    updateMutation.mutate({ [field]: value });
-  };
+  // Debounced field updates для производительности
+  const handleFieldUpdate = useCallback(async (field: string, value: any) => {
+    // Используем setTimeout для debounce
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        updateMutation.mutate({ [field]: value });
+        resolve();
+      }, 300);
+    });
+  }, [updateMutation]);
 
-  const handleCarChange = (brandId: string, modelId: string) => {
-    setCarSelection({ brandId, modelId });
-    
+  // Мемоизированные обработчики car selection
+  const handleBrandChange = useCallback(async (brandId: string) => {
     const brand = brands.find(b => b.id === brandId)?.name || '';
+    setCarSelection({ brandId, modelId: '' });
+    updateMutation.mutate({ brand, model: '' });
+  }, [brands, updateMutation]);
+
+  const handleModelChange = useCallback(async (modelId: string) => {
     const model = allModels.find(m => m.id === modelId)?.name || '';
-    
-    updateMutation.mutate({ brand, model });
-  };
+    setCarSelection(prev => ({ ...prev, modelId }));
+    updateMutation.mutate({ model });
+  }, [allModels, updateMutation]);
 
   const handlePublish = async () => {
     setIsPublishing(true);
@@ -167,6 +177,15 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     }
   };
 
+  // Предзагрузка следующего изображения для плавности
+  useEffect(() => {
+    if (images.length > 1) {
+      const nextIndex = (currentImageIndex + 1) % images.length;
+      const img = new Image();
+      img.src = images[nextIndex]?.url;
+    }
+  }, [currentImageIndex, images]);
+
   // Мемоизированный цвет статуса
   const statusColor = useMemo(() => {
     const colors = {
@@ -186,6 +205,8 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
               src={images[currentImageIndex]?.url}
               alt={product.title}
               className="w-full h-full object-cover transition-all duration-300"
+              loading="lazy"
+              decoding="async"
             />
             
             {/* Navigation Buttons - only show if multiple images */}
@@ -193,13 +214,13 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
               <>
                 <button
                   onClick={() => navigate('prev')}
-                  className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-all"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => navigate('next')}
-                  className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-all"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -274,16 +295,8 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         <SimpleCarSelector
           brandId={carSelection.brandId}
           modelId={carSelection.modelId}
-          onBrandChange={(brandId) => {
-            const brand = brands.find(b => b.id === brandId)?.name || '';
-            setCarSelection({ brandId, modelId: '' });
-            updateMutation.mutate({ brand, model: '' });
-          }}
-          onModelChange={(modelId) => {
-            const model = allModels.find(m => m.id === modelId)?.name || '';
-            setCarSelection(prev => ({ ...prev, modelId }));
-            updateMutation.mutate({ model });
-          }}
+          onBrandChange={handleBrandChange}
+          onModelChange={handleModelChange}
           disabled={isLoadingCarData}
         />
 
