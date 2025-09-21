@@ -35,6 +35,19 @@ Deno.serve(async (req) => {
     console.log('Validating profile token:', token)
     console.log('Current time check:', new Date().toISOString())
 
+    // Set session variable for RLS policy access
+    console.log('Setting session variable app.current_profile_token')
+    const { error: sessionError } = await supabase.rpc('set_config', {
+      setting_name: 'app.current_profile_token',
+      new_value: token,
+      is_local: true
+    })
+
+    if (sessionError) {
+      console.error('Failed to set session variable:', sessionError)
+      // Continue anyway, maybe the RLS policy will work without it
+    }
+
     // First, get the profile without time filtering to check existence and time separately
     const { data: profile, error } = await supabase
       .from('profiles')
