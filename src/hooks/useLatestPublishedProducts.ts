@@ -11,6 +11,7 @@ interface PublishedProduct {
   condition: string;
   description?: string;
   tg_views_estimate?: number;
+  catalog_position: string;
   product_images?: Array<{ url: string; is_primary?: boolean }>;
 }
 
@@ -30,12 +31,14 @@ export const useLatestPublishedProducts = () => {
           condition,
           description,
           tg_views_estimate,
+          catalog_position,
           product_images!inner (
             url,
             is_primary
           )
         `)
         .eq('status', 'active')
+        .order('catalog_position', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(10);
       
