@@ -49,13 +49,13 @@ const PublicProfile = () => {
 
   useEffect(() => {
     if (!token) {
-      setError(t.tokenNotFound);
+      setError('TOKEN_NOT_FOUND');
       setLoading(false);
       return;
     }
 
     validateTokenAndLoadData();
-  }, [token, t]);
+  }, [token]);
 
   const validateTokenAndLoadData = async () => {
     try {
@@ -85,7 +85,7 @@ const PublicProfile = () => {
         console.error('  - validation?.valid:', validation?.valid);
         console.error('  - Full validationError object:', validationError);
         console.error('  - Full validation object:', validation);
-        setError(t.invalidOrExpiredLink);
+        setError('INVALID_OR_EXPIRED_LINK');
         return;
       }
 
@@ -118,7 +118,7 @@ const PublicProfile = () => {
 
       if (productsError) {
         console.error('Error loading products:', productsError);
-        setError(t.errorLoadingProducts);
+        setError('ERROR_LOADING_PRODUCTS');
         return;
       }
 
@@ -132,7 +132,7 @@ const PublicProfile = () => {
 
     } catch (error) {
       console.error('Error:', error);
-      setError(t.dataLoadingError);
+      setError('DATA_LOADING_ERROR');
     } finally {
       setLoading(false);
     }
@@ -161,7 +161,11 @@ const PublicProfile = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              {error || t.profileNotFound}
+              {error === 'TOKEN_NOT_FOUND' ? t.tokenNotFound :
+               error === 'INVALID_OR_EXPIRED_LINK' ? t.invalidOrExpiredLink :
+               error === 'ERROR_LOADING_PRODUCTS' ? t.errorLoadingProducts :
+               error === 'DATA_LOADING_ERROR' ? t.dataLoadingError :
+               t.profileNotFound}
             </p>
             <Button asChild className="w-full">
               <Link to="/">
