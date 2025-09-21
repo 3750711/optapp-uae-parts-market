@@ -5,7 +5,7 @@ import { BlurredPrice, BlurredOptId, BlurredTelegram } from './BlurredDataCompon
 
 interface CompactProductCardProps {
   title: string;
-  brand: string;
+  brand: string | null;
   model: string | null;
   imageUrl?: string;
   // New props for telegramStyleV2 mode
@@ -31,8 +31,16 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
   description,
   tgViewsEstimate
 }) => {
-  // Combine brand and model for display with 📦 emoji
-  const displayText = `📦 ${[brand, model].filter(Boolean).join(' ') || title}`;
+  // Debug logging for problematic values
+  if (brand === '0' || brand === null) {
+    console.log('🚨 Problematic brand value:', { brand, model, title, typeof: typeof brand });
+  }
+  
+  // Clean and combine brand and model for display with 📦 emoji
+  const cleanBrand = brand && brand !== '0' && brand.trim() !== '' ? brand.trim() : null;
+  const cleanModel = model && model !== '0' && model.trim() !== '' ? model.trim() : null;
+  const brandModel = [cleanBrand, cleanModel].filter(Boolean).join(' ');
+  const displayText = brandModel ? `📦 ${brandModel}` : `📦 ${title}`;
   
   // Calculate heights based on variant - увеличил для помещения текста
   const containerHeight = heightVariant === 'compact' ? 'h-[280px]' : 'h-[260px]';

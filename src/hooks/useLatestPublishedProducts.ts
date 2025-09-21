@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface PublishedProduct {
   id: string;
   title: string;
-  brand: string;
+  brand: string | null;
   model: string | null;
   delivery_price?: number | null;
   lot_number: number;
