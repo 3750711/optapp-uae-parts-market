@@ -137,7 +137,7 @@ export const useCatalogProducts = ({
             query = query.order('catalog_position', { ascending: false }).order('created_at', { ascending: false });
             break;
           case 'oldest':
-            query = query.order('created_at', { ascending: true });
+            query = query.order('catalog_position', { ascending: true }).order('created_at', { ascending: true });
             break;
           case 'price_asc':
             query = query.order('price', { ascending: true });
