@@ -1090,6 +1090,7 @@ export type Database = {
           tg_notify_attempts: number
           tg_notify_error: string | null
           tg_notify_status: string
+          tg_views_frozen: number | null
           title: string
           updated_at: string
           view_count: number | null
@@ -1124,6 +1125,7 @@ export type Database = {
           tg_notify_attempts?: number
           tg_notify_error?: string | null
           tg_notify_status?: string
+          tg_views_frozen?: number | null
           title: string
           updated_at?: string
           view_count?: number | null
@@ -1158,6 +1160,7 @@ export type Database = {
           tg_notify_attempts?: number
           tg_notify_error?: string | null
           tg_notify_status?: string
+          tg_views_frozen?: number | null
           title?: string
           updated_at?: string
           view_count?: number | null
