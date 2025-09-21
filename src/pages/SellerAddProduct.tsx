@@ -217,7 +217,7 @@ const SellerAddProduct = () => {
                   value={formData.title}
                   onChange={(e) => updateForm('title', e.target.value)}
                   placeholder={t.placeholders.title}
-                  className="w-full p-3 border border-input rounded-lg bg-background"
+                  className="w-full p-3 border border-input rounded-lg bg-background h-24"
                   required
                   minLength={3}
                   disabled={isSubmitting}
