@@ -99,52 +99,73 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       return data;
     },
     onMutate: async (updates) => {
-      const cacheKey = ['admin-products', statusFilter];
-      await queryClient.cancelQueries({ queryKey: cacheKey });
+      // Получаем правильный ключ кеша из всех возможных вариантов
+      const baseKey = 'admin-products';
+      await queryClient.cancelQueries({ queryKey: [baseKey] });
       
-      const previousData = queryClient.getQueryData(cacheKey);
+      // Получаем все данные кеша для админ-продуктов
+      const queryCache = queryClient.getQueryCache();
+      const queries = queryCache.findAll({ queryKey: [baseKey] });
+      const previousDataMap = new Map();
       
-      // Оптимистичное обновление
-      queryClient.setQueryData(cacheKey, (old: any) => {
-        if (!old?.pages) return old;
-        
-        return {
-          ...old,
-          pages: old.pages.map((page: any) => ({
-            ...page,
-            data: page.data.map((p: any) => 
-              p.id === product.id ? { ...p, ...updates } : p
-            )
-          }))
-        };
+      // Сохраняем предыдущие данные
+      queries.forEach(query => {
+        previousDataMap.set(query.queryKey, query.state.data);
       });
       
-      return { previousData };
+      // Оптимистичное обновление для всех связанных кешей
+      queries.forEach(query => {
+        queryClient.setQueryData(query.queryKey, (old: any) => {
+          if (!old?.pages) return old;
+          
+          return {
+            ...old,
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              data: page.data.map((p: any) => 
+                p.id === product.id ? { ...p, ...updates } : p
+              )
+            }))
+          };
+        });
+      });
+      
+      return { previousDataMap };
     },
-    onError: (err, _, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['admin-products', statusFilter], context.previousData);
+    onError: (err, updates, context) => {
+      // Восстанавливаем предыдущие данные
+      if (context?.previousDataMap) {
+        context.previousDataMap.forEach((data, queryKey) => {
+          queryClient.setQueryData(queryKey, data);
+        });
       }
+      console.error('❌ Error updating product:', err);
       toast({
         title: "Ошибка",
         description: "Не удалось сохранить изменения",
         variant: "destructive",
       });
+    },
+    onSuccess: (data, updates) => {
+      // Инвалидируем все связанные кеши после успешного обновления
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      
+      // Показываем тост только для важных операций
+      if (updates.status || updates.title) {
+        toast({
+          title: "Сохранено",
+          description: "Изменения применены",
+        });
+      }
     }
   });
 
-  // Debounced field updates для производительности
+  // Мгновенные field updates без debounce
   const handleFieldUpdate = useCallback(async (field: string, value: any) => {
-    // Используем setTimeout для debounce
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        updateMutation.mutate({ [field]: value });
-        resolve();
-      }, 300);
-    });
+    updateMutation.mutate({ [field]: value });
   }, [updateMutation]);
 
-  // Мемоизированные обработчики car selection
+  // Мемоизированные обработчики car selection  
   const handleBrandChange = useCallback(async (brandId: string) => {
     const brand = brands.find(b => b.id === brandId)?.name || '';
     setCarSelection({ brandId, modelId: '' });
@@ -171,7 +192,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       await updateMutation.mutateAsync(updates);
       
       toast({ title: "Товар опубликован" });
-      onUpdate();
+      // Убираем onUpdate() - оптимистические обновления и инвалидация кеша справятся сами
     } finally {
       setIsPublishing(false);
     }
