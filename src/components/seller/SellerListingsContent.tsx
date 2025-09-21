@@ -52,6 +52,24 @@ const SellerListingsContent = () => {
     },
     enabled: !!user?.id,
   });
+
+  // Profile data for contact buttons
+  const { data: profileInfo } = useQuery({
+    queryKey: ['seller-profile-info', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not found');
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('phone, telegram')
+        .eq('id', user.id)
+        .single();
+        
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
   
   // Fetch all seller products at once
   const {
@@ -405,12 +423,10 @@ const SellerListingsContent = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-bold">{t.myShop}</h1>
-          {storeInfo && (
-            <ContactButtons
-              phone={storeInfo.phone}
-              telegram={storeInfo.telegram}
-            />
-          )}
+          <ContactButtons
+            phone={profileInfo?.phone}
+            telegram={profileInfo?.telegram}
+          />
         </div>
       </div>
       
