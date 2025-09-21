@@ -31,18 +31,6 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
   description,
   tgViewsEstimate
 }) => {
-  // Debug logging for ALL values to track down the "0" issue
-  console.log('🎯 CompactProductCard render:', {
-    title,
-    brand,
-    model,
-    brandType: typeof brand,
-    modelType: typeof model,
-    titleType: typeof title,
-    rawBrand: JSON.stringify(brand),
-    rawModel: JSON.stringify(model),
-    rawTitle: JSON.stringify(title)
-  });
   
   // Clean and combine brand and model for display with 📦 emoji
   const cleanBrand = brand && brand !== '0' && brand.trim() !== '' ? brand.trim() : null;
@@ -78,7 +66,7 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
           )}
           
           {/* Views overlay */}
-          {tgViewsEstimate && tgViewsEstimate > 0 && (
+          {tgViewsEstimate > 0 && (
             <div className="absolute top-2 right-2 bg-black/60 text-white rounded-md px-2 py-1 flex items-center gap-1">
               <Eye size={12} />
               <span className="text-[11px] font-medium">
