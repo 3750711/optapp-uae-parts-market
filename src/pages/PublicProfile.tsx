@@ -73,13 +73,6 @@ const PublicProfile = () => {
       const profileData = validation.profile;
       setProfile(profileData);
 
-      // Set current profile token for RLS
-      await supabase.rpc('set_config', {
-        setting_name: 'app.current_profile_token',
-        setting_value: token,
-        is_local: false
-      });
-
       // Load products
       const { data: productsData, error: productsError } = await supabase
         .from('products')
