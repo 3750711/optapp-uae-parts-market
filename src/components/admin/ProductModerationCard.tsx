@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { InlineEditableField } from '@/components/ui/InlineEditableField';
 import { InlineNumberField } from '@/components/admin/InlineNumberField';
 import AdminTitleEditor from '@/components/admin/AdminTitleEditor';
@@ -30,45 +30,36 @@ interface Product {
 interface ProductModerationCardProps {
   product: Product;
   onUpdate: () => void;
-  // Filter parameters for cache key
-  debouncedSearchTerm?: string;
   statusFilter?: string;
-  sellerFilter?: string;
-  pageSize?: number;
 }
 
 const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   product,
   onUpdate,
-  debouncedSearchTerm = '',
-  statusFilter = 'pending',
-  sellerFilter = 'all',
-  pageSize = 12
+  statusFilter = 'pending'
 }) => {
   const [isPublishing, setIsPublishing] = useState(false);
-  const [brandId, setBrandId] = useState<string>('');
-  const [modelId, setModelId] = useState<string>('');
-  const [originalTitle] = useState<string>(product.title); // Store original title on component mount
+  const [carSelection, setCarSelection] = useState({ brandId: '', modelId: '' });
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Image navigation logic
-  const images = product.product_images || [];
+  // Мемоизация данных изображений
+  const images = useMemo(() => product.product_images || [], [product.product_images]);
   const hasMultipleImages = images.length > 1;
   
-  const goToPrevious = () => {
-    setCurrentImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1);
-  };
+  // Упрощенная навигация
+  const navigate = useCallback((direction: 'prev' | 'next') => {
+    setCurrentImageIndex(prev => {
+      if (direction === 'prev') return prev === 0 ? images.length - 1 : prev - 1;
+      return prev === images.length - 1 ? 0 : prev + 1;
+    });
+  }, [images.length]);
   
-  const goToNext = () => {
-    setCurrentImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1);
-  };
-  
-  // Setup swipe navigation
+  // Упрощенный swipe handler
   const swipeRef = useSwipeNavigation({
-    onSwipeLeft: goToNext,
-    onSwipeRight: goToPrevious,
+    onSwipeLeft: () => navigate('next'),
+    onSwipeRight: () => navigate('prev'),
     threshold: 50
   });
   
@@ -82,57 +73,38 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     findModelNameById
   } = useAllCarBrands();
 
-  // Initialize brand and model IDs from product data
+  // Инициализация только при mount
   useEffect(() => {
-    if (brands.length > 0 && product.brand) {
-      const foundBrandId = findBrandIdByName(product.brand);
-      if (foundBrandId) {
-        setBrandId(foundBrandId);
-        
-        if (product.model && allModels.length > 0) {
-          // Filter models by brand and then find the matching model
-          const brandModels = allModels.filter(model => model.brand_id === foundBrandId);
-          const foundModel = brandModels.find(model => 
-            model.name.toLowerCase() === product.model?.toLowerCase()
-          );
-          if (foundModel) {
-            setModelId(foundModel.id);
-          }
-        }
-      }
-    }
-  }, [brands, allModels, product.brand, product.model, findBrandIdByName]);
+    if (!brands.length || !product.brand) return;
+    
+    const brandId = brands.find(b => b.name === product.brand)?.id || '';
+    const modelId = allModels.find(m => 
+      m.brand_id === brandId && m.name === product.model
+    )?.id || '';
+    
+    setCarSelection({ brandId, modelId });
+  }, []); // Только при mount!
 
-  const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
-
-  // Create mutation for field updates with proper cache management
-  const updateFieldMutation = useMutation({
-    mutationFn: async ({ productId, field, value }: { 
-      productId: string; 
-      field: string; 
-      value: string | number 
-    }) => {
+  // Универсальная мутация
+  const updateMutation = useMutation({
+    mutationFn: async (updates: Record<string, any>) => {
       const { data, error } = await supabase
         .from('products')
-        .update({ [field]: value })
-        .eq('id', productId)
+        .update(updates)
+        .eq('id', product.id)
         .select()
         .single();
         
       if (error) throw error;
       return data;
     },
-    onMutate: async ({ productId, field, value }) => {
-      // Construct the proper cache key with filter parameters
-      const cacheKey = ['admin-products', { debouncedSearchTerm, statusFilter, sellerFilter, pageSize }];
-      
-      // Cancel outgoing refetches to prevent optimistic update conflicts
+    onMutate: async (updates) => {
+      const cacheKey = ['admin-products', statusFilter];
       await queryClient.cancelQueries({ queryKey: cacheKey });
       
-      // Save previous data for rollback
       const previousData = queryClient.getQueryData(cacheKey);
       
-      // Optimistic update using correct data structure
+      // Оптимистичное обновление
       queryClient.setQueryData(cacheKey, (old: any) => {
         if (!old?.pages) return old;
         
@@ -141,142 +113,69 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           pages: old.pages.map((page: any) => ({
             ...page,
             data: page.data.map((p: any) => 
-              p.id === productId 
-                ? { ...p, [field]: value }
-                : p
+              p.id === product.id ? { ...p, ...updates } : p
             )
           }))
         };
       });
       
-      return { previousData, cacheKey };
+      return { previousData };
     },
-    onError: (err, variables, context) => {
-      // Rollback optimistic update on error
-      if (context?.previousData && context?.cacheKey) {
-        queryClient.setQueryData(context.cacheKey, context.previousData);
+    onError: (err, _, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['admin-products', statusFilter], context.previousData);
       }
-      
-      console.error('Error updating product field:', err);
       toast({
         title: "Ошибка",
         description: "Не удалось сохранить изменения",
         variant: "destructive",
       });
-    },
-    onSuccess: (data, variables, context) => {
-      // Update cache with server response
-      if (context?.cacheKey) {
-        queryClient.setQueryData(context.cacheKey, (old: any) => {
-          if (!old?.pages) return old;
-          
-          return {
-            ...old,
-            pages: old.pages.map((page: any) => ({
-              ...page,
-              data: page.data.map((p: any) => 
-                p.id === variables.productId ? data : p
-              )
-            }))
-          };
-        });
-      }
-    },
-    onSettled: () => {
-      // Invalidate to ensure synchronization with server
-      const cacheKey = ['admin-products', { debouncedSearchTerm, statusFilter, sellerFilter, pageSize }];
-      queryClient.invalidateQueries({ queryKey: cacheKey });
     }
   });
 
-  const handleFieldUpdate = async (field: string, value: string | number) => {
-    await updateFieldMutation.mutateAsync({ 
-      productId: product.id, 
-      field, 
-      value 
-    });
+  // Упрощенные обработчики
+  const handleFieldUpdate = async (field: string, value: any) => {
+    updateMutation.mutate({ [field]: value });
   };
 
-  const handleBrandChange = async (selectedBrandId: string, brandName: string) => {
-    setBrandId(selectedBrandId);
-    setModelId(''); // Reset model when brand changes
+  const handleCarChange = (brandId: string, modelId: string) => {
+    setCarSelection({ brandId, modelId });
     
-    try {
-      await handleFieldUpdate('brand', brandName);
-      await handleFieldUpdate('model', ''); // Clear model in database
-    } catch (error) {
-      console.error('Error updating brand:', error);
-    }
-  };
-
-  const handleModelChange = async (selectedModelId: string, modelName: string) => {
-    setModelId(selectedModelId);
+    const brand = brands.find(b => b.id === brandId)?.name || '';
+    const model = allModels.find(m => m.id === modelId)?.name || '';
     
-    try {
-      await handleFieldUpdate('model', modelName);
-    } catch (error) {
-      console.error('Error updating model:', error);
-    }
+    updateMutation.mutate({ brand, model });
   };
 
   const handlePublish = async () => {
     setIsPublishing(true);
+    
     try {
-      // Check if original title is already in description
-      const originalTitlePrefix = "Оригинальное название от продавца:";
-      const currentDescription = product.description || "";
-      let updatedDescription = currentDescription;
+      const updates: any = { status: 'active' };
       
-      if (!currentDescription.includes(originalTitlePrefix)) {
-        // Add original title to description
-        const originalTitleText = `${originalTitlePrefix} ${originalTitle}`;
-        updatedDescription = currentDescription 
-          ? `${originalTitleText}\n\n${currentDescription}`
-          : originalTitleText;
+      // Добавить оригинальное название если нужно
+      if (!product.description?.includes('Оригинальное название')) {
+        updates.description = `Оригинальное название от продавца: ${product.title}\n\n${product.description || ''}`;
       }
-
-      const { error } = await supabase
-        .from('products')
-        .update({ 
-          status: 'active',
-          description: updatedDescription
-        })
-        .eq('id', product.id);
-
-      if (error) throw error;
-
-      // Invalidate cache to refresh data using proper cache key
-      const cacheKey = ['admin-products', { debouncedSearchTerm, statusFilter, sellerFilter, pageSize }];
-      await queryClient.invalidateQueries({ queryKey: cacheKey });
-
-      toast({
-        title: "Товар опубликован",
-        description: "Товар успешно опубликован",
-      });
-
+      
+      await updateMutation.mutateAsync(updates);
+      
+      toast({ title: "Товар опубликован" });
       onUpdate();
-    } catch (error) {
-      console.error('Error publishing product:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось опубликовать товар",
-        variant: "destructive",
-      });
     } finally {
       setIsPublishing(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'created':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
+  // Мемоизированный цвет статуса
+  const statusColor = useMemo(() => {
+    const colors = {
+      pending: 'bg-orange-100 text-orange-800',
+      created: 'bg-blue-100 text-blue-800',
+      active: 'bg-green-100 text-green-800'
+    };
+    return colors[product.status] || 'bg-gray-100 text-gray-800';
+  }, [product.status]);
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -293,17 +192,14 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             {hasMultipleImages && (
               <>
                 <button
-                  onClick={goToPrevious}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
-                  aria-label="Предыдущее фото"
+                  onClick={() => navigate('prev')}
+                  className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                
                 <button
-                  onClick={goToNext}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-colors"
-                  aria-label="Следующее фото"
+                  onClick={() => navigate('next')}
+                  className="bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -336,7 +232,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         )}
         
         <Badge 
-          className={`absolute top-2 right-2 ${getStatusColor(product.status)}`}
+          className={`absolute top-2 right-2 ${statusColor}`}
           variant="outline"
         >
           {product.status}
@@ -344,118 +240,82 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       </div>
 
       <CardContent className="p-4 space-y-4">
-        {/* Title */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Название
-          </label>
-          <AdminTitleEditor
-            originalTitle={originalTitle}
-            value={product.title}
-            onSave={(value) => handleFieldUpdate('title', value)}
-            placeholder="Введите новое название товара"
-            className="mt-1"
+        {/* Название */}
+        <AdminTitleEditor
+          originalTitle={product.title}
+          value={product.title}
+          onSave={(value) => handleFieldUpdate('title', value)}
+          className="w-full"
+        />
+
+        {/* Цены - упрощенная сетка */}
+        <div className="grid grid-cols-3 gap-3">
+          <InlineNumberField
+            label="Цена"
+            value={product.price}
+            onSave={(value) => handleFieldUpdate('price', value)}
+            prefix="$"
+          />
+          <InlineNumberField
+            label="Места"
+            value={product.place_number || 1}
+            onSave={(value) => handleFieldUpdate('place_number', value)}
+            suffix=" шт"
+          />
+          <InlineNumberField
+            label="Доставка"
+            value={product.delivery_price || 0}
+            onSave={(value) => handleFieldUpdate('delivery_price', value)}
+            prefix="$"
           />
         </div>
 
-        {/* Price and Details - Mobile Responsive */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Цена
-            </label>
-            <InlineNumberField
-              value={product.price}
-              onSave={(value) => handleFieldUpdate('price', value)}
-              prefix="$"
-              step={0.01}
-              min={0}
-              max={99999}
-              className="mt-1"
-              displayClassName="text-sm font-medium"
-            />
-          </div>
+        {/* Селектор машины */}
+        <SimpleCarSelector
+          brandId={carSelection.brandId}
+          modelId={carSelection.modelId}
+          onBrandChange={(brandId) => {
+            const brand = brands.find(b => b.id === brandId)?.name || '';
+            setCarSelection({ brandId, modelId: '' });
+            updateMutation.mutate({ brand, model: '' });
+          }}
+          onModelChange={(modelId) => {
+            const model = allModels.find(m => m.id === modelId)?.name || '';
+            setCarSelection(prev => ({ ...prev, modelId }));
+            updateMutation.mutate({ model });
+          }}
+          disabled={isLoadingCarData}
+        />
 
-          <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Места
-            </label>
-            <InlineNumberField
-              value={product.place_number || 1}
-              onSave={(value) => handleFieldUpdate('place_number', value)}
-              suffix=" шт"
-              step={1}
-              min={1}
-              max={100}
-              className="mt-1"
-              displayClassName="text-sm font-medium"
-            />
-          </div>
-
-          <div className="sm:col-span-2 lg:col-span-1">
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              Доставка
-            </label>
-            <InlineNumberField
-              value={product.delivery_price || 0}
-              onSave={(value) => handleFieldUpdate('delivery_price', value)}
-              prefix="$"
-              step={0.01}
-              min={0}
-              max={9999}
-              className="mt-1"
-              displayClassName="text-sm font-medium"
-            />
-          </div>
-        </div>
-
-        {/* Car Brand and Model */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
-            Автомобиль
-          </label>
-          <SimpleCarSelector
-            brandId={brandId}
-            modelId={modelId}
-            onBrandChange={handleBrandChange}
-            onModelChange={handleModelChange}
-            disabled={isLoadingCarData}
-            isMobile={true}
-          />
-        </div>
-
-        {/* Seller Information */}
         <div className="text-xs text-muted-foreground">
-          <div className="font-medium">Продавец: {product.seller_name}</div>
+          Продавец: {product.seller_name}
         </div>
       </CardContent>
 
-      <CardFooter className="p-3 pt-0">
-        <div className="flex flex-col sm:flex-row gap-2 w-full">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full sm:flex-1 text-xs py-2"
-            onClick={() => window.open(`/product/${product.id}`, '_blank')}
-          >
-            <Eye className="h-3 w-3 mr-1" />
-            Предпросмотр
-          </Button>
-          
-          <Button
-            onClick={handlePublish}
-            disabled={isPublishing}
-            size="sm"
-            className="w-full sm:flex-1 text-xs py-2"
-          >
-            {isPublishing ? (
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1" />
-            ) : (
-              <CheckCircle className="h-3 w-3 mr-1" />
-            )}
-            Опубликовать
-          </Button>
-        </div>
+      <CardFooter className="flex gap-2 p-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          onClick={() => window.open(`/product/${product.id}`, '_blank')}
+        >
+          <Eye className="h-3 w-3 mr-1" />
+          Просмотр
+        </Button>
+        
+        <Button
+          onClick={handlePublish}
+          disabled={isPublishing}
+          size="sm"
+          className="flex-1"
+        >
+          {isPublishing ? (
+            <div className="animate-spin h-3 w-3 border-b-2 border-white mr-1" />
+          ) : (
+            <CheckCircle className="h-3 w-3 mr-1" />
+          )}
+          Опубликовать
+        </Button>
       </CardFooter>
     </Card>
   );
