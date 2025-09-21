@@ -23,7 +23,6 @@ export interface Product {
   lot_number?: number;
   place_number?: number;
   product_location?: string;
-  view_count?: number;
   phone_url?: string;
   telegram_url?: string;
   product_videos?: Array<{ url: string }>;

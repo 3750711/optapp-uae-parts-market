@@ -127,10 +127,10 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
           <Badge className={statusInfo.color}>
             {statusInfo.text}
           </Badge>
-          {product.view_count && product.view_count > 0 && (
+          {product.tg_views_estimate && product.tg_views_estimate > 0 && (
             <div className="flex items-center gap-1 text-sm text-muted-foreground">
               <Eye className="h-4 w-4" />
-              {product.view_count} {sp.productInfoDetails?.views || 'просмотров'}
+              {product.tg_views_estimate} {sp.productInfoDetails?.views || 'просмотров'}
             </div>
           )}
         </div>
