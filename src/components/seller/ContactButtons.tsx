@@ -57,7 +57,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     const publicUrl = getShareUrl();
     if (!publicUrl) return;
     
-    const message = `Good afternoon, you can view my full catalog here, I will be glad to cooperate${sellerName ? ` (${sellerName})` : ''}: ${publicUrl}`;
+    // Sanitize seller name to avoid special characters
+    const sanitizedName = sellerName?.replace(/[^\w\s]/g, '').trim();
+    const message = `Good afternoon, you can view my full catalog here: ${publicUrl}${sanitizedName ? ` - ${sanitizedName}` : ''}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
