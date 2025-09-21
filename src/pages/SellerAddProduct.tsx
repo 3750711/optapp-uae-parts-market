@@ -1,136 +1,38 @@
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/hooks/useLanguage";
-import { getFormTranslations } from "@/utils/translations/forms";
-import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
-import { getCommonTranslations } from "@/utils/translations/common";
-
 import { useToast } from "@/hooks/use-toast";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
-import { createProductTitleParser } from "@/utils/productTitleParser";
-import { useFormAutosave } from "@/hooks/useFormAutosave";
-import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
-import { Link } from "react-router-dom";
-import { Home, ArrowLeft, Loader2 } from "lucide-react";
-import { productSchema, ProductFormValues } from "@/components/product/AddProductForm";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
-import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
-import { initMobileFormOptimizations, trackMobileFormMetrics } from "@/utils/mobileFormOptimizations";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useAdminNotifications } from "@/hooks/useAdminNotifications";
-
-// Lazy load the mobile-optimized form
-const MobileFastAddProduct = React.lazy(() => import("@/components/product/MobileFastAddProduct"));
-const AddProductForm = React.lazy(() => import("@/components/product/AddProductForm"));
+import OptimizedMediaSection from "@/components/product/form/OptimizedMediaSection";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const { language } = useLanguage();
-  const t = getFormTranslations(language);
-  const sp = getSellerPagesTranslations(language);
-  const c = getCommonTranslations(language);
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
   
-  const { guardedSubmit, isSubmitting } = useSubmissionGuard();
-  const [primaryImage, setPrimaryImage] = useState<string>("");
-  const [showDraftSaved, setShowDraftSaved] = useState(false);
-  const [draftLoaded, setDraftLoaded] = useState(false);
+  // Минимальные состояния
+  const [title, setTitle] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Состояния для изображений (НЕ МЕНЯЕМ)
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [primaryImage, setPrimaryImage] = useState("");
   const [isMediaUploading, setIsMediaUploading] = useState(false);
-  const isMobile = useIsMobile();
-  const { notifyAdminsNewProduct } = useAdminNotifications();
 
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
-    defaultValues: {
-      title: "",
-      price: "",
-      description: "",
-    },
-    mode: "onBlur",
-  });
-
-  // Initialize mobile optimizations
-  useEffect(() => {
-    initMobileFormOptimizations();
-    trackMobileFormMetrics.formStart();
-    
-    return () => {
-      trackMobileFormMetrics.formComplete();
-    };
-  }, []);
-
-  // Get form data for autosave - use getValues instead of watch to avoid reactivity
-  const getFormDataForAutosave = useCallback(() => form.getValues(), [form]);
-
-  // Автосохранение формы with debounced data
-  const { loadSavedData, clearSavedData } = useFormAutosave({
-    key: 'seller_add_product',
-    data: getFormDataForAutosave(),
-    enabled: !isSubmitting
-  });
-
-  // Breadcrumbs navigation
-  const breadcrumbItems = useMemo(() => [
-    { label: sp.system?.sellerDashboardBreadcrumb || "Seller Dashboard", href: "/seller/dashboard" },
-    { label: sp.system?.addProductBreadcrumb || "Add Product" }
-  ], [sp.system]);
-
-  const watchTitle = form.watch("title");
-
-  useEffect(() => {
-    if (!draftLoaded && !isSubmitting) {
-      const savedData = loadSavedData();
-      if (savedData && Object.keys(savedData).length > 0) {
-        Object.entries(savedData).forEach(([key, value]) => {
-          if (value && key in form.getValues()) {
-            form.setValue(key as keyof ProductFormValues, value as any, { shouldValidate: false });
-          }
-        });
-        setShowDraftSaved(true);
-        setTimeout(() => setShowDraftSaved(false), 5000);
-      }
-      setDraftLoaded(true);
-    }
-  }, [loadSavedData, form, isSubmitting, draftLoaded]);
-
-  // Unified image upload handler
-  const handleImageUpload = useCallback((urls: string[]) => {
+  // Обработчики изображений (оставляем как есть)
+  const handleImageUpload = (urls: string[]) => {
     console.log("📷 New images uploaded:", urls);
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
     
     if (!primaryImage && urls.length > 0) {
       setPrimaryImage(urls[0]);
     }
-  }, [primaryImage]);
+  };
 
-  // Unified image deletion handler
-  const handleImageDelete = useCallback((url: string) => {
+  const handleImageDelete = (url: string) => {
     console.log("🗑️ Deleting image:", url);
     const newImageUrls = imageUrls.filter(item => item !== url);
     setImageUrls(newImageUrls);
@@ -142,20 +44,39 @@ const SellerAddProduct = () => {
         setPrimaryImage("");
       }
     }
-  }, [imageUrls, primaryImage]);
+  };
 
-  // Enhanced product creation with automatic seller assignment
-  const createProduct = async (values: ProductFormValues) => {
-    console.log('🚀 createProduct called with values:', values);
-    console.log('📊 Current state:', {
-      userId: user?.id,
-                       imageCount: imageUrls.length
-    });
+  const handleUploadStateChange = (uploading: boolean) => {
+    setIsMediaUploading(uploading);
+  };
+
+  // Упрощенная отправка формы
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Простая валидация
+    if (!title.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Введите название товара",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!price || Number(price) <= 0) {
+      toast({
+        title: "Ошибка", 
+        description: "Введите корректную цену",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (imageUrls.length === 0) {
       toast({
-        title: t.messages.imageRequired,
-        description: t.messages.imageRequired,
+        title: "Ошибка",
+        description: "Добавьте хотя бы одно фото",
         variant: "destructive",
       });
       return;
@@ -163,8 +84,8 @@ const SellerAddProduct = () => {
 
     if (!user?.id) {
       toast({
-        title: sp.system?.error || "Error",
-        description: sp.system?.userNotAuthorized || "User not authorized",
+        title: "Ошибка",
+        description: "Пользователь не авторизован",
         variant: "destructive",
       });
       return;
@@ -172,49 +93,45 @@ const SellerAddProduct = () => {
     
     if (!profile?.opt_id) {
       toast({
-        title: sp.system?.profileIncomplete || "Profile Incomplete",
-        description: sp.system?.profileIncompleteDescription || "Your profile is missing an OPT ID. Please contact the administrator to obtain one.",
+        title: "Профиль не завершен",
+        description: "В вашем профиле отсутствует OPT ID. Обратитесь к администратору для его получения.",
         variant: "destructive",
       });
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      console.log('🏭 Creating simplified product with seller automatically assigned...', {
-        title: values.title,
+      console.log('🚀 Creating product...', {
+        title,
         sellerId: user.id,
         sellerName: profile?.full_name || '',
         imageCount: imageUrls.length,
-        primaryImage,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Determine product status based on seller trust level
-      const productStatus = profile?.is_trusted_seller ? 'active' : 'pending';
-      
-      console.log('👤 Seller trust status:', {
-        isTrustedSeller: profile?.is_trusted_seller,
-        productStatus,
-        sellerId: user.id
+        primaryImage
       });
 
-      // Create simplified product with default values for admin fields
+      // Определяем статус товара
+      const productStatus = profile?.is_trusted_seller ? 'active' : 'pending';
+      
+      // Создание товара одним запросом
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
-          title: values.title,
-          price: Number(values.price),
-          condition: "Новый", // Default value
-          brand: null, // Will be set by admin
-          model: null, // Will be set by admin
-          description: values.description || null,
-          seller_id: user.id, // Automatically assign current user as seller
+          title: title.trim(),
+          price: Number(price),
+          description: description.trim() || null,
+          seller_id: user.id,
           seller_name: profile?.full_name || '',
-          status: productStatus, // Use determined status based on trust level
-          place_number: 1, // Default value
-          delivery_price: 0, // Default value
+          status: productStatus,
+          // Дефолтные значения
+          condition: "Новый",
+          brand: null,
+          model: null,
+          place_number: 1,
+          delivery_price: 0,
         })
-        .select()
+        .select('id')
         .single();
 
       if (productError) {
@@ -222,9 +139,9 @@ const SellerAddProduct = () => {
         throw productError;
       }
 
-      console.log('✅ Simplified product created:', product.id);
+      console.log('✅ Product created:', product.id);
 
-      // Add images using mass insert (like admin)
+      // Массовая вставка изображений
       const imageInserts = imageUrls.map(url => ({
         product_id: product.id,
         url: url,
@@ -237,272 +154,134 @@ const SellerAddProduct = () => {
         
       if (imageError) {
         console.error('❌ Error adding images:', imageError);
-        // Rollback: delete the product if image upload fails
+        // Откат: удаляем товар если изображения не загрузились
         await supabase.from('products').delete().eq('id', product.id);
-        throw new Error(`Error adding images: ${imageError.message}`);
+        throw new Error(`Ошибка загрузки изображений: ${imageError.message}`);
       }
       
-      console.log(`✅ ${imageUrls.length} images inserted for product ${product.id}`);
+      console.log(`✅ ${imageUrls.length} images added for product ${product.id}`);
 
-      // Extract public_id from primary image and update product with Cloudinary data
-      if (primaryImage) {
-        try {
-          console.log('🎨 Extracting public_id from primary image:', primaryImage);
-          const publicId = extractPublicIdFromUrl(primaryImage);
-          
-          if (publicId) {
-            console.log('📸 Updating product with Cloudinary data:', {
-              productId: product.id,
-              publicId,
-              cloudinaryUrl: primaryImage
-            });
-
-            // Update product with Cloudinary data
-            const { error: updateError } = await supabase
-              .from('products')
-              .update({
-                cloudinary_public_id: publicId,
-                cloudinary_url: primaryImage
-              })
-              .eq('id', product.id);
-
-            if (updateError) {
-              console.error('❌ Error updating product with Cloudinary data:', updateError);
-            } else {
-              console.log('✅ Product updated with Cloudinary data');
-            }
-          } else {
-            console.warn('⚠️ Could not extract public_id from primary image URL:', primaryImage);
-          }
-        } catch (error) {
-          console.error('💥 Error processing Cloudinary data:', error);
-        }
-      }
-
-
-      // Send notifications based on product status
+      // Уведомления для доверенных продавцов
       if (profile?.is_trusted_seller) {
-        // For trusted sellers, send regular notification
         try {
-          console.log('📢 Sending notification for trusted seller product:', product.id);
           await supabase.functions.invoke('send-telegram-notification', {
             body: { productId: product.id }
           });
-          console.log('✅ Notification sent successfully for trusted seller');
+          console.log('✅ Notification sent');
         } catch (notificationError) {
-          console.error('⚠️ Notification failed (non-critical):', notificationError);
-        }
-      } else {
-        // For regular sellers, notify admins about pending product
-        try {
-          console.log('📢 Notifying admins about new pending product:', product.id);
-          await notifyAdminsNewProduct(product.id);
-          console.log('✅ Admin notification sent successfully');
-        } catch (notificationError) {
-          console.error('⚠️ Admin notification failed (non-critical):', notificationError);
+          console.error('⚠️ Notification failed:', notificationError);
         }
       }
 
-      // Clear saved draft
-      clearSavedData();
-
       const successMessage = profile?.is_trusted_seller 
-        ? sp.system?.productPublished || "Product successfully published"
-        : sp.system?.productSentForModeration || "Product sent for moderation and will be published after review";
+        ? "Товар успешно опубликован"
+        : "Товар отправлен на модерацию и будет опубликован после проверки";
 
       toast({
-        title: t.messages.productCreated,
+        title: "Товар создан",
         description: successMessage,
       });
 
       navigate(`/seller/product/${product.id}`);
+      
     } catch (error) {
       console.error("💥 Error creating product:", error);
       toast({
-        title: sp.system?.error || "Error",
-        description: sp.system?.failedToCreateProduct || "Failed to create product. Please try again later.",
+        title: "Ошибка",
+        description: "Не удалось создать товар. Попробуйте еще раз.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Cleanup function for memory management
-  useEffect(() => {
-    return () => {
-      imageUrls.forEach((url) => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
-      });
-    };
-  }, [imageUrls]);
-
-  // Loading state with minimal UI
-  const LoadingState = () => (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="text-sm text-muted-foreground">{t.messages.loadingCarData}</span>
+  return (
+    <div className="max-w-lg mx-auto p-4">
+      <div className="mb-4">
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/seller/dashboard')}
+          className="mb-4"
+        >
+          ← Назад к панели
+        </Button>
+        <h1 className="text-2xl font-bold">Добавить товар</h1>
       </div>
+      
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Загрузка изображений - используем существующий компонент */}
+        <OptimizedMediaSection
+          imageUrls={imageUrls}
+          handleMobileOptimizedImageUpload={handleImageUpload}
+          primaryImage={primaryImage}
+          onSetPrimaryImage={setPrimaryImage}
+          onImageDelete={handleImageDelete}
+          disabled={isSubmitting}
+          onUploadStateChange={handleUploadStateChange}
+        />
+        
+        {/* Название товара */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Название товара *
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Введите название товара"
+            className="w-full p-3 border border-input rounded-lg bg-background"
+            required
+            minLength={3}
+            disabled={isSubmitting}
+          />
+        </div>
+        
+        {/* Цена */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Цена *
+          </label>
+          <input
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            placeholder="Введите цену"
+            className="w-full p-3 border border-input rounded-lg bg-background"
+            required
+            min={1}
+            step="0.01"
+            disabled={isSubmitting}
+          />
+        </div>
+        
+        {/* Описание (опционально) */}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            Описание (необязательно)
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Описание товара (необязательно)"
+            className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
+            disabled={isSubmitting}
+          />
+        </div>
+        
+        {/* Кнопка отправки */}
+        <Button
+          type="submit"
+          disabled={isSubmitting || isMediaUploading}
+          className="w-full"
+          size="lg"
+        >
+          {isSubmitting ? "Публикация..." : "Опубликовать товар"}
+        </Button>
+      </form>
     </div>
   );
-
-  // Memoized back handler
-  const handleBack = useCallback(() => {
-    navigate('/seller/dashboard');
-  }, [navigate]);
-
-  // Handle media upload state changes
-  const handleUploadStateChange = useCallback((uploading: boolean) => {
-    setIsMediaUploading(uploading);
-  }, []);
-
-  // Memoized form submission
-  const handleFormSubmit = useCallback((values: ProductFormValues) => {
-    guardedSubmit(() => createProduct(values));
-  }, [guardedSubmit, createProduct]);
-
-  // Check if we should show loading state
-  const isInitialLoading = false; // Simplified - no car data loading needed
-
-  // Error Boundary (UI-level)
-  try {
-    return (
-      <GlobalErrorBoundary>
-        <div className="container mx-auto px-4 py-8">
-          {!isMobile && (
-            <div className="max-w-3xl mx-auto">
-              <div className="flex items-center gap-4 mb-6">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleBack}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  {t.buttons.backToDashboard}
-                </Button>
-              </div>
-              
-              <Breadcrumb className="mb-6">
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <BreadcrumbLink asChild>
-                      <Link to="/seller/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
-                        {sp.sellerDashboard}
-                      </Link>
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator />
-                  <BreadcrumbPage className="text-foreground">
-                    {t.sections.addProduct}
-                  </BreadcrumbPage>
-                </BreadcrumbList>
-              </Breadcrumb>
-              
-              <h1 className="text-3xl font-bold mb-6">{t.sections.addProduct}</h1>
-              
-              {showDraftSaved && (
-                <Alert className="mb-6">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {t.messages.draftLoadedDescription}
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {t.sections.productInformation}
-                    <Badge variant="outline" className="text-xs flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" />
-                      {sp.system?.cloudinaryIntegration || 'Cloudinary integration'}
-                    </Badge>
-                  </CardTitle>
-                  <CardDescription>
-                    {t.sections.productDescription}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Suspense fallback={<LoadingState />}>
-            <AddProductForm
-              form={form}
-              onSubmit={handleFormSubmit}
-              isSubmitting={isSubmitting || isMediaUploading}
-              imageUrls={imageUrls}
-              handleMobileOptimizedImageUpload={handleImageUpload}
-              primaryImage={primaryImage}
-              setPrimaryImage={setPrimaryImage}
-              onImageDelete={handleImageDelete}
-              onUploadStateChange={handleUploadStateChange}
-            />
-                  </Suspense>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Mobile-optimized form */}
-          {isMobile && (
-            <Suspense fallback={<LoadingState />}>
-              <MobileFastAddProduct
-                form={form}
-                onSubmit={handleFormSubmit}
-                isSubmitting={isSubmitting || isMediaUploading}
-                imageUrls={imageUrls}
-                handleMobileOptimizedImageUpload={handleImageUpload}
-                primaryImage={primaryImage}
-                setPrimaryImage={setPrimaryImage}
-                onImageDelete={handleImageDelete}
-                onBack={handleBack}
-                onUploadStateChange={handleUploadStateChange}
-              />
-            </Suspense>
-          )}
-
-          {/* Mobile draft notification */}
-          {isMobile && showDraftSaved && (
-              <div className="fixed top-4 left-4 right-4 z-50">
-                <Alert className="bg-background/95 backdrop-blur-sm border shadow-lg">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    {t.messages.draftLoadedMobile}
-                  </AlertDescription>
-                </Alert>
-              </div>
-          )}
-        </div>
-      </GlobalErrorBoundary>
-    );
-  } catch (error) {
-    console.error('💥 Critical error in SellerAddProduct page:', error);
-    
-    // Fallback UI for critical errors
-    return (
-      <div className="flex items-center justify-center min-h-screen p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              {sp.system?.pageError || 'Page Error'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              {sp.system?.pageErrorDescription || 'A critical error occurred while loading this page. Please try refreshing the page or contact support.'}
-            </p>
-            <Button 
-              onClick={() => window.location.reload()}
-              className="w-full"
-            >
-              {t.buttons.refreshPage}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 };
 
 export default SellerAddProduct;
