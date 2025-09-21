@@ -1,7 +1,10 @@
 import { corsHeaders } from '../_shared/cors.ts'
+import { createEdgeFunctionClient } from '../_shared/client.ts'
 
+// Force redeploy - v2.0.2 - 2025-09-21
 Deno.serve(async (req) => {
-  console.log('validate-profile-token function called')
+  console.log('🚀 validate-profile-token v2.0.2 function called')
+  console.log('📍 Function deployment check:', new Date().toISOString())
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -9,16 +12,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error('Missing Supabase configuration')
-    }
-
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.49.4')
-    
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    // Use shared client instead of manual creation
+    const supabase = createEdgeFunctionClient()
+    console.log('✅ Supabase client created successfully')
 
     const { token } = await req.json()
     
