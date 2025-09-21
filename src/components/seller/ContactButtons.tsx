@@ -1,5 +1,6 @@
 import React from 'react';
 import { Share, Send } from 'lucide-react';
+import { PRODUCTION_DOMAIN } from '@/utils/seoUtils';
 
 interface ContactButtonsProps {
   sellerId?: string;
@@ -15,7 +16,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const handleWhatsAppShare = () => {
     if (!sellerId) return;
     
-    const publicUrl = `${window.location.origin}/public-seller-profile/${sellerId}`;
+    const publicUrl = `${PRODUCTION_DOMAIN}/public-seller-profile/${sellerId}`;
     const message = `Посмотрите мой каталог автозапчастей${sellerName ? ` (${sellerName})` : ''}: ${publicUrl}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     
@@ -25,7 +26,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const handleTelegramShare = () => {
     if (!sellerId) return;
     
-    const publicUrl = `${window.location.origin}/public-seller-profile/${sellerId}`;
+    const publicUrl = `${PRODUCTION_DOMAIN}/public-seller-profile/${sellerId}`;
     const message = `Посмотрите мой каталог автозапчастей${sellerName ? ` (${sellerName})` : ''}`;
     const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent(message)}`;
     
