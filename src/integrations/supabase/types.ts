@@ -1987,6 +1987,7 @@ export type Database = {
           tg_notify_error: string | null
           tg_notify_status: string | null
           tg_views_estimate: number | null
+          tg_views_frozen: number | null
           title: string | null
           updated_at: string | null
           view_count: number | null
@@ -2022,6 +2023,7 @@ export type Database = {
           tg_notify_error?: string | null
           tg_notify_status?: string | null
           tg_views_estimate?: never
+          tg_views_frozen?: number | null
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
@@ -2057,6 +2059,7 @@ export type Database = {
           tg_notify_error?: string | null
           tg_notify_status?: string | null
           tg_views_estimate?: never
+          tg_views_frozen?: number | null
           title?: string | null
           updated_at?: string | null
           view_count?: number | null

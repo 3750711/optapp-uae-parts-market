@@ -52,6 +52,9 @@ export interface Product {
   // TG views estimate (only for sellers/admins)
   tg_views_estimate?: number;
   
+  // Frozen TG views for sold products
+  tg_views_frozen?: number;
+  
   // Catalog position for sorting
   catalog_position?: string;
 }
