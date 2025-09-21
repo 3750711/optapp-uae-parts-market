@@ -11,9 +11,8 @@ export const TelegramViewsEstimate: React.FC<TelegramViewsEstimateProps> = ({
   estimate,
   className = ""
 }) => {
-  if (estimate === undefined || estimate === null) {
-    return null;
-  }
+  // Always show the component, even if estimate is 0 or null
+  const displayEstimate = estimate ?? 0;
 
   return (
     <Card className={className}>
@@ -26,7 +25,7 @@ export const TelegramViewsEstimate: React.FC<TelegramViewsEstimateProps> = ({
       <CardContent>
         <div className="space-y-2">
           <div className="text-2xl font-bold text-foreground">
-            {estimate.toLocaleString()}
+            {displayEstimate.toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground">
             Оценка на основе модели; растёт постепенно в течение дня, может отличаться от реальных просмотров.
