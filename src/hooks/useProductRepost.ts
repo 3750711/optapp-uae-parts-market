@@ -80,11 +80,15 @@ export const useProductRepost = () => {
 
         const oldPrice = currentProduct?.price;
 
+        // Update catalog_position to current time to move product to top
+        const newCatalogPosition = new Date().toISOString();
+        console.log(`📍 Updating catalog_position for product ${productId} with price change to ${newCatalogPosition}`);
+        
         const { error: updateError } = await supabase
           .from('products')
           .update({ 
             price: newPrice,
-            catalog_position: new Date().toISOString()
+            catalog_position: newCatalogPosition
           })
           .eq('id', productId);
 
@@ -145,9 +149,12 @@ export const useProductRepost = () => {
       }
       
       // Update catalog position for repost without price change
+      const newCatalogPosition = new Date().toISOString();
+      console.log(`📍 Updating catalog_position for product ${productId} without price change to ${newCatalogPosition}`);
+      
       const { error: positionError } = await supabase
         .from('products')
-        .update({ catalog_position: new Date().toISOString() })
+        .update({ catalog_position: newCatalogPosition })
         .eq('id', productId);
 
       if (positionError) {
