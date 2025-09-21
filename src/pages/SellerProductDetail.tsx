@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +29,8 @@ import { getCommonTranslations } from '@/utils/translations/common';
 const SellerProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const showAddNewButton = searchParams.get('from') === 'add';
   const { user, profile } = useAuth();
   const { isMobile } = useMobileLayout();
   
@@ -178,6 +180,7 @@ const SellerProductDetail = () => {
             videoUrls={videoUrls}
             selectedImage={selectedImage}
             onImageClick={handleImageClick}
+            showAddNewButton={showAddNewButton}
           />
         </SellerLayout>
       </ProductErrorBoundary>
@@ -220,6 +223,7 @@ const SellerProductDetail = () => {
           {/* Seller Action Buttons */}
           <SellerProductActions 
             product={product}
+            showAddNewButton={showAddNewButton}
           />
           
           {/* Offers Summary */}

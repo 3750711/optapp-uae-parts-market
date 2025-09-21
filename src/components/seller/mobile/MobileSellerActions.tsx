@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Eye, Archive, RotateCcw, Share } from "lucide-react";
+import { Edit, Eye, Archive, RotateCcw, Share, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,10 +23,12 @@ import {
 
 interface MobileSellerActionsProps {
   product: Product;
+  showAddNewButton?: boolean;
 }
 
 const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
   product,
+  showAddNewButton = false,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -99,6 +101,10 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
     }
   };
 
+  const handleAddNewProduct = () => {
+    navigate('/seller/add-product');
+  };
+
   return (
     <>
       {/* Floating Share Button */}
@@ -116,6 +122,18 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
       {/* Bottom Sticky Actions */}
       <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
         <div className="flex gap-2">
+          {/* Add New Product Button */}
+          {showAddNewButton && (
+            <Button 
+              variant="secondary" 
+              className="flex-1 flex items-center gap-2"
+              onClick={handleAddNewProduct}
+            >
+              <Plus className="h-4 w-4" />
+              Добавить новый товар
+            </Button>
+          )}
+
           {/* Status Action Button - Always render for hook stability */}
           <AlertDialog>
             <AlertDialogTrigger asChild>

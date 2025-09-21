@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Eye, EyeOff, Archive, RotateCcw, Trash2 } from "lucide-react";
+import { Edit, Eye, EyeOff, Archive, RotateCcw, Trash2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,10 +26,12 @@ import {
 
 interface SellerProductActionsProps {
   product: Product;
+  showAddNewButton?: boolean;
 }
 
 const SellerProductActions: React.FC<SellerProductActionsProps> = ({
   product,
+  showAddNewButton = false,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -79,6 +81,10 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
   const handleEdit = () => {
     // Navigate to edit product page (to be implemented)
     navigate(`/seller/edit-product/${product.id}`);
+  };
+
+  const handleAddNewProduct = () => {
+    navigate('/seller/add-product');
   };
 
   const getStatusInfo = () => {
@@ -134,6 +140,19 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
 
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-2">
+          {/* Add New Product Button */}
+          {showAddNewButton && (
+            <Button 
+              variant="default" 
+              size="sm"
+              onClick={handleAddNewProduct}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Добавить новый товар
+            </Button>
+          )}
+
           {/* Edit Button */}
           <Button 
             variant="outline" 

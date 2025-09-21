@@ -15,6 +15,7 @@ interface MobileSellerProductLayoutProps {
   videoUrls: string[];
   selectedImage: string | null;
   onImageClick: (url: string) => void;
+  showAddNewButton?: boolean;
 }
 
 const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = React.memo(({
@@ -23,6 +24,7 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
   videoUrls,
   selectedImage,
   onImageClick,
+  showAddNewButton = false,
 }) => {
   // Ensure we have a valid product before using hooks
   if (!product?.id) {
@@ -183,6 +185,7 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
       {/* Sticky Actions */}
       <MobileSellerActions 
         product={product}
+        showAddNewButton={showAddNewButton}
       />
     </div>
   );
