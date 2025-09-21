@@ -30,7 +30,23 @@ const en = {
     hide: 'Hide',
     restore: 'Restore',
     apply: 'Apply',
-    select: 'Select'
+    select: 'Select',
+    share: 'Share'
+  },
+
+  // Share functionality
+  share: {
+    shareStore: 'Share Store',
+    shareProfile: 'Share Profile',
+    whatsapp: 'WhatsApp',
+    telegram: 'Telegram',
+    email: 'Email',
+    copyLink: 'Copy Link',
+    shareVia: 'Share via',
+    linkCopied: 'Link copied!',
+    shareNotAvailable: 'Sharing not available',
+    messageCopied: 'Message copied! Paste it in the app',
+    failedToCopy: 'Failed to copy message'
   },
 
   // Common statuses
@@ -138,7 +154,23 @@ const ru = {
     hide: 'Скрыть',
     restore: 'Восстановить',
     apply: 'Применить',
-    select: 'Выбрать'
+    select: 'Выбрать',
+    share: 'Поделиться'
+  },
+
+  // Share functionality
+  share: {
+    shareStore: 'Поделиться магазином',
+    shareProfile: 'Поделиться профилем',
+    whatsapp: 'WhatsApp',
+    telegram: 'Telegram',
+    email: 'Email',
+    copyLink: 'Скопировать ссылку',
+    shareVia: 'Поделиться через',
+    linkCopied: 'Ссылка скопирована!',
+    shareNotAvailable: 'Поделиться недоступно',
+    messageCopied: 'Сообщение скопировано! Вставьте его в приложение',
+    failedToCopy: 'Не удалось скопировать сообщение'
   },
 
   // Common statuses
@@ -246,7 +278,23 @@ const bn = {
     hide: 'লুকান',
     restore: 'পুনরুদ্ধার',
     apply: 'প্রয়োগ করুন',
-    select: 'নির্বাচন করুন'
+    select: 'নির্বাচন করুন',
+    share: 'শেয়ার করুন'
+  },
+
+  // Share functionality
+  share: {
+    shareStore: 'দোকান শেয়ার করুন',
+    shareProfile: 'প্রোফাইল শেয়ার করুন',
+    whatsapp: 'হোয়াটসঅ্যাপ',
+    telegram: 'টেলিগ্রাম',
+    email: 'ইমেইল',
+    copyLink: 'লিংক কপি করুন',
+    shareVia: 'এর মাধ্যমে শেয়ার করুন',
+    linkCopied: 'লিংক কপি হয়েছে!',
+    shareNotAvailable: 'শেয়ার করা উপলব্ধ নেই',
+    messageCopied: 'বার্তা কপি হয়েছে! অ্যাপে পেস্ট করুন',
+    failedToCopy: 'বার্তা কপি করতে ব্যর্থ হয়েছে'
   },
 
   // Common statuses
