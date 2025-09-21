@@ -14,9 +14,10 @@ export function allowedLocalesFor(
 ): ('ru' | 'en' | 'bn')[] {
   const isHome = pathname === '/' || pathname.startsWith('/home');
   const isSellerRoute = pathname.startsWith('/seller/');
+  const isPublicProfile = pathname.startsWith('/public-profile/');
   
-  // Bengali is only available on home page and for sellers
-  if (userRole === 'seller' || isHome || isSellerRoute) {
+  // Bengali is only available on home page, for sellers, and public profiles
+  if (userRole === 'seller' || isHome || isSellerRoute || isPublicProfile) {
     return ['ru', 'en', 'bn'];
   }
   
@@ -51,9 +52,10 @@ export function getDefaultLanguageFor(
   pathname: string
 ): 'ru' | 'en' | 'bn' {
   const allowedLocales = allowedLocalesFor(userRole, pathname);
+  const isPublicProfile = pathname.startsWith('/public-profile/');
   
-  // For sellers, default to English
-  if (userRole === 'seller' && allowedLocales.includes('en')) {
+  // For sellers and public profiles, default to English
+  if ((userRole === 'seller' || isPublicProfile) && allowedLocales.includes('en')) {
     return 'en';
   }
   
