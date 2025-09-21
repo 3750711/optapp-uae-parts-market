@@ -40,7 +40,10 @@ const SellerProductContent: React.FC<SellerProductContentProps> = ({
         />
         
         {/* TG Views Estimate - Only for sellers/admins */}
-        <TelegramViewsEstimate estimate={product.tg_views_estimate} />
+        <TelegramViewsEstimate 
+          estimate={product.tg_views_estimate} 
+          productStatus={product.status}
+        />
         
         {/* Specifications */}
         {(product.brand || product.model || product.lot_number) && (

@@ -5,12 +5,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 interface TelegramViewsEstimateProps {
   estimate?: number;
   className?: string;
+  productStatus?: string;
 }
 
 export const TelegramViewsEstimate: React.FC<TelegramViewsEstimateProps> = ({
   estimate,
-  className = ""
+  className = "",
+  productStatus
 }) => {
+  // Don't show views for pending products
+  if (productStatus === 'pending') {
+    return null;
+  }
+
   // Always show the component, even if estimate is 0 or null
   const displayEstimate = estimate ?? 0;
 
