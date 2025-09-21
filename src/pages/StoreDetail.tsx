@@ -99,6 +99,9 @@ const StoreDetail: React.FC = () => {
     else setShowAuthDialog(true);
   };
 
+  // Check if current user is the store owner
+  const isStoreOwner = user?.id === store?.seller_id;
+
   // Normalized contacts for mobile quick actions
   const normalizedPhone = store?.phone ? store.phone.toString().replace(/[^\d+]/g, "") : null;
   const normalizedWhatsapp = (store as any)?.whatsapp ? (store as any).whatsapp.toString().replace(/\D/g, "") : null;
@@ -175,6 +178,7 @@ const StoreDetail: React.FC = () => {
               reviewsCount={reviewsCount}
               onShareStore={handleShareStore}
               onShareToTelegram={handleShareToTelegram}
+              showShareButton={isStoreOwner}
             />
 
             {/* Mobile quick actions */}
