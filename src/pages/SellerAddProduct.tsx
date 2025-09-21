@@ -212,14 +212,12 @@ const SellerAddProduct = () => {
                 <label className="block text-sm font-medium mb-1">
                   {t.labels.title} *
                 </label>
-                <input
-                  type="text"
+                <textarea
                   value={formData.title}
                   onChange={(e) => updateForm('title', e.target.value)}
                   placeholder={t.placeholders.title}
-                  className="w-full p-3 border border-input rounded-lg bg-background h-24"
+                  className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
                   required
-                  minLength={3}
                   disabled={isSubmitting}
                 />
               </div>
