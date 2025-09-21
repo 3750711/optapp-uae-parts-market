@@ -30,6 +30,7 @@ const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
 const PublicSellerProfile = lazy(() => import('@/pages/PublicSellerProfile'));
 const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
 const Help = lazy(() => import('@/pages/Help'));
+const PublicStore = lazy(() => import('@/pages/PublicStore'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 // Критические страницы аутентификации - синхронные для быстрой загрузки
@@ -136,6 +137,7 @@ const AppRoutes: React.FC = () => {
                 <Index />
               </HomeRedirect>
             } />
+            <Route path="/public-store/:token" element={<PublicStore />} />
             <Route path="/404" element={<NotFound />} />
 
             {/* Маршруты аутентификации - только для гостей */}

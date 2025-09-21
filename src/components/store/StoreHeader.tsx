@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Star, MapPin, ShieldCheck, Share2, Send } from 'lucide-react';
 import { StoreWithImages } from '@/types/store';
+import ShareDialog from './ShareDialog';
 
 interface StoreHeaderProps {
   store: StoreWithImages;
@@ -11,6 +12,7 @@ interface StoreHeaderProps {
   reviewsCount?: number;
   onShareStore?: () => void;
   onShareToTelegram?: () => void;
+  showShareButton?: boolean;
 }
 
 const StoreHeader: React.FC<StoreHeaderProps> = ({
@@ -18,7 +20,8 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({
   averageRating,
   reviewsCount,
   onShareStore,
-  onShareToTelegram
+  onShareToTelegram,
+  showShareButton = false
 }) => {
   const ratingToShow = averageRating ?? store.rating ?? null;
   return (
@@ -75,6 +78,14 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({
           )}
         </div>
         <div className="hidden md:flex items-center gap-2">
+          {showShareButton && (
+            <ShareDialog
+              storeId={store.id}
+              storeName={store.name}
+              currentShareEnabled={store.public_share_enabled}
+              currentShareExpiresAt={store.public_share_expires_at}
+            />
+          )}
           {onShareStore && (
             <Button variant="outline" size="sm" onClick={onShareStore} className="gap-2">
               <Share2 className="w-4 h-4" /> Поделиться
@@ -88,6 +99,14 @@ const StoreHeader: React.FC<StoreHeaderProps> = ({
         </div>
         {/* Mobile share button */}
         <div className="flex md:hidden items-center gap-2">
+          {showShareButton && (
+            <ShareDialog
+              storeId={store.id}
+              storeName={store.name}
+              currentShareEnabled={store.public_share_enabled}
+              currentShareExpiresAt={store.public_share_expires_at}
+            />
+          )}
           {onShareStore && (
             <Button variant="ghost" size="icon" onClick={onShareStore} aria-label="Поделиться">
               <Share2 className="w-5 h-5" />

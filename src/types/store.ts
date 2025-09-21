@@ -3,6 +3,10 @@ import { Database } from "@/integrations/supabase/types";
 
 export type Store = Database['public']['Tables']['stores']['Row'] & {
   whatsapp?: string;
+  public_share_token?: string;
+  public_share_enabled?: boolean;
+  public_share_created_at?: string;
+  public_share_expires_at?: string;
 };
 export type StoreInsert = Database['public']['Tables']['stores']['Insert'];
 export type StoreUpdate = Database['public']['Tables']['stores']['Update'];

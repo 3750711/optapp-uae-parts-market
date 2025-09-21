@@ -1596,6 +1596,41 @@ export type Database = {
           },
         ]
       }
+      store_public_access_logs: {
+        Row: {
+          accessed_at: string | null
+          id: string
+          ip_address: unknown | null
+          referer: string | null
+          store_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          accessed_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          referer?: string | null
+          store_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          accessed_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          referer?: string | null
+          store_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_public_access_logs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_reviews: {
         Row: {
           comment: string | null
@@ -1655,6 +1690,10 @@ export type Database = {
           name: string
           owner_name: string | null
           phone: string | null
+          public_share_created_at: string | null
+          public_share_enabled: boolean | null
+          public_share_expires_at: string | null
+          public_share_token: string | null
           rating: number | null
           reviews_count: number
           seller_id: string | null
@@ -1672,6 +1711,10 @@ export type Database = {
           name: string
           owner_name?: string | null
           phone?: string | null
+          public_share_created_at?: string | null
+          public_share_enabled?: boolean | null
+          public_share_expires_at?: string | null
+          public_share_token?: string | null
           rating?: number | null
           reviews_count?: number
           seller_id?: string | null
@@ -1689,6 +1732,10 @@ export type Database = {
           name?: string
           owner_name?: string | null
           phone?: string | null
+          public_share_created_at?: string | null
+          public_share_enabled?: boolean | null
+          public_share_expires_at?: string | null
+          public_share_token?: string | null
           rating?: number | null
           reviews_count?: number
           seller_id?: string | null
@@ -2365,6 +2412,10 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: Json
       }
+      disable_store_public_access: {
+        Args: { store_id: string }
+        Returns: boolean
+      }
       estimate_tg_views: {
         Args: { p_created_at: string; p_id: string }
         Returns: number
@@ -2612,6 +2663,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      regenerate_store_share_token: {
+        Args: { store_id: string }
+        Returns: string
       }
       resend_order_notification: {
         Args: { p_order_id: string }
