@@ -67,26 +67,43 @@ const MobileProductsCarousel = () => {
         className="w-full"
       >
         <CarouselContent className="-ml-1 gap-3">
-          {limitedProducts.map((product) => {
+          {limitedProducts.map((product, index) => {
+            // Debug logging for carousel items
+            console.log('🔍 Carousel item debug:', {
+              index,
+              productId: product.id,
+              brand: product.brand,
+              title: product.title,
+              brandType: typeof product.brand,
+              brandValue: product.brand,
+              allKeys: Object.keys(product)
+            });
+            
             // Get primary image or first image
             const primaryImage = product.product_images?.find(img => img.is_primary);
             const imageUrl = primaryImage?.url || product.product_images?.[0]?.url;
             
             return (
-              <CarouselItem key={product.id} className="pl-1 basis-[160px] snap-start">
-                <CompactProductCard
-                  title={product.title}
-                  brand={product.brand}
-                  model={product.model}
-                  imageUrl={imageUrl}
-                  telegramStyleV2={true}
-                  heightVariant="compact"
-                  deliveryPrice={product.delivery_price}
-                  lotNumber={product.lot_number}
-                  condition={product.condition}
-                  description={product.description}
-                  tgViewsEstimate={product.tg_views_estimate}
-                />
+              <CarouselItem 
+                key={product.id} 
+                className="pl-1 basis-[160px] snap-start border-2 border-red-500/20"
+                data-debug-index={index}
+              >
+                <div className="bg-blue-500/10 p-1 rounded">
+                  <CompactProductCard
+                    title={product.title}
+                    brand={product.brand}
+                    model={product.model}
+                    imageUrl={imageUrl}
+                    telegramStyleV2={true}
+                    heightVariant="compact"
+                    deliveryPrice={product.delivery_price}
+                    lotNumber={product.lot_number}
+                    condition={product.condition}
+                    description={product.description}
+                    tgViewsEstimate={product.tg_views_estimate}
+                  />
+                </div>
               </CarouselItem>
             );
           })}

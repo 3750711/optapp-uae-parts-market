@@ -31,10 +31,18 @@ const CompactProductCard: React.FC<CompactProductCardProps> = ({
   description,
   tgViewsEstimate
 }) => {
-  // Debug logging for problematic values
-  if (brand === '0' || brand === null) {
-    console.log('🚨 Problematic brand value:', { brand, model, title, typeof: typeof brand });
-  }
+  // Debug logging for ALL values to track down the "0" issue
+  console.log('🎯 CompactProductCard render:', {
+    title,
+    brand,
+    model,
+    brandType: typeof brand,
+    modelType: typeof model,
+    titleType: typeof title,
+    rawBrand: JSON.stringify(brand),
+    rawModel: JSON.stringify(model),
+    rawTitle: JSON.stringify(title)
+  });
   
   // Clean and combine brand and model for display with 📦 emoji
   const cleanBrand = brand && brand !== '0' && brand.trim() !== '' ? brand.trim() : null;
