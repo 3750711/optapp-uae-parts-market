@@ -20,7 +20,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerListingsSkeleton";
 import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
-import ShareStoreButtons from './ShareStoreButtons';
+import ContactButtons from './ContactButtons';
 const SellerListingsContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -43,7 +43,7 @@ const SellerListingsContent = () => {
       
       const { data, error } = await supabase
         .from('stores')
-        .select('id, name')
+        .select('id, name, phone, telegram')
         .eq('seller_id', user.id)
         .maybeSingle();
         
@@ -403,13 +403,15 @@ const SellerListingsContent = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold">{t.myShop}</h1>
-        {storeInfo && (
-          <ShareStoreButtons
-            storeId={storeInfo.id}
-            storeName={storeInfo.name}
-          />
-        )}
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold">{t.myShop}</h1>
+          {storeInfo && (
+            <ContactButtons
+              phone={storeInfo.phone}
+              telegram={storeInfo.telegram}
+            />
+          )}
+        </div>
       </div>
       
       {/* Search */}
