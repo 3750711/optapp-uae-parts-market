@@ -38,8 +38,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       return `${PRODUCTION_DOMAIN}/public-profile/${profileInfo.public_share_token}`;
     }
     
-    // Fallback: Old public profile system
-    return `${PRODUCTION_DOMAIN}/public-seller-profile/${sellerId}`;
+    // No public sharing available
+    return null;
   };
 
   const handleWhatsAppShare = () => {

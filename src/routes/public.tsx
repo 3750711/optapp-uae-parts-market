@@ -13,7 +13,8 @@ const StoreDetail = lazy(() => import('@/pages/StoreDetail'));
 const Requests = lazy(() => import('@/pages/Requests'));
 const RequestDetail = lazy(() => import('@/pages/RequestDetail'));
 const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
-const PublicSellerProfile = lazy(() => import('@/pages/PublicSellerProfile'));
+const PublicSellerProfileRedirect = lazy(() => import('@/components/routing/PublicSellerProfileRedirect'));
+const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
 const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
 const TermsPage = lazy(() => import('@/pages/TermsPage'));
 const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
@@ -33,7 +34,11 @@ export const PublicRoutes = () => (
     <Route path="/requests" element={<Requests />} />
     <Route path="/request/:id" element={<RequestDetail />} />
     <Route path="/buyer-guide" element={<BuyerGuide />} />
-    <Route path="/public-seller-profile/:id" element={<PublicSellerProfile />} />
+    {/* Old profile routes redirect to new token-based system */}
+    <Route path="/public-seller-profile/:id" element={<PublicSellerProfileRedirect />} />
+    <Route path="/seller/:id" element={<PublicSellerProfileRedirect />} />
+    {/* New token-based public profile */}
+    <Route path="/public-profile/:token" element={<PublicProfile />} />
     <Route path="/generate-og-image" element={<GenerateOGImage />} />
     <Route path="/terms" element={<TermsPage />} />
     <Route path="/privacy" element={<PrivacyPage />} />

@@ -27,7 +27,7 @@ const StoreDetail = lazy(() => import('@/pages/StoreDetail'));
 const Requests = lazy(() => import('@/pages/Requests'));
 const RequestDetail = lazy(() => import('@/pages/RequestDetail'));
 const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
-const PublicSellerProfile = lazy(() => import('@/pages/PublicSellerProfile'));
+const PublicSellerProfileRedirect = lazy(() => import('@/components/routing/PublicSellerProfileRedirect'));
 const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
 const Help = lazy(() => import('@/pages/Help'));
 const PublicStore = lazy(() => import('@/pages/PublicStore'));
@@ -246,12 +246,12 @@ const AppRoutes: React.FC = () => {
             } />
             <Route path="/seller/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <PublicSellerProfile />
+                <PublicSellerProfileRedirect />
               </ProtectedRoute>
             } />
             <Route path="/public-seller-profile/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
-                <PublicSellerProfile />
+                <PublicSellerProfileRedirect />
               </ProtectedRoute>
             } />
             <Route path="/generate-og-image" element={
