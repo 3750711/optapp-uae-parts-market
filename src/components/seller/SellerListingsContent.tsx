@@ -434,9 +434,7 @@ const SellerListingsContent = () => {
           <h1 className="text-3xl font-bold">{t.myShop}</h1>
           <ContactButtons
             sellerId={user?.id}
-            sellerName={storeInfo?.name || profileInfo?.display_name || 
-              `${profileInfo?.first_name || ''} ${profileInfo?.last_name || ''}`.trim() || 
-              'Мой магазин'}
+            sellerName={storeInfo?.name || profileInfo?.full_name || 'Мой магазин'}
             storeInfo={storeInfo}
             profileInfo={profileInfo}
           />
