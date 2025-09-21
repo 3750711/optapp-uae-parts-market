@@ -1897,6 +1897,7 @@ export type Database = {
         Row: {
           admin_notification_sent_at: string | null
           brand: string | null
+          catalog_position: string | null
           cloudinary_public_id: string | null
           cloudinary_url: string | null
           condition: string | null
@@ -1931,6 +1932,7 @@ export type Database = {
         Insert: {
           admin_notification_sent_at?: string | null
           brand?: string | null
+          catalog_position?: string | null
           cloudinary_public_id?: string | null
           cloudinary_url?: string | null
           condition?: string | null
@@ -1965,6 +1967,7 @@ export type Database = {
         Update: {
           admin_notification_sent_at?: string | null
           brand?: string | null
+          catalog_position?: string | null
           cloudinary_public_id?: string | null
           cloudinary_url?: string | null
           condition?: string | null
@@ -2811,6 +2814,15 @@ export type Database = {
           p_video_url?: string[]
         }
         Returns: boolean
+      }
+      validate_catalog_positioning: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          products_with_correct_position: number
+          products_with_null_position: number
+          total_products: number
+          validation_status: string
+        }[]
       }
       validate_functions_url_compliance: {
         Args: Record<PropertyKey, never>

@@ -94,7 +94,7 @@ export const useOptimizedCatalogProducts = ({
       case 'newest':
         return query.order('catalog_position', { ascending: false }).order('created_at', { ascending: false });
       case 'oldest':
-        return query.order('created_at', { ascending: true });
+        return query.order('catalog_position', { ascending: true }).order('created_at', { ascending: true });
       case 'price_asc':
         return query.order('price', { ascending: true });
       case 'price_desc':
