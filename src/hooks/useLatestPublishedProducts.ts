@@ -30,13 +30,14 @@ export const useLatestPublishedProducts = () => {
           condition,
           description,
           tg_views_estimate,
+          catalog_position,
           product_images!inner (
             url,
             is_primary
           )
         `)
         .eq('status', 'active')
-        .order('created_at', { ascending: false })
+        .order('catalog_position', { ascending: false })
         .limit(10);
       
       if (error) {
