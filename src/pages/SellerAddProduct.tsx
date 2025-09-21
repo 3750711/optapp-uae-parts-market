@@ -11,11 +11,18 @@ const SellerAddProduct = () => {
   const { user, profile } = useAuth();
   const { toast } = useToast();
   
-  // Минимальные состояния
-  const [title, setTitle] = useState("");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
+  // Объединенное состояние формы
+  const [formData, setFormData] = useState({
+    title: "",
+    price: "",
+    description: ""
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Обновление полей формы
+  const updateForm = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
   
   // Состояния для изображений (НЕ МЕНЯЕМ)
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -50,12 +57,12 @@ const SellerAddProduct = () => {
     setIsMediaUploading(uploading);
   };
 
-  // Упрощенная отправка формы
+  // Оптимизированная отправка формы
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Простая валидация
-    if (!title.trim()) {
+    // Быстрая валидация
+    if (!formData.title.trim()) {
       toast({
         title: "Ошибка",
         description: "Введите название товара",
@@ -64,7 +71,7 @@ const SellerAddProduct = () => {
       return;
     }
 
-    if (!price || Number(price) <= 0) {
+    if (!formData.price || Number(formData.price) <= 0) {
       toast({
         title: "Ошибка", 
         description: "Введите корректную цену",
@@ -90,60 +97,35 @@ const SellerAddProduct = () => {
       });
       return;
     }
-    
-    if (!profile?.opt_id) {
-      toast({
-        title: "Профиль не завершен",
-        description: "В вашем профиле отсутствует OPT ID. Обратитесь к администратору для его получения.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     setIsSubmitting(true);
 
     try {
-      console.log('🚀 Creating product...', {
-        title,
+      console.log('🚀 Creating product with RPC...', {
+        title: formData.title,
         sellerId: user.id,
-        sellerName: profile?.full_name || '',
         imageCount: imageUrls.length,
         primaryImage
       });
 
-      // Определяем статус товара
-      const productStatus = profile?.is_trusted_seller ? 'active' : 'pending';
-      
-      // Создание товара одним запросом
-      const { data: product, error: productError } = await supabase
-        .from('products')
-        .insert({
-          title: title.trim(),
-          price: Number(price),
-          description: description.trim() || null,
-          seller_id: user.id,
-          seller_name: profile?.full_name || '',
-          status: productStatus,
-          // Дефолтные значения
-          condition: "Новый",
-          brand: null,
-          model: null,
-          place_number: 1,
-          delivery_price: 0,
-        })
-        .select('id')
-        .single();
+      // Создаем товар атомарно через RPC функцию
+      const { data: productId, error: productError } = await supabase
+        .rpc('create_product_with_images', {
+          p_title: formData.title.trim(),
+          p_price: Number(formData.price),
+          p_description: formData.description.trim() || null
+        });
 
       if (productError) {
         console.error("❌ Error creating product:", productError);
         throw productError;
       }
 
-      console.log('✅ Product created:', product.id);
+      console.log('✅ Product created:', productId);
 
       // Массовая вставка изображений
       const imageInserts = imageUrls.map(url => ({
-        product_id: product.id,
+        product_id: productId,
         url: url,
         is_primary: url === primaryImage
       }));
@@ -154,18 +136,16 @@ const SellerAddProduct = () => {
         
       if (imageError) {
         console.error('❌ Error adding images:', imageError);
-        // Откат: удаляем товар если изображения не загрузились
-        await supabase.from('products').delete().eq('id', product.id);
         throw new Error(`Ошибка загрузки изображений: ${imageError.message}`);
       }
       
-      console.log(`✅ ${imageUrls.length} images added for product ${product.id}`);
+      console.log(`✅ ${imageUrls.length} images added for product ${productId}`);
 
       // Уведомления для доверенных продавцов
       if (profile?.is_trusted_seller) {
         try {
           await supabase.functions.invoke('send-telegram-notification', {
-            body: { productId: product.id }
+            body: { productId }
           });
           console.log('✅ Notification sent');
         } catch (notificationError) {
@@ -182,7 +162,7 @@ const SellerAddProduct = () => {
         description: successMessage,
       });
 
-      navigate(`/seller/product/${product.id}`);
+      navigate(`/seller/product/${productId}`);
       
     } catch (error) {
       console.error("💥 Error creating product:", error);
@@ -228,8 +208,8 @@ const SellerAddProduct = () => {
           </label>
           <input
             type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            value={formData.title}
+            onChange={(e) => updateForm('title', e.target.value)}
             placeholder="Введите название товара"
             className="w-full p-3 border border-input rounded-lg bg-background"
             required
@@ -245,8 +225,8 @@ const SellerAddProduct = () => {
           </label>
           <input
             type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
+            value={formData.price}
+            onChange={(e) => updateForm('price', e.target.value)}
             placeholder="Введите цену"
             className="w-full p-3 border border-input rounded-lg bg-background"
             required
@@ -262,8 +242,8 @@ const SellerAddProduct = () => {
             Описание (необязательно)
           </label>
           <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            value={formData.description}
+            onChange={(e) => updateForm('description', e.target.value)}
             placeholder="Описание товара (необязательно)"
             className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
             disabled={isSubmitting}
