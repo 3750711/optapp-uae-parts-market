@@ -97,6 +97,7 @@ export const useCatalogProducts = ({
             cloudinary_url,
             lot_number,
             created_at,
+            catalog_position,
             profiles!products_seller_id_fkey (
               full_name,
               opt_id,
@@ -133,7 +134,7 @@ export const useCatalogProducts = ({
         // Sorting
         switch (sortBy) {
           case 'newest':
-            query = query.order('created_at', { ascending: false });
+            query = query.order('catalog_position', { ascending: false }).order('created_at', { ascending: false });
             break;
           case 'oldest':
             query = query.order('created_at', { ascending: true });
@@ -145,7 +146,7 @@ export const useCatalogProducts = ({
             query = query.order('price', { ascending: false });
             break;
           default:
-            query = query.order('created_at', { ascending: false });
+            query = query.order('catalog_position', { ascending: false }).order('created_at', { ascending: false });
         }
 
         // Pagination

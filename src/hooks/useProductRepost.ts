@@ -82,7 +82,10 @@ export const useProductRepost = () => {
 
         const { error: updateError } = await supabase
           .from('products')
-          .update({ price: newPrice })
+          .update({ 
+            price: newPrice,
+            catalog_position: new Date().toISOString()
+          })
           .eq('id', productId);
 
         if (updateError) {
@@ -138,6 +141,17 @@ export const useProductRepost = () => {
         }
       }
       
+      // Update catalog position for repost without price change
+      const { error: positionError } = await supabase
+        .from('products')
+        .update({ catalog_position: new Date().toISOString() })
+        .eq('id', productId);
+
+      if (positionError) {
+        console.error(`💥 [ProductRepost] Error updating catalog position:`, positionError);
+        // Continue anyway as this is not critical
+      }
+
       // Generate requestId for idempotency
       const requestId = `repost-${productId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       

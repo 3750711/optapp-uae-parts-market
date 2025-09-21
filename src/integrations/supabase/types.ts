@@ -1063,6 +1063,7 @@ export type Database = {
         Row: {
           admin_notification_sent_at: string | null
           brand: string
+          catalog_position: string
           cloudinary_public_id: string | null
           cloudinary_url: string | null
           condition: string
@@ -1096,6 +1097,7 @@ export type Database = {
         Insert: {
           admin_notification_sent_at?: string | null
           brand: string
+          catalog_position?: string
           cloudinary_public_id?: string | null
           cloudinary_url?: string | null
           condition: string
@@ -1129,6 +1131,7 @@ export type Database = {
         Update: {
           admin_notification_sent_at?: string | null
           brand?: string
+          catalog_position?: string
           cloudinary_public_id?: string | null
           cloudinary_url?: string | null
           condition?: string

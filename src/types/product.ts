@@ -51,6 +51,9 @@ export interface Product {
   
   // TG views estimate (only for sellers/admins)
   tg_views_estimate?: number;
+  
+  // Catalog position for sorting
+  catalog_position?: string;
 }
 
 export interface SellerProfile {
