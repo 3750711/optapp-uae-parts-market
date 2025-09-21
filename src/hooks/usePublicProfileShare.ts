@@ -91,11 +91,11 @@ export const usePublicProfileShare = () => {
   };
 
   const getShareUrls = (publicUrl: string) => {
-    const message = `Посмотрите мой каталог автозапчастей: ${publicUrl}`;
+    const message = `Good afternoon, you can view my full catalog here, I will be glad to cooperate: ${publicUrl}`;
     
     return {
       whatsapp: `https://wa.me/?text=${encodeURIComponent(message)}`,
-      telegram: `https://t.me/share/url?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent('Каталог автозапчастей')}`,
+      telegram: `https://t.me/share/url?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent('Good afternoon, you can view my full catalog here, I will be glad to cooperate')}`,
       copy: publicUrl
     };
   };

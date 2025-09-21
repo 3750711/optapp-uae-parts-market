@@ -82,7 +82,7 @@ export const usePublicStoreShare = () => {
   };
 
   const getShareUrls = (publicUrl: string) => {
-    const text = encodeURIComponent('Посмотрите мой магазин автозапчастей!');
+    const text = encodeURIComponent('Good afternoon, you can view my full catalog here, I will be glad to cooperate!');
     const url = encodeURIComponent(publicUrl);
     
     return {

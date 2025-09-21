@@ -57,7 +57,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     const publicUrl = getShareUrl();
     if (!publicUrl) return;
     
-    const message = `Посмотрите мой каталог автозапчастей${sellerName ? ` (${sellerName})` : ''}: ${publicUrl}`;
+    const message = `Good afternoon, you can view my full catalog here, I will be glad to cooperate${sellerName ? ` (${sellerName})` : ''}: ${publicUrl}`;
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
@@ -67,7 +67,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     const publicUrl = getShareUrl();
     if (!publicUrl) return;
     
-    const message = `Посмотрите мой каталог автозапчастей${sellerName ? ` (${sellerName})` : ''}`;
+    const message = `Good afternoon, you can view my full catalog here, I will be glad to cooperate${sellerName ? ` (${sellerName})` : ''}`;
     const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent(message)}`;
     
     window.open(telegramUrl, '_blank', 'noopener,noreferrer');
