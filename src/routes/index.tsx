@@ -138,6 +138,7 @@ const AppRoutes: React.FC = () => {
 
             {/* Public store routes */}
             <Route path="/public-store/:token" element={<PublicStore />} />
+            <Route path="/public-profile/:token" element={<PublicProfile />} />
             <Route path="/404" element={<NotFound />} />
 
             {/* Маршруты аутентификации - только для гостей */}
