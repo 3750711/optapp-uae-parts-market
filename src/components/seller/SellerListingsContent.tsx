@@ -436,7 +436,7 @@ const SellerListingsContent = () => {
             sellerId={user?.id}
             sellerName={storeInfo?.name || profileInfo?.display_name || 
               `${profileInfo?.first_name || ''} ${profileInfo?.last_name || ''}`.trim() || 
-              'Мой магазин'}
+              'My Store'}
             storeInfo={storeInfo}
             profileInfo={profileInfo}
           />
