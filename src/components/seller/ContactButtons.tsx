@@ -1,6 +1,7 @@
 import React from 'react';
 import { Share, Send } from 'lucide-react';
 import { PRODUCTION_DOMAIN } from '@/utils/seoUtils';
+import { useToast } from '@/hooks/use-toast';
 
 interface ContactButtonsProps {
   sellerId?: string;
@@ -24,6 +25,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   storeInfo,
   profileInfo
 }) => {
+  const { toast } = useToast();
 
   const getShareUrl = () => {
     if (!sellerId) return null;
@@ -53,63 +55,72 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     return null;
   };
 
-  const getWhatsAppUrl = () => {
+  const copyWhatsAppMessage = async () => {
     const publicUrl = getShareUrl();
-    if (!publicUrl) return null;
+    if (!publicUrl) return;
     
     const sanitizedName = sellerName?.replace(/[^\w\s]/g, '').trim();
-    const text = encodeURIComponent(`Good afternoon, you can view my full catalog here${sanitizedName ? ` - ${sanitizedName}` : ''}`);
-    const url = encodeURIComponent(publicUrl);
+    const message = `Good afternoon, you can view my full catalog here${sanitizedName ? ` - ${sanitizedName}` : ''} ${publicUrl}`;
     
-    return `https://wa.me/?text=${text}%20${url}`;
+    try {
+      await navigator.clipboard.writeText(message);
+      toast.success('Сообщение скопировано! Вставьте его в WhatsApp');
+      // Открываем WhatsApp без предзаполненного текста
+      window.open('https://wa.me/', '_blank');
+    } catch (err) {
+      console.error('Failed to copy message:', err);
+      toast.error('Не удалось скопировать сообщение');
+    }
   };
 
-  const getTelegramUrl = () => {
+  const copyTelegramMessage = async () => {
     const publicUrl = getShareUrl();
-    if (!publicUrl) return null;
+    if (!publicUrl) return;
     
     const sanitizedName = sellerName?.replace(/[^\w\s]/g, '').trim();
-    const text = encodeURIComponent(`Good afternoon, you can view my full catalog here, I will be glad to cooperate${sanitizedName ? ` (${sanitizedName})` : ''}`);
-    const url = encodeURIComponent(publicUrl);
+    const message = `Good afternoon, you can view my full catalog here, I will be glad to cooperate${sanitizedName ? ` (${sanitizedName})` : ''} ${publicUrl}`;
     
-    return `https://t.me/share/url?url=${url}&text=${text}`;
+    try {
+      await navigator.clipboard.writeText(message);
+      toast.success('Сообщение скопировано! Вставьте его в Telegram');
+      // Открываем Telegram без предзаполненного текста
+      window.open('https://t.me/', '_blank');
+    } catch (err) {
+      console.error('Failed to copy message:', err);
+      toast.error('Не удалось скопировать сообщение');
+    }
   };
 
   if (!sellerId) {
     return null;
   }
 
-  const whatsappUrl = getWhatsAppUrl();
-  const telegramUrl = getTelegramUrl();
+  const hasShareUrl = getShareUrl() !== null;
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {/* WhatsApp Share Link */}
-      {whatsappUrl && (
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+      {/* WhatsApp Share Button */}
+      {hasShareUrl && (
+        <button
+          onClick={copyWhatsAppMessage}
           className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition-colors duration-200 inline-flex items-center justify-center gap-2"
-          title="Поделиться каталогом в WhatsApp"
+          title="Скопировать сообщение для WhatsApp"
         >
           <Share className="h-5 w-5" />
           <span className="hidden sm:inline">WhatsApp</span>
-        </a>
+        </button>
       )}
 
-      {/* Telegram Share Link */}
-      {telegramUrl && (
-        <a
-          href={telegramUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+      {/* Telegram Share Button */}
+      {hasShareUrl && (
+        <button
+          onClick={copyTelegramMessage}
           className="bg-sky-500 hover:bg-sky-600 text-white rounded-full p-2 transition-colors duration-200 inline-flex items-center justify-center gap-2"
-          title="Поделиться каталогом в Telegram"
+          title="Скопировать сообщение для Telegram"
         >
           <Send className="h-5 w-5" />
           <span className="hidden sm:inline">Telegram</span>
-        </a>
+        </button>
       )}
     </div>
   );
