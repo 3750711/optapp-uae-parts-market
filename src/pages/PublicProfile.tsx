@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getPublicProfileTranslations } from '@/utils/translations/publicProfile';
 import Layout from '@/components/layout/Layout';
+import LanguageToggle from '@/components/auth/LanguageToggle';
 
 type ProductStatus = 'active' | 'sold' | 'pending' | 'archived';
 
@@ -40,7 +41,7 @@ interface Product {
 
 const PublicProfile = () => {
   const { token } = useParams<{ token: string }>();
-  const { language } = useLanguage('en'); // English as default for public profiles
+  const { language, changeLanguage } = useLanguage('en'); // English as default for public profiles
   const t = getPublicProfileTranslations(language);  
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -152,6 +153,13 @@ const PublicProfile = () => {
   if (error || !profile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+        {/* Language Toggle for Error State */}
+        <div className="absolute top-4 right-4">
+          <LanguageToggle 
+            language={language}
+            onLanguageChange={changeLanguage}
+          />
+        </div>
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
@@ -211,6 +219,13 @@ const PublicProfile = () => {
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+        {/* Language Toggle for Public Profile */}
+        <div className="absolute top-4 right-4 z-10">
+          <LanguageToggle 
+            language={language}
+            onLanguageChange={changeLanguage}
+          />
+        </div>
         <div className="container mx-auto px-4 py-8 space-y-8">
           
           {/* Profile Header */}

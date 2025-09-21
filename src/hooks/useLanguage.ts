@@ -10,7 +10,9 @@ export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'en') => {
   const [language, setLanguage] = useState<'ru' | 'en' | 'bn'>(() => {
     // For unauthenticated users, use localStorage or default
     const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-    return (saved as 'ru' | 'en' | 'bn') || defaultLanguage;
+    const initialLanguage = (saved as 'ru' | 'en' | 'bn') || defaultLanguage;
+    console.log('🌐 useLanguage: Initial state for defaultLanguage:', defaultLanguage, 'saved:', saved, 'result:', initialLanguage);
+    return initialLanguage;
   });
 
   // Load language from user profile when authenticated
@@ -66,17 +68,20 @@ export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'en') => {
   }, [user]);
 
   const changeLanguage = async (newLanguage: 'ru' | 'en' | 'bn') => {
+    console.log('🌐 useLanguage: changeLanguage called with:', newLanguage, 'current:', language, 'user:', !!user);
     setLanguage(newLanguage);
     
     if (user && updateProfile) {
       // For authenticated users: save only to profile
       try {
+        console.log('🌐 useLanguage: Saving language to profile:', newLanguage);
         await updateProfile({ preferred_locale: newLanguage });
       } catch (error) {
         console.error('Failed to save language preference to profile:', error);
       }
     } else {
       // For unauthenticated users: save to localStorage and dispatch event
+      console.log('🌐 useLanguage: Saving language to localStorage and dispatching event:', newLanguage);
       localStorage.setItem(LANGUAGE_STORAGE_KEY, newLanguage);
       window.dispatchEvent(new CustomEvent(LANGUAGE_CHANGE_EVENT, {
         detail: { language: newLanguage }
