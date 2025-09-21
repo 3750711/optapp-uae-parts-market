@@ -7,6 +7,7 @@ import { AdminProductFormValues } from "@/schemas/adminProductSchema";
 import FormSectionWrapper from '../product/form/FormSectionWrapper';
 import BasicInfoSection from "../product/form/BasicInfoSection";
 import SellerSelectionSection from "../product/form/SellerSelectionSection";
+import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 
 // Lazy loaded components
 const OptimizedMediaSection = React.lazy(() => import('../product/form/OptimizedMediaSection'));
@@ -167,6 +168,18 @@ const AdminAddProductForm: React.FC<AdminAddProductFormProps> = ({
               onImageDelete={onImageDelete}
             />
           </Suspense>
+        </FormSectionWrapper>
+
+        {/* Video Files Section */}
+        <FormSectionWrapper title="Видео файлы">
+          <CloudinaryVideoUpload
+            videos={videoUrls}
+            onUpload={setVideoUrls}
+            onDelete={(urlToDelete) => {
+              setVideoUrls(videoUrls.filter(url => url !== urlToDelete));
+            }}
+            maxVideos={3}
+          />
         </FormSectionWrapper>
 
         {/* Basic Info Section */}
