@@ -6,6 +6,7 @@ import { useOptimizedImageUpload } from "@/hooks/useOptimizedImageUpload";
 import { useImageDeletionState } from "@/hooks/useImageDeletionState";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
+import { getFormTranslations } from "@/utils/translations/forms";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
 import { isAllowedImage, getFileValidationError, getImageAcceptAttribute } from "@/utils/fileValidation";
 import { toast } from "@/hooks/use-toast";
@@ -33,6 +34,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 }) => {
   const { language } = useLanguage();
   const sp = getSellerPagesTranslations(language);
+  const t = getFormTranslations(language);
   
   const { uploadFiles, uploadQueue, isUploading, cancelUpload, markAsDeleted } = useOptimizedImageUpload();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -129,7 +131,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
             disabled={disabled || isUploading || imageUrls.length >= 30}
           >
             <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? 'Загрузка...' : 'Загрузить фото'}
+            {isUploading ? t.messages.uploadingMedia : t.buttons.uploadPhotos}
             <input
               ref={fileInputRef}
               type="file"
@@ -152,7 +154,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
           className="w-full"
         >
           <X className="h-4 w-4 mr-2" />
-          Отменить загрузку
+          {t.buttons.cancelUpload}
         </Button>
       )}
 
