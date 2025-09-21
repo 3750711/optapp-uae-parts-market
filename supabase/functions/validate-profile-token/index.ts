@@ -37,14 +37,13 @@ Deno.serve(async (req) => {
     }
 
     console.log('Validating profile token:', token)
+    console.log('Current time check:', new Date().toISOString())
 
-    // Validate the profile token
+    // First, get the profile without time filtering to check existence and time separately
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('id, full_name, company_name, user_type, public_share_enabled, public_share_expires_at')
       .eq('public_share_token', token)
-      .eq('public_share_enabled', true)
-      .gt('public_share_expires_at', 'now()')
       .maybeSingle()
 
     if (error) {
@@ -62,14 +61,50 @@ Deno.serve(async (req) => {
     }
 
     if (!profile) {
-      console.log('Invalid or expired token')
+      console.log('Token not found in database')
       return new Response(
         JSON.stringify({ 
           valid: false, 
-          error: 'Invalid or expired token' 
+          error: 'Invalid token' 
         }),
         { 
-          status: 404,
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Check if sharing is enabled
+    if (!profile.public_share_enabled) {
+      console.log('Public sharing disabled for profile:', profile.id)
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          error: 'Public sharing disabled' 
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Check expiration time
+    const expiresAt = new Date(profile.public_share_expires_at)
+    const now = new Date()
+    console.log('Token expires at:', expiresAt.toISOString())
+    console.log('Current time:', now.toISOString())
+    console.log('Is expired:', now >= expiresAt)
+
+    if (now >= expiresAt) {
+      console.log('Token expired for profile:', profile.id)
+      return new Response(
+        JSON.stringify({ 
+          valid: false, 
+          error: 'Token expired' 
+        }),
+        { 
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
