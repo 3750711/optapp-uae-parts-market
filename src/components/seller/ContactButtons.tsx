@@ -53,53 +53,64 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     return null;
   };
 
-  const handleWhatsAppShare = () => {
+  const getWhatsAppUrl = () => {
     const publicUrl = getShareUrl();
-    if (!publicUrl) return;
+    if (!publicUrl) return null;
     
-    // Sanitize seller name to avoid special characters
     const sanitizedName = sellerName?.replace(/[^\w\s]/g, '').trim();
-    const message = `Good afternoon, you can view my full catalog here: ${publicUrl}${sanitizedName ? ` - ${sanitizedName}` : ''}`;
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    const text = encodeURIComponent(`Good afternoon, you can view my full catalog here${sanitizedName ? ` - ${sanitizedName}` : ''}`);
+    const url = encodeURIComponent(publicUrl);
     
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    return `https://wa.me/?text=${text}%20${url}`;
   };
 
-  const handleTelegramShare = () => {
+  const getTelegramUrl = () => {
     const publicUrl = getShareUrl();
-    if (!publicUrl) return;
+    if (!publicUrl) return null;
     
-    const message = `Good afternoon, you can view my full catalog here, I will be glad to cooperate${sellerName ? ` (${sellerName})` : ''}`;
-    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(publicUrl)}&text=${encodeURIComponent(message)}`;
+    const sanitizedName = sellerName?.replace(/[^\w\s]/g, '').trim();
+    const text = encodeURIComponent(`Good afternoon, you can view my full catalog here, I will be glad to cooperate${sanitizedName ? ` (${sanitizedName})` : ''}`);
+    const url = encodeURIComponent(publicUrl);
     
-    window.open(telegramUrl, '_blank', 'noopener,noreferrer');
+    return `https://t.me/share/url?url=${url}&text=${text}`;
   };
 
   if (!sellerId) {
     return null;
   }
 
+  const whatsappUrl = getWhatsAppUrl();
+  const telegramUrl = getTelegramUrl();
+
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      {/* WhatsApp Share Button */}
-      <button
-        onClick={handleWhatsAppShare}
-        className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition-colors duration-200 flex items-center justify-center gap-2"
-        title="Поделиться каталогом в WhatsApp"
-      >
-        <Share className="h-5 w-5" />
-        <span className="hidden sm:inline">WhatsApp</span>
-      </button>
+      {/* WhatsApp Share Link */}
+      {whatsappUrl && (
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-green-500 hover:bg-green-600 text-white rounded-full p-2 transition-colors duration-200 inline-flex items-center justify-center gap-2"
+          title="Поделиться каталогом в WhatsApp"
+        >
+          <Share className="h-5 w-5" />
+          <span className="hidden sm:inline">WhatsApp</span>
+        </a>
+      )}
 
-      {/* Telegram Share Button */}
-      <button
-        onClick={handleTelegramShare}
-        className="bg-sky-500 hover:bg-sky-600 text-white rounded-full p-2 transition-colors duration-200 flex items-center justify-center gap-2"
-        title="Поделиться каталогом в Telegram"
-      >
-        <Send className="h-5 w-5" />
-        <span className="hidden sm:inline">Telegram</span>
-      </button>
+      {/* Telegram Share Link */}
+      {telegramUrl && (
+        <a
+          href={telegramUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-sky-500 hover:bg-sky-600 text-white rounded-full p-2 transition-colors duration-200 inline-flex items-center justify-center gap-2"
+          title="Поделиться каталогом в Telegram"
+        >
+          <Send className="h-5 w-5" />
+          <span className="hidden sm:inline">Telegram</span>
+        </a>
+      )}
     </div>
   );
 };
