@@ -158,20 +158,6 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         </Button>
       )}
 
-      {/* Photo count info */}
-      {imageUrls.length > 0 && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-green-800">
-              📁 Фото: {imageUrls.length}/30
-            </span>
-            <span className="text-green-600 text-xs">
-              🧠 Умное сжатие
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Image gallery */}
       <OptimizedImageGallery
         images={imageUrls}
@@ -181,19 +167,6 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         onDelete={handleImageDelete}
         disabled={disabled}
       />
-
-      {/* Smart compression info */}
-      {isUploading && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="text-sm text-blue-800">
-            🧠 Умное сжатие для товаров
-          </div>
-          <div className="text-xs text-blue-600 mt-1">
-            • Маленькие файлы (&lt;400KB) сохраняют оригинальное качество
-            • Большие файлы сжимаются адаптивно без потери деталей
-          </div>
-        </div>
-      )}
     </div>
   );
 };
