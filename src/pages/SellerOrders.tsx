@@ -31,8 +31,6 @@ import OrdersSearchBar from '@/components/orders/OrdersSearchBar';
 import { useSellerOrdersQuery } from '@/hooks/useSellerOrdersQuery';
 import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
 import { useLanguage } from '@/hooks/useLanguage';
-import ShareDialog from '@/components/store/ShareDialog';
-import { usePublicStoreShare } from '@/hooks/usePublicStoreShare';
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
@@ -50,23 +48,6 @@ const SellerOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
 
-  // Store data for share functionality
-  const { data: storeInfo } = useQuery({
-    queryKey: ['seller-store-info', user?.id],
-    queryFn: async () => {
-      if (!user?.id) throw new Error('User not found');
-      
-      const { data, error } = await supabase
-        .from('stores')
-        .select('id, name, public_share_enabled, public_share_expires_at')
-        .eq('seller_id', user.id)
-        .maybeSingle();
-        
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
 
   const {
     data,
@@ -357,14 +338,6 @@ const SellerOrders = () => {
               <ArrowLeft className="h-4 w-4" />
               {t.backToDashboard}
             </Button>
-            {storeInfo && (
-              <ShareDialog
-                storeId={storeInfo.id}
-                storeName={storeInfo.name}
-                currentShareEnabled={storeInfo.public_share_enabled}
-                currentShareExpiresAt={storeInfo.public_share_expires_at}
-              />
-            )}
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">{t.pageTitle}</h1>
