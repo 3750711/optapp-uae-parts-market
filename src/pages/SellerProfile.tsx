@@ -15,7 +15,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 import { getCommonTranslations } from '@/utils/translations/common';
-import ShareDialog from '@/components/store/ShareDialog';
 
 const SellerProfile = () => {
   const navigate = useNavigate();
@@ -51,7 +50,7 @@ const SellerProfile = () => {
       
       const { data, error } = await supabase
         .from('stores')
-        .select('id, name, description, verified, public_share_enabled, public_share_expires_at')
+        .select('id, name, description, verified')
         .eq('seller_id', user.id)
         .maybeSingle();
         
@@ -134,19 +133,11 @@ const SellerProfile = () => {
                     {storeInfo.description || sp.manageStore}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <ShareDialog
-                    storeId={storeInfo.id}
-                    storeName={storeInfo.name}
-                    currentShareEnabled={storeInfo.public_share_enabled}
-                    currentShareExpiresAt={storeInfo.public_share_expires_at}
-                  />
-                  <Button asChild variant="outline">
-                    <Link to={`/stores/${storeInfo.id}`}>
-                      {sp.viewStore}
-                    </Link>
-                  </Button>
-                </div>
+                <Button asChild variant="outline">
+                  <Link to={`/stores/${storeInfo.id}`}>
+                    {sp.viewStore}
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           ) : null}

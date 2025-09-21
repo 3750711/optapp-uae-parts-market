@@ -31,6 +31,8 @@ import OrdersSearchBar from '@/components/orders/OrdersSearchBar';
 import { useSellerOrdersQuery } from '@/hooks/useSellerOrdersQuery';
 import { getSellerOrdersTranslations } from '@/utils/translations/sellerOrders';
 import { useLanguage } from '@/hooks/useLanguage';
+import ShareDialog from '@/components/store/ShareDialog';
+import { usePublicStoreShare } from '@/hooks/usePublicStoreShare';
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
@@ -44,9 +46,27 @@ const SellerOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   
-  // Search state
+  // Search state  
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
+
+  // Store data for share functionality
+  const { data: storeInfo } = useQuery({
+    queryKey: ['seller-store-info', user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error('User not found');
+      
+      const { data, error } = await supabase
+        .from('stores')
+        .select('id, name, public_share_enabled, public_share_expires_at')
+        .eq('seller_id', user.id)
+        .maybeSingle();
+        
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
   const {
     data,
@@ -327,7 +347,7 @@ const SellerOrders = () => {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col gap-4 md:gap-6">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-4">
             <Button
               variant="outline"
               size="sm"
@@ -337,6 +357,14 @@ const SellerOrders = () => {
               <ArrowLeft className="h-4 w-4" />
               {t.backToDashboard}
             </Button>
+            {storeInfo && (
+              <ShareDialog
+                storeId={storeInfo.id}
+                storeName={storeInfo.name}
+                currentShareEnabled={storeInfo.public_share_enabled}
+                currentShareExpiresAt={storeInfo.public_share_expires_at}
+              />
+            )}
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">{t.pageTitle}</h1>
