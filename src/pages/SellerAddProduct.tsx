@@ -8,6 +8,8 @@ import OptimizedMediaSection from "@/components/product/form/OptimizedMediaSecti
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import Layout from "@/components/layout/Layout";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -185,90 +187,89 @@ const SellerAddProduct = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-4">
-      <div className="mb-4">
-        <Button 
-          variant="outline" 
-          onClick={() => navigate('/seller/dashboard')}
-          className="mb-4"
-        >
-          ← {t.buttons.backToDashboard}
-        </Button>
-        <h1 className="text-2xl font-bold">{t.sections.addProduct}</h1>
-      </div>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Загрузка изображений - используем существующий компонент */}
-        <OptimizedMediaSection
-          imageUrls={imageUrls}
-          handleMobileOptimizedImageUpload={handleImageUpload}
-          primaryImage={primaryImage}
-          onSetPrimaryImage={setPrimaryImage}
-          onImageDelete={handleImageDelete}
-          disabled={isSubmitting}
-          onUploadStateChange={handleUploadStateChange}
-        />
-        
-        {/* Название товара */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            {t.labels.title} *
-          </label>
-          <input
-            type="text"
-            value={formData.title}
-            onChange={(e) => updateForm('title', e.target.value)}
-            placeholder={t.placeholders.title}
-            className="w-full p-3 border border-input rounded-lg bg-background"
-            required
-            minLength={3}
-            disabled={isSubmitting}
-          />
+    <ProtectedRoute allowedRoles={['seller']}>
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-lg mx-auto">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold">{t.sections.addProduct}</h1>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Загрузка изображений - используем существующий компонент */}
+              <OptimizedMediaSection
+                imageUrls={imageUrls}
+                handleMobileOptimizedImageUpload={handleImageUpload}
+                primaryImage={primaryImage}
+                onSetPrimaryImage={setPrimaryImage}
+                onImageDelete={handleImageDelete}
+                disabled={isSubmitting}
+                onUploadStateChange={handleUploadStateChange}
+              />
+              
+              {/* Название товара */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {t.labels.title} *
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => updateForm('title', e.target.value)}
+                  placeholder={t.placeholders.title}
+                  className="w-full p-3 border border-input rounded-lg bg-background"
+                  required
+                  minLength={3}
+                  disabled={isSubmitting}
+                />
+              </div>
+              
+              {/* Цена */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {t.labels.price} *
+                </label>
+                <input
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => updateForm('price', e.target.value)}
+                  placeholder={t.placeholders.price}
+                  className="w-full p-3 border border-input rounded-lg bg-background"
+                  required
+                  min={1}
+                  step="0.01"
+                  disabled={isSubmitting}
+                />
+              </div>
+              
+              {/* Описание (опционально) */}
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {t.labels.description} {t.optional}
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => updateForm('description', e.target.value)}
+                  placeholder={t.placeholders.description}
+                  className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
+                  disabled={isSubmitting}
+                />
+              </div>
+              
+              {/* Кнопка отправки */}
+              <Button
+                type="submit"
+                disabled={isSubmitting || isMediaUploading}
+                className="w-full"
+                size="lg"
+              >
+                {isSubmitting ? t.buttons.publishing : t.buttons.publish}
+              </Button>
+            </form>
+          </div>
         </div>
-        
-        {/* Цена */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            {t.labels.price} *
-          </label>
-          <input
-            type="number"
-            value={formData.price}
-            onChange={(e) => updateForm('price', e.target.value)}
-            placeholder={t.placeholders.price}
-            className="w-full p-3 border border-input rounded-lg bg-background"
-            required
-            min={1}
-            step="0.01"
-            disabled={isSubmitting}
-          />
-        </div>
-        
-        {/* Описание (опционально) */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            {t.labels.description} {t.optional}
-          </label>
-          <textarea
-            value={formData.description}
-            onChange={(e) => updateForm('description', e.target.value)}
-            placeholder={t.placeholders.description}
-            className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
-            disabled={isSubmitting}
-          />
-        </div>
-        
-        {/* Кнопка отправки */}
-        <Button
-          type="submit"
-          disabled={isSubmitting || isMediaUploading}
-          className="w-full"
-          size="lg"
-        >
-          {isSubmitting ? t.buttons.publishing : t.buttons.publish}
-        </Button>
-      </form>
-    </div>
+      </Layout>
+    </ProtectedRoute>
   );
 };
 
