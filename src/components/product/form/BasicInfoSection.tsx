@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { ProductFormValues } from '../AddProductForm';
 import {
   FormControl,
   FormField,
@@ -15,7 +14,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { getFormTranslations } from '@/utils/translations/forms';
 
 interface BasicInfoSectionProps {
-  form: UseFormReturn<ProductFormValues>;
+  form: UseFormReturn<any>; // Generic form to work with both ProductFormValues and AdminProductFormValues
 }
 
 const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {

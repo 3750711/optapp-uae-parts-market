@@ -2,7 +2,7 @@
 import React from "react";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import AdminLayout from "@/components/admin/AdminLayout";
-import AddProductForm from "@/components/product/AddProductForm";
+import AdminAddProductForm from "@/components/admin/AdminAddProductForm";
 import { useOptimizedAdminAddProduct } from "@/hooks/useOptimizedAdminAddProduct";
 import ProductPreviewDialog from "@/components/admin/ProductPreviewDialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,15 +104,21 @@ const AdminAddProduct = () => {
               </div>
             )}
             
-            <AddProductForm
+            <AdminAddProductForm
               form={form}
               onSubmit={onSubmit}
               isSubmitting={isSubmitting}
               imageUrls={imageUrls}
+              videoUrls={videoUrls}
+              setVideoUrls={setVideoUrls}
               handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
               primaryImage={primaryImage}
               setPrimaryImage={setPrimaryImage}
               onImageDelete={handleImageDelete}
+              sellers={sellers}
+              brands={brands}
+              brandModels={brandModels}
+              isLoadingCarData={isLoadingCarData}
             />
           </div>
         </div>
