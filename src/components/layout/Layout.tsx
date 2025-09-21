@@ -10,7 +10,7 @@ interface LayoutProps {
   language?: 'ru' | 'en' | 'bn';
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, className, language = 'ru' }) => {
+const Layout: React.FC<LayoutProps> = ({ children, className, language = 'en' }) => {
   useEffect(() => {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);

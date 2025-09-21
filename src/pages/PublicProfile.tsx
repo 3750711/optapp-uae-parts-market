@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import ProductCard from '@/components/product/ProductCard';
 import { Loader2, AlertCircle, User, Store, Star, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -184,6 +183,26 @@ const PublicProfile = () => {
         <meta name="description" content={t.catalogDescription(displayName)} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`https://partsbay.ae/public-profile/${token}`} />
+        
+        {/* Hreflang tags for multilingual support */}
+        <link rel="alternate" hrefLang="en" href={`https://partsbay.ae/en/public-profile/${token}`} />
+        <link rel="alternate" hrefLang="ru" href={`https://partsbay.ae/ru/public-profile/${token}`} />
+        <link rel="alternate" hrefLang="bn" href={`https://partsbay.ae/bn/public-profile/${token}`} />
+        <link rel="alternate" hrefLang="x-default" href={`https://partsbay.ae/public-profile/${token}`} />
+        
+        {/* OpenGraph tags */}
+        <meta property="og:title" content={t.catalogTitle(displayName)} />
+        <meta property="og:description" content={t.catalogDescription(displayName)} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:url" content={`https://partsbay.ae/public-profile/${token}`} />
+        <meta property="og:locale" content={language === 'en' ? 'en_AE' : language === 'ru' ? 'ru_AE' : 'bn_BD'} />
+        <meta property="og:site_name" content="PartsBay" />
+        
+        {/* Twitter Card tags */}
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={t.catalogTitle(displayName)} />
+        <meta name="twitter:description" content={t.catalogDescription(displayName)} />
+        
         <html lang={language} />
       </Helmet>
 
