@@ -19,6 +19,7 @@ interface InlineNumberFieldProps {
   displayClassName?: string;
   disabled?: boolean;
   compact?: boolean; // Force mobile mode
+  simple?: boolean; // Simple mode without increment/decrement buttons
 }
 
 export function InlineNumberField({
@@ -33,7 +34,8 @@ export function InlineNumberField({
   className = '',
   displayClassName = '',
   disabled = false,
-  compact = false
+  compact = false,
+  simple = false
 }: InlineNumberFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value);
@@ -154,6 +156,95 @@ export function InlineNumberField({
         </span>
         <Edit3 className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground ml-1" />
       </button>
+    );
+  }
+
+  // Simple mode - horizontal input with save button only
+  if (simple) {
+    return (
+      <div className={cn(
+        "flex items-center justify-between gap-3 py-2",
+        "w-full max-w-full",
+        className
+      )}>
+        {/* Label on the left */}
+        {label && (
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            {label}:
+          </span>
+        )}
+        
+        {/* Input and save button on the right */}
+        <div className="flex items-center gap-2 flex-1 justify-end">
+          {/* Success/Error feedback */}
+          {justSaved && (
+            <div className="text-xs text-green-600 font-medium">
+              Сохранено ✓
+            </div>
+          )}
+          {error && (
+            <div className="text-xs text-destructive">
+              {error}
+            </div>
+          )}
+          
+          {/* Input field with prefix/suffix */}
+          <div className="relative">
+            {prefix && (
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground z-10">
+                {prefix}
+              </span>
+            )}
+            <Input
+              ref={inputRef}
+              type="number"
+              value={editValue}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              className={cn(
+                "h-9 w-20 text-center text-sm font-medium",
+                "transition-all duration-200",
+                prefix && "pl-6",
+                suffix && "pr-8",
+                isLoading && "animate-pulse border-orange-300",
+                hasChanges && !isLoading && "border-orange-400 bg-orange-50/30 dark:bg-orange-950/30",
+                justSaved && "border-green-400 bg-green-50/30 dark:bg-green-950/30",
+                error && "border-destructive bg-destructive/10"
+              )}
+              min={min}
+              max={max}
+              step={step}
+              disabled={isLoading || justSaved}
+              inputMode="decimal"
+            />
+            {suffix && (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                {suffix}
+              </span>
+            )}
+          </div>
+
+          {/* Save button */}
+          <Button
+            size="sm"
+            variant="ghost"
+            className={cn(
+              "h-8 w-8 p-0 transition-all duration-200",
+              justSaved 
+                ? "text-green-600 bg-green-100 hover:bg-green-100 dark:bg-green-950 dark:hover:bg-green-950" 
+                : "text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
+            )}
+            onClick={handleSave}
+            disabled={isLoading || justSaved || !hasChanges}
+          >
+            {isLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <Check className="h-3 w-3" />
+            )}
+          </Button>
+        </div>
+      </div>
     );
   }
 

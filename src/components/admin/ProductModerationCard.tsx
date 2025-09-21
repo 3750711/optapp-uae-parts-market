@@ -269,25 +269,28 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           className="w-full"
         />
 
-        {/* Цены - упрощенная сетка */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* Цены - вертикальный layout */}
+        <div className="space-y-3">
           <InlineNumberField
             label="Цена"
             value={product.price}
             onSave={(value) => handleFieldUpdate('price', value)}
             prefix="$"
+            simple
           />
           <InlineNumberField
             label="Места"
             value={product.place_number || 1}
             onSave={(value) => handleFieldUpdate('place_number', value)}
             suffix=" шт"
+            simple
           />
           <InlineNumberField
             label="Доставка"
             value={product.delivery_price || 0}
             onSave={(value) => handleFieldUpdate('delivery_price', value)}
             prefix="$"
+            simple
           />
         </div>
 
