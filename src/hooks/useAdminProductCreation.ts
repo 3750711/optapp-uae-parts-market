@@ -7,6 +7,7 @@ import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useTelegramNotification } from "@/hooks/useTelegramNotification";
 import { useProductCreationMonitoring } from "@/hooks/useProductCreationMonitoring";
+import { ProductMediaService } from "@/services/ProductMediaService";
 
 interface CreateProductParams {
   values: AdminProductFormValues;
@@ -134,7 +135,7 @@ export const useAdminProductCreation = () => {
           p_description: values.description || null,
           p_seller_id: values.sellerId,
           p_seller_name: selectedSeller.full_name,
-          p_status: 'pending', // Будет автоматически изменен на 'active' триггером для админов
+          p_status: 'active', // Администраторские товары сразу активны
           p_place_number: Number(values.placeNumber) || 1,
           p_delivery_price: Number(values.deliveryPrice) || 0,
         });
@@ -160,38 +161,16 @@ export const useAdminProductCreation = () => {
         return product;
       });
 
-      // Step 3: Add images
+      // Step 3: Add media using unified service
       await monitoring.executeStep('images', async () => {
-        for (const url of imageUrls) {
-          const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
-            p_product_id: productId,
-            p_url: url,
-            p_is_primary: url === primaryImage
-          });
-          if (imageError) {
-            throw new Error(`Ошибка добавления изображения: ${imageError.message}`);
-          }
-        }
-        console.log(`✅ ${imageUrls.length} images inserted for product ${productId}`);
-      });
-
-      // Step 4: Add videos
-      if (videoUrls.length > 0) {
-        await monitoring.executeStep('videos', async () => {
-          for (const videoUrl of videoUrls) {
-            const { error: videoError } = await supabase.rpc('admin_insert_product_video', {
-              p_product_id: productId,
-              p_url: videoUrl
-            });
-            if (videoError) {
-              throw new Error(`Ошибка добавления видео: ${videoError.message}`);
-            }
-          }
-          console.log(`✅ ${videoUrls.length} videos inserted for product ${productId}`);
+        await ProductMediaService.addMediaToProduct({
+          productId,
+          imageUrls,
+          videoUrls,
+          primaryImage,
+          userType: 'admin'
         });
-      } else {
-        monitoring.updateStep('videos', { status: 'completed' });
-      }
+      });
 
       // Step 5: Queue Telegram notification (fire-and-forget)
       monitoring.executeStep('telegram', async () => {

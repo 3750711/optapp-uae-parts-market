@@ -7,6 +7,7 @@ import ProductCreationProgress from "@/components/admin/ProductCreationProgress"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { TrustedSellerIndicator } from "./TrustedSellerIndicator";
 
 interface TrustedSellerFormProps {
   mode?: 'trusted_seller';
@@ -89,6 +90,8 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
 
   return (
     <div className="space-y-6">
+      <TrustedSellerIndicator />
+      
       {/* Progress indicator during submission */}
       {(isSubmitting || totalProgress > 0) && (
         <ProductCreationProgress

@@ -9,6 +9,7 @@ import { adminProductSchema, AdminProductFormValues } from "@/schemas/adminProdu
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useAdminProductCreation } from "@/hooks/useAdminProductCreation";
 import { useTrustedSellerProductCreation } from "@/hooks/useTrustedSellerProductCreation";
+import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { useOptimizedFormAutosave } from "@/hooks/useOptimizedFormAutosave";
 import { useCachedBrands, useCachedModels, useCachedAllModels, useCachedSellers } from "@/hooks/useCachedReferenceData";
 import { useDebounceValue } from "@/hooks/useDebounceValue";
@@ -44,9 +45,16 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
     ? useCachedSellers() 
     : { data: [], isLoading: false };
   
-  // Для trusted_seller создаем фиктивный массив с текущим пользователем
-  const sellers = mode === 'trusted_seller' && sellerId 
-    ? [{ id: sellerId, full_name: 'Current User', opt_id: '' }] 
+  // Получаем данные текущего пользователя для trusted_seller режима
+  const { data: currentUserProfile } = useCurrentUserProfile();
+  
+  // Для trusted_seller создаем массив с реальными данными пользователя
+  const sellers = mode === 'trusted_seller' && sellerId && currentUserProfile
+    ? [{ 
+        id: currentUserProfile.id, 
+        full_name: currentUserProfile.full_name || 'Пользователь', 
+        opt_id: currentUserProfile.opt_id || '' 
+      }] 
     : sellersData;
 
   // Use different hooks based on mode

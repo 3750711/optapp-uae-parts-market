@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminProductFormValues } from "@/schemas/adminProductSchema";
+import { useRoleValidation } from "@/hooks/useRoleValidation";
+import { ProductMediaService } from "@/services/ProductMediaService";
 
 interface CreateTrustedProductParams {
   values: AdminProductFormValues;
@@ -17,6 +19,7 @@ export const useTrustedSellerProductCreation = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
+  const { validateTrustedSeller } = useRoleValidation();
 
   const createTrustedSellerProduct = async ({
     values,
@@ -39,6 +42,9 @@ export const useTrustedSellerProductCreation = () => {
     });
 
     try {
+      // Проверяем права доверенного продавца
+      validateTrustedSeller();
+      
       // Validation
       if (imageUrls.length === 0) {
         throw new Error("Добавьте хотя бы одну фотографию");
@@ -76,42 +82,14 @@ export const useTrustedSellerProductCreation = () => {
 
       console.log("✅ Trusted seller product created with ID:", productId);
 
-      // Add images
-      const imageInserts = imageUrls.map(url => ({
-        product_id: productId,
-        url: url,
-        is_primary: url === primaryImage
-      }));
-      
-      const { error: imageError } = await supabase
-        .from('product_images')
-        .insert(imageInserts);
-        
-      if (imageError) {
-        console.error('❌ Error adding images:', imageError);
-        throw new Error(`Ошибка добавления изображений: ${imageError.message}`);
-      }
-
-      console.log(`✅ ${imageUrls.length} images added for trusted seller product ${productId}`);
-
-      // Add videos if any
-      if (videoUrls.length > 0) {
-        const videoInserts = videoUrls.map(url => ({
-          product_id: productId,
-          url: url
-        }));
-        
-        const { error: videoError } = await supabase
-          .from('product_videos')
-          .insert(videoInserts);
-          
-        if (videoError) {
-          console.error('❌ Error adding videos:', videoError);
-          throw new Error(`Ошибка добавления видео: ${videoError.message}`);
-        }
-
-        console.log(`✅ ${videoUrls.length} videos added for trusted seller product ${productId}`);
-      }
+      // Add media using unified service
+      await ProductMediaService.addMediaToProduct({
+        productId,
+        imageUrls,
+        videoUrls,
+        primaryImage,
+        userType: 'trusted_seller'
+      });
 
       // Send background notifications (fire-and-forget)
       supabase.functions.invoke('send-tg-product-once', {
