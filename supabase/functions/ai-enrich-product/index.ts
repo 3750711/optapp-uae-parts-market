@@ -196,15 +196,24 @@ JSON ответ:
       requires_moderation: true // Всегда требует модерации
     };
 
-    await supabase
+    console.log(`📝 Updating product ${product_id} with AI data:`, updateData);
+
+    const { error: updateError } = await supabase
       .from('products')
       .update(updateData)
       .eq('id', product_id);
 
+    if (updateError) {
+      console.error('❌ Failed to update product with AI suggestions:', updateError);
+      throw new Error(`Database update failed: ${updateError.message}`);
+    }
+
     console.log('✅ AI suggestions saved, awaiting moderator approval');
     
     // Сохраняем лог обработки
-    await supabase
+    console.log(`📝 Saving AI enrichment log for product ${product_id}`);
+    
+    const { error: logError } = await supabase
       .from('ai_enrichment_logs')
       .insert({
         product_id,
@@ -214,7 +223,12 @@ JSON ответ:
         processing_time_ms: processingTime
       });
 
-    console.log('📝 AI enrichment log saved');
+    if (logError) {
+      console.error('❌ Failed to save AI enrichment log:', logError);
+      // Не выбрасываем ошибку, так как основная функция уже выполнена
+    } else {
+      console.log('📝 AI enrichment log saved');
+    }
     
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
