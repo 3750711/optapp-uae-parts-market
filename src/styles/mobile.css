@@ -113,3 +113,20 @@
     height: 100dvh;
   }
 }
+
+/* Text overflow utilities for mobile */
+.overflow-wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+.mobile-text-sizing {
+  font-size: 0.75rem; /* 12px */
+}
+
+@media (min-width: 640px) {
+  .mobile-text-sizing {
+    font-size: 0.875rem; /* 14px */
+  }
+}

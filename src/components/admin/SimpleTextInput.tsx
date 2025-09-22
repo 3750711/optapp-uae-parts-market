@@ -22,18 +22,19 @@ export const SimpleTextInput: React.FC<SimpleTextInputProps> = ({
   const isChanged = value !== originalValue;
 
   return (
-    <div className={`space-y-2 ${className}`}>
-      <Label className="text-sm font-medium">{label}</Label>
-      <div className="space-y-2">
+    <div className={`space-y-1 sm:space-y-2 ${className}`}>
+      <Label className="text-xs sm:text-sm font-medium">{label}</Label>
+      <div className="space-y-1 sm:space-y-2">
         <Input
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`${isChanged ? 'border-primary ring-1 ring-primary/20' : ''}`}
+          className={`text-sm sm:text-base ${isChanged ? 'border-primary ring-1 ring-primary/20' : ''}`}
         />
         {isChanged && (
-          <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded border-l-2 border-muted-foreground/30">
-            <span className="font-medium">Было:</span> {originalValue}
+          <div className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded border-l-2 border-muted-foreground/30 break-words">
+            <span className="font-medium">Было:</span> 
+            <span className="break-words overflow-wrap-anywhere ml-1">{originalValue}</span>
           </div>
         )}
       </div>

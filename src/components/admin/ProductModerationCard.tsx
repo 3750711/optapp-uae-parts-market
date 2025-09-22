@@ -726,56 +726,66 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         )}
       </div>
 
-      <CardContent className="p-6 space-y-6">
+      <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
         {/* AI Suggestions Comparison Block */}
         {product.ai_suggested_title && (
           <Card className="border-blue-200 bg-blue-50/50">
-            <div className="p-4">
+            <div className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Bot className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">AI предложения ({Math.round((product.ai_confidence || 0) * 100)}%)</span>
+                <Bot className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-medium break-words">AI предложения ({Math.round((product.ai_confidence || 0) * 100)}%)</span>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <div className="font-medium text-muted-foreground mb-1">Оригинал продавца:</div>
-                  <div className="p-2 bg-white rounded border">
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
+                <div className="order-2 sm:order-1">
+                  <div className="font-medium text-muted-foreground mb-1 text-xs sm:text-sm">
+                    Оригинал продавца:
+                  </div>
+                  <div className="p-2 sm:p-3 bg-white rounded border text-xs sm:text-sm break-words overflow-wrap-anywhere">
                     {product.ai_original_title || product.title}
                   </div>
                 </div>
-                <div>
-                  <div className="font-medium text-muted-foreground mb-1">AI предложение:</div>
+                <div className="order-1 sm:order-2">
+                  <div className="font-medium text-muted-foreground mb-1 text-xs sm:text-sm">
+                    AI предложение:
+                  </div>
                   <div 
-                    className="p-2 bg-green-50 rounded border border-green-200 cursor-pointer hover:bg-green-100 transition-colors group relative"
+                    className="p-2 sm:p-3 bg-green-50 rounded border border-green-200 cursor-pointer hover:bg-green-100 transition-colors group relative text-xs sm:text-sm"
                     onClick={handleApplyAiTitle}
                     title="Нажмите чтобы применить только название"
                   >
-                    <div className="flex items-center justify-between">
-                      <span>{product.ai_suggested_title}</span>
-                      <ArrowRight className="h-3 w-3 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="flex-1 break-words overflow-wrap-anywhere">{product.ai_suggested_title}</span>
+                      <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
                     </div>
                   </div>
                 </div>
               </div>
               
               {product.ai_suggested_brand && (
-                <div className="flex gap-2 mt-3 text-sm">
+                <div className="flex flex-wrap gap-1 sm:gap-2 mt-3 text-xs sm:text-sm">
                   <Badge 
                     variant="outline" 
-                    className="cursor-pointer hover:bg-blue-50 transition-colors"
+                    className="cursor-pointer hover:bg-blue-50 transition-colors px-2 py-1 max-w-full"
                     onClick={handleApplyAiBrand}
                     title="Нажмите чтобы применить только марку"
                   >
-                    Марка: {product.ai_suggested_brand} <ArrowRight className="h-3 w-3 ml-1 inline" />
+                    <span className="truncate max-w-[120px] sm:max-w-none">
+                      Марка: {product.ai_suggested_brand}
+                    </span>
+                    <ArrowRight className="h-3 w-3 ml-1 inline flex-shrink-0" />
                   </Badge>
                   {product.ai_suggested_model && (
                     <Badge 
                       variant="outline"
-                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      className="cursor-pointer hover:bg-blue-50 transition-colors px-2 py-1 max-w-full"
                       onClick={handleApplyAiModel}
                       title="Нажмите чтобы применить только модель"
                     >
-                      Модель: {product.ai_suggested_model} <ArrowRight className="h-3 w-3 ml-1 inline" />
+                      <span className="truncate max-w-[120px] sm:max-w-none">
+                        Модель: {product.ai_suggested_model}
+                      </span>
+                      <ArrowRight className="h-3 w-3 ml-1 inline flex-shrink-0" />
                     </Badge>
                   )}
                 </div>

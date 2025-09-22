@@ -68,21 +68,21 @@ export const AIDeliverySuggestions: React.FC<AIDeliverySuggestionsProps> = ({
 
   return (
     <Card className="border-blue-200 bg-blue-50/30">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Truck className="h-4 w-4 text-blue-600" />
-            Стоимость доставки
+            <Truck className="h-4 w-4 text-blue-600 flex-shrink-0" />
+            <span className="break-words">Стоимость доставки</span>
           </CardTitle>
           {hasAiSuggestions && (
-            <Badge variant={confidenceInfo.variant} className={confidenceInfo.color}>
+            <Badge variant={confidenceInfo.variant} className={`${confidenceInfo.color} text-xs`}>
               AI {confidenceInfo.level} ({confidencePercent}%)
             </Badge>
           )}
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 px-3 sm:px-6 pb-3 sm:pb-6">
         {/* Текущая цена доставки */}
         <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
           <div className="flex items-center gap-2">
@@ -124,7 +124,7 @@ export const AIDeliverySuggestions: React.FC<AIDeliverySuggestionsProps> = ({
                 </div>
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 {suggestedPrices!.map((price, index) => (
                   <Button
                     key={index}
@@ -132,10 +132,10 @@ export const AIDeliverySuggestions: React.FC<AIDeliverySuggestionsProps> = ({
                     variant={isCurrentPriceSuggested && currentDeliveryPrice === price ? "default" : "outline"}
                     onClick={() => onAcceptPrice(price)}
                     disabled={currentDeliveryPrice === price}
-                    className="text-xs"
+                    className="text-xs w-full sm:w-auto"
                   >
                     {currentDeliveryPrice === price ? (
-                      <CheckCircle className="h-3 w-3 mr-1" />
+                      <CheckCircle className="h-3 w-3 mr-1 flex-shrink-0" />
                     ) : null}
                     ${price}
                   </Button>
@@ -206,14 +206,14 @@ export const AIDeliverySuggestions: React.FC<AIDeliverySuggestionsProps> = ({
               {Object.keys(reasoning.price_distribution).length > 0 && (
                 <div className="space-y-2">
                   <div className="text-xs font-medium text-muted-foreground">Распределение цен:</div>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                     {Object.entries(reasoning.price_distribution)
                       .sort(([,a], [,b]) => b - a)
                       .slice(0, 6)
                       .map(([price, count]) => (
                         <div key={price} className="flex justify-between bg-muted/50 px-2 py-1 rounded">
-                          <span>${price}</span>
-                          <span className="text-muted-foreground">{count}x</span>
+                          <span className="break-words">${price}</span>
+                          <span className="text-muted-foreground flex-shrink-0">{count}x</span>
                         </div>
                       ))}
                   </div>
