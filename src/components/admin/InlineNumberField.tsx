@@ -104,6 +104,14 @@ export function InlineNumberField({
       console.log(`✅ InlineNumberField: Saved successfully`);
       setJustSaved(true);
       setIsEditing(false); // Exit editing mode immediately
+      
+      // Force update editValue to ensure it shows the correct value
+      // This is a backup in case the useEffect doesn't trigger properly
+      setTimeout(() => {
+        setEditValue(editValue);
+        console.log(`🔧 InlineNumberField: Force updated editValue to ${editValue}`);
+      }, 50);
+      
     } catch (err: any) {
       setError('Не удалось сохранить изменения');
       setEditValue(value); // Revert on error
