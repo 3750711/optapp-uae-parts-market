@@ -4,6 +4,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Layout from "@/components/layout/Layout";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
+import { getCommonTranslations } from "@/utils/translations/common";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 
@@ -15,6 +16,7 @@ const SellerAddProduct = () => {
   const { profile } = useAuth();
   const { language } = useLanguage();
   const t = getFormTranslations(language);
+  const c = getCommonTranslations(language);
   
   // Определяем тип формы на основе статуса доверенного продавца
   const isTrustedSeller = profile?.is_trusted_seller === true;
@@ -29,7 +31,7 @@ const SellerAddProduct = () => {
                 {t.sections.addProduct}
                 {isTrustedSeller && (
                   <span className="ml-2 text-sm font-normal text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                    Доверенный продавец
+                    {c.trustedSeller.badge}
                   </span>
                 )}
               </h1>
@@ -40,7 +42,7 @@ const SellerAddProduct = () => {
                 <CardContent className="p-8">
                   <div className="flex items-center justify-center space-x-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Загрузка формы...</span>
+                    <span>{t.messages.loadingForm}</span>
                   </div>
                 </CardContent>
               </Card>

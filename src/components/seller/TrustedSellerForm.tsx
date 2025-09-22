@@ -8,6 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { TrustedSellerIndicator } from "./TrustedSellerIndicator";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getFormTranslations } from "@/utils/translations/forms";
+import { getCommonTranslations } from "@/utils/translations/common";
 
 interface TrustedSellerFormProps {
   mode?: 'trusted_seller';
@@ -15,6 +18,9 @@ interface TrustedSellerFormProps {
 
 const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_seller' }) => {
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const t = getFormTranslations(language);
+  const c = getCommonTranslations(language);
   
   const {
     form,
@@ -55,10 +61,10 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-2xl text-green-600">
-            Товар успешно опубликован!
+            {t.messages.productPublishedSuccess}
           </CardTitle>
           <CardDescription>
-            Для создания нового товара необходимо обновить страницу
+            {t.messages.refreshPageRequired}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -69,7 +75,7 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
               className="w-full"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              Обновить страницу
+              {c.buttons.refresh}
             </Button>
             <Button 
               onClick={resetFormAndState}
@@ -77,11 +83,11 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
               size="lg"
               className="w-full"
             >
-              Очистить данные без обновления
+              {t.messages.clearDataWithoutRefresh}
             </Button>
           </div>
           <p className="text-sm text-muted-foreground text-center">
-            Обновление страницы гарантирует полную очистку всех данных и корректную работу формы
+            {t.messages.refreshPageGuarantee}
           </p>
         </CardContent>
       </Card>

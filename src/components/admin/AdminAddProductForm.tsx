@@ -11,6 +11,8 @@ import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getFormTranslations } from "@/utils/translations/forms";
 
 // Lazy loaded components
 const OptimizedMediaSection = React.lazy(() => import('../product/form/OptimizedMediaSection'));
@@ -57,13 +59,15 @@ const CarInfoSection: React.FC<{
   brandModels: Model[];
   isLoadingCarData: boolean;
 }> = ({ form, brands, brandModels, isLoadingCarData }) => {
+  const { language } = useLanguage();
+  const t = getFormTranslations(language);
   const selectedBrandId = form.watch("brandId");
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Brand Selection */}
       <div className="space-y-2">
-        <Label htmlFor="brandId">Марка автомобиля *</Label>
+        <Label htmlFor="brandId">{t.labels.carBrand} *</Label>
         {isLoadingCarData ? (
           <Skeleton className="h-10 w-full" />
         ) : (
@@ -75,7 +79,7 @@ const CarInfoSection: React.FC<{
             }}
           >
             <SelectTrigger className="bg-background">
-              <SelectValue placeholder="Выберите марку..." />
+              <SelectValue placeholder={t.placeholders.selectBrand} />
             </SelectTrigger>
             <SelectContent>
               {brands.map((brand) => (
@@ -93,7 +97,7 @@ const CarInfoSection: React.FC<{
 
       {/* Model Selection */}
       <div className="space-y-2">
-        <Label htmlFor="modelId">Модель автомобиля</Label>
+        <Label htmlFor="modelId">{t.labels.carModel}</Label>
         <Select
           value={form.watch("modelId") || ''}
           onValueChange={(value) => form.setValue("modelId", value)}
@@ -102,15 +106,15 @@ const CarInfoSection: React.FC<{
           <SelectTrigger className="bg-background">
             <SelectValue placeholder={
               selectedBrandId
-                ? (isLoadingCarData ? 'Загрузка моделей...' : 'Выберите модель...')
-                : 'Сначала выберите марку'
+                ? (isLoadingCarData ? t.placeholders.loadingModels : t.placeholders.selectModel)
+                : t.placeholders.firstSelectBrand
             } />
           </SelectTrigger>
           <SelectContent>
             {isLoadingCarData ? (
-              <SelectItem disabled value="loading">Загрузка моделей...</SelectItem>
+              <SelectItem disabled value="loading">{t.placeholders.loadingModels}</SelectItem>
             ) : brandModels.length === 0 ? (
-              <SelectItem disabled value="empty">Модели не найдены</SelectItem>
+              <SelectItem disabled value="empty">{t.placeholders.modelsNotFound}</SelectItem>
             ) : (
               brandModels.map((model) => (
                 <SelectItem key={model.id} value={model.id}>

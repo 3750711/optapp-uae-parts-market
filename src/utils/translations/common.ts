@@ -124,6 +124,12 @@ const en = {
     model: 'Model',
     lotNumber: 'Lot Number',
     notSpecified: 'Not specified'
+  },
+
+  // Trusted seller
+  trustedSeller: {
+    badge: 'Trusted Seller',
+    description: 'Your products are published automatically without moderation'
   }
 };
 
@@ -248,6 +254,12 @@ const ru = {
     model: 'Модель',
     lotNumber: 'Номер лота',
     notSpecified: 'Не указан'
+  },
+
+  // Trusted seller
+  trustedSeller: {
+    badge: 'Доверенный продавец',
+    description: 'Ваши товары публикуются автоматически без модерации'
   }
 };
 
@@ -372,6 +384,12 @@ const bn = {
     model: 'মডেল',
     lotNumber: 'লট নাম্বার',
     notSpecified: 'নির্দিষ্ট নয়'
+  },
+
+  // Trusted seller
+  trustedSeller: {
+    badge: 'বিশ্বস্ত বিক্রেতা',
+    description: 'আপনার পণ্যগুলি পরিমার্জনা ছাড়াই স্বয়ংক্রিয়ভাবে প্রকাশিত হয়'
   }
 };
 

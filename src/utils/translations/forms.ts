@@ -25,6 +25,8 @@ export interface FormTranslations {
     placeNumber: string;
     images: string;
     videos: string;
+    carBrand: string;
+    carModel: string;
   };
   placeholders: {
     title: string;
@@ -39,6 +41,8 @@ export interface FormTranslations {
     firstSelectBrand: string;
     searchBrand: string;
     searchModel: string;
+    loadingModels: string;
+    modelsNotFound: string;
   };
   buttons: {
     save: string;
@@ -65,6 +69,13 @@ export interface FormTranslations {
     loadingCarData: string;
     carDetected: string;
     carDetectedDescription: string;
+    productPublishedSuccess: string;
+    refreshPageRequired: string;
+    refreshPageGuarantee: string;
+    clearDataWithoutRefresh: string;
+    loadingForm: string;
+    profileLoading: string;
+    profileLoadError: string;
   };
   sections: {
     addProduct: string;
@@ -105,6 +116,8 @@ const formTranslations: Record<Lang, FormTranslations> = {
       placeNumber: 'Номер места',
       images: 'Изображения',
       videos: 'Видео',
+      carBrand: 'Марка автомобиля',
+      carModel: 'Модель автомобиля',
     },
     placeholders: {
       title: 'Введите название товара',
@@ -119,6 +132,8 @@ const formTranslations: Record<Lang, FormTranslations> = {
       firstSelectBrand: 'Сначала выберите марку',
       searchBrand: 'Поиск марки...',
       searchModel: 'Поиск модели...',
+      loadingModels: 'Загрузка моделей...',
+      modelsNotFound: 'Модели не найдены',
     },
     buttons: {
       save: 'Сохранить',
@@ -145,6 +160,13 @@ const formTranslations: Record<Lang, FormTranslations> = {
       loadingCarData: 'Загрузка данных о машинах...',
       carDetected: 'Автомобиль обнаружен',
       carDetectedDescription: 'Марка и модель автомобиля определены из названия',
+      productPublishedSuccess: 'Товар успешно опубликован! Он сразу доступен покупателям.',
+      refreshPageRequired: 'Необходимо обновить страницу для корректной работы приложения.',
+      refreshPageGuarantee: 'Обновление гарантирует правильную работу формы.',
+      clearDataWithoutRefresh: 'Очистить данные без обновления',
+      loadingForm: 'Загрузка формы...',
+      profileLoading: 'Загрузка профиля...',
+      profileLoadError: 'Ошибка при загрузке профиля',
     },
     sections: {
       addProduct: 'Добавить товар',
@@ -183,6 +205,8 @@ const formTranslations: Record<Lang, FormTranslations> = {
       placeNumber: 'Place Number',
       images: 'Images',
       videos: 'Videos',
+      carBrand: 'Car Brand',
+      carModel: 'Car Model',
     },
     placeholders: {
       title: 'Enter product title',
@@ -197,6 +221,8 @@ const formTranslations: Record<Lang, FormTranslations> = {
       firstSelectBrand: 'First select brand',
       searchBrand: 'Search brand...',
       searchModel: 'Search model...',
+      loadingModels: 'Loading models...',
+      modelsNotFound: 'Models not found',
     },
     buttons: {
       save: 'Save',
@@ -223,6 +249,13 @@ const formTranslations: Record<Lang, FormTranslations> = {
       loadingCarData: 'Loading car data...',
       carDetected: 'Car Detected',
       carDetectedDescription: 'Car brand and model determined from title',
+      productPublishedSuccess: 'Product published successfully! It is immediately available to buyers.',
+      refreshPageRequired: 'Page refresh is required for proper application functionality.',
+      refreshPageGuarantee: 'Refresh ensures proper form functionality.',
+      clearDataWithoutRefresh: 'Clear data without refresh',
+      loadingForm: 'Loading form...',
+      profileLoading: 'Loading profile...',
+      profileLoadError: 'Error loading profile',
     },
     sections: {
       addProduct: 'Add Product',
@@ -261,6 +294,8 @@ const formTranslations: Record<Lang, FormTranslations> = {
       placeNumber: 'স্থান নম্বর',
       images: 'ছবি',
       videos: 'ভিডিও',
+      carBrand: 'গাড়ির ব্র্যান্ড',
+      carModel: 'গাড়ির মডেল',
     },
     placeholders: {
       title: 'পণ্যের শিরোনাম লিখুন',
@@ -275,6 +310,8 @@ const formTranslations: Record<Lang, FormTranslations> = {
       firstSelectBrand: 'প্রথমে ব্র্যান্ড নির্বাচন করুন',
       searchBrand: 'ব্র্যান্ড অনুসন্ধান...',
       searchModel: 'মডেল অনুসন্ধান...',
+      loadingModels: 'মডেল লোড করা হচ্ছে...',
+      modelsNotFound: 'মডেল পাওয়া যায়নি',
     },
     buttons: {
       save: 'সংরক্ষণ',
@@ -301,6 +338,13 @@ const formTranslations: Record<Lang, FormTranslations> = {
       loadingCarData: 'গাড়ির তথ্য লোড করা হচ্ছে...',
       carDetected: 'গাড়ি শনাক্ত করা হয়েছে',
       carDetectedDescription: 'শিরোনাম থেকে গাড়ির ব্র্যান্ড এবং মডেল নির্ধারণ করা হয়েছে',
+      productPublishedSuccess: 'পণ্য সফলভাবে প্রকাশিত হয়েছে! এটি অবিলম্বে ক্রেতাদের কাছে উপলব্ধ।',
+      refreshPageRequired: 'সঠিক অ্যাপ্লিকেশন কার্যকারিতার জন্য পৃষ্ঠা রিফ্রেশ প্রয়োজন।',
+      refreshPageGuarantee: 'রিফ্রেশ সঠিক ফর্ম কার্যকারিতা নিশ্চিত করে।',
+      clearDataWithoutRefresh: 'রিফ্রেশ ছাড়াই ডেটা পরিষ্কার করুন',
+      loadingForm: 'ফর্ম লোড হচ্ছে...',
+      profileLoading: 'প্রোফাইল লোড হচ্ছে...',
+      profileLoadError: 'প্রোফাইল লোডে ত্রুটি',
     },
     sections: {
       addProduct: 'পণ্য যোগ করুন',
