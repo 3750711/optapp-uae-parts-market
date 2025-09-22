@@ -46,11 +46,13 @@ export function InlineNumberField({
   const isMobile = useIsMobileEnhanced() || compact;
 
   useEffect(() => {
-    if (!isEditing) {
+    // Always update if value changed from outside and we're not actively editing
+    if (value !== editValue && !isEditing) {
+      console.log(`🔄 InlineNumberField: Syncing value from ${editValue} to ${value}`);
       setEditValue(value);
       setError(null);
     }
-  }, [value, isEditing]);
+  }, [value]); // Remove isEditing from dependencies
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -86,13 +88,15 @@ export function InlineNumberField({
     setError(null);
 
     try {
+      console.log(`💾 InlineNumberField: Saving ${editValue}`);
       await onSave(editValue);
+      console.log(`✅ InlineNumberField: Saved successfully`);
       setJustSaved(true);
       
       setTimeout(() => {
         setIsEditing(false);
         setJustSaved(false);
-      }, 500);
+      }, 100); // Reduced from 500ms to 100ms for faster response
     } catch (err: any) {
       setError('Не удалось сохранить изменения');
       setEditValue(value); // Revert on error

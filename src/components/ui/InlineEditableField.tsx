@@ -51,12 +51,16 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
 
-  // Sync editValue with external value changes (but not during editing)
+  // Sync editValue with external value changes - always update if value changed from outside
   useEffect(() => {
-    if (!isEditing) {
-      setEditValue(value.toString());
+    const newValueStr = value.toString();
+    // Only update if value actually changed from outside and we're not actively typing
+    if (newValueStr !== editValue && !isEditing) {
+      console.log(`🔄 InlineEditableField: Syncing value from ${editValue} to ${newValueStr}`);
+      setEditValue(newValueStr);
+      setError(null);
     }
-  }, [value, isEditing]);
+  }, [value]); // Remove isEditing from dependencies
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -79,14 +83,16 @@ export const InlineEditableField: React.FC<InlineEditableFieldProps> = ({
         ? normalizeDecimal(editValue)
         : editValue.trim();
       
+      console.log(`💾 InlineEditableField: Saving ${valueToSave}`);
       await onSave(valueToSave);
+      console.log(`✅ InlineEditableField: Saved successfully`);
       
-      // Show success feedback
+      // Show success feedback and exit editing mode quickly
       setJustSaved(true);
       setTimeout(() => {
         setIsEditing(false);
         setJustSaved(false);
-      }, 500);
+      }, 100); // Reduced from 500ms to 100ms for faster response
     } catch (err) {
       setError('Не удалось сохранить изменения');
       setEditValue(value.toString()); // Revert on error

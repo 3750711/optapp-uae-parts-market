@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 
 interface AdminTitleEditorProps {
@@ -19,11 +19,19 @@ const AdminTitleEditor: React.FC<AdminTitleEditorProps> = ({
   const [editedValue, setEditedValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Sync with prop value changes - always update when value changes from outside
+  useEffect(() => {
+    console.log(`🔄 AdminTitleEditor: Syncing value from "${editedValue}" to "${value}"`);
+    setEditedValue(value);
+  }, [value]);
+
   const handleSave = async () => {
     if (editedValue !== value) {
       setIsSaving(true);
       try {
+        console.log(`💾 AdminTitleEditor: Saving "${editedValue}"`);
         await onSave(editedValue);
+        console.log(`✅ AdminTitleEditor: Saved successfully`);
       } finally {
         setIsSaving(false);
       }
