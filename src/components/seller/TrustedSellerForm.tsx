@@ -38,7 +38,10 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
     resetFormAndState,
     progressSteps,
     totalProgress,
-  } = useOptimizedAdminAddProduct(mode);
+  } = useOptimizedAdminAddProduct({ 
+    mode: 'trusted_seller',
+    sellerId: user?.id 
+  });
 
   // Auto-set current user as seller for trusted sellers
   React.useEffect(() => {

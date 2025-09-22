@@ -12,7 +12,13 @@ import { useOptimizedFormAutosave } from "@/hooks/useOptimizedFormAutosave";
 import { useCachedBrands, useCachedModels, useCachedAllModels, useCachedSellers } from "@/hooks/useCachedReferenceData";
 import { useDebounceValue } from "@/hooks/useDebounceValue";
 
-export const useOptimizedAdminAddProduct = (mode: 'admin' | 'trusted_seller' = 'admin') => {
+interface UseOptimizedAdminAddProductOptions {
+  mode?: 'admin' | 'trusted_seller';
+  sellerId?: string;
+}
+
+export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProductOptions = {}) => {
+  const { mode = 'admin', sellerId } = options;
   const navigate = useNavigate();
   const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -37,7 +43,10 @@ export const useOptimizedAdminAddProduct = (mode: 'admin' | 'trusted_seller' = '
     ? useCachedSellers() 
     : { data: [], isLoading: false };
   
-  const sellers = sellersData;
+  // Для trusted_seller создаем фиктивный массив с текущим пользователем
+  const sellers = mode === 'trusted_seller' && sellerId 
+    ? [{ id: sellerId, full_name: 'Current User', opt_id: '' }] 
+    : sellersData;
 
   const { createProductWithTransaction, isCreating, steps: progressSteps, totalProgress, resetMonitoring } = useAdminProductCreation();
 
@@ -51,7 +60,7 @@ export const useOptimizedAdminAddProduct = (mode: 'admin' | 'trusted_seller' = '
       placeNumber: "1",
       description: "",
       deliveryPrice: "",
-      sellerId: "",
+      sellerId: mode === 'trusted_seller' ? sellerId || "" : "",
     },
     mode: "onChange",
   });
