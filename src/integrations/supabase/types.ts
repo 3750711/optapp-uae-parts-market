@@ -89,6 +89,69 @@ export type Database = {
           },
         ]
       }
+      ai_moderation_corrections: {
+        Row: {
+          ai_confidence: number | null
+          ai_original_title: string
+          ai_suggested_brand: string | null
+          ai_suggested_model: string | null
+          ai_suggested_title: string | null
+          correction_type: string
+          created_at: string
+          id: string
+          moderator_corrected_brand: string | null
+          moderator_corrected_model: string | null
+          moderator_corrected_title: string
+          moderator_id: string | null
+          product_id: string | null
+        }
+        Insert: {
+          ai_confidence?: number | null
+          ai_original_title: string
+          ai_suggested_brand?: string | null
+          ai_suggested_model?: string | null
+          ai_suggested_title?: string | null
+          correction_type?: string
+          created_at?: string
+          id?: string
+          moderator_corrected_brand?: string | null
+          moderator_corrected_model?: string | null
+          moderator_corrected_title: string
+          moderator_id?: string | null
+          product_id?: string | null
+        }
+        Update: {
+          ai_confidence?: number | null
+          ai_original_title?: string
+          ai_suggested_brand?: string | null
+          ai_suggested_model?: string | null
+          ai_suggested_title?: string | null
+          correction_type?: string
+          created_at?: string
+          id?: string
+          moderator_corrected_brand?: string | null
+          moderator_corrected_model?: string | null
+          moderator_corrected_title?: string
+          moderator_id?: string | null
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_moderation_corrections_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_moderation_corrections_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_view_estimate"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_training_data: {
         Row: {
           brand_detected: string | null
