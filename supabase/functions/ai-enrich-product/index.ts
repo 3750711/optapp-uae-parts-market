@@ -38,16 +38,66 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not found');
     }
 
-    // Load AI prompt from settings
-    const { data: promptSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'ai_prompt_main')
-      .single();
+    // Load AI prompt and admin rules from settings
+    const [promptResult, rulesResult] = await Promise.all([
+      supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'ai_prompt_main')
+        .single(),
+      supabase
+        .from('ai_prompt_admin_rules')
+        .select('*')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true })
+    ]);
+
+    const promptSetting = promptResult.data;
+    const adminRules = rulesResult.data || [];
+
+    console.log(`📋 Loaded ${adminRules.length} active admin rules`);
 
     const { product_id, title, brand, model, description, auto_trigger = false }: EnrichmentRequest & { auto_trigger?: boolean } = await req.json();
 
     console.log(`🤖 AI enrichment started for product ${product_id}: "${title}" (auto: ${auto_trigger})`);
+
+    // Function to build admin rules section
+    const buildAdminRulesSection = (rules: any[]) => {
+      if (rules.length === 0) return '';
+      
+      const categoryLabels = {
+        translations: 'СПЕЦИАЛЬНЫЕ ПЕРЕВОДЫ',
+        spelling: 'ИСПРАВЛЕНИЯ ОШИБОК',
+        part_codes: 'ПРАВИЛА ДЛЯ КОДОВ ДЕТАЛЕЙ',
+        brands: 'ПРАВИЛА ДЛЯ МАРОК И МОДЕЛЕЙ',
+        general: 'ОБЩИЕ ПРАВИЛА',
+      };
+      
+      // Group rules by category
+      const rulesByCategory = rules.reduce((acc, rule) => {
+        if (!acc[rule.rule_category]) {
+          acc[rule.rule_category] = [];
+        }
+        acc[rule.rule_category].push(rule);
+        return acc;
+      }, {} as Record<string, any[]>);
+      
+      // Build rules section by category
+      const rulesSection = Object.entries(rulesByCategory)
+        .sort(([, a], [, b]) => Math.min(...a.map((r: any) => r.display_order)) - Math.min(...b.map((r: any) => r.display_order)))
+        .map(([category, categoryRules]) => {
+          const categoryLabel = categoryLabels[category as keyof typeof categoryLabels] || category.toUpperCase();
+          const rulesText = categoryRules
+            .sort((a: any, b: any) => a.display_order - b.display_order)
+            .map((rule: any) => `   - ${rule.rule_text}`)
+            .join('\n');
+          
+          return `\n${categoryLabel}:\n${rulesText}`;
+        })
+        .join('\n');
+        
+      return rulesSection;
+    };
 
     // Функция для получения последних правок модераторов для обучения
     const getRecentCorrections = async (limit = 20) => {
@@ -124,18 +174,45 @@ JSON ответ:
   "confidence": 0.0-1.0
 }`;
 
+    // Create final prompt with admin rules
+    const adminRulesSection = buildAdminRulesSection(adminRules);
+    const corrections = await getRecentCorrections();
+    
     // Use custom prompt or fall back to default
-    const basePrompt = promptSetting?.value || defaultPrompt;
+    let finalPrompt = promptSetting?.value || defaultPrompt;
+    
+    // Insert admin rules after moderator corrections if they exist
+    if (adminRulesSection) {
+      const moderatorCorrectionsPlaceholder = '{moderatorCorrections}';
+      const moderatorIndex = finalPrompt.indexOf(moderatorCorrectionsPlaceholder);
+      
+      if (moderatorIndex !== -1) {
+        // Find the end of the moderatorCorrections line
+        const insertPosition = finalPrompt.indexOf('\n', moderatorIndex);
+        if (insertPosition !== -1) {
+          finalPrompt = 
+            finalPrompt.slice(0, insertPosition) + 
+            adminRulesSection + 
+            finalPrompt.slice(insertPosition);
+        }
+      } else {
+        // If no moderatorCorrections placeholder, add at the beginning
+        finalPrompt = adminRulesSection + '\n\n' + finalPrompt;
+      }
+    }
     
     // Replace variables in the prompt template
-    const prompt = basePrompt
-      .replace('{title}', title)
-      .replace('{brand}', brand || 'Unknown')
-      .replace('{model}', model || 'Unknown')
-      .replace('{category}', 'automotive_parts')
-      .replace('{brandsWithModels}', brandsWithModels)
-      .replace('{brandsList}', brandsList)
-      .replace('{moderatorCorrections}', corrections);
+    const prompt = finalPrompt
+      .replace(/{title}/g, title)
+      .replace(/{brand}/g, brand || 'Unknown')
+      .replace(/{model}/g, model || 'Unknown')
+      .replace(/{category}/g, 'automotive_parts')
+      .replace(/{brandsWithModels}/g, brandsWithModels)
+      .replace(/{brandsList}/g, brandsList)
+      .replace(/{moderatorCorrections}/g, corrections);
+
+    console.log(`📝 Final prompt built with ${adminRules.length} admin rules`);
+    console.log(`📄 Prompt preview: ${prompt.substring(0, 200)}...`);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
