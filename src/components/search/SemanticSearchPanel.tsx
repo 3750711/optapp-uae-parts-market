@@ -215,15 +215,19 @@ export const SemanticSearchPanel: React.FC = () => {
             {results.map((result) => (
               <div key={result.id} className="relative">
                 <ProductCard
-                  id={result.id}
-                  title={result.title}
-                  brand={result.brand}
-                  model={result.model}
-                  price={result.price}
-                  seller_name={result.seller_name}
-                  preview_image_url={result.preview_image_url}
-                  status={result.status as any}
-                  location={result.location}
+                  product={{
+                    id: result.id,
+                    title: result.title,
+                    brand: result.brand,
+                    model: result.model,
+                    price: result.price,
+                    seller_name: result.seller_name,
+                    seller_id: result.id, // We'll use result.id as seller_id for now
+                    status: result.status as any,
+                    product_location: result.location,
+                    image: result.preview_image_url,
+                    similarity_score: result.similarity,
+                  }}
                 />
                 <Badge 
                   className="absolute top-2 right-2 bg-primary text-primary-foreground"

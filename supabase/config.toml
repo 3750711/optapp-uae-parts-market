@@ -93,7 +93,7 @@ verify_jwt = false
 [functions.notify-seller-product-sold]
 verify_jwt = false
 
-[functions.generate-embeddings]
+[functions.semantic-search]
 verify_jwt = false
 
 [functions.ai-search]

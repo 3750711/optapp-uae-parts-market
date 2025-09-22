@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { SemanticSearchPanel } from '@/components/search/SemanticSearchPanel';
+import { SmartSearchSuggestions } from '@/components/search/SmartSearchSuggestions';
+import { useSemanticSearch } from '@/hooks/useSemanticSearch';
 
 const SemanticSearch: React.FC = () => {
+  const { search } = useSemanticSearch();
+  const [query, setQuery] = useState('');
+  const [threshold, setThreshold] = useState([0.7]);
+  const [limit, setLimit] = useState([20]);
+  const [filters, setFilters] = useState({});
+
   return (
     <>
       <Helmet>
@@ -24,6 +32,17 @@ const SemanticSearch: React.FC = () => {
           </div>
           
           <SemanticSearchPanel />
+          
+          <SmartSearchSuggestions 
+            onSuggestionClick={(query) => {
+              setQuery(query);
+              search(query, {
+                threshold: threshold[0],
+                limit: limit[0],
+                filters,
+              });
+            }}
+          />
         </div>
       </main>
     </>

@@ -1564,6 +1564,42 @@ export type Database = {
         }
         Relationships: []
       }
+      search_analytics: {
+        Row: {
+          created_at: string
+          filters: Json
+          id: string
+          ip_address: unknown | null
+          query: string
+          results_count: number
+          threshold: number
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          ip_address?: unknown | null
+          query: string
+          results_count?: number
+          threshold?: number
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          filters?: Json
+          id?: string
+          ip_address?: unknown | null
+          query?: string
+          results_count?: number
+          threshold?: number
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       search_synonyms: {
         Row: {
           category: string

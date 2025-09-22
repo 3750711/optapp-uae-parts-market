@@ -99,6 +99,7 @@ const AdminSellerStatistics = lazy(() => import('@/pages/admin/AdminSellerStatis
 const AdminSettings = lazy(() => import('@/pages/AdminSettings'));
 const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
 const AdminAIDashboard = lazy(() => import('@/pages/AdminAIDashboard'));
+const AdminSearchAnalytics = lazy(() => import('@/pages/AdminSearchAnalytics'));
 const SemanticSearch = lazy(() => import('@/pages/SemanticSearch'));
 const AdminFreeOrderUploadMonitoring = lazy(() => import('@/pages/admin/AdminFreeOrderUploadMonitoring'));
 const ActivityMonitor = lazy(() => import('@/pages/admin/ActivityMonitor'));
@@ -526,6 +527,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/ai-dashboard" element={
               <AdminRoute>
                 <AdminAIDashboard />
+              </AdminRoute>
+            } />
+            <Route path="/admin/search-analytics" element={
+              <AdminRoute>
+                <AdminSearchAnalytics />
               </AdminRoute>
             } />
             <Route path="/search/ai" element={<SemanticSearch />} />
