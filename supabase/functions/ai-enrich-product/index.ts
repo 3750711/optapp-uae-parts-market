@@ -46,9 +46,9 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not found');
     }
 
-    const { product_id, title, brand, model, description }: EnrichmentRequest = await req.json();
+    const { product_id, title, brand, model, description, auto_trigger = false }: EnrichmentRequest & { auto_trigger?: boolean } = await req.json();
 
-    console.log(`🤖 AI enrichment started for product ${product_id}: "${title}"`);
+    console.log(`🤖 AI enrichment started for product ${product_id}: "${title}" (auto: ${auto_trigger})`);
 
     // Получаем список брендов и моделей для контекста
     const { data: brands } = await supabase
@@ -154,9 +154,10 @@ ${description ? `Описание: ${description}` : ''}
 
     console.log(`✅ AI enrichment completed in ${processingTime}ms with confidence: ${result.confidence}`);
 
-    // Автоматически обновляем товар если confidence > 70%
-    if (result.confidence > 0.7) {
-      console.log('🔄 Auto-updating product with high confidence results');
+    // Автоматически обновляем товар если confidence > 70% (или > 85% для auto_trigger)
+    const confidenceThreshold = auto_trigger ? 0.85 : 0.7;
+    if (result.confidence > confidenceThreshold) {
+      console.log(`🔄 Auto-updating product with ${auto_trigger ? 'high' : 'medium'} confidence results (${result.confidence})`);
       
       const updateData: any = {
         ai_confidence: result.confidence,
@@ -179,6 +180,17 @@ ${description ? `Описание: ${description}` : ''}
       await supabase
         .from('products')
         .update(updateData)
+        .eq('id', product_id);
+    } else if (auto_trigger) {
+      // Для auto_trigger обновляем только AI метаданные
+      await supabase
+        .from('products')
+        .update({
+          ai_confidence: result.confidence,
+          ai_enriched_at: new Date().toISOString(),
+          ai_original_title: title,
+          requires_moderation: true
+        })
         .eq('id', product_id);
     }
     

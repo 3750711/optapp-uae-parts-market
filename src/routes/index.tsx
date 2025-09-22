@@ -82,7 +82,7 @@ const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
 const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
 const AdminOrderDetails = lazy(() => import('@/pages/AdminOrderDetails'));
-const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
+const AdminAIDashboard = lazy(() => import('@/pages/AdminAIDashboard'));
 const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
 const AdminSellProduct = lazy(() => import('@/pages/AdminSellProduct'));
 const AdminStores = lazy(() => import('@/pages/AdminStores'));
