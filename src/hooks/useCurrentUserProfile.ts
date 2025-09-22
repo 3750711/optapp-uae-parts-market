@@ -17,23 +17,47 @@ export const useCurrentUserProfile = () => {
   return useQuery({
     queryKey: ['current-user-profile', userId],
     queryFn: async (): Promise<UserProfile | null> => {
-      if (!userId) return null;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, opt_id, is_trusted_seller, user_type')
-        .eq('id', userId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching current user profile:', error);
-        throw error;
+      console.log('🔍 Fetching profile for user:', userId);
+      
+      if (!userId) {
+        console.log('❌ No userId available');
+        return null;
       }
 
-      return data as UserProfile;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, opt_id, is_trusted_seller, user_type')
+          .eq('id', userId)
+          .single();
+
+        if (error) {
+          console.error('❌ Error fetching current user profile:', error);
+          // Don't throw on "not found" errors, return null instead
+          if (error.code === 'PGRST116') {
+            console.log('⚠️ Profile not found, returning null');
+            return null;
+          }
+          throw error;
+        }
+
+        console.log('✅ Profile loaded successfully:', data);
+        return data as UserProfile;
+      } catch (error) {
+        console.error('💥 Critical error in profile fetch:', error);
+        throw error;
+      }
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: (failureCount, error: any) => {
+      // Don't retry on permission errors
+      if (error?.code === '42501' || error?.message?.includes('permission')) {
+        console.log('🚫 Permission error, not retrying');
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 };

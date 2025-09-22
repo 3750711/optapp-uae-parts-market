@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import OptimizedMediaSection from "@/components/product/form/OptimizedMediaSection";
@@ -9,12 +7,13 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useStandardSellerProductCreation } from "@/hooks/useStandardSellerProductCreation";
 
 const StandardSellerForm = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
   const { toast } = useToast();
   const { language } = useLanguage();
+  const { createStandardSellerProduct, isCreating, currentUserProfile, isProfileLoading } = useStandardSellerProductCreation();
   
   const t = getFormTranslations(language);
   const c = getCommonTranslations(language);
@@ -35,7 +34,7 @@ const StandardSellerForm = () => {
     description: debouncedDescription
   };
   
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [primaryImage, setPrimaryImage] = useState("");
   const [isMediaUploading, setIsMediaUploading] = useState(false);
@@ -72,6 +71,9 @@ const StandardSellerForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('📝 Standard seller form submission started');
+    
+    // Basic validation
     if (!formData.title.trim()) {
       toast({
         title: c.errors.title,
@@ -99,61 +101,20 @@ const StandardSellerForm = () => {
       return;
     }
 
-    if (!user?.id) {
-      toast({
-        title: c.errors.title,
-        description: c.errors.accessDenied,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
     try {
-      const { data: productId, error: productError } = await supabase
-        .rpc('create_product_with_images', {
-          p_title: formData.title.trim(),
-          p_price: Number(formData.price),
-          p_description: formData.description.trim() || null
-        });
-
-      if (productError) {
-        console.error("❌ Error creating product:", productError);
-        throw productError;
-      }
-
-      const imageInserts = imageUrls.map(url => ({
-        product_id: productId,
-        url: url,
-        is_primary: url === primaryImage
-      }));
-      
-      const { error: imageError } = await supabase
-        .from('product_images')
-        .insert(imageInserts);
-        
-      if (imageError) {
-        console.error('❌ Error adding images:', imageError);
-        throw new Error(`${c.messages.error}: ${imageError.message}`);
-      }
-
-      toast({
-        title: t.messages.productCreated,
-        description: `${t.messages.productCreated}. ${t.sections.productDescription}`,
+      const productId = await createStandardSellerProduct({
+        title: formData.title,
+        price: Number(formData.price),
+        description: formData.description,
+        imageUrls,
+        primaryImage
       });
 
       navigate(`/seller/product/${productId}?from=add`);
       
     } catch (error) {
-      console.error("💥 Error creating product:", error);
-      toast({
-        title: c.errors.title,
-        description: c.messages.error,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+      console.error("💥 Form submission error:", error);
+      // Error handling is done in the hook
     }
   };
 
@@ -213,13 +174,25 @@ const StandardSellerForm = () => {
         />
       </div>
       
+      {isProfileLoading && (
+        <div className="text-center py-4">
+          <p className="text-muted-foreground">Загрузка данных профиля...</p>
+        </div>
+      )}
+      
+      {!isProfileLoading && !currentUserProfile && (
+        <div className="text-center py-4">
+          <p className="text-destructive">Не удалось загрузить данные профиля. Обновите страницу.</p>
+        </div>
+      )}
+      
       <Button
         type="submit"
-        disabled={isSubmitting || isMediaUploading}
+        disabled={isCreating || isMediaUploading || isProfileLoading || !currentUserProfile}
         className="w-full"
         size="lg"
       >
-        {isSubmitting ? t.buttons.publishing : t.buttons.publish}
+        {isCreating ? t.buttons.publishing : t.buttons.publish}
       </Button>
     </form>
   );
