@@ -59,6 +59,14 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   onNext,
   onPrevious
 }) => {
+  // Диагностические логи для отладки
+  console.log('🎯 ProductModerationCard рендерится:', {
+    productId: product.id,
+    productTitle: product.title,
+    productBrand: product.brand,
+    productModel: product.model
+  });
+
   const [isPublishing, setIsPublishing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
@@ -121,6 +129,31 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     findBrandNameById,
     findModelNameById
   } = useAllCarBrands();
+
+  // Диагностические логи для данных автомобилей
+  console.log('🚗 Car Data State:', {
+    isLoadingCarData,
+    brandsCount: brands.length,
+    allModelsCount: allModels.length,
+    formDataBrand: formData.brand,
+    formDataModel: formData.model,
+    productBrand: product.brand,
+    productModel: product.model
+  });
+
+  // Дополнительная диагностика для Toyota
+  if (formData.brand === 'Toyota' || product.brand === 'Toyota') {
+    const toyotaModels = allModels.filter(m => {
+      const brand = brands.find(b => b.id === m.brand_id);
+      return brand?.name === 'Toyota';
+    });
+    
+    console.log('🏗️ Toyota Models Debug:', {
+      toyotaModelsCount: toyotaModels.length,
+      spacioModels: toyotaModels.filter(m => m.name.toLowerCase().includes('spacio')),
+      allToyotaModels: toyotaModels.map(m => m.name).sort()
+    });
+  }
 
   // Мутация для сохранения всех изменений
   const updateMutation = useMutation({
