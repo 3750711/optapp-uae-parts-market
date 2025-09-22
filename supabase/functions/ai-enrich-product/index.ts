@@ -16,19 +16,11 @@ interface EnrichmentRequest {
 }
 
 interface EnrichmentResponse {
-  original_title: string;
-  corrected_title_en: string;
-  corrected_title_ru: string;
-  brand: string;
-  model: string;
-  category: string;
+  title_ru: string;
+  brand: string | null;
+  model: string | null;
   confidence: number;
-  corrections: Array<{
-    from: string;
-    to: string;
-    reason: string;
-  }>;
-  processing_time_ms: number;
+  processing_time_ms?: number;
 }
 
 serve(async (req) => {
@@ -64,33 +56,22 @@ serve(async (req) => {
     const brandsList = brands?.map(b => b.name).join(', ') || '';
     const modelsContext = models?.map(m => `${m.car_brands?.name} ${m.name}`).slice(0, 50).join(', ') || '';
 
-    // Структурированный запрос к GPT-4
-    const systemPrompt = `Ты эксперт по автозапчастям и исправлению текстов. Твоя задача:
+    // Упрощенный промпт для OpenAI
+    const prompt = `Исправь ошибки и определи марку/модель автомобиля.
 
-1. Исправить опечатки в названии товара
-2. Определить марку и модель автомобиля из справочника
-3. Перевести название на русский язык
-4. Оценить уверенность в исправлениях (0.0-1.0)
+Частые ошибки: engene->engine, bamper->bumper, transmision->transmission
+
+Товар: "${title}"
 
 Доступные марки: ${brandsList}
 
-Примеры частых ошибок:
-- engene → engine (двигатель)
-- bamper → bumper (бампер) 
-- transmision → transmission (трансмиссия)
-- brakes → тормоза
-- suspension → подвеска
-- headlight → фара
-
-ВАЖНО: Если марка/модель не определяется точно, оставь пустыми поля brand и model.
-Confidence должен быть высоким (>0.8) только при уверенных исправлениях.`;
-
-    const userPrompt = `Товар: "${title}"
-${brand ? `Текущая марка: ${brand}` : ''}
-${model ? `Текущая модель: ${model}` : ''}
-${description ? `Описание: ${description}` : ''}
-
-Исправь название, определи марку и модель, переведи на русский.`;
+Ответь в JSON:
+{
+  "title_ru": "название на русском",
+  "brand": "марка из списка или null", 
+  "model": "модель или null",
+  "confidence": 0.0-1.0
+}`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -101,8 +82,7 @@ ${description ? `Описание: ${description}` : ''}
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+          { role: 'user', content: prompt }
         ],
         response_format: { 
           type: "json_schema",
@@ -111,27 +91,12 @@ ${description ? `Описание: ${description}` : ''}
             schema: {
               type: "object",
               properties: {
-                original_title: { type: "string" },
-                corrected_title_en: { type: "string" },
-                corrected_title_ru: { type: "string" },
-                brand: { type: "string" },
-                model: { type: "string" },
-                category: { type: "string" },
-                confidence: { type: "number", minimum: 0, maximum: 1 },
-                corrections: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      from: { type: "string" },
-                      to: { type: "string" },
-                      reason: { type: "string" }
-                    },
-                    required: ["from", "to", "reason"]
-                  }
-                }
+                title_ru: { type: "string" },
+                brand: { type: ["string", "null"] },
+                model: { type: ["string", "null"] },
+                confidence: { type: "number", minimum: 0, maximum: 1 }
               },
-              required: ["original_title", "corrected_title_en", "corrected_title_ru", "confidence", "corrections"]
+              required: ["title_ru", "confidence"]
             }
           }
         },
@@ -154,45 +119,31 @@ ${description ? `Описание: ${description}` : ''}
 
     console.log(`✅ AI enrichment completed in ${processingTime}ms with confidence: ${result.confidence}`);
 
-    // Автоматически обновляем товар если confidence > 70% (или > 85% для auto_trigger)
-    const confidenceThreshold = auto_trigger ? 0.85 : 0.7;
-    if (result.confidence > confidenceThreshold) {
-      console.log(`🔄 Auto-updating product with ${auto_trigger ? 'high' : 'medium'} confidence results (${result.confidence})`);
-      
-      const updateData: any = {
-        ai_confidence: result.confidence,
-        ai_enriched_at: new Date().toISOString(),
-        ai_original_title: title,
-        requires_moderation: result.confidence < 0.9
-      };
+    // ВСЕГДА обновляем товар независимо от confidence
+    console.log(`🔄 Auto-updating product (confidence: ${result.confidence})`);
+    
+    const updateData: any = {
+      ai_confidence: result.confidence,
+      ai_enriched_at: new Date().toISOString(),
+      ai_original_title: title,
+      requires_moderation: result.confidence < 0.9
+    };
 
-      // Обновляем только если есть улучшения
-      if (result.corrected_title_ru && result.corrected_title_ru !== title) {
-        updateData.title = result.corrected_title_ru;
-      }
-      if (result.brand && result.brand !== brand) {
-        updateData.brand = result.brand;
-      }
-      if (result.model && result.model !== model) {
-        updateData.model = result.model;
-      }
-
-      await supabase
-        .from('products')
-        .update(updateData)
-        .eq('id', product_id);
-    } else if (auto_trigger) {
-      // Для auto_trigger обновляем только AI метаданные
-      await supabase
-        .from('products')
-        .update({
-          ai_confidence: result.confidence,
-          ai_enriched_at: new Date().toISOString(),
-          ai_original_title: title,
-          requires_moderation: true
-        })
-        .eq('id', product_id);
+    // Обновляем данные, если AI предоставил их
+    if (result.title_ru && result.title_ru !== title) {
+      updateData.title = result.title_ru;
     }
+    if (result.brand && result.brand !== brand) {
+      updateData.brand = result.brand;
+    }
+    if (result.model && result.model !== model) {
+      updateData.model = result.model;
+    }
+
+    await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', product_id);
     
     // Сохраняем лог обработки
     await supabase
