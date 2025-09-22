@@ -127,7 +127,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.ai-enrich-product]
-verify_jwt = true
+verify_jwt = false
 
 [analytics]
 enabled = false
