@@ -12,7 +12,7 @@ import { useOptimizedFormAutosave } from "@/hooks/useOptimizedFormAutosave";
 import { useCachedBrands, useCachedModels, useCachedAllModels, useCachedSellers } from "@/hooks/useCachedReferenceData";
 import { useDebounceValue } from "@/hooks/useDebounceValue";
 
-export const useOptimizedAdminAddProduct = () => {
+export const useOptimizedAdminAddProduct = (mode: 'admin' | 'trusted_seller' = 'admin') => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -27,11 +27,17 @@ export const useOptimizedAdminAddProduct = () => {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<AdminProductFormValues | null>(null);
 
-  // Cached data hooks
+  // Cached data hooks - продавцы только для админов
   const { data: brands = [], isLoading: isLoadingBrands } = useCachedBrands();
   const { data: brandModels = [], isLoading: isLoadingModels } = useCachedModels(selectedBrandId);
   const { data: allModels = [] } = useCachedAllModels();
-  const { data: sellers = [], isLoading: isLoadingSellers } = useCachedSellers();
+  
+  // Для доверенных продавцов не загружаем список продавцов
+  const { data: sellersData = [], isLoading: isLoadingSellers } = mode === 'admin' 
+    ? useCachedSellers() 
+    : { data: [], isLoading: false };
+  
+  const sellers = sellersData;
 
   const { createProductWithTransaction, isCreating, steps: progressSteps, totalProgress, resetMonitoring } = useAdminProductCreation();
 
@@ -63,7 +69,7 @@ export const useOptimizedAdminAddProduct = () => {
   }, [form, imageUrls, videoUrls, primaryImage]);
 
   const { loadSavedData, clearSavedData, saveNow } = useOptimizedFormAutosave({
-    key: 'admin_add_product',
+    key: mode === 'admin' ? 'admin_add_product' : 'trusted_seller_add_product',
     data: getFormDataForAutosave(),
     delay: 1000,
     enabled: !isSubmitting && !isCreating && !isPublishing && !isPublished,
@@ -256,8 +262,12 @@ export const useOptimizedAdminAddProduct = () => {
         // Reset all form and state data
         resetFormAndState();
         
-        // Navigate after successful creation
-        navigate(`/product/${product.id}`);
+        // Navigate после успешного создания
+        if (mode === 'admin') {
+          navigate(`/product/${product.id}`);
+        } else {
+          navigate(`/seller/product/${product.id}?from=add`);
+        }
         
         toast({
           title: "Товар успешно создан",

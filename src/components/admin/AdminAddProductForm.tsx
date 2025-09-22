@@ -44,6 +44,7 @@ interface AdminAddProductFormProps {
   brands: Brand[];
   brandModels: Model[];
   isLoadingCarData: boolean;
+  mode?: 'admin' | 'trusted_seller';
 }
 
 // Car Info Section Component
@@ -153,6 +154,7 @@ const AdminAddProductForm: React.FC<AdminAddProductFormProps> = ({
   brands,
   brandModels,
   isLoadingCarData,
+  mode = 'admin',
 }) => {
   return (
     <Form {...form}>
@@ -197,13 +199,15 @@ const AdminAddProductForm: React.FC<AdminAddProductFormProps> = ({
           />
         </FormSectionWrapper>
 
-        {/* Seller Selection */}
-        <FormSectionWrapper title="Продавец">
-          <SellerSelectionSection 
-            form={form}
-            sellers={sellers}
-          />
-        </FormSectionWrapper>
+        {/* Seller Selection - только для админов */}
+        {mode === 'admin' && (
+          <FormSectionWrapper title="Продавец">
+            <SellerSelectionSection 
+              form={form}
+              sellers={sellers}
+            />
+          </FormSectionWrapper>
+        )}
 
         {/* Delivery Info Section */}
         <FormSectionWrapper title="Информация о доставке">
