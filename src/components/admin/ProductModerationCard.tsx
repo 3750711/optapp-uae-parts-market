@@ -227,6 +227,79 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     });
   };
 
+  // Функции частичного применения AI предложений
+  const handleApplyAiTitle = async () => {
+    if (!product.ai_suggested_title) return;
+    
+    // Перемещаем оригинальное название в описание
+    const originalTitle = product.ai_original_title || product.title;
+    const currentDescription = product.description || '';
+    
+    let updatedDescription = currentDescription;
+    if (!currentDescription.includes(originalTitle)) {
+      updatedDescription = currentDescription 
+        ? `Оригинальное название от продавца: ${originalTitle}\n\n${currentDescription}`
+        : `Оригинальное название от продавца: ${originalTitle}`;
+    }
+    
+    // Применяем AI название
+    setFormData(prev => ({ ...prev, title: product.ai_suggested_title! }));
+    
+    // Сохраняем в базу
+    try {
+      await updateMutation.mutateAsync({
+        title: product.ai_suggested_title,
+        description: updatedDescription
+      });
+      
+      toast({
+        title: "Название применено",
+        description: "AI предложение для названия применено",
+      });
+    } catch (error) {
+      console.error('Error applying AI title:', error);
+    }
+  };
+
+  const handleApplyAiBrand = async () => {
+    if (!product.ai_suggested_brand) return;
+    
+    setFormData(prev => ({ ...prev, brand: product.ai_suggested_brand!, model: '' }));
+    
+    try {
+      await updateMutation.mutateAsync({
+        brand: product.ai_suggested_brand,
+        model: null
+      });
+      
+      toast({
+        title: "Марка применена",
+        description: "AI предложение для марки применено",
+      });
+    } catch (error) {
+      console.error('Error applying AI brand:', error);
+    }
+  };
+
+  const handleApplyAiModel = async () => {
+    if (!product.ai_suggested_model) return;
+    
+    setFormData(prev => ({ ...prev, model: product.ai_suggested_model! }));
+    
+    try {
+      await updateMutation.mutateAsync({
+        model: product.ai_suggested_model
+      });
+      
+      toast({
+        title: "Модель применена", 
+        description: "AI предложение для модели применено",
+      });
+    } catch (error) {
+      console.error('Error applying AI model:', error);
+    }
+  };
+
   // AI обогащение товара
   const handleAiEnrich = async () => {
     if (isAiProcessing) return;
@@ -531,16 +604,39 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
                 </div>
                 <div>
                   <div className="font-medium text-muted-foreground mb-1">AI предложение:</div>
-                  <div className="p-2 bg-green-50 rounded border border-green-200">
-                    {product.ai_suggested_title}
+                  <div 
+                    className="p-2 bg-green-50 rounded border border-green-200 cursor-pointer hover:bg-green-100 transition-colors group relative"
+                    onClick={handleApplyAiTitle}
+                    title="Нажмите чтобы применить только название"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{product.ai_suggested_title}</span>
+                      <ArrowRight className="h-3 w-3 text-green-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
                   </div>
                 </div>
               </div>
               
               {product.ai_suggested_brand && (
                 <div className="flex gap-2 mt-3 text-sm">
-                  <Badge variant="outline">Марка: {product.ai_suggested_brand}</Badge>
-                  <Badge variant="outline">Модель: {product.ai_suggested_model || 'не определено'}</Badge>
+                  <Badge 
+                    variant="outline" 
+                    className="cursor-pointer hover:bg-blue-50 transition-colors"
+                    onClick={handleApplyAiBrand}
+                    title="Нажмите чтобы применить только марку"
+                  >
+                    Марка: {product.ai_suggested_brand} <ArrowRight className="h-3 w-3 ml-1 inline" />
+                  </Badge>
+                  {product.ai_suggested_model && (
+                    <Badge 
+                      variant="outline"
+                      className="cursor-pointer hover:bg-blue-50 transition-colors"
+                      onClick={handleApplyAiModel}
+                      title="Нажмите чтобы применить только модель"
+                    >
+                      Модель: {product.ai_suggested_model} <ArrowRight className="h-3 w-3 ml-1 inline" />
+                    </Badge>
+                  )}
                 </div>
               )}
             </div>
