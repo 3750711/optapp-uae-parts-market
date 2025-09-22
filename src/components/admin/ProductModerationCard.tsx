@@ -17,7 +17,7 @@ import { adminProductsKeys } from '@/utils/cacheKeys';
 import { AIConfidenceIndicator } from '@/components/ai/AIConfidenceIndicator';
 import AIEnrichmentPanel from '@/components/ai/AIEnrichmentPanel';
 import { AIFeedbackSystem } from '@/components/ai/AIFeedbackSystem';
-import { ModerationKeyboardShortcuts } from '@/components/admin/ModerationKeyboardShortcuts';
+
 
 interface Product {
   id: string;
@@ -513,15 +513,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           )}
         </div>
 
-        {/* Keyboard Shortcuts Help */}
-        <ModerationKeyboardShortcuts
-          onPublish={handlePublish}
-          onReset={handleReset}
-          onAiEnrich={() => setShowAiPanel(true)}
-          onNextProduct={onNext}
-          onPrevProduct={onPrevious}
-          disabled={isPublishing}
-        />
                 <ArrowRight className="h-3 w-3 text-muted-foreground mx-2" />
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground">Стало:</span>

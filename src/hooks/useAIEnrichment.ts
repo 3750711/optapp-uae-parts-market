@@ -3,19 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface EnrichmentResult {
-  original_title: string;
-  corrected_title_en: string;
-  corrected_title_ru: string;
+  title_ru: string;
   brand: string | null;
   model: string | null;
-  category: string | null;
   confidence: number;
-  corrections: Array<{
-    from: string;
-    to: string;
-    reason: string;
-  }>;
-  processing_time_ms: number;
+  processing_time_ms?: number;
 }
 
 interface UseAIEnrichmentOptions {
