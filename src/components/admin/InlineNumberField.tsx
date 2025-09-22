@@ -47,12 +47,23 @@ export function InlineNumberField({
 
   useEffect(() => {
     // Always update if value changed from outside and we're not actively editing
+    // Don't block synchronization because of justSaved flag - external changes should always sync
     if (value !== editValue && !isEditing) {
       console.log(`🔄 InlineNumberField: Syncing value from ${editValue} to ${value}`);
       setEditValue(value);
       setError(null);
     }
   }, [value]); // Remove isEditing from dependencies
+  
+  // Separate useEffect for justSaved flag reset with longer timeout
+  useEffect(() => {
+    if (justSaved) {
+      const timer = setTimeout(() => {
+        setJustSaved(false);
+      }, 1500); // Increased from 100ms to 1500ms for better user feedback
+      return () => clearTimeout(timer);
+    }
+  }, [justSaved]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -92,11 +103,7 @@ export function InlineNumberField({
       await onSave(editValue);
       console.log(`✅ InlineNumberField: Saved successfully`);
       setJustSaved(true);
-      
-      setTimeout(() => {
-        setIsEditing(false);
-        setJustSaved(false);
-      }, 100); // Reduced from 500ms to 100ms for faster response
+      setIsEditing(false); // Exit editing mode immediately
     } catch (err: any) {
       setError('Не удалось сохранить изменения');
       setEditValue(value); // Revert on error

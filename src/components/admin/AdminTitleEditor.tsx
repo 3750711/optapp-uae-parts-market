@@ -19,11 +19,13 @@ const AdminTitleEditor: React.FC<AdminTitleEditorProps> = ({
   const [editedValue, setEditedValue] = useState(value);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Sync with prop value changes - always update when value changes from outside
+  // Sync with prop value changes - only when not saving and value actually changed
   useEffect(() => {
-    console.log(`🔄 AdminTitleEditor: Syncing value from "${editedValue}" to "${value}"`);
-    setEditedValue(value);
-  }, [value]);
+    if (value !== editedValue && !isSaving) {
+      console.log(`🔄 AdminTitleEditor: Syncing value from "${editedValue}" to "${value}"`);
+      setEditedValue(value);
+    }
+  }, [value]); // Remove isSaving from dependencies to avoid blocking sync
 
   const handleSave = async () => {
     if (editedValue !== value) {
