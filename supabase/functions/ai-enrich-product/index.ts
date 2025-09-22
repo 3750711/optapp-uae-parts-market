@@ -69,26 +69,51 @@ ${data.map(d => `"${d.ai_original_title}" → "${d.moderator_corrected_title}"`)
       .select('name, brand_id, car_brands(name)')
       .order('name');
 
+    // Группируем модели по брендам для лучшего контекста
+    const brandsWithModels = brands?.map(brand => {
+      const brandModels = models?.filter(m => m.car_brands?.name === brand.name);
+      return `${brand.name}: ${brandModels?.map(m => m.name).join(', ') || 'нет моделей'}`;
+    }).join('\n') || '';
+    
     const brandsList = brands?.map(b => b.name).join(', ') || '';
-    const modelsContext = models?.map(m => `${m.car_brands?.name} ${m.name}`).slice(0, 50).join(', ') || '';
 
     // Получаем обучающие данные от модераторов
     const corrections = await getRecentCorrections();
 
-    // Улучшенный промпт с обучением на правках модераторов
+    // Улучшенный промпт с обучением на правках модераторов и специальными инструкциями для автозапчастей
     const prompt = `${corrections}
 
-Исправь ошибки, переведи на русский, определи марку/модель.
-Частые ошибки: engene->engine, bamper->bumper, transmision->transmission
+ВАЖНО! Это товар автозапчастей. Следуй правилам:
+
+1. КОДЫ ДЕТАЛЕЙ НЕ ЯВЛЯЮТСЯ МОДЕЛЯМИ АВТОМОБИЛЕЙ:
+   - 1ZZ, 2JZ, K20A, B20, SR20 - это коды двигателей, НЕ модели
+   - Camry, Corolla, Civic, Accord - это модели автомобилей
+   - Если в названии есть код детали И модель автомобиля - выбирай МОДЕЛЬ АВТОМОБИЛЯ
+
+2. ПРАВИЛА ОПРЕДЕЛЕНИЯ МАРКИ И МОДЕЛИ:
+   - Если упомянут "Camry" → марка: Toyota, модель: Camry
+   - Если упомянут "Civic" → марка: Honda, модель: Civic
+   - Если только код двигателя (1ZZ) без модели → марка: Toyota (если знаешь), модель: null
+   
+3. ЧАСТЫЕ ОШИБКИ: engene→engine, bamper→bumper, transmision→transmission
+
+4. ПРИМЕРЫ ПРАВИЛЬНОЙ ОБРАБОТКИ:
+   - "engine 1zz camry" → Двигатель 1ZZ для Toyota Camry → brand: Toyota, model: Camry
+   - "1zz engine toyota" → Двигатель 1ZZ Toyota → brand: Toyota, model: null
+   - "civic k20 engine" → Двигатель K20 для Honda Civic → brand: Honda, model: Civic
 
 Товар: "${title}"
-Доступные марки: ${brandsList}
+
+ДОСТУПНЫЕ МАРКИ И ИХ МОДЕЛИ:
+${brandsWithModels}
+
+ТОЛЬКО эти марки разрешены: ${brandsList}
 
 JSON ответ:
 {
-  "title_ru": "название на русском",
-  "brand": "марка из списка или null", 
-  "model": "модель или null",
+  "title_ru": "название на русском (исправь ошибки, переведи)",
+  "brand": "точная марка из списка или null", 
+  "model": "точная модель автомобиля (НЕ код детали) или null",
   "confidence": 0.0-1.0
 }`;
 
