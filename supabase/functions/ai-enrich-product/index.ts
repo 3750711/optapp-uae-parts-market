@@ -69,6 +69,28 @@ ${data.map(d => `"${d.ai_original_title}" → "${d.moderator_corrected_title}"`)
       .select('name, brand_id, car_brands(name)')
       .order('name');
 
+    // Получаем правила перевода для улучшенного обучения
+    console.log('🎯 Loading AI translation rules...');
+    const { data: translationRules } = await supabase
+      .from('ai_translation_rules')
+      .select('original_phrase, corrected_phrase, usage_count, confidence_score, rule_type')
+      .eq('is_active', true)
+      .order('usage_count', { ascending: false })
+      .limit(50);
+
+    const hasRules = translationRules && translationRules.length > 0;
+    console.log(`🎯 Translation rules loaded: ${hasRules ? translationRules.length : 0} rules`);
+
+    // Формируем контекст правил перевода для промта
+    const translationRulesContext = hasRules ? `
+ПРАВИЛА ОБУЧЕНИЯ (из исправлений модераторов):
+${translationRules.map(rule => 
+  `- "${rule.original_phrase}" → "${rule.corrected_phrase}" (использовано: ${rule.usage_count} раз, уверенность: ${rule.confidence_score})`
+).join('\n')}
+
+ПРИМЕНЯЙ ЭТИ ПРАВИЛА при обработке:
+` : '';
+
     // Группируем модели по брендам для лучшего контекста
     const brandsWithModels = brands?.map(brand => {
       const brandModels = models?.filter(m => m.car_brands?.name === brand.name);
@@ -81,8 +103,76 @@ ${data.map(d => `"${d.ai_original_title}" → "${d.moderator_corrected_title}"`)
     const corrections = await getRecentCorrections();
     console.log(`📚 Moderator corrections loaded: ${corrections ? 'YES' : 'NO'}`);
 
-    // Статический промт (не редактируемый)
+    // Функция для анализа различий и извлечения новых правил
+    const extractNewRules = async (aiSuggestion: string, moderatorCorrection: string, productId: string) => {
+      try {
+        console.log(`🔍 Analyzing differences for product ${productId}`);
+        
+        // Используем функцию из базы данных для извлечения правил
+        const { data: extractedRules } = await supabase.rpc('extract_translation_rules', {
+          p_ai_suggestion: aiSuggestion,
+          p_moderator_correction: moderatorCorrection
+        });
+
+        if (extractedRules && Array.isArray(extractedRules) && extractedRules.length > 0) {
+          console.log(`📝 Found ${extractedRules.length} potential new rules`);
+          
+          // Сохраняем анализ в таблицу
+          await supabase
+            .from('ai_correction_analysis')
+            .insert({
+              product_id: productId,
+              ai_suggestion: aiSuggestion,
+              moderator_correction: moderatorCorrection,
+              extracted_rules: extractedRules,
+              moderator_id: null // Будет заполнено позже
+            });
+
+          // Добавляем или обновляем правила перевода
+          for (const rule of extractedRules) {
+            const { data: existingRule } = await supabase
+              .from('ai_translation_rules')
+              .select('id, usage_count')
+              .eq('original_phrase', rule.from)
+              .eq('corrected_phrase', rule.to)
+              .maybeSingle();
+
+            if (existingRule) {
+              // Обновляем существующее правило
+              await supabase
+                .from('ai_translation_rules')
+                .update({
+                  usage_count: existingRule.usage_count + 1,
+                  last_used_at: new Date().toISOString(),
+                  confidence_score: Math.min(0.99, existingRule.usage_count * 0.1 + 0.5)
+                })
+                .eq('id', existingRule.id);
+              console.log(`🔄 Updated existing rule: "${rule.from}" → "${rule.to}"`);
+            } else {
+              // Создаем новое правило
+              await supabase
+                .from('ai_translation_rules')
+                .insert({
+                  original_phrase: rule.from,
+                  corrected_phrase: rule.to,
+                  rule_type: rule.type || 'translation',
+                  confidence_score: rule.confidence || 0.7,
+                  usage_count: 1,
+                  created_by: null,
+                  last_used_at: new Date().toISOString()
+                });
+              console.log(`✅ Created new rule: "${rule.from}" → "${rule.to}"`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error extracting translation rules:', error);
+      }
+    };
+    // Статический промт с правилами обучения
     const staticPrompt = `${corrections}
+
+${translationRulesContext}
 
 ВАЖНО! Это товар автозапчастей. Следуй правилам:
 

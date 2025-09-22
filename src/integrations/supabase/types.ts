@@ -44,6 +44,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_correction_analysis: {
+        Row: {
+          ai_suggestion: string
+          analysis_version: string
+          differences: Json
+          extracted_rules: Json
+          id: string
+          moderator_correction: string
+          moderator_id: string | null
+          processed_at: string
+          product_id: string | null
+        }
+        Insert: {
+          ai_suggestion: string
+          analysis_version?: string
+          differences?: Json
+          extracted_rules?: Json
+          id?: string
+          moderator_correction: string
+          moderator_id?: string | null
+          processed_at?: string
+          product_id?: string | null
+        }
+        Update: {
+          ai_suggestion?: string
+          analysis_version?: string
+          differences?: Json
+          extracted_rules?: Json
+          id?: string
+          moderator_correction?: string
+          moderator_id?: string | null
+          processed_at?: string
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_correction_analysis_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_correction_analysis_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_view_estimate"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_enrichment_logs: {
         Row: {
           ai_response: Json
@@ -202,6 +253,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_translation_rules: {
+        Row: {
+          confidence_score: number
+          corrected_phrase: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          language_pair: string
+          last_used_at: string | null
+          original_phrase: string
+          rule_type: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          confidence_score?: number
+          corrected_phrase: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          language_pair?: string
+          last_used_at?: string | null
+          original_phrase: string
+          rule_type?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          confidence_score?: number
+          corrected_phrase?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          language_pair?: string
+          last_used_at?: string | null
+          original_phrase?: string
+          rule_type?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
       }
       app_settings: {
         Row: {
@@ -2448,6 +2544,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Json
       }
+      apply_translation_rules: {
+        Args: { p_limit?: number; p_text: string }
+        Returns: string
+      }
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
@@ -2673,6 +2773,10 @@ export type Database = {
       expire_old_price_offers: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      extract_translation_rules: {
+        Args: { p_ai_suggestion: string; p_moderator_correction: string }
+        Returns: Json
       }
       force_user_logout: {
         Args: Record<PropertyKey, never>
