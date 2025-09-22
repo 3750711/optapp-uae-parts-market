@@ -6,11 +6,12 @@ import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
 
@@ -49,6 +50,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const [isPublishing, setIsPublishing] = useState(false);
   const [carSelection, setCarSelection] = useState({ brandId: '', modelId: '' });
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -229,13 +231,18 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       <div ref={swipeRef} className="relative h-48 bg-muted overflow-hidden">
         {images.length > 0 ? (
           <>
-            <img
-              src={images[currentImageIndex]?.url}
-              alt={product.title}
-              className="w-full h-full object-cover transition-all duration-300"
-              loading="lazy"
-              decoding="async"
-            />
+            <div className="relative w-full h-full group cursor-zoom-in" onClick={() => setFullscreenImage(images[currentImageIndex]?.url)}>
+              <img
+                src={images[currentImageIndex]?.url}
+                alt={product.title}
+                className="w-full h-full object-cover transition-all duration-300"
+                loading="lazy"
+                decoding="async"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            </div>
             
             {/* Navigation Buttons - only show if multiple images */}
             {hasMultipleImages && (
@@ -288,51 +295,67 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         </Badge>
       </div>
 
-      <CardContent className="p-4 space-y-4">
-        {/* Название */}
-        <AdminTitleEditor
-          originalTitle={product.title}
-          value={product.title}
-          onSave={(value) => handleFieldUpdate('title', value)}
-          className="w-full"
-        />
-
-        {/* Цены - вертикальный layout */}
-        <div className="space-y-6">
-          <InlineNumberField
-            label="Цена"
-            value={product.price}
-            onSave={(value) => handleFieldUpdate('price', value)}
-            prefix="$"
-            simple
-          />
-          <InlineNumberField
-            label="Места"
-            value={product.place_number || 1}
-            onSave={(value) => handleFieldUpdate('place_number', value)}
-            suffix=" шт"
-            simple
-          />
-          <InlineNumberField
-            label="Доставка"
-            value={product.delivery_price || 0}
-            onSave={(value) => handleFieldUpdate('delivery_price', value)}
-            prefix="$"
-            simple
+      <CardContent className="p-6 space-y-6">
+        {/* Название - на всю ширину */}
+        <div className="w-full">
+          <AdminTitleEditor
+            originalTitle={product.title}
+            value={product.title}
+            onSave={(value) => handleFieldUpdate('title', value)}
+            className="w-full"
           />
         </div>
 
-        {/* Селектор машины */}
-        <SimpleCarSelector
-          brandId={carSelection.brandId}
-          modelId={carSelection.modelId}
-          onBrandChange={handleBrandChange}
-          onModelChange={handleModelChange}
-          disabled={isLoadingCarData}
-        />
+        {/* Цены - каждая с новой строки с цветными индикаторами */}
+        <div className="space-y-4">
+          <div className="border-l-4 border-primary/20 pl-4">
+            <InlineNumberField
+              label="Цена товара"
+              value={product.price}
+              onSave={(value) => handleFieldUpdate('price', value)}
+              prefix="$"
+              simple={true}
+              className="w-full"
+            />
+          </div>
+          
+          <div className="border-l-4 border-blue-500/20 pl-4">
+            <InlineNumberField
+              label="Количество мест"
+              value={product.place_number || 1}
+              onSave={(value) => handleFieldUpdate('place_number', value)}
+              suffix=" шт"
+              simple={true}
+              className="w-full"
+            />
+          </div>
+          
+          <div className="border-l-4 border-green-500/20 pl-4">
+            <InlineNumberField
+              label="Стоимость доставки"
+              value={product.delivery_price || 0}
+              onSave={(value) => handleFieldUpdate('delivery_price', value)}
+              prefix="$"
+              simple={true}
+              className="w-full"
+            />
+          </div>
+        </div>
 
-        <div className="text-xs text-muted-foreground">
-          Продавец: {product.seller_name}
+        {/* Селектор машины */}
+        <div className="pt-4 border-t">
+          <SimpleCarSelector
+            brandId={carSelection.brandId}
+            modelId={carSelection.modelId}
+            onBrandChange={handleBrandChange}
+            onModelChange={handleModelChange}
+            disabled={isLoadingCarData}
+          />
+        </div>
+
+        {/* Информация о продавце */}
+        <div className="pt-4 border-t text-sm text-muted-foreground">
+          <span className="font-medium">Продавец:</span> {product.seller_name}
         </div>
       </CardContent>
 
@@ -361,6 +384,24 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           Опубликовать
         </Button>
       </CardFooter>
+
+      {/* Полноэкранный просмотр изображений */}
+      <Dialog open={!!fullscreenImage} onOpenChange={() => setFullscreenImage(null)}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95" hideCloseButton>
+          <div className="relative w-full h-full flex items-center justify-center">
+            <img
+              src={fullscreenImage || ''}
+              alt="Fullscreen view"
+              className="max-w-full max-h-full object-contain cursor-zoom-out"
+              onClick={() => setFullscreenImage(null)}
+            />
+            {/* Подсказка для закрытия */}
+            <div className="absolute top-4 right-4 text-white/70 text-sm bg-black/50 px-3 py-1 rounded">
+              Нажмите для закрытия
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
