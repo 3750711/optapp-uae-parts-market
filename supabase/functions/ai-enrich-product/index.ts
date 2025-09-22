@@ -7,6 +7,111 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ШАГ 0: Глобальная функция для анализа различий и извлечения новых правил
+async function extractNewRules(aiSuggestion: string, moderatorCorrection: string, productId: string) {
+  try {
+    console.log(`🔍 Analyzing differences for product ${productId}`);
+    console.log(`🎯 AI: "${aiSuggestion}" → Moderator: "${moderatorCorrection}"`);
+    
+    const supabase = createServiceClient();
+    
+    // Используем функцию из базы данных для извлечения правил
+    const { data: extractedRules, error: rpcError } = await supabase.rpc('extract_translation_rules', {
+      p_ai_suggestion: aiSuggestion,
+      p_moderator_correction: moderatorCorrection
+    });
+
+    if (rpcError) {
+      console.error('❌ RPC error extracting rules:', rpcError);
+      return { error: rpcError };
+    }
+
+    if (extractedRules && Array.isArray(extractedRules) && extractedRules.length > 0) {
+      console.log(`📝 Found ${extractedRules.length} potential new rules`);
+      
+      // Сохраняем анализ в таблицу
+      const { error: analysisError } = await supabase
+        .from('ai_correction_analysis')
+        .insert({
+          product_id: productId,
+          ai_suggestion: aiSuggestion,
+          moderator_correction: moderatorCorrection,
+          extracted_rules: extractedRules,
+          differences: extractedRules, // Добавляем для совместимости
+          moderator_id: null // Будет заполнено позже
+        });
+
+      if (analysisError) {
+        console.warn('⚠️ Failed to save analysis:', analysisError);
+      }
+
+      // Добавляем или обновляем правила перевода
+      for (const rule of extractedRules) {
+        try {
+          const { data: existingRule, error: selectError } = await supabase
+            .from('ai_translation_rules')
+            .select('id, usage_count')
+            .eq('original_phrase', rule.from)
+            .eq('corrected_phrase', rule.to)
+            .maybeSingle();
+
+          if (selectError) {
+            console.warn('⚠️ Error checking existing rule:', selectError);
+            continue;
+          }
+
+          if (existingRule) {
+            // Обновляем существующее правило
+            const { error: updateError } = await supabase
+              .from('ai_translation_rules')
+              .update({
+                usage_count: existingRule.usage_count + 1,
+                last_used_at: new Date().toISOString(),
+                confidence_score: Math.min(0.99, existingRule.usage_count * 0.1 + 0.5)
+              })
+              .eq('id', existingRule.id);
+              
+            if (updateError) {
+              console.warn('⚠️ Failed to update rule:', updateError);
+            } else {
+              console.log(`🔄 Updated existing rule: "${rule.from}" → "${rule.to}"`);
+            }
+          } else {
+            // Создаем новое правило
+            const { error: insertError } = await supabase
+              .from('ai_translation_rules')
+              .insert({
+                original_phrase: rule.from,
+                corrected_phrase: rule.to,
+                rule_type: rule.type || 'translation',
+                confidence_score: rule.confidence || 0.8,
+                usage_count: 1,
+                created_by: null,
+                last_used_at: new Date().toISOString()
+              });
+              
+            if (insertError) {
+              console.warn('⚠️ Failed to create rule:', insertError);
+            } else {
+              console.log(`✅ Created new rule: "${rule.from}" → "${rule.to}"`);
+            }
+          }
+        } catch (ruleError) {
+          console.warn('⚠️ Error processing rule:', rule, ruleError);
+        }
+      }
+      
+      return { error: null };
+    } else {
+      console.log('📝 No translation rules extracted');
+      return { error: null };
+    }
+  } catch (error) {
+    console.error('❌ Error extracting translation rules:', error);
+    return { error };
+  }
+}
+
 interface EnrichmentRequest {
   product_id: string;
   title: string;
@@ -160,73 +265,6 @@ ${translationRules.map(rule =>
     // Получаем обучающие данные от модераторов
     const corrections = await getRecentCorrections();
     console.log(`📚 Moderator corrections loaded: ${corrections ? 'YES' : 'NO'}`);
-
-    // Функция для анализа различий и извлечения новых правил
-    const extractNewRules = async (aiSuggestion: string, moderatorCorrection: string, productId: string) => {
-      try {
-        console.log(`🔍 Analyzing differences for product ${productId}`);
-        
-        // Используем функцию из базы данных для извлечения правил
-        const { data: extractedRules } = await supabase.rpc('extract_translation_rules', {
-          p_ai_suggestion: aiSuggestion,
-          p_moderator_correction: moderatorCorrection
-        });
-
-        if (extractedRules && Array.isArray(extractedRules) && extractedRules.length > 0) {
-          console.log(`📝 Found ${extractedRules.length} potential new rules`);
-          
-          // Сохраняем анализ в таблицу
-          await supabase
-            .from('ai_correction_analysis')
-            .insert({
-              product_id: productId,
-              ai_suggestion: aiSuggestion,
-              moderator_correction: moderatorCorrection,
-              extracted_rules: extractedRules,
-              moderator_id: null // Будет заполнено позже
-            });
-
-          // Добавляем или обновляем правила перевода
-          for (const rule of extractedRules) {
-            const { data: existingRule } = await supabase
-              .from('ai_translation_rules')
-              .select('id, usage_count')
-              .eq('original_phrase', rule.from)
-              .eq('corrected_phrase', rule.to)
-              .maybeSingle();
-
-            if (existingRule) {
-              // Обновляем существующее правило
-              await supabase
-                .from('ai_translation_rules')
-                .update({
-                  usage_count: existingRule.usage_count + 1,
-                  last_used_at: new Date().toISOString(),
-                  confidence_score: Math.min(0.99, existingRule.usage_count * 0.1 + 0.5)
-                })
-                .eq('id', existingRule.id);
-              console.log(`🔄 Updated existing rule: "${rule.from}" → "${rule.to}"`);
-            } else {
-              // Создаем новое правило
-              await supabase
-                .from('ai_translation_rules')
-                .insert({
-                  original_phrase: rule.from,
-                  corrected_phrase: rule.to,
-                  rule_type: rule.type || 'translation',
-                  confidence_score: rule.confidence || 0.7,
-                  usage_count: 1,
-                  created_by: null,
-                  last_used_at: new Date().toISOString()
-                });
-              console.log(`✅ Created new rule: "${rule.from}" → "${rule.to}"`);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error extracting translation rules:', error);
-      }
-    };
     // Статический промт с правилами обучения
     const staticPrompt = `${corrections}
 
