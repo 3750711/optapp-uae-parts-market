@@ -82,7 +82,6 @@ const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
 const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
 const AdminOrderDetails = lazy(() => import('@/pages/AdminOrderDetails'));
-const AdminAIDashboard = lazy(() => import('@/pages/AdminAIDashboard'));
 const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
 const AdminSellProduct = lazy(() => import('@/pages/AdminSellProduct'));
 const AdminStores = lazy(() => import('@/pages/AdminStores'));
@@ -98,6 +97,8 @@ const AdminHelpEditor = lazy(() => import('@/pages/AdminHelpEditor'));
 const AdminSynonyms = lazy(() => import('@/pages/AdminSynonyms'));
 const AdminSellerStatistics = lazy(() => import('@/pages/admin/AdminSellerStatistics'));
 const AdminSettings = lazy(() => import('@/pages/AdminSettings'));
+const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
+const AdminAIDashboard = lazy(() => import('@/pages/AdminAIDashboard'));
 const AdminFreeOrderUploadMonitoring = lazy(() => import('@/pages/admin/AdminFreeOrderUploadMonitoring'));
 const ActivityMonitor = lazy(() => import('@/pages/admin/ActivityMonitor'));
 
@@ -519,6 +520,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/settings" element={
               <AdminRoute>
                 <AdminSettings />
+              </AdminRoute>
+            } />
+            <Route path="/admin/ai-dashboard" element={
+              <AdminRoute>
+                <AdminAIDashboard />
               </AdminRoute>
             } />
             <Route path="/admin/monitoring/free-order-upload" element={
