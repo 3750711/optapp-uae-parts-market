@@ -264,12 +264,27 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const handleApplyAiBrand = async () => {
     if (!product.ai_suggested_brand) return;
     
+    // Находим ID бренда по названию
+    const foundBrandId = findBrandIdByName(product.ai_suggested_brand);
+    
+    if (!foundBrandId) {
+      toast({
+        title: "Марка не найдена",
+        description: `Марка "${product.ai_suggested_brand}" не найдена в базе данных`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Обновляем форму (сбрасываем модель при смене марки)
     setFormData(prev => ({ ...prev, brand: product.ai_suggested_brand!, model: '' }));
     
     try {
       await updateMutation.mutateAsync({
         brand: product.ai_suggested_brand,
-        model: null
+        brand_id: foundBrandId,
+        model: null,
+        model_id: null
       });
       
       toast({
@@ -278,17 +293,52 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       });
     } catch (error) {
       console.error('Error applying AI brand:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось применить марку",
+        variant: "destructive"
+      });
     }
   };
 
   const handleApplyAiModel = async () => {
     if (!product.ai_suggested_model) return;
     
+    // Сначала нужно определить текущий бренд (из AI предложения или текущего значения формы)
+    const currentBrand = formData.brand;
+    const currentBrandId = findBrandIdByName(currentBrand);
+    
+    if (!currentBrandId) {
+      toast({
+        title: "Сначала выберите марку",
+        description: "Для применения модели необходимо сначала выбрать марку",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Ищем модель для текущего бренда
+    const foundModelId = allModels.find(m => 
+      m.name.toLowerCase() === product.ai_suggested_model!.toLowerCase() && 
+      m.brand_id === currentBrandId
+    )?.id;
+    
+    if (!foundModelId) {
+      toast({
+        title: "Модель не найдена",
+        description: `Модель "${product.ai_suggested_model}" не найдена для марки "${currentBrand}"`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Обновляем форму
     setFormData(prev => ({ ...prev, model: product.ai_suggested_model! }));
     
     try {
       await updateMutation.mutateAsync({
-        model: product.ai_suggested_model
+        model: product.ai_suggested_model,
+        model_id: foundModelId
       });
       
       toast({
@@ -297,6 +347,11 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       });
     } catch (error) {
       console.error('Error applying AI model:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось применить модель",
+        variant: "destructive"
+      });
     }
   };
 
