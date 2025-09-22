@@ -8,6 +8,9 @@ import FormSectionWrapper from '../product/form/FormSectionWrapper';
 import BasicInfoSection from "../product/form/BasicInfoSection";
 import SellerSelectionSection from "../product/form/SellerSelectionSection";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Lazy loaded components
 const OptimizedMediaSection = React.lazy(() => import('../product/form/OptimizedMediaSection'));
@@ -54,23 +57,35 @@ const CarInfoSection: React.FC<{
   brandModels: Model[];
   isLoadingCarData: boolean;
 }> = ({ form, brands, brandModels, isLoadingCarData }) => {
+  const selectedBrandId = form.watch("brandId");
+  
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Brand Selection */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Марка автомобиля</label>
-        <select
-          {...form.register("brandId")}
-          className="w-full px-3 py-2 border border-input rounded-md bg-background"
-          disabled={isLoadingCarData}
-        >
-          <option value="">Выберите марку</option>
-          {brands.map((brand) => (
-            <option key={brand.id} value={brand.id}>
-              {brand.name}
-            </option>
-          ))}
-        </select>
+        <Label htmlFor="brandId">Марка автомобиля *</Label>
+        {isLoadingCarData ? (
+          <Skeleton className="h-10 w-full" />
+        ) : (
+          <Select
+            value={selectedBrandId || ''}
+            onValueChange={(value) => {
+              form.setValue("brandId", value);
+              form.setValue("modelId", ""); // Reset model when brand changes
+            }}
+          >
+            <SelectTrigger className="bg-background">
+              <SelectValue placeholder="Выберите марку..." />
+            </SelectTrigger>
+            <SelectContent>
+              {brands.map((brand) => (
+                <SelectItem key={brand.id} value={brand.id}>
+                  {brand.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         {form.formState.errors.brandId && (
           <p className="text-sm text-destructive">{form.formState.errors.brandId.message}</p>
         )}
@@ -78,19 +93,33 @@ const CarInfoSection: React.FC<{
 
       {/* Model Selection */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Модель автомобиля</label>
-        <select
-          {...form.register("modelId")}
-          className="w-full px-3 py-2 border border-input rounded-md bg-background"
-          disabled={isLoadingCarData || !form.watch("brandId")}
+        <Label htmlFor="modelId">Модель автомобиля</Label>
+        <Select
+          value={form.watch("modelId") || ''}
+          onValueChange={(value) => form.setValue("modelId", value)}
+          disabled={!selectedBrandId}
         >
-          <option value="">Выберите модель</option>
-          {brandModels.map((model) => (
-            <option key={model.id} value={model.id}>
-              {model.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="bg-background">
+            <SelectValue placeholder={
+              selectedBrandId
+                ? (isLoadingCarData ? 'Загрузка моделей...' : 'Выберите модель...')
+                : 'Сначала выберите марку'
+            } />
+          </SelectTrigger>
+          <SelectContent>
+            {isLoadingCarData ? (
+              <SelectItem disabled value="loading">Загрузка моделей...</SelectItem>
+            ) : brandModels.length === 0 ? (
+              <SelectItem disabled value="empty">Модели не найдены</SelectItem>
+            ) : (
+              brandModels.map((model) => (
+                <SelectItem key={model.id} value={model.id}>
+                  {model.name}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
         {form.formState.errors.modelId && (
           <p className="text-sm text-destructive">{form.formState.errors.modelId.message}</p>
         )}
