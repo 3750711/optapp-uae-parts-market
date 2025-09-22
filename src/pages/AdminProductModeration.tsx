@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useEnhancedProductsState } from '@/hooks/useEnhancedProductsState';
 import { useAdminProductsActions } from '@/hooks/useAdminProductsActions';
@@ -7,6 +7,9 @@ import { AlertCircle, Package } from 'lucide-react';
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
 
 const AdminProductModeration: React.FC = () => {
+  // Состояние для выбранного продукта
+  const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
+
   const {
     products,
     isLoading,
@@ -120,6 +123,15 @@ const AdminProductModeration: React.FC = () => {
     product.status === 'pending'
   );
 
+  // Навигация между продуктами
+  const navigateToProduct = useCallback((direction: 'next' | 'prev', currentIndex: number) => {
+    if (direction === 'next' && currentIndex < pendingProducts.length - 1) {
+      setSelectedProductIndex(currentIndex + 1);
+    } else if (direction === 'prev' && currentIndex > 0) {
+      setSelectedProductIndex(currentIndex - 1);
+    }
+  }, [pendingProducts.length]);
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-6">
@@ -154,7 +166,7 @@ const AdminProductModeration: React.FC = () => {
           </div>
         ) : (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {pendingProducts.map((product) => (
+            {pendingProducts.map((product, index) => (
               <ProductModerationCard
                 key={product.id}
                 product={product}
@@ -163,6 +175,8 @@ const AdminProductModeration: React.FC = () => {
                 debouncedSearchTerm={debouncedSearchTerm || ''}
                 sellerFilter={sellerFilter || 'all'}
                 pageSize={12}
+                onNext={() => navigateToProduct('next', index)}
+                onPrevious={() => navigateToProduct('prev', index)}
               />
             ))}
           </div>

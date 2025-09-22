@@ -15,6 +15,9 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
 import { AIConfidenceIndicator } from '@/components/ai/AIConfidenceIndicator';
+import AIEnrichmentPanel from '@/components/ai/AIEnrichmentPanel';
+import { AIFeedbackSystem } from '@/components/ai/AIFeedbackSystem';
+import { ModerationKeyboardShortcuts } from '@/components/admin/ModerationKeyboardShortcuts';
 
 interface Product {
   id: string;
@@ -41,6 +44,8 @@ interface ProductModerationCardProps {
   debouncedSearchTerm?: string;
   sellerFilter?: string;
   pageSize?: number;
+  onNext?: () => void;
+  onPrevious?: () => void;
 }
 
 const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
@@ -49,13 +54,16 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   statusFilter = 'pending',
   debouncedSearchTerm = '',
   sellerFilter = 'all',
-  pageSize = 12
+  pageSize = 12,
+  onNext,
+  onPrevious
 }) => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAiPanel, setShowAiPanel] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -444,16 +452,12 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             <Button
               variant="outline"
               size="sm"
-              onClick={handleAiEnrich}
-              disabled={isAiProcessing || isPublishing}
+              onClick={() => setShowAiPanel(!showAiPanel)}
+              disabled={isPublishing}
               className="gap-2"
             >
-              {isAiProcessing ? (
-                <Clock className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-              {isAiProcessing ? 'AI обработка...' : '🤖 AI обогащение'}
+              <Sparkles className="h-4 w-4" />
+              {showAiPanel ? 'Скрыть AI панель' : 'Показать AI панель'}
             </Button>
             
             {hasAiData && (
@@ -464,8 +468,24 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             )}
           </div>
 
+          {/* AI Panel */}
+          {showAiPanel && (
+            <AIEnrichmentPanel
+              title={formData.title}
+              brand={formData.brand}
+              model={formData.model}
+              productId={product.id}
+              onApplyChanges={(changes) => {
+                if (changes.title) setFormData(prev => ({ ...prev, title: changes.title! }));
+                if (changes.brand) setFormData(prev => ({ ...prev, brand: changes.brand! }));
+                if (changes.model) setFormData(prev => ({ ...prev, model: changes.model! }));
+              }}
+              disabled={isPublishing}
+            />
+          )}
+
           {/* AI Changes Comparison */}
-          {hasAiData && product.ai_original_title && product.ai_original_title !== product.title && (
+          {hasAiData && product.ai_original_title && product.ai_original_title !== product.title && !showAiPanel && (
             <div className="bg-muted/50 rounded-lg p-3 space-y-2">
               <div className="text-sm font-medium text-muted-foreground">AI внёс изменения:</div>
               <div className="space-y-2">
@@ -474,7 +494,34 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
                   <span className="bg-red-50 text-red-700 px-2 py-1 rounded font-mono text-xs">
                     {product.ai_original_title}
                   </span>
-                </div>
+          {/* AI Feedback System */}
+          {hasAiData && (
+            <AIFeedbackSystem
+              productId={product.id}
+              aiSuggestions={{
+                title: product.title,
+                brand: product.brand,
+                model: product.model,
+                confidence: product.ai_confidence || 0
+              }}
+              originalData={{
+                title: product.ai_original_title || product.title,
+                brand: product.brand,
+                model: product.model
+              }}
+            />
+          )}
+        </div>
+
+        {/* Keyboard Shortcuts Help */}
+        <ModerationKeyboardShortcuts
+          onPublish={handlePublish}
+          onReset={handleReset}
+          onAiEnrich={() => setShowAiPanel(true)}
+          onNextProduct={onNext}
+          onPrevProduct={onPrevious}
+          disabled={isPublishing}
+        />
                 <ArrowRight className="h-3 w-3 text-muted-foreground mx-2" />
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground">Стало:</span>
