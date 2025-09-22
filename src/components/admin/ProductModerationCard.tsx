@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { InlineEditableField } from '@/components/ui/InlineEditableField';
-import { InlineNumberField } from '@/components/admin/InlineNumberField';
-import AdminTitleEditor from '@/components/admin/AdminTitleEditor';
+import { SimpleTextInput } from '@/components/admin/SimpleTextInput';
+import { SimpleNumberInput } from '@/components/admin/SimpleNumberInput';
 import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
+import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn, RotateCcw } from 'lucide-react';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
 
@@ -33,7 +32,6 @@ interface ProductModerationCardProps {
   product: Product;
   onUpdate: () => void;
   statusFilter?: string;
-  // Добавляем параметры для правильного ключа кеша
   debouncedSearchTerm?: string;
   sellerFilter?: string;
   pageSize?: number;
@@ -48,11 +46,32 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   pageSize = 12
 }) => {
   const [isPublishing, setIsPublishing] = useState(false);
-  const [carSelection, setCarSelection] = useState({ brandId: '', modelId: '' });
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Локальное состояние формы
+  const [formData, setFormData] = useState({
+    title: product.title,
+    price: product.price,
+    place_number: product.place_number || 1,
+    delivery_price: product.delivery_price || 0,
+    brand: product.brand || '',
+    model: product.model || ''
+  });
+
+  // Обновляем форму при изменении продукта
+  useEffect(() => {
+    setFormData({
+      title: product.title,
+      price: product.price,
+      place_number: product.place_number || 1,
+      delivery_price: product.delivery_price || 0,
+      brand: product.brand || '',
+      model: product.model || ''
+    });
+  }, [product]);
   
   // Мемоизация данных изображений
   const images = useMemo(() => product.product_images || [], [product.product_images]);
@@ -83,19 +102,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     findModelNameById
   } = useAllCarBrands();
 
-  // Инициализация car selection при изменении данных
-  useEffect(() => {
-    if (!brands.length || !product.brand) return;
-    
-    const brandId = brands.find(b => b.name === product.brand)?.id || '';
-    const modelId = allModels.find(m => 
-      m.brand_id === brandId && m.name === product.model
-    )?.id || '';
-    
-    setCarSelection({ brandId, modelId });
-  }, [brands, allModels, product.brand, product.model]);
-
-  // Универсальная мутация с правильными ключами кеша
+  // Мутация для сохранения всех изменений
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       const { data, error } = await supabase
@@ -108,90 +115,85 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       if (error) throw error;
       return data;
     },
-    onMutate: async (updates) => {
-      // Создаем правильный ключ кеша с теми же параметрами что в query
-      const queryKey = adminProductsKeys.list({
-        debouncedSearchTerm,
-        statusFilter,
-        sellerFilter,
-        pageSize
+    onSuccess: (data, updates) => {
+      // Инвалидируем кеши для обновления
+      queryClient.invalidateQueries({ 
+        queryKey: adminProductsKeys.all
       });
       
-      // Отменяем все исходящие запросы
-      await queryClient.cancelQueries({ queryKey });
-      
-      // Получаем предыдущие данные
-      const previousData = queryClient.getQueryData(queryKey);
-      
-      // Оптимистичное обновление - точечно обновляем только нужный продукт
-      queryClient.setQueryData(queryKey, (old: any) => {
-        if (!old?.pages) return old;
-        
-        return {
-          ...old,
-          pages: old.pages.map((page: any) => ({
-            ...page,
-            data: page.data.map((p: any) => 
-              p.id === product.id ? { ...p, ...updates } : p
-            )
-          }))
-        };
+      toast({
+        title: "Сохранено",
+        description: "Изменения применены",
       });
-      
-      return { previousData, queryKey };
     },
-    onError: (err, updates, context) => {
-      // Восстанавливаем предыдущие данные при ошибке
-      if (context?.previousData && context?.queryKey) {
-        queryClient.setQueryData(context.queryKey, context.previousData);
-      }
-      
+    onError: (err) => {
       console.error('❌ Error updating product:', err);
       toast({
         title: "Ошибка",
         description: "Не удалось сохранить изменения",
         variant: "destructive",
       });
-    },
-    onSuccess: (data, updates) => {
-      // Инвалидируем только связанные кеши для обновления свежими данными с сервера
-      queryClient.invalidateQueries({ 
-        queryKey: adminProductsKeys.all
-      });
-      
-      // Показываем тост только для важных операций
-      if (updates.status || updates.title) {
-        toast({
-          title: "Сохранено",
-          description: "Изменения применены",
-        });
-      }
     }
   });
 
-  // Мгновенные field updates без debounce
-  const handleFieldUpdate = useCallback(async (field: string, value: any) => {
-    updateMutation.mutate({ [field]: value });
-  }, [updateMutation]);
+  // Проверяем есть ли изменения
+  const hasChanges = useMemo(() => {
+    return formData.title !== product.title ||
+           formData.price !== product.price ||
+           formData.place_number !== (product.place_number || 1) ||
+           formData.delivery_price !== (product.delivery_price || 0) ||
+           formData.brand !== (product.brand || '') ||
+           formData.model !== (product.model || '');
+  }, [formData, product]);
 
-  // Мемоизированные обработчики car selection  
+  // Обработчики изменения полей
+  const handleTitleChange = (value: string) => {
+    setFormData(prev => ({ ...prev, title: value }));
+  };
+
+  const handlePriceChange = (value: number) => {
+    setFormData(prev => ({ ...prev, price: value }));
+  };
+
+  const handlePlaceNumberChange = (value: number) => {
+    setFormData(prev => ({ ...prev, place_number: value }));
+  };
+
+  const handleDeliveryPriceChange = (value: number) => {
+    setFormData(prev => ({ ...prev, delivery_price: value }));
+  };
+
   const handleBrandChange = useCallback(async (brandId: string) => {
     const brand = brands.find(b => b.id === brandId)?.name || '';
-    setCarSelection({ brandId, modelId: '' });
-    updateMutation.mutate({ brand, model: '' });
-  }, [brands, updateMutation]);
+    setFormData(prev => ({ ...prev, brand, model: '' }));
+  }, [brands]);
 
   const handleModelChange = useCallback(async (modelId: string) => {
     const model = allModels.find(m => m.id === modelId)?.name || '';
-    setCarSelection(prev => ({ ...prev, modelId }));
-    updateMutation.mutate({ model });
-  }, [allModels, updateMutation]);
+    setFormData(prev => ({ ...prev, model }));
+  }, [allModels]);
 
+  // Сброс изменений
+  const handleReset = () => {
+    setFormData({
+      title: product.title,
+      price: product.price,
+      place_number: product.place_number || 1,
+      delivery_price: product.delivery_price || 0,
+      brand: product.brand || '',
+      model: product.model || ''
+    });
+  };
+
+  // Публикация с сохранением всех изменений
   const handlePublish = async () => {
     setIsPublishing(true);
     
     try {
-      const updates: any = { status: 'active' };
+      const updates: any = { 
+        status: 'active',
+        ...formData
+      };
       
       // Добавить оригинальное название если нужно
       if (!product.description?.includes('Оригинальное название')) {
@@ -200,8 +202,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       
       await updateMutation.mutateAsync(updates);
       
-      toast({ title: "Товар опубликован" });
-      // Убираем onUpdate() - оптимистические обновления и инвалидация кеша справятся сами
+      toast({ title: "Товар опубликован и изменения сохранены" });
     } finally {
       setIsPublishing(false);
     }
@@ -225,6 +226,12 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     };
     return colors[product.status] || 'bg-gray-100 text-gray-800';
   }, [product.status]);
+
+  // Получаем ID для селектора машин
+  const brandId = brands.find(b => b.name === formData.brand)?.id || '';
+  const modelId = allModels.find(m => 
+    m.brand_id === brandId && m.name === formData.model
+  )?.id || '';
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -293,64 +300,70 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         >
           {product.status}
         </Badge>
+
+        {/* Индикатор изменений */}
+        {hasChanges && (
+          <Badge 
+            className="absolute top-2 left-2 bg-primary text-primary-foreground"
+            variant="default"
+          >
+            Изменено
+          </Badge>
+        )}
       </div>
 
       <CardContent className="p-6 space-y-6">
-        {/* Название - на всю ширину */}
-        <div className="w-full">
-          <AdminTitleEditor
-            originalTitle={product.title}
-            value={product.title}
-            onSave={(value) => handleFieldUpdate('title', value)}
-            className="w-full"
-          />
-        </div>
+        {/* Название товара */}
+        <SimpleTextInput
+          label="Название товара"
+          value={formData.title}
+          originalValue={product.title}
+          onChange={handleTitleChange}
+          placeholder="Введите название товара"
+        />
 
-        {/* Цены - каждая с новой строки с цветными индикаторами */}
-        <div className="space-y-4">
-          <div className="border-l-4 border-primary/20 pl-4">
-            <InlineNumberField
-              label="Цена товара"
-              value={product.price}
-              onSave={(value) => handleFieldUpdate('price', value)}
-              prefix="$"
-              simple={true}
-              className="w-full"
-            />
-          </div>
+        {/* Цены в ряд */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <SimpleNumberInput
+            label="Цена товара"
+            value={formData.price}
+            originalValue={product.price}
+            onChange={handlePriceChange}
+            prefix="$"
+          />
           
-          <div className="border-l-4 border-blue-500/20 pl-4">
-            <InlineNumberField
-              label="Количество мест"
-              value={product.place_number || 1}
-              onSave={(value) => handleFieldUpdate('place_number', value)}
-              suffix=" шт"
-              simple={true}
-              className="w-full"
-            />
-          </div>
+          <SimpleNumberInput
+            label="Количество мест"
+            value={formData.place_number}
+            originalValue={product.place_number || 1}
+            onChange={handlePlaceNumberChange}
+            suffix=" шт"
+            min={1}
+          />
           
-          <div className="border-l-4 border-green-500/20 pl-4">
-            <InlineNumberField
-              label="Стоимость доставки"
-              value={product.delivery_price || 0}
-              onSave={(value) => handleFieldUpdate('delivery_price', value)}
-              prefix="$"
-              simple={true}
-              className="w-full"
-            />
-          </div>
+          <SimpleNumberInput
+            label="Стоимость доставки"
+            value={formData.delivery_price}
+            originalValue={product.delivery_price || 0}
+            onChange={handleDeliveryPriceChange}
+            prefix="$"
+          />
         </div>
 
         {/* Селектор машины */}
         <div className="pt-4 border-t">
           <SimpleCarSelector
-            brandId={carSelection.brandId}
-            modelId={carSelection.modelId}
+            brandId={brandId}
+            modelId={modelId}
             onBrandChange={handleBrandChange}
             onModelChange={handleModelChange}
             disabled={isLoadingCarData}
           />
+          {(formData.brand !== (product.brand || '') || formData.model !== (product.model || '')) && (
+            <div className="mt-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded border-l-2 border-muted-foreground/30">
+              <span className="font-medium">Было:</span> {product.brand || 'Не указано'} {product.model || ''}
+            </div>
+          )}
         </div>
 
         {/* Информация о продавце */}
@@ -369,6 +382,18 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           <Eye className="h-3 w-3 mr-1" />
           Просмотр
         </Button>
+
+        {hasChanges && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReset}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="h-3 w-3 mr-1" />
+            Сбросить
+          </Button>
+        )}
         
         <Button
           onClick={handlePublish}
