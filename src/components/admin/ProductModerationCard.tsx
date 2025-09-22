@@ -337,9 +337,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     try {
       await updateMutation.mutateAsync({
         brand: product.ai_suggested_brand,
-        brand_id: foundBrandId,
-        model: null,
-        model_id: null
+        model: null
       });
       
       toast({
@@ -389,8 +387,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     
     try {
       await updateMutation.mutateAsync({
-        model: product.ai_suggested_model,
-        model_id: foundModelId
+        model: product.ai_suggested_model
       });
       
       toast({
