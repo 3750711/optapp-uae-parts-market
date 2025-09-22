@@ -10,10 +10,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn, RotateCcw, Bot, Sparkles, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn, RotateCcw, Bot, Sparkles, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
+import { AIConfidenceIndicator } from '@/components/ai/AIConfidenceIndicator';
 
 interface Product {
   id: string;
@@ -417,15 +418,12 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           >
             {product.status}
           </Badge>
-          {hasAiData && (
-            <Badge 
-              variant={isHighAiConfidence ? "default" : "outline"}
-              className="gap-1 text-xs"
-            >
-              <Bot className="h-3 w-3" />
-              AI {aiConfidencePercent}%
-            </Badge>
-          )}
+          <AIConfidenceIndicator
+            confidence={product.ai_confidence}
+            enrichedAt={product.ai_enriched_at}
+            isProcessing={isAiProcessing}
+            className="items-end"
+          />
         </div>
 
         {/* Индикатор изменений */}
@@ -440,27 +438,51 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       </div>
 
       <CardContent className="p-6 space-y-6">
-        {/* AI Enhancement Button */}
-        <div className="flex gap-2 mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleAiEnrich}
-            disabled={isAiProcessing || isPublishing}
-            className="gap-2"
-          >
-            {isAiProcessing ? (
-              <Clock className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
+        {/* AI Enhancement Section */}
+        <div className="space-y-3">
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAiEnrich}
+              disabled={isAiProcessing || isPublishing}
+              className="gap-2"
+            >
+              {isAiProcessing ? (
+                <Clock className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {isAiProcessing ? 'AI обработка...' : '🤖 AI обогащение'}
+            </Button>
+            
+            {hasAiData && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <CheckCircle className="h-3 w-3 text-green-500" />
+                {new Date(product.ai_enriched_at || '').toLocaleDateString('ru-RU')}
+              </div>
             )}
-            {isAiProcessing ? 'AI обработка...' : '🤖 AI обогащение'}
-          </Button>
-          
-          {hasAiData && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
-              <CheckCircle className="h-3 w-3 text-green-500" />
-              AI обработан {new Date(product.ai_enriched_at || '').toLocaleDateString('ru-RU')}
+          </div>
+
+          {/* AI Changes Comparison */}
+          {hasAiData && product.ai_original_title && product.ai_original_title !== product.title && (
+            <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+              <div className="text-sm font-medium text-muted-foreground">AI внёс изменения:</div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">Было:</span>
+                  <span className="bg-red-50 text-red-700 px-2 py-1 rounded font-mono text-xs">
+                    {product.ai_original_title}
+                  </span>
+                </div>
+                <ArrowRight className="h-3 w-3 text-muted-foreground mx-2" />
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground">Стало:</span>
+                  <span className="bg-green-50 text-green-700 px-2 py-1 rounded font-mono text-xs">
+                    {product.title}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </div>
