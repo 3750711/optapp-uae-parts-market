@@ -19,3 +19,22 @@ export const CACHE_FILTERS = {
 export const createCacheKey = (key: string, ...params: (string | undefined)[]) => {
   return [key, ...params.filter(Boolean)];
 };
+
+// Централизованные фабрики ключей кеша для админ-продуктов
+export const adminProductsKeys = {
+  all: ['admin-products'] as const,
+  list: (params: {
+    debouncedSearchTerm?: string;
+    statusFilter?: string;
+    sellerFilter?: string;
+    pageSize?: number;
+  }) => [...adminProductsKeys.all, params] as const,
+  byId: (id: string) => [...adminProductsKeys.all, 'by-id', id] as const,
+} as const;
+
+// Фабрики ключей для других сущностей
+export const productsKeys = {
+  all: ['products'] as const,
+  infinite: (params: any) => [...productsKeys.all, 'infinite', params] as const,
+  byId: (id: string) => [...productsKeys.all, 'by-id', id] as const,
+} as const;

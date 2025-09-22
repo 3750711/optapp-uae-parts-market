@@ -12,6 +12,7 @@ import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
+import { adminProductsKeys } from '@/utils/cacheKeys';
 
 interface Product {
   id: string;
@@ -31,12 +32,19 @@ interface ProductModerationCardProps {
   product: Product;
   onUpdate: () => void;
   statusFilter?: string;
+  // Добавляем параметры для правильного ключа кеша
+  debouncedSearchTerm?: string;
+  sellerFilter?: string;
+  pageSize?: number;
 }
 
 const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   product,
   onUpdate,
-  statusFilter = 'pending'
+  statusFilter = 'pending',
+  debouncedSearchTerm = '',
+  sellerFilter = 'all',
+  pageSize = 12
 }) => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [carSelection, setCarSelection] = useState({ brandId: '', modelId: '' });
@@ -85,7 +93,7 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     setCarSelection({ brandId, modelId });
   }, [brands, allModels, product.brand, product.model]);
 
-  // Универсальная мутация
+  // Универсальная мутация с правильными ключами кеша
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
       const { data, error } = await supabase
@@ -99,46 +107,43 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       return data;
     },
     onMutate: async (updates) => {
-      // Получаем правильный ключ кеша из всех возможных вариантов
-      const baseKey = 'admin-products';
-      await queryClient.cancelQueries({ queryKey: [baseKey] });
-      
-      // Получаем все данные кеша для админ-продуктов
-      const queryCache = queryClient.getQueryCache();
-      const queries = queryCache.findAll({ queryKey: [baseKey] });
-      const previousDataMap = new Map();
-      
-      // Сохраняем предыдущие данные
-      queries.forEach(query => {
-        previousDataMap.set(query.queryKey, query.state.data);
+      // Создаем правильный ключ кеша с теми же параметрами что в query
+      const queryKey = adminProductsKeys.list({
+        debouncedSearchTerm,
+        statusFilter,
+        sellerFilter,
+        pageSize
       });
       
-      // Оптимистичное обновление для всех связанных кешей
-      queries.forEach(query => {
-        queryClient.setQueryData(query.queryKey, (old: any) => {
-          if (!old?.pages) return old;
-          
-          return {
-            ...old,
-            pages: old.pages.map((page: any) => ({
-              ...page,
-              data: page.data.map((p: any) => 
-                p.id === product.id ? { ...p, ...updates } : p
-              )
-            }))
-          };
-        });
+      // Отменяем все исходящие запросы
+      await queryClient.cancelQueries({ queryKey });
+      
+      // Получаем предыдущие данные
+      const previousData = queryClient.getQueryData(queryKey);
+      
+      // Оптимистичное обновление - точечно обновляем только нужный продукт
+      queryClient.setQueryData(queryKey, (old: any) => {
+        if (!old?.pages) return old;
+        
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            data: page.data.map((p: any) => 
+              p.id === product.id ? { ...p, ...updates } : p
+            )
+          }))
+        };
       });
       
-      return { previousDataMap };
+      return { previousData, queryKey };
     },
     onError: (err, updates, context) => {
-      // Восстанавливаем предыдущие данные
-      if (context?.previousDataMap) {
-        context.previousDataMap.forEach((data, queryKey) => {
-          queryClient.setQueryData(queryKey, data);
-        });
+      // Восстанавливаем предыдущие данные при ошибке
+      if (context?.previousData && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousData);
       }
+      
       console.error('❌ Error updating product:', err);
       toast({
         title: "Ошибка",
@@ -147,8 +152,10 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       });
     },
     onSuccess: (data, updates) => {
-      // Инвалидируем все связанные кеши после успешного обновления
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      // Инвалидируем только связанные кеши для обновления свежими данными с сервера
+      queryClient.invalidateQueries({ 
+        queryKey: adminProductsKeys.all
+      });
       
       // Показываем тост только для важных операций
       if (updates.status || updates.title) {

@@ -12,6 +12,7 @@ const AdminProductModeration: React.FC = () => {
     isLoading,
     refetch,
     searchTerm,
+    debouncedSearchTerm, // Добавляем для передачи в ProductModerationCard
     updateSearchTerm,
     statusFilter,
     setStatusFilter,
@@ -159,6 +160,9 @@ const AdminProductModeration: React.FC = () => {
                 product={product}
                 onUpdate={refetch}
                 statusFilter={statusFilter || 'pending'}
+                debouncedSearchTerm={debouncedSearchTerm || ''}
+                sellerFilter={sellerFilter || 'all'}
+                pageSize={12}
               />
             ))}
           </div>

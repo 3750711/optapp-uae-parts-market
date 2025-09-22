@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/product';
+import { adminProductsKeys } from '@/utils/cacheKeys';
 
 interface UseProductsQueryProps {
   debouncedSearchTerm: string;
@@ -166,7 +167,7 @@ export const useProductsQuery = ({
   };
 
   const queryResult = useInfiniteQuery({
-    queryKey: ['admin-products', { debouncedSearchTerm, statusFilter, sellerFilter, pageSize }],
+    queryKey: adminProductsKeys.list({ debouncedSearchTerm, statusFilter, sellerFilter, pageSize }),
     queryFn: fetchProducts,
     getNextPageParam: (lastPage, allPages) => {
       const totalItems = allPages.reduce((sum, page) => sum + page.data.length, 0);
