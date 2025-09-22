@@ -38,7 +38,65 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not found');
     }
 
-    const { product_id, title, brand, model, description, auto_trigger = false }: EnrichmentRequest & { auto_trigger?: boolean } = await req.json();
+    const { 
+      product_id, 
+      title, 
+      brand, 
+      model, 
+      description, 
+      auto_trigger = false,
+      extract_rules_only = false,
+      ai_suggestion,
+      moderator_correction
+    }: EnrichmentRequest & { 
+      auto_trigger?: boolean,
+      extract_rules_only?: boolean,
+      ai_suggestion?: string,
+      moderator_correction?: string
+    } = await req.json();
+
+    // ШАГ 3: Специальный режим только для извлечения правил
+    if (extract_rules_only && ai_suggestion && moderator_correction && product_id) {
+      console.log(`🎯 Extract rules only mode for product ${product_id}`);
+      console.log(`AI: "${ai_suggestion}" → Moderator: "${moderator_correction}"`);
+      
+      try {
+        const { error: rulesError } = await extractNewRules(
+          ai_suggestion,
+          moderator_correction,
+          product_id
+        );
+        
+        if (rulesError) {
+          console.error('❌ Failed to extract rules:', rulesError);
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: rulesError.message 
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        console.log('✅ Rules extraction completed');
+        return new Response(JSON.stringify({ 
+          success: true, 
+          message: 'Rules extracted successfully' 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+        
+      } catch (error) {
+        console.error('❌ Rules extraction failed:', error);
+        return new Response(JSON.stringify({ 
+          success: false, 
+          error: 'Rules extraction failed' 
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     console.log(`🤖 AI enrichment started for product ${product_id}: "${title}" (auto: ${auto_trigger})`);
 
@@ -302,6 +360,26 @@ JSON ответ:
       // Не выбрасываем ошибку, так как основная функция уже выполнена
     } else {
       console.log('📝 AI enrichment log saved');
+    }
+
+    // ШАГ 1: Извлечение правил из различий между AI и оригиналом
+    if (product_id && result.title_ru && title && result.title_ru !== title) {
+      try {
+        console.log('🎯 Extracting rules from AI vs original title differences...');
+        const { error: rulesError } = await extractNewRules(
+          result.title_ru,  // AI предложение
+          title,            // Оригинальный заголовок
+          product_id
+        );
+        
+        if (rulesError) {
+          console.warn('⚠️ Failed to extract rules:', rulesError);
+        } else {
+          console.log('📚 New translation rules extracted and saved');
+        }
+      } catch (error) {
+        console.warn('⚠️ Rules extraction failed:', error);
+      }
     }
     
     return new Response(JSON.stringify(result), {

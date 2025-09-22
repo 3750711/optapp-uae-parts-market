@@ -526,6 +526,29 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           .insert(correctionData);
         
         console.log('📚 Training data saved successfully');
+        
+        // ШАГ 2: Анализ различий между AI предложением и исправлением модератора
+        if (product.ai_suggested_title && formData.title && product.ai_suggested_title !== formData.title) {
+          try {
+            console.log('🎯 Analyzing moderator corrections for rule extraction...');
+            const { error: rulesError } = await supabase.functions.invoke('ai-enrich-product', {
+              body: {
+                extract_rules_only: true,
+                ai_suggestion: product.ai_suggested_title,
+                moderator_correction: formData.title,
+                product_id: product.id
+              }
+            });
+            
+            if (rulesError) {
+              console.warn('⚠️ Failed to extract rules from corrections:', rulesError);
+            } else {
+              console.log('📚 Rules extracted from moderator corrections');
+            }
+          } catch (error) {
+            console.warn('⚠️ Rule extraction from corrections failed:', error);
+          }
+        }
       }
       
       await updateMutation.mutateAsync(updates);
