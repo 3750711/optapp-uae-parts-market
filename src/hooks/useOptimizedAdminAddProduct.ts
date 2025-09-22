@@ -8,6 +8,7 @@ import { createProductTitleParser } from "@/utils/productTitleParser";
 import { adminProductSchema, AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useAdminProductCreation } from "@/hooks/useAdminProductCreation";
+import { useTrustedSellerProductCreation } from "@/hooks/useTrustedSellerProductCreation";
 import { useOptimizedFormAutosave } from "@/hooks/useOptimizedFormAutosave";
 import { useCachedBrands, useCachedModels, useCachedAllModels, useCachedSellers } from "@/hooks/useCachedReferenceData";
 import { useDebounceValue } from "@/hooks/useDebounceValue";
@@ -48,7 +49,14 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
     ? [{ id: sellerId, full_name: 'Current User', opt_id: '' }] 
     : sellersData;
 
-  const { createProductWithTransaction, isCreating, steps: progressSteps, totalProgress, resetMonitoring } = useAdminProductCreation();
+  // Use different hooks based on mode
+  const adminHook = useAdminProductCreation();
+  const trustedSellerHook = useTrustedSellerProductCreation();
+  
+  const isCreating = mode === 'trusted_seller' ? trustedSellerHook.isCreating : adminHook.isCreating;
+  const progressSteps = mode === 'trusted_seller' ? [] : adminHook.steps;
+  const totalProgress = mode === 'trusted_seller' ? 0 : adminHook.totalProgress;
+  const resetMonitoring = mode === 'trusted_seller' ? () => {} : adminHook.resetMonitoring;
 
   const form = useForm<AdminProductFormValues>({
     resolver: zodResolver(adminProductSchema),
@@ -257,31 +265,53 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
       // Set publishing flag to disable autosave
       setIsPublishing(true);
       
-      const product = await createProductWithTransaction({
-        values,
-        imageUrls,
-        videoUrls,
-        primaryImage,
-        sellers,
-        brands,
-        brandModels
-      });
-
-      if (product) {
-        // Reset all form and state data
-        resetFormAndState();
-        
-        // Navigate после успешного создания
-        if (mode === 'admin') {
-          navigate(`/product/${product.id}`);
-        } else {
-          navigate(`/seller/product/${product.id}?from=add`);
-        }
-        
-        toast({
-          title: "Товар успешно создан",
-          description: "Перенаправление на страницу товара...",
+      if (mode === 'trusted_seller') {
+        // Use trusted seller creation logic
+        const result = await trustedSellerHook.createTrustedSellerProduct({
+          values,
+          imageUrls,
+          videoUrls,
+          primaryImage,
+          brands,
+          brandModels
         });
+        
+        if (result) {
+          // Reset all form and state data
+          resetFormAndState();
+          
+          // Navigate после успешного создания
+          navigate(`/seller/product/${result.productId}?from=add`);
+          
+          toast({
+            title: "Товар успешно создан",
+            description: "Перенаправление на страницу товара...",
+          });
+        }
+      } else {
+        // Use admin creation logic
+        const product = await adminHook.createProductWithTransaction({
+          values,
+          imageUrls,
+          videoUrls,
+          primaryImage,
+          sellers,
+          brands,
+          brandModels
+        });
+
+        if (product) {
+          // Reset all form and state data
+          resetFormAndState();
+          
+          // Navigate после успешного создания
+          navigate(`/product/${product.id}`);
+          
+          toast({
+            title: "Товар успешно создан",
+            description: "Перенаправление на страницу товара...",
+          });
+        }
       }
     } catch (error) {
       // Re-enable autosave on error

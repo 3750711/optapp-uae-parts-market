@@ -43,12 +43,7 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
     sellerId: user?.id 
   });
 
-  // Auto-set current user as seller for trusted sellers
-  React.useEffect(() => {
-    if (user?.id && mode === 'trusted_seller') {
-      form.setValue('sellerId', user.id);
-    }
-  }, [user?.id, form, mode]);
+  // Форма теперь автоматически настраивается для доверенных продавцов через хук
 
   const handleRefreshPage = () => {
     window.location.reload();
