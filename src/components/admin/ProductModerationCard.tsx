@@ -513,11 +513,42 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     return colors[product.status] || 'bg-gray-100 text-gray-800';
   }, [product.status]);
 
-  // Получаем ID для селектора машин
-  const brandId = brands.find(b => b.name === formData.brand)?.id || '';
-  const modelId = allModels.find(m => 
-    m.brand_id === brandId && m.name === formData.model
-  )?.id || '';
+  // Получаем ID для селектора машин с отладочной информацией
+  const brandId = React.useMemo(() => {
+    const foundId = brands.find(b => b.name === formData.brand)?.id || '';
+    console.log('🔍 Brand ID Search:', {
+      searchTerm: formData.brand,
+      foundId,
+      availableBrands: brands.map(b => ({ id: b.id, name: b.name })),
+      isLoadingCarData
+    });
+    return foundId;
+  }, [formData.brand, brands, isLoadingCarData]);
+
+  const modelId = React.useMemo(() => {
+    if (!brandId) {
+      console.log('🔍 Model ID Search: No brandId, skipping model search');
+      return '';
+    }
+    
+    const foundId = allModels.find(m => 
+      m.brand_id === brandId && m.name === formData.model
+    )?.id || '';
+    
+    const availableModels = allModels.filter(m => m.brand_id === brandId);
+    
+    console.log('🔍 Model ID Search:', {
+      searchTerm: formData.model,
+      brandId,
+      brandName: formData.brand,
+      foundId,
+      availableModelsForBrand: availableModels.map(m => ({ id: m.id, name: m.name })),
+      allModelsCount: allModels.length,
+      isLoadingCarData
+    });
+    
+    return foundId;
+  }, [formData.model, brandId, formData.brand, allModels, isLoadingCarData]);
 
   // Проверяем есть ли AI данные
   const hasAiData = product.ai_confidence !== null && product.ai_enriched_at;
