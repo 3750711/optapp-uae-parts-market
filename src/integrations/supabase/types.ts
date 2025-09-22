@@ -155,39 +155,6 @@ export type Database = {
           },
         ]
       }
-      ai_prompt_admin_rules: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          display_order: number
-          id: string
-          is_active: boolean
-          rule_category: string
-          rule_text: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          display_order?: number
-          id?: string
-          is_active?: boolean
-          rule_category?: string
-          rule_text: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          display_order?: number
-          id?: string
-          is_active?: boolean
-          rule_category?: string
-          rule_text?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       ai_training_data: {
         Row: {
           brand_detected: string | null
