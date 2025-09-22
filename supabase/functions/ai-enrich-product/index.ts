@@ -136,6 +136,7 @@ ${data.map(d => `"${d.ai_original_title}" → "${d.moderator_corrected_title}"`)
 
     // Получаем обучающие данные от модераторов
     const corrections = await getRecentCorrections();
+    console.log(`📚 Moderator corrections loaded: ${corrections ? 'YES' : 'NO'}, length: ${corrections.length}`);
 
     // Default prompt as fallback
     const defaultPrompt = `${corrections}
@@ -201,17 +202,28 @@ JSON ответ:
     }
     
     // Replace variables in the prompt template
+    console.log(`🔧 Replacing variables: title="${title}", brand="${brand || 'Unknown'}", model="${model || 'Unknown'}"`);
+    console.log(`📚 Corrections to insert: "${corrections.substring(0, 100)}..."`);
+    
     const prompt = finalPrompt
-      .replace(/{title}/g, title)
-      .replace(/{brand}/g, brand || 'Unknown')
-      .replace(/{model}/g, model || 'Unknown')
-      .replace(/{category}/g, 'automotive_parts')
-      .replace(/{brandsWithModels}/g, brandsWithModels)
-      .replace(/{brandsList}/g, brandsList)
-      .replace(/{moderatorCorrections}/g, corrections);
+      .replace(/\$\{title\}/g, title)
+      .replace(/\{title\}/g, title)
+      .replace(/\$\{brand\}/g, brand || 'Unknown')
+      .replace(/\{brand\}/g, brand || 'Unknown')
+      .replace(/\$\{model\}/g, model || 'Unknown')
+      .replace(/\{model\}/g, model || 'Unknown')
+      .replace(/\$\{category\}/g, 'automotive_parts')
+      .replace(/\{category\}/g, 'automotive_parts')
+      .replace(/\$\{brandsWithModels\}/g, brandsWithModels)
+      .replace(/\{brandsWithModels\}/g, brandsWithModels)
+      .replace(/\$\{brandsList\}/g, brandsList)
+      .replace(/\{brandsList\}/g, brandsList)
+      .replace(/\$\{moderatorCorrections\}/g, corrections)
+      .replace(/\{moderatorCorrections\}/g, corrections);
 
     console.log(`📝 Final prompt built with ${adminRules.length} admin rules`);
-    console.log(`📄 Prompt preview: ${prompt.substring(0, 200)}...`);
+    console.log(`📄 Final prompt length: ${prompt.length} characters`);
+    console.log(`📄 Prompt preview: ${prompt.substring(0, 300)}...`);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
