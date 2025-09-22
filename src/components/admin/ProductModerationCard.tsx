@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useAllCarBrands } from '@/hooks/useAllCarBrands';
+import { useLazyCarData } from '@/hooks/useLazyCarData';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn, RotateCcw, Bot, Sparkles, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -122,19 +122,42 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   
   const {
     brands,
-    allModels,
-    isLoading: isLoadingCarData,
+    models,
+    isLoadingBrands,
+    isLoadingModels,
+    selectedBrandId,
+    enableBrandsLoading,
+    selectBrand,
     findBrandIdByName,
     findModelIdByName,
     findBrandNameById,
-    findModelNameById
-  } = useAllCarBrands();
+    findModelNameById,
+    findModelIdByNameDirect
+  } = useLazyCarData();
+
+  const isLoadingCarData = isLoadingBrands || isLoadingModels;
+
+  // Инициализация ленивой загрузки данных
+  useEffect(() => {
+    enableBrandsLoading();
+    
+    // Если есть бренд в данных товара, загружаем его модели
+    if (product.brand && brands.length > 0) {
+      const brandId = brands.find(b => b.name === product.brand)?.id;
+      if (brandId && selectedBrandId !== brandId) {
+        selectBrand(brandId);
+      }
+    }
+  }, [enableBrandsLoading, selectBrand, product.brand, brands, selectedBrandId]);
 
   // Диагностические логи для данных автомобилей
   console.log('🚗 Car Data State:', {
     isLoadingCarData,
+    isLoadingBrands,
+    isLoadingModels,
     brandsCount: brands.length,
-    allModelsCount: allModels.length,
+    modelsCount: models.length,
+    selectedBrandId,
     formDataBrand: formData.brand,
     formDataModel: formData.model,
     productBrand: product.brand,
@@ -143,15 +166,11 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
   // Дополнительная диагностика для Toyota
   if (formData.brand === 'Toyota' || product.brand === 'Toyota') {
-    const toyotaModels = allModels.filter(m => {
-      const brand = brands.find(b => b.id === m.brand_id);
-      return brand?.name === 'Toyota';
-    });
-    
     console.log('🏗️ Toyota Models Debug:', {
-      toyotaModelsCount: toyotaModels.length,
-      spacioModels: toyotaModels.filter(m => m.name.toLowerCase().includes('spacio')),
-      allToyotaModels: toyotaModels.map(m => m.name).sort()
+      selectedBrandId,
+      modelsCount: models.length,
+      spacioModels: models.filter(m => m.name.toLowerCase().includes('spacio')),
+      allModels: models.map(m => m.name).sort()
     });
   }
 
@@ -241,12 +260,15 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const handleBrandChange = useCallback(async (brandId: string) => {
     const brand = brands.find(b => b.id === brandId)?.name || '';
     setFormData(prev => ({ ...prev, brand, model: '' }));
-  }, [brands]);
+    
+    // Загружаем модели для выбранного бренда
+    selectBrand(brandId);
+  }, [brands, selectBrand]);
 
   const handleModelChange = useCallback(async (modelId: string) => {
-    const model = allModels.find(m => m.id === modelId)?.name || '';
+    const model = models.find(m => m.id === modelId)?.name || '';
     setFormData(prev => ({ ...prev, model }));
-  }, [allModels]);
+  }, [models]);
 
   // Сброс изменений
   const handleReset = () => {
@@ -350,11 +372,8 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       return;
     }
     
-    // Ищем модель для текущего бренда
-    const foundModelId = allModels.find(m => 
-      m.name.toLowerCase() === product.ai_suggested_model!.toLowerCase() && 
-      m.brand_id === currentBrandId
-    )?.id;
+    // Ищем модель для текущего бренда (прямой поиск в базе)
+    const foundModelId = await findModelIdByNameDirect(product.ai_suggested_model!, currentBrandId);
     
     if (!foundModelId) {
       toast({
@@ -564,24 +583,23 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       return '';
     }
     
-    const foundId = allModels.find(m => 
+    const foundId = models.find(m => 
       m.brand_id === brandId && m.name === formData.model
     )?.id || '';
-    
-    const availableModels = allModels.filter(m => m.brand_id === brandId);
     
     console.log('🔍 Model ID Search:', {
       searchTerm: formData.model,
       brandId,
       brandName: formData.brand,
       foundId,
-      availableModelsForBrand: availableModels.map(m => ({ id: m.id, name: m.name })),
-      allModelsCount: allModels.length,
+      availableModelsForBrand: models.map(m => ({ id: m.id, name: m.name })),
+      modelsCount: models.length,
+      selectedBrandId,
       isLoadingCarData
     });
     
     return foundId;
-  }, [formData.model, brandId, formData.brand, allModels, isLoadingCarData]);
+  }, [formData.model, brandId, formData.brand, models, selectedBrandId, isLoadingCarData]);
 
   // Проверяем есть ли AI данные
   const hasAiData = product.ai_confidence !== null && product.ai_enriched_at;
