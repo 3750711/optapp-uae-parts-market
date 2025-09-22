@@ -10,7 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn, RotateCcw } from 'lucide-react';
+import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn, RotateCcw, Bot, Sparkles, Clock, AlertCircle } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
 
@@ -26,6 +27,10 @@ interface Product {
   seller_name: string;
   brand?: string;
   model?: string;
+  ai_confidence?: number;
+  ai_enriched_at?: string;
+  ai_original_title?: string;
+  created_at?: string;
 }
 
 interface ProductModerationCardProps {
@@ -48,6 +53,8 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const [isPublishing, setIsPublishing] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+  const [isAiProcessing, setIsAiProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -120,6 +127,28 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       queryClient.invalidateQueries({ 
         queryKey: adminProductsKeys.all
       });
+
+      // Сохраняем данные для обучения AI если были изменения
+      if (updates.title !== product.title || 
+          updates.brand !== product.brand || 
+          updates.model !== product.model) {
+        
+        supabase
+          .from('ai_training_data')
+          .insert({
+            original_text: product.title,
+            corrected_text: updates.title,
+            brand_detected: updates.brand,
+            model_detected: updates.model,
+            moderator_corrections: {
+              title: { from: product.title, to: updates.title },
+              brand: { from: product.brand, to: updates.brand },
+              model: { from: product.model, to: updates.model }
+            }
+          })
+          .then(() => console.log('📚 Training data saved for AI learning'))
+          .catch(err => console.warn('Warning: Could not save training data:', err));
+      }
       
       toast({
         title: "Сохранено",
@@ -185,6 +214,88 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     });
   };
 
+  // AI обогащение товара
+  const handleAiEnrich = async () => {
+    if (isAiProcessing) return;
+    
+    setIsAiProcessing(true);
+    setError(null);
+    
+    try {
+      console.log('🤖 Starting AI enrichment for product:', product.id);
+      
+      const { data, error } = await supabase.functions.invoke('ai-enrich-product', {
+        body: {
+          product_id: product.id,
+          title: formData.title || product.title,
+          brand: formData.brand || product.brand,
+          model: formData.model || product.model,
+          description: product.description
+        }
+      });
+      
+      if (error) {
+        console.error('AI enrichment error:', error);
+        throw error;
+      }
+
+      if (data) {
+        console.log('✨ AI enrichment completed:', data);
+        
+        // Обновляем локальное состояние с AI результатами
+        if (data.corrected_title_ru && data.corrected_title_ru !== formData.title) {
+          setFormData(prev => ({
+            ...prev,
+            title: data.corrected_title_ru
+          }));
+        }
+        
+        if (data.brand && data.brand !== formData.brand) {
+          setFormData(prev => ({
+            ...prev,
+            brand: data.brand
+          }));
+        }
+        
+        if (data.model && data.model !== formData.model) {
+          setFormData(prev => ({
+            ...prev,
+            model: data.model
+          }));
+        }
+        
+        // Показываем результат с confidence score
+        const confidencePercent = Math.round(data.confidence * 100);
+        const isHighConfidence = data.confidence >= 0.7;
+        
+        toast({
+          title: `🤖 AI обработка завершена`,
+          description: `Уверенность: ${confidencePercent}%. ${
+            isHighConfidence ? 'Высокая точность!' : 'Требуется проверка модератора'
+          }`,
+          variant: isHighConfidence ? "default" : "destructive"
+        });
+
+        // Показываем исправления если есть
+        if (data.corrections && data.corrections.length > 0) {
+          console.log('📝 AI corrections:', data.corrections);
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ AI enrichment failed:', error);
+      setError('Ошибка AI обработки. Попробуйте позже.');
+      
+      toast({
+        title: "Ошибка AI",
+        description: "Не удалось обработать товар. Попробуйте позже.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAiProcessing(false);
+    }
+  };
+
   // Публикация с сохранением всех изменений
   const handlePublish = async () => {
     setIsPublishing(true);
@@ -232,6 +343,11 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const modelId = allModels.find(m => 
     m.brand_id === brandId && m.name === formData.model
   )?.id || '';
+
+  // Проверяем есть ли AI данные
+  const hasAiData = product.ai_confidence !== null && product.ai_enriched_at;
+  const aiConfidencePercent = product.ai_confidence ? Math.round(product.ai_confidence * 100) : 0;
+  const isHighAiConfidence = (product.ai_confidence || 0) >= 0.9;
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -294,12 +410,23 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           </div>
         )}
         
-        <Badge 
-          className={`absolute top-2 right-2 ${statusColor}`}
-          variant="outline"
-        >
-          {product.status}
-        </Badge>
+        <div className="absolute top-2 right-2 flex gap-1 flex-col items-end">
+          <Badge 
+            className={statusColor}
+            variant="outline"
+          >
+            {product.status}
+          </Badge>
+          {hasAiData && (
+            <Badge 
+              variant={isHighAiConfidence ? "default" : "outline"}
+              className="gap-1 text-xs"
+            >
+              <Bot className="h-3 w-3" />
+              AI {aiConfidencePercent}%
+            </Badge>
+          )}
+        </div>
 
         {/* Индикатор изменений */}
         {hasChanges && (
@@ -313,6 +440,39 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       </div>
 
       <CardContent className="p-6 space-y-6">
+        {/* AI Enhancement Button */}
+        <div className="flex gap-2 mb-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleAiEnrich}
+            disabled={isAiProcessing || isPublishing}
+            className="gap-2"
+          >
+            {isAiProcessing ? (
+              <Clock className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isAiProcessing ? 'AI обработка...' : '🤖 AI обогащение'}
+          </Button>
+          
+          {hasAiData && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
+              <CheckCircle className="h-3 w-3 text-green-500" />
+              AI обработан {new Date(product.ai_enriched_at || '').toLocaleDateString('ru-RU')}
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Ошибка</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         {/* Название товара */}
         <SimpleTextInput
           label="Название товара"
