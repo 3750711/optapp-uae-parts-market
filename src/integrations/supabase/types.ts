@@ -44,6 +44,99 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_enrichment_logs: {
+        Row: {
+          ai_response: Json
+          confidence: number | null
+          created_at: string | null
+          id: string
+          input_data: Json
+          processing_time_ms: number | null
+          product_id: string | null
+        }
+        Insert: {
+          ai_response: Json
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          input_data: Json
+          processing_time_ms?: number | null
+          product_id?: string | null
+        }
+        Update: {
+          ai_response?: Json
+          confidence?: number | null
+          created_at?: string | null
+          id?: string
+          input_data?: Json
+          processing_time_ms?: number | null
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_enrichment_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_enrichment_logs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_with_view_estimate"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_training_data: {
+        Row: {
+          brand_detected: string | null
+          corrected_text: string
+          created_at: string | null
+          id: string
+          model_detected: string | null
+          moderator_corrections: Json | null
+          moderator_id: string | null
+          original_text: string
+        }
+        Insert: {
+          brand_detected?: string | null
+          corrected_text: string
+          created_at?: string | null
+          id?: string
+          model_detected?: string | null
+          moderator_corrections?: Json | null
+          moderator_id?: string | null
+          original_text: string
+        }
+        Update: {
+          brand_detected?: string | null
+          corrected_text?: string
+          created_at?: string | null
+          id?: string
+          model_detected?: string | null
+          moderator_corrections?: Json | null
+          moderator_id?: string | null
+          original_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_training_data_moderator_id_fkey"
+            columns: ["moderator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_training_data_moderator_id_fkey"
+            columns: ["moderator_id"]
+            isOneToOne: false
+            referencedRelation: "public_seller_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           created_at: string | null
@@ -1062,6 +1155,9 @@ export type Database = {
       products: {
         Row: {
           admin_notification_sent_at: string | null
+          ai_confidence: number | null
+          ai_enriched_at: string | null
+          ai_original_title: string | null
           brand: string
           catalog_position: string
           cloudinary_public_id: string | null
@@ -1083,6 +1179,7 @@ export type Database = {
           product_location: string | null
           product_url: string | null
           rating_seller: number | null
+          requires_moderation: boolean | null
           seller_id: string
           seller_name: string
           status: Database["public"]["Enums"]["product_status"]
@@ -1097,6 +1194,9 @@ export type Database = {
         }
         Insert: {
           admin_notification_sent_at?: string | null
+          ai_confidence?: number | null
+          ai_enriched_at?: string | null
+          ai_original_title?: string | null
           brand: string
           catalog_position?: string
           cloudinary_public_id?: string | null
@@ -1118,6 +1218,7 @@ export type Database = {
           product_location?: string | null
           product_url?: string | null
           rating_seller?: number | null
+          requires_moderation?: boolean | null
           seller_id: string
           seller_name: string
           status?: Database["public"]["Enums"]["product_status"]
@@ -1132,6 +1233,9 @@ export type Database = {
         }
         Update: {
           admin_notification_sent_at?: string | null
+          ai_confidence?: number | null
+          ai_enriched_at?: string | null
+          ai_original_title?: string | null
           brand?: string
           catalog_position?: string
           cloudinary_public_id?: string | null
@@ -1153,6 +1257,7 @@ export type Database = {
           product_location?: string | null
           product_url?: string | null
           rating_seller?: number | null
+          requires_moderation?: boolean | null
           seller_id?: string
           seller_name?: string
           status?: Database["public"]["Enums"]["product_status"]
