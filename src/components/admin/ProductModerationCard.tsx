@@ -15,6 +15,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
 import { AIConfidenceIndicator } from '@/components/ai/AIConfidenceIndicator';
+import { AIDeliverySuggestions } from '@/components/admin/AIDeliverySuggestions';
 
 
 interface Product {
@@ -35,6 +36,19 @@ interface Product {
   ai_suggested_title?: string;
   ai_suggested_brand?: string;
   ai_suggested_model?: string;
+  // Новые поля для AI-анализа доставки
+  ai_suggested_delivery_prices?: number[];
+  ai_delivery_confidence?: number;
+  ai_delivery_reasoning?: {
+    matches_found: number;
+    search_queries: string[];
+    price_distribution: Record<string, number>;
+    top_confidence: number;
+    logic_type: string;
+    similar_products: Array<{id: string, title: string, price: number}>;
+    execution_time_ms: number;
+    analysis_summary: string;
+  };
   created_at?: string;
 }
 
@@ -845,6 +859,28 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             prefix="$"
           />
         </div>
+
+        {/* AI предложения доставки */}
+        {product.ai_suggested_delivery_prices && product.ai_suggested_delivery_prices.length > 0 && (
+          <AIDeliverySuggestions
+            suggestedPrices={product.ai_suggested_delivery_prices}
+            deliveryConfidence={product.ai_delivery_confidence}
+            reasoning={product.ai_delivery_reasoning}
+            currentDeliveryPrice={formData.delivery_price}
+            onAcceptPrice={(price) => {
+              setFormData(prev => ({ ...prev, delivery_price: price }));
+              toast({
+                title: "Цена применена",
+                description: `Установлена доставка: $${price}`,
+                variant: "default"
+              });
+            }}
+            onRejectSuggestions={() => {
+              // Скрываем предложения (можно добавить состояние)
+              console.log('AI delivery suggestions rejected');
+            }}
+          />
+        )}
 
         {/* Селектор машины */}
         <div className="pt-4 border-t">

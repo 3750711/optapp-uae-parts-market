@@ -380,6 +380,39 @@ JSON ответ:
 
     console.log('✅ AI suggestions saved, awaiting moderator approval');
     
+    // ШАГ НОВЫЙ: Автоматический расчёт доставки через AI
+    if (result.confidence > 0.6) {
+      console.log('🚚 Starting AI delivery calculation...');
+      try {
+        const { data: deliveryAnalysis, error: deliveryError } = await supabase.functions.invoke(
+          'ai-delivery-analyze',
+          {
+            body: {
+              title: result.title_ru,
+              brand: result.brand,
+              model: result.model,
+              original_title: title,
+              product_id: product_id
+            }
+          }
+        );
+        
+        if (deliveryError) {
+          console.warn('⚠️ Delivery analysis failed:', deliveryError);
+        } else if (deliveryAnalysis?.success) {
+          console.log(`🚚 Delivery analysis completed: ${deliveryAnalysis.suggested_prices.length} price suggestions`);
+          console.log(`📊 Confidence level: ${deliveryAnalysis.confidence_level}`);
+          console.log(`💰 Suggested prices: ${deliveryAnalysis.suggested_prices.join(', ')}`);
+        } else {
+          console.log('🚚 No delivery suggestions generated (insufficient data)');
+        }
+      } catch (deliveryErr) {
+        console.warn('⚠️ Delivery calculation error:', deliveryErr);
+      }
+    } else {
+      console.log('🚚 Skipping delivery calculation due to low confidence');
+    }
+    
     // Сохраняем лог обработки
     console.log(`📝 Saving AI enrichment log for product ${product_id}`);
     

@@ -1318,9 +1318,12 @@ export type Database = {
         Row: {
           admin_notification_sent_at: string | null
           ai_confidence: number | null
+          ai_delivery_confidence: number | null
+          ai_delivery_reasoning: Json | null
           ai_enriched_at: string | null
           ai_original_title: string | null
           ai_suggested_brand: string | null
+          ai_suggested_delivery_prices: Json | null
           ai_suggested_model: string | null
           ai_suggested_title: string | null
           brand: string
@@ -1360,9 +1363,12 @@ export type Database = {
         Insert: {
           admin_notification_sent_at?: string | null
           ai_confidence?: number | null
+          ai_delivery_confidence?: number | null
+          ai_delivery_reasoning?: Json | null
           ai_enriched_at?: string | null
           ai_original_title?: string | null
           ai_suggested_brand?: string | null
+          ai_suggested_delivery_prices?: Json | null
           ai_suggested_model?: string | null
           ai_suggested_title?: string | null
           brand: string
@@ -1402,9 +1408,12 @@ export type Database = {
         Update: {
           admin_notification_sent_at?: string | null
           ai_confidence?: number | null
+          ai_delivery_confidence?: number | null
+          ai_delivery_reasoning?: Json | null
           ai_enriched_at?: string | null
           ai_original_title?: string | null
           ai_suggested_brand?: string | null
+          ai_suggested_delivery_prices?: Json | null
           ai_suggested_model?: string | null
           ai_suggested_title?: string | null
           brand?: string
