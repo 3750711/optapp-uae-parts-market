@@ -2,8 +2,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Truck, Bot, Clock, TrendingUp, CheckCircle, X, Info } from 'lucide-react';
+import { Truck, Bot, Clock, TrendingUp, CheckCircle, X, Info, DollarSign } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AIDeliverySuggestionsProps {
@@ -21,6 +22,7 @@ interface AIDeliverySuggestionsProps {
   };
   currentDeliveryPrice?: number;
   onAcceptPrice: (price: number) => void;
+  onManualPriceChange: (price: number) => void;
   onRejectSuggestions: () => void;
 }
 
@@ -30,12 +32,10 @@ export const AIDeliverySuggestions: React.FC<AIDeliverySuggestionsProps> = ({
   reasoning,
   currentDeliveryPrice = 0,
   onAcceptPrice,
+  onManualPriceChange,
   onRejectSuggestions
 }) => {
-  // Если нет предложений, не показываем компонент
-  if (!suggestedPrices || suggestedPrices.length === 0) {
-    return null;
-  }
+  const hasAiSuggestions = suggestedPrices && suggestedPrices.length > 0;
 
   const getConfidenceLevel = (confidence: number) => {
     if (confidence >= 0.8) return { level: 'Высокая', color: 'bg-green-100 text-green-800', variant: 'default' as const };
@@ -71,62 +71,105 @@ export const AIDeliverySuggestions: React.FC<AIDeliverySuggestionsProps> = ({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Bot className="h-4 w-4 text-blue-600" />
-            AI-анализ доставки
+            <Truck className="h-4 w-4 text-blue-600" />
+            Стоимость доставки
           </CardTitle>
-          <Badge variant={confidenceInfo.variant} className={confidenceInfo.color}>
-            {confidenceInfo.level} ({confidencePercent}%)
-          </Badge>
+          {hasAiSuggestions && (
+            <Badge variant={confidenceInfo.variant} className={confidenceInfo.color}>
+              AI {confidenceInfo.level} ({confidencePercent}%)
+            </Badge>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Основные рекомендации */}
+        {/* Текущая цена доставки */}
         <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
           <div className="flex items-center gap-2">
-            <Truck className="h-4 w-4 text-blue-600" />
+            <DollarSign className="h-4 w-4 text-gray-600" />
             <div>
-              <div className="font-medium text-sm">{getRecommendationText()}</div>
+              <div className="text-sm font-medium">
+                {currentDeliveryPrice > 0 ? `$${currentDeliveryPrice}` : "Не установлена"}
+              </div>
               <div className="text-xs text-muted-foreground">
-                Найдено {reasoning?.matches_found || 0} аналогов
+                {hasAiSuggestions ? `Найдено ${reasoning?.matches_found || 0} аналогов` : "Ручная установка"}
               </div>
             </div>
           </div>
           
-          <div className="flex gap-2">
-            {suggestedPrices.map((price, index) => (
-              <Button
-                key={index}
-                size="sm"
-                variant={isCurrentPriceSuggested && currentDeliveryPrice === price ? "default" : "outline"}
-                onClick={() => onAcceptPrice(price)}
-                disabled={currentDeliveryPrice === price}
-                className="text-xs"
-              >
-                {currentDeliveryPrice === price ? (
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                ) : null}
-                ${price}
-              </Button>
-            ))}
+          {/* Ручной ввод цены */}
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min="0"
+              step="1"
+              value={currentDeliveryPrice}
+              onChange={(e) => onManualPriceChange(Number(e.target.value) || 0)}
+              className="w-20 h-8 text-sm"
+              placeholder="0"
+            />
+            <span className="text-xs text-muted-foreground">$</span>
           </div>
         </div>
 
-        {/* Статус */}
-        {isPriceAlreadySet && (
-          <Alert className={isCurrentPriceSuggested ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"}>
+        {/* AI рекомендации (если есть) */}
+        {hasAiSuggestions && (
+          <>
+            <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2">
+                <Bot className="h-4 w-4 text-blue-600" />
+                <div>
+                  <div className="font-medium text-sm">{getRecommendationText()}</div>
+                  <div className="text-xs text-muted-foreground">AI рекомендации</div>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                {suggestedPrices!.map((price, index) => (
+                  <Button
+                    key={index}
+                    size="sm"
+                    variant={isCurrentPriceSuggested && currentDeliveryPrice === price ? "default" : "outline"}
+                    onClick={() => onAcceptPrice(price)}
+                    disabled={currentDeliveryPrice === price}
+                    className="text-xs"
+                  >
+                    {currentDeliveryPrice === price ? (
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                    ) : null}
+                    ${price}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Статус соответствия */}
+            {currentDeliveryPrice > 0 && (
+              <Alert className={isCurrentPriceSuggested ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"}>
+                <Info className="h-4 w-4" />
+                <AlertDescription className="text-sm">
+                  {isCurrentPriceSuggested
+                    ? `✅ Цена соответствует AI-рекомендации`
+                    : `⚠️ Цена отличается от AI-рекомендаций`
+                  }
+                </AlertDescription>
+              </Alert>
+            )}
+          </>
+        )}
+
+        {/* Статус для ручной установки */}
+        {!hasAiSuggestions && currentDeliveryPrice > 0 && (
+          <Alert className="border-blue-200 bg-blue-50">
             <Info className="h-4 w-4" />
             <AlertDescription className="text-sm">
-              {isCurrentPriceSuggested
-                ? `✅ Текущая цена $${currentDeliveryPrice} соответствует AI-рекомендации`
-                : `⚠️ Текущая цена $${currentDeliveryPrice} отличается от рекомендаций AI`
-              }
+              💡 Цена установлена вручную. AI-анализ не проводился.
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Детальная информация */}
-        {reasoning && (
+        {/* Детальная информация AI анализа */}
+        {hasAiSuggestions && reasoning && (
           <Collapsible>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="w-full justify-between text-xs">
@@ -203,18 +246,20 @@ export const AIDeliverySuggestions: React.FC<AIDeliverySuggestionsProps> = ({
           </Collapsible>
         )}
 
-        {/* Кнопка отклонения */}
-        <div className="flex justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onRejectSuggestions}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            <X className="h-3 w-3 mr-1" />
-            Скрыть предложения
-          </Button>
-        </div>
+        {/* Управление предложениями */}
+        {hasAiSuggestions && (
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRejectSuggestions}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Скрыть AI-предложения
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

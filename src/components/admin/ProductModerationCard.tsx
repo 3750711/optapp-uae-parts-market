@@ -851,36 +851,29 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             min={1}
           />
           
-          <SimpleNumberInput
-            label="Стоимость доставки"
-            value={formData.delivery_price}
-            originalValue={product.delivery_price || 0}
-            onChange={handleDeliveryPriceChange}
-            prefix="$"
-          />
         </div>
 
-        {/* AI предложения доставки */}
-        {product.ai_suggested_delivery_prices && product.ai_suggested_delivery_prices.length > 0 && (
-          <AIDeliverySuggestions
-            suggestedPrices={product.ai_suggested_delivery_prices}
-            deliveryConfidence={product.ai_delivery_confidence}
-            reasoning={product.ai_delivery_reasoning}
-            currentDeliveryPrice={formData.delivery_price}
-            onAcceptPrice={(price) => {
-              setFormData(prev => ({ ...prev, delivery_price: price }));
-              toast({
-                title: "Цена применена",
-                description: `Установлена доставка: $${price}`,
-                variant: "default"
-              });
-            }}
-            onRejectSuggestions={() => {
-              // Скрываем предложения (можно добавить состояние)
-              console.log('AI delivery suggestions rejected');
-            }}
-          />
-        )}
+        {/* AI анализ доставки */}
+        <AIDeliverySuggestions
+          suggestedPrices={product.ai_suggested_delivery_prices}
+          deliveryConfidence={product.ai_delivery_confidence}
+          reasoning={product.ai_delivery_reasoning}
+          currentDeliveryPrice={formData.delivery_price}
+          onAcceptPrice={(price) => {
+            setFormData(prev => ({ ...prev, delivery_price: price }));
+            toast({
+              title: "Цена применена",
+              description: `Установлена доставка: $${price}`,
+              variant: "default"
+            });
+          }}
+          onManualPriceChange={(price) => {
+            setFormData(prev => ({ ...prev, delivery_price: price }));
+          }}
+          onRejectSuggestions={() => {
+            console.log('AI delivery suggestions hidden');
+          }}
+        />
 
         {/* Селектор машины */}
         <div className="pt-4 border-t">
