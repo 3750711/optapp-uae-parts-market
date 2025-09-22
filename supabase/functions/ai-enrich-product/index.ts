@@ -176,7 +176,6 @@ JSON ответ:
 
     // Create final prompt with admin rules
     const adminRulesSection = buildAdminRulesSection(adminRules);
-    const corrections = await getRecentCorrections();
     
     // Use custom prompt or fall back to default
     let finalPrompt = promptSetting?.value || defaultPrompt;
