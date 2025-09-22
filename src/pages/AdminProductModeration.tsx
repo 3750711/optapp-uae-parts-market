@@ -3,8 +3,9 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import { useEnhancedProductsState } from '@/hooks/useEnhancedProductsState';
 import { useAdminProductsActions } from '@/hooks/useAdminProductsActions';
 import ProductModerationCard from '@/components/admin/ProductModerationCard';
-import { AlertCircle, Package } from 'lucide-react';
+import { AlertCircle, Package, Bot } from 'lucide-react';
 import { useOptimizedFormAutosave } from '@/hooks/useOptimizedFormAutosave';
+import { useAutoAIProcessing } from '@/hooks/useAutoAIProcessing';
 
 const AdminProductModeration: React.FC = () => {
   // Состояние для выбранного продукта
@@ -25,6 +26,18 @@ const AdminProductModeration: React.FC = () => {
     setSelectedProducts
   } = useEnhancedProductsState({
     initialFilters: { status: 'pending' }
+  });
+
+  // Автоматическая AI обработка товаров
+  const {
+    isProcessing: isAIProcessing,
+    pendingProducts: aiPendingProducts,
+    processedCount: aiProcessedCount,
+    stats: aiStats
+  } = useAutoAIProcessing({
+    enabled: true,
+    checkInterval: 60, // Проверка каждые 60 секунд
+    maxRetries: 3
   });
 
   // Autosave for mobile browsers - save current state and scroll position
@@ -144,11 +157,29 @@ const AdminProductModeration: React.FC = () => {
           <p className="text-muted-foreground">
             Проверка и публикация товаров на модерации
           </p>
-          <div className="flex items-center gap-2 mt-2">
-            <AlertCircle className="h-4 w-4 text-orange-500" />
-            <span className="text-sm text-muted-foreground">
-              {pendingProducts.length} товаров ожидает модерации
-            </span>
+          <div className="flex items-center gap-4 mt-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+              <span className="text-sm text-muted-foreground">
+                {pendingProducts.length} товаров ожидает модерации
+              </span>
+            </div>
+            {isAIProcessing && (
+              <div className="flex items-center gap-2">
+                <Bot className="h-4 w-4 text-blue-500 animate-pulse" />
+                <span className="text-sm text-blue-600">
+                  AI обрабатывает товары ({aiStats.pending} в очереди)
+                </span>
+              </div>
+            )}
+            {aiProcessedCount > 0 && (
+              <div className="flex items-center gap-2">
+                <Bot className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-green-600">
+                  Обработано: {aiProcessedCount}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
