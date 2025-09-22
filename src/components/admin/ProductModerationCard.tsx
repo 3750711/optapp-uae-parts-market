@@ -320,6 +320,37 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         updates.description = `Оригинальное название от продавца: ${product.title}\n\n${product.description || ''}`;
       }
       
+      // Если модератор изменил данные AI - сохранить для обучения
+      if (product.ai_confidence && product.ai_original_title) {
+        const hasChanges = (
+          formData.title !== product.title || 
+          formData.brand !== product.brand ||
+          formData.model !== product.model
+        );
+        
+        if (hasChanges) {
+          console.log('💡 Saving AI correction for learning:', {
+            ai_title: product.title,
+            moderator_title: formData.title,
+            confidence: product.ai_confidence
+          });
+          
+          // Сохраняем исправления модератора для обучения AI
+          await supabase.from('ai_moderation_corrections').insert({
+            product_id: product.id,
+            ai_original_title: product.ai_original_title,
+            ai_suggested_title: product.title,
+            ai_suggested_brand: product.brand,
+            ai_suggested_model: product.model,
+            moderator_corrected_title: formData.title,
+            moderator_corrected_brand: formData.brand,
+            moderator_corrected_model: formData.model,
+            ai_confidence: product.ai_confidence,
+            correction_type: 'manual_review'
+          });
+        }
+      }
+      
       await updateMutation.mutateAsync(updates);
       
       toast({ title: "Товар опубликован и изменения сохранены" });
