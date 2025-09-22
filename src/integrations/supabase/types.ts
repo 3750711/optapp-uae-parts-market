@@ -2715,27 +2715,21 @@ export type Database = {
         }
         Returns: undefined
       }
-      create_product_with_images: {
-        Args:
-          | {
-              p_brand?: string
-              p_condition?: string
-              p_delivery_price?: number
-              p_description?: string
-              p_model?: string
-              p_place_number?: number
-              p_price: number
-              p_title: string
-            }
-          | {
-              p_brand?: string
-              p_condition?: string
-              p_delivery_price?: number
-              p_description?: string
-              p_place_number?: number
-              p_price: number
-              p_title: string
-            }
+      create_standard_product: {
+        Args: { p_description?: string; p_price: number; p_title: string }
+        Returns: string
+      }
+      create_trusted_product: {
+        Args: {
+          p_brand?: string
+          p_condition?: string
+          p_delivery_price?: number
+          p_description?: string
+          p_model?: string
+          p_place_number?: number
+          p_price: number
+          p_title: string
+        }
         Returns: string
       }
       create_user_order: {

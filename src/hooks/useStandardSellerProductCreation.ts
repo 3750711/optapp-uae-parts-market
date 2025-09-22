@@ -44,10 +44,10 @@ export const useStandardSellerProductCreation = () => {
     setIsCreating(true);
 
     try {
-      // Step 1: Create product using RPC
-      console.log('📦 Creating product with RPC...');
+      // Step 1: Create product using new RPC function for standard sellers
+      console.log('📦 Creating product with create_standard_product RPC...');
       const { data: productId, error: productError } = await supabase
-        .rpc('create_product_with_images', {
+        .rpc('create_standard_product', {
           p_title: title.trim(),
           p_price: price,
           p_description: description?.trim() || null

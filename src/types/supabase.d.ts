@@ -18,6 +18,23 @@ interface CustomRPCFunctions {
     p_delivery_price: number | null;
   }) => string; // Returns UUID
 
+  create_standard_product: (args: {
+    p_title: string;
+    p_price: number;
+    p_description?: string | null;
+  }) => string; // Returns UUID
+
+  create_trusted_product: (args: {
+    p_title: string;
+    p_price: number;
+    p_description?: string | null;
+    p_condition?: string;
+    p_brand?: string;
+    p_model?: string | null;
+    p_place_number?: number;
+    p_delivery_price?: number;
+  }) => string; // Returns UUID
+
   admin_insert_product_image: (args: {
     p_product_id: string;
     p_url: string;

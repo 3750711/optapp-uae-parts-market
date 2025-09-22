@@ -62,9 +62,9 @@ export const useTrustedSellerProductCreation = () => {
         modelName = selectedModel?.name || null;
       }
 
-      // Create product using the enhanced RPC function
+      // Create product using the new trusted seller RPC function
       const { data: productId, error: productError } = await supabase
-        .rpc('create_product_with_images', {
+        .rpc('create_trusted_product', {
           p_title: values.title,
           p_price: Number(values.price),
           p_description: values.description || null,
