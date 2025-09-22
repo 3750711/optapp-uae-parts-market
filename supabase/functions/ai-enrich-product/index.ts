@@ -38,6 +38,13 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY not found');
     }
 
+    // Load AI prompt from settings
+    const { data: promptSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'ai_prompt_main')
+      .single();
+
     const { product_id, title, brand, model, description, auto_trigger = false }: EnrichmentRequest & { auto_trigger?: boolean } = await req.json();
 
     console.log(`🤖 AI enrichment started for product ${product_id}: "${title}" (auto: ${auto_trigger})`);
@@ -80,8 +87,8 @@ ${data.map(d => `"${d.ai_original_title}" → "${d.moderator_corrected_title}"`)
     // Получаем обучающие данные от модераторов
     const corrections = await getRecentCorrections();
 
-    // Улучшенный промпт с обучением на правках модераторов и специальными инструкциями для автозапчастей
-    const prompt = `${corrections}
+    // Default prompt as fallback
+    const defaultPrompt = `${corrections}
 
 ВАЖНО! Это товар автозапчастей. Следуй правилам:
 
@@ -102,12 +109,12 @@ ${data.map(d => `"${d.ai_original_title}" → "${d.moderator_corrected_title}"`)
    - "1zz engine toyota" → Двигатель 1ZZ Toyota → brand: Toyota, model: null
    - "civic k20 engine" → Двигатель K20 для Honda Civic → brand: Honda, model: Civic
 
-Товар: "${title}"
+Товар: "{title}"
 
 ДОСТУПНЫЕ МАРКИ И ИХ МОДЕЛИ:
-${brandsWithModels}
+{brandsWithModels}
 
-ТОЛЬКО эти марки разрешены: ${brandsList}
+ТОЛЬКО эти марки разрешены: {brandsList}
 
 JSON ответ:
 {
@@ -116,6 +123,19 @@ JSON ответ:
   "model": "точная модель автомобиля (НЕ код детали) или null",
   "confidence": 0.0-1.0
 }`;
+
+    // Use custom prompt or fall back to default
+    const basePrompt = promptSetting?.value || defaultPrompt;
+    
+    // Replace variables in the prompt template
+    const prompt = basePrompt
+      .replace('{title}', title)
+      .replace('{brand}', brand || 'Unknown')
+      .replace('{model}', model || 'Unknown')
+      .replace('{category}', 'automotive_parts')
+      .replace('{brandsWithModels}', brandsWithModels)
+      .replace('{brandsList}', brandsList)
+      .replace('{moderatorCorrections}', corrections);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
