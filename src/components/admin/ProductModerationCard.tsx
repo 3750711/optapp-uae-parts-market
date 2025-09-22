@@ -834,6 +834,11 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             onBrandChange={handleBrandChange}
             onModelChange={handleModelChange}
             disabled={isLoadingCarData}
+            brands={brands}
+            models={models}
+            isLoadingBrands={isLoadingBrands}
+            isLoadingModels={isLoadingModels}
+            enableBrandsLoading={enableBrandsLoading}
           />
           {(formData.brand !== (product.brand || '') || formData.model !== (product.model || '')) && (
             <div className="mt-2 text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded border-l-2 border-muted-foreground/30">
