@@ -52,8 +52,13 @@ export interface Product {
   // TG views estimate (only for sellers/admins)
   tg_views_estimate?: number;
   
-  // Frozen TG views for sold products
-  tg_views_frozen?: number;
+  // AI enrichment fields
+  ai_confidence?: number;
+  ai_enriched_at?: string;
+  ai_original_title?: string;
+  ai_suggested_title?: string;
+  ai_suggested_brand?: string;
+  ai_suggested_model?: string;
   
   // Catalog position for sorting
   catalog_position?: string;

@@ -104,6 +104,7 @@ export type Database = {
           moderator_corrected_title: string
           moderator_id: string | null
           product_id: string | null
+          was_ai_accepted: boolean | null
         }
         Insert: {
           ai_confidence?: number | null
@@ -119,6 +120,7 @@ export type Database = {
           moderator_corrected_title: string
           moderator_id?: string | null
           product_id?: string | null
+          was_ai_accepted?: boolean | null
         }
         Update: {
           ai_confidence?: number | null
@@ -134,6 +136,7 @@ export type Database = {
           moderator_corrected_title?: string
           moderator_id?: string | null
           product_id?: string | null
+          was_ai_accepted?: boolean | null
         }
         Relationships: [
           {
@@ -1221,6 +1224,9 @@ export type Database = {
           ai_confidence: number | null
           ai_enriched_at: string | null
           ai_original_title: string | null
+          ai_suggested_brand: string | null
+          ai_suggested_model: string | null
+          ai_suggested_title: string | null
           brand: string
           catalog_position: string
           cloudinary_public_id: string | null
@@ -1260,6 +1266,9 @@ export type Database = {
           ai_confidence?: number | null
           ai_enriched_at?: string | null
           ai_original_title?: string | null
+          ai_suggested_brand?: string | null
+          ai_suggested_model?: string | null
+          ai_suggested_title?: string | null
           brand: string
           catalog_position?: string
           cloudinary_public_id?: string | null
@@ -1299,6 +1308,9 @@ export type Database = {
           ai_confidence?: number | null
           ai_enriched_at?: string | null
           ai_original_title?: string | null
+          ai_suggested_brand?: string | null
+          ai_suggested_model?: string | null
+          ai_suggested_title?: string | null
           brand?: string
           catalog_position?: string
           cloudinary_public_id?: string | null

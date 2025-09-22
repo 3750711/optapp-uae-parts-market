@@ -42,6 +42,22 @@ serve(async (req) => {
 
     console.log(`🤖 AI enrichment started for product ${product_id}: "${title}" (auto: ${auto_trigger})`);
 
+    // Функция для получения последних правок модераторов для обучения
+    const getRecentCorrections = async (limit = 20) => {
+      const { data } = await supabase
+        .from('ai_moderation_corrections')
+        .select('ai_original_title, moderator_corrected_title, moderator_corrected_brand, moderator_corrected_model')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (!data || data.length === 0) return '';
+      
+      return `
+Учись на последних правках модератора:
+${data.map(d => `"${d.ai_original_title}" → "${d.moderator_corrected_title}"`).join('\n')}
+`;
+    };
+
     // Получаем список брендов и моделей для контекста
     const { data: brands } = await supabase
       .from('car_brands')
@@ -56,16 +72,19 @@ serve(async (req) => {
     const brandsList = brands?.map(b => b.name).join(', ') || '';
     const modelsContext = models?.map(m => `${m.car_brands?.name} ${m.name}`).slice(0, 50).join(', ') || '';
 
-    // Упрощенный промпт для OpenAI
-    const prompt = `Исправь ошибки и определи марку/модель автомобиля.
+    // Получаем обучающие данные от модераторов
+    const corrections = await getRecentCorrections();
 
+    // Улучшенный промпт с обучением на правках модераторов
+    const prompt = `${corrections}
+
+Исправь ошибки, переведи на русский, определи марку/модель.
 Частые ошибки: engene->engine, bamper->bumper, transmision->transmission
 
 Товар: "${title}"
-
 Доступные марки: ${brandsList}
 
-Ответь в JSON:
+JSON ответ:
 {
   "title_ru": "название на русском",
   "brand": "марка из списка или null", 
@@ -119,31 +138,25 @@ serve(async (req) => {
 
     console.log(`✅ AI enrichment completed in ${processingTime}ms with confidence: ${result.confidence}`);
 
-    // ВСЕГДА обновляем товар независимо от confidence
-    console.log(`🔄 Auto-updating product (confidence: ${result.confidence})`);
+    // ВАЖНО: НЕ обновляем основные поля (title, brand, model), только AI предложения
+    console.log(`💡 Saving AI suggestions for moderator review (confidence: ${result.confidence})`);
     
     const updateData: any = {
+      ai_original_title: title, // Сохраняем оригинал продавца
+      ai_suggested_title: result.title_ru,
+      ai_suggested_brand: result.brand,
+      ai_suggested_model: result.model,
       ai_confidence: result.confidence,
       ai_enriched_at: new Date().toISOString(),
-      ai_original_title: title,
-      requires_moderation: result.confidence < 0.9
+      requires_moderation: true // Всегда требует модерации
     };
-
-    // Обновляем данные, если AI предоставил их
-    if (result.title_ru && result.title_ru !== title) {
-      updateData.title = result.title_ru;
-    }
-    if (result.brand && result.brand !== brand) {
-      updateData.brand = result.brand;
-    }
-    if (result.model && result.model !== model) {
-      updateData.model = result.model;
-    }
 
     await supabase
       .from('products')
       .update(updateData)
       .eq('id', product_id);
+
+    console.log('✅ AI suggestions saved, awaiting moderator approval');
     
     // Сохраняем лог обработки
     await supabase

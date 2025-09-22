@@ -15,8 +15,6 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
 import { AIConfidenceIndicator } from '@/components/ai/AIConfidenceIndicator';
-import AIEnrichmentPanel from '@/components/ai/AIEnrichmentPanel';
-import { AIFeedbackSystem } from '@/components/ai/AIFeedbackSystem';
 
 
 interface Product {
@@ -34,6 +32,9 @@ interface Product {
   ai_confidence?: number;
   ai_enriched_at?: string;
   ai_original_title?: string;
+  ai_suggested_title?: string;
+  ai_suggested_brand?: string;
+  ai_suggested_model?: string;
   created_at?: string;
 }
 
@@ -63,7 +64,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showAiPanel, setShowAiPanel] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -76,6 +76,10 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     brand: product.brand || '',
     model: product.model || ''
   });
+
+  // Состояние для AI предложений
+  const [showAiSuggestions, setShowAiSuggestions] = useState(true);
+  const [useAiSuggestions, setUseAiSuggestions] = useState(false);
 
   // Обновляем форму при изменении продукта
   useEffect(() => {
@@ -320,40 +324,43 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         updates.description = `Оригинальное название от продавца: ${product.title}\n\n${product.description || ''}`;
       }
       
-      // Если модератор изменил данные AI - сохранить для обучения
-      if (product.ai_confidence && product.ai_original_title) {
-        const hasChanges = (
-          formData.title !== product.title || 
-          formData.brand !== product.brand ||
-          formData.model !== product.model
-        );
+      // ВСЕГДА сохраняем обучающие данные если был AI
+      if (product.ai_confidence && product.ai_suggested_title) {
+        const correctionData = {
+          product_id: product.id,
+          moderator_id: undefined, // Будет заполнено триггером auth.uid()
+          ai_original_title: product.ai_original_title || product.title,
+          ai_suggested_title: product.ai_suggested_title,
+          ai_suggested_brand: product.ai_suggested_brand,
+          ai_suggested_model: product.ai_suggested_model,
+          moderator_corrected_title: formData.title,
+          moderator_corrected_brand: formData.brand || null,
+          moderator_corrected_model: formData.model || null,
+          ai_confidence: product.ai_confidence,
+          correction_type: useAiSuggestions ? 'accepted' : 
+                          (formData.title !== (product.ai_original_title || product.title) ? 'modified' : 'rejected'),
+          was_ai_accepted: useAiSuggestions
+        };
         
-        if (hasChanges) {
-          console.log('💡 Saving AI correction for learning:', {
-            ai_title: product.title,
-            moderator_title: formData.title,
-            confidence: product.ai_confidence
-          });
-          
-          // Сохраняем исправления модератора для обучения AI
-          await supabase.from('ai_moderation_corrections').insert({
-            product_id: product.id,
-            ai_original_title: product.ai_original_title,
-            ai_suggested_title: product.title,
-            ai_suggested_brand: product.brand,
-            ai_suggested_model: product.model,
-            moderator_corrected_title: formData.title,
-            moderator_corrected_brand: formData.brand,
-            moderator_corrected_model: formData.model,
-            ai_confidence: product.ai_confidence,
-            correction_type: 'manual_review'
-          });
-        }
+        console.log('📚 Saving training data:', correctionData);
+        
+        await supabase
+          .from('ai_moderation_corrections')
+          .insert(correctionData);
+        
+        console.log('📚 Training data saved successfully');
       }
       
       await updateMutation.mutateAsync(updates);
       
-      toast({ title: "Товар опубликован и изменения сохранены" });
+      toast({ title: "Товар опубликован" });
+    } catch (error) {
+      console.error('Error in handlePublish:', error);
+      toast({ 
+        title: "Ошибка при публикации", 
+        description: "Попробуйте снова", 
+        variant: "destructive" 
+      });
     } finally {
       setIsPublishing(false);
     }
@@ -477,84 +484,69 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       </div>
 
       <CardContent className="p-6 space-y-6">
-        {/* AI Enhancement Section */}
-        <div className="space-y-3">
-          <div className="flex gap-2 items-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowAiPanel(!showAiPanel)}
-              disabled={isPublishing}
-              className="gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              {showAiPanel ? 'Скрыть AI панель' : 'Показать AI панель'}
-            </Button>
-            
-            {hasAiData && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <CheckCircle className="h-3 w-3 text-green-500" />
-                {new Date(product.ai_enriched_at || '').toLocaleDateString('ru-RU')}
+        {/* AI Suggestions Comparison Block */}
+        {product.ai_suggested_title && (
+          <Card className="border-blue-200 bg-blue-50/50">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium">AI предложения ({Math.round((product.ai_confidence || 0) * 100)}%)</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant={useAiSuggestions ? "default" : "outline"}
+                  onClick={() => {
+                    if (!useAiSuggestions) {
+                      // Применить AI предложения к форме
+                      setFormData({
+                        ...formData,
+                        title: product.ai_suggested_title || formData.title,
+                        brand: product.ai_suggested_brand || formData.brand,
+                        model: product.ai_suggested_model || formData.model,
+                      });
+                      setUseAiSuggestions(true);
+                    } else {
+                      // Вернуть оригинальные данные
+                      setFormData({
+                        ...formData,
+                        title: product.ai_original_title || product.title,
+                        brand: product.brand || '',
+                        model: product.model || '',
+                      });
+                      setUseAiSuggestions(false);
+                    }
+                  }}
+                >
+                  {useAiSuggestions ? 'Отменить AI' : 'Применить AI'}
+                </Button>
               </div>
-            )}
-          </div>
-
-          {/* AI Panel */}
-          {showAiPanel && (
-            <AIEnrichmentPanel
-              title={formData.title}
-              brand={formData.brand}
-              model={formData.model}
-              productId={product.id}
-              onApplyChanges={(changes) => {
-                if (changes.title) setFormData(prev => ({ ...prev, title: changes.title! }));
-                if (changes.brand) setFormData(prev => ({ ...prev, brand: changes.brand! }));
-                if (changes.model) setFormData(prev => ({ ...prev, model: changes.model! }));
-              }}
-              disabled={isPublishing}
-            />
-          )}
-
-          {/* AI Changes Comparison */}
-          {hasAiData && product.ai_original_title && product.ai_original_title !== product.title && !showAiPanel && (
-            <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-              <div className="text-sm font-medium text-muted-foreground">AI внёс изменения:</div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">Было:</span>
-                  <span className="bg-red-50 text-red-700 px-2 py-1 rounded font-mono text-xs">
-                    {product.ai_original_title}
-                  </span>
-          {/* AI Feedback System */}
-          {hasAiData && (
-            <AIFeedbackSystem
-              productId={product.id}
-              aiSuggestions={{
-                title: product.title,
-                brand: product.brand,
-                model: product.model,
-                confidence: product.ai_confidence || 0
-              }}
-              originalData={{
-                title: product.ai_original_title || product.title,
-                brand: product.brand,
-                model: product.model
-              }}
-            />
-          )}
-        </div>
-
-                <ArrowRight className="h-3 w-3 text-muted-foreground mx-2" />
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">Стало:</span>
-                  <span className="bg-green-50 text-green-700 px-2 py-1 rounded font-mono text-xs">
-                    {product.title}
-                  </span>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="font-medium text-muted-foreground mb-1">Оригинал продавца:</div>
+                  <div className="p-2 bg-white rounded border">
+                    {product.ai_original_title || product.title}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-medium text-muted-foreground mb-1">AI предложение:</div>
+                  <div className="p-2 bg-green-50 rounded border border-green-200">
+                    {product.ai_suggested_title}
+                  </div>
                 </div>
               </div>
+              
+              {product.ai_suggested_brand && (
+                <div className="flex gap-2 mt-3 text-sm">
+                  <Badge variant="outline">Марка: {product.ai_suggested_brand}</Badge>
+                  <Badge variant="outline">Модель: {product.ai_suggested_model || 'не определено'}</Badge>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </Card>
+        )}
+        {/* Form Fields */}
 
         {error && (
           <Alert variant="destructive" className="mb-4">
