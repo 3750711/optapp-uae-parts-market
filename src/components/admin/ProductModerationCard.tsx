@@ -101,7 +101,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
   // Состояние для AI предложений
   const [showAiSuggestions, setShowAiSuggestions] = useState(true);
-  const [useAiSuggestions, setUseAiSuggestions] = useState(false);
 
   // Обновляем форму при изменении продукта
   useEffect(() => {
@@ -528,9 +527,9 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           moderator_corrected_brand: formData.brand || null,
           moderator_corrected_model: formData.model || null,
           ai_confidence: product.ai_confidence,
-          correction_type: useAiSuggestions ? 'accepted' : 
+          correction_type: formData.title === product.ai_suggested_title ? 'accepted' : 
                           (formData.title !== (product.ai_original_title || product.title) ? 'modified' : 'rejected'),
-          was_ai_accepted: useAiSuggestions
+          was_ai_accepted: formData.title === product.ai_suggested_title
         };
         
         console.log('📚 Saving training data:', correctionData);
@@ -732,38 +731,9 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
         {product.ai_suggested_title && (
           <Card className="border-blue-200 bg-blue-50/50">
             <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Bot className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium">AI предложения ({Math.round((product.ai_confidence || 0) * 100)}%)</span>
-                </div>
-                <Button
-                  size="sm"
-                  variant={useAiSuggestions ? "default" : "outline"}
-                  onClick={() => {
-                    if (!useAiSuggestions) {
-                      // Применить AI предложения к форме
-                      setFormData({
-                        ...formData,
-                        title: product.ai_suggested_title || formData.title,
-                        brand: product.ai_suggested_brand || formData.brand,
-                        model: product.ai_suggested_model || formData.model,
-                      });
-                      setUseAiSuggestions(true);
-                    } else {
-                      // Вернуть оригинальные данные
-                      setFormData({
-                        ...formData,
-                        title: product.ai_original_title || product.title,
-                        brand: product.brand || '',
-                        model: product.model || '',
-                      });
-                      setUseAiSuggestions(false);
-                    }
-                  }}
-                >
-                  {useAiSuggestions ? 'Отменить AI' : 'Применить AI'}
-                </Button>
+              <div className="flex items-center gap-2 mb-3">
+                <Bot className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium">AI предложения ({Math.round((product.ai_confidence || 0) * 100)}%)</span>
               </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
