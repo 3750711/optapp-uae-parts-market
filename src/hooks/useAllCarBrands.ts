@@ -1,4 +1,5 @@
-import { useOptimizedCarBrands, useOptimizedCarModels } from './useOptimizedCarData';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useState, useCallback, useMemo } from 'react';
 
 export interface CarBrand {
@@ -17,64 +18,132 @@ export const useAllCarBrands = () => {
   const [brandSearchTerm, setBrandSearchTerm] = useState('');
   const [modelSearchTerm, setModelSearchTerm] = useState('');
 
-  // Use optimized car brands hook with unified cache key
-  const brandsQuery = useOptimizedCarBrands();
-  const allBrands = brandsQuery.data || [];
-  
-  // Optimized models query with AbortController
-  const modelsQuery = useOptimizedCarModels(selectedBrandId || undefined);
-  const brandModelsForSelected = modelsQuery.data || [];
+  // Загрузка всех брендов
+  const {
+    data: allBrands,
+    isLoading: isLoadingBrands,
+    error: brandsError
+  } = useQuery<CarBrand[]>({
+    queryKey: ['admin-all-car-brands'],
+    queryFn: async () => {
+      console.log('🔍 Загрузка всех марок автомобилей из базы данных');
+      const { data, error } = await supabase
+        .from('car_brands')
+        .select('id, name')
+        .order('name', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Ошибка загрузки марок автомобилей:', error);
+        throw error;
+      }
+      
+      console.log('✅ Загружено марок:', data?.length);
+      return data || [];
+    },
+    staleTime: Infinity, // Кэшируем данные на все время сессии
+  });
 
-  // Get all models for compatibility
-  const allModelsQuery = useOptimizedCarModels();
-  const allModels = allModelsQuery.data || [];
+  // Загрузка моделей для выбранного бренда
+  const {
+    data: brandModelsForSelected,
+    isLoading: isLoadingModels,
+    error: modelsError
+  } = useQuery<CarModel[]>({
+    queryKey: ['admin-all-car-models', selectedBrandId],
+    queryFn: async () => {
+      if (!selectedBrandId) return [];
+      
+      console.log('🔍 Загрузка моделей для бренда:', { brandId: selectedBrandId });
+      
+      const { data, error } = await supabase
+        .from('car_models')
+        .select('id, name, brand_id')
+        .eq('brand_id', selectedBrandId)
+        .order('name', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Ошибка загрузки моделей автомобилей:', error);
+        throw error;
+      }
+      
+      console.log('✅ Загружено моделей:', data?.length);
+      return data || [];
+    },
+    staleTime: Infinity,
+    enabled: !!selectedBrandId,
+  });
+
+  // Загрузка всех моделей для совместимости (парсинг заголовка, валидация)
+  const {
+    data: allModels,
+    isLoading: isLoadingAllModels
+  } = useQuery<CarModel[]>({
+    queryKey: ['admin-all-models'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('car_models')
+        .select('id, name, brand_id')
+        .order('name', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Ошибка загрузки всех моделей автомобилей:', error);
+        throw error;
+      }
+      
+      return data || [];
+    },
+    staleTime: Infinity,
+  });
 
   const brands = useMemo(() => {
-    if (!brandSearchTerm) return allBrands;
-    return allBrands.filter(brand =>
+    const brandList = allBrands || [];
+    if (!brandSearchTerm) return brandList;
+    return brandList.filter(brand =>
       brand.name.toLowerCase().includes(brandSearchTerm.toLowerCase())
     );
   }, [allBrands, brandSearchTerm]);
   
   const brandModels = useMemo(() => {
-    if (!modelSearchTerm) return brandModelsForSelected;
-    return brandModelsForSelected.filter(model =>
+    const modelList = brandModelsForSelected || [];
+    if (!modelSearchTerm) return modelList;
+    return modelList.filter(model =>
         model.name.toLowerCase().includes(modelSearchTerm.toLowerCase())
     );
   }, [brandModelsForSelected, modelSearchTerm]);
 
   const findBrandNameById = useCallback((brandId: string | null): string | null => {
-    if (!brandId) return null;
+    if (!brandId || !allBrands) return null;
     return allBrands.find(brand => brand.id === brandId)?.name || null;
   }, [allBrands]);
 
   const findModelNameById = useCallback((modelId: string | null): string | null => {
-    if (!modelId) return null;
+    if (!modelId || !allModels) return null;
     return allModels.find(model => model.id === modelId)?.name || null;
   }, [allModels]);
 
   const findBrandIdByName = useCallback((brandName: string | null): string | null => {
-    if (!brandName) return null;
+    if (!brandName || !allBrands) return null;
     return allBrands.find(brand => brand.name.toLowerCase() === brandName.toLowerCase())?.id || null;
   }, [allBrands]);
 
   const findModelIdByName = useCallback((modelName: string | null): string | null => {
-    if (!modelName) return null;
+    if (!modelName || !allModels) return null;
     return allModels.find(model => model.name.toLowerCase() === modelName.toLowerCase())?.id || null;
   }, [allModels]);
 
   const validateModelBrand = useCallback((modelId: string, brandId: string): boolean => {
+    if (!allModels) return false;
     const model = allModels.find(m => m.id === modelId);
     return model?.brand_id === brandId;
   }, [allModels]);
 
   return {
-    brands,
-    brandModels,
-    allModels,
-    isLoading: brandsQuery.isLoading || modelsQuery.isLoading || allModelsQuery.isLoading,
-    brandsError: brandsQuery.error,
-    modelsError: modelsQuery.error,
+    brands: brands || [],
+    brandModels: brandModels || [],
+    allModels: allModels || [],
+    isLoading: isLoadingBrands || isLoadingModels || isLoadingAllModels,
+    brandsError,
+    modelsError,
     selectBrand: setSelectedBrandId,
     selectedBrand: selectedBrandId,
     findBrandIdByName,
@@ -86,8 +155,8 @@ export const useAllCarBrands = () => {
     setBrandSearchTerm,
     modelSearchTerm,
     setModelSearchTerm,
-    totalBrands: allBrands.length,
-    totalModels: brandModelsForSelected.length,
+    totalBrands: allBrands?.length || 0,
+    totalModels: brandModelsForSelected?.length || 0,
     filteredBrandsCount: brands.length,
     filteredModelsCount: brandModels.length,
   };

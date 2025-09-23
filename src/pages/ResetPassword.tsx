@@ -52,7 +52,7 @@ const checkPasswordStrength = (password: string) => {
 type FormData = z.infer<typeof formSchema>;
 
 const ResetPassword = () => {
-  const { isRecoveryMode, validateRecoveryAndResetPassword, updatePassword } = useAuth();
+  const { isRecoveryMode, validateRecoveryAndResetPassword } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [validationState, setValidationState] = useState<'checking' | 'valid' | 'invalid'>('checking');
@@ -85,10 +85,10 @@ const ResetPassword = () => {
     setIsLoading(true);
     
     try {
-      // Use simplified password reset for now
-      const result = await updatePassword(data.password);
+      // Использовать специальную функцию для recovery
+      const result = await validateRecoveryAndResetPassword(data.password);
       
-      if (result.error) {
+      if (!result.success) {
         const error = result.error;
         
         // Детальная обработка ошибок

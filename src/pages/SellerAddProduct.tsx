@@ -7,51 +7,19 @@ import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useTrustedSellerPrefetch } from "@/hooks/useTrustedSellerPrefetch";
 
-// Optimized lazy loading with preloading hints
-const OptimizedStandardForm = React.lazy(() => 
-  import("@/components/seller/OptimizedStandardForm").then(module => ({
-    default: module.default
-  }))
-);
-
-const TrustedSellerForm = React.lazy(() => 
-  import("@/components/seller/TrustedSellerForm").then(module => ({
-    default: module.default
-  }))
-);
-
-// Preload components based on user type
-const preloadComponents = (isTrustedSeller: boolean) => {
-  if (isTrustedSeller) {
-    // Preload trusted seller form
-    import("@/components/seller/TrustedSellerForm");
-  } else {
-    // Preload standard form  
-    import("@/components/seller/OptimizedStandardForm");
-  }
-};
+// Lazy loading для оптимизации
+const StandardSellerForm = React.lazy(() => import("@/components/seller/StandardSellerForm"));
+const TrustedSellerForm = React.lazy(() => import("@/components/seller/TrustedSellerForm"));
 
 const SellerAddProduct = () => {
   const { profile } = useAuth();
   const { language } = useLanguage();
-  
-  // Prefetch data for trusted sellers
-  useTrustedSellerPrefetch();
-  
   const t = getFormTranslations(language);
   const c = getCommonTranslations(language);
   
   // Определяем тип формы на основе статуса доверенного продавца
   const isTrustedSeller = profile?.is_trusted_seller === true;
-
-  // Preload appropriate component
-  React.useEffect(() => {
-    if (profile) {
-      preloadComponents(isTrustedSeller);
-    }
-  }, [profile, isTrustedSeller]);
 
   return (
     <ProtectedRoute allowedRoles={['seller']}>
@@ -82,7 +50,7 @@ const SellerAddProduct = () => {
               {isTrustedSeller ? (
                 <TrustedSellerForm mode="trusted_seller" />
               ) : (
-                <OptimizedStandardForm />
+                <StandardSellerForm />
               )}
             </Suspense>
           </div>
