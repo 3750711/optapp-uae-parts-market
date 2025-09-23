@@ -2760,10 +2760,6 @@ export type Database = {
         }
         Returns: string
       }
-      current_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
       delete_user_account: {
         Args: Record<PropertyKey, never> | { user_id: string }
         Returns: undefined
