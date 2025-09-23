@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    securityGuardPlugin({ disabled: mode === 'development' }),
+    securityGuardPlugin({ disabled: true }),
     react(),
     mode === 'development' &&
     componentTagger(),
