@@ -1,4 +1,6 @@
 
+import { logger } from '@/utils/logger';
+
 // Константы для умного сжатия
 export const COMPRESSION_THRESHOLDS = {
   NO_COMPRESSION: 400 * 1024,     // 400KB - не сжимаем
@@ -26,19 +28,19 @@ export const getSmartCompressionSettings = (fileSize: number, fileName?: string)
   
   // HEIC files should be handled by Cloudinary conversion, not compressed locally
   if (isHeicFile) {
-    console.log(`🔄 HEIC file detected: ${fileName} - will be converted by Cloudinary`);
+    logger.log(`🔄 HEIC file detected: ${fileName} - will be converted by Cloudinary`);
     return null; // Skip local compression for HEIC files
   }
   
   // Файлы меньше 400KB не сжимаем - сохраняем оригинальное качество
   if (fileSize < COMPRESSION_THRESHOLDS.NO_COMPRESSION) {
-    console.log(`🎯 No compression needed for file ${Math.round(fileSize / 1024)}KB (< 400KB threshold)`);
+    logger.log(`🎯 No compression needed for file ${Math.round(fileSize / 1024)}KB (< 400KB threshold)`);
     return null;
   }
   
   // Файлы 400KB-2MB - легкое сжатие, высокое качество
   if (fileSize < COMPRESSION_THRESHOLDS.LIGHT_COMPRESSION) {
-    console.log(`🟢 Light compression for file ${Math.round(fileSize / 1024)}KB (400KB-2MB range)`);
+    logger.log(`🟢 Light compression for file ${Math.round(fileSize / 1024)}KB (400KB-2MB range)`);
     return {
       maxSizeMB: 1.5,
       maxWidthOrHeight: 1920,
@@ -49,7 +51,7 @@ export const getSmartCompressionSettings = (fileSize: number, fileName?: string)
   
   // Файлы 2MB-10MB - среднее сжатие
   if (fileSize < COMPRESSION_THRESHOLDS.HEAVY_COMPRESSION) {
-    console.log(`🟡 Medium compression for file ${Math.round(fileSize / 1024)}KB (2MB-10MB range)`);
+    logger.log(`🟡 Medium compression for file ${Math.round(fileSize / 1024)}KB (2MB-10MB range)`);
     return {
       maxSizeMB: 1,
       maxWidthOrHeight: 1600,
@@ -59,7 +61,7 @@ export const getSmartCompressionSettings = (fileSize: number, fileName?: string)
   }
   
   // Файлы больше 10MB - агрессивное сжатие
-  console.log(`🔴 Heavy compression for file ${Math.round(fileSize / 1024)}KB (>10MB)`);
+  logger.log(`🔴 Heavy compression for file ${Math.round(fileSize / 1024)}KB (>10MB)`);
   return {
     maxSizeMB: 0.5,
     maxWidthOrHeight: 1200,

@@ -31,7 +31,7 @@ const OptimizedImageGallery = React.memo<OptimizedImageGalleryProps>(({
   onDelete,
   disabled = false
 }) => {
-  logger.log('🎨 OptimizedImageGallery render:', { 
+  logger.debug('🎨 OptimizedImageGallery render:', { 
     imageCount: images.length, 
     uploadQueueLength: uploadQueue.length 
   });
