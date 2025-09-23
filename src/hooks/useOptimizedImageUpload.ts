@@ -1,5 +1,6 @@
 
 import { useState, useCallback, useRef } from 'react';
+import { unstable_batchedUpdates } from 'react-dom';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -83,13 +84,15 @@ export const useOptimizedImageUpload = () => {
   // Mark item as deleted by URL
   const markAsDeleted = useCallback((url: string) => {
     logger.log('🗑️ Marking as deleted in upload queue:', url);
-    setUploadQueue(prev => 
-      prev.map(item => 
-        item.finalUrl === url || item.blobUrl === url
-          ? { ...item, status: 'deleted' as const }
-          : item
-      )
-    );
+    unstable_batchedUpdates(() => {
+      setUploadQueue(prev => 
+        prev.map(item => 
+          item.finalUrl === url || item.blobUrl === url
+            ? { ...item, status: 'deleted' as const }
+            : item
+        )
+      );
+    });
   }, []);
 
   // Auto-cleanup for successfully uploaded items
@@ -166,13 +169,15 @@ export const useOptimizedImageUpload = () => {
     const retryDelay = Math.pow(2, retryCount) * 1000;
 
     try {
-      setUploadQueue(prev => 
-        prev.map(i => 
-          i.id === item.id 
-            ? { ...i, status: 'uploading', progress: 10 }
-            : i
-        )
-      );
+      unstable_batchedUpdates(() => {
+        setUploadQueue(prev => 
+          prev.map(i => 
+            i.id === item.id 
+              ? { ...i, status: 'uploading', progress: 10 }
+              : i
+          )
+        );
+      });
 
       const formData = new FormData();
       formData.append('file', item.compressedFile || item.file);
@@ -192,18 +197,20 @@ export const useOptimizedImageUpload = () => {
         throw new Error(result.error || 'Upload failed');
       }
 
-      setUploadQueue(prev => 
-        prev.map(i => 
-          i.id === item.id 
-            ? { 
-                ...i, 
-                status: 'success', 
-                progress: 100,
-                finalUrl: result.mainImageUrl
-              }
-            : i
-        )
-      );
+      unstable_batchedUpdates(() => {
+        setUploadQueue(prev => 
+          prev.map(i => 
+            i.id === item.id 
+              ? { 
+                  ...i, 
+                  status: 'success', 
+                  progress: 100,
+                  finalUrl: result.mainImageUrl
+                }
+              : i
+          )
+        );
+      });
 
       if (item.blobUrl) {
         URL.revokeObjectURL(item.blobUrl);
@@ -218,13 +225,15 @@ export const useOptimizedImageUpload = () => {
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         return uploadSingleFile(item, options, retryCount + 1);
       } else {
-        setUploadQueue(prev => 
-          prev.map(i => 
-            i.id === item.id 
-              ? { ...i, status: 'error', error: errorMessage }
-              : i
-          )
-        );
+        unstable_batchedUpdates(() => {
+          setUploadQueue(prev => 
+            prev.map(i => 
+              i.id === item.id 
+                ? { ...i, status: 'error', error: errorMessage }
+                : i
+            )
+          );
+        });
         throw error;
       }
     }
@@ -294,7 +303,9 @@ export const useOptimizedImageUpload = () => {
       originalSize: file.size
     }));
 
-    setUploadQueue(prev => [...prev, ...initialQueue]);
+    unstable_batchedUpdates(() => {
+      setUploadQueue(prev => [...prev, ...initialQueue]);
+    });
 
     try {
       // Step 1: Условное сжатие изображений
@@ -304,48 +315,54 @@ export const useOptimizedImageUpload = () => {
         
         if (!shouldCompress) {
           logger.log(`⚡ Skipping compression for ${item.file.name} (${item.file.size} bytes < ${COMPRESSION_THRESHOLD} bytes)`);
-          setUploadQueue(prev => 
-            prev.map(i => 
-              i.id === item.id 
-                ? { 
-                    ...i, 
-                    compressedFile: item.file, // Используем оригинал
-                    compressedSize: item.file.size,
-                    status: 'pending',
-                    progress: 0
-                  }
-                : i
-            )
-          );
+          unstable_batchedUpdates(() => {
+            setUploadQueue(prev => 
+              prev.map(i => 
+                i.id === item.id 
+                  ? { 
+                      ...i, 
+                      compressedFile: item.file, // Используем оригинал
+                      compressedSize: item.file.size,
+                      status: 'pending',
+                      progress: 0
+                    }
+                  : i
+              )
+            );
+          });
           return { ...item, compressedFile: item.file, compressedSize: item.file.size };
         }
 
-        setUploadQueue(prev => 
-          prev.map(i => 
-            i.id === item.id 
-              ? { ...i, status: 'compressing', progress: 5 }
-              : i
-          )
-        );
+        unstable_batchedUpdates(() => {
+          setUploadQueue(prev => 
+            prev.map(i => 
+              i.id === item.id 
+                ? { ...i, status: 'compressing', progress: 5 }
+                : i
+            )
+          );
+        });
 
         const compressedFile = await conditionalCompressImage(
           item.file, 
           options.compressionOptions
         );
 
-        setUploadQueue(prev => 
-          prev.map(i => 
-            i.id === item.id 
-              ? { 
-                  ...i, 
-                  compressedFile,
-                  compressedSize: compressedFile.size,
-                  status: 'pending',
-                  progress: 0
-                }
-              : i
-          )
-        );
+        unstable_batchedUpdates(() => {
+          setUploadQueue(prev => 
+            prev.map(i => 
+              i.id === item.id 
+                ? { 
+                    ...i, 
+                    compressedFile,
+                    compressedSize: compressedFile.size,
+                    status: 'pending',
+                    progress: 0
+                  }
+                : i
+            )
+          );
+        });
 
         return { ...item, compressedFile, compressedSize: compressedFile.size };
       });

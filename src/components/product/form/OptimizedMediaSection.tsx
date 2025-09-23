@@ -103,22 +103,21 @@ const OptimizedMediaSection = React.memo<OptimizedMediaSectionProps>(({
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
   const handleImageDelete = useCallback(async (url: string) => {
-    if (!url || !imageUrls.includes(url)) return;
+    if (!url) return;
     
     try {
       markAsDeleted(url);
-      const newImageUrls = imageUrls.filter(imgUrl => imgUrl !== url);
       
-      if (primaryImage === url && newImageUrls.length > 0 && onSetPrimaryImage) {
-        onSetPrimaryImage(newImageUrls[0]);
-      }
+      // Используем функциональные обновления в родительском компоненте
+      // вместо прямой работы с imageUrls
+      onImageDelete?.(url);
       
-      handleMobileOptimizedImageUpload(newImageUrls);
+      // Удаляем из бэкенда
       deleteImage(url).catch(logger.error);
     } catch (error) {
       logger.error('Error during deletion:', error);
     }
-  }, [imageUrls, handleMobileOptimizedImageUpload, deleteImage, markAsDeleted, primaryImage, onSetPrimaryImage]);
+  }, [markAsDeleted, onImageDelete, deleteImage]);
 
   return (
     <div className="space-y-6">

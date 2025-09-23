@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -44,30 +45,62 @@ const StandardSellerForm = () => {
     setDisplayData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleImageUpload = (urls: string[]) => {
-    setImageUrls(prevUrls => [...prevUrls, ...urls]);
-    
-    if (!primaryImage && urls.length > 0) {
-      setPrimaryImage(urls[0]);
-    }
-  };
+  const handleImageUpload = useCallback((urls: string[]) => {
+    unstable_batchedUpdates(() => {
+      setImageUrls(prevUrls => [...prevUrls, ...urls]);
+      
+      setPrimaryImage(prev => {
+        if (!prev && urls.length > 0) {
+          return urls[0];
+        }
+        return prev;
+      });
+    });
+  }, []);
 
-  const handleImageDelete = (url: string) => {
-    const newImageUrls = imageUrls.filter(item => item !== url);
-    setImageUrls(newImageUrls);
-    
-    if (primaryImage === url) {
-      if (newImageUrls.length > 0) {
-        setPrimaryImage(newImageUrls[0]);
-      } else {
-        setPrimaryImage("");
-      }
-    }
-  };
+  const handleImageDelete = useCallback((url: string) => {
+    unstable_batchedUpdates(() => {
+      setImageUrls(prevUrls => {
+        const newUrls = prevUrls.filter(item => item !== url);
+        
+        setPrimaryImage(prevPrimary => {
+          if (prevPrimary === url) {
+            return newUrls.length > 0 ? newUrls[0] : "";
+          }
+          return prevPrimary;
+        });
+        
+        return newUrls;
+      });
+    });
+  }, []);
 
-  const handleUploadStateChange = (uploading: boolean) => {
+  const handleSetPrimaryImage = useCallback((url: string) => {
+    setPrimaryImage(url);
+  }, []);
+
+  const handleUploadStateChange = useCallback((uploading: boolean) => {
     setIsMediaUploading(uploading);
-  };
+  }, []);
+
+  // Мемоизируем пропсы для OptimizedMediaSection
+  const mediaProps = useMemo(() => ({
+    imageUrls,
+    handleMobileOptimizedImageUpload: handleImageUpload,
+    primaryImage,
+    onSetPrimaryImage: handleSetPrimaryImage,
+    onImageDelete: handleImageDelete,
+    disabled: isSubmitting,
+    onUploadStateChange: handleUploadStateChange
+  }), [
+    imageUrls,
+    primaryImage,
+    isSubmitting,
+    handleImageUpload,
+    handleImageDelete,
+    handleSetPrimaryImage,
+    handleUploadStateChange
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,15 +154,7 @@ const StandardSellerForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <OptimizedMediaSection
-        imageUrls={imageUrls}
-        handleMobileOptimizedImageUpload={handleImageUpload}
-        primaryImage={primaryImage}
-        onSetPrimaryImage={setPrimaryImage}
-        onImageDelete={handleImageDelete}
-        disabled={isSubmitting}
-        onUploadStateChange={handleUploadStateChange}
-      />
+      <OptimizedMediaSection {...mediaProps} />
       
       <div>
         <label className="block text-sm font-medium mb-2">
@@ -199,4 +224,4 @@ const StandardSellerForm = () => {
   );
 };
 
-export default StandardSellerForm;
+export default React.memo(StandardSellerForm);
