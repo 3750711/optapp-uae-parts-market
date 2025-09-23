@@ -1,17 +1,40 @@
 const isDev = process.env.NODE_ENV === 'development';
 
-export const logger = {
-  log: (...args: any[]) => isDev && console.log(...args),
-  error: (...args: any[]) => isDev && console.error(...args),
-  warn: (...args: any[]) => isDev && console.warn(...args),
-  debug: (...args: any[]) => isDev && console.debug(...args),
-  
-  // Existing methods used in the project
-  devLog: (...args: any[]) => isDev && console.log(...args),
-  devError: (...args: any[]) => isDev && console.error(...args),
-  prodError: (...args: any[]) => console.error(...args),
-  throttledDevLog: (...args: any[]) => isDev && console.log(...args),
-  
-  // Security method
-  security: (...args: any[]) => console.log('[SECURITY]', ...args)
+// Individual logger functions
+const log = (...args: any[]) => isDev && console.log(...args);
+const error = (...args: any[]) => isDev && console.error(...args);
+const warn = (...args: any[]) => isDev && console.warn(...args);
+const debug = (...args: any[]) => isDev && console.debug(...args);
+
+// Existing methods used in the project
+const devLog = (...args: any[]) => isDev && console.log(...args);
+const devError = (...args: any[]) => isDev && console.error(...args);
+const prodError = (...args: any[]) => console.error(...args);
+
+// Throttled logging with simple debounce
+let throttleTimer: NodeJS.Timeout | null = null;
+const throttledDevLog = (...args: any[]) => {
+  if (!isDev) return;
+  if (throttleTimer) return;
+  console.log(...args);
+  throttleTimer = setTimeout(() => { throttleTimer = null; }, 100);
 };
+
+// Security method
+const security = (...args: any[]) => console.log('[SECURITY]', ...args);
+
+// Export logger object
+export const logger = {
+  log,
+  error,
+  warn,
+  debug,
+  devLog,
+  devError,
+  prodError,
+  throttledDevLog,
+  security
+};
+
+// Export individual methods for backward compatibility
+export { log, error, warn, debug, devLog, devError, prodError, throttledDevLog, security };
