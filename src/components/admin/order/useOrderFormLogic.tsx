@@ -5,7 +5,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
-import { useDebounceValue } from '@/hooks/useDebounceValue';
+import { useDebounceValue } from '@/hooks/useDebounce';
 
 interface OrderFormLogicProps {
   orderId?: string;

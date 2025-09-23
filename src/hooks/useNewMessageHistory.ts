@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useDebounce } from './useDebounce';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface ProfileData {
   id: string;

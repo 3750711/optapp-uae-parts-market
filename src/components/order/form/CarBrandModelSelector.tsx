@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, memo } from 'react';
 import { Label } from '@/components/ui/label';
 import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
@@ -11,7 +11,7 @@ interface CarBrandModelSelectorProps {
   isMobile?: boolean;
 }
 
-const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
+const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = memo(({
   brandId,
   modelId,
   onBrandChange,
@@ -98,6 +98,6 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default CarBrandModelSelector;

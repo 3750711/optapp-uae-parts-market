@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useDebounce } from './useDebounce';
+import { useDebounce } from '@/hooks/useDebounce';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 interface MessageHistoryItem {

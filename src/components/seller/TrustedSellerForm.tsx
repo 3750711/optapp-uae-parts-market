@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminAddProductForm from "@/components/admin/AdminAddProductForm";
 import { useOptimizedAdminAddProduct } from "@/hooks/useOptimizedAdminAddProduct";
@@ -16,7 +16,7 @@ interface TrustedSellerFormProps {
   mode?: 'trusted_seller';
 }
 
-const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_seller' }) => {
+const TrustedSellerForm: React.FC<TrustedSellerFormProps> = memo(({ mode = 'trusted_seller' }) => {
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = getFormTranslations(language);
@@ -133,6 +133,6 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
       />
     </div>
   );
-};
+});
 
 export default TrustedSellerForm;

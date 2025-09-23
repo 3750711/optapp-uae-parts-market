@@ -12,7 +12,7 @@ import { useTrustedSellerProductCreation } from "@/hooks/useTrustedSellerProduct
 import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { useOptimizedFormAutosave } from "@/hooks/useOptimizedFormAutosave";
 import { useCachedBrands, useCachedModels, useCachedAllModels, useCachedSellers } from "@/hooks/useCachedReferenceData";
-import { useDebounceValue } from "@/hooks/useDebounceValue";
+import { useDebounceValue } from "@/hooks/useDebounce";
 
 interface UseOptimizedAdminAddProductOptions {
   mode?: 'admin' | 'trusted_seller';

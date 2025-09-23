@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useDebounce } from '@/hooks/use-debounce';
+import { useDebounceValue } from '@/hooks/useDebounce';
 
 interface SimpleSearchProps {
   searchQuery: string;
@@ -20,7 +20,7 @@ const SimpleSearch: React.FC<SimpleSearchProps> = ({
   placeholder = "Поиск автозапчастей..."
 }) => {
   // Debounce search with 500ms delay for smooth UX
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const debouncedSearchQuery = useDebounceValue(searchQuery, 500);
 
   // Trigger search when debounced value changes
   React.useEffect(() => {
