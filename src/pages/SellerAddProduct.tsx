@@ -10,8 +10,8 @@ import { Loader2 } from "lucide-react";
 import { useTrustedSellerPrefetch } from "@/hooks/useTrustedSellerPrefetch";
 
 // Optimized lazy loading with preloading hints
-const OptimizedStandardForm = React.lazy(() => 
-  import("@/components/seller/OptimizedStandardForm").then(module => ({
+const OptimizedFormWithAutosave = React.lazy(() => 
+  import("@/components/seller/OptimizedFormWithAutosave").then(module => ({
     default: module.default
   }))
 );
@@ -29,7 +29,7 @@ const preloadComponents = (isTrustedSeller: boolean) => {
     import("@/components/seller/TrustedSellerForm");
   } else {
     // Preload standard form  
-    import("@/components/seller/OptimizedStandardForm");
+    import("@/components/seller/OptimizedFormWithAutosave");
   }
 };
 
@@ -82,7 +82,7 @@ const SellerAddProduct = () => {
               {isTrustedSeller ? (
                 <TrustedSellerForm mode="trusted_seller" />
               ) : (
-                <OptimizedStandardForm />
+                <OptimizedFormWithAutosave />
               )}
             </Suspense>
           </div>
