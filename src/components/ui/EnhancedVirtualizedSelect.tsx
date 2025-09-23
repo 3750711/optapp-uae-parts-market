@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, memo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Select,
   SelectContent,
@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { useDebounceValue } from '@/hooks/useDebounce';
+import { useDebounceValue } from '@/hooks/useDebounceValue';
 
 interface Option {
   id: string;
@@ -27,7 +27,7 @@ interface SearchableSelectProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = memo(({
+const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = ({
   options,
   value,
   onValueChange,
@@ -115,6 +115,6 @@ const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = memo(({
       </SelectContent>
     </Select>
   );
-});
+};
 
 export default EnhancedVirtualizedSelect;

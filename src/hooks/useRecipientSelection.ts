@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useDebounce } from './useDebounce';
 import { supabase } from '@/integrations/supabase/client';
 import { Users, UserCheck, Shield, Star, Crown, User } from 'lucide-react';
 

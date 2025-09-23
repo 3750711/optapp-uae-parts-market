@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useCallback, useMemo } from 'react';
-import { logger } from '@/utils/logger';
 
 export interface CarBrand {
   id: string;
@@ -19,103 +18,81 @@ export const useAllCarBrands = () => {
   const [brandSearchTerm, setBrandSearchTerm] = useState('');
   const [modelSearchTerm, setModelSearchTerm] = useState('');
 
-  // Загрузка всех брендов с AbortController
+  // Загрузка всех брендов
   const {
     data: allBrands,
     isLoading: isLoadingBrands,
     error: brandsError
   } = useQuery<CarBrand[]>({
-    queryKey: ['car-data', 'brands'],
-    queryFn: async ({ signal }) => {
-      logger.log('🔍 Загрузка всех марок автомобилей из базы данных');
+    queryKey: ['admin-all-car-brands'],
+    queryFn: async () => {
+      console.log('🔍 Загрузка всех марок автомобилей из базы данных');
       const { data, error } = await supabase
         .from('car_brands')
         .select('id, name')
-        .order('name', { ascending: true })
-        .abortSignal(signal);
+        .order('name', { ascending: true });
       
       if (error) {
-        logger.error('❌ Ошибка загрузки марок автомобилей:', error);
+        console.error('❌ Ошибка загрузки марок автомобилей:', error);
         throw error;
       }
       
-      logger.log('✅ Загружено марок:', data?.length);
+      console.log('✅ Загружено марок:', data?.length);
       return data || [];
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes cache
-    gcTime: 30 * 60 * 1000, // 30 minutes in memory
-    refetchOnWindowFocus: false,
-    retry: (failureCount, error) => {
-      // Don't retry on 4xx errors
-      if (error?.message?.includes('40')) return false;
-      return failureCount < 3;
-    }
+    staleTime: Infinity, // Кэшируем данные на все время сессии
   });
 
-  // Загрузка моделей для выбранного бренда с AbortController
+  // Загрузка моделей для выбранного бренда
   const {
     data: brandModelsForSelected,
     isLoading: isLoadingModels,
     error: modelsError
   } = useQuery<CarModel[]>({
-    queryKey: ['car-data', 'models', selectedBrandId],
-    queryFn: async ({ signal }) => {
+    queryKey: ['admin-all-car-models', selectedBrandId],
+    queryFn: async () => {
       if (!selectedBrandId) return [];
       
-      logger.log('🔍 Загрузка моделей для бренда:', { brandId: selectedBrandId });
+      console.log('🔍 Загрузка моделей для бренда:', { brandId: selectedBrandId });
       
       const { data, error } = await supabase
         .from('car_models')
         .select('id, name, brand_id')
         .eq('brand_id', selectedBrandId)
-        .order('name', { ascending: true })
-        .abortSignal(signal);
+        .order('name', { ascending: true });
       
       if (error) {
-        logger.error('❌ Ошибка загрузки моделей автомобилей:', error);
+        console.error('❌ Ошибка загрузки моделей автомобилей:', error);
         throw error;
       }
       
-      logger.log('✅ Загружено моделей:', data?.length);
+      console.log('✅ Загружено моделей:', data?.length);
       return data || [];
     },
-    staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: Infinity,
     enabled: !!selectedBrandId,
-    retry: (failureCount, error) => {
-      if (error?.message?.includes('40')) return false;
-      return failureCount < 3;
-    }
   });
 
-  // Загрузка всех моделей для совместимости с AbortController
+  // Загрузка всех моделей для совместимости (парсинг заголовка, валидация)
   const {
     data: allModels,
     isLoading: isLoadingAllModels
   } = useQuery<CarModel[]>({
-    queryKey: ['car-data', 'all-models'],
-    queryFn: async ({ signal }) => {
+    queryKey: ['admin-all-models'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('car_models')
         .select('id, name, brand_id')
-        .order('name', { ascending: true })
-        .abortSignal(signal);
+        .order('name', { ascending: true });
       
       if (error) {
-        logger.error('❌ Ошибка загрузки всех моделей автомобилей:', error);
+        console.error('❌ Ошибка загрузки всех моделей автомобилей:', error);
         throw error;
       }
       
       return data || [];
     },
-    staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    retry: (failureCount, error) => {
-      if (error?.message?.includes('40')) return false;
-      return failureCount < 3;
-    }
+    staleTime: Infinity,
   });
 
   const brands = useMemo(() => {

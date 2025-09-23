@@ -1,7 +1,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useDebounceValue } from './useDebounce';
+import { useDebounceValue } from './useDebounceValue';
 
 interface UseProductsFiltersProps {
   initialFilters?: {
