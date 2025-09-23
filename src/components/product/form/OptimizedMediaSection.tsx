@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Upload, X } from "lucide-react";
@@ -10,7 +10,6 @@ import { getFormTranslations } from "@/utils/translations/forms";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
 import { isAllowedImage, getFileValidationError, getImageAcceptAttribute } from "@/utils/fileValidation";
 import { toast } from "@/hooks/use-toast";
-import { logger } from '@/utils/logger';
 
 interface OptimizedMediaSectionProps {
   imageUrls: string[];
@@ -23,7 +22,7 @@ interface OptimizedMediaSectionProps {
   onUploadStateChange?: (isUploading: boolean) => void;
 }
 
-const OptimizedMediaSection = React.memo<OptimizedMediaSectionProps>(({
+const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   imageUrls,
   handleMobileOptimizedImageUpload,
   onImageDelete,
@@ -94,7 +93,7 @@ const OptimizedMediaSection = React.memo<OptimizedMediaSectionProps>(({
         handleMobileOptimizedImageUpload(uploadedUrls);
       }
     } catch (error) {
-      logger.error('Error uploading files:', error);
+      console.error('Error uploading files:', error);
     }
     
     if (fileInputRef.current) {
@@ -103,21 +102,22 @@ const OptimizedMediaSection = React.memo<OptimizedMediaSectionProps>(({
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
   const handleImageDelete = useCallback(async (url: string) => {
-    if (!url) return;
+    if (!url || !imageUrls.includes(url)) return;
     
     try {
       markAsDeleted(url);
+      const newImageUrls = imageUrls.filter(imgUrl => imgUrl !== url);
       
-      // Используем функциональные обновления в родительском компоненте
-      // вместо прямой работы с imageUrls
-      onImageDelete?.(url);
+      if (primaryImage === url && newImageUrls.length > 0 && onSetPrimaryImage) {
+        onSetPrimaryImage(newImageUrls[0]);
+      }
       
-      // Удаляем из бэкенда
-      deleteImage(url).catch(logger.error);
+      handleMobileOptimizedImageUpload(newImageUrls);
+      deleteImage(url).catch(console.error);
     } catch (error) {
-      logger.error('Error during deletion:', error);
+      console.error('Error during deletion:', error);
     }
-  }, [markAsDeleted, onImageDelete, deleteImage]);
+  }, [imageUrls, handleMobileOptimizedImageUpload, deleteImage, markAsDeleted, primaryImage, onSetPrimaryImage]);
 
   return (
     <div className="space-y-6">
@@ -169,15 +169,6 @@ const OptimizedMediaSection = React.memo<OptimizedMediaSectionProps>(({
       />
     </div>
   );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.imageUrls.length === nextProps.imageUrls.length &&
-    prevProps.imageUrls.every((url, idx) => url === nextProps.imageUrls[idx]) &&
-    prevProps.primaryImage === nextProps.primaryImage &&
-    prevProps.disabled === nextProps.disabled
-  );
-});
-
-OptimizedMediaSection.displayName = 'OptimizedMediaSection';
+};
 
 export default OptimizedMediaSection;

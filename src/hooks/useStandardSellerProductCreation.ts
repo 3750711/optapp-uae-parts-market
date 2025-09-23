@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrentUserProfile } from './useCurrentUserProfile';
 import { ProductMediaService } from '@/services/ProductMediaService';
-import { logger } from '@/utils/logger';
 
 interface CreateStandardProductParams {
   title: string;
@@ -25,18 +24,18 @@ export const useStandardSellerProductCreation = () => {
     imageUrls,
     primaryImage
   }: CreateStandardProductParams) => {
-    logger.log('🚀 Starting standard seller product creation');
+    console.log('🚀 Starting standard seller product creation');
     
     if (isProfileLoading) {
       throw new Error('Загрузка данных пользователя...');
     }
 
     if (!currentUserProfile) {
-      logger.error('❌ No current user profile available');
+      console.error('❌ No current user profile available');
       throw new Error('Не удалось получить данные пользователя. Попробуйте обновить страницу.');
     }
 
-    logger.log('👤 User profile:', currentUserProfile);
+    console.log('👤 User profile:', currentUserProfile);
 
     if (currentUserProfile.user_type !== 'seller') {
       throw new Error('Только продавцы могут создавать товары');
@@ -46,7 +45,7 @@ export const useStandardSellerProductCreation = () => {
 
     try {
       // Step 1: Create product using new RPC function for standard sellers
-      logger.log('📦 Creating product with create_standard_product RPC...');
+      console.log('📦 Creating product with create_standard_product RPC...');
       const { data: productId, error: productError } = await supabase
         .rpc('create_standard_product', {
           p_title: title.trim(),
@@ -55,26 +54,11 @@ export const useStandardSellerProductCreation = () => {
         });
 
       if (productError) {
-        logger.error('❌ RPC Error Details:', {
-          message: productError.message,
-          details: productError.details,
-          hint: productError.hint,
-          code: productError.code
-        });
-        
-        // Пользователю показать понятное сообщение
-        let userMessage = 'Ошибка создания товара';
-        if (productError.message?.includes('User profile not found') || 
-            productError.message?.includes('profile')) {
-          userMessage = 'Профиль пользователя не найден. Попробуйте перезайти в систему.';
-        } else if (productError.hint) {
-          userMessage = productError.hint;
-        }
-        
-        throw new Error(userMessage);
+        console.error('❌ Error creating product:', productError);
+        throw productError;
       }
 
-      logger.log('✅ Product created with ID:', productId);
+      console.log('✅ Product created with ID:', productId);
 
       // Step 2: Add media using ProductMediaService
       try {
@@ -85,28 +69,15 @@ export const useStandardSellerProductCreation = () => {
           primaryImage,
           userType: 'seller'
         });
-        logger.log('✅ Media added successfully');
+        console.log('✅ Media added successfully');
       } catch (mediaError) {
-        logger.error('❌ Error adding media, rolling back product:', mediaError);
-        
-        // Rollback: Delete the created product since media failed
-        try {
-          const { error: deleteError } = await supabase
-            .from('products')
-            .delete()
-            .eq('id', productId);
-            
-          if (deleteError) {
-            logger.error('❌ Failed to rollback product:', deleteError);
-          } else {
-            logger.log('🔄 Product rolled back successfully');
-          }
-        } catch (rollbackError) {
-          logger.error('❌ Rollback failed:', rollbackError);
-        }
-        
-        // Re-throw media error to fail the entire operation
-        throw new Error('Не удалось загрузить изображения. Товар не был создан.');
+        console.error('❌ Error adding media:', mediaError);
+        // Don't throw here, product was created successfully
+        toast({
+          title: 'Предупреждение',
+          description: 'Товар создан, но возникла ошибка при добавлении изображений',
+          variant: 'destructive',
+        });
       }
 
       toast({
@@ -117,7 +88,7 @@ export const useStandardSellerProductCreation = () => {
       return productId;
 
     } catch (error) {
-      logger.error('💥 Error in standard seller product creation:', error);
+      console.error('💥 Error in standard seller product creation:', error);
       
       const errorMessage = error instanceof Error ? error.message : 'Произошла ошибка при создании товара';
       

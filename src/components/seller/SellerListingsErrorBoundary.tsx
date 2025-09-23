@@ -4,7 +4,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { getSellerListingsPageTranslations } from "@/utils/translations/sellerListingsPage";
-import { logger } from '@/utils/logger';
 
 interface Props {
   children: ReactNode;
@@ -27,7 +26,7 @@ class SellerListingsErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.error('SellerListings Error Boundary caught an error:', error, errorInfo);
+    console.error('SellerListings Error Boundary caught an error:', error, errorInfo);
   }
 
   handleRetry = () => {

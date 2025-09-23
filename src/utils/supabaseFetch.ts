@@ -1,5 +1,3 @@
-import { secureLog } from "./logger";
-
 // Full circuit breaker for api.partsbay.ae прокси
 let proxyHealth: 'unknown' | 'healthy' | 'failing' = 'unknown';
 let lastHealthCheck = 0;
@@ -92,7 +90,7 @@ export const supabaseFetch = async (url: RequestInfo | URL, options?: RequestIni
       // Circuit breaker: if proxy is known to be failing, use fallback immediately
       if (isProxyUrl && attempt === 0 && (proxyHealth === 'failing' || circuitBreakerFailures >= 3)) {
         const directUrl = urlString.replace('api.partsbay.ae', 'vfiylfljiixqkjfqubyq.supabase.co');
-        secureLog('🔄 Circuit breaker active or proxy failing, using fallback URL');
+        console.log('🔄 Circuit breaker active or proxy failing, using direct Supabase URL:', directUrl);
         return await createFetchWithTimeout(directUrl);
       }
 
@@ -110,7 +108,7 @@ export const supabaseFetch = async (url: RequestInfo | URL, options?: RequestIni
       // Handle 502 proxy errors
       if (response.status === 502 && isProxyUrl) {
         const directUrl = urlString.replace('api.partsbay.ae', 'vfiylfljiixqkjfqubyq.supabase.co');
-        secureLog('🔄 Proxy returned 502, falling back to direct URL');
+        console.log('🔄 Proxy returned 502, falling back to direct Supabase URL:', directUrl);
         proxyHealth = 'failing';
         circuitBreakerFailures++;
         return await createFetchWithTimeout(directUrl);
@@ -137,24 +135,21 @@ export const supabaseFetch = async (url: RequestInfo | URL, options?: RequestIni
       const delay = baseDelay + jitter;
       
       await new Promise(resolve => setTimeout(resolve, delay));
-      secureLog(`🔄 Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms`, { error: error.message });
+      console.warn(`🔄 Request failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${Math.round(delay)}ms:`, error);
     }
   }
   
   // Final fallback for proxy URLs
   if (isProxyUrl) {
     const directUrl = urlString.replace('api.partsbay.ae', 'vfiylfljiixqkjfqubyq.supabase.co');
-    secureLog('🔄 All proxy attempts failed, falling back to direct URL');
+    console.log('🔄 All proxy attempts failed, falling back to direct Supabase URL:', directUrl);
     proxyHealth = 'failing';
     
     try {
       // Only 1 retry for fallback URL to prevent excessive requests
       return await createFetchWithTimeout(directUrl);
     } catch (fallbackError) {
-      secureLog('❌ Both proxy and direct URLs failed', { 
-        originalError: lastError.message, 
-        fallbackError: (fallbackError as Error).message 
-      });
+      console.error('❌ Both proxy and direct URLs failed:', { original: lastError, fallback: fallbackError });
       throw new Error(`NetworkError when attempting to fetch resource. Proxy: ${lastError.message}, Direct: ${(fallbackError as Error).message}`);
     }
   }

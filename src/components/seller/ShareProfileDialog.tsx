@@ -13,7 +13,6 @@ import { useIsMobileEnhanced } from '@/hooks/use-mobile-enhanced';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getCommonTranslations } from '@/utils/translations/common';
 import { PRODUCTION_DOMAIN } from '@/utils/seoUtils';
-import { logger } from '@/utils/logger';
 
 interface ShareProfileDialogProps {
   sellerId: string;
@@ -69,7 +68,7 @@ const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
         return true;
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
-          logger.error('Web Share API failed:', error);
+          console.error('Web Share API failed:', error);
         }
         return false;
       }
@@ -96,7 +95,7 @@ const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
       window.open('https://wa.me/', '_blank');
       setIsDialogOpen(false);
     } catch (err) {
-      logger.error('Failed to copy message:', err);
+      console.error('Failed to copy message:', err);
       toast({
         variant: "destructive",
         title: t.share.failedToCopy,
@@ -117,7 +116,7 @@ const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
       window.open('https://t.me/', '_blank');
       setIsDialogOpen(false);
     } catch (err) {
-      logger.error('Failed to copy message:', err);
+      console.error('Failed to copy message:', err);  
       toast({
         variant: "destructive",
         title: t.share.failedToCopy,
@@ -146,7 +145,7 @@ const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
       });
       setIsDialogOpen(false);
     } catch (err) {
-      logger.error('Failed to copy link:', err);
+      console.error('Failed to copy link:', err);
       toast({
         variant: "destructive",
         title: t.share.failedToCopy,

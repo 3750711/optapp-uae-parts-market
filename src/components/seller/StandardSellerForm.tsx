@@ -1,5 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
-import { unstable_batchedUpdates } from "react-dom";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -9,18 +8,12 @@ import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStandardSellerProductCreation } from "@/hooks/useStandardSellerProductCreation";
-import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
-import { logger } from "@/utils/logger";
 
 const StandardSellerForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { language } = useLanguage();
   const { createStandardSellerProduct, isCreating, currentUserProfile, isProfileLoading } = useStandardSellerProductCreation();
-  const { guardedSubmit, canSubmit } = useSubmissionGuard({ 
-    timeout: 3000,
-    onDuplicateSubmit: () => logger.warn('⚠️ Duplicate submission attempt blocked')
-  });
   
   const t = getFormTranslations(language);
   const c = getCommonTranslations(language);
@@ -50,137 +43,92 @@ const StandardSellerForm = () => {
     setDisplayData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleImageUpload = useCallback((urls: string[]) => {
-    unstable_batchedUpdates(() => {
-      setImageUrls(prevUrls => [...prevUrls, ...urls]);
-      
-      setPrimaryImage(prev => {
-        if (!prev && urls.length > 0) {
-          return urls[0];
-        }
-        return prev;
-      });
-    });
-  }, []);
+  const handleImageUpload = (urls: string[]) => {
+    setImageUrls(prevUrls => [...prevUrls, ...urls]);
+    
+    if (!primaryImage && urls.length > 0) {
+      setPrimaryImage(urls[0]);
+    }
+  };
 
-  const handleImageDelete = useCallback((url: string) => {
-    unstable_batchedUpdates(() => {
-      setImageUrls(prevUrls => {
-        const newUrls = prevUrls.filter(item => item !== url);
-        
-        setPrimaryImage(prevPrimary => {
-          if (prevPrimary === url) {
-            return newUrls.length > 0 ? newUrls[0] : "";
-          }
-          return prevPrimary;
-        });
-        
-        return newUrls;
-      });
-    });
-  }, []);
+  const handleImageDelete = (url: string) => {
+    const newImageUrls = imageUrls.filter(item => item !== url);
+    setImageUrls(newImageUrls);
+    
+    if (primaryImage === url) {
+      if (newImageUrls.length > 0) {
+        setPrimaryImage(newImageUrls[0]);
+      } else {
+        setPrimaryImage("");
+      }
+    }
+  };
 
-  const handleSetPrimaryImage = useCallback((url: string) => {
-    setPrimaryImage(url);
-  }, []);
-
-  const handleUploadStateChange = useCallback((uploading: boolean) => {
+  const handleUploadStateChange = (uploading: boolean) => {
     setIsMediaUploading(uploading);
-  }, []);
-
-  // Мемоизируем пропсы для OptimizedMediaSection
-  const mediaProps = useMemo(() => ({
-    imageUrls,
-    handleMobileOptimizedImageUpload: handleImageUpload,
-    primaryImage,
-    onSetPrimaryImage: handleSetPrimaryImage,
-    onImageDelete: handleImageDelete,
-    disabled: isSubmitting,
-    onUploadStateChange: handleUploadStateChange
-  }), [
-    imageUrls,
-    primaryImage,
-    isSubmitting,
-    handleImageUpload,
-    handleImageDelete,
-    handleSetPrimaryImage,
-    handleUploadStateChange
-  ]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    await guardedSubmit(async () => {
-      logger.debug('📝 Standard seller form submission started');
+    console.log('📝 Standard seller form submission started');
+    
+    // Basic validation
+    if (!formData.title.trim()) {
+      toast({
+        title: c.errors.title,
+        description: t.validation.titleRequired,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.price || Number(formData.price) <= 0) {
+      toast({
+        title: c.errors.title, 
+        description: t.validation.priceRequired,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (imageUrls.length === 0) {
+      toast({
+        title: c.errors.title,
+        description: t.messages.imageRequired,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const productId = await createStandardSellerProduct({
+        title: formData.title,
+        price: Number(formData.price),
+        description: formData.description,
+        imageUrls,
+        primaryImage
+      });
+
+      navigate(`/seller/product/${productId}?from=add`);
       
-      // КРИТИЧНО: Проверяем загрузку профиля
-      if (isProfileLoading) {
-        toast({
-          title: "Подождите",
-          description: "Загружаются данные профиля...",
-          variant: "default",
-        });
-        return;
-      }
-      
-      if (!currentUserProfile) {
-        toast({
-          title: "Ошибка профиля",
-          description: "Не удалось загрузить профиль. Попробуйте обновить страницу.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Basic validation
-      if (!formData.title.trim()) {
-        toast({
-          title: c.errors.title,
-          description: t.validation.titleRequired,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!formData.price || Number(formData.price) <= 0) {
-        toast({
-          title: c.errors.title, 
-          description: t.validation.priceRequired,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (imageUrls.length === 0) {
-        toast({
-          title: c.errors.title,
-          description: t.messages.imageRequired,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      try {
-        const productId = await createStandardSellerProduct({
-          title: formData.title,
-          price: Number(formData.price),
-          description: formData.description,
-          imageUrls,
-          primaryImage
-        });
-
-        navigate(`/seller/product/${productId}?from=add`);
-        
-      } catch (error) {
-        logger.error("💥 Form submission error:", error);
-        // Error handling is done in the hook
-      }
-    });
+    } catch (error) {
+      console.error("💥 Form submission error:", error);
+      // Error handling is done in the hook
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <OptimizedMediaSection {...mediaProps} />
+      <OptimizedMediaSection
+        imageUrls={imageUrls}
+        handleMobileOptimizedImageUpload={handleImageUpload}
+        primaryImage={primaryImage}
+        onSetPrimaryImage={setPrimaryImage}
+        onImageDelete={handleImageDelete}
+        disabled={isSubmitting}
+        onUploadStateChange={handleUploadStateChange}
+      />
       
       <div>
         <label className="block text-sm font-medium mb-2">
@@ -227,32 +175,27 @@ const StandardSellerForm = () => {
       </div>
       
       {isProfileLoading && (
-        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 rounded mb-4">
-          <p className="text-sm text-blue-800 dark:text-blue-200">🔄 Загрузка данных профиля...</p>
+        <div className="text-center py-4">
+          <p className="text-muted-foreground">Загрузка данных профиля...</p>
         </div>
       )}
       
-      {!currentUserProfile && !isProfileLoading && (
-        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-3 rounded mb-4">
-          <p className="text-sm text-red-800 dark:text-red-200">⚠️ Профиль не загружен. Обновите страницу.</p>
+      {!isProfileLoading && !currentUserProfile && (
+        <div className="text-center py-4">
+          <p className="text-destructive">Не удалось загрузить данные профиля. Обновите страницу.</p>
         </div>
       )}
       
       <Button
         type="submit"
-        disabled={isCreating || isMediaUploading || isProfileLoading || !currentUserProfile || !canSubmit}
+        disabled={isCreating || isMediaUploading || isProfileLoading || !currentUserProfile}
         className="w-full"
         size="lg"
       >
-        {isProfileLoading 
-          ? "Загрузка профиля..." 
-          : isCreating 
-            ? t.buttons.publishing 
-            : t.buttons.publish
-        }
+        {isCreating ? t.buttons.publishing : t.buttons.publish}
       </Button>
     </form>
   );
 };
 
-export default React.memo(StandardSellerForm);
+export default StandardSellerForm;

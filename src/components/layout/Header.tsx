@@ -46,7 +46,6 @@ import { getMainPageTranslations } from '@/utils/mainPageTranslations';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import HeaderSkeleton from './HeaderSkeleton';
 import LanguageToggle from '@/components/auth/LanguageToggle';
-import { logger } from '@/utils/logger';
 
 
 const Header = () => {
@@ -117,8 +116,8 @@ const Header = () => {
     help: 'Помощь',
     logout: 'Выйти',
   };
-  // Отладочная информация для Header - только при изменениях состояния
-  logger.throttledDevLog('🏠 Header State:', {
+  // Отладочная информация для Header
+  console.debug('🏠 Header Debug:', {
     user_email: user?.email,
     profile_user_type: profile?.user_type,
     isAdmin,

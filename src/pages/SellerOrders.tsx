@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle, X, ArrowLeft } from "lucide-react";
+import { Link, Loader2, CheckCircle, X, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { OrderConfirmButton } from "@/components/order/OrderConfirmButton";
@@ -24,7 +24,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import OrderPriceConfirmDialog from "@/components/order/OrderPriceConfirmDialog";
-
+import { Check } from "lucide-react";
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 import OrdersSearchBar from '@/components/orders/OrdersSearchBar';
@@ -487,6 +487,18 @@ const SellerOrders = () => {
                         <Badge variant="outline" className="font-mono">
                           {order.buyer_opt_id || t.notSpecified}
                         </Badge>
+                        {order.buyer?.telegram && (
+                          <a
+                            href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-1 text-sm"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {order.buyer.telegram}
+                            <Link className="h-3 w-3" />
+                          </a>
+                        )}
                       </div>
                     </div>
 

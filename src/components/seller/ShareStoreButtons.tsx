@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { MessageCircle, Send, Loader2 } from 'lucide-react';
 import { usePublicStoreShare } from '@/hooks/usePublicStoreShare';
 import { toast } from 'sonner';
-import { logger } from '@/utils/logger';
 
 interface ShareStoreButtonsProps {
   storeId: string;
@@ -31,7 +30,7 @@ const ShareStoreButtons: React.FC<ShareStoreButtonsProps> = ({
       window.open(url, '_blank');
       
     } catch (error) {
-      logger.error(`Error sharing to ${platform}:`, error);
+      console.error(`Error sharing to ${platform}:`, error);
       toast.error(`Ошибка расшаривания в ${platform === 'whatsapp' ? 'WhatsApp' : 'Telegram'}`);
     }
   };

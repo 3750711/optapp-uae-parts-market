@@ -8,7 +8,6 @@ import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import { useTelegramNotification } from "@/hooks/useTelegramNotification";
 import { useProductCreationMonitoring } from "@/hooks/useProductCreationMonitoring";
 import { ProductMediaService } from "@/services/ProductMediaService";
-import { logger } from "@/utils/logger";
 
 interface CreateProductParams {
   values: AdminProductFormValues;
@@ -76,7 +75,7 @@ export const useAdminProductCreation = () => {
         if (attempt === maxRetries) break;
         
         const delay = baseDelay * Math.pow(2, attempt - 1);
-        logger.warn(`Network operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms:`, { error: lastError.message });
+        console.warn(`Network operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms:`, lastError.message);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }

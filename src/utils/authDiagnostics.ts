@@ -2,7 +2,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { isNetworkError } from "./authErrorHandler";
-import { authLog } from "./logger";
 
 export interface AuthDiagnosticResult {
   status: 'healthy' | 'degraded' | 'critical';
@@ -114,7 +113,7 @@ export async function quickAuthDiagnostic(): Promise<AuthDiagnosticResult> {
     return result;
 
   } catch (error) {
-    authLog('Error during auth diagnostic:', error.message);
+    console.error('Error during auth diagnostic:', error);
     result.status = 'critical';
     result.issues.push(`Diagnostic failed: ${error.message}`);
     result.recommendations.push('Contact support if issue persists');
@@ -130,13 +129,13 @@ export async function fullAuthDiagnostic(userId?: string): Promise<FullAuthDiagn
     );
     
     if (error) {
-      authLog('Full diagnostic failed:', error.message);
+      console.error('Full diagnostic failed:', error);
       return null;
     }
     
     return data;
   } catch (error) {
-    authLog('Error running full diagnostic:', error.message);
+    console.error('Error running full diagnostic:', error);
     return null;
   }
 }
@@ -152,7 +151,7 @@ export async function attemptAuthRecovery(): Promise<{ success: boolean; message
 
     // Attempt network recovery
     if (diagnostic.data.networkStatus === 'unstable') {
-      authLog('🔄 Attempting network recovery...');
+      console.log('🔄 Attempting network recovery...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const retryDiagnostic = await quickAuthDiagnostic();
@@ -163,7 +162,7 @@ export async function attemptAuthRecovery(): Promise<{ success: boolean; message
 
     // Attempt session refresh
     if (diagnostic.data.sessionExists) {
-      authLog('🔄 Attempting session refresh...');
+      console.log('🔄 Attempting session refresh...');
       const { error } = await supabase.auth.refreshSession();
       if (!error) {
         return { success: true, message: 'Session refreshed successfully' };
@@ -176,7 +175,7 @@ export async function attemptAuthRecovery(): Promise<{ success: boolean; message
     };
 
   } catch (error) {
-    authLog('Auth recovery failed:', error.message);
+    console.error('Auth recovery failed:', error);
     return { 
       success: false, 
       message: `Recovery error: ${error.message}` 
@@ -189,15 +188,15 @@ export function logAuthState(context: string = 'unknown'): void {
   console.group(`🔍 Auth State Debug (${context})`);
   
   supabase.auth.getSession().then(({ data: { session } }) => {
-    authLog('Session exists:', !!session);
+    console.log('Session exists:', !!session);
     if (session) {
-      authLog('User ID:', session.user.id);
-      authLog('Email:', session.user.email);
-      authLog('Token expires:', new Date(session.expires_at * 1000));
+      console.log('User ID:', session.user.id);
+      console.log('Email:', session.user.email);
+      console.log('Token expires:', new Date(session.expires_at * 1000));
     }
   });
   
-  authLog('Navigator online:', navigator.onLine);
-  authLog('Timestamp:', new Date().toISOString());
+  console.log('Navigator online:', navigator.onLine);
+  console.log('Timestamp:', new Date().toISOString());
   console.groupEnd();
 }

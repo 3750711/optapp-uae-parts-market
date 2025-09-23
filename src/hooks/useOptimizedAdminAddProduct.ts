@@ -13,7 +13,6 @@ import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { useOptimizedFormAutosave } from "@/hooks/useOptimizedFormAutosave";
 import { useCachedBrands, useCachedModels, useCachedAllModels, useCachedSellers } from "@/hooks/useCachedReferenceData";
 import { useDebounceValue } from "@/hooks/useDebounceValue";
-import { logger } from "@/utils/logger";
 
 interface UseOptimizedAdminAddProductOptions {
   mode?: 'admin' | 'trusted_seller';
@@ -325,7 +324,7 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
     } catch (error) {
       // Re-enable autosave on error
       setIsPublishing(false);
-      logger.error("Product creation failed:", error);
+      console.error("Product creation failed:", error);
       
       toast({
         title: "Ошибка создания товара",
