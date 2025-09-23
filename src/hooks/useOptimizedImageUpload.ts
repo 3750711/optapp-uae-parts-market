@@ -3,6 +3,7 @@ import { useState, useCallback, useRef } from 'react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 interface UploadItem {
   id: string;
@@ -81,7 +82,7 @@ export const useOptimizedImageUpload = () => {
 
   // Mark item as deleted by URL
   const markAsDeleted = useCallback((url: string) => {
-    console.log('🗑️ Marking as deleted in upload queue:', url);
+    logger.log('🗑️ Marking as deleted in upload queue:', url);
     setUploadQueue(prev => 
       prev.map(item => 
         item.finalUrl === url || item.blobUrl === url
@@ -124,7 +125,7 @@ export const useOptimizedImageUpload = () => {
     
     // Если файл маленький, не сжимаем
     if (!smartOptions) {
-      console.log(`📦 Skipping compression for small file ${file.name} (${file.size} bytes)`);
+      logger.log(`📦 Skipping compression for small file ${file.name} (${file.size} bytes)`);
       return file;
     }
     
@@ -141,7 +142,7 @@ export const useOptimizedImageUpload = () => {
         preserveExif: false
       });
       
-      console.log(`📦 Compressed ${file.name}:`, {
+      logger.log(`📦 Compressed ${file.name}:`, {
         originalSize: file.size,
         compressedSize: compressedFile.size,
         ratio: Math.round((1 - compressedFile.size / file.size) * 100) + '%',
@@ -150,7 +151,7 @@ export const useOptimizedImageUpload = () => {
       
       return compressedFile;
     } catch (error) {
-      console.warn('Compression failed, using original file:', error);
+      logger.warn('Compression failed, using original file:', error);
       return file;
     }
   }, [getSmartCompressionOptions]);
@@ -213,7 +214,7 @@ export const useOptimizedImageUpload = () => {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       
       if (retryCount < maxRetries) {
-        console.log(`🔄 Retrying upload for ${item.file.name} (attempt ${retryCount + 1}/${maxRetries})`);
+        logger.log(`🔄 Retrying upload for ${item.file.name} (attempt ${retryCount + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         return uploadSingleFile(item, options, retryCount + 1);
       } else {
@@ -302,7 +303,7 @@ export const useOptimizedImageUpload = () => {
         const shouldCompress = item.file.size >= COMPRESSION_THRESHOLD;
         
         if (!shouldCompress) {
-          console.log(`⚡ Skipping compression for ${item.file.name} (${item.file.size} bytes < ${COMPRESSION_THRESHOLD} bytes)`);
+          logger.log(`⚡ Skipping compression for ${item.file.name} (${item.file.size} bytes < ${COMPRESSION_THRESHOLD} bytes)`);
           setUploadQueue(prev => 
             prev.map(i => 
               i.id === item.id 
@@ -359,7 +360,7 @@ export const useOptimizedImageUpload = () => {
 
       return uploadedUrls;
     } catch (error) {
-      console.error('Upload process failed:', error);
+      logger.error('Upload process failed:', error);
       if (!options.disableToast) {
         toast({
           title: "Ошибка загрузки",

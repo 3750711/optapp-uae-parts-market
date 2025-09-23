@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Star, StarOff, X, Loader2, CheckCircle, Trash2 } from 'lucide-react';
+import { logger } from '@/utils/logger';
 
 interface UploadItem {
   id: string;
@@ -22,7 +23,7 @@ interface OptimizedImageGalleryProps {
   disabled?: boolean;
 }
 
-const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
+const OptimizedImageGallery = React.memo<OptimizedImageGalleryProps>(({
   images,
   uploadQueue = [],
   primaryImage,
@@ -30,7 +31,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
   onDelete,
   disabled = false
 }) => {
-  console.log('🎨 OptimizedImageGallery render:', { 
+  logger.log('🎨 OptimizedImageGallery render:', { 
     imageCount: images.length, 
     uploadQueueLength: uploadQueue.length 
   });
@@ -50,7 +51,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
   const activeUploadQueue = uploadQueue.filter(item => {
     // Исключаем удаленные элементы полностью
     if (item.status === 'deleted') {
-      console.log('🗑️ Filtering out deleted item:', item.finalUrl || item.blobUrl);
+      logger.log('🗑️ Filtering out deleted item:', item.finalUrl || item.blobUrl);
       return false;
     }
     
@@ -67,7 +68,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     // Для успешно загруженных элементов - показываем только если их еще нет в основном массиве
     if (item.status === 'success' && item.finalUrl) {
       const isAlreadyInImages = images.includes(item.finalUrl);
-      console.log('🔍 Checking successful item:', { 
+      logger.log('🔍 Checking successful item:', { 
         url: item.finalUrl, 
         isAlreadyInImages,
         shouldShow: !isAlreadyInImages 
@@ -78,7 +79,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     return false;
   });
 
-  console.log('🔄 Active upload queue:', { 
+  logger.log('🔄 Active upload queue:', { 
     total: uploadQueue.length, 
     active: activeUploadQueue.length,
     statuses: activeUploadQueue.map(item => ({ 
@@ -169,14 +170,14 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
   };
 
   const handleDelete = (url: string) => {
-    console.log('🗑️ Gallery delete button clicked for:', url);
+    logger.log('🗑️ Gallery delete button clicked for:', url);
     if (onDelete && !disabled) {
       onDelete(url);
     }
   };
 
   const handleSetPrimary = (url: string) => {
-    console.log('⭐ Gallery primary button clicked for:', url);
+    logger.log('⭐ Gallery primary button clicked for:', url);
     if (onSetPrimary && !disabled) {
       onSetPrimary(url);
     }
@@ -201,7 +202,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 className="w-full h-full object-cover rounded-lg border"
                 loading="lazy"
                 onError={(e) => {
-                  console.warn('⚠️ Image failed to load:', url);
+                  logger.warn('⚠️ Image failed to load:', url);
                   e.currentTarget.style.display = 'none';
                 }}
               />
@@ -280,6 +281,27 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Умное сравнение пропсов для предотвращения лишних ререндеров
+  const imagesEqual = prevProps.images.length === nextProps.images.length &&
+                     prevProps.images.every((img, idx) => img === nextProps.images[idx]);
+  
+  const uploadQueueEqual = prevProps.uploadQueue.length === nextProps.uploadQueue.length &&
+                          prevProps.uploadQueue.every((item, idx) => {
+                            const nextItem = nextProps.uploadQueue[idx];
+                            return item?.id === nextItem?.id && 
+                                   item?.status === nextItem?.status && 
+                                   item?.finalUrl === nextItem?.finalUrl;
+                          });
+  
+  return (
+    imagesEqual &&
+    uploadQueueEqual &&
+    prevProps.primaryImage === nextProps.primaryImage &&
+    prevProps.disabled === nextProps.disabled
+  );
+});
+
+OptimizedImageGallery.displayName = 'OptimizedImageGallery';
 
 export default OptimizedImageGallery;

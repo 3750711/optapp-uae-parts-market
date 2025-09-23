@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Upload, X } from "lucide-react";
@@ -10,6 +10,7 @@ import { getFormTranslations } from "@/utils/translations/forms";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
 import { isAllowedImage, getFileValidationError, getImageAcceptAttribute } from "@/utils/fileValidation";
 import { toast } from "@/hooks/use-toast";
+import { logger } from '@/utils/logger';
 
 interface OptimizedMediaSectionProps {
   imageUrls: string[];
@@ -22,7 +23,7 @@ interface OptimizedMediaSectionProps {
   onUploadStateChange?: (isUploading: boolean) => void;
 }
 
-const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
+const OptimizedMediaSection = React.memo<OptimizedMediaSectionProps>(({
   imageUrls,
   handleMobileOptimizedImageUpload,
   onImageDelete,
@@ -93,7 +94,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         handleMobileOptimizedImageUpload(uploadedUrls);
       }
     } catch (error) {
-      console.error('Error uploading files:', error);
+      logger.error('Error uploading files:', error);
     }
     
     if (fileInputRef.current) {
@@ -113,9 +114,9 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       }
       
       handleMobileOptimizedImageUpload(newImageUrls);
-      deleteImage(url).catch(console.error);
+      deleteImage(url).catch(logger.error);
     } catch (error) {
-      console.error('Error during deletion:', error);
+      logger.error('Error during deletion:', error);
     }
   }, [imageUrls, handleMobileOptimizedImageUpload, deleteImage, markAsDeleted, primaryImage, onSetPrimaryImage]);
 
@@ -169,6 +170,15 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       />
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.imageUrls.length === nextProps.imageUrls.length &&
+    prevProps.imageUrls.every((url, idx) => url === nextProps.imageUrls[idx]) &&
+    prevProps.primaryImage === nextProps.primaryImage &&
+    prevProps.disabled === nextProps.disabled
+  );
+});
+
+OptimizedMediaSection.displayName = 'OptimizedMediaSection';
 
 export default OptimizedMediaSection;
