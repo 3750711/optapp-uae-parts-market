@@ -172,7 +172,7 @@ const DeliveryInfoSection: React.FC<{
   );
 };
 
-const AdminAddProductForm: React.FC<AdminAddProductFormProps> = ({
+const AdminAddProductFormComponent: React.FC<AdminAddProductFormProps> = ({
   form,
   onSubmit,
   isSubmitting,
@@ -265,5 +265,21 @@ const AdminAddProductForm: React.FC<AdminAddProductFormProps> = ({
     </Form>
   );
 };
+
+const AdminAddProductForm = React.memo(AdminAddProductFormComponent, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.isSubmitting === nextProps.isSubmitting &&
+    prevProps.isLoadingCarData === nextProps.isLoadingCarData &&
+    prevProps.imageUrls.length === nextProps.imageUrls.length &&
+    prevProps.videoUrls.length === nextProps.videoUrls.length &&
+    prevProps.primaryImage === nextProps.primaryImage &&
+    prevProps.sellers.length === nextProps.sellers.length &&
+    prevProps.brands.length === nextProps.brands.length &&
+    prevProps.brandModels.length === nextProps.brandModels.length
+  );
+});
+
+AdminAddProductForm.displayName = 'AdminAddProductForm';
 
 export default AdminAddProductForm;

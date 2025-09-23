@@ -16,12 +16,12 @@ interface ProductCreationProgressProps {
   totalProgress: number;
 }
 
-const ProductCreationProgress: React.FC<ProductCreationProgressProps> = ({
+const ProductCreationProgressComponent: React.FC<ProductCreationProgressProps> = ({
   steps,
   currentStep,
   totalProgress
 }) => {
-  const getStepIcon = (step: ProgressStep) => {
+  const getStepIcon = React.useMemo(() => (step: ProgressStep) => {
     switch (step.status) {
       case 'completed':
         return <CheckCircle className="h-5 w-5 text-green-500" />;
@@ -32,15 +32,15 @@ const ProductCreationProgress: React.FC<ProductCreationProgressProps> = ({
       default:
         return <div className="h-5 w-5 rounded-full border-2 border-muted" />;
     }
-  };
+  }, []);
 
-  const getStepText = (step: ProgressStep) => {
+  const getStepText = React.useCallback((step: ProgressStep) => {
     let text = step.label;
     if (step.duration) {
       text += ` (${(step.duration / 1000).toFixed(1)}s)`;
     }
     return text;
-  };
+  }, []);
 
   return (
     <div className="space-y-4 p-4 bg-card border rounded-lg">
@@ -80,5 +80,20 @@ const ProductCreationProgress: React.FC<ProductCreationProgressProps> = ({
     </div>
   );
 };
+
+const ProductCreationProgress = React.memo(ProductCreationProgressComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.totalProgress === nextProps.totalProgress &&
+    prevProps.steps.length === nextProps.steps.length &&
+    prevProps.currentStep === nextProps.currentStep &&
+    prevProps.steps.every((step, index) => 
+      step.status === nextProps.steps[index]?.status &&
+      step.duration === nextProps.steps[index]?.duration &&
+      step.error === nextProps.steps[index]?.error
+    )
+  );
+});
+
+ProductCreationProgress.displayName = 'ProductCreationProgress';
 
 export default ProductCreationProgress;

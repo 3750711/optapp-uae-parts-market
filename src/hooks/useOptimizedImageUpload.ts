@@ -240,38 +240,53 @@ export const useOptimizedImageUpload = () => {
     }
   }, []);
 
-  // Process files sequentially with delays
+  // Process files in parallel for better performance
   const processUploads = useCallback(async (
     items: UploadItem[],
     options: OptimizedUploadOptions
   ): Promise<string[]> => {
-    const batchDelay = 500;
-    const results: string[] = [];
-    const errors: string[] = [];
-
-    for (let i = 0; i < items.length; i++) {
-      if (abortController.current?.signal.aborted) break;
-
-      const item = items[i];
+    logger.devLog(`🚀 Starting parallel upload of ${items.length} files`);
+    
+    // Use Promise.allSettled for parallel uploads with error handling
+    const uploadPromises = items.map(async (item) => {
+      if (abortController.current?.signal.aborted) {
+        throw new Error('Upload cancelled');
+      }
       
       try {
         const url = await uploadSingleFile(item, options);
-        results.push(url);
-        
-        if (i < items.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, batchDelay));
-        }
+        return { success: true, url, item };
       } catch (error) {
-        const errorMsg = `${item.file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error', 
+          item 
+        };
+      }
+    });
+
+    const results = await Promise.allSettled(uploadPromises);
+    
+    const successfulUploads: string[] = [];
+    const errors: string[] = [];
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value.success) {
+        successfulUploads.push(result.value.url);
+      } else {
+        const item = items[index];
+        const errorMsg = result.status === 'rejected' 
+          ? `${item.file.name}: ${result.reason}` 
+          : `${result.value.item.file.name}: ${result.value.error}`;
         errors.push(errorMsg);
       }
-    }
+    });
 
     if (!options.disableToast) {
-      if (results.length > 0) {
+      if (successfulUploads.length > 0) {
         toast({
           title: "Загрузка завершена",
-          description: `Успешно загружено ${results.length} из ${items.length} файлов`,
+          description: `Успешно загружено ${successfulUploads.length} из ${items.length} файлов`,
         });
       }
       
@@ -284,7 +299,8 @@ export const useOptimizedImageUpload = () => {
       }
     }
 
-    return results;
+    logger.devLog(`✅ Parallel upload completed: ${successfulUploads.length} success, ${errors.length} errors`);
+    return successfulUploads;
   }, [uploadSingleFile, toast]);
 
   // Main upload function with smart compression
