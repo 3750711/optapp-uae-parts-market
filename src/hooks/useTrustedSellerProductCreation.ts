@@ -72,9 +72,9 @@ export const useTrustedSellerProductCreation = () => {
         .rpc('create_trusted_product', {
           p_title: values.title,
           p_price: Number(values.price),
+          p_brand: selectedBrand.name,
           p_description: values.description || null,
           p_condition: "Новый",
-          p_brand: selectedBrand.name,
           p_model: modelName,
           p_place_number: Number(values.placeNumber) || 1,
           p_delivery_price: Number(values.deliveryPrice) || 0
