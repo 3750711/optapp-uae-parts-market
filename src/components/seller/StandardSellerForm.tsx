@@ -113,6 +113,25 @@ const StandardSellerForm = () => {
     await guardedSubmit(async () => {
       logger.debug('📝 Standard seller form submission started');
       
+      // КРИТИЧНО: Проверяем загрузку профиля
+      if (isProfileLoading) {
+        toast({
+          title: "Подождите",
+          description: "Загружаются данные профиля...",
+          variant: "default",
+        });
+        return;
+      }
+      
+      if (!currentUserProfile) {
+        toast({
+          title: "Ошибка профиля",
+          description: "Не удалось загрузить профиль. Попробуйте обновить страницу.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Basic validation
       if (!formData.title.trim()) {
         toast({
@@ -208,14 +227,14 @@ const StandardSellerForm = () => {
       </div>
       
       {isProfileLoading && (
-        <div className="text-center py-4">
-          <p className="text-muted-foreground">Загрузка данных профиля...</p>
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 rounded mb-4">
+          <p className="text-sm text-blue-800 dark:text-blue-200">🔄 Загрузка данных профиля...</p>
         </div>
       )}
       
-      {!isProfileLoading && !currentUserProfile && (
-        <div className="text-center py-4">
-          <p className="text-destructive">Не удалось загрузить данные профиля. Обновите страницу.</p>
+      {!currentUserProfile && !isProfileLoading && (
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-3 rounded mb-4">
+          <p className="text-sm text-red-800 dark:text-red-200">⚠️ Профиль не загружен. Обновите страницу.</p>
         </div>
       )}
       
@@ -225,7 +244,12 @@ const StandardSellerForm = () => {
         className="w-full"
         size="lg"
       >
-        {isCreating ? t.buttons.publishing : t.buttons.publish}
+        {isProfileLoading 
+          ? "Загрузка профиля..." 
+          : isCreating 
+            ? t.buttons.publishing 
+            : t.buttons.publish
+        }
       </Button>
     </form>
   );

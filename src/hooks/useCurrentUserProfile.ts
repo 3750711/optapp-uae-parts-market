@@ -57,7 +57,7 @@ export const useCurrentUserProfile = () => {
         console.log('🚫 Permission error, not retrying');
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 5; // Увеличить до 5 попыток
     },
   });
 };

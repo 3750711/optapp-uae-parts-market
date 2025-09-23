@@ -55,8 +55,23 @@ export const useStandardSellerProductCreation = () => {
         });
 
       if (productError) {
-        logger.error('❌ Error creating product:', productError);
-        throw productError;
+        logger.error('❌ RPC Error Details:', {
+          message: productError.message,
+          details: productError.details,
+          hint: productError.hint,
+          code: productError.code
+        });
+        
+        // Пользователю показать понятное сообщение
+        let userMessage = 'Ошибка создания товара';
+        if (productError.message?.includes('User profile not found') || 
+            productError.message?.includes('profile')) {
+          userMessage = 'Профиль пользователя не найден. Попробуйте перезайти в систему.';
+        } else if (productError.hint) {
+          userMessage = productError.hint;
+        }
+        
+        throw new Error(userMessage);
       }
 
       logger.log('✅ Product created with ID:', productId);
