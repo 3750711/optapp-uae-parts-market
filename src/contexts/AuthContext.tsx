@@ -8,6 +8,8 @@ import { checkSessionSoft } from '@/auth/authSessionManager';
 import { clearAuthStorageSafe } from '@/auth/clearAuthStorage';
 import { useWakeUpHandler } from '@/hooks/useWakeUpHandler';
 import { sessionBackupManager } from '@/auth/sessionBackup';
+import { authLog, authError, authWarn } from '@/utils/logger';
+import { secureRecovery } from '@/utils/secureLogger';
 import { refreshSessionOnce } from '@/utils/refreshMutex';
 import { FLAGS } from '@/config/flags';
 import { logUserLogin, logUserLogout } from '@/utils/activityLogger';
@@ -39,7 +41,7 @@ function parseRecoveryTokensFromUrl() {
       const expiresIn = params.get('expires_in');
       
       if (type === 'recovery' && accessToken && refreshToken) {
-        console.log('🔑 [AuthContext] Recovery tokens found in URL hash');
+        secureRecovery.log('Recovery tokens found in URL hash');
         return {
           access_token: accessToken,
           refresh_token: refreshToken,
@@ -56,14 +58,14 @@ function parseRecoveryTokensFromUrl() {
     const token = urlParams.get('token');
     
     if (type === 'recovery' && token) {
-      console.log('🔑 [AuthContext] Recovery token found in URL query (old format)');
+      secureRecovery.log('Recovery token found in URL query (old format)');
       // For old format, let Supabase SDK handle the URL automatically
       return 'HANDLE_VIA_SDK';
     }
     
     return null;
   } catch (error) {
-    console.warn('[AuthContext] Error parsing recovery tokens:', error);
+    authWarn('Error parsing recovery tokens from URL');
     return null;
   }
 }
@@ -353,7 +355,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const recoveryTokens = parseRecoveryTokensFromUrl();
         if (recoveryTokens) {
           // Recovery mode already set synchronously during initialization
-          console.log('🔄 [AuthContext] Processing recovery tokens (recovery mode already active)');
+          secureRecovery.log('Processing recovery tokens (recovery mode already active)');
           
           // Handle old format (query params) - СОХРАНИТЬ информацию БЕЗ автоматической обработки SDK
           if (recoveryTokens === 'HANDLE_VIA_SDK') {
@@ -371,7 +373,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 type: 'recovery'
               };
               setRecoveryTokens(oldFormatTokens);
-              console.log('🔒 [AuthContext] Old format recovery tokens stored for secure password reset');
+              secureRecovery.log('Old format recovery tokens stored for secure password reset');
             }
             
             // Очистить URL для безопасности
@@ -383,7 +385,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           
           // Handle new format (hash params) - СОХРАНИТЬ токены БЕЗ установки сессии
-          console.log('🔑 [AuthContext] Recovery tokens detected - validation mode only');
+          secureRecovery.log('Recovery tokens detected - validation mode only');
           
           // Сохранить токены для валидации, но НЕ устанавливать сессию
           setRecoveryTokens(recoveryTokens);
@@ -394,7 +396,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           
           // НЕ ВЫЗЫВАЕМ supabase.auth.setSession() - это и есть уязвимость!
-          console.log('🔒 [AuthContext] Recovery tokens stored for secure password reset');
+          secureRecovery.log('Recovery tokens stored for secure password reset');
           
           return; // Skip normal getSession() call since we handled recovery
         }
@@ -614,7 +616,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Core auth methods
   const signIn = async (email: string, password: string): Promise<{ user: User | null; error: any }> => {
     try {
-      console.log('🔑 [AuthContext] Starting signInWithPassword for:', email);
+      authLog('Starting signInWithPassword', { email });
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -622,12 +624,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) {
-        console.error('❌ [AuthContext] signInWithPassword error:', error);
+        authError('signInWithPassword failed', error);
         return { user: null, error };
       }
       
       if (data.user) {
-        console.log('✅ [AuthContext] signInWithPassword success for user:', data.user.id);
+        authLog('signInWithPassword success', { userId: data.user.id });
         
         // Log successful login activity
         try {
@@ -744,7 +746,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!error) {
         // Clear recovery mode flag after successful password update
         setIsRecoveryMode(false);
-        console.log('🔄 [AuthContext] Recovery mode cleared after password update');
+        secureRecovery.log('Recovery mode cleared after password update');
       }
       return { error };
     } catch (error) {
@@ -853,12 +855,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     try {
-      console.log('🔒 [AuthContext] Validating recovery tokens and resetting password');
+      secureRecovery.log('Validating recovery tokens and resetting password');
       
       // Проверяем тип токенов (новый hash формат vs старый query формат)
       if (recoveryTokens.access_token && recoveryTokens.refresh_token) {
         // Новый формат (hash параметры) - КРИТИЧНО: НЕ создаем сессию в приложении!
-        console.log('🔒 [AuthContext] Using isolated client for password reset');
+        secureRecovery.log('Using isolated client for password reset');
 
         // Создаем временный клиент который НЕ будет обновлять состояние приложения
         const tempClient = createClient(
@@ -887,7 +889,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
 
         if (sessionError || !sessionData.session) {
-          console.error('Failed to validate recovery tokens:', sessionError);
+          secureRecovery.error('Failed to validate recovery tokens', sessionError);
           return { 
             success: false, 
             error: sessionError || new Error('Invalid recovery tokens') 
@@ -900,15 +902,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (updateError) {
-          console.error('Password update failed:', updateError);
+          secureRecovery.error('Password update failed', updateError);
           return { success: false, error: updateError };
         }
 
-        console.log('✅ Password updated via isolated client - no session created in main app');
+        secureRecovery.log('Password updated via isolated client - no session created in main app');
         
       } else if (recoveryTokens.recovery_token) {
         // Старый формат (query параметры) - также используем изолированный клиент
-        console.log('🔒 [AuthContext] Using isolated client for old format recovery token');
+        secureRecovery.log('Using isolated client for old format recovery token');
         
         // Создаем временный клиент для старого формата токенов
         const tempClient = createClient(
@@ -936,7 +938,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (verifyError || !verifyData.session) {
-          console.error('Recovery token verification failed:', verifyError);
+          secureRecovery.error('Recovery token verification failed', verifyError);
           return { success: false, error: verifyError || new Error('Invalid recovery token') };
         }
 
@@ -946,11 +948,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (updateError) {
-          console.error('Password update failed:', updateError);
+          secureRecovery.error('Password update failed', updateError);
           return { success: false, error: updateError };
         }
         
-        console.log('✅ Password updated via isolated client for old format token');
+        secureRecovery.log('Password updated via isolated client for old format token');
         
       } else {
         return { success: false, error: new Error('Unknown recovery token format') };
@@ -962,11 +964,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsRecoveryMode(false);
       setRecoveryTokens(null);
       
-      console.log('✅ Password reset successful - user must login with new password');
+      secureRecovery.log('Password reset successful - user must login with new password');
       return { success: true };
       
     } catch (error) {
-      console.error('Recovery password reset error:', error);
+      secureRecovery.error('Recovery password reset error', error);
       return { success: false, error };
     }
   };

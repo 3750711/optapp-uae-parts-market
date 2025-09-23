@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { authError } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getProfileTranslations } from '@/utils/profileTranslations';
@@ -80,7 +81,7 @@ export const PasswordChangeSection: React.FC = () => {
         form.reset();
       }
     } catch (error) {
-      console.error('Password change error:', error);
+      authError('Password change error', error);
       toast({
         title: t.passwordChange.error,
         description: 'Произошла ошибка при смене пароля',

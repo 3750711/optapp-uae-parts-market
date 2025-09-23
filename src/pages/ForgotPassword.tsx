@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { authError } from '@/utils/logger';
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,7 +87,7 @@ const ForgotPassword = () => {
       });
 
       if (error) {
-        console.error("Password reset error:", error);
+        authError("Password reset error", error);
         toast({
           title: "Ошибка",
           description: "Не удалось отправить письмо. Попробуйте еще раз.",

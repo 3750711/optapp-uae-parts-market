@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { User, Lock, Mail, Shield, CheckCircle } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { authError } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import EmailVerificationForm from './EmailVerificationForm';
@@ -58,7 +59,7 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
       });
 
       if (passwordError) {
-        console.error('Password update error:', passwordError);
+        authError('Password update error during first login', passwordError);
         throw new Error(passwordError.message);
       }
 
@@ -83,7 +84,7 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
 
       setStep(2);
     } catch (error: any) {
-      console.error('Error changing password:', error);
+      authError('Error changing password during first login', error);
       
       // Проверяем специфичные ошибки
       if (error.message?.includes('JWT') || error.message?.includes('session')) {
