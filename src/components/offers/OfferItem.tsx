@@ -79,11 +79,6 @@ export const OfferItem: React.FC<OfferItemProps> = ({ offer, onAccept, onReject 
               </div>
             </div>
           </div>
-          {offer.buyer_profile?.telegram && (
-            <div className="text-xs text-muted-foreground hidden sm:block">
-              {offer.buyer_profile.telegram.startsWith('@') ? offer.buyer_profile.telegram : `@${offer.buyer_profile.telegram}`}
-            </div>
-          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {getStatusBadge(offer.status)}

@@ -487,18 +487,6 @@ const SellerOrders = () => {
                         <Badge variant="outline" className="font-mono">
                           {order.buyer_opt_id || t.notSpecified}
                         </Badge>
-                        {order.buyer?.telegram && (
-                          <a
-                            href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline flex items-center gap-1 text-sm"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {order.buyer.telegram}
-                            <Link className="h-3 w-3" />
-                          </a>
-                        )}
                       </div>
                     </div>
 
