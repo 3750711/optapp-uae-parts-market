@@ -62,7 +62,7 @@ const PublicProfile = () => {
     try {
       setLoading(true);
       
-      console.log('🔍 [PublicProfile] Starting token validation for:', token);
+      // Token validation process (removed sensitive logging)
       
       // Validate token via Edge Function
       const { data: validation, error: validationError } = await supabase.functions.invoke(
@@ -90,7 +90,7 @@ const PublicProfile = () => {
         return;
       }
 
-      console.log('✅ [PublicProfile] Token validation successful, profile data:', validation.profile);
+      console.log('✅ [PublicProfile] Token validation successful');
 
       const profileData = validation.profile;
       setProfile(profileData);

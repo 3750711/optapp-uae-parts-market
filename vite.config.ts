@@ -110,29 +110,12 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 600,
     // Source maps only for development
     sourcemap: mode === 'development',
-    // Minification with terser for better compression
-    minify: mode === 'production' ? 'terser' : false,
-    terserOptions: mode === 'production' ? {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info'],
-        unsafe_arrows: true,
-        passes: 2
-      },
-      mangle: {
-        safari10: true,
-      },
-      format: {
-        comments: false,
-      }
-    } : undefined,
+    // Simplified minification for stable builds
+    minify: mode === 'production' ? 'esbuild' : false,
     // CSS code splitting
     cssCodeSplit: true,
-    // Remove console.log in production
-    esbuild: mode === 'production' ? {
-      drop: ['console', 'debugger'],
-    } : undefined,
+    // Keep console logs for debugging during build
+    // esbuild console dropping disabled for build stability
     // Target modern browsers for better chunk loading
     target: 'es2020'
   },

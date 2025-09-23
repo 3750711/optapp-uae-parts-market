@@ -69,10 +69,10 @@ const ResetPassword = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isRecoveryMode) {
-        console.log('✅ Valid recovery tokens detected');
+        console.log('✅ Valid recovery session detected');
         setValidationState('valid');
       } else {
-        console.log('❌ No valid recovery tokens');
+        console.log('❌ No valid recovery session');
         setValidationState('invalid');
       }
     }, 100); // Минимальная задержка для инициализации AuthContext
