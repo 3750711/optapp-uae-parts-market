@@ -8,6 +8,7 @@ import { useAuthWithProfile } from "@/hooks/useAuthWithProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerDashboardTranslations } from '@/utils/translations/sellerDashboard';
+import { logger } from '@/utils/logger';
 
 const OptimizedSellerDashboard = () => {
   const { profile } = useAuthWithProfile();
@@ -33,7 +34,7 @@ const OptimizedSellerDashboard = () => {
       const encodedText = encodeURIComponent(userDataText);
       const telegramLink = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
       
-      console.log('Telegram Contact Link:', telegramLink);
+      logger.log('Telegram Contact Link:', { telegramLink });
       
       window.open(telegramLink, '_blank');
     } catch (error) {

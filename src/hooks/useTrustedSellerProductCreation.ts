@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { useRoleValidation } from "@/hooks/useRoleValidation";
 import { ProductMediaService } from "@/services/ProductMediaService";
+import { logger } from "@/utils/logger";
 
 interface CreateTrustedProductParams {
   values: AdminProductFormValues;
@@ -30,12 +31,12 @@ export const useTrustedSellerProductCreation = () => {
     brandModels
   }: CreateTrustedProductParams) => {
     if (isCreating) {
-      console.warn("Product creation already in progress");
+      logger.warn("Product creation already in progress");
       return;
     }
 
     setIsCreating(true);
-    console.log("🚀 Starting trusted seller product creation:", {
+    logger.log("🚀 Starting trusted seller product creation:", {
       title: values.title,
       imageCount: imageUrls.length,
       videoCount: videoUrls.length,
@@ -44,6 +45,10 @@ export const useTrustedSellerProductCreation = () => {
     try {
       // Проверяем права доверенного продавца
       validateTrustedSeller();
+      
+      // Create AbortController with timeout
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000); // 25 second timeout
       
       // Validation
       if (imageUrls.length === 0) {
@@ -73,14 +78,20 @@ export const useTrustedSellerProductCreation = () => {
           p_model: modelName,
           p_place_number: Number(values.placeNumber) || 1,
           p_delivery_price: Number(values.deliveryPrice) || 0
-        });
+        })
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeout);
 
       if (productError) {
-        console.error("❌ Error creating trusted seller product:", productError);
+        if (productError.name === 'AbortError') {
+          throw new Error('Запрос отменен по таймауту');
+        }
+        logger.error("❌ Error creating trusted seller product:", productError);
         throw new Error(`Ошибка создания товара: ${productError.message}`);
       }
 
-      console.log("✅ Trusted seller product created with ID:", productId);
+      logger.log("✅ Trusted seller product created with ID:", { productId });
 
       // Add media using unified service
       await ProductMediaService.addMediaToProduct({
@@ -95,9 +106,9 @@ export const useTrustedSellerProductCreation = () => {
       supabase.functions.invoke('send-tg-product-once', {
         body: { productId }
       }).then(() => {
-        console.log(`✅ Telegram notification queued for trusted seller product ${productId}`);
+        logger.log(`✅ Telegram notification queued for trusted seller product ${productId}`);
       }).catch(error => {
-        console.error(`⚠️ Failed to queue Telegram notification for trusted seller product ${productId}:`, error);
+        logger.error(`⚠️ Failed to queue Telegram notification for trusted seller product ${productId}:`, error);
       });
 
       toast({
@@ -105,12 +116,12 @@ export const useTrustedSellerProductCreation = () => {
         description: `Ваш товар "${values.title}" активен и доступен для покупателей.`,
       });
 
-      console.log("✅ Trusted seller product creation completed successfully:", { productId });
+      logger.log("✅ Trusted seller product creation completed successfully:", { productId });
       return { productId, status: 'active' };
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
-      console.error("💥 Error in trusted seller product creation:", error);
+      logger.error("💥 Error in trusted seller product creation:", error);
       
       toast({
         title: "Ошибка создания товара",

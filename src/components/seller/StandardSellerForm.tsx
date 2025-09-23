@@ -8,6 +8,7 @@ import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStandardSellerProductCreation } from "@/hooks/useStandardSellerProductCreation";
+import { logger } from "@/utils/logger";
 
 const StandardSellerForm = () => {
   const navigate = useNavigate();
@@ -71,7 +72,7 @@ const StandardSellerForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('📝 Standard seller form submission started');
+    logger.log('📝 Standard seller form submission started');
     
     // Basic validation
     if (!formData.title.trim()) {
@@ -113,7 +114,7 @@ const StandardSellerForm = () => {
       navigate(`/seller/product/${productId}?from=add`);
       
     } catch (error) {
-      console.error("💥 Form submission error:", error);
+      logger.error("💥 Form submission error:", error);
       // Error handling is done in the hook
     }
   };

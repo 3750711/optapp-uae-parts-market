@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { PriceOffer, PriceOfferStatus } from '@/types/price-offer';
-import { useDebounce } from '@/hooks/use-debounce';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export const useAdminPriceOffersState = () => {
   const [searchTerm, setSearchTerm] = useState('');
