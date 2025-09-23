@@ -531,21 +531,6 @@ const SellerOrderDetails = () => {
                     <div className="font-medium font-mono">{order.buyer?.opt_id || order.buyer_opt_id || t.notSpecified}</div>
                   </div>
                   
-                  {(order.buyer?.telegram || order.telegram_url_buyer) && (
-                    <div>
-                      <div className="text-sm text-muted-foreground mb-1">{t.buyerTelegram}</div>
-                      <div className="font-medium">
-                        <a 
-                          href={`https://t.me/${(order.buyer?.telegram || order.telegram_url_buyer)?.replace('@', '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 underline"
-                        >
-                          @{(order.buyer?.telegram || order.telegram_url_buyer)?.replace('@', '')}
-                        </a>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>

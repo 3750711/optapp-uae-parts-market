@@ -1,8 +1,10 @@
 
 import { useState, useCallback, useRef } from 'react';
+import { unstable_batchedUpdates } from 'react-dom';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 interface UploadItem {
   id: string;
@@ -42,6 +44,7 @@ export const useOptimizedImageUpload = () => {
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const abortController = useRef<AbortController | null>(null);
+  const activeUploadRef = useRef<boolean>(false);
 
   // Умное сжатие в зависимости от размера файла
   const getSmartCompressionOptions = useCallback((fileSize: number) => {
@@ -81,14 +84,16 @@ export const useOptimizedImageUpload = () => {
 
   // Mark item as deleted by URL
   const markAsDeleted = useCallback((url: string) => {
-    console.log('🗑️ Marking as deleted in upload queue:', url);
-    setUploadQueue(prev => 
-      prev.map(item => 
-        item.finalUrl === url || item.blobUrl === url
-          ? { ...item, status: 'deleted' as const }
-          : item
-      )
-    );
+    logger.log('🗑️ Marking as deleted in upload queue:', url);
+    unstable_batchedUpdates(() => {
+      setUploadQueue(prev => 
+        prev.map(item => 
+          item.finalUrl === url || item.blobUrl === url
+            ? { ...item, status: 'deleted' as const }
+            : item
+        )
+      );
+    });
   }, []);
 
   // Auto-cleanup for successfully uploaded items
@@ -124,7 +129,7 @@ export const useOptimizedImageUpload = () => {
     
     // Если файл маленький, не сжимаем
     if (!smartOptions) {
-      console.log(`📦 Skipping compression for small file ${file.name} (${file.size} bytes)`);
+      logger.log(`📦 Skipping compression for small file ${file.name} (${file.size} bytes)`);
       return file;
     }
     
@@ -141,7 +146,7 @@ export const useOptimizedImageUpload = () => {
         preserveExif: false
       });
       
-      console.log(`📦 Compressed ${file.name}:`, {
+      logger.log(`📦 Compressed ${file.name}:`, {
         originalSize: file.size,
         compressedSize: compressedFile.size,
         ratio: Math.round((1 - compressedFile.size / file.size) * 100) + '%',
@@ -150,7 +155,7 @@ export const useOptimizedImageUpload = () => {
       
       return compressedFile;
     } catch (error) {
-      console.warn('Compression failed, using original file:', error);
+      logger.warn('Compression failed, using original file:', error);
       return file;
     }
   }, [getSmartCompressionOptions]);
@@ -165,13 +170,15 @@ export const useOptimizedImageUpload = () => {
     const retryDelay = Math.pow(2, retryCount) * 1000;
 
     try {
-      setUploadQueue(prev => 
-        prev.map(i => 
-          i.id === item.id 
-            ? { ...i, status: 'uploading', progress: 10 }
-            : i
-        )
-      );
+      unstable_batchedUpdates(() => {
+        setUploadQueue(prev => 
+          prev.map(i => 
+            i.id === item.id 
+              ? { ...i, status: 'uploading', progress: 10 }
+              : i
+          )
+        );
+      });
 
       const formData = new FormData();
       formData.append('file', item.compressedFile || item.file);
@@ -191,18 +198,20 @@ export const useOptimizedImageUpload = () => {
         throw new Error(result.error || 'Upload failed');
       }
 
-      setUploadQueue(prev => 
-        prev.map(i => 
-          i.id === item.id 
-            ? { 
-                ...i, 
-                status: 'success', 
-                progress: 100,
-                finalUrl: result.mainImageUrl
-              }
-            : i
-        )
-      );
+      unstable_batchedUpdates(() => {
+        setUploadQueue(prev => 
+          prev.map(i => 
+            i.id === item.id 
+              ? { 
+                  ...i, 
+                  status: 'success', 
+                  progress: 100,
+                  finalUrl: result.mainImageUrl
+                }
+              : i
+          )
+        );
+      });
 
       if (item.blobUrl) {
         URL.revokeObjectURL(item.blobUrl);
@@ -213,54 +222,71 @@ export const useOptimizedImageUpload = () => {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       
       if (retryCount < maxRetries) {
-        console.log(`🔄 Retrying upload for ${item.file.name} (attempt ${retryCount + 1}/${maxRetries})`);
+        logger.log(`🔄 Retrying upload for ${item.file.name} (attempt ${retryCount + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         return uploadSingleFile(item, options, retryCount + 1);
       } else {
-        setUploadQueue(prev => 
-          prev.map(i => 
-            i.id === item.id 
-              ? { ...i, status: 'error', error: errorMessage }
-              : i
-          )
-        );
+        unstable_batchedUpdates(() => {
+          setUploadQueue(prev => 
+            prev.map(i => 
+              i.id === item.id 
+                ? { ...i, status: 'error', error: errorMessage }
+                : i
+            )
+          );
+        });
         throw error;
       }
     }
   }, []);
 
-  // Process files sequentially with delays
+  // Process files in parallel for better performance
   const processUploads = useCallback(async (
     items: UploadItem[],
     options: OptimizedUploadOptions
   ): Promise<string[]> => {
-    const batchDelay = 500;
-    const results: string[] = [];
-    const errors: string[] = [];
-
-    for (let i = 0; i < items.length; i++) {
-      if (abortController.current?.signal.aborted) break;
-
-      const item = items[i];
+    logger.devLog(`🚀 Starting parallel upload of ${items.length} files`);
+    
+    // Use Promise.allSettled for parallel uploads with error handling
+    const uploadPromises = items.map(async (item) => {
+      if (abortController.current?.signal.aborted) {
+        throw new Error('Upload cancelled');
+      }
       
       try {
         const url = await uploadSingleFile(item, options);
-        results.push(url);
-        
-        if (i < items.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, batchDelay));
-        }
+        return { success: true, url, item };
       } catch (error) {
-        const errorMsg = `${item.file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        return { 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error', 
+          item 
+        };
+      }
+    });
+
+    const results = await Promise.allSettled(uploadPromises);
+    
+    const successfulUploads: string[] = [];
+    const errors: string[] = [];
+
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value.success) {
+        successfulUploads.push(result.value.url);
+      } else {
+        const item = items[index];
+        const errorMsg = result.status === 'rejected' 
+          ? `${item.file.name}: ${result.reason}` 
+          : `${result.value.item.file.name}: ${result.value.error}`;
         errors.push(errorMsg);
       }
-    }
+    });
 
     if (!options.disableToast) {
-      if (results.length > 0) {
+      if (successfulUploads.length > 0) {
         toast({
           title: "Загрузка завершена",
-          description: `Успешно загружено ${results.length} из ${items.length} файлов`,
+          description: `Успешно загружено ${successfulUploads.length} из ${items.length} файлов`,
         });
       }
       
@@ -273,7 +299,8 @@ export const useOptimizedImageUpload = () => {
       }
     }
 
-    return results;
+    logger.devLog(`✅ Parallel upload completed: ${successfulUploads.length} success, ${errors.length} errors`);
+    return successfulUploads;
   }, [uploadSingleFile, toast]);
 
   // Main upload function with smart compression
@@ -281,6 +308,13 @@ export const useOptimizedImageUpload = () => {
     files: File[],
     options: OptimizedUploadOptions = {}
   ): Promise<string[]> => {
+    // Race condition protection: prevent double upload calls
+    if (activeUploadRef.current) {
+      logger.warn('⚠️ Upload already in progress, ignoring duplicate call');
+      return [];
+    }
+    
+    activeUploadRef.current = true;
     setIsUploading(true);
     abortController.current = new AbortController();
 
@@ -293,7 +327,9 @@ export const useOptimizedImageUpload = () => {
       originalSize: file.size
     }));
 
-    setUploadQueue(prev => [...prev, ...initialQueue]);
+    unstable_batchedUpdates(() => {
+      setUploadQueue(prev => [...prev, ...initialQueue]);
+    });
 
     try {
       // Step 1: Условное сжатие изображений
@@ -302,49 +338,55 @@ export const useOptimizedImageUpload = () => {
         const shouldCompress = item.file.size >= COMPRESSION_THRESHOLD;
         
         if (!shouldCompress) {
-          console.log(`⚡ Skipping compression for ${item.file.name} (${item.file.size} bytes < ${COMPRESSION_THRESHOLD} bytes)`);
-          setUploadQueue(prev => 
-            prev.map(i => 
-              i.id === item.id 
-                ? { 
-                    ...i, 
-                    compressedFile: item.file, // Используем оригинал
-                    compressedSize: item.file.size,
-                    status: 'pending',
-                    progress: 0
-                  }
-                : i
-            )
-          );
+          logger.log(`⚡ Skipping compression for ${item.file.name} (${item.file.size} bytes < ${COMPRESSION_THRESHOLD} bytes)`);
+          unstable_batchedUpdates(() => {
+            setUploadQueue(prev => 
+              prev.map(i => 
+                i.id === item.id 
+                  ? { 
+                      ...i, 
+                      compressedFile: item.file, // Используем оригинал
+                      compressedSize: item.file.size,
+                      status: 'pending',
+                      progress: 0
+                    }
+                  : i
+              )
+            );
+          });
           return { ...item, compressedFile: item.file, compressedSize: item.file.size };
         }
 
-        setUploadQueue(prev => 
-          prev.map(i => 
-            i.id === item.id 
-              ? { ...i, status: 'compressing', progress: 5 }
-              : i
-          )
-        );
+        unstable_batchedUpdates(() => {
+          setUploadQueue(prev => 
+            prev.map(i => 
+              i.id === item.id 
+                ? { ...i, status: 'compressing', progress: 5 }
+                : i
+            )
+          );
+        });
 
         const compressedFile = await conditionalCompressImage(
           item.file, 
           options.compressionOptions
         );
 
-        setUploadQueue(prev => 
-          prev.map(i => 
-            i.id === item.id 
-              ? { 
-                  ...i, 
-                  compressedFile,
-                  compressedSize: compressedFile.size,
-                  status: 'pending',
-                  progress: 0
-                }
-              : i
-          )
-        );
+        unstable_batchedUpdates(() => {
+          setUploadQueue(prev => 
+            prev.map(i => 
+              i.id === item.id 
+                ? { 
+                    ...i, 
+                    compressedFile,
+                    compressedSize: compressedFile.size,
+                    status: 'pending',
+                    progress: 0
+                  }
+                : i
+            )
+          );
+        });
 
         return { ...item, compressedFile, compressedSize: compressedFile.size };
       });
@@ -359,7 +401,7 @@ export const useOptimizedImageUpload = () => {
 
       return uploadedUrls;
     } catch (error) {
-      console.error('Upload process failed:', error);
+      logger.error('Upload process failed:', error);
       if (!options.disableToast) {
         toast({
           title: "Ошибка загрузки",
@@ -370,6 +412,7 @@ export const useOptimizedImageUpload = () => {
       return [];
     } finally {
       setIsUploading(false);
+      activeUploadRef.current = false;
     }
   }, [createBlobUrl, conditionalCompressImage, processUploads, cleanupSuccessfulItems, toast]);
 
@@ -377,6 +420,7 @@ export const useOptimizedImageUpload = () => {
   const cancelUpload = useCallback(() => {
     abortController.current?.abort();
     setIsUploading(false);
+    activeUploadRef.current = false;
     
     uploadQueue.forEach(item => {
       if (item.blobUrl) {

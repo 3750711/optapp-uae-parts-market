@@ -73,7 +73,7 @@ Email: ${order?.seller?.email || 'Не указано'}
 
 ПОКУПАТЕЛЬ:
 Имя: ${order?.buyer?.full_name || 'Не указано'}
-Telegram: ${order?.buyer?.telegram || 'Не указано'}
+Telegram: Скрыто в целях безопасности
 Email: ${order?.buyer?.email || 'Не указано'}
 
 МЕДИАФАЙЛЫ:

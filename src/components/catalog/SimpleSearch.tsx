@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useDebounce } from '@/hooks/use-debounce';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface SimpleSearchProps {
   searchQuery: string;

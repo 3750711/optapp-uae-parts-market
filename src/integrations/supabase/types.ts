@@ -2721,7 +2721,7 @@ export type Database = {
       }
       create_trusted_product: {
         Args: {
-          p_brand?: string
+          p_brand: string
           p_condition?: string
           p_delivery_price?: number
           p_description?: string

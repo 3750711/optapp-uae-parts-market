@@ -12,6 +12,7 @@ import {
   Cloud,
   X
 } from "lucide-react";
+import { logger } from "@/utils/logger";
 
 interface UploadProgress {
   fileId: string;
@@ -38,17 +39,13 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
 }) => {
   // Simple clear handler without useCallback to prevent dependency issues
   const handleClearProgress = () => {
-    console.log('🗑️ Force clearing upload progress - button clicked');
+    logger.devLog('🗑️ Force clearing upload progress - button clicked');
     onClearProgress();
   };
 
   // Auto-hide after successful uploads with simplified logic
   useEffect(() => {
     if (uploadProgress.length === 0 || isUploading) {
-      console.log('⏭️ Skipping auto-clear: no progress or still uploading', {
-        progressLength: uploadProgress.length,
-        isUploading
-      });
       return;
     }
 
@@ -57,24 +54,22 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
     const hasSuccessfulUploads = successfulFiles.length > 0;
     const allCompleted = uploadProgress.every(p => p.status === 'success' || p.status === 'error');
     
-    console.log('📊 Upload progress auto-clear check:', {
+    logger.throttledDevLog('📊 Upload auto-clear check:', {
       totalFiles: uploadProgress.length,
       successfulFiles: successfulFiles.length,
       hasSuccessfulUploads,
-      allCompleted,
-      isUploading
+      allCompleted
     });
 
     // Auto-clear only if all uploads are completed and at least one was successful
     if (allCompleted && hasSuccessfulUploads) {
-      console.log('⏰ Setting auto-clear timer for 2 seconds');
+      logger.devLog('⏰ Setting auto-clear timer for 2 seconds');
       const timer = setTimeout(() => {
-        console.log('✨ Auto-clearing upload progress after successful uploads');
+        logger.devLog('✨ Auto-clearing upload progress after successful uploads');
         onClearProgress();
       }, 2000);
       
       return () => {
-        console.log('🚫 Clearing auto-clear timer');
         clearTimeout(timer);
       };
     }
