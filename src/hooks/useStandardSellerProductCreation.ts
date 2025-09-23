@@ -72,13 +72,26 @@ export const useStandardSellerProductCreation = () => {
         });
         logger.log('✅ Media added successfully');
       } catch (mediaError) {
-        logger.error('❌ Error adding media:', mediaError);
-        // Don't throw here, product was created successfully
-        toast({
-          title: 'Предупреждение',
-          description: 'Товар создан, но возникла ошибка при добавлении изображений',
-          variant: 'destructive',
-        });
+        logger.error('❌ Error adding media, rolling back product:', mediaError);
+        
+        // Rollback: Delete the created product since media failed
+        try {
+          const { error: deleteError } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', productId);
+            
+          if (deleteError) {
+            logger.error('❌ Failed to rollback product:', deleteError);
+          } else {
+            logger.log('🔄 Product rolled back successfully');
+          }
+        } catch (rollbackError) {
+          logger.error('❌ Rollback failed:', rollbackError);
+        }
+        
+        // Re-throw media error to fail the entire operation
+        throw new Error('Не удалось загрузить изображения. Товар не был создан.');
       }
 
       toast({

@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { logger } from '@/utils/logger';
 
 interface SubmissionGuardOptions {
   timeout?: number;
@@ -23,7 +24,7 @@ export const useSubmissionGuard = (options: SubmissionGuardOptions = {}) => {
     async (submitAction: () => Promise<void>) => {
       const now = Date.now();
       if (isSubmittingRef.current) {
-        console.warn("Submission in progress.");
+        logger.warn("Submission in progress.");
         return;
       }
 
@@ -45,7 +46,7 @@ export const useSubmissionGuard = (options: SubmissionGuardOptions = {}) => {
       try {
         await submitAction();
       } catch (error) {
-        console.error("Submission action failed:", error);
+        logger.error("Submission action failed:", error);
         // Errors should be handled inside submitAction, but we catch here as a fallback.
       } finally {
         // A short delay to prevent UI flickering on very fast submissions

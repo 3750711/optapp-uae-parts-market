@@ -9,6 +9,7 @@ import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStandardSellerProductCreation } from "@/hooks/useStandardSellerProductCreation";
+import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { logger } from "@/utils/logger";
 
 const StandardSellerForm = () => {
@@ -16,6 +17,10 @@ const StandardSellerForm = () => {
   const { toast } = useToast();
   const { language } = useLanguage();
   const { createStandardSellerProduct, isCreating, currentUserProfile, isProfileLoading } = useStandardSellerProductCreation();
+  const { guardedSubmit, canSubmit } = useSubmissionGuard({ 
+    timeout: 3000,
+    onDuplicateSubmit: () => logger.warn('⚠️ Duplicate submission attempt blocked')
+  });
   
   const t = getFormTranslations(language);
   const c = getCommonTranslations(language);
@@ -105,51 +110,53 @@ const StandardSellerForm = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    logger.log('📝 Standard seller form submission started');
-    
-    // Basic validation
-    if (!formData.title.trim()) {
-      toast({
-        title: c.errors.title,
-        description: t.validation.titleRequired,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!formData.price || Number(formData.price) <= 0) {
-      toast({
-        title: c.errors.title, 
-        description: t.validation.priceRequired,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (imageUrls.length === 0) {
-      toast({
-        title: c.errors.title,
-        description: t.messages.imageRequired,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const productId = await createStandardSellerProduct({
-        title: formData.title,
-        price: Number(formData.price),
-        description: formData.description,
-        imageUrls,
-        primaryImage
-      });
-
-      navigate(`/seller/product/${productId}?from=add`);
+    await guardedSubmit(async () => {
+      logger.debug('📝 Standard seller form submission started');
       
-    } catch (error) {
-      logger.error("💥 Form submission error:", error);
-      // Error handling is done in the hook
-    }
+      // Basic validation
+      if (!formData.title.trim()) {
+        toast({
+          title: c.errors.title,
+          description: t.validation.titleRequired,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!formData.price || Number(formData.price) <= 0) {
+        toast({
+          title: c.errors.title, 
+          description: t.validation.priceRequired,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (imageUrls.length === 0) {
+        toast({
+          title: c.errors.title,
+          description: t.messages.imageRequired,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      try {
+        const productId = await createStandardSellerProduct({
+          title: formData.title,
+          price: Number(formData.price),
+          description: formData.description,
+          imageUrls,
+          primaryImage
+        });
+
+        navigate(`/seller/product/${productId}?from=add`);
+        
+      } catch (error) {
+        logger.error("💥 Form submission error:", error);
+        // Error handling is done in the hook
+      }
+    });
   };
 
   return (
@@ -214,7 +221,7 @@ const StandardSellerForm = () => {
       
       <Button
         type="submit"
-        disabled={isCreating || isMediaUploading || isProfileLoading || !currentUserProfile}
+        disabled={isCreating || isMediaUploading || isProfileLoading || !currentUserProfile || !canSubmit}
         className="w-full"
         size="lg"
       >

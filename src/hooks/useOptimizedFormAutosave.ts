@@ -1,6 +1,7 @@
 
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { debounce } from '@/utils/debounce';
+import { logger } from '@/utils/logger';
 
 interface OptimizedAutosaveOptions {
   key: string;
@@ -43,10 +44,10 @@ export const useOptimizedFormAutosave = ({
           localStorage.setItem(`autosave_${key}_timestamp`, Date.now().toString());
           hasUnsavedChanges.current = false;
           lastSavedData.current = serializedData;
-          console.log(`✅ Form autosaved for key: ${key}`);
+          logger.debug(`✅ Form autosaved for key: ${key}`);
         }
       } catch (error) {
-        console.error('Error saving form data:', error);
+        logger.error('Error saving form data:', error);
       }
     }, delay),
     [key, delay, filterDataForSave]
@@ -63,9 +64,9 @@ export const useOptimizedFormAutosave = ({
       localStorage.setItem(`autosave_${key}_timestamp`, Date.now().toString());
       hasUnsavedChanges.current = false;
       lastSavedData.current = serializedData;
-      console.log(`💾 Form saved immediately for key: ${key}`);
+      logger.debug(`💾 Form saved immediately for key: ${key}`);
     } catch (error) {
-      console.error('Error performing immediate form save:', error);
+      logger.error('Error performing immediate form save:', error);
     }
   }, [key, data, filterDataForSave]);
 
@@ -80,6 +81,13 @@ export const useOptimizedFormAutosave = ({
       debouncedSave(data);
     }
   }, [data, debouncedSave, enabled, filterDataForSave]);
+
+  // Cleanup debounced save on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSave.cancel();
+    };
+  }, [debouncedSave]);
 
   const loadSavedData = useCallback(() => {
     try {
@@ -97,7 +105,7 @@ export const useOptimizedFormAutosave = ({
       setDraftExists(false);
       return null;
     } catch (error) {
-      console.error('Error loading saved form data:', error);
+      logger.error('Error loading saved form data:', error);
       setDraftExists(false);
       return null;
     }

@@ -44,6 +44,7 @@ export const useOptimizedImageUpload = () => {
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const abortController = useRef<AbortController | null>(null);
+  const activeUploadRef = useRef<boolean>(false);
 
   // Умное сжатие в зависимости от размера файла
   const getSmartCompressionOptions = useCallback((fileSize: number) => {
@@ -291,6 +292,13 @@ export const useOptimizedImageUpload = () => {
     files: File[],
     options: OptimizedUploadOptions = {}
   ): Promise<string[]> => {
+    // Race condition protection: prevent double upload calls
+    if (activeUploadRef.current) {
+      logger.warn('⚠️ Upload already in progress, ignoring duplicate call');
+      return [];
+    }
+    
+    activeUploadRef.current = true;
     setIsUploading(true);
     abortController.current = new AbortController();
 
@@ -388,6 +396,7 @@ export const useOptimizedImageUpload = () => {
       return [];
     } finally {
       setIsUploading(false);
+      activeUploadRef.current = false;
     }
   }, [createBlobUrl, conditionalCompressImage, processUploads, cleanupSuccessfulItems, toast]);
 
@@ -395,6 +404,7 @@ export const useOptimizedImageUpload = () => {
   const cancelUpload = useCallback(() => {
     abortController.current?.abort();
     setIsUploading(false);
+    activeUploadRef.current = false;
     
     uploadQueue.forEach(item => {
       if (item.blobUrl) {
