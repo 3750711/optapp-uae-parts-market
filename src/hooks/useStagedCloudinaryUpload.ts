@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { logUploadEvent } from '@/utils/uploadLogger';
 import { useUploadAbortController } from './useUploadAbortController';
 import { useUnifiedUploadErrorHandler } from './useUnifiedUploadErrorHandler';
+import { uploadWithSimpleFallback } from '@/utils/simpleCloudinaryFallback';
 
 // Helper functions for new upload path
 const getRuntimeConfig = () => {
@@ -540,7 +541,29 @@ export const useStagedCloudinaryUpload = () => {
         await new Promise(resolve => setTimeout(resolve, delay));
         return uploadToEdgeFunction(file, publicId, onProgress, signal, retryCount + 1);
       } else {
-        throw new Error(error instanceof Error ? error.message : 'Upload failed after 3 attempts');
+        // Edge Function failed after all retries - try simple fallback
+        console.log(`🔄 Edge Function failed after 3 attempts, switching to simple Cloudinary fallback for: ${file.name}`);
+        
+        try {
+          const fallbackResult = await uploadWithSimpleFallback(file, {
+            onProgress,
+            maxRetries: 1, // Simple fallback with minimal retries
+            retryDelay: 1000
+          });
+          
+          if (fallbackResult.success && fallbackResult.cloudinaryUrl && fallbackResult.publicId) {
+            console.log(`✅ Simple fallback succeeded for: ${file.name} → ${fallbackResult.cloudinaryUrl}`);
+            return {
+              url: fallbackResult.cloudinaryUrl,
+              publicId: fallbackResult.publicId
+            };
+          } else {
+            throw new Error(fallbackResult.error || 'Simple fallback failed');
+          }
+        } catch (fallbackError) {
+          console.error(`❌ Both Edge Function and simple fallback failed for: ${file.name}`, fallbackError);
+          throw new Error(`Загрузка не удалась: ${fallbackError instanceof Error ? fallbackError.message : 'все методы испробованы'}`);
+        }
       }
     }
   }, []);

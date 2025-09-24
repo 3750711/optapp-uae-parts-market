@@ -1,6 +1,6 @@
 // Offline upload queue for handling network interruptions
 import { toast } from '@/hooks/use-toast';
-import { uploadWithMultipleFallbacks, UploadOptions } from './uploadWithFallback';
+import { uploadWithSimpleRetry, UploadOptions } from './uploadWithSimpleRetry';
 
 interface QueueItem {
   id: string;
@@ -103,7 +103,7 @@ class OfflineUploadQueue {
       try {
         console.log('📤 Processing queued upload:', item.id);
         
-        const result = await uploadWithMultipleFallbacks(item.file, item.options);
+        const result = await uploadWithSimpleRetry(item.file, item.options);
         
         if (result.success && result.url) {
           console.log('✅ Queued upload successful:', item.id);

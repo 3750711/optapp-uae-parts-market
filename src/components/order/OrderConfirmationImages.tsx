@@ -7,7 +7,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, RefreshCw, AlertTriangle, Copy } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { uploadWithMultipleFallbacks } from "@/utils/uploadWithFallback";
 import { offlineQueue } from "@/utils/offlineQueue";
 import { uploadMetrics } from "@/utils/uploadMetrics";
 
