@@ -5,6 +5,7 @@ import { logUploadEvent } from '@/utils/uploadLogger';
 import { useUploadAbortController } from './useUploadAbortController';
 import { useUnifiedUploadErrorHandler } from './useUnifiedUploadErrorHandler';
 import { uploadWithSimpleFallback } from '@/utils/simpleCloudinaryFallback';
+import { ErrorRecoveryManager } from '@/utils/errorRecovery';
 
 // Helper functions for new upload path
 const getRuntimeConfig = () => {
@@ -91,10 +92,15 @@ interface CompressionResult {
   compressionMs?: number;
 }
 
-// IndexedDB for storing staged URLs
+// IndexedDB for storing staged URLs with limits
 const DB_NAME = 'StagedUploads';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // Increased for new limits
 const STORE_NAME = 'sessions';
+
+// Storage limits to prevent device overload
+const MAX_SESSIONS = 50; // Maximum sessions stored
+const MAX_URLS_PER_SESSION = 100; // Maximum URLs per session
+const MAX_TOTAL_STORAGE_SIZE = 50 * 1024 * 1024; // 50MB total limit
 
 class StagedUploadDB {
   private db: IDBDatabase | null = null;
@@ -111,29 +117,126 @@ class StagedUploadDB {
       
       request.onupgradeneeded = () => {
         const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          const store = db.createObjectStore(STORE_NAME, { keyPath: 'sessionId' });
-          store.createIndex('createdAt', 'createdAt');
+        
+        // Clear old version data for clean upgrade
+        if (db.objectStoreNames.contains(STORE_NAME)) {
+          db.deleteObjectStore(STORE_NAME);
         }
+        
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'sessionId' });
+        store.createIndex('createdAt', 'createdAt');
+        store.createIndex('size', 'size'); // Track storage size
       };
     });
+  }
+
+  // Calculate estimated storage size
+  private calculateStorageSize(urls: string[]): number {
+    return JSON.stringify(urls).length * 2; // Rough estimate: 2 bytes per char
   }
 
   async saveSession(sessionId: string, urls: string[]): Promise<void> {
     if (!this.db) await this.init();
     
+    // Enforce URL limit per session
+    const limitedUrls = urls.length > MAX_URLS_PER_SESSION 
+      ? urls.slice(-MAX_URLS_PER_SESSION) 
+      : urls;
+    
+    if (limitedUrls.length !== urls.length) {
+      console.warn(`🚨 Session ${sessionId}: URL limit exceeded, keeping latest ${MAX_URLS_PER_SESSION} URLs`);
+    }
+    
+    const size = this.calculateStorageSize(limitedUrls);
+    
+    return new Promise(async (resolve, reject) => {
+      try {
+        // Check and enforce storage limits before saving
+        await this.enforceStorageLimits(size);
+        
+        const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        
+        const data = {
+          sessionId,
+          urls: limitedUrls,
+          createdAt: Date.now(),
+          size
+        };
+        
+        const request = store.put(data);
+        request.onsuccess = () => {
+          console.log(`💾 Session saved: ${sessionId} (${limitedUrls.length} URLs, ${Math.round(size/1024)}KB)`);
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  // Enforce storage limits by removing old sessions
+  private async enforceStorageLimits(newSize: number): Promise<void> {
+    if (!this.db) return;
+    
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
+      const index = store.index('createdAt');
       
-      const data = {
-        sessionId,
-        urls,
-        createdAt: Date.now()
+      // Get all sessions ordered by creation time (oldest first)
+      const request = index.openCursor();
+      const sessions: { sessionId: string; createdAt: number; size: number }[] = [];
+      let totalSize = 0;
+      let totalCount = 0;
+      
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          const data = cursor.value;
+          sessions.push(data);
+          totalSize += data.size || 0;
+          totalCount++;
+          cursor.continue();
+        } else {
+          // Now enforce limits
+          const futureSize = totalSize + newSize;
+          const futureCount = totalCount + 1;
+          
+          // Remove sessions if we exceed limits
+          let sessionsToRemove = 0;
+          if (futureCount > MAX_SESSIONS) {
+            sessionsToRemove = Math.max(sessionsToRemove, futureCount - MAX_SESSIONS);
+          }
+          if (futureSize > MAX_TOTAL_STORAGE_SIZE) {
+            // Remove oldest sessions until we're under size limit
+            let sizeSoFar = futureSize;
+            let removeCount = 0;
+            for (const session of sessions) {
+              if (sizeSoFar <= MAX_TOTAL_STORAGE_SIZE) break;
+              sizeSoFar -= session.size || 0;
+              removeCount++;
+            }
+            sessionsToRemove = Math.max(sessionsToRemove, removeCount);
+          }
+          
+          if (sessionsToRemove > 0) {
+            console.warn(`🚨 Storage limits: removing ${sessionsToRemove} old sessions (count: ${totalCount}/${MAX_SESSIONS}, size: ${Math.round(totalSize/1024)}KB/${Math.round(MAX_TOTAL_STORAGE_SIZE/1024)}KB)`);
+            
+            // Remove oldest sessions
+            const removePromises = sessions.slice(0, sessionsToRemove).map(session => 
+              this.clearSession(session.sessionId)
+            );
+            
+            Promise.all(removePromises)
+              .then(() => resolve())
+              .catch(reject);
+          } else {
+            resolve();
+          }
+        }
       };
-      
-      const request = store.put(data);
-      request.onsuccess = () => resolve();
       request.onerror = () => reject(request.error);
     });
   }
@@ -178,14 +281,49 @@ class StagedUploadDB {
       const index = store.index('createdAt');
       const range = IDBKeyRange.upperBound(cutoff);
       const request = index.openCursor(range);
+      let removedCount = 0;
       
       request.onsuccess = () => {
         const cursor = request.result;
         if (cursor) {
           cursor.delete();
+          removedCount++;
           cursor.continue();
         } else {
+          if (removedCount > 0) {
+            console.log(`🧹 Cleaned ${removedCount} old sessions (>24h)`);
+          }
           resolve();
+        }
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // Get current storage stats
+  async getStorageStats(): Promise<{ sessionCount: number; totalSize: number; avgSessionSize: number }> {
+    if (!this.db) await this.init();
+    
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.openCursor();
+      
+      let sessionCount = 0;
+      let totalSize = 0;
+      
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          sessionCount++;
+          totalSize += cursor.value.size || 0;
+          cursor.continue();
+        } else {
+          resolve({
+            sessionCount,
+            totalSize,
+            avgSessionSize: sessionCount > 0 ? totalSize / sessionCount : 0
+          });
         }
       };
       request.onerror = () => reject(request.error);
@@ -201,6 +339,9 @@ export const useStagedCloudinaryUpload = () => {
   const [stagedUrls, setStagedUrls] = useState<string[]>([]);
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Enhanced error recovery manager
+  const errorRecoveryRef = useRef(new ErrorRecoveryManager());
   
   // Use unified systems
   const { 
@@ -316,82 +457,144 @@ export const useStagedCloudinaryUpload = () => {
     return signature;
   }, []);
 
-  // Compress image in worker with adaptive parameters
+  // Compress image in worker with reliable memory management
   const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82): Promise<CompressionResult> => {
     return new Promise((resolve) => {
-      let worker: Worker;
+      let worker: Worker | null = null;
+      let timeout: NodeJS.Timeout | null = null;
+      let isResolved = false;
+      
+      // Safe resolve function to prevent double resolution
+      const safeResolve = (result: CompressionResult) => {
+        if (isResolved) return;
+        isResolved = true;
+        
+        // Always cleanup on resolve
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+        if (worker) {
+          try {
+            worker.terminate();
+          } catch (error) {
+            console.warn('⚠️ Worker termination error:', error);
+          }
+          worker = null;
+        }
+        
+        resolve(result);
+      };
       
       try {
         worker = new Worker(
           new URL('../workers/smart-image-compress.worker.js', import.meta.url),
           { type: 'module' }
         );
-        console.log('✅ Worker created successfully');
+        console.log('✅ Worker created successfully for:', file.name);
       } catch (workerError) {
         console.error('❌ Failed to create worker:', workerError);
-        resolve({ ok: false, code: 'WORKER_CREATION_FAILED' });
+        safeResolve({ ok: false, code: 'WORKER_CREATION_FAILED', originalSize: file.size });
         return;
       }
       
-      const timeout = setTimeout(() => {
-        worker.terminate();
-        resolve({ ok: false, code: 'WORKER_TIMEOUT' });
+      // Set timeout with cleanup
+      timeout = setTimeout(() => {
+        console.warn('⏰ Worker timeout for:', file.name);
+        safeResolve({ ok: false, code: 'WORKER_TIMEOUT', originalSize: file.size });
       }, 30000);
       
+      // Enhanced message handler with error boundaries
       worker.onmessage = (e) => {
-        clearTimeout(timeout);
-        worker.terminate();
-        const result = e.data;
-        
-        if (result.ok) {
-          console.log('✅ Worker compression successful:', {
-            originalSize: result.original?.size || file.size,
-            compressedSize: result.size,
-            compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A'
-          });
-          resolve({
-            ok: true,
-            blob: result.blob,
-            mime: result.mime,
-            originalSize: result.original?.size || file.size,
-            compressedSize: result.size,
-            compressionMs: result.compressionMs
-          });
-        } else {
-          console.warn('⚠️ Worker compression failed:', {
-            code: result.code,
-            message: result.message,
-            fileName: file.name
-          });
-          resolve({ 
+        try {
+          const result = e.data;
+          
+          if (result && result.ok) {
+            console.log('✅ Worker compression successful:', {
+              file: file.name,
+              originalSize: result.original?.size || file.size,
+              compressedSize: result.size,
+              compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A',
+              duration: result.compressionMs ? `${result.compressionMs}ms` : 'unknown'
+            });
+            
+            safeResolve({
+              ok: true,
+              blob: result.blob,
+              mime: result.mime || 'image/jpeg',
+              originalSize: result.original?.size || file.size,
+              compressedSize: result.size,
+              compressionMs: result.compressionMs
+            });
+          } else {
+            console.warn('⚠️ Worker compression failed:', {
+              file: file.name,
+              code: result?.code,
+              message: result?.message
+            });
+            
+            safeResolve({ 
+              ok: false, 
+              code: result?.code || 'COMPRESSION_FAILED',
+              originalSize: file.size
+            });
+          }
+        } catch (messageError) {
+          console.error('❌ Error processing worker message:', messageError);
+          safeResolve({ 
             ok: false, 
-            code: result.code || 'COMPRESSION_FAILED',
+            code: 'MESSAGE_PROCESSING_ERROR',
             originalSize: file.size
           });
         }
       };
       
+      // Enhanced error handler
       worker.onerror = (error) => {
-        clearTimeout(timeout);
-        worker.terminate();
-        console.error('❌ Worker error:', error);
-        resolve({ ok: false, code: 'WORKER_ERROR', originalSize: file.size });
+        console.error('❌ Worker error for:', file.name, error);
+        safeResolve({ 
+          ok: false, 
+          code: 'WORKER_ERROR',
+          originalSize: file.size
+        });
       };
       
-      // Send compression task with adaptive parameters
+      // Enhanced message post with validation
       try {
-        worker.postMessage({
+        const message = {
           file,
           maxSide,
           jpegQuality: quality,
-          prefer: 'jpeg',
+          prefer: 'jpeg' as const,
           twoPass: false
+        };
+        
+        // Validate message before sending
+        if (!file || file.size === 0) {
+          throw new Error('Invalid file for compression');
+        }
+        if (maxSide < 100 || maxSide > 3000) {
+          throw new Error('Invalid maxSide parameter');
+        }
+        if (quality < 0.1 || quality > 1.0) {
+          throw new Error('Invalid quality parameter');
+        }
+        
+        worker.postMessage(message);
+        console.log('📤 Compression task sent to worker:', {
+          file: file.name,
+          size: file.size,
+          maxSide,
+          quality
         });
+        
       } catch (postError) {
-        clearTimeout(timeout);
-        worker.terminate();
-        console.error('Failed to post message to worker:', postError);
-        resolve({ ok: false, code: 'WORKER_POST_FAILED' });
+        console.error('❌ Failed to post message to worker:', postError);
+        safeResolve({ 
+          ok: false, 
+          code: 'WORKER_POST_FAILED',
+          originalSize: file.size
+        });
       }
     });
   }, []);
