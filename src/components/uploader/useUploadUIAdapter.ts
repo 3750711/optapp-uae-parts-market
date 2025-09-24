@@ -56,8 +56,8 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
     return {
       ...item,
       thumbUrl,
-      // Правильное имя файла  
-      originalFile: { name: item.file?.name || 'Unknown' },
+      // Передаем полный File объект для EXIF обработки
+      originalFile: item.file,
       // Правильный URL после загрузки 
       cloudinaryUrl: item.url,
       // Статус в правильном формате

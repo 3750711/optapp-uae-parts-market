@@ -81,7 +81,7 @@ export default function SimplePhotoUploader({
   // Process EXIF orientation for new files
   useEffect(() => {
     items.forEach(async (item: any) => {
-      if (item.originalFile && !imageOrientations.has(item.id)) {
+      if (item.originalFile && item.originalFile instanceof File && !imageOrientations.has(item.id)) {
         const orientation = await getImageOrientation(item.originalFile);
         setImageOrientations(prev => new Map(prev.set(item.id, orientation)));
       }
