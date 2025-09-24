@@ -120,6 +120,50 @@ export const validateFileSize = (file: File, maxSizeMB: number = 20): {
 };
 
 /**
+ * Validates image dimensions to prevent pixel bomb attacks
+ */
+export const validateImageDimensions = async (file: File): Promise<{
+  isValid: boolean;
+  error?: string;
+  dimensions?: { width: number; height: number };
+}> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      
+      const maxPixels = 50 * 1000 * 1000; // 50 megapixels max
+      const totalPixels = img.width * img.height;
+      
+      if (totalPixels > maxPixels) {
+        resolve({
+          isValid: false,
+          error: `Image too large: ${Math.round(totalPixels/1000000)}MP. Maximum allowed: 50MP`,
+          dimensions: { width: img.width, height: img.height }
+        });
+      } else {
+        resolve({
+          isValid: true,
+          dimensions: { width: img.width, height: img.height }
+        });
+      }
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({
+        isValid: false,
+        error: 'Could not read image dimensions'
+      });
+    };
+    
+    img.src = url;
+  });
+};
+
+/**
  * Comprehensive file validation
  */
 export const validateUploadFile = async (file: File): Promise<{
@@ -140,6 +184,14 @@ export const validateUploadFile = async (file: File): Promise<{
   const signatureValidation = await validateFileSignature(file);
   if (!signatureValidation.isValid) {
     errors.push(signatureValidation.error!);
+  }
+
+  // NEW: Pixel bomb protection
+  if (file.type.startsWith('image/')) {
+    const dimensionsValidation = await validateImageDimensions(file);
+    if (!dimensionsValidation.isValid) {
+      errors.push(dimensionsValidation.error!);
+    }
   }
 
   // Check MIME type vs actual content

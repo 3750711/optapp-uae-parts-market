@@ -4,6 +4,7 @@ import { Lang } from "@/types/i18n";
 import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 import { validateUploadFile } from "@/utils/fileValidation";
 import { toast } from "sonner";
+import { getImageOrientation, getOrientationCSS } from "@/utils/imageOrientation";
 
 type Props = {
   max?: number;
@@ -23,6 +24,9 @@ export default function SimplePhotoUploader({
   const { items, uploadFiles, removeItem, retryItem } = useUploadUIAdapter({ max, onChange, onComplete });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = getSellerPagesTranslations(language);
+  
+  // Track image orientations for EXIF support
+  const [imageOrientations, setImageOrientations] = useState<Map<string, number>>(new Map());
   
   // Count completed items
   const completedCount = items.filter((i: any) => i.status === "completed" && i.cloudinaryUrl).length;
@@ -73,6 +77,16 @@ export default function SimplePhotoUploader({
       stableOnComplete(urls);
     }
   }, [urlsString, lastProcessedUrls, items, stableOnChange, stableOnComplete]);
+
+  // Process EXIF orientation for new files
+  useEffect(() => {
+    items.forEach(async (item: any) => {
+      if (item.originalFile && !imageOrientations.has(item.id)) {
+        const orientation = await getImageOrientation(item.originalFile);
+        setImageOrientations(prev => new Map(prev.set(item.id, orientation)));
+      }
+    });
+  }, [items, imageOrientations]);
 
   const onPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -170,11 +184,20 @@ export default function SimplePhotoUploader({
               {it.cloudinaryUrl || it.thumbUrl ? (
                 <img
                   src={it.cloudinaryUrl || it.thumbUrl}
+                  srcSet={it.cloudinaryUrl ? `
+                    ${it.cloudinaryUrl.replace('/upload/', '/upload/w_400,c_limit/')} 400w,
+                    ${it.cloudinaryUrl.replace('/upload/', '/upload/w_800,c_limit/')} 800w,
+                    ${it.cloudinaryUrl} 1200w
+                  ` : undefined}
+                  sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px"
                   alt=""
                   loading="lazy"
                   decoding="async"
                   className="w-full aspect-square object-contain bg-muted"
-                  style={{ aspectRatio: '1/1' }}
+                  style={{ 
+                    aspectRatio: '1/1',
+                    transform: getOrientationCSS(imageOrientations.get(it.id) || 1)
+                  }}
                 />
               ) : (
                 <div className="w-full aspect-square grid place-items-center text-xs text-muted-foreground bg-muted">
