@@ -413,6 +413,43 @@ export interface SellerPagesTranslations {
     mediaCount: string;
     smartQuality: string;
     photoCount: string;
+    // Enhanced error handling
+    errors: {
+      fileTooBig: string;
+      pixelBombDetected: string;
+      unsupportedFormat: string;
+      corruptedFile: string;
+      networkError: string;
+      serverError: string;
+      validationFailed: string;
+      dimensionError: string;
+      heicNotSupported: string;
+      duplicateUpload: string;
+      storageLimit: string;
+      compressionFailed: string;
+    };
+    // User hints
+    hints: {
+      fileSize: string;
+      supportedFormats: string;
+      maxDimensions: string;
+      compressionTip: string;
+      retryTip: string;
+      orientationTip: string;
+      dragDropTip: string;
+      batchUploadTip: string;
+    };
+    // Status messages
+    status: {
+      preparing: string;
+      compressing: string;
+      uploading: string;
+      processing: string;
+      completed: string;
+      failed: string;
+      retrying: string;
+      cancelled: string;
+    };
   };
 }
 
@@ -827,6 +864,43 @@ const ru: SellerPagesTranslations = {
     mediaCount: 'Медиафайлы',
     smartQuality: 'Умное качество',
     photoCount: 'Фото: {count} из {max}',
+    // Enhanced error handling
+    errors: {
+      fileTooBig: 'Файл слишком большой (макс. 20МБ)',
+      pixelBombDetected: 'Изображение слишком большое: {mp}МП. Максимум: 50МП',
+      unsupportedFormat: 'Неподдерживаемый формат файла',
+      corruptedFile: 'Поврежденный файл или неправильный формат',
+      networkError: 'Ошибка сети. Проверьте подключение к интернету',
+      serverError: 'Ошибка сервера. Попробуйте позже',
+      validationFailed: 'Файл не прошел проверку безопасности',
+      dimensionError: 'Не удалось определить размеры изображения',
+      heicNotSupported: 'HEIC файлы поддерживаются не во всех браузерах',
+      duplicateUpload: 'Этот файл уже загружается',
+      storageLimit: 'Превышен лимит хранилища',
+      compressionFailed: 'Ошибка сжатия изображения'
+    },
+    // User hints
+    hints: {
+      fileSize: 'Рекомендуемый размер файла: до 2МБ для быстрой загрузки',
+      supportedFormats: 'Поддерживаются: JPEG, PNG, WebP, GIF, HEIC, TIFF',
+      maxDimensions: 'Максимальное разрешение: 50 мегапикселей',
+      compressionTip: 'Большие файлы автоматически сжимаются без потери качества',
+      retryTip: 'При ошибке нажмите "Повторить" или выберите файл заново',
+      orientationTip: 'Ориентация фото определяется автоматически из EXIF данных',
+      dragDropTip: 'Перетащите файлы в эту область для быстрой загрузки',
+      batchUploadTip: 'Можно выбрать несколько файлов одновременно'
+    },
+    // Status messages
+    status: {
+      preparing: 'Подготовка файла...',
+      compressing: 'Сжатие изображения...',
+      uploading: 'Загрузка: {progress}%',
+      processing: 'Обработка на сервере...',
+      completed: 'Загружено успешно',
+      failed: 'Ошибка загрузки',
+      retrying: 'Повторная попытка...',
+      cancelled: 'Загрузка отменена'
+    }
   },
 };
 
@@ -1241,6 +1315,43 @@ const en: SellerPagesTranslations = {
     mediaCount: 'Media Files',
     smartQuality: 'Smart Quality',
     photoCount: 'Photos: {count} of {max}',
+    // Enhanced error handling
+    errors: {
+      fileTooBig: 'File too large (max 20MB)',
+      pixelBombDetected: 'Image too large: {mp}MP. Maximum: 50MP',
+      unsupportedFormat: 'Unsupported file format',
+      corruptedFile: 'Corrupted file or invalid format',
+      networkError: 'Network error. Check your internet connection',
+      serverError: 'Server error. Please try again later',
+      validationFailed: 'File failed security validation',
+      dimensionError: 'Could not read image dimensions',
+      heicNotSupported: 'HEIC files may not be supported in all browsers',
+      duplicateUpload: 'This file is already being uploaded',
+      storageLimit: 'Storage limit exceeded',
+      compressionFailed: 'Image compression failed'
+    },
+    // User hints
+    hints: {
+      fileSize: 'Recommended file size: up to 2MB for faster upload',
+      supportedFormats: 'Supported: JPEG, PNG, WebP, GIF, HEIC, TIFF',
+      maxDimensions: 'Maximum resolution: 50 megapixels',
+      compressionTip: 'Large files are automatically compressed without quality loss',
+      retryTip: 'On error, click "Retry" or select the file again',
+      orientationTip: 'Photo orientation is automatically detected from EXIF data',
+      dragDropTip: 'Drag and drop files to this area for quick upload',
+      batchUploadTip: 'You can select multiple files at once'
+    },
+    // Status messages
+    status: {
+      preparing: 'Preparing file...',
+      compressing: 'Compressing image...',
+      uploading: 'Uploading: {progress}%',
+      processing: 'Processing on server...',
+      completed: 'Uploaded successfully',
+      failed: 'Upload failed',
+      retrying: 'Retrying...',
+      cancelled: 'Upload cancelled'
+    }
   },
 };
 
@@ -1655,6 +1766,43 @@ const bn: SellerPagesTranslations = {
     mediaCount: 'মিডিয়া ফাইল',
     smartQuality: 'স্মার্ট মান',
     photoCount: 'ছবি: {count} এর মধ্যে {max}',
+    // Enhanced error handling
+    errors: {
+      fileTooBig: 'ফাইল খুব বড় (সর্বোচ্চ 20MB)',
+      pixelBombDetected: 'ছবি খুব বড়: {mp}MP। সর্বোচ্চ: 50MP',
+      unsupportedFormat: 'অসমর্থিত ফাইল ফরম্যাট',
+      corruptedFile: 'ক্ষতিগ্রস্ত ফাইল বা অবৈধ ফরম্যাট',
+      networkError: 'নেটওয়ার্ক ত্রুটি। আপনার ইন্টারনেট সংযোগ পরীক্ষা করুন',
+      serverError: 'সার্ভার ত্রুটি। অনুগ্রহ করে পরে আবার চেষ্টা করুন',
+      validationFailed: 'ফাইল নিরাপত্তা যাচাইকরণে ব্যর্থ',
+      dimensionError: 'ছবির মাত্রা পড়তে পারেনি',
+      heicNotSupported: 'HEIC ফাইল সব ব্রাউজারে সমর্থিত নাও হতে পারে',
+      duplicateUpload: 'এই ফাইলটি ইতিমধ্যে আপলোড হচ্ছে',
+      storageLimit: 'স্টোরেজ সীমা অতিক্রম করেছে',
+      compressionFailed: 'ছবি সংকোচন ব্যর্থ'
+    },
+    // User hints
+    hints: {
+      fileSize: 'প্রস্তাবিত ফাইল সাইজ: দ্রুত আপলোডের জন্য 2MB পর্যন্ত',
+      supportedFormats: 'সমর্থিত: JPEG, PNG, WebP, GIF, HEIC, TIFF',
+      maxDimensions: 'সর্বোচ্চ রেজোলিউশন: 50 মেগাপিক্সেল',
+      compressionTip: 'বড় ফাইলগুলি গুণমান হারানো ছাড়াই স্বয়ংক্রিয়ভাবে সংকুচিত হয়',
+      retryTip: 'ত্রুটির ক্ষেত্রে, "পুনরায় চেষ্টা" চাপুন বা ফাইলটি আবার নির্বাচন করুন',
+      orientationTip: 'ছবির দিক স্বয়ংক্রিয়ভাবে EXIF ডেটা থেকে নির্ধারিত হয়',
+      dragDropTip: 'দ্রুত আপলোডের জন্য এই এলাকায় ফাইল টেনে এনে ছাড়ুন',
+      batchUploadTip: 'আপনি একসাথে একাধিক ফাইল নির্বাচন করতে পারেন'
+    },
+    // Status messages
+    status: {
+      preparing: 'ফাইল প্রস্তুত করা হচ্ছে...',
+      compressing: 'ছবি সংকুচিত হচ্ছে...',
+      uploading: 'আপলোড: {progress}%',
+      processing: 'সার্ভারে প্রক্রিয়াকরণ...',
+      completed: 'সফলভাবে আপলোড হয়েছে',
+      failed: 'আপলোড ব্যর্থ',
+      retrying: 'পুনরায় চেষ্টা করা হচ্ছে...',
+      cancelled: 'আপলোড বাতিল হয়েছে'
+    }
   },
 };
 

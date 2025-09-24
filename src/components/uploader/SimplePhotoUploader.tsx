@@ -101,16 +101,28 @@ export default function SimplePhotoUploader({
         if (validation.isValid) {
           validatedFiles.push(file);
           
-          // Show warnings if any
+          // Show warnings if any with enhanced context
           if (validation.warnings.length > 0) {
             console.warn(`File warnings for ${file.name}:`, validation.warnings);
-            toast.warning(`${file.name}: ${validation.warnings[0]}`);
+            const warningContext = t.media?.hints?.retryTip || 'File has warnings';
+            toast.warning(`${file.name}: ${validation.warnings[0]}\n${warningContext}`);
           }
         } else {
-          // Show validation errors
+          // Show detailed validation errors with user hints
           const errorMsg = validation.errors.join(', ');
           console.error(`File validation failed for ${file.name}:`, validation.errors);
-          toast.error(`${file.name}: ${errorMsg}`);
+          
+          // Enhanced error context based on error type
+          let contextualHint = '';
+          if (errorMsg.includes('large') || errorMsg.includes('размер')) {
+            contextualHint = t.media?.hints?.fileSize || '';
+          } else if (errorMsg.includes('format') || errorMsg.includes('формат')) {
+            contextualHint = t.media?.hints?.supportedFormats || '';
+          } else if (errorMsg.includes('pixel') || errorMsg.includes('мегапиксел')) {
+            contextualHint = t.media?.hints?.maxDimensions || '';
+          }
+          
+          toast.error(`${file.name}: ${errorMsg}${contextualHint ? '\n💡 ' + contextualHint : ''}`);
         }
       }
       
@@ -119,7 +131,9 @@ export default function SimplePhotoUploader({
       }
       
       if (validatedFiles.length < files.length) {
-        toast.warning(`${files.length - validatedFiles.length} file(s) rejected due to validation errors`);
+        const rejectedCount = files.length - validatedFiles.length;
+        const hintText = t.media?.hints?.retryTip || 'Try selecting files again';
+        toast.warning(`${rejectedCount} file(s) rejected due to validation errors\n💡 ${hintText}`);
       }
     }
     
@@ -138,31 +152,41 @@ export default function SimplePhotoUploader({
         </div>
       )}
 
-      {/* Upload button - show only when no items or not at limit */}
-      {(!hasItems || !hasReachedLimit) && (
-        <div className="w-full">
-          <button
-            type="button"
-            onClick={handleAddMore}
-            disabled={hasReachedLimit}
-            className={`w-full sm:w-auto h-12 px-4 rounded-xl border border-border transition text-sm sm:text-base bg-background text-foreground
-              ${hasReachedLimit 
-                ? 'opacity-50 cursor-not-allowed' 
-                : 'hover:bg-accent/50 active:scale-[.99]'
-              }`}
-          >
-            {hasItems ? addMoreText : uploadButtonText}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={onPick}
-          />
-        </div>
-      )}
+        {/* Upload button - show only when no items or not at limit */}
+        {(!hasItems || !hasReachedLimit) && (
+          <div className="w-full relative group">
+            <button
+              type="button"
+              onClick={handleAddMore}
+              disabled={hasReachedLimit}
+              className={`w-full sm:w-auto h-12 px-4 rounded-xl border border-border transition text-sm sm:text-base bg-background text-foreground
+                ${hasReachedLimit 
+                  ? 'opacity-50 cursor-not-allowed' 
+                  : 'hover:bg-accent/50 active:scale-[.99]'
+                }`}
+              title={hasItems 
+                ? t.media?.hints?.batchUploadTip || addMoreText
+                : t.media?.hints?.supportedFormats || uploadButtonText
+              }
+            >
+              {hasItems ? addMoreText : uploadButtonText}
+            </button>
+            {/* Helpful tooltip */}
+            {!hasItems && (
+              <div className="absolute top-full mt-1 left-0 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                {t.media?.hints?.dragDropTip || 'Drag files here or click to browse'}
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={onPick}
+            />
+          </div>
+        )}
 
       {/* Grid of uploaded images */}
       {hasItems && (
@@ -211,7 +235,10 @@ export default function SimplePhotoUploader({
                   className="absolute inset-0 bg-black/40 text-white text-[11px] sm:text-xs
                              grid place-items-center p-2"
                 >
-                  {it.status === "uploading" ? `${Math.round(it.progress || 0)}%` : statusLabel(it.status, t)}
+                  {it.status === "uploading" 
+                    ? `${Math.round(it.progress || 0)}%` 
+                    : statusLabel(it.status, t, it.error)
+                  }
                 </figcaption>
               )}
 
@@ -222,6 +249,7 @@ export default function SimplePhotoUploader({
                     type="button"
                     onClick={() => retryItem?.(it.id)}
                     className="px-2 py-1 rounded-md text-[11px] sm:text-xs bg-white/90 hover:bg-white transition-colors"
+                    title={t.media?.hints?.retryTip || t.retry}
                   >
                     {t.retry}
                   </button>
@@ -231,6 +259,7 @@ export default function SimplePhotoUploader({
                   onClick={() => removeItem?.(it.id)}
                   className="px-2 py-1 rounded-md text-[11px] sm:text-xs bg-white/90 hover:bg-white transition-colors"
                   aria-label={t.delete}
+                  title={`${t.delete} ${it.originalFile?.name || ''}`}
                 >
                   {t.delete}
                 </button>
@@ -243,16 +272,40 @@ export default function SimplePhotoUploader({
   );
 }
 
-// Status labels with translations
+// Enhanced status labels with contextual error information
 const getStatusLabels = (t: any) => ({
-  pending: `${t.loading}…`,
-  compressing: `${t.loading}…`,
-  signing: `${t.loading}…`,
-  uploading: `${t.loading}…`,
+  pending: t.media?.status?.preparing || `${t.loading}…`,
+  compressing: t.media?.status?.compressing || `${t.loading}…`,
+  signing: t.media?.status?.preparing || `${t.loading}…`,
+  uploading: t.media?.status?.uploading?.replace('{progress}', '') || `${t.loading}…`,
+  processing: t.media?.status?.processing || `${t.loading}…`,
+  error: t.media?.status?.failed || t.error,
+  failed: t.media?.status?.failed || t.error,
+  retrying: t.media?.status?.retrying || `${t.retry}…`,
+  cancelled: t.media?.status?.cancelled || t.cancel,
   default: `${t.loading}…`
 });
 
-function statusLabel(s: string, t: any) {
+function statusLabel(status: string, t: any, error?: string) {
   const labels = getStatusLabels(t);
-  return labels[s as keyof typeof labels] || labels.default;
+  let baseLabel = labels[status as keyof typeof labels] || labels.default;
+  
+  // Add contextual error information for failed uploads
+  if ((status === 'error' || status === 'failed') && error) {
+    // Extract key error types and provide helpful context
+    if (error.includes('size') || error.includes('large') || error.includes('размер')) {
+      const hint = t.media?.hints?.fileSize || '';
+      baseLabel = `${baseLabel}${hint ? ': ' + hint : ''}`;
+    } else if (error.includes('format') || error.includes('формат')) {
+      const hint = t.media?.hints?.supportedFormats || '';
+      baseLabel = `${baseLabel}${hint ? ': ' + hint : ''}`;
+    } else if (error.includes('network') || error.includes('сети')) {
+      baseLabel = `${t.media?.errors?.networkError || baseLabel}`;
+    } else if (error.includes('pixel') || error.includes('мегапиксел')) {
+      const hint = t.media?.hints?.maxDimensions || '';
+      baseLabel = `${baseLabel}${hint ? ': ' + hint : ''}`;
+    }
+  }
+  
+  return baseLabel;
 }
