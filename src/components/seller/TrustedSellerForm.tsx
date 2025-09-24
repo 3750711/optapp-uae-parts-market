@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { TrustedSellerIndicator } from "./TrustedSellerIndicator";
+import { useSellerUploadProtection } from "@/hooks/useSellerUploadProtection";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
@@ -48,6 +49,13 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
   } = useOptimizedAdminAddProduct({ 
     mode: 'trusted_seller',
     sellerId: user?.id 
+  });
+
+  // Upload protection for trusted sellers
+  useSellerUploadProtection({
+    isUploading: isSubmitting,
+    uploadProgress: totalProgress,
+    warningMessage: "Создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
   });
 
   // Форма теперь автоматически настраивается для доверенных продавцов через хук

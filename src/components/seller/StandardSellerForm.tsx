@@ -10,6 +10,7 @@ import { getCommonTranslations } from "@/utils/translations/common";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStandardSellerProductCreation } from "@/hooks/useStandardSellerProductCreation";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
+import { useSellerUploadProtection } from "@/hooks/useSellerUploadProtection";
 import { logger } from "@/utils/logger";
 
 const StandardSellerForm = () => {
@@ -45,6 +46,12 @@ const StandardSellerForm = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [primaryImage, setPrimaryImage] = useState("");
   const [isMediaUploading, setIsMediaUploading] = useState(false);
+
+  // Upload protection hook
+  useSellerUploadProtection({
+    isUploading: isMediaUploading || isCreating,
+    warningMessage: "Загрузка медиафайлов или создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
+  });
 
   const updateForm = (field: keyof typeof displayData, value: string) => {
     setDisplayData(prev => ({ ...prev, [field]: value }));
