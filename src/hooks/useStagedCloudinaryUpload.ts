@@ -343,6 +343,37 @@ export const useStagedCloudinaryUpload = () => {
   // Enhanced error recovery manager
   const errorRecoveryRef = useRef(new ErrorRecoveryManager());
   
+  // Performance optimization refs
+  const batchedUpdatesRef = useRef<Map<string, number>>(new Map());
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Batch updates to prevent excessive re-renders
+  const updateItemProgress = useCallback((id: string, progress: number) => {
+    batchedUpdatesRef.current.set(id, progress);
+    
+    if (!updateTimeoutRef.current) {
+      updateTimeoutRef.current = setTimeout(() => {
+        const updates = new Map(batchedUpdatesRef.current);
+        batchedUpdatesRef.current.clear();
+        updateTimeoutRef.current = null;
+        
+        setUploadItems(prev => prev.map(item => {
+          const newProgress = updates.get(item.id);
+          return newProgress !== undefined ? { ...item, progress: newProgress } : item;
+        }));
+      }, 16); // ~60fps batching
+    }
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
+  
   // Use unified systems
   const { 
     getSignal, 
@@ -932,7 +963,7 @@ export const useStagedCloudinaryUpload = () => {
               item.publicId!,
               (progress) => {
                 item.progress = progress;
-                setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
+                updateItemProgress(item.id, progress);
               },
               getSignal()
             );
@@ -1014,7 +1045,7 @@ export const useStagedCloudinaryUpload = () => {
             item.publicId!,
             (progress) => {
               item.progress = progress;
-              setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
+              updateItemProgress(item.id, progress);
             },
             getSignal()
           );

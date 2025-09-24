@@ -6,6 +6,7 @@ import { cleanupCorruptedCache } from './utils/localStorage';
 import { quarantineStaleRefreshTokens } from './auth/quarantineStaleRefresh';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupabase';
 import { registerServiceWorker, cleanupCorruptedServiceWorker } from './utils/serviceWorkerManager';
+import { ServiceWorkerCache } from './utils/serviceWorkerCache';
 import { ModuleLoadingBoundary } from './components/ModuleLoadingBoundary';
 import { AppInitializer } from './components/AppInitializer';
 
@@ -102,10 +103,15 @@ const initializeApp = () => {
     
     console.log('✅ [ReactInit] React app initialized successfully');
     
-    // Register Service Worker AFTER successful React initialization
-    setTimeout(() => {
+    // Register Service Workers AFTER successful React initialization
+    setTimeout(async () => {
       registerServiceWorker();
-      console.log('[PWA] Service Worker registered after React initialization');
+      
+      // Register image caching service worker
+      const swCache = ServiceWorkerCache.getInstance();
+      await swCache.register();
+      
+      console.log('[PWA] Service Workers registered after React initialization');
     }, 1000);
     
   } catch (error) {
