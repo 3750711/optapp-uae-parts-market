@@ -103,15 +103,14 @@ const initializeApp = () => {
     
     console.log('✅ [ReactInit] React app initialized successfully');
     
-    // Register Service Workers AFTER successful React initialization
+    // Register ONLY minimal Service Worker AFTER successful React initialization
     setTimeout(async () => {
-      registerServiceWorker();
-      
-      // Register image caching service worker
-      const swCache = ServiceWorkerCache.getInstance();
-      await swCache.register();
-      
-      console.log('[PWA] Service Workers registered after React initialization');
+      try {
+        await registerServiceWorker();
+        console.log('[PWA] ✅ Single Service Worker registered after React initialization');
+      } catch (error) {
+        console.error('[PWA] ❌ Service Worker registration failed:', error);
+      }
     }, 1000);
     
   } catch (error) {
