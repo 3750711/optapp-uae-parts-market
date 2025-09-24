@@ -2,6 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logUploadEvent } from '@/utils/uploadLogger';
+import { useUploadAbortController } from './useUploadAbortController';
+import { useUnifiedUploadErrorHandler } from './useUnifiedUploadErrorHandler';
 
 // Helper functions for new upload path
 const getRuntimeConfig = () => {
@@ -194,7 +196,25 @@ export const useStagedCloudinaryUpload = () => {
   const [stagedUrls, setStagedUrls] = useState<string[]>([]);
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Use unified systems
+  const { 
+    getSignal, 
+    abort: abortUploads,
+    isAborted,
+    createController 
+  } = useUploadAbortController({
+    onAbort: () => {
+      console.log('🛑 Staged upload aborted via AbortController');
+      // Also terminate any active compression workers
+      uploadItems.forEach(item => {
+        if (item.status === 'compressing') {
+          console.log(`Terminating compression for ${item.file.name}`);
+        }
+      });
+    }
+  });
+  const { handleError, handleMultipleErrors } = useUnifiedUploadErrorHandler();
 
   // Initialize session ID and restore from IndexedDB
   const initSession = useCallback(async () => {
@@ -457,7 +477,7 @@ export const useStagedCloudinaryUpload = () => {
 
       const { data: response, error: functionError } = await supabase.functions.invoke('cloudinary-upload', {
         body: requestBody,
-        signal: signal
+        signal: signal || getSignal()
       });
 
       if (functionError) {
@@ -466,7 +486,7 @@ export const useStagedCloudinaryUpload = () => {
       }
 
       // Check if request was cancelled
-      if (signal?.aborted) {
+      if ((signal || getSignal())?.aborted) {
         throw new DOMException('Upload cancelled', 'AbortError');
       }
 
@@ -499,9 +519,11 @@ export const useStagedCloudinaryUpload = () => {
       };
 
     } catch (error) {
+      // Use unified error handling
+      const uploadError = handleError(error, file.name, 'edge function upload');
+      
       // Don't retry for cancelled uploads
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Upload cancelled by user');
+      if (uploadError.type === 'abort') {
         throw error;
       }
       
@@ -582,11 +604,9 @@ export const useStagedCloudinaryUpload = () => {
   const uploadFiles = useCallback(async (files: File[]): Promise<string[]> => {
     if (files.length === 0) return [];
     
-    // Create new AbortController for this upload batch
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-    
     setIsUploading(true);
+    createController(); // Create new controller for this upload batch
+    
     const currentSessionId = await initSession();
     const newUrls: string[] = [];
     
@@ -683,7 +703,7 @@ export const useStagedCloudinaryUpload = () => {
                 item.progress = progress;
                 setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
               },
-              controller.signal
+              getSignal()
             );
             
             console.log(`✅ HEIC file processed successfully: ${item.file.name} → ${result.url}`);
@@ -765,7 +785,7 @@ export const useStagedCloudinaryUpload = () => {
               item.progress = progress;
               setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
             },
-            controller.signal
+            getSignal()
           );
           
           item.status = 'success';
@@ -838,18 +858,17 @@ export const useStagedCloudinaryUpload = () => {
       return newUrls;
     } catch (error) {
       console.error('Optimized upload failed:', error);
-      toast({
-        title: "Ошибка загрузки",
-        description: "Произошла ошибка при загрузке файлов",
-        variant: "destructive",
-      });
+      
+      // Use unified error handling
+      handleError(error, undefined, 'staged upload batch');
+      
       return [];
     } finally {
       setIsUploading(false);
       // Don't auto-clear uploadItems to prevent photos from disappearing
       // Items will be managed through UI interactions instead
     }
-  }, [initSession, signBatchChunked, ensureSignature, compressInWorker, uploadToEdgeFunction, stagedUrls, toast]);
+  }, [createController, initSession, signBatchChunked, ensureSignature, compressInWorker, uploadToEdgeFunction, stagedUrls, handleError, getSignal]);
 
   // Attach staged URLs to real order
   const attachToOrder = useCallback(async (orderId: string): Promise<void> => {
@@ -925,19 +944,17 @@ export const useStagedCloudinaryUpload = () => {
   // Critical: Cleanup on component unmount (navigation)
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
-        console.log('🛑 Staged upload component unmounting - cancelling uploads');
-        abortControllerRef.current.abort();
-        
-        // Terminate any active Web Workers
-        uploadItems.forEach(item => {
-          if (item.status === 'compressing') {
-            console.log(`Terminating compression for ${item.file.name}`);
-          }
-        });
-      }
+      console.log('🛑 Staged upload component unmounting - cancelling uploads');
+      abortUploads();
+      
+      // Terminate any active Web Workers
+      uploadItems.forEach(item => {
+        if (item.status === 'compressing') {
+          console.log(`Terminating compression for ${item.file.name}`);
+        }
+      });
     };
-  }, []);
+  }, []); // Empty dependency array - only on mount/unmount
 
   // Restore staged URLs from saved data (for autosave sync)
   const restoreStagedUrls = useCallback(async (urls: string[]) => {
