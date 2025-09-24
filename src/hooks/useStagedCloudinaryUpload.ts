@@ -714,9 +714,14 @@ export const useStagedCloudinaryUpload = () => {
       console.log(`📤 Uploading to Cloudinary via supabase.functions.invoke`);
       console.log(`📝 Request body keys: [${Object.keys(requestBody).join(', ')}]`);
 
+      const idempotencyKey = `upload_${publicId}_${Date.now()}`;
+
       const { data: response, error: functionError } = await supabase.functions.invoke('cloudinary-upload', {
         body: requestBody,
-        signal: signal || getSignal()
+        signal: signal || getSignal(),
+        headers: {
+          'Idempotency-Key': idempotencyKey
+        }
       });
 
       if (functionError) {

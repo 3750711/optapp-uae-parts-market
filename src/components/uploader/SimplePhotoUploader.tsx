@@ -172,7 +172,9 @@ export default function SimplePhotoUploader({
                   src={it.cloudinaryUrl || it.thumbUrl}
                   alt=""
                   loading="lazy"
+                  decoding="async"
                   className="w-full aspect-square object-contain bg-muted"
+                  style={{ aspectRatio: '1/1' }}
                 />
               ) : (
                 <div className="w-full aspect-square grid place-items-center text-xs text-muted-foreground bg-muted">

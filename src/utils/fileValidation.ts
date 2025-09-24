@@ -67,10 +67,17 @@ export const validateFileSignature = async (file: File): Promise<{
       }
     }
 
-    // Special case for HEIC files (more complex signature)
-    if (hexSignature.includes('6674797068656963') || // ftyp + heic
-        hexSignature.includes('667479706D696631') || // ftyp + mif1
-        hexSignature.includes('667479706865696D')) {   // ftyp + heim
+    // Enhanced HEIC detection with better patterns
+    const heicPatterns = [
+      '6674797068656963', // ftyp + heic
+      '667479706D696631', // ftyp + mif1  
+      '667479706865696D', // ftyp + heim
+      '6674797068656976', // ftyp + heiv
+      '667479706D734631', // ftyp + msf1
+      '66747970686569632', // ftyp + heic with extra byte
+    ];
+
+    if (heicPatterns.some(pattern => hexSignature.includes(pattern))) {
       console.log('✅ Valid HEIC image detected');
       return {
         isValid: true,
