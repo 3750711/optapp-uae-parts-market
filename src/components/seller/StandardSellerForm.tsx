@@ -58,7 +58,15 @@ const StandardSellerForm = () => {
 
   const handleImageUpload = useCallback((urls: string[]) => {
     unstable_batchedUpdates(() => {
-      setImageUrls(prevUrls => [...prevUrls, ...urls]);
+      setImageUrls(prevUrls => {
+        // Фильтруем дубликаты
+        const newUrls = urls.filter(url => !prevUrls.includes(url));
+        if (newUrls.length === 0) {
+          console.log('🚫 No new URLs to add, skipping update');
+          return prevUrls;
+        }
+        return [...prevUrls, ...newUrls];
+      });
       
       setPrimaryImage(prev => {
         if (!prev && urls.length > 0) {
@@ -94,12 +102,7 @@ const StandardSellerForm = () => {
   const onPhotoUpload = useCallback((completedUrls: string[]) => {
     console.log('📸 Photos uploaded:', completedUrls);
     handleImageUpload(completedUrls);
-    
-    // Set first image as primary if none selected
-    if (completedUrls.length > 0 && !primaryImage) {
-      handleSetPrimaryImage(completedUrls[0]);
-    }
-  }, [handleImageUpload, handleSetPrimaryImage, primaryImage]);
+  }, [handleImageUpload]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

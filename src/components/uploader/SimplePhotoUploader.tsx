@@ -34,12 +34,19 @@ export default function SimplePhotoUploader({
     .replace('{count}', completedCount.toString())
     .replace('{max}', max.toString());
 
+  const previousUrlsRef = useRef<string[]>([]);
+
   // дергаем onChange/onComplete только по успешным
   useEffect(() => {
     const ok = items.filter((i: any) => i.status === "completed" && i.cloudinaryUrl);
     const okUrls = ok.map((i: any) => i.cloudinaryUrl).filter(Boolean);
     
-    if (okUrls.length > 0) {
+    // Проверяем изменились ли URL'ы перед вызовом onChange
+    const urlsChanged = okUrls.length !== previousUrlsRef.current.length || 
+                       !okUrls.every((url, index) => url === previousUrlsRef.current[index]);
+    
+    if (okUrls.length > 0 && urlsChanged) {
+      previousUrlsRef.current = okUrls;
       onChange?.(okUrls);
     }
     
