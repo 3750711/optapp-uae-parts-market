@@ -27,6 +27,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { useConfirmationUpload } from "./useConfirmationUpload";
+import { useSellerUploadProtection } from "@/hooks/useSellerUploadProtection";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
 import SignedProductExampleCard from "./sell-product/SignedProductExampleCard";
 
@@ -90,6 +91,12 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     'images-only',
     'signed_product'
   );
+
+  // Upload protection for confirmation evidence
+  useSellerUploadProtection({
+    isUploading: step1Hook.isUploading || step2Hook.isUploading,
+    warningMessage: "Загрузка подтверждающих материалов не завершена. Вы уверены, что хотите покинуть страницу?"
+  });
 
   // Load existing data when dialog opens
   useEffect(() => {
