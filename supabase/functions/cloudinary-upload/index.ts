@@ -54,6 +54,16 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Get JWT token from Authorization header
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    console.error(`❌ [${rid}] Unauthorized - missing JWT token`);
+    return jsonResponse({
+      success: false,
+      error: 'Unauthorized - missing JWT token'
+    }, 401);
+  }
+
   try {
     const contentType = req.headers.get('content-type') || 'none';
     console.log(`📥 [${rid}] Incoming request: ${req.method}, Content-Type: ${contentType}`);
@@ -71,7 +81,6 @@ Deno.serve(async (req) => {
     }
 
     // Handle both input formats and extract all data in one read
-    const authHeader = req.headers.get('authorization');
     let file: File | null = null;
     let folder = 'products'; // default folder
     let orderId: string | null = null;

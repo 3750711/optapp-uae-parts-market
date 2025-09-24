@@ -38,6 +38,15 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Get JWT token from Authorization header
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized - missing JWT token' }),
+      { status: 401, headers: corsHeaders }
+    );
+  }
+
   try {
     // Only allow POST requests
     if (req.method !== 'POST') {
@@ -46,8 +55,6 @@ Deno.serve(async (req) => {
         { status: 405, headers: corsHeaders }
       );
     }
-
-    // Public endpoint - no authentication required for staging uploads
 
     // Parse request body
     const { orderId, sessionId }: SignRequest = await req.json();

@@ -67,7 +67,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.cloudinary-upload]
-verify_jwt = false
+verify_jwt = true
 
 [functions.cloudinary-video-upload]
 verify_jwt = false
@@ -112,7 +112,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.cloudinary-sign]
-verify_jwt = false
+verify_jwt = true
 
 [functions.attach-order-media]
 verify_jwt = true
