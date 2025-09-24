@@ -9,6 +9,7 @@ interface SimpleFallbackOptions {
   onProgress?: (progress: number) => void;
   maxRetries?: number;
   retryDelay?: number;
+  signal?: AbortSignal;
 }
 
 /**
@@ -27,7 +28,8 @@ export class SimpleCloudinaryFallback {
     const { 
       onProgress, 
       maxRetries = 2, 
-      retryDelay = 2000 
+      retryDelay = 2000,
+      signal
     } = options;
 
     let lastError: any;
@@ -35,9 +37,14 @@ export class SimpleCloudinaryFallback {
     // Try upload with retries
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
+        // Check if aborted before starting attempt
+        if (signal?.aborted) {
+          throw new Error('Upload aborted');
+        }
+
         console.log(`[SimpleCloudinaryFallback] Attempt ${attempt + 1}/${maxRetries + 1} for file:`, file.name);
         
-        const result = await this.performUpload(file, onProgress);
+        const result = await this.performUpload(file, onProgress, signal);
         
         console.log(`[SimpleCloudinaryFallback] Success on attempt ${attempt + 1}:`, result);
         return result;
@@ -46,25 +53,32 @@ export class SimpleCloudinaryFallback {
         console.warn(`[SimpleCloudinaryFallback] Attempt ${attempt + 1} failed:`, error);
         lastError = error;
         
+        // If aborted, don't retry
+        if (signal?.aborted || (error as Error).message === 'Upload aborted') {
+          break;
+        }
+        
         // Wait before retry (except on last attempt)
         if (attempt < maxRetries) {
-          await this.sleep(retryDelay);
+          await this.sleep(retryDelay, signal);
         }
       }
     }
 
     // All attempts failed
+    const errorMessage = signal?.aborted ? 'Upload aborted' : `Не удалось загрузить файл после ${maxRetries + 1} попыток`;
     console.error(`[SimpleCloudinaryFallback] All ${maxRetries + 1} attempts failed for:`, file.name, lastError);
     
     return {
       success: false,
-      error: `Не удалось загрузить файл после ${maxRetries + 1} попыток`
+      error: errorMessage
     };
   }
 
   private async performUpload(
     file: File, 
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    signal?: AbortSignal
   ): Promise<SimpleFallbackResult> {
     
     // Generate simple public_id
@@ -83,6 +97,14 @@ export class SimpleCloudinaryFallback {
     const xhr = new XMLHttpRequest();
     
     return new Promise((resolve, reject) => {
+      // Handle abort signal
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          xhr.abort();
+          reject(new Error('Upload aborted'));
+        });
+      }
+
       // Progress tracking
       if (onProgress) {
         xhr.upload.addEventListener('progress', (event) => {
@@ -125,15 +147,33 @@ export class SimpleCloudinaryFallback {
         reject(new Error('Upload timeout'));
       });
 
-      // Configure and send request
-      xhr.timeout = 60000; // 60 seconds timeout
+      xhr.addEventListener('abort', () => {
+        reject(new Error('Upload aborted'));
+      });
+
+      // Configure and send request - shorter timeout for fallback
+      xhr.timeout = 30000; // 30 seconds timeout for fallback
       xhr.open('POST', `https://api.cloudinary.com/v1_1/${this.cloudName}/image/upload`);
       xhr.send(formData);
     });
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  private sleep(ms: number, signal?: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (signal?.aborted) {
+        reject(new Error('Sleep aborted'));
+        return;
+      }
+
+      const timeoutId = setTimeout(resolve, ms);
+      
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timeoutId);
+          reject(new Error('Sleep aborted'));
+        });
+      }
+    });
   }
 }
 

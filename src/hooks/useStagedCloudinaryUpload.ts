@@ -548,7 +548,8 @@ export const useStagedCloudinaryUpload = () => {
           const fallbackResult = await uploadWithSimpleFallback(file, {
             onProgress,
             maxRetries: 1, // Simple fallback with minimal retries
-            retryDelay: 1000
+            retryDelay: 1000,
+            signal // Pass abort signal for proper cancellation
           });
           
           if (fallbackResult.success && fallbackResult.cloudinaryUrl && fallbackResult.publicId) {
