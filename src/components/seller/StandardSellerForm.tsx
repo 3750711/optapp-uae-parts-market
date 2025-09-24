@@ -3,7 +3,7 @@ import { unstable_batchedUpdates } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import OptimizedMediaSection from "@/components/product/form/OptimizedMediaSection";
+import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
@@ -45,12 +45,11 @@ const StandardSellerForm = () => {
   const [isSubmitting] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [primaryImage, setPrimaryImage] = useState("");
-  const [isMediaUploading, setIsMediaUploading] = useState(false);
 
   // Upload protection hook
   useSellerUploadProtection({
-    isUploading: isMediaUploading || isCreating,
-    warningMessage: "Загрузка медиафайлов или создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
+    isUploading: isCreating,
+    warningMessage: "Создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
   });
 
   const updateForm = (field: keyof typeof displayData, value: string) => {
@@ -91,28 +90,16 @@ const StandardSellerForm = () => {
     setPrimaryImage(url);
   }, []);
 
-  const handleUploadStateChange = useCallback((uploading: boolean) => {
-    setIsMediaUploading(uploading);
-  }, []);
-
-  // Мемоизируем пропсы для OptimizedMediaSection
-  const mediaProps = useMemo(() => ({
-    imageUrls,
-    handleMobileOptimizedImageUpload: handleImageUpload,
-    primaryImage,
-    onSetPrimaryImage: handleSetPrimaryImage,
-    onImageDelete: handleImageDelete,
-    disabled: isSubmitting,
-    onUploadStateChange: handleUploadStateChange
-  }), [
-    imageUrls,
-    primaryImage,
-    isSubmitting,
-    handleImageUpload,
-    handleImageDelete,
-    handleSetPrimaryImage,
-    handleUploadStateChange
-  ]);
+  // Handle photo uploads from SimplePhotoUploader
+  const onPhotoUpload = useCallback((completedUrls: string[]) => {
+    console.log('📸 Photos uploaded:', completedUrls);
+    handleImageUpload(completedUrls);
+    
+    // Set first image as primary if none selected
+    if (completedUrls.length > 0 && !primaryImage) {
+      handleSetPrimaryImage(completedUrls[0]);
+    }
+  }, [handleImageUpload, handleSetPrimaryImage, primaryImage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -187,7 +174,12 @@ const StandardSellerForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <OptimizedMediaSection {...mediaProps} />
+      <SimplePhotoUploader
+        onChange={onPhotoUpload}
+        max={50}
+        language={language}
+        buttonText="Загрузить фото"
+      />
       
       <div>
         <label className="block text-sm font-medium mb-2">
@@ -247,7 +239,7 @@ const StandardSellerForm = () => {
       
       <Button
         type="submit"
-        disabled={isCreating || isMediaUploading || isProfileLoading || !currentUserProfile || !canSubmit}
+        disabled={isCreating || isProfileLoading || !currentUserProfile || !canSubmit}
         className="w-full"
         size="lg"
       >

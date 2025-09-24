@@ -15,7 +15,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 
 // Lazy loaded components
-const OptimizedMediaSection = React.lazy(() => import('../product/form/OptimizedMediaSection'));
+const SimplePhotoUploader = React.lazy(() => import('@/components/uploader/SimplePhotoUploader'));
 
 interface Seller {
   id: string;
@@ -195,12 +195,11 @@ const AdminAddProductFormComponent: React.FC<AdminAddProductFormProps> = ({
         {/* Media Section */}
         <FormSectionWrapper title="Медиа файлы">
           <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
-            <OptimizedMediaSection 
-              imageUrls={imageUrls}
-              handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
-              primaryImage={primaryImage}
-              onSetPrimaryImage={setPrimaryImage}
-              onImageDelete={onImageDelete}
+            <SimplePhotoUploader 
+              onChange={handleMobileOptimizedImageUpload}
+              max={50}
+              language="ru"
+              buttonText="Загрузить изображения"
             />
           </Suspense>
         </FormSectionWrapper>
