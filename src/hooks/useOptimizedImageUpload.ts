@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { unstable_batchedUpdates } from 'react-dom';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,7 +44,7 @@ export const useOptimizedImageUpload = () => {
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const abortController = useRef<AbortController | null>(null);
-  const activeUploadRef = useRef<boolean>(false);
+  const activeUploadRef = useRef<Promise<string[]> | null>(null);
 
   // Умное сжатие в зависимости от размера файла
   const getSmartCompressionOptions = useCallback((fileSize: number) => {
@@ -186,6 +186,7 @@ export const useOptimizedImageUpload = () => {
       
       const uploadResponse = await supabase.functions.invoke('cloudinary-upload', {
         body: formData,
+        signal: abortController.current?.signal
       });
 
       if (uploadResponse.error) {
@@ -308,15 +309,20 @@ export const useOptimizedImageUpload = () => {
     files: File[],
     options: OptimizedUploadOptions = {}
   ): Promise<string[]> => {
-    // Race condition protection: prevent double upload calls
+    // Race condition protection: wait for previous upload to complete
     if (activeUploadRef.current) {
-      logger.warn('⚠️ Upload already in progress, ignoring duplicate call');
-      return [];
+      logger.log('⏳ Previous upload in progress, queuing new request...');
+      try {
+        await activeUploadRef.current;
+      } catch (error) {
+        logger.log('Previous upload failed or was cancelled, proceeding with new upload');
+      }
     }
     
-    activeUploadRef.current = true;
     setIsUploading(true);
     abortController.current = new AbortController();
+    
+    const uploadPromise = (async (): Promise<string[]> => {
 
     const initialQueue: UploadItem[] = files.map((file, index) => ({
       id: `upload-${Date.now()}-${index}`,
@@ -401,6 +407,15 @@ export const useOptimizedImageUpload = () => {
 
       return uploadedUrls;
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        logger.log('✋ Upload cancelled by user navigation');
+        toast({
+          title: "Загрузка отменена",
+          description: "Вы перешли на другую страницу",
+        });
+        return [];
+      }
+      
       logger.error('Upload process failed:', error);
       if (!options.disableToast) {
         toast({
@@ -412,15 +427,36 @@ export const useOptimizedImageUpload = () => {
       return [];
     } finally {
       setIsUploading(false);
-      activeUploadRef.current = false;
+      activeUploadRef.current = null;
     }
+    })();
+
+    activeUploadRef.current = uploadPromise;
+    return uploadPromise;
   }, [createBlobUrl, conditionalCompressImage, processUploads, cleanupSuccessfulItems, toast]);
+
+  // Critical: Cleanup on component unmount (navigation)
+  useEffect(() => {
+    return () => {
+      if (abortController.current && !abortController.current.signal.aborted) {
+        logger.log('🛑 Component unmounting - cancelling active uploads');
+        abortController.current.abort();
+        
+        // Clean blob URLs to prevent memory leaks
+        uploadQueue.forEach(item => {
+          if (item.blobUrl) {
+            URL.revokeObjectURL(item.blobUrl);
+          }
+        });
+      }
+    };
+  }, []);
 
   // Cancel uploads
   const cancelUpload = useCallback(() => {
     abortController.current?.abort();
     setIsUploading(false);
-    activeUploadRef.current = false;
+    activeUploadRef.current = null;
     
     uploadQueue.forEach(item => {
       if (item.blobUrl) {

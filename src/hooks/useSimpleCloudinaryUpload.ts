@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,6 +21,7 @@ interface UploadOptions {
 export const useSimpleCloudinaryUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Auto-clear completed uploads after delay
   const clearCompletedAfterDelay = useCallback(() => {
@@ -55,9 +56,18 @@ export const useSimpleCloudinaryUpload = () => {
     options: UploadOptions = {},
     maxRetries = 3
   ): Promise<string> => {
+    // Create new AbortController for this upload
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
     let lastError: any;
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      // Check for cancellation before each attempt
+      if (controller.signal.aborted) {
+        throw new DOMException('Upload cancelled', 'AbortError');
+      }
+      
       try {
         console.log(`📤 Upload attempt ${attempt}/${maxRetries} for ${file.name}`);
         
@@ -79,6 +89,18 @@ export const useSimpleCloudinaryUpload = () => {
           const xhr = new XMLHttpRequest();
           const formData = new FormData();
           
+          // ✅ CRITICAL: Link AbortController with XMLHttpRequest
+          const abortHandler = () => {
+            xhr.abort();
+            reject(new DOMException('Upload cancelled', 'AbortError'));
+          };
+          controller.signal.addEventListener('abort', abortHandler);
+          
+          // Cleanup function
+          const cleanup = () => {
+            controller.signal.removeEventListener('abort', abortHandler);
+          };
+          
           // Append file and metadata
           formData.append('file', file);
           formData.append('name', file.name);
@@ -99,6 +121,7 @@ export const useSimpleCloudinaryUpload = () => {
 
           // Handle successful response
           xhr.addEventListener('load', () => {
+            cleanup();
             try {
               if (xhr.status === 200) {
                 const response = JSON.parse(xhr.responseText);
@@ -145,6 +168,7 @@ export const useSimpleCloudinaryUpload = () => {
 
           // Handle network errors
           xhr.addEventListener('error', () => {
+            cleanup();
             const error = new Error('Network error during upload');
             (error as any).code = 'NETWORK_ERROR';
             reject(error);
@@ -152,6 +176,7 @@ export const useSimpleCloudinaryUpload = () => {
 
           // Handle timeout
           xhr.addEventListener('timeout', () => {
+            cleanup();
             const error = new Error('Upload timeout');
             (error as any).code = 'TIMEOUT_ERROR';
             reject(error);
@@ -169,6 +194,12 @@ export const useSimpleCloudinaryUpload = () => {
         return result; // Success - return the result
         
       } catch (error) {
+        // Don't retry for cancelled uploads
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Upload cancelled by user');
+          throw error;
+        }
+        
         lastError = error;
         console.error(`❌ Upload attempt ${attempt} failed:`, error);
         
@@ -283,6 +314,16 @@ export const useSimpleCloudinaryUpload = () => {
 
   const clearProgress = useCallback(() => {
     setUploadProgress([]);
+  }, []);
+
+  // Critical: Cleanup on component unmount (navigation)
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+        console.log('🛑 Simple upload component unmounting - cancelling uploads');
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   return {

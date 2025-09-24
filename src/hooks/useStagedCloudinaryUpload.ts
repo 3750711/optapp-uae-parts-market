@@ -194,6 +194,7 @@ export const useStagedCloudinaryUpload = () => {
   const [stagedUrls, setStagedUrls] = useState<string[]>([]);
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Initialize session ID and restore from IndexedDB
   const initSession = useCallback(async () => {
@@ -375,6 +376,7 @@ export const useStagedCloudinaryUpload = () => {
     file: File,
     publicId: string,
     onProgress: (progress: number) => void,
+    signal?: AbortSignal,
     retryCount = 0
   ): Promise<{ url: string; publicId: string }> => {
     // Convert file to base64 for transmission
@@ -454,12 +456,18 @@ export const useStagedCloudinaryUpload = () => {
       console.log(`📝 Request body keys: [${Object.keys(requestBody).join(', ')}]`);
 
       const { data: response, error: functionError } = await supabase.functions.invoke('cloudinary-upload', {
-        body: requestBody
+        body: requestBody,
+        signal: signal
       });
 
       if (functionError) {
         console.error(`❌ Edge function invoke failed:`, functionError);
         throw new Error(`Edge function failed: ${functionError.message}`);
+      }
+
+      // Check if request was cancelled
+      if (signal?.aborted) {
+        throw new DOMException('Upload cancelled', 'AbortError');
       }
 
       stopProgress();
@@ -491,6 +499,12 @@ export const useStagedCloudinaryUpload = () => {
       };
 
     } catch (error) {
+      // Don't retry for cancelled uploads
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Upload cancelled by user');
+        throw error;
+      }
+      
       console.error(`❌ Upload attempt ${retryCount + 1} failed:`, error);
       
       // Enhanced retry logic with exponential backoff and jitter
@@ -502,7 +516,7 @@ export const useStagedCloudinaryUpload = () => {
         console.log(`🔄 Retrying Edge Function upload in ${Math.round(delay)}ms (attempt ${retryCount + 1}/3)`);
         
         await new Promise(resolve => setTimeout(resolve, delay));
-        return uploadToEdgeFunction(file, publicId, onProgress, retryCount + 1);
+        return uploadToEdgeFunction(file, publicId, onProgress, signal, retryCount + 1);
       } else {
         throw new Error(error instanceof Error ? error.message : 'Upload failed after 3 attempts');
       }
@@ -567,6 +581,10 @@ export const useStagedCloudinaryUpload = () => {
   // Upload files to staging with optimized architecture
   const uploadFiles = useCallback(async (files: File[]): Promise<string[]> => {
     if (files.length === 0) return [];
+    
+    // Create new AbortController for this upload batch
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     
     setIsUploading(true);
     const currentSessionId = await initSession();
@@ -664,7 +682,8 @@ export const useStagedCloudinaryUpload = () => {
               (progress) => {
                 item.progress = progress;
                 setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
-              }
+              },
+              controller.signal
             );
             
             console.log(`✅ HEIC file processed successfully: ${item.file.name} → ${result.url}`);
@@ -745,7 +764,8 @@ export const useStagedCloudinaryUpload = () => {
             (progress) => {
               item.progress = progress;
               setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, progress: item.progress } : p));
-            }
+            },
+            controller.signal
           );
           
           item.status = 'success';
@@ -901,6 +921,23 @@ export const useStagedCloudinaryUpload = () => {
     
     setSessionId(null);
   }, [sessionId]);
+
+  // Critical: Cleanup on component unmount (navigation)
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current && !abortControllerRef.current.signal.aborted) {
+        console.log('🛑 Staged upload component unmounting - cancelling uploads');
+        abortControllerRef.current.abort();
+        
+        // Terminate any active Web Workers
+        uploadItems.forEach(item => {
+          if (item.status === 'compressing') {
+            console.log(`Terminating compression for ${item.file.name}`);
+          }
+        });
+      }
+    };
+  }, []);
 
   // Restore staged URLs from saved data (for autosave sync)
   const restoreStagedUrls = useCallback(async (urls: string[]) => {
