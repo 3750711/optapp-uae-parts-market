@@ -45,6 +45,7 @@ const safeJsonParse = (text: string): any => {
 interface StagedUploadItem {
   id: string;
   file: File;
+  originalFile: File; // Always preserve the original file for EXIF processing
   progress: number;
   status: 'pending' | 'compressing' | 'signing' | 'uploading' | 'success' | 'error';
   error?: string;
@@ -898,6 +899,7 @@ export const useStagedCloudinaryUpload = () => {
       return {
         id: crypto.randomUUID(), // Different from publicId for internal tracking
         file,
+        originalFile: file, // Always preserve the original file for EXIF processing
         progress: 0,
         status: 'pending',
         publicId, // Store the stable publicId for signing
@@ -1003,7 +1005,6 @@ export const useStagedCloudinaryUpload = () => {
 
           // Step 1: Compression (for non-HEIC files only)
           const shouldCompress = item.file.size > 300_000; // Skip files under 300KB
-          let processedFile = item.file;
           
           if (shouldCompress) {
             item.status = 'compressing';
@@ -1011,13 +1012,16 @@ export const useStagedCloudinaryUpload = () => {
             
             const compressionResult = await compressInWorker(item.file, maxSide, quality);
             if (compressionResult.ok && compressionResult.blob) {
-              // Always create JPEG file for consistency
-              processedFile = new File(
+              // Update item.file to compressed version, but keep originalFile unchanged
+              item.file = new File(
                 [compressionResult.blob], 
                 item.file.name.replace(/\.\w+$/i, '.jpg'), 
                 { type: 'image/jpeg' }
               );
               item.compressedSize = compressionResult.compressedSize;
+              
+              // Update the item in state with the new compressed file
+              setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, file: item.file, compressedSize: item.compressedSize } : p));
             } else {
               console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
               item.compressedSize = item.originalSize; // No compression, same size
@@ -1046,7 +1050,7 @@ export const useStagedCloudinaryUpload = () => {
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
           
           const result = await uploadToEdgeFunction(
-            processedFile,
+            item.file,
             item.publicId!,
             (progress) => {
               item.progress = progress;
