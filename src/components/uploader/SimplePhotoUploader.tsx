@@ -1,7 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useUploadUIAdapter } from "./useUploadUIAdapter";
 import { Lang } from "@/types/i18n";
 import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
+import { validateUploadFile } from "@/utils/fileValidation";
+import { toast } from "sonner";
 
 type Props = {
   max?: number;
@@ -34,33 +36,81 @@ export default function SimplePhotoUploader({
     .replace('{count}', completedCount.toString())
     .replace('{max}', max.toString());
 
-  const previousUrlsRef = useRef<string[]>([]);
+  // Stable callback references to prevent race conditions
+  const stableOnChange = useCallback((urls: string[]) => {
+    onChange?.(urls);
+  }, [onChange]);
+  
+  const stableOnComplete = useCallback((okUrls: string[]) => {
+    onComplete?.(okUrls);
+  }, [onComplete]);
 
-  // дергаем onChange/onComplete только по успешным
+  // Track previous URLs with stable comparison
+  const [lastProcessedUrls, setLastProcessedUrls] = useState<string>('');
+  
+  const urlsString = useMemo(() => {
+    return items
+      .filter(item => item.status === "completed" && item.cloudinaryUrl)
+      .map(item => item.cloudinaryUrl!)
+      .sort() // Sort for consistent comparison
+      .join('|');
+  }, [items]);
+
   useEffect(() => {
-    const ok = items.filter((i: any) => i.status === "completed" && i.cloudinaryUrl);
-    const okUrls = ok.map((i: any) => i.cloudinaryUrl).filter(Boolean);
-    
-    // Проверяем изменились ли URL'ы перед вызовом onChange
-    const urlsChanged = okUrls.length !== previousUrlsRef.current.length || 
-                       !okUrls.every((url, index) => url === previousUrlsRef.current[index]);
-    
-    if (okUrls.length > 0 && urlsChanged) {
-      previousUrlsRef.current = okUrls;
-      onChange?.(okUrls);
+    if (urlsString !== lastProcessedUrls && urlsString) {
+      setLastProcessedUrls(urlsString);
+      const urls = urlsString.split('|').filter(Boolean);
+      stableOnChange(urls);
     }
-    
-    // Вызываем onComplete только когда все файлы завершены (успешно или с ошибкой)
-    if (items.length > 0 && items.every((i: any) => i.status === "completed" || i.status === "error")) {
-      onComplete?.(okUrls);
-    }
-  }, [items, onChange, onComplete]);
 
-  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length) uploadFiles?.(files);
-    // сбрасываем value, чтобы можно было выбрать те же файлы повторно
-    e.currentTarget.value = "";
+    // Check if all uploads are complete
+    const allComplete = items.length > 0 && items.every(item => 
+      item.status === "completed" || item.status === "failed"
+    );
+    
+    if (allComplete && items.some(item => item.status === "completed")) {
+      const urls = urlsString.split('|').filter(Boolean);
+      stableOnComplete(urls);
+    }
+  }, [urlsString, lastProcessedUrls, items, stableOnChange, stableOnComplete]);
+
+  const onPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+    
+    if (files.length > 0) {
+      // Validate each file before upload
+      const validatedFiles: File[] = [];
+      
+      for (const file of files) {
+        const validation = await validateUploadFile(file);
+        
+        if (validation.isValid) {
+          validatedFiles.push(file);
+          
+          // Show warnings if any
+          if (validation.warnings.length > 0) {
+            console.warn(`File warnings for ${file.name}:`, validation.warnings);
+            toast.warning(`${file.name}: ${validation.warnings[0]}`);
+          }
+        } else {
+          // Show validation errors
+          const errorMsg = validation.errors.join(', ');
+          console.error(`File validation failed for ${file.name}:`, validation.errors);
+          toast.error(`${file.name}: ${errorMsg}`);
+        }
+      }
+      
+      if (validatedFiles.length > 0) {
+        uploadFiles(validatedFiles);
+      }
+      
+      if (validatedFiles.length < files.length) {
+        toast.warning(`${files.length - validatedFiles.length} file(s) rejected due to validation errors`);
+      }
+    }
+    
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
   };
 
   const handleAddMore = () => fileInputRef.current?.click();

@@ -38,6 +38,40 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Rate limiting per IP address
+  const clientIP = req.headers.get('cf-connecting-ip') || 
+                   req.headers.get('x-forwarded-for') || 
+                   req.headers.get('x-real-ip') || 
+                   'unknown';
+  
+  const now = Math.floor(Date.now() / 60000); // Current minute
+  const rateLimitKey = `${clientIP}:${now}`;
+  
+  // Simple in-memory rate limiting (60 requests per minute per IP)
+  const rateLimitStore = new Map<string, number>();
+  const currentCount = rateLimitStore.get(rateLimitKey) || 0;
+  
+  if (currentCount >= 60) {
+    console.warn(`🚫 Rate limit exceeded for IP: ${clientIP}`);
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded. Try again later.' }),
+      { status: 429, headers: corsHeaders }
+    );
+  }
+  
+  rateLimitStore.set(rateLimitKey, currentCount + 1);
+  
+  // Clean old entries to prevent memory bloat
+  if (rateLimitStore.size > 1000) {
+    const cutoff = now - 5; // Keep last 5 minutes
+    for (const [key] of rateLimitStore) {
+      const keyTime = parseInt(key.split(':')[1]);
+      if (keyTime < cutoff) {
+        rateLimitStore.delete(key);
+      }
+    }
+  }
+
   // Get JWT token from Authorization header
   const authHeader = req.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
