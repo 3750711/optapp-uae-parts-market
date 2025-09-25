@@ -14,8 +14,6 @@ import { useSellerUploadProtection } from "@/hooks/useSellerUploadProtection";
 import { logger } from "@/utils/logger";
 
 const StandardSellerForm = () => {
-  console.log('🔍 StandardSellerForm component mounting/rendering');
-  
   const navigate = useNavigate();
   const { toast } = useToast();
   const { language } = useLanguage();
@@ -162,7 +160,6 @@ const StandardSellerForm = () => {
 
   // Handle photo uploads from SimplePhotoUploader
   const onPhotoUpload = useCallback((completedUrls: string[]) => {
-    console.log('🔵 StandardSellerForm: onPhotoUpload callback called with:', completedUrls);
     handleImageUpload(completedUrls);
   }, [handleImageUpload]);
 
@@ -245,61 +242,14 @@ const StandardSellerForm = () => {
     });
   };
 
-  // DEBUG: Log props being passed to SimplePhotoUploader
-  const photoUploaderProps = {
-    onChange: onPhotoUpload,
-    max: 50,
-    language: language,
-    buttonText: "Загрузить фото"
-  };
-  
-  console.log('🔍 StandardSellerForm: Rendering SimplePhotoUploader with props:', photoUploaderProps);
-  console.log('🔍 StandardSellerForm: Current state:', {
-    imageUrls: imageUrls.length,
-    primaryImage: !!primaryImage,
-    isCreating,
-    currentUserProfile: !!currentUserProfile,
-    isProfileLoading
-  });
-
-  console.log('🔍 About to render SimplePhotoUploader...');
-
-  // DEBUG: Add useEffect to log when component is fully mounted
-  React.useEffect(() => {
-    console.log('✅ StandardSellerForm: Component fully mounted and rendered');
-    console.log('🔍 DOM check: Looking for upload button...');
-    
-    // Check if the upload button exists in DOM
-    setTimeout(() => {
-      const uploadButtons = document.querySelectorAll('button');
-      console.log('🔍 Found buttons in DOM:', uploadButtons.length);
-      uploadButtons.forEach((btn, index) => {
-        console.log(`Button ${index}:`, {
-          text: btn.textContent,
-          disabled: btn.disabled,
-          className: btn.className,
-          clickable: !btn.disabled && btn.style.pointerEvents !== 'none'
-        });
-      });
-    }, 100);
-  }, []);
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div style={{ border: '2px solid blue', padding: '10px', margin: '10px' }}>
-        <p style={{ color: 'blue', fontWeight: 'bold' }}>DEBUG: SimplePhotoUploader container</p>
-        <SimplePhotoUploader
-          onChange={onPhotoUpload}
-          max={50}
-          language={language}
-          buttonText="Загрузить фото"
-        />
-      </div>
-      
-      {(() => {
-        console.log('✅ SimplePhotoUploader rendered successfully');
-        return null;
-      })()}
+      <SimplePhotoUploader
+        onChange={onPhotoUpload}
+        max={50}
+        language={language}
+        buttonText="Загрузить фото"
+      />
       
       <div>
         <label className="block text-sm font-medium mb-2">

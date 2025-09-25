@@ -21,14 +21,6 @@ export default function SimplePhotoUploader({
   buttonText,
   language = 'ru',
 }: Props) {
-  console.log('🔍 SimplePhotoUploader: Component initializing with props:', {
-    onChange: typeof onChange,
-    max,
-    buttonText,
-    language,
-    onComplete: typeof onComplete
-  });
-
   const { items, uploadFiles, removeItem, retryItem } = useUploadUIAdapter({ max, onChange, onComplete });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = getSellerPagesTranslations(language);
@@ -40,16 +32,6 @@ export default function SimplePhotoUploader({
   const completedCount = items.filter((i: any) => i.status === "completed" && i.cloudinaryUrl).length;
   const hasItems = items.length > 0;
   const hasReachedLimit = completedCount >= max;
-  
-  // DEBUG: Log component state
-  console.log('🔍 SimplePhotoUploader state:', {
-    hasItems,
-    hasReachedLimit,
-    completedCount,
-    itemsLength: items.length,
-    max,
-    buttonVisible: (!hasItems || !hasReachedLimit)
-  });
   
   // Get localized button text with fallback
   const uploadButtonText = buttonText || t.media.uploadPhotos;
@@ -107,7 +89,6 @@ export default function SimplePhotoUploader({
   }, [items, imageOrientations]);
 
   const onPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('🔵 onPick triggered with files:', (event.target.files || []).length);
     const files = Array.from(event.target.files || []);
     
     if (files.length > 0) {
@@ -160,40 +141,6 @@ export default function SimplePhotoUploader({
     event.target.value = '';
   };
 
-  const handleAddMore = () => {
-    console.log('🔵 handleAddMore clicked!');
-    console.log('🔍 fileInputRef.current:', fileInputRef.current);
-    try {
-      if (fileInputRef.current) {
-        console.log('🔵 Attempting to click file input...');
-        fileInputRef.current.click();
-        console.log('✅ File input clicked successfully');
-      } else {
-        console.error('❌ fileInputRef.current is null!');
-      }
-    } catch (error) {
-      console.error('❌ Error clicking file input:', error);
-    }
-  };
-
-  // DEBUG: Component mount/unmount lifecycle
-  React.useEffect(() => {
-    console.log('✅ SimplePhotoUploader: Component mounted successfully');
-    console.log('🔍 SimplePhotoUploader: Checking DOM elements...');
-    
-    return () => {
-      console.log('🔻 SimplePhotoUploader: Component will unmount');
-    };
-  }, []);
-
-  // DEBUG: Monitor ref changes
-  React.useEffect(() => {
-    console.log('🔍 SimplePhotoUploader: fileInputRef updated:', {
-      exists: !!fileInputRef.current,
-      tagName: fileInputRef.current?.tagName,
-      type: fileInputRef.current?.type
-    });
-  }, [fileInputRef.current]);
 
   return (
     <div className="space-y-3">
@@ -204,40 +151,36 @@ export default function SimplePhotoUploader({
         </div>
       )}
 
-        {/* Upload button - show only when no items or not at limit */}
+        {/* Upload button - direct input styled as button */}
         {(!hasItems || !hasReachedLimit) && (
           <div className="w-full relative group">
-            <button
-              type="button"
-              onClick={handleAddMore}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={onPick}
               disabled={hasReachedLimit}
-              className={`w-full sm:w-auto h-12 px-4 rounded-xl border border-border transition text-sm sm:text-base bg-background text-foreground
+              className={`w-full sm:w-auto h-12 px-4 rounded-xl border border-border transition text-sm sm:text-base bg-background text-foreground cursor-pointer
                 ${hasReachedLimit 
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:bg-accent/50 active:scale-[.99]'
                 }
-                !border-4 !border-red-500 !bg-yellow-200 !text-black !z-[9999] relative pointer-events-auto`}
+                file:hidden`}
               title={hasItems 
                 ? t.media?.hints?.batchUploadTip || addMoreText
                 : t.media?.hints?.supportedFormats || uploadButtonText
               }
-            >
+            />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {hasItems ? addMoreText : uploadButtonText}
-            </button>
+            </div>
             {/* Helpful tooltip */}
             {!hasItems && (
               <div className="absolute top-full mt-1 left-0 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                 {t.media?.hints?.dragDropTip || 'Drag files here or click to browse'}
               </div>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={onPick}
-            />
           </div>
         )}
 
