@@ -174,12 +174,9 @@ serve(async (req) => {
         
         if (rulesError) {
           console.error('❌ Failed to extract rules:', rulesError);
-          const errorMessage = typeof rulesError === 'object' && rulesError && 'message' in rulesError 
-            ? String(rulesError.message) 
-            : 'Unknown rules error';
           return new Response(JSON.stringify({ 
             success: false, 
-            error: errorMessage 
+            error: rulesError.message 
           }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -259,10 +256,7 @@ ${translationRules.map(rule =>
 
     // Группируем модели по брендам для лучшего контекста
     const brandsWithModels = brands?.map(brand => {
-      const brandModels = models?.filter(m => {
-        const carBrands = m.car_brands as unknown;
-        return carBrands && typeof carBrands === 'object' && 'name' in carBrands && (carBrands as { name: string }).name === brand.name;
-      });
+      const brandModels = models?.filter(m => m.car_brands?.name === brand.name);
       return `${brand.name}: ${brandModels?.map(m => m.name).join(', ') || 'нет моделей'}`;
     }).join('\n') || '';
     
@@ -465,11 +459,10 @@ JSON ответ:
     
   } catch (error) {
     console.error('❌ Error in ai-enrich-product:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
     return new Response(
       JSON.stringify({ 
-        error: errorMessage,
+        error: error.message,
         details: 'AI enrichment failed' 
       }), 
       {

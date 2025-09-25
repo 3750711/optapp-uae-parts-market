@@ -1,6 +1,5 @@
 import { createServiceClient } from '../_shared/client.ts';
 
-// Force redeploy - v1.0.5 - 2025-09-25
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
