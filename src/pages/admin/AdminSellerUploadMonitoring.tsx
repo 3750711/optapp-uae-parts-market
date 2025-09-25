@@ -27,10 +27,9 @@ interface UploadLog {
   compression_ratio?: number;
   context: 'free_order' | 'seller_product' | 'admin_product';
   step_name?: string;
-  profiles?: {
-    full_name: string;
-    opt_id: string;
-  };
+  // User profile data (joined on client)
+  user_full_name?: string;
+  user_opt_id?: string;
 }
 
 interface Filters {
@@ -84,13 +83,7 @@ export const AdminSellerUploadMonitoring = () => {
       const offset = reset ? 0 : pagination.page * pagination.limit;
       let query = supabase
         .from('product_upload_logs')
-        .select(`
-          *,
-          profiles:user_id (
-            full_name,
-            opt_id
-          )
-        `, { count: 'exact' })
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + pagination.limit - 1);
 
@@ -105,10 +98,6 @@ export const AdminSellerUploadMonitoring = () => {
       
       if (filters.method !== 'all') {
         query = query.eq('method', filters.method);
-      }
-      
-      if (filters.userId.trim()) {
-        query = query.ilike('profiles.opt_id', `%${filters.userId.trim()}%`);
       }
       
       // Date range filter
@@ -134,7 +123,7 @@ export const AdminSellerUploadMonitoring = () => {
         query = query.gte('created_at', startDate.toISOString());
       }
 
-      const { data, count, error } = await query;
+      const { data: logsData, count, error } = await query;
       
       if (error) {
         console.error('Error loading logs:', error);
@@ -146,11 +135,47 @@ export const AdminSellerUploadMonitoring = () => {
         return;
       }
 
+      // Get unique user IDs from logs
+      const userIds = [...new Set((logsData || []).map(log => log.user_id))];
+      
+      // Fetch user profiles separately
+      let profilesData: any[] = [];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, opt_id')
+          .in('id', userIds);
+        
+        profilesData = profiles || [];
+      }
+
+      // Create a map of user profiles for quick lookup
+      const profilesMap = new Map(
+        profilesData.map(profile => [profile.id, profile])
+      );
+
+      // Combine logs with profile data
+      let combinedLogs = (logsData || []).map(log => ({
+        ...log,
+        user_full_name: profilesMap.get(log.user_id)?.full_name,
+        user_opt_id: profilesMap.get(log.user_id)?.opt_id,
+      }));
+
+      // Apply user ID filter on the combined data
+      if (filters.userId.trim()) {
+        const searchTerm = filters.userId.trim().toLowerCase();
+        combinedLogs = combinedLogs.filter(log => 
+          log.user_opt_id?.toLowerCase().includes(searchTerm) ||
+          log.user_full_name?.toLowerCase().includes(searchTerm) ||
+          log.user_id.toLowerCase().includes(searchTerm)
+        );
+      }
+
       if (reset) {
-        setLogs(data || []);
+        setLogs(combinedLogs);
         setPagination(prev => ({ ...prev, page: 0, total: count || 0 }));
       } else {
-        setLogs(prev => [...prev, ...(data || [])]);
+        setLogs(prev => [...prev, ...combinedLogs]);
         setPagination(prev => ({ ...prev, total: count || 0 }));
       }
 
@@ -306,8 +331,8 @@ export const AdminSellerUploadMonitoring = () => {
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-semibold">{log.profiles?.full_name || 'Unknown'}</div>
-                      <div className="text-xs text-muted-foreground">{log.profiles?.opt_id || log.user_id}</div>
+                      <div className="font-semibold">{log.user_full_name || 'Unknown'}</div>
+                      <div className="text-xs text-muted-foreground">{log.user_opt_id || log.user_id}</div>
                     </div>
                   </TableCell>
                   <TableCell>{getContextBadge(log.context)}</TableCell>
