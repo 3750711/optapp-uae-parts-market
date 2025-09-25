@@ -17,6 +17,7 @@ import { NetworkIndicator } from "@/components/NetworkIndicator";
 import { ActivityTracking } from "@/components/ActivityTracking";
 import { checkAppVersion } from '@/utils/versionManager';
 import { setupViewportHeight } from '@/utils/viewport-fix';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import '@/styles/universal-viewport.css';
 
 import { getQueryConfigForConnection } from "@/utils/networkUtils";
@@ -78,16 +79,18 @@ const App = () => {
               <AuthErrorBoundary>
                 <BrowserRouter>
                   <LanguageProvider>
-                    <SafeTooltipProvider>
-                      <ActivityTracking />
-                      <Toaster />
-                      <NetworkIndicator />
-                      
-                      <Suspense fallback={<RouteLoader />}>
-                        <RoutePreloader />
-                        <AppRoutes />
-                      </Suspense>
-                    </SafeTooltipProvider>
+                    <NotificationProvider>
+                      <SafeTooltipProvider>
+                        <ActivityTracking />
+                        <Toaster />
+                        <NetworkIndicator />
+                        
+                        <Suspense fallback={<RouteLoader />}>
+                          <RoutePreloader />
+                          <AppRoutes />
+                        </Suspense>
+                      </SafeTooltipProvider>
+                    </NotificationProvider>
                   </LanguageProvider>
                 </BrowserRouter>
               </AuthErrorBoundary>
