@@ -42,7 +42,6 @@ serve(async (req) => {
     console.log(`Original image size: ${(originalSize / 1024).toFixed(2)} KB`)
 
     // Создаем canvas для обработки изображения
-    const image = new Image()
     const canvas = new OffscreenCanvas(1, 1)
     const ctx = canvas.getContext('2d')!
 
@@ -139,7 +138,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

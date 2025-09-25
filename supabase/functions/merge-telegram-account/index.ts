@@ -174,12 +174,12 @@ serve(async (req) => {
   } catch (error) {
     console.error('=== Error in account merge ===')
     console.error('Error details:', error)
-    console.error('Error message:', error.message)
+    console.error('Error message:', error instanceof Error ? error.message : 'Unknown error')
     
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Ошибка при объединении аккаунтов' 
+        error: (error instanceof Error ? error.message : 'Unknown error') || 'Ошибка при объединении аккаунтов' 
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

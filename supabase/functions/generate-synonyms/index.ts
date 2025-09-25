@@ -143,14 +143,14 @@ Return only a comma-separated list of words, no explanations.`;
     // Parse synonyms from AI response
     const synonyms = synonymsText
       .split(',')
-      .map(s => s.trim().toLowerCase())
-      .filter(s => s.length > 0 && s !== term.toLowerCase())
+      .map((s: string) => s.trim().toLowerCase())
+      .filter((s: string) => s.length > 0 && s !== term.toLowerCase())
       .slice(0, 10); // Limit to 10 synonyms
 
     console.log('Parsed synonyms:', synonyms);
 
     // Insert synonyms into database
-    const synonymData = synonyms.map(synonym => ({
+    const synonymData = synonyms.map((synonym: string) => ({
       original_term: term.toLowerCase(),
       synonym: synonym,
       category,
@@ -158,7 +158,7 @@ Return only a comma-separated list of words, no explanations.`;
     }));
 
     // Also add reverse synonyms (synonym -> original term)
-    const reverseData = synonyms.map(synonym => ({
+    const reverseData = synonyms.map((synonym: string) => ({
       original_term: synonym,
       synonym: term.toLowerCase(),
       category,
@@ -202,7 +202,7 @@ Return only a comma-separated list of words, no explanations.`;
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error instanceof Error ? error.message : 'Unknown error' 
       }),
       {
         status: 500,

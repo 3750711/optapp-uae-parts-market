@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
       console.log('Received payload:', payload);
     } catch (error) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Invalid JSON in request body', detail: error.message }),
+        JSON.stringify({ success: false, error: 'Invalid JSON in request body', detail: error instanceof Error ? error.message : 'Unknown error' }),
         { status: 400, headers: corsHeaders }
       );
     }

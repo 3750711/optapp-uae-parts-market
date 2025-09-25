@@ -81,7 +81,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Failed to trigger event', 
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error' 
       }),
       { 
         status: 500, 

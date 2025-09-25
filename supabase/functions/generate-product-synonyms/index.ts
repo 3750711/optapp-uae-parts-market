@@ -103,8 +103,8 @@ const generateSynonymsForTerm = async (term: string, category: string = 'automot
     // Parse and clean synonyms
     const synonyms = synonymsText
       .split(/[,;]/)
-      .map(s => s.trim())
-      .filter(s => s && s.length > 1 && s !== term)
+      .map((s: string) => s.trim())
+      .filter((s: string) => s && s.length > 1 && s !== term)
       .slice(0, 7); // Limit to 7 synonyms per term
 
     return synonyms;
@@ -179,13 +179,15 @@ serve(async (req) => {
 
         if (newSynonyms.length > 0) {
           // Prepare synonym records for batch insert
-          const synonymRecords = [];
+          const synonymRecords: Array<{term: string; synonym: string; source: string; original_term?: string; language?: string; category?: string}> = [];
           
           // Forward synonyms (original -> synonym)
           newSynonyms.forEach(synonym => {
             synonymRecords.push({
-              original_term: term,
+              term: term,
               synonym: synonym,
+              source: 'ai_generated',
+              original_term: term,
               language: 'ru',
               category: category
             });
@@ -194,9 +196,11 @@ serve(async (req) => {
           // Reverse synonyms (synonym -> original) for better search coverage
           newSynonyms.forEach(synonym => {
             synonymRecords.push({
-              original_term: synonym,
+              term: synonym,
               synonym: term,
-              language: 'ru', 
+              source: 'ai_generated',
+              original_term: synonym,
+              language: 'ru',
               category: category
             });
           });
@@ -250,7 +254,7 @@ serve(async (req) => {
     console.error('Error in generate-product-synonyms function:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

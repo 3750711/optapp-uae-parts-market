@@ -194,7 +194,7 @@ serve(async (req) => {
     console.error('Semantic search error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Internal server error',
+        error: (error instanceof Error ? error.message : 'Unknown error') || 'Internal server error',
         query: '',
         results: [],
         total: 0,

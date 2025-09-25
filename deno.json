@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["deno.window"],
+    "lib": ["deno.window", "dom", "dom.iterable"],
     "strict": true
   },
   "imports": {

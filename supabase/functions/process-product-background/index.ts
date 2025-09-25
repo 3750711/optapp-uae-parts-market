@@ -53,7 +53,7 @@ serve(async (req) => {
         console.error(`❌ Embedding generation failed for product ${productId}:`, error)
         results.embeddings = {
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
           duration: performance.now() - embeddingStart
         }
       }
@@ -87,7 +87,7 @@ serve(async (req) => {
         console.error(`❌ Synonym generation failed for product ${productId}:`, error)
         results.synonyms = {
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
           duration: performance.now() - synonymStart
         }
       }
@@ -110,7 +110,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error',
-        details: error.message 
+        details: error instanceof Error ? error.message : 'Unknown error' 
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

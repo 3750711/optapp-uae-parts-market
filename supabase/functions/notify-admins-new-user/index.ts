@@ -81,7 +81,7 @@ async function getAdminTelegramIds(supabase: any): Promise<Array<{id: string, na
       return [];
     }
 
-    return admins?.map(admin => ({
+    return admins?.map((admin: any) => ({
       id: admin.id,
       name: admin.full_name || 'Admin',
       telegramId: admin.telegram_id.toString()
@@ -301,11 +301,11 @@ metadata: { userType, adminId: admin.id, storeName: storeInfo?.storeName, storeL
           status: 'failed',
           related_entity_type: 'user',
           related_entity_id: userId,
-          error_details: { error: error.message },
+          error_details: { error: error instanceof Error ? error.message : 'Unknown error' },
           metadata: { userType, adminId: admin.id, storeName: storeInfo?.storeName, storeLocation: storeInfo?.storeLocation, storeDescription: storeInfo?.storeDescription }
         });
 
-        results.push({ adminId: admin.id, success: false, error: error.message });
+        results.push({ adminId: admin.id, success: false, error: error instanceof Error ? error.message : 'Unknown error' });
       }
     }
 
@@ -340,7 +340,7 @@ metadata: { userType, adminId: admin.id, storeName: storeInfo?.storeName, storeL
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Internal server error' 
+        error: (error instanceof Error ? error.message : 'Unknown error') || 'Internal server error' 
       }),
       { 
         status: 500, 
