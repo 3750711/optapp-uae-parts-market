@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 // Import seller-specific components and hooks
 import { useSellerOrderFormLogic } from "@/hooks/useSellerOrderFormLogic";
 import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
-import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
+import SimpleUploadButton from "@/components/uploader/SimpleUploadButton";
 import { useStagedCloudinaryUpload } from "@/hooks/useStagedCloudinaryUpload";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
@@ -261,11 +261,12 @@ const SellerCreateOrder = () => {
             
             <div>
               <h3 className="text-lg font-medium mb-4">{t.media.photos}</h3>
-              <SimplePhotoUploader
-                onChange={onImagesUpload}
-                max={25}
-                language={language}
-              />
+              <SimpleUploadButton
+                onUpload={onImagesUpload}
+                maxFiles={25}
+              >
+                Загрузить фото
+              </SimpleUploadButton>
             </div>
             
             <div>

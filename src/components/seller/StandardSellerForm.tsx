@@ -3,7 +3,7 @@ import { unstable_batchedUpdates } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
+import SimpleUploadButton from "@/components/uploader/SimpleUploadButton";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
@@ -158,7 +158,7 @@ const StandardSellerForm = () => {
     setPrimaryImage(url);
   }, []);
 
-  // Handle photo uploads from SimplePhotoUploader
+  // Handle photo uploads from SimpleUploadButton
   const onPhotoUpload = useCallback((completedUrls: string[]) => {
     handleImageUpload(completedUrls);
   }, [handleImageUpload]);
@@ -244,12 +244,13 @@ const StandardSellerForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <SimplePhotoUploader
-        onChange={onPhotoUpload}
-        max={50}
-        language={language}
-        buttonText="Загрузить фото"
-      />
+      <SimpleUploadButton
+        onUpload={onPhotoUpload}
+        maxFiles={50}
+        disabled={isSubmitting}
+      >
+        Загрузить фото
+      </SimpleUploadButton>
       
       <div>
         <label className="block text-sm font-medium mb-2">
