@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,54 +38,70 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Отправка email с кодом:', verification_code, 'на:', email);
 
-    // Создаем клиент Resend
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      throw new Error("RESEND_API_KEY not configured");
+    }
 
-    // Отправляем email с кодом
+    // Отправляем email через Resend API
     try {
-      const emailResponse = await resend.emails.send({
-        from: "PartsBay.ae <noreply@partsbay.ae>",
-        to: [email],
-        subject: "Код подтверждения email - PartsBay.ae",
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="color: #f59e0b; margin: 0;">PartsBay.ae</h1>
-              <p style="color: #666; margin: 5px 0;">Автозапчасти из ОАЭ</p>
-            </div>
-            
-            <div style="background: #f9f9f9; padding: 30px; border-radius: 10px; text-align: center;">
-              <h2 style="color: #333; margin-bottom: 20px;">Подтверждение email адреса</h2>
-              <p style="color: #666; margin-bottom: 30px;">
-                Введите этот код на сайте для подтверждения вашего email адреса:
-              </p>
-              
-              <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #f59e0b; display: inline-block;">
-                <span style="font-size: 32px; font-weight: bold; color: #f59e0b; letter-spacing: 5px;">
-                  ${verification_code}
-                </span>
+      const emailResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: "PartsBay.ae <noreply@partsbay.ae>",
+          to: [email],
+          subject: "Код подтверждения email - PartsBay.ae",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="color: #f59e0b; margin: 0;">PartsBay.ae</h1>
+                <p style="color: #666; margin: 5px 0;">Автозапчасти из ОАЭ</p>
               </div>
               
-              <p style="color: #999; margin-top: 30px; font-size: 14px;">
-                Код действителен в течение 5 минут
-              </p>
+              <div style="background: #f9f9f9; padding: 30px; border-radius: 10px; text-align: center;">
+                <h2 style="color: #333; margin-bottom: 20px;">Подтверждение email адреса</h2>
+                <p style="color: #666; margin-bottom: 30px;">
+                  Введите этот код на сайте для подтверждения вашего email адреса:
+                </p>
+                
+                <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #f59e0b; display: inline-block;">
+                  <span style="font-size: 32px; font-weight: bold; color: #f59e0b; letter-spacing: 5px;">
+                    ${verification_code}
+                  </span>
+                </div>
+                
+                <p style="color: #999; margin-top: 30px; font-size: 14px;">
+                  Код действителен в течение 5 минут
+                </p>
+              </div>
+              
+              <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #999;">
+                <p>Если вы не запрашивали этот код, просто проигнорируйте это письмо.</p>
+                <p>© 2024 PartsBay.ae - Все права защищены</p>
+              </div>
             </div>
-            
-            <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #999;">
-              <p>Если вы не запрашивали этот код, просто проигнорируйте это письмо.</p>
-              <p>© 2024 PartsBay.ae - Все права защищены</p>
-            </div>
-          </div>
-        `,
+          `
+        })
       });
 
-      console.log("Email sent successfully:", emailResponse);
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.text();
+        throw new Error(`Resend API error: ${emailResponse.status} ${errorData}`);
+      }
+
+      const emailResult = await emailResponse.json();
+
+      console.log("Email sent successfully:", emailResult);
 
       return new Response(
         JSON.stringify({
           success: true,
           message: `Код подтверждения отправлен на ${email}`,
-          email_id: emailResponse.data?.id
+          email_id: emailResult.id
         }),
         {
           status: 200,
