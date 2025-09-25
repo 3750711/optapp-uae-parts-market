@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,7 +59,6 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const resend = new Resend(resendApiKey);
 
     let userEmail = email;
     let userOptId = optId;
@@ -214,15 +212,24 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send email via Resend
-    const emailResult = await resend.emails.send({
-      from: 'PartsBay <noreply@partsbay.ae>',
-      to: [userEmail],
-      subject: `🔐 Восстановление пароля - PartsBay${displayOptId ? ` (${displayOptId})` : ''}`,
-      html: emailHtml,
+    // Send email via Resend HTTP API
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'PartsBay <noreply@partsbay.ae>',
+        to: [userEmail],
+        subject: `🔐 Восстановление пароля - PartsBay${displayOptId ? ` (${displayOptId})` : ''}`,
+        html: emailHtml,
+      })
     });
 
-    console.log('Email sent successfully:', { id: emailResult.data?.id, to: userEmail });
+    const emailResult = await emailResponse.json();
+
+    console.log('Email sent successfully:', { id: emailResult.id, to: userEmail });
 
     // Always return success (security - don't reveal if user exists)
     return new Response(JSON.stringify({ 
