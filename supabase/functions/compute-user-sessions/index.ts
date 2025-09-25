@@ -127,7 +127,7 @@ serve(async (req) => {
     console.error('Error in compute-user-sessions:', error);
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error.message,
         success: false
       }),
       { 

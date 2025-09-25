@@ -57,8 +57,8 @@ export async function sendBulkMessages(
   }
 
   // Separate users with and without telegram_id
-  const usersWithTelegram = allProfiles.filter((profile: any) => profile.telegram_id)
-  const usersWithoutTelegram = allProfiles.filter((profile: any) => !profile.telegram_id)
+  const usersWithTelegram = allProfiles.filter(profile => profile.telegram_id)
+  const usersWithoutTelegram = allProfiles.filter(profile => !profile.telegram_id)
   
   console.log(`Found ${usersWithTelegram.length} users with Telegram ID, ${usersWithoutTelegram.length} without`)
   
@@ -106,7 +106,7 @@ export async function sendBulkMessages(
     console.log(`Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} recipients`)
     
     // Send messages in parallel within batch
-    const batchPromises = batch.map(async (profile: any) => {
+    const batchPromises = batch.map(async (profile) => {
       const userName = profile.full_name || profile.telegram || 'user';
       try {
         const messageWithSignature = `${messageText}\n\n📩 Сообщение от администратора partsbay.ae`;

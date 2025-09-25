@@ -29,7 +29,7 @@ export function resetTraceId(): void {
   currentTraceId = null;
 }
 
-// Fire-and-forget logging function with database fallback
+// Fire-and-forget logging function
 export async function logUploadEvent(
   event: LogEvent, 
   options: { 
@@ -57,56 +57,17 @@ export async function logUploadEvent(
 
     console.log('📤 Sending upload log to Edge function:', { context: options.context, userId: user.id });
 
-    // Try Edge Function first
-    try {
-      const { data, error } = await supabase.functions.invoke('ingest-product-upload', {
-        body: { events: [eventWithUser] }
-      });
-
-      if (error) {
-        console.warn('⚠️ Edge function error, using database fallback:', error.message || error);
-        await logDirectlyToDatabase(eventWithUser);
-      } else {
-        console.log('✅ Upload log sent successfully via Edge function for context:', options.context);
-      }
-    } catch (edgeError) {
-      console.warn('⚠️ Edge function unavailable, using database fallback:', edgeError instanceof Error ? edgeError.message : 'Unknown error');
-      await logDirectlyToDatabase(eventWithUser);
-    }
-  } catch (error) {
-    console.error('💥 Upload log failed completely:', error instanceof Error ? error.message : 'Unknown error');
-  }
-}
-
-// Fallback: Direct database insertion
-async function logDirectlyToDatabase(event: any): Promise<void> {
-  try {
-    const { error } = await supabase
-      .from('product_upload_logs')
-      .insert({
-        user_id: event.user_id,
-        product_id: event.product_id,
-        order_id: event.order_id,
-        file_url: event.file_url,
-        method: event.method,
-        duration_ms: event.duration_ms,
-        status: event.status,
-        error_details: event.error_details,
-        trace_id: event.trace_id,
-        original_size: event.original_size,
-        compressed_size: event.compressed_size,
-        compression_ratio: event.compression_ratio,
-        context: event.context,
-        step_name: 'image_upload',
-        metadata: {}
-      });
+    // Use the new universal ingest function
+    const { data, error } = await supabase.functions.invoke('ingest-product-upload', {
+      body: { events: [eventWithUser] }
+    });
 
     if (error) {
-      console.error('❌ Database fallback failed:', error.message || error);
+      console.error('❌ Upload log error:', error.message || error);
     } else {
-      console.log('✅ Upload log saved directly to database for context:', event.context);
+      console.log('✅ Upload log sent successfully for context:', options.context);
     }
-  } catch (dbError) {
-    console.error('💥 Database fallback error:', dbError instanceof Error ? dbError.message : 'Unknown error');
+  } catch (error) {
+    console.error('💥 Upload log failed:', error instanceof Error ? error.message : 'Unknown error');
   }
 }

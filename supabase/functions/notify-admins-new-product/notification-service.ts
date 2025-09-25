@@ -107,7 +107,7 @@ export async function sendAdminNotifications(productId: string, supabaseClient: 
       results.push({
         admin: admin.email,
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error.message
       });
     }
   }
@@ -201,6 +201,6 @@ async function sendTelegramMessage(telegramId: number, messageText: string, imag
     }
   } catch (error) {
     console.error(`❌ [Telegram] Error sending message to ${telegramId}:`, error);
-    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    return { success: false, error: error.message };
   }
 }

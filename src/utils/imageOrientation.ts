@@ -3,71 +3,42 @@
  */
 export const getImageOrientation = (file: File): Promise<number> => {
   return new Promise((resolve) => {
-    // Защитная проверка File объекта
-    if (!file || typeof file !== 'object') {
-      console.warn('EXIF: Invalid file object provided, using default orientation');
-      resolve(1);
-      return;
-    }
-
-    // Проверяем что это действительно File или Blob объект с методом slice
-    if (!('slice' in file) || typeof (file as any).slice !== 'function') {
-      console.warn('EXIF: File object missing slice method, using default orientation');
-      resolve(1);
-      return;
-    }
-
-    try {
-      const reader = new FileReader();
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const arrayBuffer = e.target?.result as ArrayBuffer;
+      const dataView = new DataView(arrayBuffer);
       
-      reader.onload = (e) => {
-        try {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          const dataView = new DataView(arrayBuffer);
+      // Check for EXIF marker
+      if (dataView.getUint16(0) !== 0xFFD8) {
+        resolve(1); // No EXIF, assume normal orientation
+        return;
+      }
+      
+      let offset = 2;
+      let marker;
+      
+      while (offset < dataView.byteLength) {
+        marker = dataView.getUint16(offset);
+        offset += 2;
+        
+        if (marker === 0xFFE1) { // EXIF marker
+          offset += 2; // Skip length
           
-          // Check for EXIF marker
-          if (dataView.getUint16(0) !== 0xFFD8) {
-            resolve(1); // No EXIF, assume normal orientation
+          if (dataView.getUint32(offset) === 0x45786966) { // "Exif"
+            const orientation = extractOrientation(dataView, offset + 6);
+            resolve(orientation);
             return;
           }
-          
-          let offset = 2;
-          let marker;
-          
-          while (offset < dataView.byteLength) {
-            marker = dataView.getUint16(offset);
-            offset += 2;
-            
-            if (marker === 0xFFE1) { // EXIF marker
-              offset += 2; // Skip length
-              
-              if (dataView.getUint32(offset) === 0x45786966) { // "Exif"
-                const orientation = extractOrientation(dataView, offset + 6);
-                resolve(orientation);
-                return;
-              }
-            } else {
-              offset += dataView.getUint16(offset);
-            }
-          }
-          
-          resolve(1); // Default orientation
-        } catch (error) {
-          console.warn('EXIF: Error processing file data, using default orientation:', error);
-          resolve(1);
+        } else {
+          offset += dataView.getUint16(offset);
         }
-      };
+      }
       
-      reader.onerror = () => {
-        console.warn('EXIF: FileReader error, using default orientation');
-        resolve(1);
-      };
-      
-      reader.readAsArrayBuffer(file.slice(0, 65536)); // Read first 64KB
-    } catch (error) {
-      console.warn('EXIF: Error setting up file reader, using default orientation:', error);
-      resolve(1);
-    }
+      resolve(1); // Default orientation
+    };
+    
+    reader.readAsArrayBuffer(file.slice(0, 65536)); // Read first 64KB
   });
 };
 

@@ -61,7 +61,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('💥 [AdminNotification] Error:', error);
     
-    if (error instanceof Error && (error.message.includes('Authorization header is required') || error.message.includes('Invalid or expired token'))) {
+    if (error.message.includes('Authorization header is required') || error.message.includes('Invalid or expired token')) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -69,7 +69,7 @@ serve(async (req) => {
     }
     
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

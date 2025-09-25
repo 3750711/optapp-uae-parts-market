@@ -32,7 +32,7 @@ serve(async (req) => {
     const { type = "hero", customPrompt } = await req.json()
     
     // Use custom prompt if provided, otherwise use predefined automotive prompts
-    const prompt = customPrompt || (automotivePrompts[type as keyof typeof automotivePrompts]) || automotivePrompts.hero
+    const prompt = customPrompt || automotivePrompts[type] || automotivePrompts.hero
     
     console.log(`Generating automotive image for type: ${type}`)
     console.log(`Using prompt: ${prompt}`)
@@ -59,7 +59,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error generating automotive image:', error)
     return new Response(
-      JSON.stringify({ error: 'Failed to generate automotive image', details: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: 'Failed to generate automotive image', details: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }

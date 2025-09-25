@@ -1,4 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -108,7 +109,7 @@ Deno.serve(async (req) => {
       console.log('Received payload:', payload);
     } catch (error) {
       return new Response(
-        JSON.stringify({ success: false, error: 'Invalid JSON in request body', detail: error instanceof Error ? error.message : 'Unknown error' }),
+        JSON.stringify({ success: false, error: 'Invalid JSON in request body', detail: error.message }),
         { status: 400, headers: corsHeaders }
       );
     }
