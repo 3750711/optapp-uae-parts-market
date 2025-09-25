@@ -21,6 +21,14 @@ export default function SimplePhotoUploader({
   buttonText,
   language = 'ru',
 }: Props) {
+  console.log('🔍 SimplePhotoUploader: Component initializing with props:', {
+    onChange: typeof onChange,
+    max,
+    buttonText,
+    language,
+    onComplete: typeof onComplete
+  });
+
   const { items, uploadFiles, removeItem, retryItem } = useUploadUIAdapter({ max, onChange, onComplete });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = getSellerPagesTranslations(language);
@@ -167,6 +175,25 @@ export default function SimplePhotoUploader({
       console.error('❌ Error clicking file input:', error);
     }
   };
+
+  // DEBUG: Component mount/unmount lifecycle
+  React.useEffect(() => {
+    console.log('✅ SimplePhotoUploader: Component mounted successfully');
+    console.log('🔍 SimplePhotoUploader: Checking DOM elements...');
+    
+    return () => {
+      console.log('🔻 SimplePhotoUploader: Component will unmount');
+    };
+  }, []);
+
+  // DEBUG: Monitor ref changes
+  React.useEffect(() => {
+    console.log('🔍 SimplePhotoUploader: fileInputRef updated:', {
+      exists: !!fileInputRef.current,
+      tagName: fileInputRef.current?.tagName,
+      type: fileInputRef.current?.type
+    });
+  }, [fileInputRef.current]);
 
   return (
     <div className="space-y-3">
