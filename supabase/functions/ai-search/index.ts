@@ -107,14 +107,16 @@ function enhanceQuery(query: string): string {
   const { brand, model } = extractBrandModel(query);
   if (brand) {
     enhancedQuery += ` ${brand}`;
-    if (brandPatterns[brand]) {
-      enhancedQuery += ' ' + brandPatterns[brand].join(' ');
+    const brandPatternsMap = brandPatterns as Record<string, string[]>;
+    if (brandPatternsMap[brand]) {
+      enhancedQuery += ' ' + brandPatternsMap[brand].join(' ');
     }
   }
   if (model) {
     enhancedQuery += ` ${model}`;
-    if (modelPatterns[model]) {
-      enhancedQuery += ' ' + modelPatterns[model].join(' ');
+    const modelPatternsMap = modelPatterns as Record<string, string[]>;
+    if (modelPatternsMap[model]) {
+      enhancedQuery += ' ' + modelPatternsMap[model].join(' ');
     }
   }
   
@@ -142,17 +144,23 @@ function applyPostProcessingFilter(results: any[], query: string): any[] {
     let modelMatch = false;
     
     // Check brand match
-    if (brand && brandPatterns[brand]) {
-      brandMatch = brandPatterns[brand].some(pattern => 
-        resultBrand.includes(pattern) || pattern.includes(resultBrand)
-      );
+    if (brand) {
+      const brandPatternsMap = brandPatterns as Record<string, string[]>;
+      if (brandPatternsMap[brand]) {
+        brandMatch = brandPatternsMap[brand].some((pattern: string) => 
+          resultBrand.includes(pattern) || pattern.includes(resultBrand)
+        );
+      }
     }
     
     // Check model match  
-    if (model && modelPatterns[model]) {
-      modelMatch = modelPatterns[model].some(pattern => 
-        resultModel.includes(pattern) || pattern.includes(resultModel)
-      );
+    if (model) {
+      const modelPatternsMap = modelPatterns as Record<string, string[]>;
+      if (modelPatternsMap[model]) {
+        modelMatch = modelPatternsMap[model].some((pattern: string) => 
+          resultModel.includes(pattern) || pattern.includes(resultModel)
+        );
+      }
     }
     
     // Categorize results
@@ -373,9 +381,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in ai-search function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message 
+      error: errorMessage 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

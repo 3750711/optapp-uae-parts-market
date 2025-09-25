@@ -15,6 +15,14 @@ interface AnalyzeRequest {
   product_id?: string;
 }
 
+interface MatchResult {
+  product_id: string;
+  title: string;
+  delivery_price: number;
+  confidence: number;
+  match_type: string;
+}
+
 interface PriceRecommendation {
   price: number;
   confidence: number;
@@ -71,14 +79,17 @@ serve(async (req) => {
       return createEmptyResponse(startTime, 'No matches found for delivery analysis');
     }
     
+    // Type assertion for matches
+    const typedMatches = matches as MatchResult[];
+    
     // 2. Анализируем распределение цен
-    const priceDistribution = analyzePriceDistribution(matches);
-    const recommendations = generateRecommendations(priceDistribution, matches);
-    const confidenceLevel = calculateOverallConfidence(matches, priceDistribution);
+    const priceDistribution = analyzePriceDistribution(typedMatches);
+    const recommendations = generateRecommendations(priceDistribution, typedMatches);
+    const confidenceLevel = calculateOverallConfidence(typedMatches, priceDistribution);
     
     // 3. Определяем логику и создаём обоснование
-    const logicType = determineLogicType(matches);
-    const topConfidence = Math.max(...matches.map(m => m.confidence));
+    const logicType = determineLogicType(typedMatches);
+    const topConfidence = Math.max(...typedMatches.map((m: MatchResult) => m.confidence));
     
     // 4. Формируем итоговые рекомендации
     const suggestedPrices = extractSuggestedPrices(recommendations, confidenceLevel);
@@ -94,12 +105,12 @@ serve(async (req) => {
           ai_suggested_delivery_prices: suggestedPrices,
           ai_delivery_confidence: topConfidence,
           ai_delivery_reasoning: {
-            matches_found: matches.length,
-            search_queries: [title, brand, model].filter(Boolean),
+            matches_found: typedMatches.length,
+            search_queries: [title, brand, model].filter((q): q is string => Boolean(q)),
             price_distribution: priceDistribution,
             top_confidence: topConfidence,
             logic_type: logicType,
-            similar_products: matches.slice(0, 5).map(m => ({
+            similar_products: typedMatches.slice(0, 5).map((m: MatchResult) => ({
               id: m.product_id,
               title: m.title,
               price: m.delivery_price
@@ -125,12 +136,12 @@ serve(async (req) => {
       success: true,
       recommendations,
       reasoning: {
-        matches_found: matches.length,
-        search_queries: [title, brand, model].filter(Boolean),
+        matches_found: typedMatches.length,
+        search_queries: [title, brand, model].filter((q): q is string => Boolean(q)),
         price_distribution: priceDistribution,
         top_confidence: topConfidence,
         logic_type: logicType,
-        similar_products: matches.slice(0, 5).map(m => ({
+        similar_products: typedMatches.slice(0, 5).map((m: MatchResult) => ({
           id: m.product_id,
           title: m.title,
           price: m.delivery_price
@@ -148,10 +159,11 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('❌ Error in ai-delivery-analyze:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
         recommendations: [],
         suggested_prices: [],
         confidence_level: 'low' as const
