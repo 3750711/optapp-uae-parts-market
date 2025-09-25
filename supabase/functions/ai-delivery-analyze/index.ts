@@ -15,6 +15,15 @@ interface AnalyzeRequest {
   product_id?: string;
 }
 
+interface SearchMatch {
+  product_id: string;
+  title: string;
+  delivery_price: number;
+  confidence: number;
+  match_type: string;
+  reasoning: string;
+}
+
 interface PriceRecommendation {
   price: number;
   confidence: number;
@@ -64,7 +73,7 @@ serve(async (req) => {
       throw new Error(`Search function error: ${searchError.message}`);
     }
     
-    const matches = searchResult?.matches || [];
+    const matches: SearchMatch[] = searchResult?.matches || [];
     console.log(`📊 Found ${matches.length} matches for analysis`);
     
     if (matches.length === 0) {
@@ -78,7 +87,7 @@ serve(async (req) => {
     
     // 3. Определяем логику и создаём обоснование
     const logicType = determineLogicType(matches);
-    const topConfidence = Math.max(...matches.map(m => m.confidence));
+    const topConfidence = Math.max(...matches.map((m: SearchMatch) => m.confidence));
     
     // 4. Формируем итоговые рекомендации
     const suggestedPrices = extractSuggestedPrices(recommendations, confidenceLevel);
@@ -95,11 +104,11 @@ serve(async (req) => {
           ai_delivery_confidence: topConfidence,
           ai_delivery_reasoning: {
             matches_found: matches.length,
-            search_queries: [title, brand, model].filter(Boolean),
+            search_queries: [title, brand, model].filter((item): item is string => Boolean(item)),
             price_distribution: priceDistribution,
             top_confidence: topConfidence,
             logic_type: logicType,
-            similar_products: matches.slice(0, 5).map(m => ({
+            similar_products: matches.slice(0, 5).map((m: SearchMatch) => ({
               id: m.product_id,
               title: m.title,
               price: m.delivery_price
@@ -126,11 +135,11 @@ serve(async (req) => {
       recommendations,
       reasoning: {
         matches_found: matches.length,
-        search_queries: [title, brand, model].filter(Boolean),
+        search_queries: [title, brand, model].filter((item): item is string => Boolean(item)),
         price_distribution: priceDistribution,
         top_confidence: topConfidence,
         logic_type: logicType,
-        similar_products: matches.slice(0, 5).map(m => ({
+        similar_products: matches.slice(0, 5).map((m: SearchMatch) => ({
           id: m.product_id,
           title: m.title,
           price: m.delivery_price
@@ -148,10 +157,11 @@ serve(async (req) => {
     
   } catch (error) {
     console.error('❌ Error in ai-delivery-analyze:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
         recommendations: [],
         suggested_prices: [],
         confidence_level: 'low' as const
@@ -164,7 +174,7 @@ serve(async (req) => {
   }
 });
 
-function analyzePriceDistribution(matches: any[]): Record<string, number> {
+function analyzePriceDistribution(matches: SearchMatch[]): Record<string, number> {
   const distribution: Record<string, number> = {};
   
   for (const match of matches) {
@@ -177,7 +187,7 @@ function analyzePriceDistribution(matches: any[]): Record<string, number> {
 
 function generateRecommendations(
   priceDistribution: Record<string, number>, 
-  matches: any[]
+  matches: SearchMatch[]
 ): PriceRecommendation[] {
   const totalMatches = matches.length;
   const recommendations: PriceRecommendation[] = [];
@@ -209,7 +219,7 @@ function generateRecommendations(
 function calculatePriceConfidence(
   entry: { price: number; count: number; percentage: number },
   totalMatches: number,
-  matches: any[]
+  matches: SearchMatch[]
 ): number {
   let confidence = 0.3; // Базовый уровень
   
@@ -235,7 +245,7 @@ function calculatePriceConfidence(
 }
 
 function calculateOverallConfidence(
-  matches: any[], 
+  matches: SearchMatch[], 
   priceDistribution: Record<string, number>
 ): 'high' | 'medium' | 'low' {
   const totalMatches = matches.length;
@@ -264,7 +274,7 @@ function calculateOverallConfidence(
   return 'low';
 }
 
-function determineLogicType(matches: any[]): string {
+function determineLogicType(matches: SearchMatch[]): string {
   const matchTypes = matches.map(m => m.match_type);
   
   if (matchTypes.includes('exact_engine_code')) {
@@ -297,7 +307,7 @@ function extractSuggestedPrices(
 }
 
 function generateAnalysisSummary(
-  matches: any[], 
+  matches: SearchMatch[], 
   recommendations: PriceRecommendation[], 
   confidenceLevel: string
 ): string {

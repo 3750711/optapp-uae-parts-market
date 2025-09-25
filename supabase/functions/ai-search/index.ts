@@ -70,7 +70,7 @@ function extractBrandModel(query: string): { brand?: string, model?: string } {
   let detectedModel = '';
   
   // Find brand
-  for (const [brand, patterns] of Object.entries(brandPatterns)) {
+  for (const [brand, patterns] of Object.entries(brandPatterns as { [key: string]: string[] })) {
     if (patterns.some(pattern => lowerQuery.includes(pattern))) {
       detectedBrand = brand;
       break;
@@ -78,7 +78,7 @@ function extractBrandModel(query: string): { brand?: string, model?: string } {
   }
   
   // Find model
-  for (const [model, patterns] of Object.entries(modelPatterns)) {
+  for (const [model, patterns] of Object.entries(modelPatterns as { [key: string]: string[] })) {
     if (patterns.some(pattern => lowerQuery.includes(pattern))) {
       detectedModel = model;
       break;
@@ -107,14 +107,16 @@ function enhanceQuery(query: string): string {
   const { brand, model } = extractBrandModel(query);
   if (brand) {
     enhancedQuery += ` ${brand}`;
-    if (brandPatterns[brand]) {
-      enhancedQuery += ' ' + brandPatterns[brand].join(' ');
+    const brandPatternLookup = brandPatterns as { [key: string]: string[] };
+    if (brandPatternLookup[brand]) {
+      enhancedQuery += ' ' + brandPatternLookup[brand].join(' ');
     }
   }
   if (model) {
     enhancedQuery += ` ${model}`;
-    if (modelPatterns[model]) {
-      enhancedQuery += ' ' + modelPatterns[model].join(' ');
+    const modelPatternLookup = modelPatterns as { [key: string]: string[] };
+    if (modelPatternLookup[model]) {
+      enhancedQuery += ' ' + modelPatternLookup[model].join(' ');
     }
   }
   
@@ -142,17 +144,23 @@ function applyPostProcessingFilter(results: any[], query: string): any[] {
     let modelMatch = false;
     
     // Check brand match
-    if (brand && brandPatterns[brand]) {
-      brandMatch = brandPatterns[brand].some(pattern => 
-        resultBrand.includes(pattern) || pattern.includes(resultBrand)
-      );
+    if (brand) {
+      const brandPatternLookup = brandPatterns as { [key: string]: string[] };
+      if (brandPatternLookup[brand]) {
+        brandMatch = brandPatternLookup[brand].some((pattern: string) => 
+          resultBrand.includes(pattern) || pattern.includes(resultBrand)
+        );
+      }
     }
     
     // Check model match  
-    if (model && modelPatterns[model]) {
-      modelMatch = modelPatterns[model].some(pattern => 
-        resultModel.includes(pattern) || pattern.includes(resultModel)
-      );
+    if (model) {
+      const modelPatternLookup = modelPatterns as { [key: string]: string[] };
+      if (modelPatternLookup[model]) {
+        modelMatch = modelPatternLookup[model].some((pattern: string) => 
+          resultModel.includes(pattern) || pattern.includes(resultModel)
+        );
+      }
     }
     
     // Categorize results
@@ -375,7 +383,7 @@ serve(async (req) => {
     console.error('Error in ai-search function:', error);
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
