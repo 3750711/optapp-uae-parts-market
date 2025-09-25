@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,16 +37,35 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Отправка email с кодом:', verification_code, 'на:', email);
 
-    // Создаем клиент Resend
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    // Отправляем email с помощью Resend API
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY not found");
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: "Email service not configured" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
 
     // Отправляем email с кодом
     try {
-      const emailResponse = await resend.emails.send({
-        from: "PartsBay.ae <noreply@partsbay.ae>",
-        to: [email],
-        subject: "Код подтверждения email - PartsBay.ae",
-        html: `
+      const emailResponse = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: "PartsBay.ae <noreply@partsbay.ae>",
+          to: [email],
+          subject: "Код подтверждения email - PartsBay.ae",
+          html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
               <h1 style="color: #f59e0b; margin: 0;">PartsBay.ae</h1>
@@ -77,15 +95,23 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
           </div>
         `,
+        })
       });
 
-      console.log("Email sent successfully:", emailResponse);
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.text();
+        console.error("Resend API error:", errorData);
+        throw new Error(`Failed to send email: ${emailResponse.status}`);
+      }
+
+      const responseData = await emailResponse.json();
+      console.log("Email sent successfully:", responseData);
 
       return new Response(
         JSON.stringify({
           success: true,
           message: `Код подтверждения отправлен на ${email}`,
-          email_id: emailResponse.data?.id
+          email_id: responseData.id
         }),
         {
           status: 200,
