@@ -52,6 +52,56 @@ const StandardSellerForm = () => {
     warningMessage: "Создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
   });
 
+  // P1-1: Autosave draft to localStorage
+  React.useEffect(() => {
+    if (formData.title || formData.description || formData.price || imageUrls.length > 0) {
+      const draft = { 
+        ...formData, 
+        imageUrls, 
+        primaryImage,
+        timestamp: Date.now() 
+      };
+      try {
+        localStorage.setItem('seller-product-draft', JSON.stringify(draft));
+        console.log('💾 Draft saved to localStorage');
+      } catch (error) {
+        console.warn('Failed to save draft:', error);
+      }
+    }
+  }, [formData.title, formData.description, formData.price, imageUrls, primaryImage]);
+
+  // P1-1: Restore draft on component mount
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem('seller-product-draft');
+      if (saved) {
+        const draft = JSON.parse(saved);
+        // Restore only if younger than 24 hours
+        if (Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) {
+          setDisplayData({
+            title: draft.title || "",
+            price: draft.price || "",
+            description: draft.description || ""
+          });
+          if (draft.imageUrls?.length) {
+            setImageUrls(draft.imageUrls);
+          }
+          if (draft.primaryImage) {
+            setPrimaryImage(draft.primaryImage);
+          }
+          console.log('📦 Draft restored from localStorage');
+        } else {
+          // Remove expired draft
+          localStorage.removeItem('seller-product-draft');
+          console.log('🗑️ Expired draft removed');
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to restore draft:', error);
+      localStorage.removeItem('seller-product-draft'); // Remove corrupted draft
+    }
+  }, []);
+
   const updateForm = (field: keyof typeof displayData, value: string) => {
     setDisplayData(prev => ({ ...prev, [field]: value }));
   };
@@ -165,6 +215,14 @@ const StandardSellerForm = () => {
           imageUrls,
           primaryImage
         });
+
+        // P1-1: Clear draft after successful creation
+        try {
+          localStorage.removeItem('seller-product-draft');
+          console.log('🗑️ Draft cleared after successful product creation');
+        } catch (error) {
+          console.warn('Failed to clear draft:', error);
+        }
 
         navigate(`/seller/product/${productId}?from=add`);
         

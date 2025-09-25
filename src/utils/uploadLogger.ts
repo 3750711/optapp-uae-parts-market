@@ -29,7 +29,7 @@ export function resetTraceId(): void {
   currentTraceId = null;
 }
 
-// Fire-and-forget logging function
+// P1-2: Fire-and-forget logging function with retry logic
 export async function logUploadEvent(
   event: LogEvent, 
   options: { 
@@ -39,35 +39,58 @@ export async function logUploadEvent(
 ): Promise<void> {
   console.log('🔍 Starting upload log event:', { context: options.context, event });
   
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.warn('📝 Upload log skipped: no user session');
-      return;
+  const maxRetries = 2;
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.warn('📝 Upload log skipped: no user session');
+        return;
+      }
+
+      const eventWithUser = {
+        ...event,
+        user_id: user.id,
+        product_id: options.product_id || event.product_id,
+        trace_id: event.trace_id || getTraceId(),
+        context: options.context
+      };
+
+      console.log('📤 Sending upload log to Edge function:', { context: options.context, userId: user.id });
+
+      // Use the new universal ingest function
+      const { data, error } = await supabase.functions.invoke('ingest-product-upload', {
+        body: { events: [eventWithUser] }
+      });
+
+      if (error) {
+        console.error(`❌ Upload log error (attempt ${attempt + 1}):`, error.message || error);
+        lastError = error;
+        
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s, 4s
+          console.log(`🔄 Retrying upload log in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+      } else {
+        console.log('✅ Upload log sent successfully for context:', options.context);
+        return; // Success, exit retry loop
+      }
+    } catch (error) {
+      console.error(`💥 Upload log failed (attempt ${attempt + 1}):`, error instanceof Error ? error.message : 'Unknown error');
+      lastError = error;
+      
+      if (attempt < maxRetries) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`🔄 Retrying upload log in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-
-    const eventWithUser = {
-      ...event,
-      user_id: user.id,
-      product_id: options.product_id || event.product_id,
-      trace_id: event.trace_id || getTraceId(),
-      context: options.context
-    };
-
-    console.log('📤 Sending upload log to Edge function:', { context: options.context, userId: user.id });
-
-    // Use the new universal ingest function
-    const { data, error } = await supabase.functions.invoke('ingest-product-upload', {
-      body: { events: [eventWithUser] }
-    });
-
-    if (error) {
-      console.error('❌ Upload log error:', error.message || error);
-    } else {
-      console.log('✅ Upload log sent successfully for context:', options.context);
-    }
-  } catch (error) {
-    console.error('💥 Upload log failed:', error instanceof Error ? error.message : 'Unknown error');
   }
+  
+  console.error('❌ Upload log failed after all retries:', lastError);
 }

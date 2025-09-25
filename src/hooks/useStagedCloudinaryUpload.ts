@@ -639,6 +639,11 @@ export const useStagedCloudinaryUpload = () => {
     signal?: AbortSignal,
     retryCount = 0
   ): Promise<{ url: string; publicId: string }> => {
+    // P0-2: Check abort before starting
+    if (signal?.aborted) {
+      throw new DOMException('Upload cancelled before start', 'AbortError');
+    }
+    
     // Convert file to base64 for transmission
     const fileToBase64 = (file: File): Promise<string> => {
       return new Promise((resolve, reject) => {
@@ -698,6 +703,11 @@ export const useStagedCloudinaryUpload = () => {
       const fileBase64 = await fileToBase64(file);
       console.log(`📤 File conversion complete: ${file.name}, base64 length: ${fileBase64.length}`);
       
+      // P0-2: Check abort after conversion
+      if (signal?.aborted) {
+        throw new DOMException('Upload cancelled after conversion', 'AbortError');
+      }
+      
       // Get runtime config and user token
       const config = getRuntimeConfig();
       const userToken = await getUserToken();
@@ -716,6 +726,11 @@ export const useStagedCloudinaryUpload = () => {
       console.log(`📝 Request body keys: [${Object.keys(requestBody).join(', ')}]`);
 
       const idempotencyKey = `upload_${publicId}_${Date.now()}`;
+
+      // P0-2: Check abort before network request
+      if (signal?.aborted) {
+        throw new DOMException('Upload cancelled before request', 'AbortError');
+      }
 
       const { data: response, error: functionError } = await supabase.functions.invoke('cloudinary-upload', {
         body: requestBody,
@@ -871,6 +886,12 @@ export const useStagedCloudinaryUpload = () => {
   // Upload files to staging with optimized architecture
   const uploadFiles = useCallback(async (files: File[]): Promise<string[]> => {
     if (files.length === 0) return [];
+    
+    // P0-1: Prevent duplicate uploads
+    if (isUploading) {
+      console.warn('Upload already in progress, ignoring duplicate call');
+      return [];
+    }
     
     setIsUploading(true);
     createController(); // Create new controller for this upload batch
