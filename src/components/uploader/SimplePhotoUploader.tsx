@@ -33,6 +33,16 @@ export default function SimplePhotoUploader({
   const hasItems = items.length > 0;
   const hasReachedLimit = completedCount >= max;
   
+  // DEBUG: Log component state
+  console.log('🔍 SimplePhotoUploader state:', {
+    hasItems,
+    hasReachedLimit,
+    completedCount,
+    itemsLength: items.length,
+    max,
+    buttonVisible: (!hasItems || !hasReachedLimit)
+  });
+  
   // Get localized button text with fallback
   const uploadButtonText = buttonText || t.media.uploadPhotos;
   const addMoreText = t.media.addMorePhotos;
@@ -89,6 +99,7 @@ export default function SimplePhotoUploader({
   }, [items, imageOrientations]);
 
   const onPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('🔵 onPick triggered with files:', (event.target.files || []).length);
     const files = Array.from(event.target.files || []);
     
     if (files.length > 0) {
@@ -141,7 +152,21 @@ export default function SimplePhotoUploader({
     event.target.value = '';
   };
 
-  const handleAddMore = () => fileInputRef.current?.click();
+  const handleAddMore = () => {
+    console.log('🔵 handleAddMore clicked!');
+    console.log('🔍 fileInputRef.current:', fileInputRef.current);
+    try {
+      if (fileInputRef.current) {
+        console.log('🔵 Attempting to click file input...');
+        fileInputRef.current.click();
+        console.log('✅ File input clicked successfully');
+      } else {
+        console.error('❌ fileInputRef.current is null!');
+      }
+    } catch (error) {
+      console.error('❌ Error clicking file input:', error);
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -163,7 +188,8 @@ export default function SimplePhotoUploader({
                 ${hasReachedLimit 
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:bg-accent/50 active:scale-[.99]'
-                }`}
+                }
+                !border-4 !border-red-500 !bg-yellow-200 !text-black !z-[9999] relative pointer-events-auto`}
               title={hasItems 
                 ? t.media?.hints?.batchUploadTip || addMoreText
                 : t.media?.hints?.supportedFormats || uploadButtonText
