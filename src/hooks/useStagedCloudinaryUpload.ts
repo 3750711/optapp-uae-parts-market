@@ -996,7 +996,7 @@ export const useStagedCloudinaryUpload = () => {
               original_size: item.originalSize,
               compressed_size: item.compressedSize,
               compression_ratio: compressionRatio
-            }).catch(error => {
+            }, { context: 'seller_product' }).catch(error => {
               console.error('🚨 Upload success logging failed for HEIC file:', item.file.name, error);
             });
             
@@ -1077,7 +1077,7 @@ export const useStagedCloudinaryUpload = () => {
             original_size: item.originalSize,
             compressed_size: item.compressedSize,
             compression_ratio: compressionRatio
-          }).catch(error => {
+          }, { context: 'seller_product' }).catch(error => {
             console.error('🚨 Upload success logging failed for file:', item.file.name, error);
           });
           
@@ -1098,7 +1098,7 @@ export const useStagedCloudinaryUpload = () => {
             error_details: error instanceof Error ? error.message : 'Upload failed',
             original_size: item.originalSize,
             compressed_size: item.compressedSize
-          }).catch(logError => {
+          }, { context: 'seller_product' }).catch(logError => {
             console.error('🚨 Upload error logging failed for file:', item.file.name, logError);
           });
         }

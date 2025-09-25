@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface LogEvent {
   user_id?: string;
+  product_id?: string;
   order_id?: string;
   file_url?: string;
   method?: string;
@@ -29,8 +30,14 @@ export function resetTraceId(): void {
 }
 
 // Fire-and-forget logging function
-export async function logUploadEvent(event: LogEvent): Promise<void> {
-  console.log('🔍 Starting upload log event:', event);
+export async function logUploadEvent(
+  event: LogEvent, 
+  options: { 
+    context: 'free_order' | 'seller_product' | 'admin_product';
+    product_id?: string;
+  }
+): Promise<void> {
+  console.log('🔍 Starting upload log event:', { context: options.context, event });
   
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -40,34 +47,27 @@ export async function logUploadEvent(event: LogEvent): Promise<void> {
       return;
     }
 
-    console.log('👤 User found for logging:', { id: user.id, email: user.email });
-
     const eventWithUser = {
       ...event,
       user_id: user.id,
-      trace_id: event.trace_id || getTraceId()
+      product_id: options.product_id || event.product_id,
+      trace_id: event.trace_id || getTraceId(),
+      context: options.context
     };
 
-    console.log('📤 Sending upload log to Edge function:', eventWithUser);
+    console.log('📤 Sending upload log to Edge function:', { context: options.context, userId: user.id });
 
-    // Use supabase functions invoke instead of direct HTTP calls
-    const { data, error } = await supabase.functions.invoke('ingest-free-order-upload', {
+    // Use the new universal ingest function
+    const { data, error } = await supabase.functions.invoke('ingest-product-upload', {
       body: { events: [eventWithUser] }
     });
 
     if (error) {
-      console.error('❌ Upload log error:', error);
-      // For debugging, let's see more details
-      console.error('Error details:', JSON.stringify(error, null, 2));
-      throw error; // Temporarily throw to see the actual error
+      console.error('❌ Upload log error:', error.message || error);
     } else {
-      console.log('✅ Upload log sent successfully:', { eventWithUser, response: data });
+      console.log('✅ Upload log sent successfully for context:', options.context);
     }
   } catch (error) {
-    // For debugging, let's see the actual errors instead of silently failing
-    console.error('💥 Upload log failed:', error);
-    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
-    // Temporarily comment out silent fail for debugging
-    // throw error;
+    console.error('💥 Upload log failed:', error instanceof Error ? error.message : 'Unknown error');
   }
 }

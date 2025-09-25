@@ -129,6 +129,12 @@ verify_jwt = false
 [functions.ai-enrich-product]
 verify_jwt = false
 
+[functions.ingest-free-order-upload]
+verify_jwt = false
+
+[functions.ingest-product-upload]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
