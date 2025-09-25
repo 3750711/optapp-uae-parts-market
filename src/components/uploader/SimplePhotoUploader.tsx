@@ -167,20 +167,14 @@ export default function SimplePhotoUploader({
                   : 'hover:bg-accent/50 active:scale-[.99]'
                 }
                 file:hidden`}
-              title={hasItems 
-                ? t.media?.hints?.batchUploadTip || addMoreText
-                : t.media?.hints?.supportedFormats || uploadButtonText
+               title={hasItems 
+                ? addMoreText
+                : `${uploadButtonText} (${t.media?.hints?.supportedFormats || 'JPG, PNG, WEBP'})`
               }
             />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               {hasItems ? addMoreText : uploadButtonText}
             </div>
-            {/* Helpful tooltip */}
-            {!hasItems && (
-              <div className="absolute top-full mt-1 left-0 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                {t.media?.hints?.dragDropTip || 'Drag files here or click to browse'}
-              </div>
-            )}
           </div>
         )}
 
