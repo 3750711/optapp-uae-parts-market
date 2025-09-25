@@ -59,10 +59,23 @@ const SellerOrderRedirect = lazy(() => import('@/components/routing/SellerOrderR
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const Favorites = lazy(() => import('@/pages/Favorites'));
 
-// Lazy loaded продавецкие страницы
-const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
+// P2-1: Lazy loaded продавецкие страницы с предзагрузкой критических маршрутов
+const SellerDashboard = lazy(() => 
+  import('@/pages/SellerDashboard').then(module => {
+    // Предзагрузить следующий вероятный маршрут
+    import('@/pages/SellerAddProduct');
+    return module;
+  })
+);
 const SellerListings = lazy(() => import('@/pages/SellerListings'));
-const SellerAddProduct = lazy(() => import('@/pages/SellerAddProduct'));
+const SellerAddProduct = lazy(() => 
+  import('@/pages/SellerAddProduct').then(module => {
+    // Предзагрузить форму и компоненты загрузки
+    import('@/components/seller/StandardSellerForm');
+    import('@/components/uploader/SimplePhotoUploader');
+    return module;
+  })
+);
 const SellerOrders = lazy(() => import('@/pages/SellerOrders'));
 const SellerOrderDetails = lazy(() => import('@/pages/SellerOrderDetails'));
 const SellerCreateOrder = lazy(() => import('@/pages/SellerCreateOrder'));

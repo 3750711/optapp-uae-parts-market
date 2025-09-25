@@ -12,6 +12,34 @@ import { AppInitializer } from './components/AppInitializer';
 
 import './index.css';
 
+// P2-2: Performance monitoring для измерения эффективности оптимизаций
+if ('performance' in window) {
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      try {
+        const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+        const paint = performance.getEntriesByType('paint');
+        
+        console.log('📊 [Performance] Page Load Time:', navigation.loadEventEnd - navigation.fetchStart, 'ms');
+        paint.forEach(entry => {
+          console.log(`📊 [Performance] ${entry.name}:`, entry.startTime, 'ms');
+        });
+        
+        // Log LCP if available
+        if ('LargestContentfulPaint' in window) {
+          new PerformanceObserver((entryList) => {
+            const entries = entryList.getEntries();
+            const lastEntry = entries[entries.length - 1];
+            console.log('📊 [Performance] LCP:', lastEntry.startTime, 'ms');
+          }).observe({entryTypes: ['largest-contentful-paint']});
+        }
+      } catch (error) {
+        console.warn('Performance monitoring failed:', error);
+      }
+    }, 0);
+  });
+}
+
 // Log successful module loading for diagnostics
 console.log('✅ Main modules loaded successfully');
 console.log('📦 Module loading diagnostics:', {

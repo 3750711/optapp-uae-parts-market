@@ -36,15 +36,25 @@ const StandardSellerForm = () => {
   const debouncedPrice = useDebounce(displayData.price, 300);
   const debouncedDescription = useDebounce(displayData.description, 300);
   
-  const formData = {
+  // P0-1: Мемоизированные данные формы для предотвращения лишних ре-рендеров
+  const formData = useMemo(() => ({
     title: debouncedTitle,
     price: debouncedPrice,
     description: debouncedDescription
-  };
+  }), [debouncedTitle, debouncedPrice, debouncedDescription]);
+
   
   const [isSubmitting] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [primaryImage, setPrimaryImage] = useState("");
+
+  // P0-1: Мемоизированная валидация формы  
+  const isFormValid = useMemo(() => {
+    return formData.title.trim() && 
+           formData.price && 
+           Number(formData.price) > 0 && 
+           imageUrls.length > 0;
+  }, [formData.title, formData.price, imageUrls.length]);
 
   // Upload protection hook
   useSellerUploadProtection({

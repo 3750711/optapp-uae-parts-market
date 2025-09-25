@@ -417,45 +417,58 @@ export const useStagedCloudinaryUpload = () => {
     return newSessionId;
   }, [sessionId]);
 
-  // Get batch Cloudinary signatures using public cloudinary-sign function
+  // P1-1: Get batch Cloudinary signatures with optimized batching
   const getBatchSignatures = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
     console.log(`🔐 Requesting Cloudinary signatures for ${publicIds.length} specific IDs, session: ${currentSessionId}`);
     
-    // Use Promise.all to call cloudinary-sign for each publicId in parallel
-    const signaturePromises = publicIds.map(async (publicId) => {
-      const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
-        body: JSON.stringify({ sessionId: currentSessionId }),
-        headers: {
-          'content-type': 'application/json'
+    // P1-1: Optimal batch size for mobile networks 
+    const OPTIMAL_BATCH_SIZE = 12;
+    const chunks = [];
+    for (let i = 0; i < publicIds.length; i += OPTIMAL_BATCH_SIZE) {
+      chunks.push(publicIds.slice(i, i + OPTIMAL_BATCH_SIZE));
+    }
+    
+    // Process batches in parallel with limited concurrency
+    const allSignatures: CloudinarySignature[] = [];
+    
+    for (const chunk of chunks) {
+      const signaturePromises = chunk.map(async (publicId) => {
+        const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
+          body: JSON.stringify({ sessionId: currentSessionId }),
+          headers: {
+            'content-type': 'application/json'
+          }
+        });
+        
+        if (error) {
+          console.error(`❌ Signature request failed for ${publicId}:`, error);
+          throw new Error(error.message || 'Signature request failed');
         }
+        
+        if (!data?.success || !data?.data) {
+          console.error(`❌ Invalid signature response for ${publicId}:`, data);
+          throw new Error('Invalid signature response');
+        }
+        
+        return data.data;
       });
       
-      if (error) {
-        console.error(`❌ Signature request failed for ${publicId}:`, error);
-        throw new Error(error.message || 'Signature request failed');
-      }
-      
-      if (!data?.success || !data?.data) {
-        console.error(`❌ Invalid signature response for ${publicId}:`, data);
-        throw new Error('Invalid signature response');
-      }
-      
-      return data.data;
-    });
+      const chunkSignatures = await Promise.all(signaturePromises);
+      allSignatures.push(...chunkSignatures);
+    }
     
-    const signatures = await Promise.all(signaturePromises);
-    console.log(`✅ Received ${signatures.length} signatures (requested ${publicIds.length})`);
+    console.log(`✅ Received ${allSignatures.length} signatures (requested ${publicIds.length})`);
     
     // Validate each signature has required fields
-    for (let i = 0; i < signatures.length; i++) {
-      const sig = signatures[i];
+    for (let i = 0; i < allSignatures.length; i++) {
+      const sig = allSignatures[i];
       if (!sig || !sig.api_key || !sig.signature || !sig.timestamp || !sig.public_id) {
         console.error(`❌ Invalid signature at index ${i}:`, sig);
         throw new Error(`Invalid signature data at index ${i}`);
       }
     }
     
-    return signatures;
+    return allSignatures;
   }, []);
 
   // Get single Cloudinary signature using public cloudinary-sign function
@@ -732,10 +745,12 @@ export const useStagedCloudinaryUpload = () => {
         throw new DOMException('Upload cancelled before request', 'AbortError');
       }
 
+      // P1-2: Connection pooling with keep-alive and idempotency
       const { data: response, error: functionError } = await supabase.functions.invoke('cloudinary-upload', {
         body: requestBody,
         signal: signal || getSignal(),
         headers: {
+          'Connection': 'keep-alive', // Reuse connections for multiple uploads
           'Idempotency-Key': idempotencyKey
         }
       });
