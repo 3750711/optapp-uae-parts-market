@@ -107,14 +107,14 @@ function enhanceQuery(query: string): string {
   const { brand, model } = extractBrandModel(query);
   if (brand) {
     enhancedQuery += ` ${brand}`;
-    if (brandPatterns[brand]) {
-      enhancedQuery += ' ' + brandPatterns[brand].join(' ');
+    if ((brandPatterns as any)[brand]) {
+      enhancedQuery += ' ' + (brandPatterns as any)[brand].join(' ');
     }
   }
   if (model) {
     enhancedQuery += ` ${model}`;
-    if (modelPatterns[model]) {
-      enhancedQuery += ' ' + modelPatterns[model].join(' ');
+    if ((modelPatterns as any)[model]) {
+      enhancedQuery += ' ' + (modelPatterns as any)[model].join(' ');
     }
   }
   
@@ -142,15 +142,15 @@ function applyPostProcessingFilter(results: any[], query: string): any[] {
     let modelMatch = false;
     
     // Check brand match
-    if (brand && brandPatterns[brand]) {
-      brandMatch = brandPatterns[brand].some(pattern => 
+    if (brand && (brandPatterns as any)[brand]) {
+      brandMatch = (brandPatterns as any)[brand].some((pattern: string) => 
         resultBrand.includes(pattern) || pattern.includes(resultBrand)
       );
     }
     
     // Check model match  
-    if (model && modelPatterns[model]) {
-      modelMatch = modelPatterns[model].some(pattern => 
+    if (model && (modelPatterns as any)[model]) {
+      modelMatch = (modelPatterns as any)[model].some((pattern: string) => 
         resultModel.includes(pattern) || pattern.includes(resultModel)
       );
     }
@@ -375,7 +375,7 @@ serve(async (req) => {
     console.error('Error in ai-search function:', error);
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message 
+      error: (error as Error).message || 'Unknown error' 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

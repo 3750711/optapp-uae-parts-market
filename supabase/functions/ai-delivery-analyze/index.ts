@@ -78,7 +78,7 @@ serve(async (req) => {
     
     // 3. Определяем логику и создаём обоснование
     const logicType = determineLogicType(matches);
-    const topConfidence = Math.max(...matches.map(m => m.confidence));
+    const topConfidence = Math.max(...matches.map((m: any) => m.confidence));
     
     // 4. Формируем итоговые рекомендации
     const suggestedPrices = extractSuggestedPrices(recommendations, confidenceLevel);
@@ -95,11 +95,11 @@ serve(async (req) => {
           ai_delivery_confidence: topConfidence,
           ai_delivery_reasoning: {
             matches_found: matches.length,
-            search_queries: [title, brand, model].filter(Boolean),
+        search_queries: ([title, brand, model].filter(Boolean) as string[]),
             price_distribution: priceDistribution,
             top_confidence: topConfidence,
             logic_type: logicType,
-            similar_products: matches.slice(0, 5).map(m => ({
+            similar_products: matches.slice(0, 5).map((m: any) => ({
               id: m.product_id,
               title: m.title,
               price: m.delivery_price
@@ -126,11 +126,11 @@ serve(async (req) => {
       recommendations,
       reasoning: {
         matches_found: matches.length,
-        search_queries: [title, brand, model].filter(Boolean),
+        search_queries: ([title, brand, model].filter(Boolean) as string[]),
         price_distribution: priceDistribution,
         top_confidence: topConfidence,
         logic_type: logicType,
-        similar_products: matches.slice(0, 5).map(m => ({
+        similar_products: matches.slice(0, 5).map((m: any) => ({
           id: m.product_id,
           title: m.title,
           price: m.delivery_price
@@ -151,7 +151,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: (error as Error).message || 'Unknown error',
         recommendations: [],
         suggested_prices: [],
         confidence_level: 'low' as const

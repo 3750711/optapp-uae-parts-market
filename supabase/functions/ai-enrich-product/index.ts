@@ -176,7 +176,7 @@ serve(async (req) => {
           console.error('❌ Failed to extract rules:', rulesError);
           return new Response(JSON.stringify({ 
             success: false, 
-            error: rulesError.message 
+            error: (rulesError as Error).message || 'Failed to extract rules' 
           }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -256,7 +256,7 @@ ${translationRules.map(rule =>
 
     // Группируем модели по брендам для лучшего контекста
     const brandsWithModels = brands?.map(brand => {
-      const brandModels = models?.filter(m => m.car_brands?.name === brand.name);
+      const brandModels = models?.filter((m: any) => m.car_brands?.name === brand.name);
       return `${brand.name}: ${brandModels?.map(m => m.name).join(', ') || 'нет моделей'}`;
     }).join('\n') || '';
     
@@ -462,7 +462,7 @@ JSON ответ:
     
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: (error as Error).message || 'Unknown error',
         details: 'AI enrichment failed' 
       }), 
       {
