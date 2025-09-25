@@ -216,7 +216,7 @@ serve(async (req) => {
     console.error('❌ Error in ai-delivery-search:', error);
     return new Response(
       JSON.stringify({ 
-        error: (error as Error).message || 'Unknown error',
+        error: error.message,
         matches: [],
         total_found: 0,
         search_time_ms: Math.round(performance.now() - startTime)

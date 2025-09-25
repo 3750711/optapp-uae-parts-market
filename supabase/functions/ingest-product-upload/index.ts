@@ -1,4 +1,3 @@
-// Force redeploy: 2025-09-25T10:30:00Z - Fixed JSR dependency conflicts
 import { createServiceClient } from '../_shared/client.ts';
 
 const corsHeaders = {
