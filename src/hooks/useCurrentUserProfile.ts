@@ -57,7 +57,12 @@ export const useCurrentUserProfile = () => {
         console.log('🚫 Permission error, not retrying');
         return false;
       }
-      return failureCount < 5; // Увеличить до 5 попыток
+      return failureCount < 3; // Ограничить до 3 попыток
+    },
+    retryDelay: (attemptIndex) => {
+      // Экспоненциальная задержка: 500ms → 1000ms → 2000ms
+      const delays = [500, 1000, 2000];
+      return delays[attemptIndex - 1] ?? 2000;
     },
   });
 };

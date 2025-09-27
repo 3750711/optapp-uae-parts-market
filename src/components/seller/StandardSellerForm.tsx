@@ -9,6 +9,7 @@ import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useStandardSellerProductCreation } from "@/hooks/useStandardSellerProductCreation";
+import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useSellerUploadProtection } from "@/hooks/useSellerUploadProtection";
 import { logger } from "@/utils/logger";
@@ -18,14 +19,16 @@ const StandardSellerForm = () => {
   const { toast } = useToast();
   const { language } = useLanguage();
   const { createStandardSellerProduct, isCreating, currentUserProfile, isProfileLoading } = useStandardSellerProductCreation();
+  const { refetch: refetchProfile } = useCurrentUserProfile();
   const { guardedSubmit, canSubmit } = useSubmissionGuard({ 
     timeout: 3000,
     onDuplicateSubmit: () => logger.warn('⚠️ Duplicate submission attempt blocked')
   });
 
   // Profile loading timeout state
-  const [profileTimeout, setProfileTimeout] = useState(false);
+  const [profileTimeout, setProfileTimeout] = useState(false);  
   const [showProfileWarning, setShowProfileWarning] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Profile loading timeout logic
   useEffect(() => {
@@ -75,6 +78,25 @@ const StandardSellerForm = () => {
            Number(formData.price) > 0 && 
            imageUrls.length > 0;
   }, [formData.title, formData.price, imageUrls.length]);
+
+  // Упрощенная логика состояния Submit кнопки
+  const getSubmitState = useMemo(() => {
+    const isFormBlocked = isCreating || !canSubmit;
+    const isFormIncomplete = !isFormValid;
+    const isProfileBlocked = isProfileLoading && !profileTimeout;
+    const allowWithoutProfile = showProfileWarning && !currentUserProfile;
+    
+    return {
+      disabled: isFormBlocked || isFormIncomplete || isProfileBlocked,
+      text: isProfileLoading && !profileTimeout
+        ? "Загрузка профиля..." 
+        : isCreating 
+          ? t.buttons.publishing 
+          : allowWithoutProfile
+            ? "Отправить без профиля" 
+            : t.buttons.publish
+    };
+  }, [isCreating, canSubmit, isFormValid, isProfileLoading, profileTimeout, showProfileWarning, currentUserProfile, t.buttons]);
 
   // Upload protection hook
   useSellerUploadProtection({
@@ -177,6 +199,23 @@ const StandardSellerForm = () => {
   const handleSetPrimaryImage = useCallback((url: string) => {
     setPrimaryImage(url);
   }, []);
+
+  const handleRetryProfile = useCallback(async () => {
+    if (retryCount >= 3) return;
+    
+    setRetryCount(prev => prev + 1);
+    setProfileTimeout(false);
+    setShowProfileWarning(false);
+    
+    logger.log(`🔄 Retry profile loading attempt ${retryCount + 1}/3`);
+    
+    try {
+      await refetchProfile();
+    } catch (error) {
+      logger.error('❌ Profile retry failed:', error);
+      // Toast будет показан автоматически через react-query retry логику
+    }
+  }, [retryCount, refetchProfile]);
 
   // Handle photo uploads from SimplePhotoUploader
   const onPhotoUpload = useCallback((completedUrls: string[]) => {
@@ -337,7 +376,16 @@ const StandardSellerForm = () => {
       {showProfileWarning && (
         <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-3 rounded mb-4">
           <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ⚠️ Профиль загружается дольше обычного. Можете попробовать отправить форму или обновить страницу.
+            ⚠️ Профиль загружается дольше обычного. 
+            {retryCount < 3 && (
+              <button 
+                type="button"
+                onClick={handleRetryProfile}
+                className="ml-2 underline hover:no-underline"
+              >
+                Повторить попытку ({retryCount}/3)
+              </button>
+            )}
           </p>
         </div>
       )}
@@ -350,18 +398,11 @@ const StandardSellerForm = () => {
       
       <Button
         type="submit"
-        disabled={isCreating || (isProfileLoading && !profileTimeout) || (!currentUserProfile && !showProfileWarning) || !canSubmit}
+        disabled={getSubmitState.disabled}
         className="w-full"
         size="lg"
       >
-        {isProfileLoading && !profileTimeout
-          ? "Загрузка профиля..." 
-          : isCreating 
-            ? t.buttons.publishing 
-            : showProfileWarning && !currentUserProfile
-              ? "Отправить без профиля" 
-              : t.buttons.publish
-        }
+        {getSubmitState.text}
       </Button>
     </form>
   );
