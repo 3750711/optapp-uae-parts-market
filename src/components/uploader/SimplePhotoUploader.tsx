@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { useUploadUIAdapter } from "./useUploadUIAdapter";
+import { useMobileLayout } from "@/hooks/useMobileLayout";
 import { Lang } from "@/types/i18n";
 import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 import { validateUploadFile } from "@/utils/fileValidation";
@@ -22,6 +23,7 @@ export default function SimplePhotoUploader({
   language = 'ru',
 }: Props) {
   const { items, uploadFiles, removeItem, retryItem } = useUploadUIAdapter({ max, onChange, onComplete });
+  const { isMobile, shouldUseMobileLayout } = useMobileLayout();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const t = getSellerPagesTranslations(language);
   
@@ -161,7 +163,7 @@ export default function SimplePhotoUploader({
               multiple
               onChange={onPick}
               disabled={hasReachedLimit}
-              className={`w-full sm:w-auto h-12 px-4 rounded-xl border border-border transition text-sm sm:text-base bg-background text-foreground cursor-pointer
+              className={`w-full ${isMobile ? 'h-14' : 'sm:w-auto h-12'} px-4 rounded-xl border border-border transition text-sm sm:text-base bg-background text-foreground cursor-pointer
                 ${hasReachedLimit 
                   ? 'opacity-50 cursor-not-allowed' 
                   : 'hover:bg-accent/50 active:scale-[.99]'
@@ -173,7 +175,14 @@ export default function SimplePhotoUploader({
               }
             />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              {hasItems ? addMoreText : uploadButtonText}
+              <span className={`${isMobile ? 'text-base font-medium' : 'text-sm sm:text-base'} text-center`}>
+                {hasItems ? addMoreText : uploadButtonText}
+                {isMobile && (
+                  <span className="block text-xs text-muted-foreground mt-1">
+                    {photoCountText}
+                  </span>
+                )}
+              </span>
             </div>
           </div>
         )}
