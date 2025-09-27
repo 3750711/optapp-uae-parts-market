@@ -51,6 +51,8 @@ export function useSellerUploadProtection({
   useEffect(() => {
     if (!isUploading) return;
 
+    const initialState = { uploadProtection: true, timestamp: Date.now() };
+    
     const onPopState = (e: PopStateEvent) => {
       if (isUploading) {
         logger.log('🔙 Back navigation during upload - showing confirmation');
@@ -58,7 +60,7 @@ export function useSellerUploadProtection({
         const shouldLeave = window.confirm(warningMessage);
         if (!shouldLeave) {
           // Push current state back to prevent navigation
-          window.history.pushState(null, '', window.location.href);
+          window.history.pushState(initialState, '', window.location.href);
         }
       }
     };
@@ -66,10 +68,20 @@ export function useSellerUploadProtection({
     window.addEventListener('popstate', onPopState);
     
     // Push initial state to enable popstate detection
-    window.history.pushState(null, '', window.location.href);
+    window.history.pushState(initialState, '', window.location.href);
     
     return () => {
       window.removeEventListener('popstate', onPopState);
+      
+      // Cleanup: Only restore if we're still on our protected state
+      try {
+        if (window.history.state?.uploadProtection && 
+            window.history.state?.timestamp === initialState.timestamp) {
+          window.history.back();
+        }
+      } catch (error) {
+        logger.warn('⚠️ History cleanup failed:', error);
+      }
     };
   }, [isUploading, warningMessage]);
 

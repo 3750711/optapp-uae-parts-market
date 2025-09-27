@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,26 @@ const StandardSellerForm = () => {
     timeout: 3000,
     onDuplicateSubmit: () => logger.warn('⚠️ Duplicate submission attempt blocked')
   });
+
+  // Profile loading timeout state
+  const [profileTimeout, setProfileTimeout] = useState(false);
+  const [showProfileWarning, setShowProfileWarning] = useState(false);
+
+  // Profile loading timeout logic
+  useEffect(() => {
+    if (isProfileLoading) {
+      const timer = setTimeout(() => {
+        setProfileTimeout(true);
+        setShowProfileWarning(true);
+        logger.warn('⏱️ Profile loading timeout after 10 seconds');
+      }, 10000); // 10 seconds timeout
+
+      return () => clearTimeout(timer);
+    } else {
+      setProfileTimeout(false);
+      setShowProfileWarning(false);
+    }
+  }, [isProfileLoading]);
   
   const t = getFormTranslations(language);
   const c = getCommonTranslations(language);
@@ -169,14 +189,27 @@ const StandardSellerForm = () => {
     await guardedSubmit(async () => {
       logger.debug('📝 Standard seller form submission started');
       
-      // КРИТИЧНО: Проверяем загрузку профиля
-      if (isProfileLoading) {
+      // КРИТИЧНО: Проверяем загрузку профиля с timeout
+      if (isProfileLoading && !profileTimeout) {
         toast({
           title: "Подождите",
           description: "Загружаются данные профиля...",
           variant: "default",
         });
         return;
+      }
+
+      // Если профиль не загрузился за 10 секунд, показываем предупреждение
+      if (!currentUserProfile && (isProfileLoading || profileTimeout)) {
+        if (!showProfileWarning) {
+          setShowProfileWarning(true);
+          toast({
+            title: "Проблема с загрузкой профиля",
+            description: "Попробуйте обновить страницу или продолжить без профиля",
+            variant: "destructive",
+          });
+          return;
+        }
       }
       
       if (!currentUserProfile) {
@@ -295,13 +328,21 @@ const StandardSellerForm = () => {
         />
       </div>
       
-      {isProfileLoading && (
+      {isProfileLoading && !profileTimeout && (
         <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 rounded mb-4">
           <p className="text-sm text-blue-800 dark:text-blue-200">🔄 Загрузка данных профиля...</p>
         </div>
       )}
       
-      {!currentUserProfile && !isProfileLoading && (
+      {showProfileWarning && (
+        <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-3 rounded mb-4">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            ⚠️ Профиль загружается дольше обычного. Можете попробовать отправить форму или обновить страницу.
+          </p>
+        </div>
+      )}
+      
+      {!currentUserProfile && !isProfileLoading && profileTimeout && (
         <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 p-3 rounded mb-4">
           <p className="text-sm text-red-800 dark:text-red-200">⚠️ Профиль не загружен. Обновите страницу.</p>
         </div>
@@ -309,15 +350,17 @@ const StandardSellerForm = () => {
       
       <Button
         type="submit"
-        disabled={isCreating || isProfileLoading || !currentUserProfile || !canSubmit}
+        disabled={isCreating || (isProfileLoading && !profileTimeout) || (!currentUserProfile && !showProfileWarning) || !canSubmit}
         className="w-full"
         size="lg"
       >
-        {isProfileLoading 
+        {isProfileLoading && !profileTimeout
           ? "Загрузка профиля..." 
           : isCreating 
             ? t.buttons.publishing 
-            : t.buttons.publish
+            : showProfileWarning && !currentUserProfile
+              ? "Отправить без профиля" 
+              : t.buttons.publish
         }
       </Button>
     </form>
