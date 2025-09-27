@@ -3,7 +3,7 @@ import { useAdminFreeOrderSubmission } from '@/hooks/admin-order/useAdminFreeOrd
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import { useOrderPhotoCount } from '@/hooks/useOrderPhotoCount';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
-import SimpleUploadButton from '@/components/uploader/SimpleUploadButton';
+import SimplePhotoUploader from '@/components/uploader/SimplePhotoUploader';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { TelegramOrderParser } from './TelegramOrderParser';
@@ -383,13 +383,12 @@ export const AdminFreeOrderForm = () => {
             </div>
           </div>
         )}
-        <SimpleUploadButton
-          onUpload={onImagesUpload}
-          maxFiles={50}
-          disabled={isLoading}
-        >
-          Загрузить изображения
-        </SimpleUploadButton>
+        <SimplePhotoUploader
+          onChange={onImagesUpload}
+          max={50}
+          language="ru"
+          buttonText="Загрузить изображения"
+        />
       </MobileFormSection>
 
       <MobileFormSection title="Видео">
