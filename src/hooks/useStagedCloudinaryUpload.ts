@@ -432,29 +432,27 @@ export const useStagedCloudinaryUpload = () => {
     const allSignatures: CloudinarySignature[] = [];
     
     for (const chunk of chunks) {
-      const signaturePromises = chunk.map(async (publicId) => {
-        const { data, error } = await supabase.functions.invoke('cloudinary-sign', {
-          body: JSON.stringify({ sessionId: currentSessionId }),
-          headers: {
-            'content-type': 'application/json'
-          }
-        });
-        
-        if (error) {
-          console.error(`❌ Signature request failed for ${publicId}:`, error);
-          throw new Error(error.message || 'Signature request failed');
+      const { data, error } = await supabase.functions.invoke('cloudinary-sign-batch', {
+        body: JSON.stringify({ 
+          sessionId: currentSessionId,
+          publicIds: chunk 
+        }),
+        headers: {
+          'content-type': 'application/json'
         }
-        
-        if (!data?.success || !data?.data) {
-          console.error(`❌ Invalid signature response for ${publicId}:`, data);
-          throw new Error('Invalid signature response');
-        }
-        
-        return data.data;
       });
       
-      const chunkSignatures = await Promise.all(signaturePromises);
-      allSignatures.push(...chunkSignatures);
+      if (error) {
+        console.error(`❌ Batch signature request failed for chunk of ${chunk.length}:`, error);
+        throw new Error(error.message || 'Batch signature request failed');
+      }
+      
+      if (!data?.success || !data?.signatures) {
+        console.error(`❌ Invalid batch signature response:`, data);
+        throw new Error('Invalid batch signature response');
+      }
+      
+      allSignatures.push(...data.signatures);
     }
     
     console.log(`✅ Received ${allSignatures.length} signatures (requested ${publicIds.length})`);

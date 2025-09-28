@@ -227,23 +227,46 @@ export default function SimplePhotoUploader({
             >
               {/* Image preview */}
               {it.cloudinaryUrl || it.thumbUrl ? (
-                <img
-                  src={it.cloudinaryUrl || it.thumbUrl}
-                  srcSet={it.cloudinaryUrl ? `
-                    ${it.cloudinaryUrl.replace('/upload/', '/upload/w_400,c_limit/')} 400w,
-                    ${it.cloudinaryUrl.replace('/upload/', '/upload/w_800,c_limit/')} 800w,
-                    ${it.cloudinaryUrl} 1200w
-                  ` : undefined}
-                  sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px"
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full aspect-square object-contain bg-muted"
-                  style={{ 
-                    aspectRatio: '1/1',
-                    transform: getOrientationCSS(imageOrientations.get(it.id) || 1)
-                  }}
-                />
+                <picture>
+                  {it.cloudinaryUrl && (
+                    <>
+                      <source
+                        srcSet={`
+                          ${it.cloudinaryUrl.replace('/upload/', '/upload/f_webp,w_400,c_limit/')} 400w,
+                          ${it.cloudinaryUrl.replace('/upload/', '/upload/f_webp,w_800,c_limit/')} 800w,
+                          ${it.cloudinaryUrl.replace('/upload/', '/upload/f_webp/')} 1200w
+                        `}
+                        sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px"
+                        type="image/webp"
+                      />
+                      <source
+                        srcSet={`
+                          ${it.cloudinaryUrl.replace('/upload/', '/upload/f_jpg,w_400,c_limit/')} 400w,
+                          ${it.cloudinaryUrl.replace('/upload/', '/upload/f_jpg,w_800,c_limit/')} 800w,
+                          ${it.cloudinaryUrl.replace('/upload/', '/upload/f_jpg/')} 1200w
+                        `}
+                        sizes="(max-width: 640px) 400px, (max-width: 1024px) 800px, 1200px"
+                        type="image/jpeg"
+                      />
+                    </>
+                  )}
+                  <img
+                    src={it.cloudinaryUrl ? 
+                      it.cloudinaryUrl.replace('/upload/', '/upload/f_jpg,w_400,c_limit/') : 
+                      it.thumbUrl
+                    }
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    width="400"
+                    height="400"
+                    className="w-full aspect-square object-contain bg-muted"
+                    style={{ 
+                      aspectRatio: '1/1',
+                      transform: getOrientationCSS(imageOrientations.get(it.id) || 1)
+                    }}
+                  />
+                </picture>
               ) : (
                 <div className="w-full aspect-square grid place-items-center text-xs text-muted-foreground bg-muted">
                   {it.originalFile?.name || t.loading}

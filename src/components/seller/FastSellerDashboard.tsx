@@ -181,7 +181,7 @@ const FastSellerDashboard = memo(() => {
         <h3 className="text-lg font-semibold mb-3 text-foreground">{c.sections.management}</h3>
         <div className="dashboard-grid">
         {dashboardItems.map((item, index) => (
-          <Link key={index} to={item.to} className="block">
+          <Link key={index} to={item.to} className="block" preventScrollReset={true}>
             <div className={`fast-card h-full bg-white rounded-lg border ${item.color} ${isMobile ? 'mobile-card touch-target' : ''}`}>
               <div className={isMobile ? "pb-2 pt-3 px-4" : "pb-2 px-6 pt-6"}>
                 <div className="relative">
