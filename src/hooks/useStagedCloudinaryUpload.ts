@@ -417,8 +417,83 @@ export const useStagedCloudinaryUpload = () => {
     return newSessionId;
   }, [sessionId]);
 
-  // P1-1: Get batch Cloudinary signatures with optimized batching
+  // Debounce queue for signature requests
+  const signatureQueueRef = useRef<{
+    pending: Array<{
+      sessionId: string;
+      publicIds: string[];
+      resolve: (signatures: CloudinarySignature[]) => void;
+      reject: (error: Error) => void;
+    }>;
+    timer: NodeJS.Timeout | null;
+  }>({ pending: [], timer: null });
+
+  // Flush batched signature requests
+  const flushSignatureQueue = useCallback(async () => {
+    const queue = signatureQueueRef.current;
+    const requests = [...queue.pending];
+    queue.pending = [];
+    queue.timer = null;
+
+    if (requests.length === 0) return;
+
+    try {
+      // Group by sessionId and merge publicIds
+      const sessionGroups = new Map<string, {
+        publicIds: string[];
+        resolvers: Array<(signatures: CloudinarySignature[]) => void>;
+        rejecters: Array<(error: Error) => void>;
+      }>();
+
+      requests.forEach(req => {
+        const key = req.sessionId;
+        if (!sessionGroups.has(key)) {
+          sessionGroups.set(key, { publicIds: [], resolvers: [], rejecters: [] });
+        }
+        const group = sessionGroups.get(key)!;
+        group.publicIds.push(...req.publicIds);
+        group.resolvers.push(req.resolve);
+        group.rejecters.push(req.reject);
+      });
+
+      // Process each session group
+      for (const [sessionId, group] of sessionGroups) {
+        try {
+          const signatures = await getBatchSignaturesInternal(sessionId, group.publicIds);
+          group.resolvers.forEach(resolve => resolve(signatures));
+        } catch (error) {
+          group.rejecters.forEach(reject => reject(error as Error));
+        }
+      }
+    } catch (error) {
+      // Reject all pending requests on global error
+      requests.forEach(req => req.reject(error as Error));
+    }
+  }, []);
+
+  // Debounced signature request
   const getBatchSignatures = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
+    return new Promise<CloudinarySignature[]>((resolve, reject) => {
+      const queue = signatureQueueRef.current;
+      
+      // Add to queue
+      queue.pending.push({
+        sessionId: currentSessionId,
+        publicIds,
+        resolve,
+        reject
+      });
+
+      // Reset timer and schedule flush
+      if (queue.timer) {
+        clearTimeout(queue.timer);
+      }
+      queue.timer = setTimeout(flushSignatureQueue, 250); // 250ms debounce
+    });
+  }, [flushSignatureQueue]);
+
+  // Internal batch signature function (moved from original getBatchSignatures)
+  const getBatchSignaturesInternal = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
     console.log(`🔐 Requesting Cloudinary signatures for ${publicIds.length} specific IDs, session: ${currentSessionId}`);
     
     // P1-1: Optimal batch size for mobile networks 
