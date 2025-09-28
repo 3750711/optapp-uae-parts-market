@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { isPWAMode } from "@/utils/pwaOptimizations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { logger } from "@/utils/logger";
@@ -15,6 +15,7 @@ export function useSellerUploadProtection({
   warningMessage = "Загрузка файлов не завершена. Вы уверены, что хотите покинуть страницу?"
 }: UploadProtectionOptions) {
   const isMobile = useIsMobile();
+  const initialStateRef = useRef<History["state"] | null>(null);
   
   useEffect(() => {
     if (!isUploading) return;
@@ -51,8 +52,11 @@ export function useSellerUploadProtection({
   useEffect(() => {
     if (!isUploading) return;
 
-    const initialState = { uploadProtection: true, timestamp: Date.now() };
-    
+    // Запомним исходное состояние истории при первом запуске
+    if (initialStateRef.current === null) {
+      initialStateRef.current = window.history.state ?? null;
+    }
+
     const onPopState = (e: PopStateEvent) => {
       if (isUploading) {
         logger.log('🔙 Back navigation during upload - showing confirmation');
@@ -60,27 +64,25 @@ export function useSellerUploadProtection({
         const shouldLeave = window.confirm(warningMessage);
         if (!shouldLeave) {
           // Push current state back to prevent navigation
-          window.history.pushState(initialState, '', window.location.href);
+          const protectionState = { uploadProtection: true, timestamp: Date.now() };
+          window.history.pushState(protectionState, '', window.location.href);
         }
       }
     };
 
     window.addEventListener('popstate', onPopState);
     
-    // Push initial state to enable popstate detection
-    window.history.pushState(initialState, '', window.location.href);
-    
     return () => {
       window.removeEventListener('popstate', onPopState);
       
-      // Cleanup: Only restore if we're still on our protected state
+      // Аккуратно восстанавливаем исходное состояние истории
       try {
-        if (window.history.state?.uploadProtection && 
-            window.history.state?.timestamp === initialState.timestamp) {
-          window.history.back();
+        if (initialStateRef.current !== null) {
+          window.history.replaceState(initialStateRef.current, document.title, location.href);
         }
       } catch (error) {
-        logger.warn('⚠️ History cleanup failed:', error);
+        logger.warn('⚠️ History state restoration failed:', error);
+        // Тихо игнорируем ошибки восстановления состояния
       }
     };
   }, [isUploading, warningMessage]);
