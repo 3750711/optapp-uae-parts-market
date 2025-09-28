@@ -502,10 +502,52 @@ export const useStagedCloudinaryUpload = () => {
     return signature;
   }, []);
 
-  // Compress image in worker with reliable memory management
+  // Worker singleton to prevent multiple instances
+  const workerSingleton = (() => {
+    let instance: Worker | null = null;
+    let isInitializing = false;
+    
+    return {
+      getInstance: async (): Promise<Worker | null> => {
+        if (instance) return instance;
+        if (isInitializing) {
+          // Wait for initialization to complete
+          await new Promise(resolve => setTimeout(resolve, 100));
+          return instance;
+        }
+        
+        isInitializing = true;
+        try {
+          instance = new Worker(
+            new URL('../workers/smart-image-compress.worker.js', import.meta.url),
+            { type: 'module' }
+          );
+          console.log('✅ Shared worker created successfully');
+          return instance;
+        } catch (error) {
+          console.error('❌ Failed to create shared worker:', error);
+          return null;
+        } finally {
+          isInitializing = false;
+        }
+      },
+      
+      terminate: () => {
+        if (instance) {
+          try {
+            instance.terminate();
+          } catch (error) {
+            console.warn('⚠️ Shared worker termination error:', error);
+          }
+          instance = null;
+        }
+      }
+    };
+  })();
+
+  // Compress image in worker with reliable memory management and shared worker
   const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82): Promise<CompressionResult> => {
-    return new Promise((resolve) => {
-      let worker: Worker | null = null;
+    return new Promise(async (resolve) => {
       let timeout: NodeJS.Timeout | null = null;
       let isResolved = false;
       
@@ -514,31 +556,17 @@ export const useStagedCloudinaryUpload = () => {
         if (isResolved) return;
         isResolved = true;
         
-        // Always cleanup on resolve
         if (timeout) {
           clearTimeout(timeout);
           timeout = null;
-        }
-        if (worker) {
-          try {
-            worker.terminate();
-          } catch (error) {
-            console.warn('⚠️ Worker termination error:', error);
-          }
-          worker = null;
         }
         
         resolve(result);
       };
       
-      try {
-        worker = new Worker(
-          new URL('../workers/smart-image-compress.worker.js', import.meta.url),
-          { type: 'module' }
-        );
-        console.log('✅ Worker created successfully for:', file.name);
-      } catch (workerError) {
-        console.error('❌ Failed to create worker:', workerError);
+      const worker = await workerSingleton.getInstance();
+      if (!worker) {
+        console.error('❌ Failed to get shared worker');
         safeResolve({ ok: false, code: 'WORKER_CREATION_FAILED', originalSize: file.size });
         return;
       }

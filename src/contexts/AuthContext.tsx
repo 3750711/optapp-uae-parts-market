@@ -146,6 +146,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Get query client for cache management
   const queryClient = useQueryClient();
   
+  // Prevent multiple initialization
+  const initRef = useRef(false);
+  
   // Check React dispatcher readiness before using any hooks
   const checkDispatcher = () => {
     try {
@@ -268,6 +271,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state with improved timeout handling
   useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+    
     let cancelled = false;
     
     // Read runtime configuration for timeouts
@@ -439,6 +445,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         unsubRef.current();
         unsubRef.current = undefined;
       }
+      initRef.current = false;
     };
   }, []);
 
