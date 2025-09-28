@@ -6,6 +6,8 @@ import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
 import { validateUploadFile } from "@/utils/fileValidation";
 import { toast } from "sonner";
 import { getImageOrientation, getOrientationCSS } from "@/utils/imageOrientation";
+import { Button } from "@/components/ui/button";
+import { Upload, Loader2 } from "lucide-react";
 
 type Props = {
   max?: number;
@@ -25,7 +27,13 @@ export default function SimplePhotoUploader({
   const { items, uploadFiles, removeItem, retryItem } = useUploadUIAdapter({ max, onChange, onComplete });
   const { isMobile, shouldUseMobileLayout } = useMobileLayout();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
   const t = getSellerPagesTranslations(language);
+  
+  // Обработчик клика по кнопке
+  const handleButtonClick = () => {
+    fileInputRef.current?.click();
+  };
   
   // Track image orientations for EXIF support
   const [imageOrientations, setImageOrientations] = useState<Map<string, number>>(new Map());
@@ -91,56 +99,60 @@ export default function SimplePhotoUploader({
   }, [items, imageOrientations]);
 
   const onPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsSelecting(true);
     const files = Array.from(event.target.files || []);
     
-    if (files.length > 0) {
-      // Validate each file before upload
-      const validatedFiles: File[] = [];
-      
-      for (const file of files) {
-        const validation = await validateUploadFile(file);
+    try {
+      if (files.length > 0) {
+        // Validate each file before upload
+        const validatedFiles: File[] = [];
         
-        if (validation.isValid) {
-          validatedFiles.push(file);
+        for (const file of files) {
+          const validation = await validateUploadFile(file);
           
-          // Show warnings if any with enhanced context
-          if (validation.warnings.length > 0) {
-            console.warn(`File warnings for ${file.name}:`, validation.warnings);
-            const warningContext = t.media?.hints?.retryTip || 'File has warnings';
-            toast.warning(`${file.name}: ${validation.warnings[0]}\n${warningContext}`);
+          if (validation.isValid) {
+            validatedFiles.push(file);
+            
+            // Show warnings if any with enhanced context
+            if (validation.warnings.length > 0) {
+              console.warn(`File warnings for ${file.name}:`, validation.warnings);
+              const warningContext = t.media?.hints?.retryTip || 'File has warnings';
+              toast.warning(`${file.name}: ${validation.warnings[0]}\n${warningContext}`);
+            }
+          } else {
+            // Show detailed validation errors with user hints
+            const errorMsg = validation.errors.join(', ');
+            console.error(`File validation failed for ${file.name}:`, validation.errors);
+            
+            // Enhanced error context based on error type
+            let contextualHint = '';
+            if (errorMsg.includes('large') || errorMsg.includes('размер')) {
+              contextualHint = t.media?.hints?.fileSize || '';
+            } else if (errorMsg.includes('format') || errorMsg.includes('формат')) {
+              contextualHint = t.media?.hints?.supportedFormats || '';
+            } else if (errorMsg.includes('pixel') || errorMsg.includes('мегапиксел')) {
+              contextualHint = t.media?.hints?.maxDimensions || '';
+            }
+            
+            toast.error(`${file.name}: ${errorMsg}${contextualHint ? '\n💡 ' + contextualHint : ''}`);
           }
-        } else {
-          // Show detailed validation errors with user hints
-          const errorMsg = validation.errors.join(', ');
-          console.error(`File validation failed for ${file.name}:`, validation.errors);
-          
-          // Enhanced error context based on error type
-          let contextualHint = '';
-          if (errorMsg.includes('large') || errorMsg.includes('размер')) {
-            contextualHint = t.media?.hints?.fileSize || '';
-          } else if (errorMsg.includes('format') || errorMsg.includes('формат')) {
-            contextualHint = t.media?.hints?.supportedFormats || '';
-          } else if (errorMsg.includes('pixel') || errorMsg.includes('мегапиксел')) {
-            contextualHint = t.media?.hints?.maxDimensions || '';
-          }
-          
-          toast.error(`${file.name}: ${errorMsg}${contextualHint ? '\n💡 ' + contextualHint : ''}`);
+        }
+        
+        if (validatedFiles.length > 0) {
+          uploadFiles(validatedFiles);
+        }
+        
+        if (validatedFiles.length < files.length) {
+          const rejectedCount = files.length - validatedFiles.length;
+          const hintText = t.media?.hints?.retryTip || 'Try selecting files again';
+          toast.warning(`${rejectedCount} file(s) rejected due to validation errors\n💡 ${hintText}`);
         }
       }
-      
-      if (validatedFiles.length > 0) {
-        uploadFiles(validatedFiles);
-      }
-      
-      if (validatedFiles.length < files.length) {
-        const rejectedCount = files.length - validatedFiles.length;
-        const hintText = t.media?.hints?.retryTip || 'Try selecting files again';
-        toast.warning(`${rejectedCount} file(s) rejected due to validation errors\n💡 ${hintText}`);
-      }
+    } finally {
+      setIsSelecting(false);
+      // Reset the input so the same file can be selected again
+      event.target.value = '';
     }
-    
-    // Reset the input so the same file can be selected again
-    event.target.value = '';
   };
 
 
@@ -153,38 +165,48 @@ export default function SimplePhotoUploader({
         </div>
       )}
 
-        {/* Upload button - direct input styled as button */}
+        {/* Upload button - правильная кнопка с скрытым input */}
         {(!hasItems || !hasReachedLimit) && (
-          <div className="w-full relative group">
+          <>
+            {/* Скрытый input */}
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
               multiple
               onChange={onPick}
-              disabled={hasReachedLimit}
-              className={`w-full ${isMobile ? 'h-14' : 'sm:w-auto h-12'} px-4 rounded-xl border border-border transition text-sm sm:text-base bg-background text-foreground cursor-pointer
-                ${hasReachedLimit 
-                  ? 'opacity-50 cursor-not-allowed' 
-                  : 'hover:bg-accent/50 active:scale-[.99]'
-                }
-                file:hidden`}
-               title={hasItems 
-                ? addMoreText
-                : `${uploadButtonText} (${t.media?.hints?.supportedFormats || 'JPG, PNG, WEBP'})`
-              }
+              disabled={hasReachedLimit || isSelecting}
+              className="sr-only" // Визуально скрыт, но доступен для screen readers
+              aria-label={hasItems ? addMoreText : uploadButtonText}
             />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className={`${isMobile ? 'text-base font-medium' : 'text-sm sm:text-base'} text-center`}>
-                {hasItems ? addMoreText : uploadButtonText}
-                {isMobile && (
-                  <span className="block text-xs text-muted-foreground mt-1">
-                    {photoCountText}
-                  </span>
-                )}
-              </span>
-            </div>
-          </div>
+            
+            {/* Видимая кнопка */}
+            <Button
+              type="button"
+              onClick={handleButtonClick}
+              disabled={hasReachedLimit || isSelecting}
+              variant="outline"
+              size={isMobile ? "lg" : "default"}
+              className={`w-full ${isMobile ? '' : 'sm:w-auto'}`}
+            >
+              {isSelecting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Обработка...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {hasItems ? addMoreText : uploadButtonText}
+                  {isMobile && hasItems && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      ({photoCountText})
+                    </span>
+                  )}
+                </>
+              )}
+            </Button>
+          </>
         )}
 
       {/* Grid of uploaded images */}
