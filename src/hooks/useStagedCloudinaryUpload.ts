@@ -77,11 +77,7 @@ interface CloudinarySignature {
   upload_url: string;
 }
 
-interface BatchSignResponse {
-  success: boolean;
-  data: CloudinarySignature[];
-  count: number;
-}
+// REMOVED: BatchSignResponse interface (no longer used after removing batch signatures)
 
 interface CompressionResult {
   ok: boolean;
@@ -417,132 +413,11 @@ export const useStagedCloudinaryUpload = () => {
     return newSessionId;
   }, [sessionId]);
 
-  // Debounce queue for signature requests
-  const signatureQueueRef = useRef<{
-    pending: Array<{
-      sessionId: string;
-      publicIds: string[];
-      resolve: (signatures: CloudinarySignature[]) => void;
-      reject: (error: Error) => void;
-    }>;
-    timer: NodeJS.Timeout | null;
-  }>({ pending: [], timer: null });
-
-  // Flush batched signature requests
-  const flushSignatureQueue = useCallback(async () => {
-    const queue = signatureQueueRef.current;
-    const requests = [...queue.pending];
-    queue.pending = [];
-    queue.timer = null;
-
-    if (requests.length === 0) return;
-
-    try {
-      // Group by sessionId and merge publicIds
-      const sessionGroups = new Map<string, {
-        publicIds: string[];
-        resolvers: Array<(signatures: CloudinarySignature[]) => void>;
-        rejecters: Array<(error: Error) => void>;
-      }>();
-
-      requests.forEach(req => {
-        const key = req.sessionId;
-        if (!sessionGroups.has(key)) {
-          sessionGroups.set(key, { publicIds: [], resolvers: [], rejecters: [] });
-        }
-        const group = sessionGroups.get(key)!;
-        group.publicIds.push(...req.publicIds);
-        group.resolvers.push(req.resolve);
-        group.rejecters.push(req.reject);
-      });
-
-      // Process each session group
-      for (const [sessionId, group] of sessionGroups) {
-        try {
-          const signatures = await getBatchSignaturesInternal(sessionId, group.publicIds);
-          group.resolvers.forEach(resolve => resolve(signatures));
-        } catch (error) {
-          group.rejecters.forEach(reject => reject(error as Error));
-        }
-      }
-    } catch (error) {
-      // Reject all pending requests on global error
-      requests.forEach(req => req.reject(error as Error));
-    }
-  }, []);
-
-  // Debounced signature request
-  const getBatchSignatures = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
-    return new Promise<CloudinarySignature[]>((resolve, reject) => {
-      const queue = signatureQueueRef.current;
-      
-      // Add to queue
-      queue.pending.push({
-        sessionId: currentSessionId,
-        publicIds,
-        resolve,
-        reject
-      });
-
-      // Reset timer and schedule flush
-      if (queue.timer) {
-        clearTimeout(queue.timer);
-      }
-      queue.timer = setTimeout(flushSignatureQueue, 250); // 250ms debounce
-    });
-  }, [flushSignatureQueue]);
-
-  // Internal batch signature function (moved from original getBatchSignatures)
-  const getBatchSignaturesInternal = useCallback(async (currentSessionId: string, publicIds: string[]): Promise<CloudinarySignature[]> => {
-    console.log(`🔐 Requesting Cloudinary signatures for ${publicIds.length} specific IDs, session: ${currentSessionId}`);
-    
-    // P1-1: Optimal batch size for mobile networks 
-    const OPTIMAL_BATCH_SIZE = 12;
-    const chunks = [];
-    for (let i = 0; i < publicIds.length; i += OPTIMAL_BATCH_SIZE) {
-      chunks.push(publicIds.slice(i, i + OPTIMAL_BATCH_SIZE));
-    }
-    
-    // Process batches in parallel with limited concurrency
-    const allSignatures: CloudinarySignature[] = [];
-    
-    for (const chunk of chunks) {
-      const { data, error } = await supabase.functions.invoke('cloudinary-sign-batch', {
-        body: JSON.stringify({ 
-          sessionId: currentSessionId,
-          publicIds: chunk 
-        }),
-        headers: {
-          'content-type': 'application/json'
-        }
-      });
-      
-      if (error) {
-        console.error(`❌ Batch signature request failed for chunk of ${chunk.length}:`, error);
-        throw new Error(error.message || 'Batch signature request failed');
-      }
-      
-      if (!data?.success || !data?.signatures) {
-        console.error(`❌ Invalid batch signature response:`, data);
-        throw new Error('Invalid batch signature response');
-      }
-      
-      allSignatures.push(...data.signatures);
-    }
-    
-    console.log(`✅ Received ${allSignatures.length} signatures (requested ${publicIds.length})`);
-    
-    // Validate each signature has required fields
-    for (let i = 0; i < allSignatures.length; i++) {
-      const sig = allSignatures[i];
-      if (!sig || !sig.api_key || !sig.signature || !sig.timestamp || !sig.public_id) {
-        console.error(`❌ Invalid signature at index ${i}:`, sig);
-        throw new Error(`Invalid signature data at index ${i}`);
-      }
-    }
-    
-    return allSignatures;
-  }, []);
+  // REMOVED: Batch signature functions (were causing 403 errors)
+  // - getBatchSignatures (debounced wrapper)
+  // - getBatchSignaturesInternal (actual batch request) 
+  // - flushSignatureQueue (queue management)
+  // Now using individual signatures only for faster, more reliable uploads
 
   // Get single Cloudinary signature using public cloudinary-sign function
   const getSingleSignature = useCallback(async (currentSessionId: string, publicId: string): Promise<CloudinarySignature> => {
@@ -944,45 +819,8 @@ export const useStagedCloudinaryUpload = () => {
     }
   }, []);
 
-  // Chunked batch signature function
-  const signBatchChunked = useCallback(async (publicIds: string[], currentSessionId: string): Promise<Map<string, CloudinarySignature>> => {
-    const CHUNK_SIZE = 8;
-    const chunks: string[][] = [];
-    
-    // Split publicIds into chunks
-    for (let i = 0; i < publicIds.length; i += CHUNK_SIZE) {
-      chunks.push(publicIds.slice(i, i + CHUNK_SIZE));
-    }
-    
-    console.log(`🔗 Splitting ${publicIds.length} signatures into ${chunks.length} chunks of max ${CHUNK_SIZE}`);
-    
-    // Process chunks in parallel
-    const results = await Promise.allSettled(
-      chunks.map(async (chunkIds) => {
-        try {
-          return await getBatchSignatures(currentSessionId, chunkIds);
-        } catch (error) {
-          console.warn(`⚠️ Chunk signing failed for ${chunkIds.length} IDs:`, error);
-          return [];
-        }
-      })
-    );
-    
-    // Collect all successful signatures into a Map by public_id
-    const signatureMap = new Map<string, CloudinarySignature>();
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        for (const sig of result.value) {
-          if (sig?.public_id && sig?.signature) {
-            signatureMap.set(sig.public_id, sig);
-          }
-        }
-      }
-    }
-    
-    console.log(`✅ Collected ${signatureMap.size}/${publicIds.length} signatures from chunked requests`);
-    return signatureMap;
-  }, [getBatchSignatures]);
+  // REMOVED: Chunked batch signature function (was causing 403 errors and 4s delays)
+  // Now using individual signatures only for faster, more reliable uploads
 
   // Ensure signature function with lazy loading
   const ensureSignature = useCallback(async (publicId: string, currentSessionId: string, signatureMap: Map<string, CloudinarySignature>): Promise<CloudinarySignature> => {
@@ -1058,11 +896,8 @@ export const useStagedCloudinaryUpload = () => {
     });
 
     try {
-      // Pre-fetch signatures in chunks (don't await - start parallel with compression)
-      const signaturePrefetch = signBatchChunked(
-        items.map(item => item.publicId!), 
-        currentSessionId
-      );
+      // Use single signatures for each file (batch signatures removed due to 403 errors)
+      const signatureMap = new Map<string, CloudinarySignature>();
 
       // Run pool for parallel processing
       const runPool = async <T>(concurrency: number, items: T[], processor: (item: T) => Promise<void>) => {
@@ -1089,8 +924,7 @@ export const useStagedCloudinaryUpload = () => {
         await Promise.all(promises);
       };
 
-      // Get signature map (this should complete quickly due to chunking)
-      const signatureMap = await signaturePrefetch;
+      // Signature map is pre-created empty - signatures will be fetched individually
 
       // Process files with adaptive parallelism
       await runPool(parallelism, items, async (item) => {
@@ -1276,7 +1110,7 @@ export const useStagedCloudinaryUpload = () => {
       // Don't auto-clear uploadItems to prevent photos from disappearing
       // Items will be managed through UI interactions instead
     }
-  }, [createController, initSession, signBatchChunked, ensureSignature, compressInWorker, uploadToEdgeFunction, stagedUrls, handleError, getSignal]);
+  }, [createController, initSession, ensureSignature, compressInWorker, uploadToEdgeFunction, stagedUrls, handleError, getSignal]);
 
   // Attach staged URLs to real order
   const attachToOrder = useCallback(async (orderId: string): Promise<void> => {
