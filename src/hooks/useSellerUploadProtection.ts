@@ -15,7 +15,7 @@ export function useSellerUploadProtection({
   warningMessage = "Загрузка файлов не завершена. Вы уверены, что хотите покинуть страницу?"
 }: UploadProtectionOptions) {
   const isMobile = useIsMobile();
-  const initialStateRef = useRef<History["state"] | null>(null);
+  const protectionActiveRef = useRef(false);
   
   useEffect(() => {
     if (!isUploading) return;
@@ -50,23 +50,23 @@ export function useSellerUploadProtection({
 
   // Additional protection for popstate (back button)
   useEffect(() => {
-    if (!isUploading) return;
-
-    // Запомним исходное состояние истории при первом запуске
-    if (initialStateRef.current === null) {
-      initialStateRef.current = window.history.state ?? null;
+    if (!isUploading) {
+      protectionActiveRef.current = false;
+      return;
     }
 
+    protectionActiveRef.current = true;
+    logger.log('🛡️ Popstate protection enabled');
+
     const onPopState = (e: PopStateEvent) => {
-      if (isUploading) {
-        logger.log('🔙 Back navigation during upload - showing confirmation');
-        
-        const shouldLeave = window.confirm(warningMessage);
-        if (!shouldLeave) {
-          // Push current state back to prevent navigation
-          const protectionState = { uploadProtection: true, timestamp: Date.now() };
-          window.history.pushState(protectionState, '', window.location.href);
-        }
+      if (!protectionActiveRef.current) return;
+      
+      logger.log('🔙 Back navigation during upload - showing confirmation');
+      
+      const shouldLeave = window.confirm(warningMessage);
+      if (!shouldLeave) {
+        // Prevent navigation by going forward instead of manipulating state
+        window.history.forward();
       }
     };
 
@@ -74,16 +74,8 @@ export function useSellerUploadProtection({
     
     return () => {
       window.removeEventListener('popstate', onPopState);
-      
-      // Аккуратно восстанавливаем исходное состояние истории
-      try {
-        if (initialStateRef.current !== null) {
-          window.history.replaceState(initialStateRef.current, document.title, location.href);
-        }
-      } catch (error) {
-        logger.warn('⚠️ History state restoration failed:', error);
-        // Тихо игнорируем ошибки восстановления состояния
-      }
+      protectionActiveRef.current = false;
+      logger.log('🛡️ Popstate protection disabled');
     };
   }, [isUploading, warningMessage]);
 

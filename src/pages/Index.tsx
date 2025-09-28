@@ -6,6 +6,7 @@ import Layout from "@/components/layout/Layout";
 import StatisticsSection from "@/components/home/StatisticsSection";
 import { ProfessionalAuthBlock } from "@/components/auth/ProfessionalAuthBlock";
 import { TelegramLoginWidget } from "@/components/auth/TelegramLoginWidget";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Building2 } from "lucide-react";
@@ -56,92 +57,110 @@ const Index = () => {
       </Helmet>
 
       <Layout language={language}>
-        <section className="min-h-screen bg-background">
-          <div className="container mx-auto px-4 py-20">
-            <div className="max-w-2xl mx-auto text-center">
-              
-              {/* Company Logo */}
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-lg mb-8">
-                <Building2 className="w-8 h-8 text-primary-foreground" />
-              </div>
+        <ErrorBoundary fallback={
+          <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="text-center p-8">
+              <h2 className="text-xl font-semibold mb-2">Ошибка загрузки страницы</h2>
+              <p className="text-muted-foreground mb-4">Произошла ошибка при загрузке главной страницы</p>
+              <Button onClick={() => window.location.reload()}>
+                Обновить страницу
+              </Button>
+            </div>
+          </div>
+        }>
+          <section className="min-h-screen bg-background">
+            <div className="container mx-auto px-4 py-20">
+              <div className="max-w-2xl mx-auto text-center">
+                
+                {/* Company Logo */}
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-lg mb-8">
+                  <Building2 className="w-8 h-8 text-primary-foreground" />
+                </div>
 
-              {/* Main Heading */}
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-                {t.hero.title}
-              </h1>
-              
-              <h2 className="text-xl md:text-2xl text-muted-foreground mb-2">
-                {t.hero.subtitle}
-              </h2>
-              
-              {/* Subtitle */}
-              <p className="text-lg text-muted-foreground mb-12 max-w-lg mx-auto">
-                {t.hero.description}
-              </p>
-
-              {/* Statistics Section */}
-              <div className="mb-12">
-                <StatisticsSection language={language} />
-              </div>
-
-              {/* Access Notice */}
-              <div className="bg-muted border border-border rounded-lg p-6 mb-8">
-                <p className="text-foreground font-medium">
-                  {t.hero.accessTitle}
+                {/* Main Heading */}
+                <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+                  {t.hero.title}
+                </h1>
+                
+                <h2 className="text-xl md:text-2xl text-muted-foreground mb-2">
+                  {t.hero.subtitle}
+                </h2>
+                
+                {/* Subtitle */}
+                <p className="text-lg text-muted-foreground mb-12 max-w-lg mx-auto">
+                  {t.hero.description}
                 </p>
-                <p className="text-muted-foreground text-sm mt-1">
-                  {t.hero.accessDescription}
-                </p>
-              </div>
 
-               {/* Authentication Section */}
-               <div className="max-w-md mx-auto">
-                  {user ? (
-                    <div className="bg-card border border-border rounded-lg p-6">
-                      <div className="text-center">
-                        <h3 className="text-lg font-semibold text-foreground mb-3">
-                          {t.welcome.greeting}, {profile?.full_name || 'Участник'}!
-                        </h3>
-                        <p className="text-muted-foreground mb-6">
-                          {profile?.user_type === 'seller' 
-                            ? t.welcome.sellerDescription
-                            : t.welcome.buyerDescription
-                          }
-                        </p>
-                        <Link 
-                          to={profile?.user_type === 'seller' ? '/seller/dashboard' : '/catalog'}
-                          className="inline-block w-full"
-                        >
-                          <Button className="w-full">
-                            {profile?.user_type === 'seller' ? t.welcome.sellerButton : t.welcome.buyerButton}
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Button>
-                        </Link>
+                <ErrorBoundary>
+                  {/* Statistics Section */}
+                  <div className="mb-12">
+                    <StatisticsSection language={language} />
+                  </div>
+                </ErrorBoundary>
+
+                {/* Access Notice */}
+                <div className="bg-muted border border-border rounded-lg p-6 mb-8">
+                  <p className="text-foreground font-medium">
+                    {t.hero.accessTitle}
+                  </p>
+                  <p className="text-muted-foreground text-sm mt-1">
+                    {t.hero.accessDescription}
+                  </p>
+                </div>
+
+                 {/* Authentication Section */}
+                 <div className="max-w-md mx-auto">
+                    {user ? (
+                      <div className="bg-card border border-border rounded-lg p-6">
+                        <div className="text-center">
+                          <h3 className="text-lg font-semibold text-foreground mb-3">
+                            {t.welcome.greeting}, {profile?.full_name || 'Участник'}!
+                          </h3>
+                          <p className="text-muted-foreground mb-6">
+                            {profile?.user_type === 'seller' 
+                              ? t.welcome.sellerDescription
+                              : t.welcome.buyerDescription
+                            }
+                          </p>
+                          <Link 
+                            to={profile?.user_type === 'seller' ? '/seller/dashboard' : '/catalog'}
+                            className="inline-block w-full"
+                          >
+                            <Button className="w-full">
+                              {profile?.user_type === 'seller' ? t.welcome.sellerButton : t.welcome.buyerButton}
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </Link>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="max-w-lg mx-auto">
-                      <ProfessionalAuthBlock language={language === 'bn' ? 'en' : language} />
-                    </div>
-                  )}
+                    ) : (
+                      <ErrorBoundary fallback={
+                        <div className="bg-card border border-border rounded-lg p-6 text-center">
+                          <p className="text-muted-foreground mb-4">Ошибка загрузки авторизации</p>
+                          <Button variant="outline" onClick={() => window.location.reload()}>
+                            Попробовать снова
+                          </Button>
+                        </div>
+                      }>
+                        <div className="max-w-lg mx-auto">
+                          <ProfessionalAuthBlock language={language === 'bn' ? 'en' : language} />
+                        </div>
+                      </ErrorBoundary>
+                    )}
+                 </div>
+
+                   <ErrorBoundary>
+                     {/* Hidden Telegram Login Widget for incomplete profiles */}
+                     {user && profile?.auth_method === 'telegram' && !profile?.profile_completed && (
+                       <div className="hidden">
+                         <TelegramLoginWidget language={language === 'bn' ? 'en' : language} />
+                       </div>
+                     )}
+                   </ErrorBoundary>
                </div>
-
-                 {/* Hidden Telegram Login Widget for incomplete profiles */}
-                 {user && profile?.auth_method === 'telegram' && !profile?.profile_completed && (
-                   <div className="hidden">
-                     <TelegramLoginWidget language={language === 'bn' ? 'en' : language} />
-                   </div>
-                 )}
-
-                  {/* Realtime Diagnostics removed - no longer needed */}
-                  {/* {import.meta.env.DEV && (
-                    <div className="mt-8 max-w-2xl mx-auto">
-                      <RealtimeDiagnostics />
-                    </div>
-                  )} */}
              </div>
-           </div>
-         </section>
+           </section>
+        </ErrorBoundary>
        </Layout>
     </>
   );

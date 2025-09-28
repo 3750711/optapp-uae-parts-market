@@ -81,6 +81,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
 }) => {
   const widgetRef = useRef<HTMLDivElement>(null);
   const scriptLoadedRef = useRef(false);
+  const authInProgressRef = useRef(false);
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [mergeData, setMergeData] = useState<{
     existingEmail: string;
@@ -113,6 +114,14 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
   const widgetSize = isCompact ? 'medium' : 'large';
 
   const handleTelegramAuth = async (authData: TelegramAuthData) => {
+    // Защита от race condition
+    if (authInProgressRef.current) {
+      console.warn('⚠️ Telegram auth already in progress, skipping duplicate call');
+      return;
+    }
+    
+    authInProgressRef.current = true;
+    
     try {
       // Rate limiting check
       const allowed = await checkRateLimit('login', { limitPerHour: 10, windowMinutes: 60 });
@@ -177,6 +186,9 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
       await logLoginFailure('telegram', errorMessage);
       toast.error(errorMessage);
       onError?.(errorMessage);
+    } finally {
+      // Сбрасываем флаг в любом случае
+      authInProgressRef.current = false;
     }
   };
 
