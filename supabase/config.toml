@@ -114,6 +114,9 @@ verify_jwt = false
 [functions.cloudinary-sign]
 verify_jwt = true
 
+[functions.cloudinary-sign-batch]
+verify_jwt = true
+
 [functions.attach-order-media]
 verify_jwt = true
 
