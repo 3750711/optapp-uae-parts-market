@@ -83,19 +83,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if user is admin
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('user_type')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || profile?.user_type !== 'admin') {
-      return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
-        { status: 403, headers: corsHeaders }
-      );
-    }
+    // Function is now available to all authenticated users
 
     // Parse request body
     const { orderId, sessionId, publicIds, count = 5 }: BatchSignRequest = await req.json();
