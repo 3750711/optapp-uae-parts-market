@@ -37,6 +37,16 @@ export const validateFileSignature = async (file: File): Promise<{
   error?: string;
 }> => {
   try {
+    // PRIORITY 1: Check HEIC files by extension first (most reliable)
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.heic') || fileName.endsWith('.heif')) {
+      console.log(`✅ HEIC file detected by extension: ${file.name}`);
+      return {
+        isValid: true,
+        detectedType: 'image/heic'
+      };
+    }
+
     // Read first 12 bytes to check magic signature
     const arrayBuffer = await file.slice(0, 12).arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
@@ -46,28 +56,7 @@ export const validateFileSignature = async (file: File): Promise<{
 
     console.log(`🔍 File signature check: ${file.name}, hex: ${hexSignature.substring(0, 16)}`);
 
-    // Check against known safe signatures
-    for (const sig of SAFE_IMAGE_SIGNATURES) {
-      if (hexSignature.startsWith(sig.signature)) {
-        console.log(`✅ Valid image detected: ${sig.mimeType}`);
-        return {
-          isValid: true,
-          detectedType: sig.mimeType
-        };
-      }
-    }
-
-    for (const sig of SAFE_VIDEO_SIGNATURES) {
-      if (hexSignature.startsWith(sig.signature)) {
-        console.log(`✅ Valid video detected: ${sig.mimeType}`);
-        return {
-          isValid: true,
-          detectedType: sig.mimeType
-        };
-      }
-    }
-
-    // Enhanced HEIC detection with better patterns
+    // PRIORITY 2: Enhanced HEIC detection by magic bytes (before other checks)
     const heicPatterns = [
       '6674797068656963', // ftyp + heic
       '667479706D696631', // ftyp + mif1  
@@ -78,17 +67,31 @@ export const validateFileSignature = async (file: File): Promise<{
     ];
 
     if (heicPatterns.some(pattern => hexSignature.includes(pattern))) {
-      console.log('✅ Valid HEIC image detected');
+      console.log('✅ Valid HEIC image detected by signature');
       return {
         isValid: true,
         detectedType: 'image/heic'
       };
     }
 
+    // PRIORITY 3: Check against known safe image signatures
+    for (const sig of SAFE_IMAGE_SIGNATURES) {
+      if (hexSignature.startsWith(sig.signature)) {
+        console.log(`✅ Valid image detected: ${sig.mimeType}`);
+        return {
+          isValid: true,
+          detectedType: sig.mimeType
+        };
+      }
+    }
+
+    // PRIORITY 4: Video signatures (disabled for product uploads - only images needed)
+    // Videos are not supported in product uploads
+
     console.warn(`❌ Unknown or unsafe file signature: ${file.name}`);
     return {
       isValid: false,
-      error: `Unsafe file format detected. Only images and videos are allowed.`
+      error: `Unsupported file format. Only images (JPEG, PNG, WebP, GIF, HEIC) are allowed.`
     };
 
   } catch (error) {
@@ -186,8 +189,8 @@ export const validateUploadFile = async (file: File): Promise<{
     errors.push(signatureValidation.error!);
   }
 
-  // NEW: Pixel bomb protection
-  if (file.type.startsWith('image/')) {
+  // NEW: Pixel bomb protection (skip for HEIC as browser can't read them directly)
+  if (file.type.startsWith('image/') && signatureValidation.detectedType !== 'image/heic') {
     const dimensionsValidation = await validateImageDimensions(file);
     if (!dimensionsValidation.isValid) {
       errors.push(dimensionsValidation.error!);
