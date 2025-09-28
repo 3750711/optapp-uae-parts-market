@@ -88,7 +88,7 @@ export default function SimplePhotoUploader({
     }
   }, [urlsString, lastProcessedUrls, items, stableOnChange, stableOnComplete]);
 
-  // Process EXIF orientation for new files
+  // Process EXIF orientation for new files - avoid re-render loop
   useEffect(() => {
     items.forEach(async (item: any) => {
       if (item.originalFile && item.originalFile instanceof File && !imageOrientations.has(item.id)) {
@@ -96,7 +96,7 @@ export default function SimplePhotoUploader({
         setImageOrientations(prev => new Map(prev.set(item.id, orientation)));
       }
     });
-  }, [items, imageOrientations]);
+  }, [items]); // Removed imageOrientations dependency to prevent re-render loop
 
   const onPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsSelecting(true);
