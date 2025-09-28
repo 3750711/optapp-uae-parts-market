@@ -24,8 +24,8 @@ export async function registerServiceWorker() {
     // 🔧 CRITICAL: Clean up old/conflicting service worker registrations first
     await cleanupOldServiceWorkers();
 
-    // 🚨 CRITICAL: Version 3.5.0-orders-fix to prevent NS_ERROR_CORRUPTED_CONTENT
-    const versionTag = '3.5.0-orders-fix';
+    // 🚨 CRITICAL: Version 3.7.0-assets-cache to enable versioned asset caching
+    const versionTag = '3.7.0-assets-cache';
     const swUrl = `/sw-minimal.js?v=${encodeURIComponent(versionTag)}`;
 
     // Check if we already have this exact SW registered
@@ -169,6 +169,6 @@ export async function cleanupCorruptedServiceWorker() {
 // Legacy compatibility
 export const swManager = {
   register: registerServiceWorker,
-  getVersion: () => Promise.resolve('3.5.0-orders-fix'),
+  getVersion: () => Promise.resolve('3.7.0-assets-cache'),
   getRegistration: () => navigator.serviceWorker?.getRegistration('/'),
 };

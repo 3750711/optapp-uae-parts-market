@@ -1,7 +1,7 @@
 // Minimal Service Worker - Enhanced privacy protection for api.partsbay.ae
 // Version: 3.3.0 - Strict private request skipping
 
-const CACHE_NAME = 'offline-fallback-v3-6-0';
+const CACHE_NAME = 'offline-fallback-v3-7-0';
 const OFFLINE_HTML = '/index.html';
 
 // 🚨 CRITICAL: Enhanced private request detection - never intercept these
@@ -45,16 +45,21 @@ const hasAuthData = (request) => {
   return isAuthRequest(request) || hasAuthHeaders(request);
 };
 
-// 🚨 CRITICAL: Never cache JavaScript/CSS files to prevent NS_ERROR_CORRUPTED_CONTENT
+// 🚨 CRITICAL: Optimized caching - allow versioned assets, block others
 const isStaticAsset = (request) => {
   const url = request.url;
   
-  // NEVER cache JavaScript files
+  // ALLOW caching versioned assets (safe - they never change)
+  if (url.includes('/assets/') && url.match(/\-[a-zA-Z0-9]{8,}\./)) {
+    return false; // Allow caching
+  }
+  
+  // NEVER cache JavaScript files (non-versioned)
   if (url.includes('.js') || url.includes('.jsx') || url.includes('.ts') || url.includes('.tsx')) {
     return true;
   }
   
-  // NEVER cache CSS files
+  // NEVER cache CSS files (non-versioned)
   if (url.includes('.css')) {
     return true;
   }
@@ -110,6 +115,23 @@ self.addEventListener('fetch', (event) => {
   // Skip static assets to prevent corruption
   if (isStaticAsset(event.request)) {
     console.log('🚨 SW: Skipping static asset to prevent corruption:', event.request.url);
+    return;
+  }
+
+  // Cache versioned assets (safe - they never change)
+  const url = new URL(event.request.url);
+  if (url.pathname.includes('/assets/') && url.pathname.match(/\-[a-zA-Z0-9]{8,}\./)) {
+    event.respondWith(
+      caches.match(event.request).then(cached => 
+        cached || fetch(event.request).then(response => {
+          return caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, response.clone());
+            console.log('✅ SW: Cached versioned asset:', event.request.url);
+            return response;
+          });
+        })
+      )
+    );
     return;
   }
   

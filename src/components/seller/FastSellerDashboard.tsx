@@ -93,6 +93,17 @@ const FastSellerDashboard = memo(() => {
     };
   }, [startTimer]);
 
+  // Prefetch SellerAddProduct for faster navigation
+  useEffect(() => {
+    const prefetchTimer = setTimeout(() => {
+      import('@/pages/SellerAddProduct').catch(() => {
+        console.log('Prefetch SellerAddProduct failed');
+      });
+    }, 2000); // After dashboard loads
+    
+    return () => clearTimeout(prefetchTimer);
+  }, []);
+
 
   const handleContactAdmin = useCallback(() => {
     try {
