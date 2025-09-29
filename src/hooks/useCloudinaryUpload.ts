@@ -195,19 +195,19 @@ export const useNewCloudinaryUpload = () => {
 
     fileArray.forEach(file => {
       // Проверка размера файла
-      if (file.size > CLOUDINARY_CONFIG.maxFileSize) {
+      if (file.size > CLOUDINARY_CONFIG.upload.maxFileSize) {
         errors.push({
           file: file.name,
-          error: `Файл слишком большой. Максимум: ${CLOUDINARY_CONFIG.maxFileSize / 1024 / 1024}MB`
+          error: `Файл слишком большой. Максимум: ${CLOUDINARY_CONFIG.upload.maxFileSize / 1024 / 1024}MB`
         });
       }
 
       // Проверка формата файла
       const fileExtension = file.name.split('.').pop()?.toLowerCase() as any;
-      if (!fileExtension || !CLOUDINARY_CONFIG.allowedFormats.includes(fileExtension)) {
+      if (!fileExtension || !CLOUDINARY_CONFIG.upload.allowedFormats.includes(fileExtension)) {
         errors.push({
           file: file.name,
-          error: `Неподдерживаемый формат. Разрешены: ${CLOUDINARY_CONFIG.allowedFormats.join(', ')}`
+          error: `Неподдерживаемый формат. Разрешены: ${CLOUDINARY_CONFIG.upload.allowedFormats.join(', ')}`
         });
       }
 
@@ -253,55 +253,28 @@ export const useNewCloudinaryUpload = () => {
       const widget = cloudinary.createUploadWidget(
         {
           cloudName: CLOUDINARY_CONFIG.cloudName,
-          uploadPreset: CLOUDINARY_CONFIG.uploadPreset,
-          folder: options.folder || CLOUDINARY_CONFIG.folder,
+          uploadPreset: CLOUDINARY_CONFIG.uploadPresets.product,
+          folder: options.folder || CLOUDINARY_CONFIG.upload.folder,
           publicIdPrefix: publicIdPrefix,
           multiple: options.multiple ?? true,
-          maxFiles: options.maxFiles || 10,
-          maxFileSize: CLOUDINARY_CONFIG.maxFileSize,
-          clientAllowedFormats: CLOUDINARY_CONFIG.allowedFormats,
-          sources: ['local', 'camera', 'url'],
-          showAdvancedOptions: false,
-          cropping: false,
-          theme: 'minimal',
-          language: 'ru',
-          text: {
-            ru: {
-              'local.browse': 'Выбрать файлы',
-              'local.dd_title_single': 'Перетащите изображение сюда',
-              'local.dd_title_multi': 'Перетащите изображения сюда',
-              'camera.capture': 'Сделать фото',
-              'camera.cancel': 'Отмена',
-              'camera.take_pic': 'Снимок',
-              'camera.explanation': 'Убедитесь, что камера включена',
-              'upload_tabs.url': 'URL',
-              'upload_tabs.file': 'Файл'
+          maxFiles: options.maxFiles || CLOUDINARY_CONFIG.upload.maxFiles,
+          maxFileSize: CLOUDINARY_CONFIG.upload.maxFileSize,
+          clientAllowedFormats: CLOUDINARY_CONFIG.upload.allowedFormats,
+          sources: CLOUDINARY_CONFIG.widget.sources,
+          showAdvancedOptions: CLOUDINARY_CONFIG.widget.showAdvancedOptions,
+          cropping: CLOUDINARY_CONFIG.widget.cropping,
+          theme: CLOUDINARY_CONFIG.widget.theme,
+          language: CLOUDINARY_CONFIG.widget.language,
+          text: CLOUDINARY_CONFIG.widget.text,
+          styles: CLOUDINARY_CONFIG.widget.styles,
+          
+          // Автоматические трансформации при загрузке
+          transformation: [
+            {
+              quality: CLOUDINARY_CONFIG.upload.quality,
+              format: 'auto'
             }
-          },
-          styles: {
-            palette: {
-              window: '#FFFFFF',
-              windowBorder: '#E5E7EB',
-              tabIcon: '#6B7280',
-              menuIcons: '#6B7280',
-              textDark: '#111827',
-              textLight: '#6B7280',
-              link: '#3B82F6',
-              action: '#3B82F6',
-              inactiveTabIcon: '#9CA3AF',
-              error: '#EF4444',
-              inProgress: '#3B82F6',
-              complete: '#10B981',
-              sourceBg: '#F9FAFB'
-            },
-            fonts: {
-              default: null,
-              "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif": {
-                url: null,
-                active: true
-              }
-            }
-          }
+          ]
         },
         (error: any, result: any) => {
           if (!error && result && result.event === 'success') {
