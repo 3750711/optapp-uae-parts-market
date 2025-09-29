@@ -135,25 +135,32 @@ export const CLOUDINARY_CONFIG = {
     styles: {
       palette: {
         window: '#FFFFFF',
-        windowBorder: 'hsl(210 40% 90%)',
-        tabIcon: 'hsl(212 50% 18%)',
-        menuIcons: 'hsl(212 50% 18%)',
-        textDark: 'hsl(0 0% 20%)',
-        textLight: 'hsl(0 0% 40%)',
-        link: 'hsl(199 89% 48%)',
-        action: 'hsl(199 89% 48%)',
-        inactiveTabIcon: 'hsl(0 0% 40%)',
-        error: 'hsl(0 84% 60%)',
-        inProgress: 'hsl(199 89% 48%)',
-        complete: 'hsl(142 71% 45%)',
-        sourceBg: 'hsl(210 40% 98%)'
+        windowBorder: '#E5E7EB',
+        sourceBg: '#F9FAFB',
+        tabIcon: '#6B7280',
+        menuIcons: '#6B7280',
+        textDark: '#111827',
+        textLight: '#6B7280',
+        link: '#3B82F6',
+        action: '#3B82F6',
+        inactiveTabIcon: '#9CA3AF',
+        error: '#EF4444',
+        inProgress: '#3B82F6',
+        complete: '#10B981'
       },
       fonts: {
         default: null,
         "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif": {
-          url: null,
+          url: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap",
           active: true
         }
+      },
+      frame: {
+        background: "rgba(255,255,255,0.98)",
+        border: "1px solid #E5E7EB",
+        borderRadius: "16px",
+        boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+        backdropFilter: "blur(8px)"
       }
     },
 

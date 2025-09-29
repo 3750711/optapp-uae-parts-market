@@ -254,6 +254,34 @@ export const useNewCloudinaryUpload = () => {
       const uploadPreset = getUploadPreset('productUnsigned');
       console.log('🔧 Cloudinary Widget: Using upload preset:', uploadPreset);
       
+      // Определяем темную тему
+      const isDark = document.documentElement.classList.contains("dark");
+      
+      // Создаем конфигурацию виджета с поддержкой темной темы
+      const widgetStyles = {
+        ...CLOUDINARY_CONFIG.widget.styles,
+        palette: isDark ? {
+          window: "#0B0F1A",
+          windowBorder: "#111827",
+          sourceBg: "#0F172A",
+          tabIcon: "#CBD5E1",
+          menuIcons: "#CBD5E1",
+          textDark: "#E5E7EB",
+          textLight: "#94A3B8",
+          link: "#60A5FA",
+          action: "#60A5FA",
+          inactiveTabIcon: "#64748B",
+          error: "#F87171",
+          inProgress: "#60A5FA",
+          complete: "#34D399"
+        } : CLOUDINARY_CONFIG.widget.styles.palette,
+        frame: {
+          ...CLOUDINARY_CONFIG.widget.styles.frame,
+          background: isDark ? "rgba(11,15,26,0.98)" : "rgba(255,255,255,0.98)",
+          border: isDark ? "1px solid #111827" : "1px solid #E5E7EB"
+        }
+      };
+
       const widget = cloudinary.createUploadWidget(
         {
           cloudName: CLOUDINARY_CONFIG.cloudName,
@@ -270,7 +298,7 @@ export const useNewCloudinaryUpload = () => {
           theme: CLOUDINARY_CONFIG.widget.theme,
           language: CLOUDINARY_CONFIG.widget.language,
           text: CLOUDINARY_CONFIG.widget.text,
-          styles: CLOUDINARY_CONFIG.widget.styles,
+          styles: widgetStyles,
           
           // Автоматические трансформации при загрузке
           transformation: [
