@@ -74,6 +74,7 @@ const StandardSellerForm = () => {
   const [isSubmitting] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [primaryImage, setPrimaryImage] = useState("");
+  const [isWidgetOpen, setIsWidgetOpen] = useState(false);
 
   // P0-1: Мемоизированная валидация формы  
   const isFormValid = useMemo(() => {
@@ -83,24 +84,29 @@ const StandardSellerForm = () => {
            imageUrls.length > 0;
   }, [formData.title, formData.price, imageUrls.length]);
 
+  // Показывать ошибки валидации только если виджет закрыт
+  const shouldShowValidationErrors = !isWidgetOpen;
+
   // Упрощенная логика состояния Submit кнопки
   const getSubmitState = useMemo(() => {
     const isFormBlocked = isCreating || !canSubmit;
-    const isFormIncomplete = !isFormValid;
+    const isFormIncomplete = !isFormValid && shouldShowValidationErrors;
     const isProfileBlocked = isProfileLoading && !profileTimeout;
     const allowWithoutProfile = showProfileWarning && !currentUserProfile;
     
     return {
       disabled: isFormBlocked || isFormIncomplete || isProfileBlocked,
-      text: isProfileLoading && !profileTimeout
-        ? "Загрузка профиля..." 
-        : isCreating 
-          ? t.buttons.publishing 
-          : allowWithoutProfile
-            ? "Отправить без профиля" 
-            : t.buttons.publish
+      text: isWidgetOpen
+        ? "Cloudinary Widget открыт..."
+        : isProfileLoading && !profileTimeout
+          ? "Загрузка профиля..." 
+          : isCreating 
+            ? t.buttons.publishing 
+            : allowWithoutProfile
+              ? "Отправить без профиля" 
+              : t.buttons.publish
     };
-  }, [isCreating, canSubmit, isFormValid, isProfileLoading, profileTimeout, showProfileWarning, currentUserProfile, t.buttons]);
+  }, [isCreating, canSubmit, isFormValid, shouldShowValidationErrors, isProfileLoading, profileTimeout, showProfileWarning, currentUserProfile, isWidgetOpen, t.buttons]);
 
   // Upload protection hook
   useSellerUploadProtection({
@@ -337,6 +343,7 @@ const StandardSellerForm = () => {
           onImageDelete={onImageDelete}
           maxImages={50}
           disabled={isSubmitting}
+          onWidgetStateChange={setIsWidgetOpen}
         />
       </div>
       

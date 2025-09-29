@@ -197,7 +197,7 @@ export const CLOUDINARY_CONFIG = {
     // Simple English localization
     text: {
       en: {
-        'local.browse': 'Choose Files',
+        'local.browse': 'Add photos',
         'local.dd_title_single': 'Drop your photo here',
         'local.dd_title_multi': 'Drop your photos here',
         'queue.title': 'Uploading photos',
@@ -364,8 +364,8 @@ export const getWidgetUXConfig = (isMobile: boolean) => {
       thumbnailTransformation: { width: 60, height: 60, crop: 'fill' },
       // Mobile UX improvements
       prepareOnDrop: false, // Reduce processing on mobile
-      autoMinimize: true,
-      closeWidget: true
+      autoMinimize: false, // Keep widget open on mobile
+      keepWidgetOpen: true // Prevent auto-closing
     };
   }
 

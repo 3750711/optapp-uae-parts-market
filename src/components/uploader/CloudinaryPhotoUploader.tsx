@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -14,6 +14,7 @@ interface CloudinaryPhotoUploaderProps {
   maxImages?: number;
   className?: string;
   disabled?: boolean;
+  onWidgetStateChange?: (isOpen: boolean) => void;
 }
 
 export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = ({
@@ -22,9 +23,16 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
   onImageDelete,
   maxImages = 10,
   className,
-  disabled = false
+  disabled = false,
+  onWidgetStateChange
 }) => {
   const { isUploading, uploadProgress, openUploadWidget } = useNewCloudinaryUpload();
+  const [isWidgetOpen, setIsWidgetOpen] = useState(false);
+
+  // Notify parent component about widget state changes
+  useEffect(() => {
+    onWidgetStateChange?.(isWidgetOpen);
+  }, [isWidgetOpen, onWidgetStateChange]);
 
   const canUploadMore = images.length < maxImages;
   const remainingSlots = maxImages - images.length;
@@ -32,6 +40,9 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
   const handleUpload = () => {
     if (!canUploadMore || disabled) return;
 
+    // Widget будет открыт - устанавливаем состояние
+    setIsWidgetOpen(true);
+    
     openUploadWidget(
       (results: CloudinaryNormalized[]) => {
         console.log('🎯 CloudinaryPhotoUploader received normalized results:', results);
@@ -45,6 +56,9 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
         
         console.log('📸 Final URLs to upload:', newUrls);
         onImageUpload(newUrls);
+        
+        // Widget закрыт после успешной загрузки - сбрасываем состояние
+        setIsWidgetOpen(false);
       },
       {
         multiple: true,
@@ -52,6 +66,16 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
         folder: 'product-images'
       }
     );
+
+    // Слушаем событие закрытия виджета для сброса состояния
+    // Используем setTimeout для установки listener'а после создания виджета
+    setTimeout(() => {
+      const handleWidgetClose = () => {
+        setIsWidgetOpen(false);
+        document.removeEventListener('cloudinary-widget-close', handleWidgetClose);
+      };
+      document.addEventListener('cloudinary-widget-close', handleWidgetClose);
+    }, 100);
   };
 
   const handleDelete = (imageUrl: string) => {
