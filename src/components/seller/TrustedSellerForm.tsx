@@ -59,6 +59,20 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
   });
 
 
+  // Upload protection with beforeunload warning  
+  useEffect(() => {
+    if (isSubmitting) {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = 'Загрузка изображений не завершена. Вы уверены, что хотите покинуть страницу?';
+        return e.returnValue;
+      };
+      
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+  }, [isSubmitting]);
+
   const handleRefreshPage = () => {
     window.location.reload();
   };

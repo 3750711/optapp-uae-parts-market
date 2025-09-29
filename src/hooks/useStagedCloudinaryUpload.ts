@@ -511,13 +511,52 @@ export const useStagedCloudinaryUpload = () => {
         safeResolve({ ok: false, code: 'WORKER_TIMEOUT', originalSize: file.size });
       }, timeoutMs);
       
-      // Enhanced message handler with error boundaries
+      // Enhanced message handler with error boundaries and taskId handling
       worker.onmessage = (e) => {
         try {
           const result = e.data;
           
-          if (result && result.ok) {
+          // Handle different message types from worker
+          if (result.type === 'success' && result.result) {
+            const data = result.result;
             console.log('✅ Worker compression successful:', {
+              file: file.name,
+              originalSize: data.originalSize,
+              compressedSize: data.compressedSize,
+              compressionRatio: data.compressionRatio + '%',
+              duration: data.compressionMs ? `${data.compressionMs}ms` : 'unknown'
+            });
+            
+            safeResolve({
+              ok: true,
+              blob: data.compressedFile,
+              mime: 'image/jpeg',
+              originalSize: data.originalSize,
+              compressedSize: data.compressedSize,
+              compressionMs: data.compressionMs
+            });
+          } else if (result.type === 'error') {
+            console.warn('⚠️ Worker compression failed:', {
+              file: file.name,
+              error: result.error
+            });
+            
+            safeResolve({ 
+              ok: false, 
+              code: 'COMPRESSION_FAILED',
+              originalSize: file.size
+            });
+          } else if (result.type === 'aborted') {
+            console.log('🛑 Worker compression aborted:', file.name);
+            
+            safeResolve({
+              ok: false,
+              code: 'COMPRESSION_ABORTED', 
+              originalSize: file.size
+            });
+          } else if (result && result.ok) {
+            // Legacy format support
+            console.log('✅ Worker compression successful (legacy):', {
               file: file.name,
               originalSize: result.original?.size || file.size,
               compressedSize: result.size,
@@ -534,15 +573,14 @@ export const useStagedCloudinaryUpload = () => {
               compressionMs: result.compressionMs
             });
           } else {
-            console.warn('⚠️ Worker compression failed:', {
+            console.warn('⚠️ Worker compression failed (unknown format):', {
               file: file.name,
-              code: result?.code,
-              message: result?.message
+              result
             });
             
             safeResolve({ 
               ok: false, 
-              code: result?.code || 'COMPRESSION_FAILED',
+              code: 'COMPRESSION_FAILED',
               originalSize: file.size
             });
           }
@@ -568,15 +606,22 @@ export const useStagedCloudinaryUpload = () => {
       
       // Enhanced message post with validation
       try {
+        const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const message = {
+          type: 'compress',
           file,
-          maxSide,
-          jpegQuality: quality,
-          prefer: 'jpeg' as const,
-          twoPass: false
+          taskId,
+          options: {
+            maxSizeMB: 1,
+            maxWidthOrHeight: maxSide,
+            initialQuality: quality,
+            fileType: 'image/jpeg',
+            useWebWorker: false,
+            preserveExif: false
+          }
         };
         
-        // Validate message before sending
+        // Validate message before sending  
         if (!file || file.size === 0) {
           throw new Error('Invalid file for compression');
         }
@@ -589,6 +634,8 @@ export const useStagedCloudinaryUpload = () => {
         
         worker.postMessage(message);
         console.log('📤 Compression task sent to worker:', {
+          type: 'compress',
+          taskId,
           file: file.name,
           size: file.size,
           maxSide,
@@ -1342,15 +1389,23 @@ export const useStagedCloudinaryUpload = () => {
   // Pre-warm handled by parent components (SellerAddProduct, etc.)
   // Removed duplicate preWarm to avoid multiple worker initializations
 
-  // Cleanup worker on unmount
+  // Smart cleanup: only terminate worker if no active uploads
   useEffect(() => {
     return () => {
-      if (isUploading) {
-        console.log('🛑 Component unmounting during upload - terminating worker');
+      const hasActiveUploads = uploadItems.some(item =>
+        item.status === 'compressing' ||
+        item.status === 'uploading' ||
+        item.status === 'signing'
+      );
+      
+      if (!hasActiveUploads) {
+        console.log('🛑 Component unmounting - terminating idle worker');
         terminate();
+      } else {
+        console.warn('⚠️ Component unmounting but uploads still active - keeping worker alive');
       }
     };
-  }, [isUploading]);
+  }, [uploadItems]);
 
   return {
     sessionId,
