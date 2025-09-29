@@ -62,15 +62,15 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Upload Button */}
+      {/* Upload Button - Mobile Optimized */}
       <Button
         onClick={handleUpload}
         disabled={!canUploadMore || disabled || isUploading}
         variant="outline"
-        size="sm"
-        className="flex items-center gap-2"
+        size="lg"
+        className="flex items-center gap-2 w-full min-h-[48px] text-base touch-manipulation sm:w-auto sm:min-h-[40px] sm:text-sm"
       >
-        <Camera className="w-4 h-4" />
+        <Camera className="w-5 h-5 sm:w-4 sm:h-4" />
         {isUploading ? 'Загрузка...' : 'Добавить фото'}
       </Button>
 
@@ -86,7 +86,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
                     <span className="truncate">{item.fileName}</span>
                     <span>{item.progress}%</span>
                   </div>
-                  <Progress value={item.progress} className="h-2" />
+                  <Progress value={item.progress} className="h-3 sm:h-2" />
                   {item.error && (
                     <p className="text-xs text-destructive">{item.error}</p>
                   )}
@@ -99,7 +99,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
 
       {/* Uploaded Images Grid */}
       {images.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {images.map((imageUrl, index) => (
             <div key={imageUrl} className="relative group">
               <div className="aspect-square rounded-lg overflow-hidden bg-muted">
@@ -111,14 +111,14 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
                 />
               </div>
               
-              {/* Delete Button */}
+              {/* Delete Button - Mobile Optimized */}
               {onImageDelete && (
                 <button
                   onClick={() => handleDelete(imageUrl)}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-destructive/90"
+                  className="absolute -top-2 -right-2 w-8 h-8 sm:w-6 sm:h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 sm:opacity-0 touch-manipulation transition-opacity shadow-lg hover:bg-destructive/90 active:scale-95"
                   aria-label="Удалить фото"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-4 h-4 sm:w-3 sm:h-3" />
                 </button>
               )}
 
