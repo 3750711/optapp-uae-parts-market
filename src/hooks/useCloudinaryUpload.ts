@@ -254,8 +254,12 @@ export const useNewCloudinaryUpload = () => {
       const uploadPreset = getUploadPreset('productUnsigned');
       console.log('🔧 Cloudinary Widget: Using upload preset:', uploadPreset);
       
-      // Определяем темную тему
+      // Определяем темную тему и мобильное устройство
       const isDark = document.documentElement.classList.contains("dark");
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // Настройка источников в зависимости от устройства
+      const widgetSources = isMobile ? ['local', 'camera'] : ['local'];
       
       // Создаем конфигурацию виджета с поддержкой темной темы
       const widgetStyles = {
@@ -292,9 +296,13 @@ export const useNewCloudinaryUpload = () => {
           maxFiles: options.maxFiles || CLOUDINARY_CONFIG.upload.maxFiles,
           maxFileSize: CLOUDINARY_CONFIG.upload.maxFileSize,
           clientAllowedFormats: CLOUDINARY_CONFIG.upload.allowedFormats,
-          sources: CLOUDINARY_CONFIG.widget.sources,
-          showAdvancedOptions: CLOUDINARY_CONFIG.widget.showAdvancedOptions,
-          cropping: CLOUDINARY_CONFIG.widget.cropping,
+          sources: widgetSources,
+          showAdvancedOptions: false,
+          cropping: false,
+          branding: false,
+          showPoweredBy: false,
+          defaultSource: 'local',
+          preBatch: true,
           theme: CLOUDINARY_CONFIG.widget.theme,
           language: CLOUDINARY_CONFIG.widget.language,
           text: CLOUDINARY_CONFIG.widget.text,
