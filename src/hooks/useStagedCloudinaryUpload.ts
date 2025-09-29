@@ -477,6 +477,24 @@ export const useStagedCloudinaryUpload = () => {
         resolve(result);
       };
       
+      // ✅ Check worker readiness first
+      if (!isWorkerReady()) {
+        console.warn('⚠️ Worker not ready, waiting...');
+        
+        // Wait for readiness up to 3 seconds
+        let waited = 0;
+        while (!isWorkerReady() && waited < 3000) {
+          await new Promise(r => setTimeout(r, 100));
+          waited += 100;
+        }
+        
+        if (!isWorkerReady()) {
+          console.error('❌ Worker still not ready after 3s');
+          safeResolve({ ok: false, code: 'WORKER_NOT_READY', originalSize: file.size });
+          return;
+        }
+      }
+
       const worker = getWorker();
       if (!worker) {
         console.error('❌ Failed to get shared worker');
@@ -817,10 +835,6 @@ export const useStagedCloudinaryUpload = () => {
     
     setIsUploading(true);
     createController(); // Create new controller for this upload batch
-    
-    // ✨ NEW: Pre-warm worker before processing files
-    console.log('🔥 Pre-warming worker for upload session...');
-    await preWarm({ retries: 3, delayMs: 400 });
     
     const currentSessionId = await initSession();
     const newUrls: string[] = [];

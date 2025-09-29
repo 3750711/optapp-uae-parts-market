@@ -13,7 +13,6 @@ import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useSellerUploadProtection } from "@/hooks/useSellerUploadProtection";
 import { logger } from "@/utils/logger";
-import { preWarm } from "@/workers/uploadWorker.singleton";
 
 const StandardSellerForm = () => {
   const navigate = useNavigate();
@@ -105,18 +104,6 @@ const StandardSellerForm = () => {
     warningMessage: "Создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
   });
 
-  // Pre-warm worker for better upload performance
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      console.log('🔥 StandardSellerForm: Pre-warming worker...');
-      const success = await preWarm({ retries: 3, delayMs: 400 });
-      if (!cancelled) {
-        console.log(success ? '✅ StandardSellerForm: Worker pre-warmed' : '⚠️ StandardSellerForm: Worker pre-warm failed');
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   // P1-1: Autosave draft to localStorage
   React.useEffect(() => {
