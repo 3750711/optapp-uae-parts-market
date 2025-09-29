@@ -131,7 +131,7 @@ export const CLOUDINARY_CONFIG = {
     searchBySights: false,
     searchByRights: false,
     
-    // PartsBay Brand Styling
+    // PartsBay Brand Styling with Mobile Optimization
     styles: {
       palette: {
         window: '#FFFFFF',
@@ -160,10 +160,37 @@ export const CLOUDINARY_CONFIG = {
         border: "1px solid #E5E7EB",
         borderRadius: "16px",
         boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
-        backdrop_filter: "blur(8px)"
+        backdropFilter: "blur(8px)",
+        // Mobile optimization
+        touchAction: "manipulation",
+        userSelect: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none"
       },
       dropArea: {
         display: "none"
+      },
+      // Mobile-specific button styles
+      button: {
+        minHeight: "48px",
+        padding: "14px 24px",
+        fontSize: "16px",
+        borderRadius: "12px",
+        touchAction: "manipulation"
+      },
+      // Progress bar mobile optimization
+      progressBar: {
+        height: "6px",
+        borderRadius: "3px"
+      },
+      // Text sizing for mobile readability
+      text: {
+        fontSize: "16px",
+        lineHeight: "1.5"
+      },
+      title: {
+        fontSize: "20px",
+        lineHeight: "1.4"
       }
     },
 
@@ -308,7 +335,7 @@ export const getWidgetSources = (isMobile: boolean): string[] => {
 };
 
 export const getWidgetUXConfig = (isMobile: boolean) => {
-  return {
+  const baseConfig = {
     inline: false,
     queueViewPosition: isMobile ? 'bottom' : 'top',
     showAdvancedOptions: false,
@@ -318,4 +345,29 @@ export const getWidgetUXConfig = (isMobile: boolean) => {
     defaultSource: 'local',
     preBatch: true,
   };
+
+  // Mobile-specific optimizations
+  if (isMobile) {
+    return {
+      ...baseConfig,
+      // Touch-friendly settings
+      theme: 'minimal',
+      showProgressBar: true,
+      showCompletedButton: true,
+      showUploadMoreButton: false,
+      // Performance optimizations
+      maxImageFileSize: 8000000, // 8MB for mobile (vs 10MB desktop)
+      clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
+      quality: 'auto:good',
+      // Queue optimization
+      queueViewPosition: 'bottom',
+      thumbnailTransformation: { width: 60, height: 60, crop: 'fill' },
+      // Mobile UX improvements
+      prepareOnDrop: false, // Reduce processing on mobile
+      autoMinimize: true,
+      closeWidget: true
+    };
+  }
+
+  return baseConfig;
 };
