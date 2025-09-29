@@ -253,7 +253,7 @@ export const useNewCloudinaryUpload = () => {
       const widget = cloudinary.createUploadWidget(
         {
           cloudName: CLOUDINARY_CONFIG.cloudName,
-          uploadPreset: CLOUDINARY_CONFIG.uploadPresets.productUnsigned || CLOUDINARY_CONFIG.uploadPresets.product,
+          uploadPreset: CLOUDINARY_CONFIG.uploadPresets.productUnsigned,
           folder: options.folder || CLOUDINARY_CONFIG.upload.folder,
           publicIdPrefix: publicIdPrefix,
           multiple: options.multiple ?? true,
