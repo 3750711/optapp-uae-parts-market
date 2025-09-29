@@ -3,7 +3,7 @@ import { unstable_batchedUpdates } from "react-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
+
 import { CloudinaryPhotoUploader } from "@/components/uploader/CloudinaryPhotoUploader";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
@@ -51,8 +51,7 @@ const StandardSellerForm = () => {
   const t = getFormTranslations(language);
   const c = getCommonTranslations(language);
   
-  // Feature flag: использовать новую Cloudinary систему на странице /seller/add-product
-  const useCloudinaryUploader = location.pathname === '/seller/add-product';
+  // Используем Cloudinary Widget для всех страниц
   
   const [displayData, setDisplayData] = useState({
     title: "",
@@ -222,10 +221,6 @@ const StandardSellerForm = () => {
     }
   }, [retryCount, refetchProfile]);
 
-  // Handle photo uploads from SimplePhotoUploader
-  const onPhotoUpload = useCallback((completedUrls: string[]) => {
-    handleImageUpload(completedUrls);
-  }, [handleImageUpload]);
 
   // Handle photo uploads from CloudinaryPhotoUploader
   const onCloudinaryUpload = useCallback((newUrls: string[]) => {
@@ -332,30 +327,18 @@ const StandardSellerForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {useCloudinaryUploader ? (
-        <div>
-          <h3 className="text-sm font-medium mb-3">
-            Фотографии товара *
-            <span className="ml-2 text-xs text-muted-foreground bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md">
-              ✨ Новая система загрузки
-            </span>
-          </h3>
-          <CloudinaryPhotoUploader
-            images={imageUrls}
-            onImageUpload={onCloudinaryUpload}
-            onImageDelete={onImageDelete}
-            maxImages={50}
-            disabled={isSubmitting}
-          />
-        </div>
-      ) : (
-        <SimplePhotoUploader
-          onChange={onPhotoUpload}
-          max={50}
-          language={language}
-          buttonText="Загрузить фото"
+      <div>
+        <h3 className="text-sm font-medium mb-3">
+          Фотографии товара *
+        </h3>
+        <CloudinaryPhotoUploader
+          images={imageUrls}
+          onImageUpload={onCloudinaryUpload}
+          onImageDelete={onImageDelete}
+          maxImages={50}
+          disabled={isSubmitting}
         />
-      )}
+      </div>
       
       <div>
         <label className="block text-sm font-medium mb-2">

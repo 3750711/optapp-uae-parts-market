@@ -72,7 +72,7 @@ const SellerAddProduct = lazy(() =>
   import('@/pages/SellerAddProduct').then(module => {
     // Предзагрузить форму и компоненты загрузки
     import('@/components/seller/StandardSellerForm');
-    import('@/components/uploader/SimplePhotoUploader');
+    import('@/components/uploader/CloudinaryPhotoUploader');
     return module;
   })
 );
