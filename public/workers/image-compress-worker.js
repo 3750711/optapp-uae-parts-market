@@ -17,6 +17,7 @@ async function compressImageInWorker(file, options, taskId) {
   }
 
   isProcessing = true;
+  const startTime = Date.now(); // Начало отслеживания времени
   
   try {
     // Send progress updates
@@ -57,11 +58,13 @@ async function compressImageInWorker(file, options, taskId) {
     if (shouldAbort) throw new Error('ABORTED');
 
     const compressionRatio = Math.round((1 - compressedFile.size / file.size) * 100);
+    const compressionMs = Date.now() - startTime; // Вычисление времени сжатия
     
     console.log(`✅ Worker compression complete: ${file.name}`, {
       originalSize: file.size,
       compressedSize: compressedFile.size,
-      ratio: compressionRatio + '%'
+      ratio: compressionRatio + '%',
+      compressionMs: compressionMs + 'ms'
     });
 
     // Send final result
@@ -73,6 +76,7 @@ async function compressImageInWorker(file, options, taskId) {
         originalSize: file.size,
         compressedSize: compressedFile.size,
         compressionRatio,
+        compressionMs,
         compressionApplied: true
       }
     });
