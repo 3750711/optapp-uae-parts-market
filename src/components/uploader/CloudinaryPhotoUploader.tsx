@@ -5,6 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Upload, X, Camera } from 'lucide-react';
 import { useNewCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { cn } from '@/lib/utils';
+import { CloudinaryNormalized } from '@/types/cloudinary';
 
 interface CloudinaryPhotoUploaderProps {
   images: string[];
@@ -32,18 +33,15 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
     if (!canUploadMore || disabled) return;
 
     openUploadWidget(
-      (results) => {
-        console.log('🎯 CloudinaryPhotoUploader received results:', results);
+      (results: CloudinaryNormalized[]) => {
+        console.log('🎯 CloudinaryPhotoUploader received normalized results:', results);
         
-        const newUrls = results.map(result => {
-          const url = result.secure_url || result.mainImageUrl || '';
-          console.log('📷 Processing result:', { 
-            secure_url: result.secure_url, 
-            mainImageUrl: result.mainImageUrl, 
-            finalUrl: url 
-          });
-          return url;
-        }).filter(Boolean);
+        if (process.env.NODE_ENV !== "production") {
+          console.debug("[CloudinaryPhotoUploader] raw results:", results);
+          console.debug("[CloudinaryPhotoUploader] normalized:", results);
+        }
+        
+        const newUrls = results.map(result => result.url).filter(Boolean);
         
         console.log('📸 Final URLs to upload:', newUrls);
         onImageUpload(newUrls);

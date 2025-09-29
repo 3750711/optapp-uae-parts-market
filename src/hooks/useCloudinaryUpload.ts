@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
+import { toNormalized, CloudinaryNormalized } from "@/types/cloudinary";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { getWidgetSources, getWidgetUXConfig } from '@/config/cloudinary';
 import { CLOUDINARY_CONFIG, getUploadPreset, validateUploadPreset } from '@/config/cloudinary';
@@ -180,6 +181,16 @@ interface UploadProgress {
   status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
   result?: CloudinaryUploadResult;
+  normalized?: CloudinaryNormalized;
+}
+
+interface UploadProgress {
+  fileId: string;
+  fileName: string;
+  progress: number;
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  error?: string;
+  result?: CloudinaryUploadResult;
 }
 
 interface ValidationError {
@@ -191,7 +202,7 @@ export const useNewCloudinaryUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-  const [successfulUploads, setSuccessfulUploads] = useState<CloudinaryUploadResult[]>([]);
+  const [successfulUploads, setSuccessfulUploads] = useState<CloudinaryNormalized[]>([]);
 
   // Валидация файлов на клиенте
   const validateFiles = useCallback((files: FileList | File[]): ValidationError[] => {
@@ -229,7 +240,7 @@ export const useNewCloudinaryUpload = () => {
   }, []);
 
   const openUploadWidget = useCallback((
-    onSuccess: (results: CloudinaryUploadResult[]) => void,
+    onSuccess: (results: CloudinaryNormalized[]) => void,
     options: {
       multiple?: boolean;
       maxFiles?: number;
@@ -337,22 +348,19 @@ export const useNewCloudinaryUpload = () => {
               bytes: uploadResult.bytes
             });
 
-            // Нормализуем результат для совместимости
-            const normalizedResult: CloudinaryUploadResult = {
-              ...uploadResult,
-              secure_url: uploadResult.secure_url || uploadResult.mainImageUrl || '',
-              mainImageUrl: uploadResult.mainImageUrl || uploadResult.secure_url
-            };
+            // Нормализуем результат
+            const normalized = toNormalized(uploadResult);
+            
+            if (process.env.NODE_ENV !== "production") {
+              console.debug("[useNewCloudinaryUpload] success normalized:", normalized);
+            }
 
-            console.log('📸 Upload success, normalized result:', {
-              originalResult: uploadResult,
-              normalizedResult,
-              hasSecureUrl: !!normalizedResult.secure_url,
-              hasMainImageUrl: !!normalizedResult.mainImageUrl
-            });
+            if (normalized) {
+              console.log('📸 Upload success, normalized result:', normalized);
 
-            // Добавляем в успешные загрузки
-            setSuccessfulUploads(prev => [...prev, normalizedResult]);
+              // Добавляем в успешные загрузки
+              setSuccessfulUploads(prev => [...prev, normalized]);
+            }
 
             // Обновляем прогресс
             setUploadProgress(prev => prev.map(p => 
@@ -448,7 +456,7 @@ export const useNewCloudinaryUpload = () => {
     return new Promise((resolve) => {
       openUploadWidget(
         (results) => {
-          const urls = results.map(result => result.secure_url);
+          const urls = results.map(result => result.url);
           resolve(urls);
         },
         {
