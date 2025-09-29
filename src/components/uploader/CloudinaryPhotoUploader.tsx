@@ -53,33 +53,25 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
   return (
     <div className={cn("space-y-4", className)}>
       {/* Upload Button */}
-      <Card className="border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors">
-        <CardContent className="p-6">
-          <div className="flex flex-col items-center justify-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Camera className="w-6 h-6 text-primary" />
-            </div>
-            
-            <div className="text-center">
-              <h3 className="text-sm font-medium">Загрузите фотографии товара</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Максимум {maxImages} фото. Осталось слотов: {remainingSlots}
-              </p>
-            </div>
-
-            <Button
-              onClick={handleUpload}
-              disabled={!canUploadMore || disabled || isUploading}
-              variant="outline"
-              size="sm"
-              className="mt-2"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              {isUploading ? 'Загрузка...' : 'Выбрать фото'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium">Фотографии товара</h3>
+          <span className="text-xs text-muted-foreground">
+            ({images.length}/{maxImages})
+          </span>
+        </div>
+        
+        <Button
+          onClick={handleUpload}
+          disabled={!canUploadMore || disabled || isUploading}
+          variant="outline"
+          size="sm"
+          className="flex items-center gap-2"
+        >
+          <Camera className="w-4 h-4" />
+          {isUploading ? 'Загрузка...' : 'Добавить фото'}
+        </Button>
+      </div>
 
       {/* Upload Progress */}
       {uploadProgress.length > 0 && (
