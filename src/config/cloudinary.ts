@@ -84,7 +84,7 @@ export const CLOUDINARY_CONFIG = {
     multiple: true,
     maxFiles: 50,
     maxFileSize: 10000000,
-    sources: ['local', 'camera', 'url'],
+    sources: ['local'],
     cropping: false,
     resourceType: 'auto',
     clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
@@ -101,8 +101,8 @@ export const CLOUDINARY_CONFIG = {
   // Widget configuration with PartsBay Brand
   widget: {
     theme: 'minimal',
-    language: 'ru',
-    sources: ['local', 'camera', 'url'],
+    language: 'en',
+    sources: ['local'],
     cropping: false,
     multiple: true,
     clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif'] as const,
@@ -121,7 +121,7 @@ export const CLOUDINARY_CONFIG = {
     // Progress and preview
     showAdvancedOptions: false,
     showSkipCropButton: false,
-    showUploadMoreButton: true,
+    showUploadMoreButton: false,
     showProgressBar: true,
     queueViewPosition: 'bottom',
     showCompletedButton: true,
@@ -160,34 +160,30 @@ export const CLOUDINARY_CONFIG = {
         border: "1px solid #E5E7EB",
         borderRadius: "16px",
         boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
-        backdropFilter: "blur(8px)"
+        backdrop_filter: "blur(8px)"
+      },
+      dropArea: {
+        display: "none"
       }
     },
 
-    // Localization with PartsBay terms
+    // Simple English localization
     text: {
-      ru: {
-        'local.browse': '📷 Выбрать фотографии товара',
-        'local.dd_title_single': 'Перетащите фото товара сюда',
-        'local.dd_title_multi': 'Перетащите фотографии товара сюда',
-        'camera.capture': '📱 Сфотографировать товар',
-        'camera.cancel': 'Отмена',
-        'camera.take_pic': 'Снимок',
-        'camera.explanation': 'Убедитесь, что камера включена для съемки товара',
-        'upload_tabs.url': '🔗 По ссылке',
-        'upload_tabs.file': '📁 С устройства',
-        'upload_tabs.camera': '📷 Камера',
-        'queue.title': 'Загрузка фотографий',
-        'queue.title_uploading_with_counter': 'Загружается {{num}} фотографий',
-        'queue.title_uploading': 'Загружается фотография',
-        'queue.mini_title': '✅ Загружено',
-        'queue.mini_title_uploading': '⏳ Загружается...',
-        'done.title': '🎉 Фотографии загружены!',
-        'local.success': 'Фотографии успешно загружены',
-        'progress.uploading': 'Загружаем ваши фотографии...',
-        'or': 'или',
-        'menu.close': 'Закрыть',
-        'menu.back': 'Назад'
+      en: {
+        'local.browse': 'Choose Files',
+        'local.dd_title_single': 'Drop your photo here',
+        'local.dd_title_multi': 'Drop your photos here',
+        'queue.title': 'Uploading photos',
+        'queue.title_uploading_with_counter': 'Uploading {{num}} photos',
+        'queue.title_uploading': 'Uploading photo',
+        'queue.mini_title': 'Uploaded',
+        'queue.mini_title_uploading': 'Uploading...',
+        'done.title': 'Upload complete',
+        'local.success': 'Photos uploaded successfully',
+        'progress.uploading': 'Uploading your photos...',
+        'or': 'or',
+        'menu.close': 'Close',
+        'menu.back': 'Back'
       }
     }
   }
@@ -308,7 +304,7 @@ export const getUploadPreset = (
 
 // Widget sources utilities
 export const getWidgetSources = (isMobile: boolean): string[] => {
-  return isMobile ? ['local', 'camera'] : ['local'];
+  return ['local'];
 };
 
 export const getWidgetUXConfig = (isMobile: boolean) => {
