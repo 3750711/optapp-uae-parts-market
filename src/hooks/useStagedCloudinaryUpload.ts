@@ -529,6 +529,20 @@ export const useStagedCloudinaryUpload = () => {
           
           if (result.type === 'success' && result.result) {
             const data = result.result;
+            
+            // Фаза 2: Детальная диагностика
+            console.group(`🔍 WORKER RESPONSE DEBUG: ${file.name}`);
+            console.log('Raw result:', result);
+            console.log('Result type:', result.type);
+            console.log('Has result field:', !!result.result);
+            console.log('Task ID match:', result.taskId === taskId);
+            if (result.result) {
+              console.log('Result data keys:', Object.keys(result.result));
+              console.log('Has compressedFile:', !!result.result.compressedFile);
+              console.log('Has compressionMs:', !!result.result.compressionMs);
+            }
+            console.groupEnd();
+            
             console.log('✅ Worker compression successful:', {
               file: file.name,
               taskId,
@@ -544,7 +558,7 @@ export const useStagedCloudinaryUpload = () => {
               mime: 'image/jpeg',
               originalSize: data.originalSize,
               compressedSize: data.compressedSize,
-              compressionMs: data.compressionMs
+              compressionMs: data.compressionMs || 0  // Фаза 3: fallback для отсутствующего compressionMs
             });
           } else if (result.type === 'error') {
             console.warn('⚠️ Worker compression failed:', {
@@ -629,6 +643,21 @@ export const useStagedCloudinaryUpload = () => {
         if (quality < 0.1 || quality > 1.0) {
           throw new Error('Invalid quality parameter');
         }
+        
+        // Фаза 2: Диагностика отправки сообщения
+        console.group(`🔍 WORKER MESSAGE DEBUG: ${file.name}`);
+        console.log('1. Getting worker instance...');
+        const workerExists = !!worker;
+        console.log('2. Worker instance:', workerExists ? 'EXISTS' : 'NULL');
+        console.log('3. Message structure:', {
+          hasType: !!message.type,
+          hasFile: !!message.file,
+          hasTaskId: !!message.taskId,
+          fileSize: message.file?.size,
+          allKeys: Object.keys(message)
+        });
+        console.log('4. Posting message to worker...');
+        console.groupEnd();
         
         worker.postMessage(message);
         console.log('📤 Compression task sent to worker:', {
