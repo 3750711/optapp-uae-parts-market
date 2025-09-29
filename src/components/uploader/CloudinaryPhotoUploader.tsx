@@ -63,25 +63,16 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
   return (
     <div className={cn("space-y-4", className)}>
       {/* Upload Button */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-sm font-medium">Фотографии товара</h3>
-          <span className="text-xs text-muted-foreground">
-            ({images.length}/{maxImages})
-          </span>
-        </div>
-        
-        <Button
-          onClick={handleUpload}
-          disabled={!canUploadMore || disabled || isUploading}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-        >
-          <Camera className="w-4 h-4" />
-          {isUploading ? 'Загрузка...' : 'Добавить фото'}
-        </Button>
-      </div>
+      <Button
+        onClick={handleUpload}
+        disabled={!canUploadMore || disabled || isUploading}
+        variant="outline"
+        size="sm"
+        className="flex items-center gap-2"
+      >
+        <Camera className="w-4 h-4" />
+        {isUploading ? 'Загрузка...' : 'Добавить фото'}
+      </Button>
 
       {/* Upload Progress */}
       {uploadProgress.length > 0 && (
@@ -140,12 +131,6 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
         </div>
       )}
 
-      {/* Info */}
-      <div className="text-xs text-muted-foreground">
-        <p>• Поддерживаются форматы: JPG, PNG, WebP, GIF</p>
-        <p>• Максимальный размер файла: 10 МБ</p>
-        <p>• Изображения автоматически оптимизируются</p>
-      </div>
     </div>
   );
 };
