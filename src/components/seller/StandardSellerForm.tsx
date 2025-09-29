@@ -1,9 +1,10 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { unstable_batchedUpdates } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
+import { CloudinaryPhotoUploader } from "@/components/uploader/CloudinaryPhotoUploader";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
@@ -16,6 +17,7 @@ import { logger } from "@/utils/logger";
 
 const StandardSellerForm = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { language } = useLanguage();
   const { createStandardSellerProduct, isCreating, currentUserProfile, isProfileLoading } = useStandardSellerProductCreation();
@@ -48,6 +50,9 @@ const StandardSellerForm = () => {
   
   const t = getFormTranslations(language);
   const c = getCommonTranslations(language);
+  
+  // Feature flag: использовать новую Cloudinary систему на странице /seller/add-product
+  const useCloudinaryUploader = location.pathname === '/seller/add-product';
   
   const [displayData, setDisplayData] = useState({
     title: "",
@@ -222,6 +227,17 @@ const StandardSellerForm = () => {
     handleImageUpload(completedUrls);
   }, [handleImageUpload]);
 
+  // Handle photo uploads from CloudinaryPhotoUploader
+  const onCloudinaryUpload = useCallback((newUrls: string[]) => {
+    console.log('📤 Cloudinary upload completed:', newUrls);
+    handleImageUpload(newUrls);
+  }, [handleImageUpload]);
+
+  const onImageDelete = useCallback((urlToDelete: string) => {
+    console.log('🗑️ Deleting image:', urlToDelete);
+    handleImageDelete(urlToDelete);
+  }, [handleImageDelete]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -316,12 +332,30 @@ const StandardSellerForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <SimplePhotoUploader
-        onChange={onPhotoUpload}
-        max={50}
-        language={language}
-        buttonText="Загрузить фото"
-      />
+      {useCloudinaryUploader ? (
+        <div>
+          <h3 className="text-sm font-medium mb-3">
+            Фотографии товара *
+            <span className="ml-2 text-xs text-muted-foreground bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md">
+              ✨ Новая система загрузки
+            </span>
+          </h3>
+          <CloudinaryPhotoUploader
+            images={imageUrls}
+            onImageUpload={onCloudinaryUpload}
+            onImageDelete={onImageDelete}
+            maxImages={50}
+            disabled={isSubmitting}
+          />
+        </div>
+      ) : (
+        <SimplePhotoUploader
+          onChange={onPhotoUpload}
+          max={50}
+          language={language}
+          buttonText="Загрузить фото"
+        />
+      )}
       
       <div>
         <label className="block text-sm font-medium mb-2">
