@@ -6,6 +6,8 @@ import { Upload, X, Camera } from 'lucide-react';
 import { useNewCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { cn } from '@/lib/utils';
 import { CloudinaryNormalized } from '@/types/cloudinary';
+import { useLanguage } from '@/hooks/useLanguage';
+import { getFormTranslations } from '@/utils/translations/forms';
 
 interface CloudinaryPhotoUploaderProps {
   images: string[];
@@ -28,6 +30,8 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
 }) => {
   const { isUploading, uploadProgress, openUploadWidget } = useNewCloudinaryUpload();
   const [isWidgetOpen, setIsWidgetOpen] = useState(false);
+  const { language } = useLanguage();
+  const t = getFormTranslations(language);
 
   // Notify parent component about widget state changes
   useEffect(() => {
@@ -96,7 +100,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
         className="flex items-center gap-2 w-full min-h-[48px] text-base touch-manipulation sm:w-auto sm:min-h-[40px] sm:text-sm"
       >
         <Camera className="w-5 h-5 sm:w-4 sm:h-4" />
-        {isUploading ? 'Загрузка...' : 'Добавить фото'}
+        {isUploading ? t.buttons.uploading : t.buttons.addPhoto}
       </Button>
 
       {/* Upload Progress */}

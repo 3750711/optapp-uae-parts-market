@@ -57,6 +57,8 @@ export interface FormTranslations {
     uploadVideos: string;
     cancelUpload: string;
     smartUpload: string;
+    addPhoto: string;
+    uploading: string;
   };
   messages: {
     productCreated: string;
@@ -148,6 +150,8 @@ const formTranslations: Record<Lang, FormTranslations> = {
       uploadVideos: 'Загрузить видео',
       cancelUpload: 'Отменить загрузку',
       smartUpload: 'Умная загрузка...',
+      addPhoto: 'Добавить фото',
+      uploading: 'Загрузка...',
     },
     messages: {
       productCreated: 'Товар успешно создан',
@@ -237,6 +241,8 @@ const formTranslations: Record<Lang, FormTranslations> = {
       uploadVideos: 'Upload Videos',
       cancelUpload: 'Cancel Upload',
       smartUpload: 'Smart Upload...',
+      addPhoto: 'Add Photo',
+      uploading: 'Uploading...',
     },
     messages: {
       productCreated: 'Product successfully created',
@@ -326,6 +332,8 @@ const formTranslations: Record<Lang, FormTranslations> = {
       uploadVideos: 'ভিডিও আপলোড করুন',
       cancelUpload: 'আপলোড বাতিল করুন',
       smartUpload: 'স্মার্ট আপলোড...',
+      addPhoto: 'ছবি যোগ করুন',
+      uploading: 'আপলোড হচ্ছে...',
     },
     messages: {
       productCreated: 'পণ্য সফলভাবে তৈরি',
