@@ -112,16 +112,10 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
       )}
       
       <picture>
-        <source 
-          srcSet={webpUrl} 
-          type="image/webp"
-          sizes={size === 'thumbnail' ? '120px' : size === 'card' ? '400px' : size === 'detail' ? '800px' : '720px'}
-        />
+        <source srcSet={webpUrl} type="image/webp" />
         <img
           src={fallbackUrl}
           alt={alt}
-          width={config.width}
-          height={config.height || 'auto'}
           className={`${className} object-contain transition-opacity duration-300 ${
             isLoaded ? 'opacity-100' : 'opacity-0'
           }`}

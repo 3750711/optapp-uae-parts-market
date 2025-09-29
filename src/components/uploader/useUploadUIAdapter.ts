@@ -13,7 +13,7 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
   // НИЧЕГО не меняем в хуке — только используем
   const hook: any = useStagedCloudinaryUpload();
 
-  // Helper function to detect HEIC files with optimized logging
+  // Helper function to detect HEIC files
   const isHeicFile = (file: File): boolean => {
     const isHeic = file.name.toLowerCase().endsWith('.heic') || 
                    file.name.toLowerCase().endsWith('.heif') ||
@@ -22,14 +22,8 @@ export function useUploadUIAdapter(opts: AdapterOpts = {}) {
                    file.type === 'image/heic' || 
                    file.type === 'image/heif';
     
-    // Log only once per file to prevent spam
     if (isHeic) {
-      const globalThis = window as any;
-      if (!globalThis._heicLogged) globalThis._heicLogged = {};
-      if (!globalThis._heicLogged[file.name]) {
-        globalThis._heicLogged[file.name] = true;
-        console.log(`📱 HEIC file detected: ${file.name} (${file.type})`);
-      }
+      console.log(`📱 HEIC file detected: ${file.name} (${file.type})`);
     }
     
     return isHeic;

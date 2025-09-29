@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminAddProductForm from "@/components/admin/AdminAddProductForm";
 import { useOptimizedAdminAddProduct } from "@/hooks/useOptimizedAdminAddProduct";
@@ -58,20 +58,7 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
     warningMessage: "Создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
   });
 
-
-  // Upload protection with beforeunload warning  
-  useEffect(() => {
-    if (isSubmitting) {
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-        e.preventDefault();
-        e.returnValue = 'Загрузка изображений не завершена. Вы уверены, что хотите покинуть страницу?';
-        return e.returnValue;
-      };
-      
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }
-  }, [isSubmitting]);
+  // Форма теперь автоматически настраивается для доверенных продавцов через хук
 
   const handleRefreshPage = () => {
     window.location.reload();

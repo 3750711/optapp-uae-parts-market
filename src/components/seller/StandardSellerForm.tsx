@@ -104,21 +104,6 @@ const StandardSellerForm = () => {
     warningMessage: "Создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
   });
 
-  // Additional upload protection with beforeunload warning
-  useEffect(() => {
-    if (isCreating) {
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-        e.preventDefault();
-        e.returnValue = 'Загрузка изображений не завершена. Вы уверены, что хотите покинуть страницу?';
-        return e.returnValue;
-      };
-      
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }
-  }, [isCreating]);
-
-
   // P1-1: Autosave draft to localStorage
   React.useEffect(() => {
     if (formData.title || formData.description || formData.price || imageUrls.length > 0) {

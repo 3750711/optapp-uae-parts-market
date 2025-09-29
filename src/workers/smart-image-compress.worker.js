@@ -6,12 +6,6 @@
 
 self.onmessage = async (e) => {
   const p = e.data || {};
-  
-  // Handle ping/pong for worker readiness check
-  if (p.type === 'ping') {
-    return self.postMessage({ type: 'pong', msgId: p.msgId });
-  }
-  
   try {
     const file = p.file;
     if (!file) return postError('NO_FILE', 'No file provided');

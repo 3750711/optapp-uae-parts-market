@@ -9,8 +9,6 @@ importScripts('https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist
 // Worker state
 let isProcessing = false;
 let shouldAbort = false;
-// Фаза 2: Защита от двойной инициализации
-let isInitialized = false;
 
 // Compression logic with abort support
 async function compressImageInWorker(file, options, taskId) {
@@ -19,7 +17,6 @@ async function compressImageInWorker(file, options, taskId) {
   }
 
   isProcessing = true;
-  const startTime = Date.now(); // Начало отслеживания времени
   
   try {
     // Send progress updates
@@ -60,13 +57,11 @@ async function compressImageInWorker(file, options, taskId) {
     if (shouldAbort) throw new Error('ABORTED');
 
     const compressionRatio = Math.round((1 - compressedFile.size / file.size) * 100);
-    const compressionMs = Date.now() - startTime; // Вычисление времени сжатия
     
     console.log(`✅ Worker compression complete: ${file.name}`, {
       originalSize: file.size,
       compressedSize: compressedFile.size,
-      ratio: compressionRatio + '%',
-      compressionMs: compressionMs + 'ms'
+      ratio: compressionRatio + '%'
     });
 
     // Send final result
@@ -78,7 +73,6 @@ async function compressImageInWorker(file, options, taskId) {
         originalSize: file.size,
         compressedSize: compressedFile.size,
         compressionRatio,
-        compressionMs,
         compressionApplied: true
       }
     });
@@ -112,24 +106,9 @@ async function compressImageInWorker(file, options, taskId) {
 
 // Handle incoming messages
 self.addEventListener('message', async (event) => {
-  const { type, file, options, taskId, msgId } = event.data;
+  const { type, file, options, taskId } = event.data;
   
   switch (type) {
-    case 'ping':
-      // Фаза 2: Защита от двойной инициализации
-      if (!isInitialized) {
-        isInitialized = true;
-        console.log('📥 Worker first-time initialization with ping, msgId:', msgId);
-      } else {
-        console.log('📥 Worker received ping (already initialized), msgId:', msgId);
-      }
-      self.postMessage({
-        type: 'pong',
-        msgId: msgId,
-        isInitialized: true
-      });
-      break;
-      
     case 'compress':
       try {
         await compressImageInWorker(file, options, taskId);

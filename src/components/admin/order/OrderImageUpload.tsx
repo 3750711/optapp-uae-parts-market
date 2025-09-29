@@ -24,8 +24,6 @@ export const OrderImageUpload: React.FC<OrderImageUploadProps> = ({
   const { uploadFiles, uploadItems, isUploading } = useStagedCloudinaryUpload();
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Pre-warm removed: now handled at page level in SellerAddProduct.tsx
-
   // Sync with external changes
   useEffect(() => {
     setAllImages(existingImages);

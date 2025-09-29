@@ -93,17 +93,6 @@ const FastSellerDashboard = memo(() => {
     };
   }, [startTimer]);
 
-  // Prefetch SellerAddProduct for faster navigation
-  useEffect(() => {
-    const prefetchTimer = setTimeout(() => {
-      import('@/pages/SellerAddProduct').catch(() => {
-        console.log('Prefetch SellerAddProduct failed');
-      });
-    }, 2000); // After dashboard loads
-    
-    return () => clearTimeout(prefetchTimer);
-  }, []);
-
 
   const handleContactAdmin = useCallback(() => {
     try {
@@ -192,16 +181,7 @@ const FastSellerDashboard = memo(() => {
         <h3 className="text-lg font-semibold mb-3 text-foreground">{c.sections.management}</h3>
         <div className="dashboard-grid">
         {dashboardItems.map((item, index) => (
-          <Link 
-            key={index} 
-            to={item.to} 
-            className="block" 
-            preventScrollReset={true}
-            onMouseEnter={(e) => {
-              // Disable prefetch on hover by preventing default behavior
-              e.preventDefault();
-            }}
-          >
+          <Link key={index} to={item.to} className="block">
             <div className={`fast-card h-full bg-white rounded-lg border ${item.color} ${isMobile ? 'mobile-card touch-target' : ''}`}>
               <div className={isMobile ? "pb-2 pt-3 px-4" : "pb-2 px-6 pt-6"}>
                 <div className="relative">
