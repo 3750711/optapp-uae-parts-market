@@ -9,7 +9,7 @@ self.onmessage = async (e) => {
   
   // Handle ping/pong for worker readiness check
   if (p.type === 'ping') {
-    return self.postMessage({ type: 'pong' });
+    return self.postMessage({ type: 'pong', msgId: p.msgId });
   }
   
   try {

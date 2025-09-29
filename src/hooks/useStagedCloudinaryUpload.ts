@@ -6,6 +6,14 @@ import { useUploadAbortController } from './useUploadAbortController';
 import { useUnifiedUploadErrorHandler } from './useUnifiedUploadErrorHandler';
 import { uploadWithSimpleFallback } from '@/utils/simpleCloudinaryFallback';
 import { ErrorRecoveryManager } from '@/utils/errorRecovery';
+import { 
+  getWorker, 
+  preWarm, 
+  isWorkerReady, 
+  isFirstFileInSession, 
+  markFirstFileProcessed,
+  terminate 
+} from '@/workers/uploadWorker.singleton';
 
 // Helper functions for new upload path
 const getRuntimeConfig = () => {
@@ -450,82 +458,8 @@ export const useStagedCloudinaryUpload = () => {
     return signature;
   }, []);
 
-  // Worker singleton to prevent multiple instances
-  const workerSingleton = (() => {
-    let instance: Worker | null = null;
-    let isInitializing = false;
-    let isReady = false;
-    
-    return {
-      getInstance: async (): Promise<Worker | null> => {
-        if (instance && isReady) return instance;
-        
-        if (isInitializing) {
-          // Wait for initialization to complete up to 5 seconds
-          for (let i = 0; i < 50; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            if (isReady) return instance;
-          }
-          return instance;
-        }
-        
-        isInitializing = true;
-        try {
-          instance = new Worker(
-            new URL('../workers/smart-image-compress.worker.js', import.meta.url),
-            { type: 'module' }
-          );
-          
-          // Test worker readiness with ping/pong
-          await new Promise<void>((resolve) => {
-            const timeout = setTimeout(() => {
-              console.warn('⚠️ Worker ping timeout');
-              resolve();
-            }, 3000);
-            
-            const handleMessage = (e: MessageEvent) => {
-              if (e.data?.type === 'pong') {
-                clearTimeout(timeout);
-                isReady = true;
-                instance!.removeEventListener('message', handleMessage);
-                console.log('✅ Shared worker ready');
-                resolve();
-              }
-            };
-            
-            instance!.addEventListener('message', handleMessage);
-            instance!.postMessage({ type: 'ping' });
-          });
-          
-          return instance;
-        } catch (error) {
-          console.error('❌ Failed to create shared worker:', error);
-          return null;
-        } finally {
-          isInitializing = false;
-        }
-      },
-      
-      preWarm: async () => {
-        await workerSingleton.getInstance();
-      },
-      
-      terminate: () => {
-        if (instance) {
-          try {
-            instance.terminate();
-          } catch (error) {
-            console.warn('⚠️ Shared worker termination error:', error);
-          }
-          instance = null;
-          isReady = false;
-        }
-      }
-    };
-  })();
-
   // Compress image in worker with reliable memory management and shared worker
-  const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82): Promise<CompressionResult> => {
+  const compressInWorker = useCallback(async (file: File, maxSide = 1600, quality = 0.82, isFirstFile = false): Promise<CompressionResult> => {
     return new Promise(async (resolve) => {
       let timeout: NodeJS.Timeout | null = null;
       let isResolved = false;
@@ -543,18 +477,21 @@ export const useStagedCloudinaryUpload = () => {
         resolve(result);
       };
       
-      const worker = await workerSingleton.getInstance();
+      const worker = getWorker();
       if (!worker) {
         console.error('❌ Failed to get shared worker');
         safeResolve({ ok: false, code: 'WORKER_CREATION_FAILED', originalSize: file.size });
         return;
       }
+
+      // Dynamic timeout based on whether this is the first file 
+      const timeoutMs = isFirstFile ? 45000 : 30000; // 45s for first file, 30s for others
       
       // Set timeout with cleanup
       timeout = setTimeout(() => {
-        console.warn('⏰ Worker timeout for:', file.name);
+        console.warn(`⏰ Worker timeout for: ${file.name} (${isFirstFile ? 'first file' : 'regular file'}: ${timeoutMs}ms)`);
         safeResolve({ ok: false, code: 'WORKER_TIMEOUT', originalSize: file.size });
-      }, 30000);
+      }, timeoutMs);
       
       // Enhanced message handler with error boundaries
       worker.onmessage = (e) => {
@@ -881,6 +818,10 @@ export const useStagedCloudinaryUpload = () => {
     setIsUploading(true);
     createController(); // Create new controller for this upload batch
     
+    // ✨ NEW: Pre-warm worker before processing files
+    console.log('🔥 Pre-warming worker for upload session...');
+    await preWarm({ retries: 3, delayMs: 400 });
+    
     const currentSessionId = await initSession();
     const newUrls: string[] = [];
     
@@ -1012,7 +953,17 @@ export const useStagedCloudinaryUpload = () => {
             item.status = 'compressing';
             setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
             
-            const compressionResult = await compressInWorker(item.file, maxSide, quality);
+            const compressionResult = await compressInWorker(
+              item.file, 
+              maxSide, 
+              quality,
+              isFirstFileInSession() // Pass first file flag for extended timeout
+            );
+            
+            // Mark first file as processed after first compression attempt
+            if (isFirstFileInSession()) {
+              markFirstFileProcessed();
+            }
             if (compressionResult.ok && compressionResult.blob) {
               // Update item.file to compressed version, but keep originalFile unchanged
               item.file = new File(
@@ -1243,6 +1194,41 @@ export const useStagedCloudinaryUpload = () => {
       console.error('❌ Failed to save restored URLs to IndexedDB:', error);
     }
   }, [initSession]);
+
+  // Pre-warm worker on component mount for improved performance  
+  useEffect(() => {
+    let cancelled = false;
+    
+    const warmUpWorker = async () => {
+      try {
+        console.log('🔥 Component mounted - pre-warming worker...');
+        const success = await preWarm({ retries: 2, delayMs: 300 });
+        if (!cancelled) {
+          console.log(success ? '✅ Worker pre-warmed successfully' : '⚠️ Worker pre-warm failed (will retry on first upload)');
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Worker pre-warm error:', error);
+        }
+      }
+    };
+
+    warmUpWorker();
+    
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Cleanup worker on unmount
+  useEffect(() => {
+    return () => {
+      if (isUploading) {
+        console.log('🛑 Component unmounting during upload - terminating worker');
+        terminate();
+      }
+    };
+  }, [isUploading]);
 
   return {
     sessionId,
