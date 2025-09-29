@@ -4,7 +4,7 @@ export const CLOUDINARY_CONFIG = {
   apiKey: process.env.VITE_CLOUDINARY_API_KEY, // Опционально для signed uploads
   folder: 'product-images', // Папка для организации файлов
   maxFileSize: 10000000, // 10MB
-  allowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif'],
+  allowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif'] as const,
   transformations: {
     thumbnail: 'w_200,h_200,c_fill,f_auto,q_auto',
     medium: 'w_500,h_500,c_fit,f_auto,q_auto',

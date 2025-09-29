@@ -178,9 +178,50 @@ interface UploadProgress {
   result?: CloudinaryUploadResult;
 }
 
+interface ValidationError {
+  file: string;
+  error: string;
+}
+
 export const useNewCloudinaryUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  // Валидация файлов на клиенте
+  const validateFiles = useCallback((files: FileList | File[]): ValidationError[] => {
+    const errors: ValidationError[] = [];
+    const fileArray = Array.isArray(files) ? files : Array.from(files);
+
+    fileArray.forEach(file => {
+      // Проверка размера файла
+      if (file.size > CLOUDINARY_CONFIG.maxFileSize) {
+        errors.push({
+          file: file.name,
+          error: `Файл слишком большой. Максимум: ${CLOUDINARY_CONFIG.maxFileSize / 1024 / 1024}MB`
+        });
+      }
+
+      // Проверка формата файла
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() as any;
+      if (!fileExtension || !CLOUDINARY_CONFIG.allowedFormats.includes(fileExtension)) {
+        errors.push({
+          file: file.name,
+          error: `Неподдерживаемый формат. Разрешены: ${CLOUDINARY_CONFIG.allowedFormats.join(', ')}`
+        });
+      }
+
+      // Проверка типа MIME
+      if (!file.type.startsWith('image/')) {
+        errors.push({
+          file: file.name,
+          error: 'Файл должен быть изображением'
+        });
+      }
+    });
+
+    return errors;
+  }, []);
 
   const openUploadWidget = useCallback((
     onSuccess: (results: CloudinaryUploadResult[]) => void,
@@ -188,8 +229,11 @@ export const useNewCloudinaryUpload = () => {
       multiple?: boolean;
       maxFiles?: number;
       folder?: string;
+      productId?: string;
     } = {}
   ) => {
+    setValidationErrors([]);
+
     // Загружаем Cloudinary Upload Widget динамически
     if (typeof window !== 'undefined' && !(window as any).cloudinary) {
       const script = document.createElement('script');
@@ -203,11 +247,15 @@ export const useNewCloudinaryUpload = () => {
     function initializeWidget() {
       const cloudinary = (window as any).cloudinary;
       
+      // Создаем публичный ID с учетом productId
+      const publicIdPrefix = options.productId ? `products/${options.productId}` : 'products';
+      
       const widget = cloudinary.createUploadWidget(
         {
           cloudName: CLOUDINARY_CONFIG.cloudName,
           uploadPreset: CLOUDINARY_CONFIG.uploadPreset,
           folder: options.folder || CLOUDINARY_CONFIG.folder,
+          publicIdPrefix: publicIdPrefix,
           multiple: options.multiple ?? true,
           maxFiles: options.maxFiles || 10,
           maxFileSize: CLOUDINARY_CONFIG.maxFileSize,
@@ -216,6 +264,20 @@ export const useNewCloudinaryUpload = () => {
           showAdvancedOptions: false,
           cropping: false,
           theme: 'minimal',
+          language: 'ru',
+          text: {
+            ru: {
+              'local.browse': 'Выбрать файлы',
+              'local.dd_title_single': 'Перетащите изображение сюда',
+              'local.dd_title_multi': 'Перетащите изображения сюда',
+              'camera.capture': 'Сделать фото',
+              'camera.cancel': 'Отмена',
+              'camera.take_pic': 'Снимок',
+              'camera.explanation': 'Убедитесь, что камера включена',
+              'upload_tabs.url': 'URL',
+              'upload_tabs.file': 'Файл'
+            }
+          },
           styles: {
             palette: {
               window: '#FFFFFF',
@@ -253,6 +315,13 @@ export const useNewCloudinaryUpload = () => {
               bytes: result.info.bytes
             };
 
+            console.log('✅ Cloudinary upload success:', {
+              publicId: uploadResult.public_id,
+              url: uploadResult.secure_url,
+              size: `${uploadResult.width}x${uploadResult.height}`,
+              bytes: uploadResult.bytes
+            });
+
             // Обновляем прогресс
             setUploadProgress(prev => prev.map(p => 
               p.fileName === result.info.original_filename 
@@ -271,7 +340,7 @@ export const useNewCloudinaryUpload = () => {
               onSuccess(successResults);
               toast({
                 title: "Загрузка завершена",
-                description: `Успешно загружено ${successResults.length} файлов`,
+                description: `Успешно загружено ${successResults.length} файлов в Cloudinary`,
               });
             }
             
@@ -301,7 +370,12 @@ export const useNewCloudinaryUpload = () => {
           }
 
           if (error) {
-            console.error('Upload error:', error);
+            console.error('❌ Cloudinary upload error:', error);
+            setValidationErrors(prev => [...prev, {
+              file: 'upload',
+              error: error.message || "Произошла ошибка при загрузке файла"
+            }]);
+            
             toast({
               title: "Ошибка загрузки",
               description: error.message || "Произошла ошибка при загрузке файла",
@@ -316,14 +390,63 @@ export const useNewCloudinaryUpload = () => {
     }
   }, [uploadProgress]);
 
+  // Метод для валидации и загрузки файлов с проверкой
+  const uploadWithValidation = useCallback(async (
+    files: FileList | File[],
+    options: {
+      productId?: string;
+      folder?: string;
+      onProgress?: (progress: UploadProgress[]) => void;
+    } = {}
+  ): Promise<string[]> => {
+    // Валидация файлов
+    const errors = validateFiles(files);
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      errors.forEach(error => {
+        toast({
+          title: "Ошибка валидации",
+          description: `${error.file}: ${error.error}`,
+          variant: "destructive"
+        });
+      });
+      return [];
+    }
+
+    // Запуск загрузки через виджет
+    return new Promise((resolve) => {
+      openUploadWidget(
+        (results) => {
+          const urls = results.map(result => result.secure_url);
+          resolve(urls);
+        },
+        {
+          multiple: true,
+          maxFiles: Array.from(files).length,
+          productId: options.productId,
+          folder: options.folder
+        }
+      );
+    });
+  }, [openUploadWidget, validateFiles]);
+
   const clearProgress = useCallback(() => {
     setUploadProgress([]);
+    setValidationErrors([]);
+  }, []);
+
+  const clearErrors = useCallback(() => {
+    setValidationErrors([]);
   }, []);
 
   return {
     isUploading,
     uploadProgress,
+    validationErrors,
     openUploadWidget,
-    clearProgress
+    uploadWithValidation,
+    validateFiles,
+    clearProgress,
+    clearErrors
   };
 };
