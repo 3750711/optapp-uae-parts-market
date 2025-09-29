@@ -701,3 +701,164 @@ input[type="number"] {
   }
 }
 
+/* Cloudinary Widget Custom Animations - PartsBay Theme */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pulse-success {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsl(142 71% 45% / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px hsl(142 71% 45% / 0);
+  }
+}
+
+/* Cloudinary Widget Global Overrides */
+.cloudinary-widget-overlay {
+  backdrop-filter: blur(8px) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.cloudinary-widget-frame {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 25px -8px hsl(212 50% 18% / 0.15) !important;
+  border: 1px solid hsl(210 40% 90%) !important;
+  animation: slideInScale 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.cloudinary-widget-button-primary {
+  background: linear-gradient(135deg, hsl(199 89% 48%) 0%, hsl(199 89% 55%) 100%) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  padding: 12px 24px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 12px -2px hsl(199 89% 48% / 0.3) !important;
+}
+
+.cloudinary-widget-button-primary:hover {
+  background: linear-gradient(135deg, hsl(199 89% 55%) 0%, hsl(199 89% 60%) 100%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 20px -6px hsl(199 89% 48% / 0.4) !important;
+}
+
+.cloudinary-widget-button-secondary {
+  background: hsl(210 40% 96%) !important;
+  color: hsl(212 50% 18%) !important;
+  border: 1px solid hsl(210 40% 90%) !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.cloudinary-widget-button-secondary:hover {
+  background: hsl(210 40% 90%) !important;
+  border-color: hsl(199 89% 48%) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px -2px hsl(212 50% 18% / 0.1) !important;
+}
+
+.cloudinary-widget-drop-zone {
+  border: 2px dashed hsl(210 40% 90%) !important;
+  border-radius: 12px !important;
+  background: hsl(210 40% 98%) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  padding: 40px 20px !important;
+}
+
+.cloudinary-widget-drop-zone:hover {
+  border-color: hsl(199 89% 48%) !important;
+  background: hsl(199 89% 48% / 0.05) !important;
+  transform: scale(1.02) !important;
+}
+
+.cloudinary-widget-drop-zone.active {
+  border-color: hsl(199 89% 48%) !important;
+  border-style: solid !important;
+  background: hsl(199 89% 48% / 0.1) !important;
+  box-shadow: 0 0 30px hsl(199 89% 48% / 0.2) !important;
+}
+
+.cloudinary-widget-progress-bar {
+  background: hsl(210 40% 90%) !important;
+  border-radius: 4px !important;
+  height: 6px !important;
+  overflow: hidden !important;
+}
+
+.cloudinary-widget-progress-bar::before {
+  background: linear-gradient(90deg, hsl(199 89% 48%), hsl(199 89% 55%)) !important;
+  border-radius: 4px !important;
+  animation: shimmer 2s infinite linear !important;
+}
+
+.cloudinary-widget-preview-card {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  border: 1px solid hsl(210 40% 90%) !important;
+  background: white !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  cursor: pointer !important;
+}
+
+.cloudinary-widget-preview-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px -8px hsl(212 50% 18% / 0.15) !important;
+  border-color: hsl(199 89% 48%) !important;
+}
+
+.cloudinary-widget-success-indicator {
+  animation: pulse-success 2s ease-in-out !important;
+}
+
+.cloudinary-widget-file-item {
+  animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Улучшенная мобильная адаптация */
+@media (max-width: 768px) {
+  .cloudinary-widget-frame {
+    margin: 10px !important;
+    border-radius: 8px !important;
+  }
+  
+  .cloudinary-widget-button-primary,
+  .cloudinary-widget-button-secondary {
+    padding: 10px 20px !important;
+    font-size: 14px !important;
+  }
+  
+  .cloudinary-widget-drop-zone {
+    padding: 30px 15px !important;
+  }
+}
+
