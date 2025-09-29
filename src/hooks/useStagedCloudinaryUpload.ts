@@ -583,8 +583,16 @@ export const useStagedCloudinaryUpload = () => {
             return; // Not our message, ignore
           }
           
-          // Remove handler after processing
-          worker.removeEventListener('message', handleMessage);
+          // Skip progress messages - they are intermediate
+          if (result.type === 'progress') {
+            console.log(`🔄 Progress for ${file.name}: ${result.stage || 'unknown'}`);
+            return; // Continue listening for final result
+          }
+          
+          // Remove handler only for final message types
+          if (['success', 'error', 'aborted'].includes(result.type)) {
+            worker.removeEventListener('message', handleMessage);
+          }
           
           // Фаза 2: Детальная диагностика
           console.group(`🔍 WORKER RESPONSE DEBUG: ${file.name}`);
