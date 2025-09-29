@@ -345,18 +345,11 @@ export const useStagedCloudinaryUpload = () => {
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   
-  // Фаза 5: Диагностика контекста страницы
+  
+  // Диагностика страницы для отладки (временно)
   useEffect(() => {
     const currentPath = window.location.pathname;
-    const isSellerPage = currentPath.includes('/seller/');
-    const isAdminPage = currentPath.includes('/admin/');
-    
-    console.log('🌐 HOOK CONTEXT DEBUG:', {
-      path: currentPath,
-      isSellerPage,
-      isAdminPage,
-      hookInitTime: new Date().toISOString()
-    });
+    console.log('📍 useStagedCloudinaryUpload initialized on:', currentPath);
   }, []);
   
   // Enhanced error recovery manager

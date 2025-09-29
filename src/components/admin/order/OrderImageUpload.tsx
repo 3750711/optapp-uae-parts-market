@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { X, Upload } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import LoadingSpinner from '@/components/loading/LoadingSpinner';
-import { preWarm } from '@/workers/uploadWorker.singleton';
 
 interface OrderImageUploadProps {
   onImagesChange: (urls: string[]) => void;
@@ -25,18 +24,7 @@ export const OrderImageUpload: React.FC<OrderImageUploadProps> = ({
   const { uploadFiles, uploadItems, isUploading } = useStagedCloudinaryUpload();
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // Pre-warm worker for better upload performance
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      console.log('🔥 OrderImageUpload: Pre-warming worker...');
-      const success = await preWarm({ retries: 3, delayMs: 400 });
-      if (!cancelled) {
-        console.log(success ? '✅ OrderImageUpload: Worker pre-warmed' : '⚠️ OrderImageUpload: Worker pre-warm failed');
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  // Pre-warm removed: now handled at page level in SellerAddProduct.tsx
 
   // Sync with external changes
   useEffect(() => {
