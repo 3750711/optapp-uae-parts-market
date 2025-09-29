@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
+import { useIsMobile } from '@/hooks/use-mobile';
+import { getWidgetSources, getWidgetUXConfig } from '@/config/cloudinary';
 import { CLOUDINARY_CONFIG, getUploadPreset, validateUploadPreset } from '@/config/cloudinary';
 
 // === СТАРЫЙ ХУК (оригинальный useCloudinaryUpload) ===
@@ -254,12 +256,13 @@ export const useNewCloudinaryUpload = () => {
       const uploadPreset = getUploadPreset('productUnsigned');
       console.log('🔧 Cloudinary Widget: Using upload preset:', uploadPreset);
       
-      // Определяем темную тему и мобильное устройство
+      // Определяем темную тему
       const isDark = document.documentElement.classList.contains("dark");
-      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      // Настройка источников в зависимости от устройства
-      const widgetSources = isMobile ? ['local', 'camera'] : ['local'];
+      // Получаем конфигурацию источников и UX настроек
+      const isMobileWidget = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const widgetSources = getWidgetSources(isMobileWidget);
+      const uxConfig = getWidgetUXConfig(isMobileWidget);
       
       // Создаем конфигурацию виджета с поддержкой темной темы
       const widgetStyles = {
@@ -297,12 +300,7 @@ export const useNewCloudinaryUpload = () => {
           maxFileSize: CLOUDINARY_CONFIG.upload.maxFileSize,
           clientAllowedFormats: CLOUDINARY_CONFIG.upload.allowedFormats,
           sources: widgetSources,
-          showAdvancedOptions: false,
-          cropping: false,
-          branding: false,
-          showPoweredBy: false,
-          defaultSource: 'local',
-          preBatch: true,
+          ...uxConfig,
           theme: CLOUDINARY_CONFIG.widget.theme,
           language: CLOUDINARY_CONFIG.widget.language,
           text: CLOUDINARY_CONFIG.widget.text,

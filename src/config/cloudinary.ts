@@ -305,3 +305,21 @@ export const getUploadPreset = (
   
   return preset;
 };
+
+// Widget sources utilities
+export const getWidgetSources = (isMobile: boolean): string[] => {
+  return isMobile ? ['local', 'camera'] : ['local'];
+};
+
+export const getWidgetUXConfig = (isMobile: boolean) => {
+  return {
+    inline: false,
+    queueViewPosition: isMobile ? 'bottom' : 'top',
+    showAdvancedOptions: false,
+    cropping: false,
+    branding: false,
+    showPoweredBy: false,
+    defaultSource: 'local',
+    preBatch: true,
+  };
+};
