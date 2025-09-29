@@ -79,10 +79,11 @@ const StandardSellerForm = () => {
   // P0-1: Мемоизированная валидация формы  
   const isFormValid = useMemo(() => {
     return formData.title.trim() && 
+           formData.description.trim() && 
            formData.price && 
            Number(formData.price) > 0 && 
            imageUrls.length > 0;
-  }, [formData.title, formData.price, imageUrls.length]);
+  }, [formData.title, formData.description, formData.price, imageUrls.length]);
 
   // Показывать ошибки валидации только если виджет закрыт
   const shouldShowValidationErrors = !isWidgetOpen;
