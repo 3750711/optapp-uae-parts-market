@@ -396,6 +396,9 @@ export const useNewCloudinaryUpload = () => {
             setUploadProgress([]);
             // Сбрасываем состояние ПОСЛЕ использования
             setSuccessfulUploads([]);
+            
+            // Генерируем пользовательское событие для сброса состояния виджета
+            document.dispatchEvent(new CustomEvent('cloudinary-widget-close'));
           }
 
           if (result && result.event === 'upload') {
