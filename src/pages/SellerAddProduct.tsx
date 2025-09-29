@@ -24,17 +24,40 @@ const SellerAddProduct = () => {
   const isTrustedSeller = profile?.is_trusted_seller === true;
 
   // Pre-warm worker for better upload performance
+  // Фаза 1: Улучшенная стратегия pre-warming с защитой от React Strict Mode
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      console.log('🔥 SellerAddProduct: Pre-warming worker...');
-      const success = await preWarm({ retries: 3, delayMs: 400 });
-      if (!cancelled) {
-        console.log(success ? '✅ SellerAddProduct: Worker pre-warmed' : '⚠️ SellerAddProduct: Worker pre-warm failed');
+    
+    // Добавляем задержку для избежания конфликтов с React lifecycle
+    const timeoutId = setTimeout(async () => {
+      if (cancelled) return;
+      
+      try {
+        console.log('🔥 SellerAddProduct: Pre-warming worker with delay...');
+        const success = await preWarm({ 
+          retries: 5,  // Увеличиваем количество попыток
+          delayMs: 800  // Увеличиваем задержку между попытками
+        });
+        
+        if (!cancelled) {
+          if (success) {
+            console.log('✅ SellerAddProduct: Worker pre-warmed successfully');
+          } else {
+            console.warn('⚠️ SellerAddProduct: Worker pre-warm failed after all retries');
+          }
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('❌ SellerAddProduct: Pre-warm error:', error);
+        }
       }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+    }, 100); // Задержка 100мс для избежания конфликтов с React Strict Mode
+    
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, []); // Убираем лишние зависимости
 
   return (
     <ProtectedRoute allowedRoles={['seller']}>

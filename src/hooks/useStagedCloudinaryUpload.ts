@@ -345,6 +345,20 @@ export const useStagedCloudinaryUpload = () => {
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   
+  // Фаза 5: Диагностика контекста страницы
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const isSellerPage = currentPath.includes('/seller/');
+    const isAdminPage = currentPath.includes('/admin/');
+    
+    console.log('🌐 HOOK CONTEXT DEBUG:', {
+      path: currentPath,
+      isSellerPage,
+      isAdminPage,
+      hookInitTime: new Date().toISOString()
+    });
+  }, []);
+  
   // Enhanced error recovery manager
   const errorRecoveryRef = useRef(new ErrorRecoveryManager());
   
@@ -514,6 +528,76 @@ export const useStagedCloudinaryUpload = () => {
       // Store handler reference for cleanup
       const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       
+      // Фаза 4: Универсальная функция обработки ответов worker'а
+      const handleWorkerResponse = (result: any, taskId: string, file: File) => {
+        console.log(`🔄 Processing worker response type: ${result.type} for ${file.name}`);
+        
+        switch (result.type) {
+          case 'success':
+            if (result.result) {
+              const data = result.result;
+              console.log('✅ Worker compression successful:', {
+                file: file.name,
+                taskId,
+                originalSize: data.originalSize,
+                compressedSize: data.compressedSize,
+                compressionRatio: data.compressionRatio + '%',
+                duration: data.compressionMs ? `${data.compressionMs}ms` : 'unknown'
+              });
+              
+              return {
+                ok: true,
+                blob: data.compressedFile,
+                mime: 'image/jpeg',
+                originalSize: data.originalSize,
+                compressedSize: data.compressedSize,
+                compressionMs: data.compressionMs || 0
+              };
+            } else {
+              console.warn('⚠️ Success response without result data:', file.name);
+              return { ok: false, code: 'SUCCESS_WITHOUT_DATA', originalSize: file.size };
+            }
+            
+          case 'complete':
+            // Обработка типа 'complete' для совместимости
+            console.log('✅ Worker compression complete:', file.name);
+            if (result.result) {
+              const data = result.result;
+              return {
+                ok: true,
+                blob: data.compressedFile || data.file,
+                mime: 'image/jpeg',
+                originalSize: data.originalSize || file.size,
+                compressedSize: data.compressedSize || file.size,
+                compressionMs: data.compressionMs || 0
+              };
+            }
+            return { ok: false, code: 'COMPLETE_WITHOUT_DATA', originalSize: file.size };
+            
+          case 'error':
+            console.warn('⚠️ Worker compression failed:', {
+              file: file.name,
+              taskId,
+              error: result.error
+            });
+            return { ok: false, code: 'COMPRESSION_FAILED', originalSize: file.size };
+            
+          case 'aborted':
+            console.log('🛑 Worker compression aborted:', file.name);
+            return { ok: false, code: 'COMPRESSION_ABORTED', originalSize: file.size };
+            
+          default:
+            // Фаза 4: Fallback для неизвестных типов
+            console.warn('⚠️ Worker returned unknown response type:', {
+              file: file.name,
+              taskId,
+              type: result.type,
+              result
+            });
+            return { ok: false, code: 'UNKNOWN_RESPONSE_TYPE', originalSize: file.size };
+        }
+      };
+
       // Create a promise-based handler for this specific task
       const handleMessage = (e: MessageEvent) => {
         try {
@@ -527,72 +611,23 @@ export const useStagedCloudinaryUpload = () => {
           // Remove handler after processing
           worker.removeEventListener('message', handleMessage);
           
-          if (result.type === 'success' && result.result) {
-            const data = result.result;
-            
-            // Фаза 2: Детальная диагностика
-            console.group(`🔍 WORKER RESPONSE DEBUG: ${file.name}`);
-            console.log('Raw result:', result);
-            console.log('Result type:', result.type);
-            console.log('Has result field:', !!result.result);
-            console.log('Task ID match:', result.taskId === taskId);
-            if (result.result) {
-              console.log('Result data keys:', Object.keys(result.result));
-              console.log('Has compressedFile:', !!result.result.compressedFile);
-              console.log('Has compressionMs:', !!result.result.compressionMs);
-            }
-            console.groupEnd();
-            
-            console.log('✅ Worker compression successful:', {
-              file: file.name,
-              taskId,
-              originalSize: data.originalSize,
-              compressedSize: data.compressedSize,
-              compressionRatio: data.compressionRatio + '%',
-              duration: data.compressionMs ? `${data.compressionMs}ms` : 'unknown'
-            });
-            
-            safeResolve({
-              ok: true,
-              blob: data.compressedFile,
-              mime: 'image/jpeg',
-              originalSize: data.originalSize,
-              compressedSize: data.compressedSize,
-              compressionMs: data.compressionMs || 0  // Фаза 3: fallback для отсутствующего compressionMs
-            });
-          } else if (result.type === 'error') {
-            console.warn('⚠️ Worker compression failed:', {
-              file: file.name,
-              taskId,
-              error: result.error
-            });
-            
-            safeResolve({ 
-              ok: false, 
-              code: 'COMPRESSION_FAILED',
-              originalSize: file.size
-            });
-          } else if (result.type === 'aborted') {
-            console.log('🛑 Worker compression aborted:', file.name);
-            
-            safeResolve({
-              ok: false,
-              code: 'COMPRESSION_ABORTED', 
-              originalSize: file.size
-            });
-          } else {
-            console.warn('⚠️ Worker returned unexpected result:', {
-              file: file.name,
-              taskId,
-              result
-            });
-            
-            safeResolve({ 
-              ok: false, 
-              code: 'UNEXPECTED_RESULT',
-              originalSize: file.size
-            });
+          // Фаза 2: Детальная диагностика
+          console.group(`🔍 WORKER RESPONSE DEBUG: ${file.name}`);
+          console.log('Raw result:', result);
+          console.log('Result type:', result.type);
+          console.log('Has result field:', !!result.result);
+          console.log('Task ID match:', result.taskId === taskId);
+          if (result.result) {
+            console.log('Result data keys:', Object.keys(result.result));
+            console.log('Has compressedFile:', !!result.result.compressedFile);
+            console.log('Has compressionMs:', !!result.result.compressionMs);
           }
+          console.groupEnd();
+          
+          // Фаза 4: Использование универсальной функции обработки
+          const processedResult = handleWorkerResponse(result, taskId, file);
+          safeResolve(processedResult);
+          
         } catch (messageError) {
           console.error('❌ Error processing worker message:', messageError);
           worker.removeEventListener('message', handleMessage);
@@ -619,10 +654,12 @@ export const useStagedCloudinaryUpload = () => {
       
       // Send message to worker with validation
       try {
+        // Фаза 3: Унифицированная структура сообщения с полной валидацией
         const message = {
           type: 'compress',
           file,
           taskId,
+          msgId: taskId, // Добавляем msgId для совместимости
           options: {
             maxSizeMB: 1,
             maxWidthOrHeight: maxSide,
@@ -633,9 +670,18 @@ export const useStagedCloudinaryUpload = () => {
           }
         };
         
-        // Validate message before sending  
-        if (!file || file.size === 0) {
-          throw new Error('Invalid file for compression');
+        // Фаза 3: Полная валидация всех обязательных полей
+        if (!message.type) {
+          throw new Error('Message type is required');
+        }
+        if (!message.file || message.file.size === 0) {
+          throw new Error('Valid file is required for compression');
+        }
+        if (!message.taskId) {
+          throw new Error('Task ID is required');
+        }
+        if (!message.options) {
+          throw new Error('Compression options are required');
         }
         if (maxSide < 100 || maxSide > 3000) {
           throw new Error('Invalid maxSide parameter');

@@ -9,6 +9,8 @@ importScripts('https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist
 // Worker state
 let isProcessing = false;
 let shouldAbort = false;
+// Фаза 2: Защита от двойной инициализации
+let isInitialized = false;
 
 // Compression logic with abort support
 async function compressImageInWorker(file, options, taskId) {
@@ -114,10 +116,17 @@ self.addEventListener('message', async (event) => {
   
   switch (type) {
     case 'ping':
-      console.log('📥 Worker received ping with msgId:', msgId);
+      // Фаза 2: Защита от двойной инициализации
+      if (!isInitialized) {
+        isInitialized = true;
+        console.log('📥 Worker first-time initialization with ping, msgId:', msgId);
+      } else {
+        console.log('📥 Worker received ping (already initialized), msgId:', msgId);
+      }
       self.postMessage({
         type: 'pong',
-        msgId: msgId
+        msgId: msgId,
+        isInitialized: true
       });
       break;
       
