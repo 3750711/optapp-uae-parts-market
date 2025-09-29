@@ -511,16 +511,27 @@ export const useStagedCloudinaryUpload = () => {
         safeResolve({ ok: false, code: 'WORKER_TIMEOUT', originalSize: file.size });
       }, timeoutMs);
       
-      // Enhanced message handler with error boundaries and taskId handling
-      worker.onmessage = (e) => {
+      // Store handler reference for cleanup
+      const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      
+      // Create a promise-based handler for this specific task
+      const handleMessage = (e: MessageEvent) => {
         try {
           const result = e.data;
           
-          // Handle different message types from worker
+          // Only process messages for this specific task
+          if (result.taskId !== taskId) {
+            return; // Not our message, ignore
+          }
+          
+          // Remove handler after processing
+          worker.removeEventListener('message', handleMessage);
+          
           if (result.type === 'success' && result.result) {
             const data = result.result;
             console.log('✅ Worker compression successful:', {
               file: file.name,
+              taskId,
               originalSize: data.originalSize,
               compressedSize: data.compressedSize,
               compressionRatio: data.compressionRatio + '%',
@@ -538,6 +549,7 @@ export const useStagedCloudinaryUpload = () => {
           } else if (result.type === 'error') {
             console.warn('⚠️ Worker compression failed:', {
               file: file.name,
+              taskId,
               error: result.error
             });
             
@@ -554,38 +566,22 @@ export const useStagedCloudinaryUpload = () => {
               code: 'COMPRESSION_ABORTED', 
               originalSize: file.size
             });
-          } else if (result && result.ok) {
-            // Legacy format support
-            console.log('✅ Worker compression successful (legacy):', {
-              file: file.name,
-              originalSize: result.original?.size || file.size,
-              compressedSize: result.size,
-              compressionRatio: result.size ? Math.round((1 - result.size / file.size) * 100) + '%' : 'N/A',
-              duration: result.compressionMs ? `${result.compressionMs}ms` : 'unknown'
-            });
-            
-            safeResolve({
-              ok: true,
-              blob: result.blob,
-              mime: result.mime || 'image/jpeg',
-              originalSize: result.original?.size || file.size,
-              compressedSize: result.size,
-              compressionMs: result.compressionMs
-            });
           } else {
-            console.warn('⚠️ Worker compression failed (unknown format):', {
+            console.warn('⚠️ Worker returned unexpected result:', {
               file: file.name,
+              taskId,
               result
             });
             
             safeResolve({ 
               ok: false, 
-              code: 'COMPRESSION_FAILED',
+              code: 'UNEXPECTED_RESULT',
               originalSize: file.size
             });
           }
         } catch (messageError) {
           console.error('❌ Error processing worker message:', messageError);
+          worker.removeEventListener('message', handleMessage);
           safeResolve({ 
             ok: false, 
             code: 'MESSAGE_PROCESSING_ERROR',
@@ -593,6 +589,9 @@ export const useStagedCloudinaryUpload = () => {
           });
         }
       };
+      
+      // Add the message handler  
+      worker.addEventListener('message', handleMessage);
       
       // Enhanced error handler
       worker.onerror = (error) => {
@@ -604,9 +603,8 @@ export const useStagedCloudinaryUpload = () => {
         });
       };
       
-      // Enhanced message post with validation
+      // Send message to worker with validation
       try {
-        const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const message = {
           type: 'compress',
           file,
@@ -634,8 +632,8 @@ export const useStagedCloudinaryUpload = () => {
         
         worker.postMessage(message);
         console.log('📤 Compression task sent to worker:', {
-          type: 'compress',
-          taskId,
+          type: message.type,
+          taskId: message.taskId,
           file: file.name,
           size: file.size,
           maxSide,
@@ -1389,9 +1387,10 @@ export const useStagedCloudinaryUpload = () => {
   // Pre-warm handled by parent components (SellerAddProduct, etc.)
   // Removed duplicate preWarm to avoid multiple worker initializations
 
-  // Smart cleanup: only terminate worker if no active uploads
+  // Smart cleanup: only terminate worker on final unmount, not on re-renders
   useEffect(() => {
     return () => {
+      // Only terminate on final component unmount (when leaving page/route)
       const hasActiveUploads = uploadItems.some(item =>
         item.status === 'compressing' ||
         item.status === 'uploading' ||
@@ -1399,13 +1398,16 @@ export const useStagedCloudinaryUpload = () => {
       );
       
       if (!hasActiveUploads) {
-        console.log('🛑 Component unmounting - terminating idle worker');
-        terminate();
+        // Delay termination to avoid interfering with ongoing operations
+        setTimeout(() => {
+          console.log('🛑 Component unmounted - terminating worker after delay');
+          terminate();
+        }, 1000);
       } else {
         console.warn('⚠️ Component unmounting but uploads still active - keeping worker alive');
       }
     };
-  }, [uploadItems]);
+  }, []); // ✅ Empty deps - only on final mount/unmount, not on re-renders
 
   return {
     sessionId,
