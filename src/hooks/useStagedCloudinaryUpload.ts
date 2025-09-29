@@ -8,10 +8,7 @@ import { uploadWithSimpleFallback } from '@/utils/simpleCloudinaryFallback';
 import { ErrorRecoveryManager } from '@/utils/errorRecovery';
 import { 
   getWorker, 
-  preWarm, 
   isWorkerReady, 
-  isFirstFileInSession, 
-  markFirstFileProcessed,
   terminate 
 } from '@/workers/uploadWorker.singleton';
 
@@ -471,43 +468,28 @@ export const useStagedCloudinaryUpload = () => {
       let timeout: NodeJS.Timeout | null = null;
       let isResolved = false;
       
-      // Safe resolve function to prevent double resolution
       const safeResolve = (result: CompressionResult) => {
         if (isResolved) return;
         isResolved = true;
-        
-        if (timeout) {
-          clearTimeout(timeout);
-          timeout = null;
-        }
-        
+        if (timeout) clearTimeout(timeout);
         resolve(result);
       };
       
-      // ✅ Check worker readiness first
-      if (!isWorkerReady()) {
-        console.warn('⚠️ Worker not ready, waiting...');
-        
-        // Wait for readiness up to 3 seconds
-        let waited = 0;
-        while (!isWorkerReady() && waited < 3000) {
-          await new Promise(r => setTimeout(r, 100));
-          waited += 100;
-        }
-        
-        if (!isWorkerReady()) {
-          console.error('❌ Worker still not ready after 3s');
-          safeResolve({ ok: false, code: 'WORKER_NOT_READY', originalSize: file.size });
-          return;
-        }
-      }
-
-      const worker = getWorker();
+      // Ленивая инициализация - worker создается и проверяется здесь
+      console.log(`🔧 Getting worker for: ${file.name}`);
+      const worker = await getWorker();
+      
       if (!worker) {
-        console.error('❌ Failed to get shared worker');
-        safeResolve({ ok: false, code: 'WORKER_CREATION_FAILED', originalSize: file.size });
+        console.error('❌ Worker unavailable');
+        safeResolve({ 
+          ok: false, 
+          code: 'WORKER_UNAVAILABLE', 
+          originalSize: file.size 
+        });
         return;
       }
+      
+      console.log(`✅ Worker ready for: ${file.name}`);
 
       // Dynamic timeout based on whether this is the first file 
       const timeoutMs = isFirstFile ? 45000 : 30000; // 45s for first file, 30s for others
@@ -1102,8 +1084,6 @@ export const useStagedCloudinaryUpload = () => {
               true // ALWAYS true for sequential (first file)
             );
             
-            // Mark first file as processed
-            markFirstFileProcessed();
             
             if (compressionResult.ok && compressionResult.blob) {
               item.file = new File(
@@ -1119,7 +1099,7 @@ export const useStagedCloudinaryUpload = () => {
             }
           } else {
             item.compressedSize = item.originalSize;
-            markFirstFileProcessed(); // Still mark as processed even if no compression
+            
           }
 
           // Step 2: Signature
@@ -1452,30 +1432,30 @@ export const useStagedCloudinaryUpload = () => {
     }
   }, [initSession]);
 
-  // Pre-warm handled by parent components (SellerAddProduct, etc.)
-  // Removed duplicate preWarm to avoid multiple worker initializations
 
   // Smart cleanup: only terminate worker on final unmount, not on re-renders
   useEffect(() => {
     return () => {
-      // Only terminate on final component unmount (when leaving page/route)
-      const hasActiveUploads = uploadItems.some(item =>
+      console.log('🛑 Component unmounting');
+      
+      // Не терминируем worker если есть активные операции
+      const hasActiveWork = uploadItems.some(item =>
         item.status === 'compressing' ||
         item.status === 'uploading' ||
         item.status === 'signing'
       );
       
-      if (!hasActiveUploads) {
-        // Delay termination to avoid interfering with ongoing operations
+      if (!hasActiveWork) {
+        // Отложенная терминация для предотвращения прерывания
         setTimeout(() => {
-          console.log('🛑 Component unmounted - terminating worker after delay');
+          console.log('🛑 Terminating idle worker');
           terminate();
-        }, 1000);
+        }, 500);
       } else {
-        console.warn('⚠️ Component unmounting but uploads still active - keeping worker alive');
+        console.warn('⚠️ Component unmounting with active work - keeping worker alive');
       }
     };
-  }, []); // ✅ Empty deps - only on final mount/unmount, not on re-renders
+  }, []); // Пустые deps - только на mount/unmount
 
   return {
     sessionId,
