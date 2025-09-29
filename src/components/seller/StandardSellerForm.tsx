@@ -356,7 +356,6 @@ const StandardSellerForm = () => {
           onChange={(e) => updateForm('title', e.target.value)}
           placeholder={t.placeholders.title}
           className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
-          required
           disabled={isSubmitting}
         />
       </div>
@@ -371,7 +370,6 @@ const StandardSellerForm = () => {
           onChange={(e) => updateForm('price', e.target.value)}
           placeholder={t.placeholders.price}
           className="w-full p-3 border border-input rounded-lg bg-background"
-          required
           min={1}
           step="0.01"
           disabled={isSubmitting}

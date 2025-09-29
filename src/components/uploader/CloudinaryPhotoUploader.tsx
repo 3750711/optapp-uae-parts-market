@@ -88,6 +88,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
     <div className={cn("space-y-4", className)}>
       {/* Upload Button - Mobile Optimized */}
       <Button
+        type="button"
         onClick={handleUpload}
         disabled={!canUploadMore || disabled || isUploading}
         variant="outline"
