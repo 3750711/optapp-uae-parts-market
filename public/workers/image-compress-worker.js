@@ -106,9 +106,17 @@ async function compressImageInWorker(file, options, taskId) {
 
 // Handle incoming messages
 self.addEventListener('message', async (event) => {
-  const { type, file, options, taskId } = event.data;
+  const { type, file, options, taskId, msgId } = event.data;
   
   switch (type) {
+    case 'ping':
+      console.log('📥 Worker received ping with msgId:', msgId);
+      self.postMessage({
+        type: 'pong',
+        msgId: msgId
+      });
+      break;
+      
     case 'compress':
       try {
         await compressImageInWorker(file, options, taskId);

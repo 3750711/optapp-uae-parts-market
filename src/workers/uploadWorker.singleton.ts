@@ -6,10 +6,7 @@ let _isFirstFileInSession = true;
 function createWorker(): Worker {
   console.log('🔧 Creating worker instance...');
   try {
-    const worker = new Worker(
-      new URL('./smart-image-compress.worker.js', import.meta.url),
-      { type: 'module' }
-    );
+    const worker = new Worker('/workers/image-compress-worker.js');
     console.log('✅ Worker instance created successfully');
     return worker;
   } catch (error) {
