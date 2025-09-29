@@ -454,13 +454,18 @@ export const useStagedCloudinaryUpload = () => {
   const workerSingleton = (() => {
     let instance: Worker | null = null;
     let isInitializing = false;
+    let isReady = false;
     
     return {
       getInstance: async (): Promise<Worker | null> => {
-        if (instance) return instance;
+        if (instance && isReady) return instance;
+        
         if (isInitializing) {
-          // Wait for initialization to complete
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Wait for initialization to complete up to 5 seconds
+          for (let i = 0; i < 50; i++) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            if (isReady) return instance;
+          }
           return instance;
         }
         
@@ -470,7 +475,28 @@ export const useStagedCloudinaryUpload = () => {
             new URL('../workers/smart-image-compress.worker.js', import.meta.url),
             { type: 'module' }
           );
-          console.log('✅ Shared worker created successfully');
+          
+          // Test worker readiness with ping/pong
+          await new Promise<void>((resolve) => {
+            const timeout = setTimeout(() => {
+              console.warn('⚠️ Worker ping timeout');
+              resolve();
+            }, 3000);
+            
+            const handleMessage = (e: MessageEvent) => {
+              if (e.data?.type === 'pong') {
+                clearTimeout(timeout);
+                isReady = true;
+                instance!.removeEventListener('message', handleMessage);
+                console.log('✅ Shared worker ready');
+                resolve();
+              }
+            };
+            
+            instance!.addEventListener('message', handleMessage);
+            instance!.postMessage({ type: 'ping' });
+          });
+          
           return instance;
         } catch (error) {
           console.error('❌ Failed to create shared worker:', error);
@@ -478,6 +504,10 @@ export const useStagedCloudinaryUpload = () => {
         } finally {
           isInitializing = false;
         }
+      },
+      
+      preWarm: async () => {
+        await workerSingleton.getInstance();
       },
       
       terminate: () => {
@@ -488,6 +518,7 @@ export const useStagedCloudinaryUpload = () => {
             console.warn('⚠️ Shared worker termination error:', error);
           }
           instance = null;
+          isReady = false;
         }
       }
     };
