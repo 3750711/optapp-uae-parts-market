@@ -36,7 +36,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
   const config = sizeConfig[size];
 
   // Generate optimized Cloudinary URL with correct cloud name
-  const generateCloudinaryUrl = (format: 'webp' | 'jpg' = 'webp') => {
+  const generateCloudinaryUrl = () => {
     const baseUrl = 'https://res.cloudinary.com/dcuziurrb/image/upload';
     
     let transformations: string[];
@@ -52,7 +52,6 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
         'e_sharpen:100',
         `w_${config.width}`,
         `h_${config.height}`,
-        `f_${format}`,
         'fl_progressive'
       ];
     } else if (size === 'thumbnail' && config.height) {
@@ -62,7 +61,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
         `h_${config.height}`,
         `c_fit`,
         `q_${config.quality}`,
-        `f_${format}`,
+        'f_auto',
         'fl_progressive'
       ];
     } else {
@@ -71,7 +70,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
         `w_${config.width}`,
         `c_limit`,
         `q_${config.quality}`,
-        `f_${format}`,
+        'f_auto',
         'fl_progressive'
       ];
     }
@@ -79,8 +78,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     return `${baseUrl}/${transformations.join(',')}/${publicId}`;
   };
 
-  const webpUrl = generateCloudinaryUrl('webp');
-  const fallbackUrl = generateCloudinaryUrl('jpg');
+  const imageUrl = generateCloudinaryUrl();
 
   const handleLoad = useCallback(() => {
     setIsLoaded(true);
@@ -111,20 +109,17 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
         <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
       )}
       
-      <picture>
-        <source srcSet={webpUrl} type="image/webp" />
-        <img
-          src={fallbackUrl}
-          alt={alt}
-          className={`${className} object-contain transition-opacity duration-300 ${
-            isLoaded ? 'opacity-100' : 'opacity-0'
-          }`}
-          onLoad={handleLoad}
-          onError={handleError}
-          loading={priority ? 'eager' : 'lazy'}
-          decoding={priority ? 'sync' : 'async'}
-        />
-      </picture>
+      <img
+        src={imageUrl}
+        alt={alt}
+        className={`${className} object-contain transition-opacity duration-300 ${
+          isLoaded ? 'opacity-100' : 'opacity-0'
+        }`}
+        onLoad={handleLoad}
+        onError={handleError}
+        loading={priority ? 'eager' : 'lazy'}
+        decoding={priority ? 'sync' : 'async'}
+      />
     </div>
   );
 };
