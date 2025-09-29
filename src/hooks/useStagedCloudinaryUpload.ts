@@ -1325,30 +1325,8 @@ export const useStagedCloudinaryUpload = () => {
     }
   }, [initSession]);
 
-  // Pre-warm worker on component mount for improved performance  
-  useEffect(() => {
-    let cancelled = false;
-    
-    const warmUpWorker = async () => {
-      try {
-        console.log('🔥 Component mounted - pre-warming worker...');
-        const success = await preWarm({ retries: 2, delayMs: 300 });
-        if (!cancelled) {
-          console.log(success ? '✅ Worker pre-warmed successfully' : '⚠️ Worker pre-warm failed (will retry on first upload)');
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.warn('Worker pre-warm error:', error);
-        }
-      }
-    };
-
-    warmUpWorker();
-    
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Pre-warm handled by parent components (SellerAddProduct, etc.)
+  // Removed duplicate preWarm to avoid multiple worker initializations
 
   // Cleanup worker on unmount
   useEffect(() => {
