@@ -1,8 +1,9 @@
 // Direct Cloudinary upload utilities for optimal performance
 import { supabase } from '@/integrations/supabase/client';
+import { getUploadPreset, CLOUDINARY_CONFIG } from '@/config/cloudinary';
 
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
-const UNSIGNED_UPLOAD_PRESET = 'heic_preset'; // For HEIC files
+const UNSIGNED_UPLOAD_PRESET = getUploadPreset('productUnsigned'); // Используем единый preset
 
 export interface DirectUploadResult {
   success: boolean;
@@ -55,6 +56,8 @@ export const uploadHeicDirect = async (
   file: File,
   onProgress?: (progress: number) => void
 ): Promise<DirectUploadResult> => {
+  console.log('🔧 Direct Upload: Using preset for HEIC:', UNSIGNED_UPLOAD_PRESET);
+  
   return new Promise((resolve) => {
     const formData = new FormData();
     formData.append('file', file);

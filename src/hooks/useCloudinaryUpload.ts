@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
-import { CLOUDINARY_CONFIG } from '@/config/cloudinary';
+import { CLOUDINARY_CONFIG, getUploadPreset, validateUploadPreset } from '@/config/cloudinary';
 
 // === СТАРЫЙ ХУК (оригинальный useCloudinaryUpload) ===
 interface CloudinaryUploadProgress {
@@ -250,10 +250,14 @@ export const useNewCloudinaryUpload = () => {
       // Создаем публичный ID с учетом productId
       const publicIdPrefix = options.productId ? `products/${options.productId}` : 'products';
       
+      // Получаем preset с валидацией
+      const uploadPreset = getUploadPreset('productUnsigned');
+      console.log('🔧 Cloudinary Widget: Using upload preset:', uploadPreset);
+      
       const widget = cloudinary.createUploadWidget(
         {
           cloudName: CLOUDINARY_CONFIG.cloudName,
-          uploadPreset: CLOUDINARY_CONFIG.uploadPresets.productUnsigned,
+          uploadPreset: uploadPreset,
           folder: options.folder || CLOUDINARY_CONFIG.upload.folder,
           publicIdPrefix: publicIdPrefix,
           multiple: options.multiple ?? true,

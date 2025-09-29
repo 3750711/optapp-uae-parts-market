@@ -5,7 +5,7 @@ export const CLOUDINARY_CONFIG = {
   // Upload presets для разных типов загрузок
   uploadPresets: {
     product: 'ml_default', // Основной preset для изображений товаров (должен быть unsigned)
-    productUnsigned: '', // Пустая строка использует default unsigned preset
+    productUnsigned: 'product_images_unsigned', // Unsigned preset для прямых загрузок
     productOptimized: 'product_optimized', // Оптимизированный preset (если создан)
     thumbnail: 'thumbnail_preset' // Для превью (если создан)
   },
@@ -252,4 +252,34 @@ export const getOptimizedImageUrl = (
   };
   
   return buildCloudinaryUrl(publicId, '', defaultOptions);
+};
+
+// Валидация upload preset
+export const validateUploadPreset = (presetName?: string): { isValid: boolean; error?: string } => {
+  if (!presetName || presetName.trim() === '') {
+    return {
+      isValid: false,
+      error: 'Upload preset не указан. Для unsigned загрузки preset обязателен.'
+    };
+  }
+  
+  return { isValid: true };
+};
+
+// Получение корректного upload preset с fallback
+export const getUploadPreset = (type: 'product' | 'productUnsigned' | 'productOptimized' | 'thumbnail' = 'productUnsigned'): string => {
+  const preset = CLOUDINARY_CONFIG.uploadPresets[type];
+  
+  if (!preset || preset.trim() === '') {
+    console.warn(`Upload preset '${type}' не настроен, используется fallback`);
+    
+    // Fallback к productUnsigned, если он настроен
+    if (type !== 'productUnsigned' && CLOUDINARY_CONFIG.uploadPresets.productUnsigned) {
+      return CLOUDINARY_CONFIG.uploadPresets.productUnsigned;
+    }
+    
+    throw new Error(`Upload preset '${type}' не настроен и fallback недоступен`);
+  }
+  
+  return preset;
 };
