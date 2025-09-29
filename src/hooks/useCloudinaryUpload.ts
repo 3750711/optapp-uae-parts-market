@@ -256,12 +256,25 @@ export const useNewCloudinaryUpload = () => {
     setValidationErrors([]);
     setSuccessfulUploads([]); // Сбрасываем предыдущие результаты
 
-    // Загружаем Cloudinary Upload Widget динамически
+    // Проверяем, загружен ли Cloudinary Widget
     if (typeof window !== 'undefined' && !(window as any).cloudinary) {
-      const script = document.createElement('script');
-      script.src = 'https://upload-widget.cloudinary.com/global/all.js';
-      script.onload = () => initializeWidget();
-      document.head.appendChild(script);
+      // Проверяем, не начали ли уже загрузку скрипта
+      const existingScript = document.querySelector('script[src="https://upload-widget.cloudinary.com/global/all.js"]');
+      
+      if (existingScript) {
+        // Скрипт уже загружается или загружен, ждем готовности
+        if ((window as any).cloudinary) {
+          initializeWidget();
+        } else {
+          existingScript.addEventListener('load', () => initializeWidget());
+        }
+      } else {
+        // Загружаем скрипт динамически
+        const script = document.createElement('script');
+        script.src = 'https://upload-widget.cloudinary.com/global/all.js';
+        script.onload = () => initializeWidget();
+        document.head.appendChild(script);
+      }
     } else {
       initializeWidget();
     }

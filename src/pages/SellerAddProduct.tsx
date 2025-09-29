@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Layout from "@/components/layout/Layout";
@@ -18,6 +18,20 @@ const SellerAddProduct = () => {
   const { language } = useLanguage();
   const t = getFormTranslations(language);
   const c = getCommonTranslations(language);
+  
+  // Предзагрузка Cloudinary Widget для мгновенного открытия
+  useEffect(() => {
+    const cloudinaryScriptUrl = 'https://upload-widget.cloudinary.com/global/all.js';
+    const existingScript = document.querySelector(`link[rel="preload"][href="${cloudinaryScriptUrl}"]`);
+    
+    if (!existingScript) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.href = cloudinaryScriptUrl;
+      link.as = 'script';
+      document.head.appendChild(link);
+    }
+  }, []);
   
   // Определяем тип формы на основе статуса доверенного продавца
   const isTrustedSeller = profile?.is_trusted_seller === true;
