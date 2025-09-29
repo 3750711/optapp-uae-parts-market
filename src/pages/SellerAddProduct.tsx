@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Layout from "@/components/layout/Layout";
@@ -8,6 +8,7 @@ import { getCommonTranslations } from "@/utils/translations/common";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { preWarm } from "@/workers/uploadWorker.singleton";
 
 // Lazy loading для оптимизации
 const StandardSellerForm = React.lazy(() => import("@/components/seller/StandardSellerForm"));
@@ -21,6 +22,19 @@ const SellerAddProduct = () => {
   
   // Определяем тип формы на основе статуса доверенного продавца
   const isTrustedSeller = profile?.is_trusted_seller === true;
+
+  // Pre-warm worker for better upload performance
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      console.log('🔥 SellerAddProduct: Pre-warming worker...');
+      const success = await preWarm({ retries: 3, delayMs: 400 });
+      if (!cancelled) {
+        console.log(success ? '✅ SellerAddProduct: Worker pre-warmed' : '⚠️ SellerAddProduct: Worker pre-warm failed');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <ProtectedRoute allowedRoles={['seller']}>

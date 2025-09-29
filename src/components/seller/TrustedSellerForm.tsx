@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import AdminAddProductForm from "@/components/admin/AdminAddProductForm";
 import { useOptimizedAdminAddProduct } from "@/hooks/useOptimizedAdminAddProduct";
@@ -12,6 +12,7 @@ import { useSellerUploadProtection } from "@/hooks/useSellerUploadProtection";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
+import { preWarm } from "@/workers/uploadWorker.singleton";
 
 interface TrustedSellerFormProps {
   mode?: 'trusted_seller';
@@ -58,7 +59,18 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
     warningMessage: "Создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
   });
 
-  // Форма теперь автоматически настраивается для доверенных продавцов через хук
+  // Pre-warm worker for better upload performance
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      console.log('🔥 TrustedSellerForm: Pre-warming worker...');
+      const success = await preWarm({ retries: 3, delayMs: 400 });
+      if (!cancelled) {
+        console.log(success ? '✅ TrustedSellerForm: Worker pre-warmed' : '⚠️ TrustedSellerForm: Worker pre-warm failed');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleRefreshPage = () => {
     window.location.reload();

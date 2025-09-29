@@ -871,8 +871,29 @@ export const useStagedCloudinaryUpload = () => {
       // Use single signatures for each file (batch signatures removed due to 403 errors)
       const signatureMap = new Map<string, CloudinarySignature>();
 
-      // Run pool for parallel processing
-      const runPool = async <T>(concurrency: number, items: T[], processor: (item: T) => Promise<void>) => {
+      // ✨ ENHANCED: Sequential + Parallel processing for better cold start handling
+      console.log('🚀 Starting sequential + parallel upload strategy');
+      
+      // Step 1: Process first file sequentially with pre-warmed worker
+      if (items.length > 0) {
+        console.log('📋 Processing first file sequentially for cold start optimization...');
+        const firstItem = items[0];
+        await processFileSequentially(firstItem, signatureMap, currentSessionId, quality, maxSide);
+      }
+      
+      // Step 2: Process remaining files in parallel
+      if (items.length > 1) {
+        console.log(`📋 Processing remaining ${items.length - 1} files in parallel (concurrency: ${parallelism})...`);
+        const remainingItems = items.slice(1);
+        await runPool(parallelism, remainingItems, async (item) => {
+          await processFileParallel(item, signatureMap, currentSessionId, quality, maxSide);
+        });
+      }
+
+      // Signature map is pre-created empty - signatures will be fetched individually
+
+      // Helper: Run pool for parallel processing
+      async function runPool<T>(concurrency: number, items: T[], processor: (item: T) => Promise<void>) {
         const promises: Promise<void>[] = [];
         let index = 0;
         
@@ -894,16 +915,14 @@ export const useStagedCloudinaryUpload = () => {
         }
         
         await Promise.all(promises);
-      };
+      }
 
-      // Signature map is pre-created empty - signatures will be fetched individually
-
-      // Process files with adaptive parallelism
-      await runPool(parallelism, items, async (item) => {
+      // Helper: Process single file sequentially (first file with extended timeout)
+      async function processFileSequentially(item: StagedUploadItem, signatureMap: Map<string, CloudinarySignature>, currentSessionId: string, quality: number, maxSide: number) {
         try {
           // For HEIC files, upload directly to Edge Function (handles conversion)
           if (item.isHeic) {
-            console.log(`📱 Processing HEIC file: ${item.file.name} (${item.file.type}), size: ${Math.round(item.file.size / 1024)}KB`);
+            console.log(`📱 [SEQUENTIAL] Processing HEIC file: ${item.file.name}, size: ${Math.round(item.file.size / 1024)}KB`);
             
             item.status = 'uploading';
             setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
@@ -918,87 +937,71 @@ export const useStagedCloudinaryUpload = () => {
               getSignal()
             );
             
-            console.log(`✅ HEIC file processed successfully: ${item.file.name} → ${result.url}`);
+            console.log(`✅ [SEQUENTIAL] HEIC file processed successfully: ${item.file.name} → ${result.url}`);
             
             item.status = 'success';
             item.url = result.url;
-            item.compressedSize = item.originalSize; // HEIC files are uploaded without compression
+            item.compressedSize = item.originalSize; 
             newUrls.push(result.url);
             setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
-            
-            // Log successful HEIC upload
-            const uploadDuration = item.uploadStartTime ? Date.now() - item.uploadStartTime : 0;
-            const compressionRatio = item.compressedSize && item.originalSize ? 
-              item.compressedSize / item.originalSize : undefined;
             
             logUploadEvent({
               file_url: result.url,
               method: 'cloudinary-upload',
-              duration_ms: uploadDuration,
+              duration_ms: item.uploadStartTime ? Date.now() - item.uploadStartTime : 0,
               status: 'success',
               original_size: item.originalSize,
               compressed_size: item.compressedSize,
-              compression_ratio: compressionRatio
+              compression_ratio: item.compressedSize && item.originalSize ? item.compressedSize / item.originalSize : undefined
             }, { context: 'seller_product' }).catch(error => {
               console.error('🚨 Upload success logging failed for HEIC file:', item.file.name, error);
             });
             
-            return; // Exit early for HEIC processing
+            return;
           }
 
-          // Step 1: Compression (for non-HEIC files only)
-          const shouldCompress = item.file.size > 300_000; // Skip files under 300KB
+          // Step 1: Compression (first file gets extended timeout)
+          const shouldCompress = item.file.size > 300_000;
           
           if (shouldCompress) {
             item.status = 'compressing';
             setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
             
+            console.log(`🗜️ [SEQUENTIAL] Compressing first file with extended timeout: ${item.file.name}`);
             const compressionResult = await compressInWorker(
               item.file, 
               maxSide, 
               quality,
-              isFirstFileInSession() // Pass first file flag for extended timeout
+              true // ALWAYS true for sequential (first file)
             );
             
-            // Mark first file as processed after first compression attempt
-            if (isFirstFileInSession()) {
-              markFirstFileProcessed();
-            }
+            // Mark first file as processed
+            markFirstFileProcessed();
+            
             if (compressionResult.ok && compressionResult.blob) {
-              // Update item.file to compressed version, but keep originalFile unchanged
               item.file = new File(
                 [compressionResult.blob], 
                 item.file.name.replace(/\.\w+$/i, '.jpg'), 
                 { type: 'image/jpeg' }
               );
               item.compressedSize = compressionResult.compressedSize;
-              
-              // Update the item in state with the new compressed file
               setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, file: item.file, compressedSize: item.compressedSize } : p));
             } else {
-              console.warn(`⚠️ Compression failed for ${item.file.name}, using original:`, compressionResult.code);
-              item.compressedSize = item.originalSize; // No compression, same size
+              console.warn(`⚠️ [SEQUENTIAL] Compression failed for ${item.file.name}, using original`);
+              item.compressedSize = item.originalSize;
             }
           } else {
-            // Small file, no compression needed
             item.compressedSize = item.originalSize;
+            markFirstFileProcessed(); // Still mark as processed even if no compression
           }
 
-          // Step 2: Ensure signature
+          // Step 2: Signature
           item.status = 'signing';
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
           
           const signature = await ensureSignature(item.publicId!, currentSessionId, signatureMap);
           
-          // Validate signature
-          const requiredFields = ['api_key', 'timestamp', 'signature', 'upload_url', 'cloud_name', 'public_id'];
-          for (const field of requiredFields) {
-            if (!(field in signature)) {
-              throw new Error(`Signature missing required field: ${field}`);
-            }
-          }
-
-          // Step 3: Upload with retry (fallback for non-HEIC files)
+          // Step 3: Upload
           item.status = 'uploading';
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
           
@@ -1012,41 +1015,35 @@ export const useStagedCloudinaryUpload = () => {
             getSignal()
           );
           
+          console.log(`✅ [SEQUENTIAL] First file uploaded successfully: ${item.file.name} → ${result.url}`);
+          
           item.status = 'success';
           item.url = result.url;
           newUrls.push(result.url);
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
           
-          // Log successful upload
-          const uploadDuration = item.uploadStartTime ? Date.now() - item.uploadStartTime : 0;
-          const compressionRatio = item.compressedSize && item.originalSize ? 
-            item.compressedSize / item.originalSize : undefined;
-          
           logUploadEvent({
             file_url: result.url,
             method: 'cloudinary-upload',
-            duration_ms: uploadDuration,
+            duration_ms: item.uploadStartTime ? Date.now() - item.uploadStartTime : 0,
             status: 'success',
             original_size: item.originalSize,
             compressed_size: item.compressedSize,
-            compression_ratio: compressionRatio
+            compression_ratio: item.compressedSize && item.originalSize ? item.compressedSize / item.originalSize : undefined
           }, { context: 'seller_product' }).catch(error => {
             console.error('🚨 Upload success logging failed for file:', item.file.name, error);
           });
           
         } catch (error) {
-          console.error(`❌ Upload failed for ${item.file.name}:`, error);
+          console.error(`❌ [SEQUENTIAL] Upload failed for ${item.file.name}:`, error);
           item.status = 'error';
           item.error = error instanceof Error ? error.message : 'Upload failed';
           setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, error: item.error } : p));
           
-          // Log failed upload
-          const uploadDuration = item.uploadStartTime ? Date.now() - item.uploadStartTime : 0;
-          
           logUploadEvent({
             file_url: undefined,
             method: 'cloudinary-upload', 
-            duration_ms: uploadDuration,
+            duration_ms: item.uploadStartTime ? Date.now() - item.uploadStartTime : 0,
             status: 'error',
             error_details: error instanceof Error ? error.message : 'Upload failed',
             original_size: item.originalSize,
@@ -1055,7 +1052,140 @@ export const useStagedCloudinaryUpload = () => {
             console.error('🚨 Upload error logging failed for file:', item.file.name, logError);
           });
         }
-      });
+      }
+
+      // Helper: Process files in parallel (remaining files with standard timeout)
+      async function processFileParallel(item: StagedUploadItem, signatureMap: Map<string, CloudinarySignature>, currentSessionId: string, quality: number, maxSide: number) {
+        try {
+          // For HEIC files, upload directly to Edge Function (handles conversion)
+          if (item.isHeic) {
+            console.log(`📱 [PARALLEL] Processing HEIC file: ${item.file.name}, size: ${Math.round(item.file.size / 1024)}KB`);
+            
+            item.status = 'uploading';
+            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+            
+            const result = await uploadToEdgeFunction(
+              item.file,
+              item.publicId!,
+              (progress) => {
+                item.progress = progress;
+                updateItemProgress(item.id, progress);
+              },
+              getSignal()
+            );
+            
+            console.log(`✅ [PARALLEL] HEIC file processed successfully: ${item.file.name} → ${result.url}`);
+            
+            item.status = 'success';
+            item.url = result.url;
+            item.compressedSize = item.originalSize;
+            newUrls.push(result.url);
+            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
+            
+            logUploadEvent({
+              file_url: result.url,
+              method: 'cloudinary-upload',
+              duration_ms: item.uploadStartTime ? Date.now() - item.uploadStartTime : 0,
+              status: 'success',
+              original_size: item.originalSize,
+              compressed_size: item.compressedSize,
+              compression_ratio: item.compressedSize && item.originalSize ? item.compressedSize / item.originalSize : undefined
+            }, { context: 'seller_product' }).catch(error => {
+              console.error('🚨 Upload success logging failed for HEIC file:', item.file.name, error);
+            });
+            
+            return;
+          }
+
+          // Step 1: Compression (parallel files use standard timeout)
+          const shouldCompress = item.file.size > 300_000;
+          
+          if (shouldCompress) {
+            item.status = 'compressing';         
+            setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+            
+            console.log(`🗜️ [PARALLEL] Compressing file with standard timeout: ${item.file.name}`);
+            const compressionResult = await compressInWorker(
+              item.file, 
+              maxSide, 
+              quality,
+              false // ALWAYS false for parallel (remaining files)
+            );
+            
+            if (compressionResult.ok && compressionResult.blob) {
+              item.file = new File(
+                [compressionResult.blob], 
+                item.file.name.replace(/\.\w+$/i, '.jpg'), 
+                { type: 'image/jpeg' }
+              );
+              item.compressedSize = compressionResult.compressedSize;
+              setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, file: item.file, compressedSize: item.compressedSize } : p));
+            } else {
+              console.warn(`⚠️ [PARALLEL] Compression failed for ${item.file.name}, using original`);
+              item.compressedSize = item.originalSize;
+            }
+          } else {
+            item.compressedSize = item.originalSize;
+          }
+
+          // Step 2: Ensure signature
+          item.status = 'signing';
+          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+          
+          const signature = await ensureSignature(item.publicId!, currentSessionId, signatureMap);
+          
+          // Step 3: Upload with retry
+          item.status = 'uploading';
+          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status } : p));
+          
+          const result = await uploadToEdgeFunction(
+            item.file,
+            item.publicId!,
+            (progress) => {
+              item.progress = progress;
+              updateItemProgress(item.id, progress);
+            },
+            getSignal()
+          );
+          
+          console.log(`✅ [PARALLEL] File uploaded successfully: ${item.file.name} → ${result.url}`);
+          
+          item.status = 'success';
+          item.url = result.url;
+          newUrls.push(result.url);
+          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, url: item.url } : p));
+          
+          logUploadEvent({
+            file_url: result.url,
+            method: 'cloudinary-upload',
+            duration_ms: item.uploadStartTime ? Date.now() - item.uploadStartTime : 0,
+            status: 'success',
+            original_size: item.originalSize,
+            compressed_size: item.compressedSize,
+            compression_ratio: item.compressedSize && item.originalSize ? item.compressedSize / item.originalSize : undefined
+          }, { context: 'seller_product' }).catch(error => {
+            console.error('🚨 Upload success logging failed for file:', item.file.name, error);
+          });
+          
+        } catch (error) {
+          console.error(`❌ [PARALLEL] Upload failed for ${item.file.name}:`, error);
+          item.status = 'error';
+          item.error = error instanceof Error ? error.message : 'Upload failed';
+          setUploadItems(prev => prev.map(p => p.id === item.id ? { ...p, status: item.status, error: item.error } : p));
+          
+          logUploadEvent({
+            file_url: undefined,
+            method: 'cloudinary-upload', 
+            duration_ms: item.uploadStartTime ? Date.now() - item.uploadStartTime : 0,
+            status: 'error',
+            error_details: error instanceof Error ? error.message : 'Upload failed',
+            original_size: item.originalSize,
+            compressed_size: item.compressedSize
+          }, { context: 'seller_product' }).catch(logError => {
+            console.error('🚨 Upload error logging failed for file:', item.file.name, logError);
+          });
+        }
+      }
 
       // Add to staged URLs and save to IndexedDB
       setStagedUrls(prev => {
