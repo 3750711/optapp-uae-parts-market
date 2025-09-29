@@ -27,6 +27,7 @@ export interface FormTranslations {
     videos: string;
     carBrand: string;
     carModel: string;
+    productPhotos: string;
   };
   placeholders: {
     title: string;
@@ -120,6 +121,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       videos: 'Видео',
       carBrand: 'Марка автомобиля',
       carModel: 'Модель автомобиля',
+      productPhotos: 'Фотографии товара',
     },
     placeholders: {
       title: 'Введите название товара',
@@ -211,6 +213,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       videos: 'Videos',
       carBrand: 'Car Brand',
       carModel: 'Car Model',
+      productPhotos: 'Product Photos',
     },
     placeholders: {
       title: 'Enter product title',
@@ -302,6 +305,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       videos: 'ভিডিও',
       carBrand: 'গাড়ির ব্র্যান্ড',
       carModel: 'গাড়ির মডেল',
+      productPhotos: 'পণ্যের ছবি',
     },
     placeholders: {
       title: 'পণ্যের শিরোনাম লিখুন',

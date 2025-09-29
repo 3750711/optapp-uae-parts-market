@@ -20,6 +20,8 @@ const StandardSellerForm = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { language } = useLanguage();
+  const t = getFormTranslations(language);
+  const c = getCommonTranslations(language);
   const { createStandardSellerProduct, isCreating, currentUserProfile, isProfileLoading } = useStandardSellerProductCreation();
   const { refetch: refetchProfile } = useCurrentUserProfile();
   const { guardedSubmit, canSubmit } = useSubmissionGuard({ 
@@ -47,9 +49,6 @@ const StandardSellerForm = () => {
       setShowProfileWarning(false);
     }
   }, [isProfileLoading]);
-  
-  const t = getFormTranslations(language);
-  const c = getCommonTranslations(language);
   
   // Используем Cloudinary Widget для всех страниц
   
@@ -335,7 +334,7 @@ const StandardSellerForm = () => {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <h3 className="text-sm font-medium mb-3">
-          Фотографии товара *
+          {t.labels.productPhotos} *
         </h3>
         <CloudinaryPhotoUploader
           images={imageUrls}
