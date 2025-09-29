@@ -29,27 +29,27 @@ export const CLOUDINARY_CONFIG = {
       crop: 'fill',
       format: 'auto',
       quality: 'auto:good',
-      fetchFormat: 'auto'
+      dpr: 'auto'
     },
     
     // Средний размер для детального просмотра
     medium: {
       width: 500,
       height: 500,
-      crop: 'fit',
+      crop: 'limit',
       format: 'auto',
       quality: 'auto:good',
-      fetchFormat: 'auto'
+      dpr: 'auto'
     },
     
     // Большой размер для полноэкранного просмотра
     large: {
       width: 1200,
       height: 1200,
-      crop: 'fit',
+      crop: 'limit',
       format: 'auto',
       quality: 'auto:good',
-      fetchFormat: 'auto'
+      dpr: 'auto'
     },
     
     // Сверхмалый размер для lazy loading
@@ -59,28 +59,32 @@ export const CLOUDINARY_CONFIG = {
       crop: 'fill',
       format: 'auto',
       quality: 'auto:low',
-      blur: 1000
+      blur: 1000,
+      dpr: 'auto'
     },
 
     // Responsive трансформации
     responsive: {
       mobile: {
         width: 320,
-        crop: 'fit',
+        crop: 'limit',
         format: 'auto',
-        quality: 'auto:good'
+        quality: 'auto:good',
+        dpr: 'auto'
       },
       tablet: {
         width: 768,
-        crop: 'fit',
+        crop: 'limit',
         format: 'auto',
-        quality: 'auto:good'
+        quality: 'auto:good',
+        dpr: 'auto'
       },
       desktop: {
         width: 1200,
-        crop: 'fit',
+        crop: 'limit',
         format: 'auto',
-        quality: 'auto:good'
+        quality: 'auto:good',
+        dpr: 'auto'
       }
     }
   },
@@ -197,6 +201,7 @@ const getShortParam = (param: string): string => {
     format: 'f',
     quality: 'q',
     fetchFormat: 'f',
+    dpr: 'dpr',
     blur: 'e_blur',
     gravity: 'g',
     radius: 'r',
