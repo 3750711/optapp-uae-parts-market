@@ -287,16 +287,16 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
         type="button"
         variant="outline"
         disabled={disabled || hasActiveUploads || !canUploadMore}
-        className="w-full relative"
+        className="w-full relative min-h-[48px] sm:min-h-[40px] touch-manipulation text-base sm:text-sm"
       >
         {hasActiveUploads ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="mr-2 h-5 w-5 sm:h-4 sm:w-4 animate-spin" />
             Загрузка по одному...
           </>
         ) : (
           <>
-            <Upload className="mr-2 h-4 w-4" />
+            <Upload className="mr-2 h-5 w-5 sm:h-4 sm:w-4" />
             Загрузить фото ({images.length}/{maxImages})
           </>
         )}

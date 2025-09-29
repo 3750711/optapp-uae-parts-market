@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
 import { toNormalized, CloudinaryNormalized } from "@/types/cloudinary";
-import { useIsMobile } from '@/hooks/use-mobile';
 import { getWidgetSources, getWidgetUXConfig } from '@/config/cloudinary';
 import { CLOUDINARY_CONFIG, getUploadPreset, validateUploadPreset } from '@/config/cloudinary';
 
