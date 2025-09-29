@@ -36,7 +36,7 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
     brands,
     brandModels,
     isLoadingCarData,
-    handleMobileOptimizedImageUpload,
+    handleCloudinaryUpload,
     handleImageDelete,
     isPreviewOpen,
     closePreview,
@@ -121,7 +121,7 @@ const TrustedSellerForm: React.FC<TrustedSellerFormProps> = ({ mode = 'trusted_s
         imageUrls={imageUrls}
         videoUrls={videoUrls}
         setVideoUrls={setVideoUrls}
-        handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
+        handleCloudinaryUpload={handleCloudinaryUpload}
         primaryImage={primaryImage}
         setPrimaryImage={setPrimaryImage}
         onImageDelete={handleImageDelete}

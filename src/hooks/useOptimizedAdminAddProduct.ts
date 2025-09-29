@@ -381,7 +381,7 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
     brands,
     brandModels,
     isLoadingCarData: isLoadingBrands || isLoadingModels,
-    handleMobileOptimizedImageUpload: handleImageUpload,
+    handleCloudinaryUpload: handleImageUpload,
     handleImageDelete,
     // Preview dialog
     isPreviewOpen,

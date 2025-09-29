@@ -25,7 +25,7 @@ const AdminAddProduct = () => {
     brands,
     brandModels,
     isLoadingCarData,
-    handleMobileOptimizedImageUpload,
+    handleCloudinaryUpload,
     handleImageDelete,
     isPreviewOpen,
     closePreview,
@@ -111,7 +111,7 @@ const AdminAddProduct = () => {
               imageUrls={imageUrls}
               videoUrls={videoUrls}
               setVideoUrls={setVideoUrls}
-              handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
+              handleCloudinaryUpload={handleCloudinaryUpload}
               primaryImage={primaryImage}
               setPrimaryImage={setPrimaryImage}
               onImageDelete={handleImageDelete}

@@ -15,7 +15,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 
 // Lazy loaded components
-const SimplePhotoUploader = React.lazy(() => import('@/components/uploader/SimplePhotoUploader'));
+import { CloudinaryPhotoUploader } from '@/components/uploader/CloudinaryPhotoUploader';
 
 interface Seller {
   id: string;
@@ -41,7 +41,7 @@ interface AdminAddProductFormProps {
   imageUrls: string[];
   videoUrls: string[];
   setVideoUrls: (urls: string[]) => void;
-  handleMobileOptimizedImageUpload: (urls: string[]) => void;
+  handleCloudinaryUpload: (urls: string[]) => void;
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
   onImageDelete?: (url: string) => void;
@@ -179,7 +179,7 @@ const AdminAddProductFormComponent: React.FC<AdminAddProductFormProps> = ({
   imageUrls,
   videoUrls,
   setVideoUrls,
-  handleMobileOptimizedImageUpload,
+  handleCloudinaryUpload,
   primaryImage,
   setPrimaryImage,
   onImageDelete,
@@ -195,11 +195,11 @@ const AdminAddProductFormComponent: React.FC<AdminAddProductFormProps> = ({
         {/* Media Section */}
         <FormSectionWrapper title="Медиа файлы">
           <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
-            <SimplePhotoUploader 
-              onChange={handleMobileOptimizedImageUpload}
-              max={50}
-              language="ru"
-              buttonText="Загрузить изображения"
+            <CloudinaryPhotoUploader
+              images={imageUrls}
+              onImageUpload={handleCloudinaryUpload}
+              onImageDelete={onImageDelete}
+              maxImages={50}
             />
           </Suspense>
         </FormSectionWrapper>
