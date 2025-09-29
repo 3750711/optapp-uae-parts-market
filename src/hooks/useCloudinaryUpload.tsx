@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
+import { toNormalized, CloudinaryNormalized } from "@/types/cloudinary";
 
 interface CloudinaryUploadProgress {
   fileId: string;
@@ -10,8 +11,7 @@ interface CloudinaryUploadProgress {
   status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
   error?: string;
   url?: string;
-  mainImageUrl?: string;
-  publicId?: string;
+  normalized?: CloudinaryNormalized;
 }
 
 interface CloudinaryUploadOptions {
@@ -60,8 +60,15 @@ export const useCloudinaryUpload = () => {
       // Clean up blob URL
       URL.revokeObjectURL(blobUrl);
 
-      if (cloudinaryResult.success && cloudinaryResult.mainImageUrl) {
-        console.log('✅ Cloudinary upload successful:', cloudinaryResult.publicId);
+      // Normalize the Cloudinary result
+      const normalized = toNormalized(cloudinaryResult);
+      
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[useCloudinaryUpload] success normalized:", normalized);
+      }
+
+      if (normalized) {
+        console.log('✅ Cloudinary upload successful:', normalized.publicId);
         
         setUploadProgress(prev => prev.map(p => 
           p.fileId === fileId 
@@ -69,13 +76,13 @@ export const useCloudinaryUpload = () => {
                 ...p, 
                 status: 'success', 
                 progress: 100,
-                mainImageUrl: cloudinaryResult.mainImageUrl,
-                publicId: cloudinaryResult.publicId
+                url: normalized.url,
+                normalized
               }
             : p
         ));
 
-        return cloudinaryResult.mainImageUrl;
+        return normalized.url;
       } else {
         throw new Error(cloudinaryResult.error || 'Cloudinary upload failed');
       }
