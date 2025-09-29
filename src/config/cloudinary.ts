@@ -6,7 +6,7 @@ export const CLOUDINARY_CONFIG = {
   // Upload presets for different use cases
   uploadPresets: {
     product: 'partsbay_product',
-    productUnsigned: 'partsbay_product_unsigned',
+    productUnsigned: 'product_images_unsigned',
     productOptimized: 'partsbay_product_optimized',
     thumbnail: 'partsbay_thumbnail'
   },
@@ -80,7 +80,7 @@ export const CLOUDINARY_CONFIG = {
   // Upload configuration
   upload: {
     cloudName: 'dcuziurrb',
-    uploadPreset: 'partsbay_product_unsigned',
+    uploadPreset: 'product_images_unsigned',
     multiple: true,
     maxFiles: 50,
     maxFileSize: 10000000,
