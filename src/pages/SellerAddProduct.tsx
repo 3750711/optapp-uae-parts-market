@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from "react";
+import React, { Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Layout from "@/components/layout/Layout";
@@ -8,7 +8,6 @@ import { getCommonTranslations } from "@/utils/translations/common";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { preWarm } from "@/workers/uploadWorker.singleton";
 
 // Lazy loading для оптимизации
 const StandardSellerForm = React.lazy(() => import("@/components/seller/StandardSellerForm"));
@@ -22,42 +21,6 @@ const SellerAddProduct = () => {
   
   // Определяем тип формы на основе статуса доверенного продавца
   const isTrustedSeller = profile?.is_trusted_seller === true;
-
-  // Pre-warm worker for better upload performance
-  // Фаза 1: Улучшенная стратегия pre-warming с защитой от React Strict Mode
-  useEffect(() => {
-    let cancelled = false;
-    
-    // Добавляем задержку для избежания конфликтов с React lifecycle
-    const timeoutId = setTimeout(async () => {
-      if (cancelled) return;
-      
-      try {
-        console.log('🔥 SellerAddProduct: Pre-warming worker with delay...');
-        const success = await preWarm({ 
-          retries: 5,  // Увеличиваем количество попыток
-          delayMs: 800  // Увеличиваем задержку между попытками
-        });
-        
-        if (!cancelled) {
-          if (success) {
-            console.log('✅ SellerAddProduct: Worker pre-warmed successfully');
-          } else {
-            console.warn('⚠️ SellerAddProduct: Worker pre-warm failed after all retries');
-          }
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.error('❌ SellerAddProduct: Pre-warm error:', error);
-        }
-      }
-    }, 100); // Задержка 100мс для избежания конфликтов с React Strict Mode
-    
-    return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-    };
-  }, []); // Убираем лишние зависимости
 
   return (
     <ProtectedRoute allowedRoles={['seller']}>
