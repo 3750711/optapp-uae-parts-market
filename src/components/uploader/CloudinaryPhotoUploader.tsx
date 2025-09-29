@@ -33,7 +33,19 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
 
     openUploadWidget(
       (results) => {
-        const newUrls = results.map(result => result.secure_url);
+        console.log('🎯 CloudinaryPhotoUploader received results:', results);
+        
+        const newUrls = results.map(result => {
+          const url = result.secure_url || result.mainImageUrl || '';
+          console.log('📷 Processing result:', { 
+            secure_url: result.secure_url, 
+            mainImageUrl: result.mainImageUrl, 
+            finalUrl: url 
+          });
+          return url;
+        }).filter(Boolean);
+        
+        console.log('📸 Final URLs to upload:', newUrls);
         onImageUpload(newUrls);
       },
       {

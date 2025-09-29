@@ -169,6 +169,8 @@ interface CloudinaryUploadResult {
   height: number;
   format: string;
   bytes: number;
+  // Для совместимости с Edge Function API
+  mainImageUrl?: string;
 }
 
 interface UploadProgress {
@@ -335,8 +337,22 @@ export const useNewCloudinaryUpload = () => {
               bytes: uploadResult.bytes
             });
 
+            // Нормализуем результат для совместимости
+            const normalizedResult: CloudinaryUploadResult = {
+              ...uploadResult,
+              secure_url: uploadResult.secure_url || uploadResult.mainImageUrl || '',
+              mainImageUrl: uploadResult.mainImageUrl || uploadResult.secure_url
+            };
+
+            console.log('📸 Upload success, normalized result:', {
+              originalResult: uploadResult,
+              normalizedResult,
+              hasSecureUrl: !!normalizedResult.secure_url,
+              hasMainImageUrl: !!normalizedResult.mainImageUrl
+            });
+
             // Добавляем в успешные загрузки
-            setSuccessfulUploads(prev => [...prev, uploadResult]);
+            setSuccessfulUploads(prev => [...prev, normalizedResult]);
 
             // Обновляем прогресс
             setUploadProgress(prev => prev.map(p => 
