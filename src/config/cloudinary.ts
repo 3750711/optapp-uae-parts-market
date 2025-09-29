@@ -4,7 +4,8 @@ export const CLOUDINARY_CONFIG = {
   
   // Upload presets для разных типов загрузок
   uploadPresets: {
-    product: 'ml_default', // Основной preset для изображений товаров
+    product: 'ml_default', // Основной preset для изображений товаров (должен быть unsigned)
+    productUnsigned: '', // Пустая строка использует default unsigned preset
     productOptimized: 'product_optimized', // Оптимизированный preset (если создан)
     thumbnail: 'thumbnail_preset' // Для превью (если создан)
   },
