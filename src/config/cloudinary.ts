@@ -89,32 +89,57 @@ export const CLOUDINARY_CONFIG = {
     }
   },
 
-  // Настройки виджета загрузки
+  // Настройки виджета загрузки - PartsBay Brand
   widget: {
     theme: 'minimal',
     language: 'ru',
     sources: ['local', 'camera', 'url'],
-    showAdvancedOptions: false,
     cropping: false,
     multiple: true,
     clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp', 'gif'] as const,
     
-    // Стили виджета
+    // Дополнительные настройки брендинга
+    branding: false,  // Убираем логотип Cloudinary
+    showPoweredBy: false,  // Убираем "Powered by Cloudinary"
+    
+    // Улучшенная настройка размеров
+    inline: false,
+    defaultSource: 'local',
+    maxImageFileSize: 10000000,  // 10MB
+    maxVideoFileSize: 100000000, // 100MB
+    resourceType: 'auto',
+    
+    // Превью и кроппинг
+    showAdvancedOptions: false,
+    showSkipCropButton: false,
+    showUploadMoreButton: true,
+    
+    // Интеграция с прогрессом
+    showProgressBar: true,
+    queueViewPosition: 'bottom',
+    showCompletedButton: true,
+    
+    // Мобильная оптимизация
+    googleApiKey: null,
+    searchBySights: false,
+    searchByRights: false,
+    
+    // Стили виджета - PartsBay Brand
     styles: {
       palette: {
         window: '#FFFFFF',
-        windowBorder: '#E5E7EB',
-        tabIcon: '#6B7280',
-        menuIcons: '#6B7280',
-        textDark: '#111827',
-        textLight: '#6B7280',
-        link: '#3B82F6',
-        action: '#3B82F6',
-        inactiveTabIcon: '#9CA3AF',
-        error: '#EF4444',
-        inProgress: '#3B82F6',
-        complete: '#10B981',
-        sourceBg: '#F9FAFB'
+        windowBorder: 'hsl(210 40% 90%)',       // --border из дизайн-системы
+        tabIcon: 'hsl(212 50% 18%)',           // --primary (Navy Blue)
+        menuIcons: 'hsl(212 50% 18%)',         // --primary (Navy Blue)
+        textDark: 'hsl(0 0% 20%)',             // --foreground
+        textLight: 'hsl(0 0% 40%)',            // --muted-foreground
+        link: 'hsl(199 89% 48%)',              // --accent (Deep Blue)
+        action: 'hsl(199 89% 48%)',            // --accent (Deep Blue)
+        inactiveTabIcon: 'hsl(0 0% 40%)',      // Приглушенный цвет
+        error: 'hsl(0 84% 60%)',               // --destructive
+        inProgress: 'hsl(199 89% 48%)',        // --accent (Deep Blue)
+        complete: 'hsl(142 71% 45%)',          // --success
+        sourceBg: 'hsl(210 40% 98%)'           // --background
       },
       fonts: {
         default: null,
@@ -122,27 +147,61 @@ export const CLOUDINARY_CONFIG = {
           url: null,
           active: true
         }
+      },
+      
+      // Улучшенная анимация и переходы
+      frame: {
+        background: 'rgba(255, 255, 255, 0.98)',
+        border: '1px solid hsl(210 40% 90%)',
+        borderRadius: '12px',
+        boxShadow: '0 8px 25px -8px hsl(212 50% 18% / 0.15)' // --shadow-elegant
+      },
+      
+      // Кастомные стили для кнопок
+      button: {
+        primary: {
+          background: 'hsl(199 89% 48%)',      // --accent
+          color: 'white',
+          border: 'none',
+          borderRadius: '8px',
+          fontWeight: '500',
+          transition: 'all 0.2s ease'
+        },
+        secondary: {
+          background: 'hsl(210 40% 96%)',      // --secondary
+          color: 'hsl(212 50% 18%)',           // --primary
+          border: '1px solid hsl(210 40% 90%)',
+          borderRadius: '8px',
+          fontWeight: '500',
+          transition: 'all 0.2s ease'
+        }
       }
     },
 
-    // Локализация
+    // Локализация с улучшенными текстами PartsBay
     text: {
       ru: {
-        'local.browse': 'Выбрать файлы',
-        'local.dd_title_single': 'Перетащите изображение сюда',
-        'local.dd_title_multi': 'Перетащите изображения сюда',
-        'camera.capture': 'Сделать фото',
+        'local.browse': '📷 Выбрать фотографии товара',
+        'local.dd_title_single': 'Перетащите фото товара сюда',
+        'local.dd_title_multi': 'Перетащите фотографии товара сюда',
+        'camera.capture': '📱 Сфотографировать товар',
         'camera.cancel': 'Отмена',
         'camera.take_pic': 'Снимок',
-        'camera.explanation': 'Убедитесь, что камера включена',
-        'upload_tabs.url': 'URL',
-        'upload_tabs.file': 'Файл',
-        'queue.title': 'Очередь загрузки',
-        'queue.title_uploading_with_counter': 'Загружается {{num}} файлов',
-        'queue.title_uploading': 'Загружается файл',
-        'queue.mini_title': 'Загружено',
-        'queue.mini_title_uploading': 'Загружается',
-        'done.title': 'Готово!'
+        'camera.explanation': 'Убедитесь, что камера включена для съемки товара',
+        'upload_tabs.url': '🔗 По ссылке',
+        'upload_tabs.file': '📁 С устройства',
+        'upload_tabs.camera': '📷 Камера',
+        'queue.title': 'Загрузка фотографий',
+        'queue.title_uploading_with_counter': 'Загружается {{num}} фотографий',
+        'queue.title_uploading': 'Загружается фотография',
+        'queue.mini_title': '✅ Загружено',
+        'queue.mini_title_uploading': '⏳ Загружается...',
+        'done.title': '🎉 Фотографии загружены!',
+        'local.success': 'Фотографии успешно загружены',
+        'progress.uploading': 'Загружаем ваши фотографии...',
+        'or': 'или',
+        'menu.close': 'Закрыть',
+        'menu.back': 'Назад'
       }
     }
   }
