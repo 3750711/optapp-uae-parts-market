@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
 import { toNormalized, CloudinaryNormalized } from "@/types/cloudinary";
@@ -203,6 +203,12 @@ export const useNewCloudinaryUpload = () => {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [successfulUploads, setSuccessfulUploads] = useState<CloudinaryNormalized[]>([]);
+  const successfulUploadsRef = useRef<CloudinaryNormalized[]>([]);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    successfulUploadsRef.current = successfulUploads;
+  }, [successfulUploads]);
 
   // Валидация файлов на клиенте
   const validateFiles = useCallback((files: FileList | File[]): ValidationError[] => {
@@ -371,20 +377,26 @@ export const useNewCloudinaryUpload = () => {
           }
 
           if (result && result.event === 'close') {
-            // Используем накопленные успешные результаты вместо состояния uploadProgress
-            console.log('🎯 Widget closed, successful uploads:', successfulUploads.length);
+            // 🔥 ИСПРАВЛЕНИЕ: Используем актуальные данные из ref, чтобы избежать race condition
+            const currentUploads = successfulUploadsRef.current;
+            console.log('🎯 Widget closed, successful uploads from ref:', currentUploads.length);
+            console.log('🔍 Actual uploads data:', currentUploads);
             
-            if (successfulUploads.length > 0) {
-              onSuccess(successfulUploads);
+            if (currentUploads.length > 0) {
+              console.log('✅ Calling onSuccess with uploads:', currentUploads);
+              onSuccess(currentUploads);
               toast({
                 title: "Загрузка завершена",
-                description: `Успешно загружено ${successfulUploads.length} файлов в Cloudinary`,
+                description: `Успешно загружено ${currentUploads.length} файлов в Cloudinary`,
               });
+            } else {
+              console.log('⚠️ No uploads to process');
             }
             
             setIsUploading(false);
             setUploadProgress([]);
-            setSuccessfulUploads([]); // Сбрасываем после использования
+            // Сбрасываем состояние ПОСЛЕ использования
+            setSuccessfulUploads([]);
           }
 
           if (result && result.event === 'upload') {
