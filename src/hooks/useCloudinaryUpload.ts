@@ -189,6 +189,7 @@ export const useNewCloudinaryUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [successfulUploads, setSuccessfulUploads] = useState<CloudinaryUploadResult[]>([]);
 
   // Валидация файлов на клиенте
   const validateFiles = useCallback((files: FileList | File[]): ValidationError[] => {
@@ -235,6 +236,7 @@ export const useNewCloudinaryUpload = () => {
     } = {}
   ) => {
     setValidationErrors([]);
+    setSuccessfulUploads([]); // Сбрасываем предыдущие результаты
 
     // Загружаем Cloudinary Upload Widget динамически
     if (typeof window !== 'undefined' && !(window as any).cloudinary) {
@@ -333,6 +335,9 @@ export const useNewCloudinaryUpload = () => {
               bytes: uploadResult.bytes
             });
 
+            // Добавляем в успешные загрузки
+            setSuccessfulUploads(prev => [...prev, uploadResult]);
+
             // Обновляем прогресс
             setUploadProgress(prev => prev.map(p => 
               p.fileName === result.info.original_filename 
@@ -342,21 +347,20 @@ export const useNewCloudinaryUpload = () => {
           }
 
           if (result && result.event === 'close') {
-            // Собираем все успешно загруженные файлы
-            const successResults = uploadProgress
-              .filter(p => p.status === 'success' && p.result)
-              .map(p => p.result!) as CloudinaryUploadResult[];
+            // Используем накопленные успешные результаты вместо состояния uploadProgress
+            console.log('🎯 Widget closed, successful uploads:', successfulUploads.length);
             
-            if (successResults.length > 0) {
-              onSuccess(successResults);
+            if (successfulUploads.length > 0) {
+              onSuccess(successfulUploads);
               toast({
                 title: "Загрузка завершена",
-                description: `Успешно загружено ${successResults.length} файлов в Cloudinary`,
+                description: `Успешно загружено ${successfulUploads.length} файлов в Cloudinary`,
               });
             }
             
             setIsUploading(false);
             setUploadProgress([]);
+            setSuccessfulUploads([]); // Сбрасываем после использования
           }
 
           if (result && result.event === 'upload') {
@@ -399,7 +403,7 @@ export const useNewCloudinaryUpload = () => {
       setIsUploading(true);
       widget.open();
     }
-  }, [uploadProgress]);
+  }, [uploadProgress, successfulUploads]);
 
   // Метод для валидации и загрузки файлов с проверкой
   const uploadWithValidation = useCallback(async (
