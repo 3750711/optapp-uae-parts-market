@@ -43,6 +43,7 @@ export interface ProductProps {
   updated_at?: string;
   optid_created?: string;
   last_notification_sent_at?: string; // Add field for repost functionality
+  catalog_position?: string; // Catalog position for repost cooldown
 }
 
 interface ProductCardProps {

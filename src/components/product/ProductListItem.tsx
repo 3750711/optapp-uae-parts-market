@@ -330,7 +330,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 >
                   <RepostButton
                     productId={product.id}
-                    lastNotificationSentAt={product.last_notification_sent_at}
+                    catalogPosition={product.catalog_position}
                     status={product.status}
                     sellerId={product.seller_id}
                     currentPrice={product.price}

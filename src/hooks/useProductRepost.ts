@@ -64,8 +64,8 @@ export const useProductRepost = () => {
     }
   }, [t.repostMessages.queueError]);
 
-  // Check if user can repost a product
-  const checkCanRepost = (lastNotificationSentAt?: string | null) => {
+  // Check if product can be reposted based on catalog position
+  const checkCanRepost = (catalogPosition: string) => {
     // Admin can always repost
     if (user && user.user_metadata?.user_type === 'admin') {
       return {
@@ -74,18 +74,10 @@ export const useProductRepost = () => {
       };
     }
 
-    // If no previous notification, can repost
-    if (!lastNotificationSentAt) {
-      return {
-        canRepost: true,
-        hoursLeft: 0
-      };
-    }
-
     // Calculate time difference (72 hours = 3 days)
-    const lastNotificationTime = new Date(lastNotificationSentAt).getTime();
+    const catalogTime = new Date(catalogPosition).getTime();
     const currentTime = new Date().getTime();
-    const timeDifference = currentTime - lastNotificationTime;
+    const timeDifference = currentTime - catalogTime;
     const hoursDifference = timeDifference / (1000 * 60 * 60);
     
     const REPOST_COOLDOWN_HOURS = 72; // 3 days

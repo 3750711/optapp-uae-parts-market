@@ -8,7 +8,7 @@ import RepostPriceDialog from "./RepostPriceDialog";
 
 interface RepostButtonProps {
   productId: string;
-  lastNotificationSentAt?: string | null;
+  catalogPosition: string;
   status: string;
   sellerId: string;
   currentPrice: number;
@@ -18,7 +18,7 @@ interface RepostButtonProps {
 
 export const RepostButton: React.FC<RepostButtonProps> = ({
   productId,
-  lastNotificationSentAt,
+  catalogPosition,
   status,
   sellerId,
   currentPrice,
@@ -35,7 +35,7 @@ export const RepostButton: React.FC<RepostButtonProps> = ({
     return null;
   }
 
-  const { canRepost, hoursLeft } = checkCanRepost(lastNotificationSentAt);
+  const { canRepost, hoursLeft } = checkCanRepost(catalogPosition);
   const isLoading = isReposting[productId] || false;
   const isQueued = !!queuedReposts[productId];
 
