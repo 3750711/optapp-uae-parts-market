@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBackgroundSync } from "./useBackgroundSync";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
+
+const STUCK_TIMEOUT = 60000; // 60 seconds timeout for stuck reposts
 
 export const useProductRepost = () => {
   const [isReposting, setIsReposting] = useState<Record<string, boolean>>({});
@@ -13,6 +15,54 @@ export const useProductRepost = () => {
   const { queueForSync, getPendingCount } = useBackgroundSync();
   const { language } = useLanguage();
   const t = getProductStatusTranslations(language);
+
+  // Clear stuck reposts after timeout
+  useEffect(() => {
+    const timeouts: Record<string, NodeJS.Timeout> = {};
+
+    Object.entries(queuedReposts).forEach(([productId, syncId]) => {
+      console.log(`⏰ [ProductRepost] Setting ${STUCK_TIMEOUT / 1000}s timeout for ${productId}`);
+      
+      timeouts[productId] = setTimeout(() => {
+        console.warn(`⚠️ [ProductRepost] Clearing stuck repost for product ${productId} (syncId: ${syncId})`);
+        setQueuedReposts(prev => {
+          const updated = { ...prev };
+          delete updated[productId];
+          return updated;
+        });
+        
+        toast.warning('Repost timeout - you can try again', {
+          description: 'The repost request may have been processed or timed out'
+        });
+      }, STUCK_TIMEOUT);
+    });
+
+    return () => {
+      Object.values(timeouts).forEach(timeout => clearTimeout(timeout));
+    };
+  }, [queuedReposts]);
+
+  // Callback for sync completion
+  const handleSyncCompletion = useCallback((syncId: string, productId: string, success: boolean, error?: any) => {
+    console.log(`🔔 [ProductRepost] Sync completed for ${productId}: ${success ? 'SUCCESS' : 'FAILED'}`);
+    
+    setQueuedReposts(prev => {
+      const updated = { ...prev };
+      if (updated[productId] === syncId) {
+        delete updated[productId];
+      }
+      return updated;
+    });
+
+    if (success) {
+      toast.success('Repost sent successfully!');
+    } else {
+      console.error(`❌ [ProductRepost] Repost failed for ${productId}:`, error);
+      toast.error(t.repostMessages.queueError, {
+        description: 'Please try again later'
+      });
+    }
+  }, [t.repostMessages.queueError]);
 
   // Check if user can repost a product
   const checkCanRepost = (lastNotificationSentAt?: string | null) => {
@@ -113,7 +163,7 @@ export const useProductRepost = () => {
             newPrice, 
             oldPrice,
             requestId
-          });
+          }, (syncId, success, error) => handleSyncCompletion(syncId, productId, success, error));
           
           // Track queued repost
           setQueuedReposts(prev => ({ ...prev, [productId]: syncId }));
@@ -170,7 +220,7 @@ export const useProductRepost = () => {
         productId, 
         priceChanged: false,
         requestId
-      });
+      }, (syncId, success, error) => handleSyncCompletion(syncId, productId, success, error));
       
       // Track queued repost
       setQueuedReposts(prev => ({ ...prev, [productId]: syncId }));
