@@ -17,7 +17,6 @@ export interface Product {
   cloudinary_url?: string | null;
   rating_seller?: number | null;
   product_images?: Array<{ url: string; is_primary?: boolean }>;
-  last_notification_sent_at?: string | null; // Add field for repost functionality
   
   // Недостающие поля для корректной работы
   lot_number?: number;

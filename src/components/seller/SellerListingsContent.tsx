@@ -226,7 +226,7 @@ const SellerListingsContent = () => {
   const handleRepostSuccess = () => {
     devLog("Product repost successful, refreshing data");
     
-    // Invalidate and refetch to get updated last_notification_sent_at
+    // Invalidate and refetch to get updated catalog_position
     queryClient.invalidateQueries({
       queryKey: ['seller-products', user?.id, activeSearch]
     });
@@ -367,7 +367,7 @@ const SellerListingsContent = () => {
           optid_created: product.optid_created,
           lot_number: product.lot_number,
           place_number: product.place_number,
-          last_notification_sent_at: product.last_notification_sent_at
+          catalog_position: product.catalog_position
         };
       });
     } catch (mappingError) {
