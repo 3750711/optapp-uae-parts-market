@@ -137,11 +137,11 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
           {images.map((imageUrl, index) => (
             <div key={imageUrl} className="relative group">
-              <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+              <div className="aspect-[4/3] rounded-lg overflow-hidden bg-muted flex items-center justify-center">
                 <OptimizedImage
                   src={imageUrl}
                   alt={`Фото товара ${index + 1}`}
-                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  className="w-full h-full object-contain"
                   size="preview"
                   priority={index === 0}
                 />
