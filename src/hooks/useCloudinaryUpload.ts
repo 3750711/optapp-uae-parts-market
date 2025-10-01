@@ -201,13 +201,28 @@ export const useNewCloudinaryUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-  const [successfulUploads, setSuccessfulUploads] = useState<CloudinaryNormalized[]>([]);
+  
+  // ✅ FIX: Используем только ref для синхронного накопления результатов
+  // Это устраняет race condition между success и close events
   const successfulUploadsRef = useRef<CloudinaryNormalized[]>([]);
-
-  // Keep ref in sync with state
+  
+  // ✅ FIX: Сохраняем ссылку на виджет для cleanup
+  const widgetRef = useRef<any>(null);
+  
+  // ✅ FIX: Cleanup виджета при unmount компонента
   useEffect(() => {
-    successfulUploadsRef.current = successfulUploads;
-  }, [successfulUploads]);
+    return () => {
+      if (widgetRef.current) {
+        try {
+          widgetRef.current.close();
+          widgetRef.current.destroy();
+          console.log('🧹 Cloudinary widget cleaned up on unmount');
+        } catch (error) {
+          console.warn('⚠️ Widget cleanup error:', error);
+        }
+      }
+    };
+  }, []);
 
   // Валидация файлов на клиенте
   const validateFiles = useCallback((files: FileList | File[]): ValidationError[] => {
@@ -254,7 +269,7 @@ export const useNewCloudinaryUpload = () => {
     } = {}
   ) => {
     setValidationErrors([]);
-    setSuccessfulUploads([]); // Сбрасываем предыдущие результаты
+    successfulUploadsRef.current = []; // ✅ FIX: Сбрасываем ref синхронно ПЕРЕД открытием виджета
 
     // Проверяем, загружен ли Cloudinary Widget
     if (typeof window !== 'undefined' && !(window as any).cloudinary) {
@@ -376,8 +391,13 @@ export const useNewCloudinaryUpload = () => {
             if (normalized) {
               console.log('📸 Upload success, normalized result:', normalized);
 
-              // Добавляем в успешные загрузки
-              setSuccessfulUploads(prev => [...prev, normalized]);
+              // ✅ FIX: Прямая синхронная запись в ref (нет асинхронного state update)
+              successfulUploadsRef.current = [
+                ...successfulUploadsRef.current,
+                normalized
+              ];
+              
+              console.log('✅ Total uploads in ref:', successfulUploadsRef.current.length);
             }
 
             // Обновляем прогресс
@@ -389,26 +409,21 @@ export const useNewCloudinaryUpload = () => {
           }
 
           if (result && result.event === 'close') {
-            // 🔥 ИСПРАВЛЕНИЕ: Используем актуальные данные из ref, чтобы избежать race condition
+            // ✅ FIX: ref всегда актуален (синхронное обновление в success event)
             const currentUploads = successfulUploadsRef.current;
-            console.log('🎯 Widget closed, successful uploads from ref:', currentUploads.length);
-            console.log('🔍 Actual uploads data:', currentUploads);
+            console.log('🎯 Widget closed, successful uploads:', currentUploads.length);
             
             if (currentUploads.length > 0) {
-              console.log('✅ Calling onSuccess with uploads:', currentUploads);
               onSuccess(currentUploads);
               toast({
                 title: "Загрузка завершена",
-                description: `Успешно загружено ${currentUploads.length} файлов в Cloudinary`,
+                description: `Успешно загружено ${currentUploads.length} файлов`,
               });
-            } else {
-              console.log('⚠️ No uploads to process');
             }
             
             setIsUploading(false);
             setUploadProgress([]);
-            // Сбрасываем состояние ПОСЛЕ использования
-            setSuccessfulUploads([]);
+            successfulUploadsRef.current = []; // ✅ FIX: Очистка ПОСЛЕ передачи результатов
             
             // Генерируем пользовательское событие для сброса состояния виджета
             document.dispatchEvent(new CustomEvent('cloudinary-widget-close'));
@@ -451,10 +466,11 @@ export const useNewCloudinaryUpload = () => {
         }
       );
 
+      widgetRef.current = widget; // ✅ FIX: Сохраняем виджет в ref для cleanup
       setIsUploading(true);
       widget.open();
     }
-  }, [uploadProgress, successfulUploads]);
+  }, [uploadProgress]); // ✅ FIX: Убрали successfulUploads из deps (используем только ref)
 
   // Метод для валидации и загрузки файлов с проверкой
   const uploadWithValidation = useCallback(async (

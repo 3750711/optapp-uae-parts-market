@@ -60,6 +60,7 @@ export interface FormTranslations {
     smartUpload: string;
     addPhoto: string;
     uploading: string;
+    widgetOpen: string;
   };
   messages: {
     productCreated: string;
@@ -154,6 +155,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       smartUpload: 'Умная загрузка...',
       addPhoto: 'Добавить фото',
       uploading: 'Загрузка...',
+      widgetOpen: 'Виджет открыт...',
     },
     messages: {
       productCreated: 'Товар успешно создан',
@@ -246,6 +248,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       smartUpload: 'Smart Upload...',
       addPhoto: 'Add Photo',
       uploading: 'Uploading...',
+      widgetOpen: 'Widget Open...',
     },
     messages: {
       productCreated: 'Product successfully created',
@@ -338,6 +341,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
       smartUpload: 'স্মার্ট আপলোড...',
       addPhoto: 'ছবি যোগ করুন',
       uploading: 'আপলোড হচ্ছে...',
+      widgetOpen: 'উইজেট খোলা আছে...',
     },
     messages: {
       productCreated: 'পণ্য সফলভাবে তৈরি',

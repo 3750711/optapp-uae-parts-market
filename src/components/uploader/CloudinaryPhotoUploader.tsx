@@ -38,11 +38,24 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
     onWidgetStateChange?.(isWidgetOpen);
   }, [isWidgetOpen, onWidgetStateChange]);
 
+  // ✅ FIX: Event listener cleanup - правильный подход через useEffect
+  useEffect(() => {
+    const handleWidgetClose = () => {
+      setIsWidgetOpen(false);
+    };
+    
+    document.addEventListener('cloudinary-widget-close', handleWidgetClose);
+    
+    return () => {
+      document.removeEventListener('cloudinary-widget-close', handleWidgetClose);
+    };
+  }, []);
+
   const canUploadMore = images.length < maxImages;
   const remainingSlots = maxImages - images.length;
 
   const handleUpload = () => {
-    if (!canUploadMore || disabled) return;
+    if (!canUploadMore || disabled || isWidgetOpen) return; // ✅ FIX: Блокируем если виджет уже открыт
 
     // Widget будет открыт - устанавливаем состояние
     setIsWidgetOpen(true);
@@ -70,16 +83,6 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
         folder: 'product-images'
       }
     );
-
-    // Слушаем событие закрытия виджета для сброса состояния
-    // Используем setTimeout для установки listener'а после создания виджета
-    setTimeout(() => {
-      const handleWidgetClose = () => {
-        setIsWidgetOpen(false);
-        document.removeEventListener('cloudinary-widget-close', handleWidgetClose);
-      };
-      document.addEventListener('cloudinary-widget-close', handleWidgetClose);
-    }, 100);
   };
 
   const handleDelete = (imageUrl: string) => {
@@ -94,13 +97,15 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
       <Button
         type="button"
         onClick={handleUpload}
-        disabled={!canUploadMore || disabled || isUploading}
+        disabled={!canUploadMore || disabled || isUploading || isWidgetOpen}
         variant="outline"
         size="lg"
         className="flex items-center gap-2 w-full min-h-[48px] text-base touch-manipulation sm:w-auto sm:min-h-[40px] sm:text-sm"
       >
         <Camera className="w-5 h-5 sm:w-4 sm:h-4" />
-        {isUploading ? t.buttons.uploading : t.buttons.addPhoto}
+        {isUploading ? t.buttons.uploading : 
+         isWidgetOpen ? t.buttons.widgetOpen :
+         t.buttons.addPhoto}
       </Button>
 
       {/* Upload Progress */}
