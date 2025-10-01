@@ -123,7 +123,7 @@ const SellerListingsContent = () => {
             optid_created,
             lot_number,
             place_number,
-            last_notification_sent_at,
+            catalog_position,
             product_images(
               url,
               is_primary
