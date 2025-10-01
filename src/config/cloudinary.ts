@@ -198,6 +198,9 @@ export const CLOUDINARY_CONFIG = {
     text: {
       en: {
         'local.browse': 'Add photos',
+        'sources.local.title': 'Add photos',
+        'local.title': 'Add photos',
+        'menu.files': 'Add photos',
         'local.dd_title_single': 'Drop your photo here',
         'local.dd_title_multi': 'Drop your photos here',
         'queue.title': 'Uploading photos',
