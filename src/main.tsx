@@ -11,6 +11,7 @@ import { ModuleLoadingBoundary } from './components/ModuleLoadingBoundary';
 import { AppInitializer } from './components/AppInitializer';
 
 import './index.css';
+import './styles/cloudinary-desktop-fixes.css';
 
 // P2-2: Performance monitoring для измерения эффективности оптимизаций
 if ('performance' in window) {

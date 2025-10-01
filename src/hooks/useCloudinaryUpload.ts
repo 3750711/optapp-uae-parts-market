@@ -312,6 +312,14 @@ export const useNewCloudinaryUpload = () => {
       const widgetSources = getWidgetSources(isMobileWidget);
       const uxConfig = getWidgetUXConfig(isMobileWidget);
       
+      // 🔍 Диагностика: Логируем платформу и конфигурацию
+      console.log('📱 Platform detection:', {
+        isMobile: isMobileWidget,
+        userAgent: navigator.userAgent,
+        sources: widgetSources,
+        uxConfig
+      });
+      
       // Создаем конфигурацию виджета с поддержкой темной темы
       const widgetStyles = {
         ...CLOUDINARY_CONFIG.widget.styles,
@@ -468,7 +476,29 @@ export const useNewCloudinaryUpload = () => {
 
       widgetRef.current = widget; // ✅ FIX: Сохраняем виджет в ref для cleanup
       setIsUploading(true);
+      
+      // 🔍 Диагностика: Логируем открытие виджета
+      console.log('🎬 Opening Cloudinary widget...', {
+        isMobile: isMobileWidget,
+        cloudName: CLOUDINARY_CONFIG.cloudName,
+        uploadPreset,
+        maxFiles: options.maxFiles || CLOUDINARY_CONFIG.upload.maxFiles
+      });
+      
       widget.open();
+      
+      // 🔍 Диагностика: Проверяем состояние DOM после открытия
+      setTimeout(() => {
+        const overlay = document.querySelector('#cloudinary-overlay');
+        const iframe = document.querySelector('.cloudinary-widget iframe');
+        console.log('🔍 Widget DOM state:', {
+          overlayExists: !!overlay,
+          overlayZIndex: overlay ? window.getComputedStyle(overlay).zIndex : 'N/A',
+          iframeExists: !!iframe,
+          iframeZIndex: iframe ? window.getComputedStyle(iframe).zIndex : 'N/A',
+          iframePointerEvents: iframe ? window.getComputedStyle(iframe).pointerEvents : 'N/A'
+        });
+      }, 500);
     }
   }, [uploadProgress]); // ✅ FIX: Убрали successfulUploads из deps (используем только ref)
 

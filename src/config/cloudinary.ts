@@ -347,6 +347,8 @@ export const getWidgetUXConfig = (isMobile: boolean) => {
     // Critical: Prevent widget from auto-closing on both mobile and desktop
     autoMinimize: false,
     keepWidgetOpen: true,
+    // Desktop fix: High z-index to appear above all elements
+    zIndex: 99999,
   };
 
   // Mobile-specific optimizations

@@ -1,0 +1,59 @@
+/**
+ * Cloudinary Upload Widget Desktop Fixes
+ * Решает проблему неработающей кнопки "Browse" на десктопе
+ */
+
+/* Ensure Cloudinary widget overlay appears above everything */
+.cloudinary-widget-container,
+#cloudinary-overlay,
+.cloudinary-widget,
+[class*="cloudinary"],
+[id*="cloudinary"] {
+  z-index: 99999 !important;
+  position: relative !important;
+}
+
+/* Fix widget iframe positioning and clickability */
+.cloudinary-widget iframe,
+#cloudinary-overlay iframe {
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+}
+
+/* Ensure overlay is clickable and visible */
+#cloudinary-overlay {
+  pointer-events: auto !important;
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Fix upload widget body */
+body.cloudinary-open,
+body[class*="cloudinary"] {
+  overflow: hidden !important;
+}
+
+/* Desktop-specific: Ensure widget buttons are clickable */
+@media (min-width: 769px) {
+  .cloudinary-widget button,
+  .cloudinary-widget input[type="file"],
+  .cloudinary-widget .upload-button,
+  .cloudinary-widget [role="button"] {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 100001 !important;
+  }
+  
+  /* Fix widget frame on desktop */
+  .cloudinary-widget .widget-frame,
+  .cloudinary-widget .upload-frame {
+    z-index: 100000 !important;
+    position: fixed !important;
+    pointer-events: auto !important;
+  }
+}
+
+/* Ensure no other elements block the widget */
+.cloudinary-widget * {
+  pointer-events: auto !important;
+}
