@@ -447,19 +447,6 @@ const StandardSellerForm = () => {
         />
       </div>
       
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          {t.labels.description} {t.optional}
-        </label>
-        <textarea
-          value={displayData.description}
-          onChange={(e) => updateForm('description', e.target.value)}
-          placeholder={t.placeholders.description}
-          className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
-          disabled={isSubmitting}
-        />
-      </div>
-      
       {isProfileLoading && !profileTimeout && (
         <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-3 rounded mb-4">
           <p className="text-sm text-blue-800 dark:text-blue-200">🔄 Загрузка данных профиля...</p>
