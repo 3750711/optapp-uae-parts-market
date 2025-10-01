@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { CloudinaryNormalized } from '@/types/cloudinary';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getFormTranslations } from '@/utils/translations/forms';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface CloudinaryPhotoUploaderProps {
   images: string[];
@@ -137,11 +138,12 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
           {images.map((imageUrl, index) => (
             <div key={imageUrl} className="relative group">
               <div className="aspect-square rounded-lg overflow-hidden bg-muted">
-                <img
+                <OptimizedImage
                   src={imageUrl}
                   alt={`Фото товара ${index + 1}`}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  loading="lazy"
+                  size="thumbnail"
+                  priority={index === 0}
                 />
               </div>
               
