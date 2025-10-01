@@ -113,8 +113,8 @@ const StandardSellerForm = () => {
     warningMessage: "Создание товара не завершено. Вы уверены, что хотите покинуть страницу?"
   });
 
-  // P1-1: Autosave draft to localStorage
-  React.useEffect(() => {
+  // P1-1: Autosave draft to localStorage with debounce
+  const saveDraft = React.useCallback(() => {
     if (formData.title || formData.description || formData.price || imageUrls.length > 0) {
       const draft = { 
         ...formData, 
@@ -124,12 +124,32 @@ const StandardSellerForm = () => {
       };
       try {
         localStorage.setItem('seller-product-draft', JSON.stringify(draft));
-        console.log('💾 Draft saved to localStorage');
+        console.log('💾 Draft saved to localStorage:', {
+          imagesCount: imageUrls.length,
+          primaryImage: primaryImage ? 'set' : 'empty',
+          timestamp: draft.timestamp
+        });
       } catch (error) {
         console.warn('Failed to save draft:', error);
       }
     }
-  }, [formData.title, formData.description, formData.price, imageUrls, primaryImage]);
+  }, [formData, imageUrls, primaryImage]);
+
+  // Debounced autosave
+  const debouncedSave = React.useMemo(
+    () => {
+      let timeoutId: NodeJS.Timeout;
+      return () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(saveDraft, 1000);
+      };
+    },
+    [saveDraft]
+  );
+
+  React.useEffect(() => {
+    debouncedSave();
+  }, [formData.title, formData.description, formData.price, imageUrls, primaryImage, debouncedSave]);
 
   // P1-1: Restore draft on component mount
   React.useEffect(() => {
@@ -137,28 +157,41 @@ const StandardSellerForm = () => {
       const saved = localStorage.getItem('seller-product-draft');
       if (saved) {
         const draft = JSON.parse(saved);
+        const age = Date.now() - (draft.timestamp || 0);
+        
+        console.log('📦 Checking draft:', {
+          exists: true,
+          age: Math.round(age / 1000 / 60), // minutes
+          imagesCount: draft.imageUrls?.length || 0,
+          timestamp: new Date(draft.timestamp).toISOString()
+        });
+        
         // Restore only if younger than 24 hours
-        if (Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) {
+        if (age < 24 * 60 * 60 * 1000) {
           setDisplayData({
             title: draft.title || "",
             price: draft.price || "",
             description: draft.description || ""
           });
-          if (draft.imageUrls?.length) {
+          if (Array.isArray(draft.imageUrls)) {
             setImageUrls(draft.imageUrls);
+            console.log('✅ Restored images:', draft.imageUrls.length);
           }
           if (draft.primaryImage) {
             setPrimaryImage(draft.primaryImage);
+            console.log('✅ Restored primary image');
           }
-          console.log('📦 Draft restored from localStorage');
+          console.log('📦 Draft restored successfully');
         } else {
           // Remove expired draft
           localStorage.removeItem('seller-product-draft');
-          console.log('🗑️ Expired draft removed');
+          console.log('🗑️ Expired draft removed (age: ' + Math.round(age / 1000 / 60 / 60) + ' hours)');
         }
+      } else {
+        console.log('📦 No draft found in localStorage');
       }
     } catch (error) {
-      console.warn('Failed to restore draft:', error);
+      console.error('❌ Failed to restore draft:', error);
       localStorage.removeItem('seller-product-draft'); // Remove corrupted draft
     }
   }, []);
@@ -189,13 +222,21 @@ const StandardSellerForm = () => {
   }, []);
 
   const handleImageDelete = useCallback((url: string) => {
+    console.log('🗑️ Deleting image from state:', url);
     unstable_batchedUpdates(() => {
       setImageUrls(prevUrls => {
         const newUrls = prevUrls.filter(item => item !== url);
+        console.log('📊 Images after deletion:', { 
+          before: prevUrls.length, 
+          after: newUrls.length,
+          deleted: url 
+        });
         
         setPrimaryImage(prevPrimary => {
           if (prevPrimary === url) {
-            return newUrls.length > 0 ? newUrls[0] : "";
+            const newPrimary = newUrls.length > 0 ? newUrls[0] : "";
+            console.log('🖼️ Primary image changed:', { old: url, new: newPrimary });
+            return newPrimary;
           }
           return prevPrimary;
         });
@@ -203,7 +244,38 @@ const StandardSellerForm = () => {
         return newUrls;
       });
     });
-  }, []);
+
+    // 🔥 CRITICAL FIX: Force immediate save after deletion
+    setTimeout(() => {
+      const currentData = {
+        title: displayData.title,
+        price: displayData.price,
+        description: displayData.description
+      };
+      const newImageUrls = imageUrls.filter(item => item !== url);
+      const newPrimaryImage = primaryImage === url 
+        ? (newImageUrls.length > 0 ? newImageUrls[0] : "")
+        : primaryImage;
+
+      const draft = {
+        ...currentData,
+        imageUrls: newImageUrls,
+        primaryImage: newPrimaryImage,
+        timestamp: Date.now()
+      };
+      
+      try {
+        localStorage.setItem('seller-product-draft', JSON.stringify(draft));
+        console.log('✅ Draft force-saved after deletion:', {
+          imagesCount: newImageUrls.length,
+          deletedUrl: url,
+          timestamp: draft.timestamp
+        });
+      } catch (error) {
+        console.error('❌ Failed to force-save draft:', error);
+      }
+    }, 100);
+  }, [imageUrls, primaryImage, displayData]);
 
   const handleSetPrimaryImage = useCallback((url: string) => {
     setPrimaryImage(url);

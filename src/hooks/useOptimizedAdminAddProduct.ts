@@ -130,6 +130,14 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
     if (saved && typeof saved === 'object') {
       const { brandId, modelId, imageUrls: savedImages, videoUrls: savedVideos, primaryImage: savedPrimary, ...rest } = saved as any;
 
+      console.log('📦 [AdminAddProduct] Restoring draft:', {
+        hasImages: Array.isArray(savedImages),
+        imagesCount: savedImages?.length || 0,
+        hasPrimary: !!savedPrimary,
+        brandId,
+        modelId
+      });
+
       // Apply basic fields first
       Object.entries(rest).forEach(([key, value]) => {
         if (key in form.getValues()) {
@@ -148,9 +156,19 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
       }
 
       // Media
-      if (Array.isArray(savedImages)) setImageUrls(savedImages);
-      if (Array.isArray(savedVideos)) setVideoUrls(savedVideos);
-      if (typeof savedPrimary === 'string') setPrimaryImage(savedPrimary);
+      if (Array.isArray(savedImages)) {
+        setImageUrls(savedImages);
+        console.log('✅ [AdminAddProduct] Restored images:', savedImages.length);
+      }
+      if (Array.isArray(savedVideos)) {
+        setVideoUrls(savedVideos);
+      }
+      if (typeof savedPrimary === 'string') {
+        setPrimaryImage(savedPrimary);
+        console.log('✅ [AdminAddProduct] Restored primary image');
+      }
+    } else {
+      console.log('📦 [AdminAddProduct] No draft found');
     }
   }, [loadSavedData, allModels, form]);
 
@@ -197,6 +215,8 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
 
   // Reset all form and state data
   const resetFormAndState = useCallback(() => {
+    console.log('🧹 [AdminAddProduct] Clearing all draft data');
+    
     // Clear saved data first
     clearSavedData();
     
@@ -213,6 +233,8 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
     
     // Mark as published to prevent further autosaving
     setIsPublished(true);
+    
+    console.log('✅ [AdminAddProduct] Draft cleared successfully');
     
     toast({
       title: "Данные очищены",
@@ -262,12 +284,34 @@ export const useOptimizedAdminAddProduct = (options: UseOptimizedAdminAddProduct
   }, [primaryImage]);
 
   const handleImageDelete = useCallback((urlToDelete: string) => {
+    console.log('🗑️ [AdminAddProduct] Deleting image:', urlToDelete);
     const newImageUrls = imageUrls.filter(url => url !== urlToDelete);
+    const newPrimaryImage = primaryImage === urlToDelete 
+      ? (newImageUrls.length > 0 ? newImageUrls[0] : "")
+      : primaryImage;
+    
     setImageUrls(newImageUrls);
-    if (primaryImage === urlToDelete) {
-      setPrimaryImage(newImageUrls.length > 0 ? newImageUrls[0] : "");
-    }
-  }, [imageUrls, primaryImage]);
+    setPrimaryImage(newPrimaryImage);
+    
+    console.log('📊 [AdminAddProduct] Images after deletion:', {
+      before: imageUrls.length,
+      after: newImageUrls.length,
+      primaryChanged: primaryImage !== newPrimaryImage
+    });
+    
+    // 🔥 CRITICAL FIX: Force immediate save after deletion
+    setTimeout(() => {
+      const currentFormData = form.getValues();
+      const updatedData = {
+        ...currentFormData,
+        imageUrls: newImageUrls,
+        videoUrls,
+        primaryImage: newPrimaryImage
+      };
+      saveNow(updatedData);
+      console.log('✅ [AdminAddProduct] Draft force-saved after deletion');
+    }, 100);
+  }, [imageUrls, primaryImage, videoUrls, form, saveNow]);
 
   const handleCreateProduct = async (values: AdminProductFormValues) => {
     try {
