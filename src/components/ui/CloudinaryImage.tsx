@@ -5,7 +5,7 @@ interface CloudinaryImageProps {
   publicId: string;
   alt: string;
   className?: string;
-  size?: 'thumbnail' | 'card' | 'detail' | 'telegramCard';
+  size?: 'thumbnail' | 'card' | 'detail' | 'telegramCard' | 'preview';
   priority?: boolean;
   onLoad?: () => void;
   onError?: () => void;
@@ -30,7 +30,8 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     thumbnail: { width: 120, height: 90, quality: 'auto:low' as const },
     card: { width: 400, height: undefined, quality: 'auto:low' as const },
     detail: { width: 800, height: undefined, quality: 'auto:good' as const },
-    telegramCard: { width: 720, height: 540, quality: 'auto:good' as const }
+    telegramCard: { width: 720, height: 540, quality: 'auto:good' as const },
+    preview: { width: 600, height: undefined, quality: 'auto:good' as const }
   };
 
   const config = sizeConfig[size];
@@ -41,7 +42,17 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     
     let transformations: string[];
     
-    if (size === 'telegramCard') {
+    if (size === 'preview') {
+      // Optimal transformations for preview (~100KB, high quality)
+      transformations = [
+        'f_auto',           // Auto format (WebP/AVIF when supported)
+        'q_auto:good',      // Good quality with smart compression
+        'dpr_auto',         // Adapt to device pixel density
+        'c_limit',          // Limit size while preserving aspect ratio
+        `w_${config.width}`,
+        'fl_progressive'    // Progressive loading
+      ];
+    } else if (size === 'telegramCard') {
       // Special transformations for telegram cards with sharpening
       transformations = [
         'f_auto',

@@ -142,7 +142,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
                   src={imageUrl}
                   alt={`Фото товара ${index + 1}`}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                  size="thumbnail"
+                  size="preview"
                   priority={index === 0}
                 />
               </div>

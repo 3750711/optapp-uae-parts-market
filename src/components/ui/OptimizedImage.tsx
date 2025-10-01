@@ -14,7 +14,7 @@ interface OptimizedImageProps {
   onError?: () => void;
   cloudinaryPublicId?: string;
   cloudinaryUrl?: string;
-  size?: 'thumbnail' | 'card' | 'detail' | 'telegramCard';
+  size?: 'thumbnail' | 'card' | 'detail' | 'telegramCard' | 'preview';
 }
 
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
