@@ -344,6 +344,9 @@ export const getWidgetUXConfig = (isMobile: boolean) => {
     showPoweredBy: false,
     defaultSource: 'local',
     preBatch: true,
+    // Critical: Prevent widget from auto-closing on both mobile and desktop
+    autoMinimize: false,
+    keepWidgetOpen: true,
   };
 
   // Mobile-specific optimizations
@@ -364,8 +367,6 @@ export const getWidgetUXConfig = (isMobile: boolean) => {
       thumbnailTransformation: { width: 60, height: 60, crop: 'fill' },
       // Mobile UX improvements
       prepareOnDrop: false, // Reduce processing on mobile
-      autoMinimize: false, // Keep widget open on mobile
-      keepWidgetOpen: true // Prevent auto-closing
     };
   }
 
