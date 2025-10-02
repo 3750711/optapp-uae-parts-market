@@ -4,6 +4,58 @@ import { supabase } from '@/integrations/supabase/client';
 const IS_PRODUCTION = import.meta.env.PROD;
 
 // ============================================================================
+// Performance Monitoring Metrics
+// ============================================================================
+interface PerformanceMetrics {
+  totalEvents: number;
+  successfulBatches: number;
+  failedBatches: number;
+  averageBatchSize: number;
+  averageFlushTime: number;
+  queueSize: number;
+  rateLimitHits: number;
+  lastFlushTime: number | null;
+  errors: Array<{ timestamp: number; message: string }>;
+}
+
+const metrics: PerformanceMetrics = {
+  totalEvents: 0,
+  successfulBatches: 0,
+  failedBatches: 0,
+  averageBatchSize: 0,
+  averageFlushTime: 0,
+  queueSize: 0,
+  rateLimitHits: 0,
+  lastFlushTime: null,
+  errors: []
+};
+
+/**
+ * Get current performance metrics
+ */
+export function getActivityMetrics(): PerformanceMetrics {
+  return { 
+    ...metrics, 
+    queueSize: eventBatch.length,
+    errors: metrics.errors.slice(-10) // Last 10 errors only
+  };
+}
+
+/**
+ * Reset performance metrics
+ */
+export function resetActivityMetrics(): void {
+  metrics.totalEvents = 0;
+  metrics.successfulBatches = 0;
+  metrics.failedBatches = 0;
+  metrics.averageBatchSize = 0;
+  metrics.averageFlushTime = 0;
+  metrics.rateLimitHits = 0;
+  metrics.lastFlushTime = null;
+  metrics.errors = [];
+}
+
+// ============================================================================
 // Batching Configuration
 // ============================================================================
 const BATCH_CONFIG = {
@@ -67,6 +119,7 @@ function checkRateLimit(eventType: string, userId?: string): boolean {
   }
 
   if (entry.count >= limit.maxEvents) {
+    metrics.rateLimitHits++;
     logger.warn('Rate limit exceeded for activity logging', {
       eventType,
       userId: userId ? '***' : undefined,
@@ -86,7 +139,9 @@ function checkRateLimit(eventType: string, userId?: string): boolean {
 async function flushBatch() {
   if (eventBatch.length === 0) return;
   
+  const startTime = performance.now();
   const batchToSend = [...eventBatch];
+  const batchSize = batchToSend.length;
   eventBatch = [];
   
   try {
@@ -94,14 +149,49 @@ async function flushBatch() {
       body: { events: batchToSend }
     });
     
-    if (error && !IS_PRODUCTION) {
-      logger.warn('Failed to send event batch', { error: error.message });
+    const flushTime = performance.now() - startTime;
+    
+    if (error) {
+      metrics.failedBatches++;
+      metrics.errors.push({
+        timestamp: Date.now(),
+        message: error.message || 'Unknown error'
+      });
+      
+      if (!IS_PRODUCTION) {
+        logger.warn('Failed to send event batch', { error: error.message, batchSize, flushTime });
+      }
+    } else {
+      // Update success metrics
+      metrics.successfulBatches++;
+      metrics.totalEvents += batchSize;
+      metrics.lastFlushTime = Date.now();
+      
+      // Update average batch size
+      const totalBatches = metrics.successfulBatches + metrics.failedBatches;
+      metrics.averageBatchSize = Math.round(
+        (metrics.averageBatchSize * (totalBatches - 1) + batchSize) / totalBatches
+      );
+      
+      // Update average flush time
+      metrics.averageFlushTime = Math.round(
+        (metrics.averageFlushTime * (totalBatches - 1) + flushTime) / totalBatches
+      );
+      
+      if (!IS_PRODUCTION) {
+        logger.log(`✅ Batch flushed: ${batchSize} events in ${flushTime.toFixed(0)}ms`);
+      }
     }
   } catch (err) {
+    metrics.failedBatches++;
+    const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+    metrics.errors.push({
+      timestamp: Date.now(),
+      message: errorMsg
+    });
+    
     if (!IS_PRODUCTION) {
-      logger.error('Error sending event batch', { 
-        error: err instanceof Error ? err.message : 'Unknown error' 
-      });
+      logger.error('Error sending event batch', { error: errorMsg, batchSize });
     }
   }
 }

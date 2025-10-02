@@ -6,6 +6,27 @@ const corsHeaders = {
 };
 
 // ============================================================================
+// Performance Metrics
+// ============================================================================
+interface EdgeMetrics {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  totalEventsProcessed: number;
+  averageProcessingTime: number;
+  rateLimitHits: number;
+}
+
+const edgeMetrics: EdgeMetrics = {
+  totalRequests: 0,
+  successfulRequests: 0,
+  failedRequests: 0,
+  totalEventsProcessed: 0,
+  averageProcessingTime: 0,
+  rateLimitHits: 0
+};
+
+// ============================================================================
 // Rate Limiting Configuration
 // ============================================================================
 const RATE_LIMITS = {
@@ -27,6 +48,7 @@ function checkRateLimit(userId: string | null): boolean {
   }
 
   if (entry.count >= RATE_LIMITS.maxEventsPerMinute) {
+    edgeMetrics.rateLimitHits++;
     console.warn(`⚠️ Rate limit exceeded for ${key}:`, entry.count);
     return false;
   }
@@ -77,8 +99,11 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const startTime = performance.now();
+    edgeMetrics.totalRequests++;
+    
     const supabase = createServiceClient();
-    console.log('Processing activity logging request');
+    console.log('📥 Processing activity logging request');
     
     // Get user from auth header (optional for some events)
     const authHeader = req.headers.get('Authorization');
@@ -185,15 +210,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log('✅ Successfully inserted', eventsToInsert.length, 'activity logs');
+    const processingTime = performance.now() - startTime;
+    edgeMetrics.successfulRequests++;
+    edgeMetrics.totalEventsProcessed += eventsToInsert.length;
+    
+    // Update average processing time
+    edgeMetrics.averageProcessingTime = Math.round(
+      (edgeMetrics.averageProcessingTime * (edgeMetrics.totalRequests - 1) + processingTime) / 
+      edgeMetrics.totalRequests
+    );
+    
+    console.log(`✅ Successfully inserted ${eventsToInsert.length} events in ${processingTime.toFixed(0)}ms`);
+    console.log('📊 Metrics:', {
+      totalRequests: edgeMetrics.totalRequests,
+      successRate: `${((edgeMetrics.successfulRequests / edgeMetrics.totalRequests) * 100).toFixed(1)}%`,
+      avgProcessingTime: `${edgeMetrics.averageProcessingTime}ms`,
+      totalEventsProcessed: edgeMetrics.totalEventsProcessed
+    });
 
-    return new Response(JSON.stringify({ success: true, inserted: eventsToInsert.length }), {
+    return new Response(JSON.stringify({ 
+      success: true, 
+      inserted: eventsToInsert.length,
+      processingTime: Math.round(processingTime)
+    }), {
       status: 202,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in log-activity function:', error);
+    edgeMetrics.failedRequests++;
+    console.error('❌ Error in log-activity function:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
