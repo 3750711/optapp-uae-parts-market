@@ -86,12 +86,24 @@ interface RequestBody {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+  // Enhanced request logging for diagnostics
+  console.log('🔍 Edge Function Called:', {
+    method: req.method,
+    url: req.url,
+    timestamp: new Date().toISOString()
+  });
+
+  // Handle CORS preflight requests with proper 204 status
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    console.log('✅ CORS preflight request handled');
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
   }
 
   if (req.method !== 'POST') {
+    console.log('❌ Invalid method:', req.method);
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -101,6 +113,13 @@ Deno.serve(async (req) => {
   try {
     const startTime = performance.now();
     edgeMetrics.totalRequests++;
+    
+    console.log('📋 Request headers:', {
+      authorization: req.headers.get('Authorization') ? 'present' : 'missing',
+      contentType: req.headers.get('Content-Type'),
+      userAgent: req.headers.get('User-Agent')?.substring(0, 50),
+      forwarded: req.headers.get('X-Forwarded-For')
+    });
     
     const supabase = createServiceClient();
     console.log('📥 Processing activity logging request');
@@ -119,10 +138,37 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Parse request body
-    const body: RequestBody = await req.json();
+    // Parse request body with detailed logging
+    let body: RequestBody;
+    try {
+      body = await req.json();
+      console.log('📦 Request body parsed:', {
+        hasEvents: !!body.events,
+        isArray: Array.isArray(body.events),
+        eventsCount: body.events?.length || 0,
+        sampleEvent: body.events?.[0] ? {
+          action_type: body.events[0].action_type,
+          event_type: body.events[0].event_type,
+          hasUserId: !!body.events[0].user_id
+        } : null
+      });
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', {
+        error: parseError.message,
+        stack: parseError.stack
+      });
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!body.events || !Array.isArray(body.events)) {
+      console.error('❌ Invalid body structure:', {
+        hasEvents: !!body.events,
+        isArray: Array.isArray(body.events),
+        bodyKeys: Object.keys(body)
+      });
       return new Response(JSON.stringify({ error: 'Invalid request body' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -239,8 +285,16 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     edgeMetrics.failedRequests++;
-    console.error('❌ Error in log-activity function:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    console.error('❌ Unhandled error in log-activity function:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      cause: error.cause
+    });
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error',
+      details: error.message 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
