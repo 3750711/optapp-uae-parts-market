@@ -1278,6 +1278,66 @@ export type Database = {
           },
         ]
       }
+      product_upload_logs: {
+        Row: {
+          compressed_size: number | null
+          compression_ratio: number | null
+          context: string
+          created_at: string
+          duration_ms: number | null
+          error_details: string | null
+          file_url: string | null
+          id: number
+          metadata: Json | null
+          method: string | null
+          order_id: string | null
+          original_size: number | null
+          product_id: string | null
+          status: string
+          step_name: string | null
+          trace_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          compressed_size?: number | null
+          compression_ratio?: number | null
+          context?: string
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: string | null
+          file_url?: string | null
+          id?: number
+          metadata?: Json | null
+          method?: string | null
+          order_id?: string | null
+          original_size?: number | null
+          product_id?: string | null
+          status: string
+          step_name?: string | null
+          trace_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          compressed_size?: number | null
+          compression_ratio?: number | null
+          context?: string
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: string | null
+          file_url?: string | null
+          id?: number
+          metadata?: Json | null
+          method?: string | null
+          order_id?: string | null
+          original_size?: number | null
+          product_id?: string | null
+          status?: string
+          step_name?: string | null
+          trace_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       product_videos: {
         Row: {
           created_at: string | null
@@ -2096,6 +2156,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_metadata: {
+        Row: {
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
       }
       telegram_accounts_config: {
         Row: {
@@ -3010,6 +3088,10 @@ export type Database = {
       }
       log_telegram_auth_debug: {
         Args: { debug_info: Json; user_id: string }
+        Returns: undefined
+      }
+      migrate_free_order_logs: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       monitor_function_url_compliance: {
