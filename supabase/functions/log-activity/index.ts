@@ -46,11 +46,17 @@ setInterval(() => {
 }, 60000);
 
 interface ActivityEvent {
-  event_type: 'login' | 'logout' | 'page_view' | 'button_click' | 'api_error' | 'client_error';
+  // Support both old and new formats
+  event_type?: 'login' | 'logout' | 'page_view' | 'button_click' | 'api_error' | 'client_error';
+  action_type?: string;
+  entity_type?: string;
+  entity_id?: string;
   event_subtype?: string;
   path?: string;
   metadata?: Record<string, any>;
+  details?: Record<string, any>;
   user_id?: string;
+  user_agent?: string;
 }
 
 interface RequestBody {
@@ -124,22 +130,40 @@ Deno.serve(async (req) => {
                          req.headers.get('X-Real-IP') || 
                          undefined;
 
-    // Prepare events for insertion into event_logs table
-    const eventsToInsert = body.events.map(event => ({
-      action_type: event.event_type,
-      entity_type: 'user_activity',
-      entity_id: event.user_id || authenticatedUser?.id || null,
-      user_id: event.user_id || authenticatedUser?.id || null,
-      event_subtype: event.event_subtype || null,
-      path: event.path || null,
-      ip_address: forwardedFor || null,
-      user_agent: userAgent || null,
-      details: {
-        ...event.metadata,
-        timestamp: new Date().toISOString(),
-        authenticated: !!authenticatedUser
+    // Prepare events for insertion - support both formats
+    const eventsToInsert = body.events.map(event => {
+      // Support new format (already transformed on client)
+      if (event.action_type) {
+        return {
+          action_type: event.action_type,
+          entity_type: event.entity_type || 'user_activity',
+          entity_id: event.entity_id || event.user_id || authenticatedUser?.id || null,
+          user_id: event.user_id || authenticatedUser?.id || null,
+          event_subtype: event.event_subtype || null,
+          path: event.path || null,
+          ip_address: forwardedFor || null,
+          user_agent: event.user_agent || userAgent || null,
+          details: event.details || {}
+        };
       }
-    }));
+      
+      // Support old format (legacy)
+      return {
+        action_type: event.event_type || 'unknown',
+        entity_type: 'user_activity',
+        entity_id: event.user_id || authenticatedUser?.id || null,
+        user_id: event.user_id || authenticatedUser?.id || null,
+        event_subtype: event.event_subtype || null,
+        path: event.path || null,
+        ip_address: forwardedFor || null,
+        user_agent: userAgent || null,
+        details: {
+          ...event.metadata,
+          timestamp: new Date().toISOString(),
+          authenticated: !!authenticatedUser
+        }
+      };
+    });
 
     const { error: insertError } = await supabase
       .from('event_logs')
