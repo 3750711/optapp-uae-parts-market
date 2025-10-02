@@ -9,28 +9,44 @@ interface PerformanceMetrics {
   lastCyclicalCallTimestamp: number | null;
 }
 
-// ✅ ИЗМЕНЕНИЕ 1: Добавляем константу PERFORMANCE_ENABLED
-const PERFORMANCE_ENABLED = import.meta.env.DEV || 
-  import.meta.env.VITE_ENABLE_PERFORMANCE_MONITORING === 'true';
+// ✅ ИЗМЕНЕНИЕ 1: Мониторинг всегда включен для сбора метрик
+const PERFORMANCE_ENABLED = true; // Всегда включено для сбора метрик
 
-// ✅ ИЗМЕНЕНИЕ 2: Функция отправки метрик в backend
+// ✅ ИЗМЕНЕНИЕ 2: Умная отправка только критичных метрик
 const sendMetricsToBackend = async (metrics: PerformanceMetrics) => {
-  if (import.meta.env.PROD && PERFORMANCE_ENABLED) {
-    try {
-      await fetch('/api/performance-metrics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...metrics,
-          timestamp: Date.now(),
-          userAgent: navigator.userAgent,
-          url: window.location.href
-        })
-      });
-    } catch (error) {
-      // Игнорируем ошибки отправки метрик
-      console.warn('Failed to send performance metrics:', error);
-    }
+  // В DEV - не отправляем, только логируем в консоль
+  if (import.meta.env.DEV) {
+    return;
+  }
+
+  // В PROD - отправляем только если есть критичные метрики
+  const hasCriticalMetrics = 
+    Object.values(metrics.renderCounts).some(count => count > 15) ||
+    (metrics.authContextLoadTime && metrics.authContextLoadTime > 5000) ||
+    metrics.cyclicalCallsDetected;
+
+  if (!hasCriticalMetrics) {
+    return; // Нормальные метрики - не отправляем
+  }
+
+  // Отправляем критичные метрики
+  try {
+    await fetch('/api/performance-metrics', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...metrics,
+        timestamp: Date.now(),
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        critical: true,
+        severity: 'high'
+      })
+    });
+    console.log('🚨 Critical performance metrics sent to backend');
+  } catch (error) {
+    // Игнорируем ошибки отправки метрик
+    console.warn('Failed to send performance metrics:', error);
   }
 };
 
@@ -123,16 +139,10 @@ export const resetPerformanceCounters = () => {
   }
 };
 
-// ✅ ИЗМЕНЕНИЕ 4: Автоматическая отправка метрик каждые 5 минут в production
-if (typeof window !== 'undefined' && import.meta.env.PROD && PERFORMANCE_ENABLED) {
+// ✅ ИЗМЕНЕНИЕ 4: Периодическая отправка критичных метрик в production (каждые 5 минут)
+if (typeof window !== 'undefined' && import.meta.env.PROD) {
   setInterval(() => {
-    const hasData = Object.keys(performanceDiagnostics.renderCounts).length > 0 ||
-                    performanceDiagnostics.authContextLoadTime !== null ||
-                    performanceDiagnostics.cyclicalCallsDetected;
-    
-    if (hasData) {
-      console.log('📤 Sending periodic performance metrics...');
-      sendMetricsToBackend(performanceDiagnostics);
-    }
+    // sendMetricsToBackend сама проверит критичность
+    sendMetricsToBackend(performanceDiagnostics);
   }, 5 * 60 * 1000); // Каждые 5 минут
 }
