@@ -5,6 +5,46 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ============================================================================
+// Rate Limiting Configuration
+// ============================================================================
+const RATE_LIMITS = {
+  maxEventsPerRequest: 100,
+  maxEventsPerMinute: 1000
+};
+
+// Simple in-memory rate limiter (for production use Redis or similar)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(userId: string | null): boolean {
+  const key = userId || 'anonymous';
+  const now = Date.now();
+  const entry = rateLimitStore.get(key);
+
+  if (!entry || now > entry.resetTime) {
+    rateLimitStore.set(key, { count: 1, resetTime: now + 60000 });
+    return true;
+  }
+
+  if (entry.count >= RATE_LIMITS.maxEventsPerMinute) {
+    console.warn(`⚠️ Rate limit exceeded for ${key}:`, entry.count);
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+// Cleanup old entries every minute
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore.entries()) {
+    if (now > entry.resetTime) {
+      rateLimitStore.delete(key);
+    }
+  }
+}, 60000);
+
 interface ActivityEvent {
   event_type: 'login' | 'logout' | 'page_view' | 'button_click' | 'api_error' | 'client_error';
   event_subtype?: string;
@@ -48,12 +88,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Extract client info from headers
-    const userAgent = req.headers.get('User-Agent') || undefined;
-    const forwardedFor = req.headers.get('X-Forwarded-For') || 
-                         req.headers.get('X-Real-IP') || 
-                         undefined;
-
+    // Parse request body
     const body: RequestBody = await req.json();
 
     if (!body.events || !Array.isArray(body.events)) {
@@ -62,6 +97,32 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Validate array size
+    if (body.events.length > RATE_LIMITS.maxEventsPerRequest) {
+      return new Response(
+        JSON.stringify({ 
+          error: `Too many events. Maximum ${RATE_LIMITS.maxEventsPerRequest} per request` 
+        }), {
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Check rate limit
+    if (!checkRateLimit(authenticatedUser?.id || null)) {
+      return new Response(
+        JSON.stringify({ error: 'Rate limit exceeded' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Extract client info from headers
+    const userAgent = req.headers.get('User-Agent') || undefined;
+    const forwardedFor = req.headers.get('X-Forwarded-For') || 
+                         req.headers.get('X-Real-IP') || 
+                         undefined;
 
     // Prepare events for insertion into event_logs table
     const eventsToInsert = body.events.map(event => ({

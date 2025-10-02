@@ -9,6 +9,65 @@ export interface ActivityEvent {
   user_id?: string | null;
 }
 
+// ============================================================================
+// Rate Limiting Configuration
+// ============================================================================
+const EVENT_RATE_LIMITS = {
+  page_view: { maxEvents: 100, windowMs: 60000 }, // 100 in a minute
+  button_click: { maxEvents: 200, windowMs: 60000 }, // 200 in a minute
+  api_error: { maxEvents: 50, windowMs: 60000 },
+  client_error: { maxEvents: 30, windowMs: 60000 }
+};
+
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+
+const rateLimitCache = new Map<string, RateLimitEntry>();
+
+/**
+ * Check if the event type is within the rate limit
+ */
+function checkRateLimit(eventType: string, userId?: string): boolean {
+  const limit = EVENT_RATE_LIMITS[eventType as keyof typeof EVENT_RATE_LIMITS];
+  if (!limit) return true; // No limit for this event type
+
+  const key = `${eventType}:${userId || 'anonymous'}`;
+  const now = Date.now();
+  const entry = rateLimitCache.get(key);
+
+  if (!entry || now > entry.resetTime) {
+    rateLimitCache.set(key, { count: 1, resetTime: now + limit.windowMs });
+    return true;
+  }
+
+  if (entry.count >= limit.maxEvents) {
+    logger.warn('Rate limit exceeded for activity logging', {
+      eventType,
+      userId: userId ? '***' : undefined,
+      count: entry.count,
+      limit: limit.maxEvents
+    });
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+// Periodic cleanup of rate limit cache
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of rateLimitCache.entries()) {
+      if (now > entry.resetTime) {
+        rateLimitCache.delete(key);
+      }
+    }
+  }, 60000); // Every minute
+}
+
 /**
  * Centralized logging for user activity events
  * Extends existing authLogger functionality to general user activity
@@ -18,6 +77,11 @@ export const logActivity = async (event: ActivityEvent): Promise<void> => {
     // Don't block UI for logging errors - log and continue
     const currentUser = (await supabase.auth.getUser()).data.user;
     const userId = event.user_id || currentUser?.id || null;
+
+    // Check rate limit
+    if (!checkRateLimit(event.event_type, userId || undefined)) {
+      return; // Silently skip event due to rate limit
+    }
 
     // Get browser info for context
     const userAgent = typeof window !== 'undefined' ? window.navigator.userAgent : undefined;
