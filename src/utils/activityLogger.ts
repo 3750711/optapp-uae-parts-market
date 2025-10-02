@@ -239,12 +239,44 @@ if (typeof window !== 'undefined') {
   
   // Flush batch on page unload using sendBeacon for reliability
   window.addEventListener('beforeunload', () => {
-    if (eventBatch.length > 0 && !IS_PRODUCTION) {
-      // In production, let events be sent on next visit to avoid blocking
-      // In development, try to send for debugging
-      flushBatch().catch(err => {
-        console.warn('Failed to flush events on unload:', err);
+    if (eventBatch.length > 0) {
+      // Use sendBeacon for guaranteed delivery even when page closes
+      const beaconData = JSON.stringify({
+        events: eventBatch.map(e => ({
+          action_type: e.action_type,
+          entity_type: e.entity_type,
+          entity_id: e.entity_id,
+          user_id: e.user_id,
+          event_subtype: e.event_subtype,
+          path: e.path,
+          user_agent: e.user_agent,
+          details: e.details
+        }))
       });
+      
+      const url = `${supabase.supabaseUrl}/functions/v1/log-activity`;
+      
+      // sendBeacon guarantees delivery even on page close
+      if (navigator.sendBeacon) {
+        const blob = new Blob([beaconData], { type: 'application/json' });
+        const headers = new Headers();
+        const session = supabase.auth.session();
+        if (session?.access_token) {
+          // Note: sendBeacon doesn't support custom headers, so we encode auth in the body
+          const beaconDataWithAuth = JSON.stringify({
+            ...JSON.parse(beaconData),
+            _auth: session.access_token
+          });
+          navigator.sendBeacon(url, new Blob([beaconDataWithAuth], { type: 'application/json' }));
+        } else {
+          navigator.sendBeacon(url, blob);
+        }
+      } else {
+        // Fallback for older browsers
+        flushBatch().catch(() => {});
+      }
+      
+      eventBatch.length = 0;
     }
   });
   
