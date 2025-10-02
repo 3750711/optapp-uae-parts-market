@@ -35,8 +35,8 @@ export const ActivityMonitoringStatus: React.FC = () => {
       // Get last session compute time from system_metadata
       const { data: metadata } = await supabase
         .from('system_metadata')
-        .select('last_session_compute_time')
-        .eq('key', 'activity_monitoring')
+        .select('value')
+        .eq('key', 'last_session_compute_time')
         .single();
 
       // Get events count in last 24h
@@ -53,8 +53,8 @@ export const ActivityMonitoringStatus: React.FC = () => {
 
       setStatus({
         isActive: true,
-        lastSessionCompute: metadata?.last_session_compute_time 
-          ? new Date(metadata.last_session_compute_time) 
+        lastSessionCompute: metadata?.value 
+          ? new Date(metadata.value) 
           : null,
         eventsLast24h: eventsCount || 0,
         sessionsTotal: sessionsCount || 0,

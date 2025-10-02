@@ -30,31 +30,48 @@ export function useUserSessions(limit = 100) {
   return useQuery({
     queryKey: ['user-sessions', limit],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('user_sessions')
-        .select(`
-          *,
-          profiles!user_sessions_user_id_fkey (
-            full_name,
-            email,
-            user_type
-          )
-        `)
-        .order('started_at', { ascending: false })
-        .limit(limit);
+      try {
+        // Получаем сессии
+        const { data: sessions, error } = await supabase
+          .from('user_sessions')
+          .select('*')
+          .order('started_at', { ascending: false })
+          .limit(limit);
 
-      if (error) {
-        console.error('Error fetching user sessions:', error);
+        if (error) {
+          console.error('Error fetching user sessions:', error);
+          throw error;
+        }
+
+        // Получаем user_id всех пользователей
+        const userIds = [...new Set(sessions?.map(s => s.user_id) || [])];
+        
+        if (userIds.length === 0) {
+          return [];
+        }
+
+        // Загружаем профили отдельным запросом
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, user_type')
+          .in('id', userIds);
+
+        // Объединяем данные
+        return sessions.map(session => ({
+          ...session,
+          profiles: profiles?.find(p => p.id === session.user_id) || null
+        })) as (UserSession & {
+          profiles: {
+            full_name: string | null;
+            email: string;
+            user_type: string;
+          } | null;
+        })[];
+      } catch (error: any) {
+        console.error('Error in useUserSessions:', error);
+        toast.error('Не удалось загрузить сессии пользователей');
         throw error;
       }
-
-      return data as (UserSession & {
-        profiles: {
-          full_name: string | null;
-          email: string;
-          user_type: string;
-        } | null;
-      })[];
     }
   });
 }
