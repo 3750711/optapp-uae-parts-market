@@ -38,31 +38,13 @@ serve(async (req) => {
   try {
     const supabase = createServiceClient();
     
-    console.log('🔄 Starting INCREMENTAL user sessions computation...');
+    console.log('Starting user sessions computation...');
     
-    // ✅ ШАГ 1: Получаем timestamp последней обработки из system_metadata
-    const { data: lastCompute, error: metadataError } = await supabase
-      .from('system_metadata')
-      .select('value')
-      .eq('key', 'last_session_compute_time')
-      .single();
-
-    if (metadataError) {
-      console.warn('⚠️ Could not fetch last compute time, using 30 days ago:', metadataError.message);
-    }
-
-    // Если нет записи, берем 30 дней назад
-    const lastComputeTime = lastCompute?.value 
-      ? new Date(lastCompute.value)
-      : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    
-    console.log('📅 Last compute time:', lastComputeTime.toISOString());
-    
-    // ✅ ШАГ 2: Получаем только НОВЫЕ события с момента последней обработки
-    const { data: newEventLogs, error: logsError } = await supabase
+    // Get all event logs from the last 30 days, ordered by user and time
+    const { data: eventLogs, error: logsError } = await supabase
       .from('event_logs')
       .select('id, user_id, action_type, created_at, details')
-      .gte('created_at', lastComputeTime.toISOString())
+      .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       .not('user_id', 'is', null)
       .order('user_id')
       .order('created_at');
@@ -71,77 +53,35 @@ serve(async (req) => {
       throw new Error(`Failed to fetch event logs: ${logsError.message}`);
     }
 
-    console.log(`📊 Processing ${newEventLogs?.length || 0} NEW event logs (incremental)...`);
+    console.log(`Processing ${eventLogs?.length || 0} event logs...`);
 
-    // Если нет новых событий, ничего не делаем
-    if (!newEventLogs || newEventLogs.length === 0) {
-      console.log('✅ No new events to process');
-      
-      // Обновляем timestamp
-      await supabase
-        .from('system_metadata')
-        .upsert({
-          key: 'last_session_compute_time',
-          value: new Date().toISOString()
-        });
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          processedEvents: 0,
-          affectedUsers: 0,
-          computedSessions: 0,
-          insertedSessions: 0,
-          incremental: true,
-          message: 'No new events to process'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // ✅ ШАГ 3: Определяем affected users (только те, у кого есть новые события)
-    const affectedUsers = [...new Set(newEventLogs.map(log => log.user_id))];
-    
-    console.log(`👥 Computing sessions for ${affectedUsers.length} affected users...`);
+    // Group events by user
+    const userEvents = new Map<string, EventLog[]>();
+    eventLogs?.forEach(log => {
+      if (!userEvents.has(log.user_id)) {
+        userEvents.set(log.user_id, []);
+      }
+      userEvents.get(log.user_id)!.push(log);
+    });
 
     const computedSessions: UserSession[] = [];
 
-    // ✅ ШАГ 4: Для каждого affected user получаем ВСЕ их события за 30 дней
-    // (нужно для корректного вычисления сессий)
-    for (const userId of affectedUsers) {
-      const { data: userEvents, error: userEventsError } = await supabase
-        .from('event_logs')
-        .select('id, user_id, action_type, created_at, details')
-        .eq('user_id', userId)
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at');
-
-      if (userEventsError) {
-        console.error(`Error fetching events for user ${userId}:`, userEventsError);
-        continue;
-      }
-
-      if (userEvents && userEvents.length > 0) {
-        const userSessions = computeSessionsForUser(userId, userEvents);
-        computedSessions.push(...userSessions);
-      }
+    // Process each user's events to compute sessions
+    for (const [userId, events] of userEvents) {
+      const userSessions = computeSessionsForUser(userId, events);
+      computedSessions.push(...userSessions);
     }
 
-    console.log(`✅ Computed ${computedSessions.length} sessions for ${affectedUsers.length} users`);
+    console.log(`Computed ${computedSessions.length} sessions`);
 
-    // ✅ ШАГ 5: Удаляем старые сессии ТОЛЬКО для affected users
-    if (affectedUsers.length > 0) {
-      const { error: deleteError } = await supabase
-        .from('user_sessions')
-        .delete()
-        .in('user_id', affectedUsers)
-        .gte('started_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+    // Clear existing sessions and insert new ones
+    const { error: clearError } = await supabase
+      .from('user_sessions')
+      .delete()
+      .gte('started_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
-      if (deleteError) {
-        console.error('⚠️ Error deleting old sessions:', deleteError);
-      } else {
-        console.log(`🗑️ Deleted old sessions for ${affectedUsers.length} users`);
-      }
+    if (clearError) {
+      console.error('Error clearing sessions:', clearError);
     }
 
     // Insert computed sessions in batches
@@ -169,32 +109,14 @@ serve(async (req) => {
       }
     }
 
-    console.log(`✅ Successfully inserted ${insertedCount} sessions`);
-
-    // ✅ ШАГ 7: Обновляем timestamp последней обработки в system_metadata
-    const { error: upsertError } = await supabase
-      .from('system_metadata')
-      .upsert({
-        key: 'last_session_compute_time',
-        value: new Date().toISOString()
-      });
-
-    if (upsertError) {
-      console.error('⚠️ Error updating system_metadata:', upsertError);
-    } else {
-      console.log('✅ Updated last_session_compute_time');
-    }
+    console.log(`Successfully inserted ${insertedCount} sessions`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        processedEvents: newEventLogs?.length || 0,
-        affectedUsers: affectedUsers.length,
+        processedEvents: eventLogs?.length || 0,
         computedSessions: computedSessions.length,
-        insertedSessions: insertedCount,
-        incremental: true, // ✅ Флаг инкрементальности
-        lastComputeTime: lastComputeTime.toISOString(),
-        newComputeTime: new Date().toISOString()
+        insertedSessions: insertedCount
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

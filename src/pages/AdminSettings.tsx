@@ -6,8 +6,6 @@ import TelegramAccountsManager from '@/components/admin/TelegramAccountsManager'
 import AIPromptEditor from '@/components/admin/AIPromptEditor';
 import { AITranslationRulesManager } from '@/components/admin/AITranslationRulesManager';
 import { AICorrectionAnalysis } from '@/components/admin/AICorrectionAnalysis';
-import { ActivityMonitoringStatus } from '@/components/admin/ActivityMonitoringStatus';
-import { SessionsComputeButton } from '@/components/admin/SessionsComputeButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const AdminSettings: React.FC = () => {
@@ -57,12 +55,6 @@ const AdminSettings: React.FC = () => {
               </div>
             </a>
           </Button>
-
-          {/* Activity Monitoring Status Card */}
-          <div className="mt-4 space-y-3">
-            <ActivityMonitoringStatus />
-            <SessionsComputeButton />
-          </div>
 
           <Button
             asChild
