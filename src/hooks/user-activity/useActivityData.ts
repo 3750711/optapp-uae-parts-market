@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 export interface ActivityFilters {
   eventType?: string;
@@ -30,20 +29,9 @@ export interface ActivityEvent {
 }
 
 export function useActivityData(filters: ActivityFilters = {}) {
-  const { user, loading } = useAuth();
-  
   return useQuery({
     queryKey: ['user-activity', filters],
-    enabled: !loading && !!user, // Запускать только после завершения аутентификации
     queryFn: async () => {
-      // Debug logging
-      const session = await supabase.auth.getSession();
-      console.log('🔍 [useActivityData] Session state:', {
-        hasSession: !!session.data.session,
-        userId: session.data.session?.user?.id,
-        role: session.data.session?.user?.app_metadata?.role,
-        expiresAt: session.data.session?.expires_at
-      });
       let query = supabase
         .from('event_logs')
         .select(`
