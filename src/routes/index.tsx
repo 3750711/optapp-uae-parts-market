@@ -118,6 +118,7 @@ const AdminFreeOrderUploadMonitoring = lazy(() => import('@/pages/admin/AdminFre
 const AdminSellerUploadMonitoring = lazy(() => import('@/pages/admin/AdminSellerUploadMonitoring'));
 const ActivityMonitor = lazy(() => import('@/pages/admin/ActivityMonitor'));
 const SessionDetailsPage = lazy(() => import('@/pages/admin/SessionDetailsPage'));
+const UserActivityPage = lazy(() => import('@/pages/UserActivityPage'));
 
 // Mobile specific pages
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
@@ -568,6 +569,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/sessions/:sessionId" element={
               <AdminRoute>
                 <SessionDetailsPage />
+              </AdminRoute>
+            } />
+            <Route path="/activity" element={
+              <AdminRoute>
+                <UserActivityPage />
               </AdminRoute>
             } />
 
