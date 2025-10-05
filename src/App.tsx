@@ -15,6 +15,7 @@ import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 import { RoutePreloader } from "@/components/routing/RoutePreloader";
 import { NetworkIndicator } from "@/components/NetworkIndicator";
 import { ActivityTracking } from "@/components/ActivityTracking";
+import { ActivityTracker } from "@/components/ActivityTracker";
 import { checkAppVersion } from '@/utils/versionManager';
 import { setupViewportHeight } from '@/utils/viewport-fix';
 import { NotificationProvider } from '@/contexts/NotificationContext';
@@ -78,6 +79,7 @@ const App = () => {
             <AuthProvider>
               <AuthErrorBoundary>
                 <BrowserRouter>
+                  <ActivityTracker />
                   <LanguageProvider>
                     <NotificationProvider>
                       <SafeTooltipProvider>
