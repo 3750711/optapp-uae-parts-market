@@ -84,13 +84,14 @@ serve(async (req) => {
       console.error('Error clearing sessions:', clearError);
     }
 
-    // Insert computed sessions in batches
+    // Insert computed sessions in batches and link events to sessions
     const batchSize = 100;
     let insertedCount = 0;
+    let linkedEventsCount = 0;
     
     for (let i = 0; i < computedSessions.length; i += batchSize) {
       const batch = computedSessions.slice(i, i + batchSize);
-      const { error: insertError } = await supabase
+      const { data: insertedSessions, error: insertError } = await supabase
         .from('user_sessions')
         .insert(batch.map(session => ({
           user_id: session.user_id,
@@ -100,23 +101,44 @@ serve(async (req) => {
           termination_reason: session.termination_reason,
           termination_details: session.termination_details,
           session_timeout_minutes: session.session_timeout_minutes
-        })));
+        })))
+        .select('id, user_id, started_at, ended_at');
 
       if (insertError) {
         console.error('Error inserting batch:', insertError);
       } else {
         insertedCount += batch.length;
+
+        // Link event_logs to sessions
+        if (insertedSessions) {
+          for (const session of insertedSessions) {
+            const endTime = session.ended_at || new Date().toISOString();
+            const { error: updateError } = await supabase
+              .from('event_logs')
+              .update({ session_id: session.id })
+              .eq('user_id', session.user_id)
+              .gte('created_at', session.started_at)
+              .lte('created_at', endTime);
+
+            if (updateError) {
+              console.error(`Error linking events for session ${session.id}:`, updateError);
+            } else {
+              linkedEventsCount++;
+            }
+          }
+        }
       }
     }
 
-    console.log(`Successfully inserted ${insertedCount} sessions`);
+    console.log(`Successfully inserted ${insertedCount} sessions and linked ${linkedEventsCount} event logs`);
 
     return new Response(
       JSON.stringify({
         success: true,
         processedEvents: eventLogs?.length || 0,
         computedSessions: computedSessions.length,
-        insertedSessions: insertedCount
+        insertedSessions: insertedCount,
+        linkedEvents: linkedEventsCount
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

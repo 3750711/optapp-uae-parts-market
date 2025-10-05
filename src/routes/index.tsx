@@ -117,6 +117,7 @@ const SemanticSearch = lazy(() => import('@/pages/SemanticSearch'));
 const AdminFreeOrderUploadMonitoring = lazy(() => import('@/pages/admin/AdminFreeOrderUploadMonitoring'));
 const AdminSellerUploadMonitoring = lazy(() => import('@/pages/admin/AdminSellerUploadMonitoring'));
 const ActivityMonitor = lazy(() => import('@/pages/admin/ActivityMonitor'));
+const SessionDetailsPage = lazy(() => import('@/pages/admin/SessionDetailsPage'));
 
 // Mobile specific pages
 const MobileProfileMenu = lazy(() => import('@/pages/MobileProfileMenu'));
@@ -562,6 +563,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/activity-monitor" element={
               <AdminRoute>
                 <ActivityMonitor />
+              </AdminRoute>
+            } />
+            <Route path="/admin/sessions/:sessionId" element={
+              <AdminRoute>
+                <SessionDetailsPage />
               </AdminRoute>
             } />
 

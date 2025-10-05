@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, Search, Activity, AlertCircle, Clock, LogIn, LogOut, Timer, RotateCcw, Shield, BarChart3, Database, Loader2 } from 'lucide-react';
+import { RefreshCw, Search, Activity, AlertCircle, Clock, LogIn, LogOut, Timer, RotateCcw, Shield, BarChart3, Database, Loader2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
   useUserSessions, 
@@ -293,7 +294,7 @@ export default function ActivityMonitor() {
                         <TableHead>Длительность</TableHead>
                         <TableHead>Последняя активность</TableHead>
                         <TableHead>Причина завершения</TableHead>
-                        <TableHead>Детали</TableHead>
+                        <TableHead>Действия</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -348,10 +349,13 @@ export default function ActivityMonitor() {
                                 {getTerminationReasonLabel(session.termination_reason)}
                               </Badge>
                             </TableCell>
-                            <TableCell className="max-w-xs">
-                              <div className="text-sm text-muted-foreground truncate" title={session.termination_details || 'Нет деталей'}>
-                                {session.termination_details || 'Нет деталей'}
-                              </div>
+                            <TableCell>
+                              <Link to={`/admin/sessions/${session.id}`}>
+                                <Button variant="ghost" size="sm">
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  Просмотр
+                                </Button>
+                              </Link>
                             </TableCell>
                           </TableRow>
                         );
