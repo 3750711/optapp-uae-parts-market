@@ -20,8 +20,9 @@ import {
 } from '@/hooks/useEventLogs';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
-import { RefreshCw, Activity, BarChart3, Eye } from 'lucide-react';
+import { RefreshCw, Activity, BarChart3, Eye, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PageViewsTab } from './PageViewsTab';
 
 export const ActivityLogViewer = () => {
   const [activeTab, setActiveTab] = useState('activity');
@@ -77,7 +78,7 @@ export const ActivityLogViewer = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="activity">
             <Activity className="mr-2 h-4 w-4" />
             Активность
@@ -89,6 +90,10 @@ export const ActivityLogViewer = () => {
           <TabsTrigger value="pages">
             <Eye className="mr-2 h-4 w-4" />
             Популярные страницы
+          </TabsTrigger>
+          <TabsTrigger value="pageviews">
+            <TrendingUp className="mr-2 h-4 w-4" />
+            Просмотры страниц
           </TabsTrigger>
         </TabsList>
 
@@ -250,6 +255,10 @@ export const ActivityLogViewer = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="pageviews" className="space-y-4">
+          <PageViewsTab />
         </TabsContent>
       </Tabs>
     </div>
