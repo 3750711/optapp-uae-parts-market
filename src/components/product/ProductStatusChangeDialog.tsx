@@ -76,31 +76,7 @@ const ProductStatusChangeDialog = ({
       
       console.log(`✅ [ProductStatusChangeDialog] Database update successful - notification will be sent automatically by trigger:`, data);
 
-      // Manually log the action to ensure it's recorded
-      try {
-        const { error: logError } = await supabase
-          .from("event_logs")
-          .insert({
-            action_type: "update",
-            entity_type: "product",
-            entity_id: productId,
-            user_id: userId,
-            details: {
-              title: productName,
-              old_status: oldStatus,
-              new_status: "sold",
-              source: "seller_dashboard"
-            }
-          });
-        
-        if (logError) {
-          console.error("⚠️ [ProductStatusChangeDialog] Error logging action:", logError);
-        } else {
-          console.log(`📝 [ProductStatusChangeDialog] Action logged successfully`);
-        }
-      } catch (logException) {
-        console.error("⚠️ [ProductStatusChangeDialog] Exception while logging:", logException);
-      }
+      // Логирование отключено - используется Microsoft Clarity
 
       toast.success(t.markSoldDialog.successMessage);
       console.log(`🎉 [ProductStatusChangeDialog] Product status change completed successfully`);

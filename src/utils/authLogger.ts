@@ -26,27 +26,8 @@ export const logAuthEvent = async (data: AuthLogData): Promise<void> => {
       userId: data.userId ? '***' : undefined // Mask user ID for privacy
     });
 
-    // Log to database for monitoring (only important events)
-    if (data.action !== 'login_attempt' && data.action !== 'registration_attempt') {
-      const { error } = await supabase
-        .from('event_logs')
-        .insert({
-          action_type: data.action,
-          entity_type: 'auth',
-          entity_id: data.userId || null,
-          user_id: data.userId || null,
-          details: {
-            method: data.method,
-            user_type: data.userType,
-            error: data.error ? 'error_occurred' : undefined, // Don't log actual error messages
-            metadata: data.metadata
-          }
-        });
-
-      if (error) {
-        logger.warn('Failed to log auth event to database', error);
-      }
-    }
+    // Логирование в event_logs отключено - используется Microsoft Clarity
+    // login_attempts продолжает работать для безопасности
 
     // Special handling for failures and rate limits
     if (data.action === 'rate_limit_hit') {

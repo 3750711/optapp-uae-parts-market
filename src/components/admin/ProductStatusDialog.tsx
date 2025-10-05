@@ -103,33 +103,7 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
 
       // Note: Removed fallback Telegram notification to avoid duplicate messages.
 
-      // Log the admin action
-      if (userId) {
-        try {
-          const { error: logError } = await supabase
-            .from("event_logs")
-            .insert({
-              action_type: "update",
-              entity_type: "product",
-              entity_id: product.id,
-              user_id: userId,
-              details: {
-                title: product.title,
-                old_status: product.status,
-                new_status: values.status,
-                source: "admin_panel"
-              }
-            });
-
-          if (logError) {
-            console.error("⚠️ [ProductStatusDialog] Error logging admin action:", logError);
-          } else {
-            console.log(`📝 [ProductStatusDialog] Admin action logged successfully`);
-          }
-        } catch (logException) {
-          console.error("⚠️ [ProductStatusDialog] Exception while logging:", logException);
-        }
-      }
+      // Логирование отключено - используется Microsoft Clarity
 
       toast({
         title: "Успех",
