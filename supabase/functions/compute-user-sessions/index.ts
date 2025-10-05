@@ -113,17 +113,18 @@ serve(async (req) => {
         if (insertedSessions) {
           for (const session of insertedSessions) {
             const endTime = session.ended_at || new Date().toISOString();
-            const { error: updateError } = await supabase
+            const { error: updateError, count } = await supabase
               .from('event_logs')
               .update({ session_id: session.id })
               .eq('user_id', session.user_id)
+              .is('session_id', null)  // Idempotent: only link unlinked events
               .gte('created_at', session.started_at)
               .lte('created_at', endTime);
 
             if (updateError) {
               console.error(`Error linking events for session ${session.id}:`, updateError);
-            } else {
-              linkedEventsCount++;
+            } else if (count !== null) {
+              linkedEventsCount += count;
             }
           }
         }

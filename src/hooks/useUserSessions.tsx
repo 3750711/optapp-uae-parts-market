@@ -146,7 +146,12 @@ export function useComputeUserSessions() {
       return data;
     },
     onSuccess: (data) => {
-      toast.success(`Вычислено ${data.computedSessions} сессий из ${data.processedEvents} событий`);
+      toast.success(
+        `Успешно обработано! Сессий: ${data.insertedSessions || data.computedSessions}, Событий связано: ${data.linkedEvents || 0}`,
+        {
+          description: `Обработано ${data.processedEvents} событий из логов`
+        }
+      );
       queryClient.invalidateQueries({ queryKey: ['user-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['session-stats'] });
     },
