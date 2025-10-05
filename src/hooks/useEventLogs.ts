@@ -38,21 +38,53 @@ export const useUserActivity = (limit: number = 100) => {
   return useQuery({
     queryKey: ['user-activity', limit],
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log('🔍 [useUserActivity] Fetching event logs...');
+      
+      // 1. Получаем события
+      const { data: events, error: eventsError } = await supabase
         .from('event_logs')
-        .select(`
-          *,
-          profiles (
-            full_name,
-            email,
-            user_type
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) throw error;
-      return data as UserActivity[];
+      if (eventsError) {
+        console.error('❌ [useUserActivity] Events error:', eventsError);
+        throw eventsError;
+      }
+
+      console.log('✅ [useUserActivity] Events loaded:', events?.length);
+
+      // 2. Получаем уникальные user_id
+      const userIds = [...new Set(events?.map(e => e.user_id).filter(Boolean))];
+      
+      if (userIds.length === 0) {
+        console.log('ℹ️ [useUserActivity] No user_ids found');
+        return events?.map(e => ({ ...e, profiles: null })) || [];
+      }
+
+      // 3. Получаем профили
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, user_type')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.warn('⚠️ [useUserActivity] Profiles error:', profilesError);
+        return events?.map(e => ({ ...e, profiles: null })) || [];
+      }
+
+      console.log('✅ [useUserActivity] Profiles loaded:', profiles?.length);
+
+      // 4. Объединяем данные
+      const profilesMap = new Map(profiles?.map(p => [p.id, p]));
+      
+      const result = events?.map(event => ({
+        ...event,
+        profiles: event.user_id ? profilesMap.get(event.user_id) || null : null
+      })) || [];
+
+      console.log('✅ [useUserActivity] Final result:', result.length);
+      return result as UserActivity[];
     },
     refetchInterval: 30000, // Auto-refresh every 30 seconds
     refetchOnWindowFocus: true,
