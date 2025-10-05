@@ -13,8 +13,15 @@ import { BarChart3, ListFilter, AlertTriangle } from 'lucide-react';
 
 export const UserActivityDashboard: React.FC = () => {
   const { filters, setFilters, resetFilters } = useActivityFilters();
-  const { data = [], isLoading } = useActivityData(filters);
+  const { data = [], isLoading, error } = useActivityData(filters);
   const metrics = useActivityMetrics(data);
+
+  console.log('📊 [UserActivityDashboard] State:', {
+    isLoading,
+    hasError: !!error,
+    dataLength: data.length,
+    filters
+  });
 
   return (
     <div className="space-y-6">

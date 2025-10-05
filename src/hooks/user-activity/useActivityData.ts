@@ -32,6 +32,8 @@ export function useActivityData(filters: ActivityFilters = {}) {
   return useQuery({
     queryKey: ['user-activity', filters],
     queryFn: async () => {
+      console.log('🔍 [useActivityData] Query EXECUTING', { filters });
+      
       let query = supabase
         .from('event_logs')
         .select(`
@@ -75,6 +77,12 @@ export function useActivityData(filters: ActivityFilters = {}) {
       }
 
       const { data, error } = await query;
+      
+      console.log('🔍 [useActivityData] Query result:', { 
+        dataLength: data?.length, 
+        hasError: !!error,
+        errorMessage: error?.message 
+      });
 
       if (error) throw error;
       return (data || []) as ActivityEvent[];
