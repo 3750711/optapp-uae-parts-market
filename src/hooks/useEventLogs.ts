@@ -63,14 +63,20 @@ export const useUserActivity = (limit: number = 100) => {
 /**
  * Hook to fetch activity statistics grouped by action type
  * Auto-refreshes every 30 seconds
+ * Optimized: Only fetches last 7 days of data
  */
 export const useActivityStats = () => {
   return useQuery({
     queryKey: ['activity-stats'],
     queryFn: async () => {
+      // Get data from last 7 days for better performance
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
       const { data, error } = await supabase
         .from('event_logs')
         .select('action_type')
+        .gte('created_at', sevenDaysAgo.toISOString())
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -171,6 +177,8 @@ export const useUserActivityById = (userId: string | null, limit: number = 50) =
 export const getActionTypeColor = (actionType: string): string => {
   const colors: Record<string, string> = {
     login: 'bg-green-500/10 text-green-700 dark:text-green-400',
+    login_success: 'bg-green-500/10 text-green-700 dark:text-green-400',
+    login_failure: 'bg-red-500/10 text-red-700 dark:text-red-400',
     logout: 'bg-red-500/10 text-red-700 dark:text-red-400',
     page_view: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
     button_click: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
@@ -178,6 +186,8 @@ export const getActionTypeColor = (actionType: string): string => {
     update: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
     delete: 'bg-red-500/10 text-red-700 dark:text-red-400',
     api_call: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400',
+    client_error: 'bg-red-500/10 text-red-700 dark:text-red-400',
+    first_login_completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
   };
 
   return colors[actionType] || 'bg-gray-500/10 text-gray-700 dark:text-gray-400';
@@ -189,6 +199,8 @@ export const getActionTypeColor = (actionType: string): string => {
 export const getActionTypeLabel = (actionType: string): string => {
   const labels: Record<string, string> = {
     login: 'Вход',
+    login_success: 'Успешный вход',
+    login_failure: 'Ошибка входа',
     logout: 'Выход',
     page_view: 'Просмотр страницы',
     button_click: 'Клик',
@@ -196,6 +208,8 @@ export const getActionTypeLabel = (actionType: string): string => {
     update: 'Обновление',
     delete: 'Удаление',
     api_call: 'API вызов',
+    client_error: 'Ошибка клиента',
+    first_login_completed: 'Первый вход завершён',
   };
 
   return labels[actionType] || actionType;
