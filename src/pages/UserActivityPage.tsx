@@ -1,16 +1,24 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useUserActivity } from '@/hooks/useEventLogs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
+import { groupEventsBySessions } from '@/utils/sessionGrouping';
+import UserSessionCard from '@/components/user-activity/UserSessionCard';
 
 const UserActivityPage: React.FC = () => {
-  const { data, isLoading, error } = useUserActivity(100);
+  const { data, isLoading, error } = useUserActivity(500);
+
+  // Группируем события по сессиям
+  const sessions = useMemo(() => {
+    if (!data) return [];
+    return groupEventsBySessions(data);
+  }, [data]);
 
   console.log('📊 [UserActivityPage] State:', { 
     hasData: !!data, 
-    count: data?.length, 
+    eventsCount: data?.length,
+    sessionsCount: sessions.length,
     isLoading, 
     error 
   });
@@ -45,49 +53,28 @@ const UserActivityPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Активность пользователей</h1>
           <p className="text-muted-foreground mt-2">
-            Всего событий: {data?.length || 0}
+            Найдено сессий: {sessions.length} • Всего событий: {data?.length || 0}
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Последние события</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!data || data.length === 0 ? (
-              <p className="text-center py-8 text-muted-foreground">
-                Нет данных о активности
+        {!sessions || sessions.length === 0 ? (
+          <Card>
+            <CardContent className="py-12">
+              <p className="text-center text-muted-foreground">
+                Нет данных о активности пользователей
               </p>
-            ) : (
-              <div className="space-y-3">
-                {data.slice(0, 20).map(event => (
-                  <div key={event.id} className="p-4 border rounded-lg hover:bg-accent transition-colors">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline">
-                            {event.action_type}
-                          </Badge>
-                          {event.profiles?.full_name && (
-                            <span className="text-sm font-medium">
-                              {event.profiles.full_name}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {event.path || event.entity_type || 'Без пути'}
-                        </p>
-                      </div>
-                      <div className="text-sm text-muted-foreground whitespace-nowrap">
-                        {new Date(event.created_at).toLocaleString('ru')}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {sessions.map(session => (
+              <UserSessionCard 
+                key={session.sessionId || session.startTime} 
+                session={session} 
+              />
+            ))}
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
