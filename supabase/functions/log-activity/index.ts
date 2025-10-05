@@ -50,9 +50,11 @@ Deno.serve(async (req) => {
 
     // Extract client info from headers
     const userAgent = req.headers.get('User-Agent') || undefined;
-    const forwardedFor = req.headers.get('X-Forwarded-For') || 
-                         req.headers.get('X-Real-IP') || 
-                         undefined;
+    const forwardedForRaw = req.headers.get('X-Forwarded-For') || 
+                            req.headers.get('X-Real-IP') || 
+                            undefined;
+    // Parse only the first IP from X-Forwarded-For (format: "ip1, ip2, ip3")
+    const forwardedFor = forwardedForRaw?.split(',')[0]?.trim() || undefined;
 
     const body: RequestBody = await req.json();
 
