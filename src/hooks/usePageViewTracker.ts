@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { logPageView } from '@/utils/activityLogger';
+import { logPageView } from '@/utils/activityLoggerStub';
 
 /**
  * Hook for tracking page views with immediate logging

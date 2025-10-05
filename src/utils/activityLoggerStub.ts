@@ -4,31 +4,31 @@
  * Все данные теперь собираются через Microsoft Clarity
  */
 
-export const logActivity = async (): Promise<void> => {
+export const logActivity = async (event: ActivityEvent): Promise<void> => {
   return Promise.resolve();
 };
 
-export const logUserLogin = async (): Promise<void> => {
+export const logUserLogin = async (method?: string, userId?: string): Promise<void> => {
   return Promise.resolve();
 };
 
-export const logUserLogout = async (): Promise<void> => {
+export const logUserLogout = async (userId?: string): Promise<void> => {
   return Promise.resolve();
 };
 
-export const logPageView = async (): Promise<void> => {
+export const logPageView = async (path: string, metadata?: Record<string, any>): Promise<void> => {
   return Promise.resolve();
 };
 
-export const logClientError = async (): Promise<void> => {
+export const logClientError = async (error: Error | string, context?: Record<string, any>): Promise<void> => {
   return Promise.resolve();
 };
 
-export const logApiError = async (): Promise<void> => {
+export const logApiError = async (endpoint: string, error: any, context?: Record<string, any>): Promise<void> => {
   return Promise.resolve();
 };
 
-export const logButtonClick = async (): Promise<void> => {
+export const logButtonClick = async (buttonId: string, context?: Record<string, any>): Promise<void> => {
   return Promise.resolve();
 };
 

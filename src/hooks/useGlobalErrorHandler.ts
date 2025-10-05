@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { logClientError } from '@/utils/activityLogger';
+import { logClientError } from '@/utils/activityLoggerStub';
 
 /**
  * Global error handler for capturing unhandled errors and promise rejections

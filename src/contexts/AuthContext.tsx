@@ -12,7 +12,7 @@ import { authLog, authError, authWarn } from '@/utils/logger';
 import { secureRecovery } from '@/utils/secureLogger';
 import { refreshSessionOnce } from '@/utils/refreshMutex';
 import { FLAGS } from '@/config/flags';
-import { logUserLogin, logUserLogout } from '@/utils/activityLogger';
+import { logUserLogin, logUserLogout } from '@/utils/activityLoggerStub';
 
 // Local timeout utility to avoid external dependencies
 async function withTimeout<T>(promise: Promise<T>, ms: number, label = 'timeout'): Promise<T> {
