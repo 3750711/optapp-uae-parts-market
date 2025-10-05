@@ -1,21 +1,22 @@
 import React from 'react';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { AdminQueryClient } from '@/admin/_shared/AdminQueryClient';
 
 /**
- * Провайдер для админской части
+ * Оптимизированный провайдер для админской части
  * Использует Enhanced AuthContext с улучшениями:
  * - Single-flight запросы профиля
  * - BroadcastChannel между вкладками  
  * - TTL кэширование
  * - Защита от refresh-циклов
  * - Телеметрия
- * 
- * Использует стандартный QueryClient из App.tsx
  */
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <AuthProvider>
-      {children}
+      <AdminQueryClient>
+        {children}
+      </AdminQueryClient>
     </AuthProvider>
   );
 };
