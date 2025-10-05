@@ -18,6 +18,7 @@ import { ActivityTracking } from "@/components/ActivityTracking";
 import { checkAppVersion } from '@/utils/versionManager';
 import { setupViewportHeight } from '@/utils/viewport-fix';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { initializeClarity } from '@/utils/clarityTracking';
 import '@/styles/universal-viewport.css';
 
 import { getQueryConfigForConnection } from "@/utils/networkUtils";
@@ -68,6 +69,15 @@ const App = () => {
   useEffect(() => {
     const cleanup = setupViewportHeight();
     return cleanup;
+  }, []);
+  
+  // Initialize Microsoft Clarity in production
+  useEffect(() => {
+    if (import.meta.env.PROD) {
+      initializeClarity()
+        .then(() => console.log('✅ Microsoft Clarity initialized'))
+        .catch((error) => console.warn('⚠️ Clarity initialization failed:', error));
+    }
   }, []);
   
   return (
