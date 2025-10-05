@@ -42,7 +42,7 @@ export const useUserActivity = (limit: number = 100) => {
         .from('event_logs')
         .select(`
           *,
-          profiles!event_logs_user_id_fkey (
+          profiles (
             full_name,
             email,
             user_type
@@ -151,7 +151,7 @@ export const useUserActivityById = (userId: string | null, limit: number = 50) =
         .from('event_logs')
         .select(`
           *,
-          profiles!event_logs_user_id_fkey (
+          profiles (
             full_name,
             email,
             user_type
