@@ -61,6 +61,15 @@ export interface Product {
   
   // Catalog position for sorting
   catalog_position?: string;
+  
+  // Notification tracking - для индикатора неудачных уведомлений
+  last_notification_sent_at?: string | null;
+  notification_logs?: Array<{
+    id: string;
+    status: string;
+    created_at: string;
+    notification_type: string;
+  }>;
 }
 
 export interface SellerProfile {

@@ -34,8 +34,17 @@ export const useProductsQuery = ({
       .from('products')
       .select(`
           *,
-          product_images(id, url, is_primary)
+          product_images(id, url, is_primary),
+          notification_logs:telegram_notifications_log!related_entity_id(
+            id,
+            status,
+            created_at,
+            notification_type
+          )
         `, { count: 'exact' })
+      .eq('telegram_notifications_log.status', 'sent')
+      .eq('telegram_notifications_log.related_entity_type', 'product')
+      .in('telegram_notifications_log.notification_type', ['product_published', 'status_change'])
       .order('created_at', { ascending: false })
       .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);
 
