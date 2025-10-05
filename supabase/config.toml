@@ -120,9 +120,6 @@ verify_jwt = true
 [functions.process-product-background]
 verify_jwt = false
 
-[functions.log-activity]
-verify_jwt = true
-
 [functions.compute-user-sessions]
 verify_jwt = false
 
