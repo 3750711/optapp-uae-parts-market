@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, Hash, Calendar, AlertCircle } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { hasNotificationIssue, getNotificationIssueReason } from '@/utils/notificationHelpers';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
 import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
@@ -99,41 +99,39 @@ const AdminProductCardComponent: React.FC<AdminProductCardProps> = ({
         <div className="relative p-2">
           {/* Индикатор неотправленного уведомления (триггер сработал, но Edge Function упала) */}
           {hasNotificationIssue(product) && (
-            <TooltipProvider>
-              <Tooltip delayDuration={200}>
-                <TooltipTrigger asChild>
-                  <div 
-                    className="absolute top-4 right-4 z-20 cursor-help"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="relative">
-                      {/* Пульсирующая анимация */}
-                      <div className="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-75" />
-                      {/* Основной значок */}
-                      <div className="relative flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-red-600 rounded-full shadow-lg">
-                        <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                      </div>
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <div 
+                  className="absolute top-4 right-4 z-20 cursor-help"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="relative">
+                    {/* Пульсирующая анимация */}
+                    <div className="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-75" />
+                    {/* Основной значок */}
+                    <div className="relative flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-red-600 rounded-full shadow-lg">
+                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
                   </div>
-                </TooltipTrigger>
-                <TooltipContent side="left" className="max-w-sm">
-                  <div className="space-y-2">
-                    <p className="font-semibold text-red-600">⚠️ Уведомление не отправлено</p>
-                    <p className="text-sm">{getNotificationIssueReason(product)}</p>
-                    <div className="pt-2 border-t">
-                      <p className="text-xs text-muted-foreground">
-                        <strong>Лот:</strong> #{product.lot_number}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        <strong>Попытка:</strong> {product.last_notification_sent_at 
-                          ? new Date(product.last_notification_sent_at).toLocaleString('ru-RU')
-                          : 'неизвестно'}
-                      </p>
-                    </div>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-sm">
+                <div className="space-y-2">
+                  <p className="font-semibold text-red-600">⚠️ Уведомление не отправлено</p>
+                  <p className="text-sm">{getNotificationIssueReason(product)}</p>
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Лот:</strong> #{product.lot_number}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Попытка:</strong> {product.last_notification_sent_at 
+                        ? new Date(product.last_notification_sent_at).toLocaleString('ru-RU')
+                        : 'неизвестно'}
+                    </p>
                   </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+                </div>
+              </TooltipContent>
+            </Tooltip>
           )}
           
           <div className="w-full h-48 bg-gray-50 rounded-md overflow-hidden">
