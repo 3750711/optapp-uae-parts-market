@@ -72,6 +72,19 @@ export class NotificationQueueSystem {
       }
     }
 
+    // Set lock on product table BEFORE inserting into queue
+    if (type === 'product' && payload.productId) {
+      await this.supabaseClient
+        .from('products')
+        .update({
+          last_notification_sent_at: new Date().toISOString(),
+          tg_notify_status: 'pending'
+        })
+        .eq('id', payload.productId);
+      
+      console.log(`🔒 [Queue] Lock set for product ${payload.productId}`);
+    }
+
     // Insert into queue
     const { data, error } = await this.supabaseClient
       .from('notification_queue')

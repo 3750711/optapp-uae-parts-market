@@ -105,6 +105,15 @@ export class TelegramApiClient {
         return data.result;
       } catch (error) {
         lastError = error as Error;
+        
+        // Handle rate limit separately - don't increment attempt
+        if (error instanceof RateLimitError) {
+          console.log(`⏳ Rate limit: waiting ${error.retryAfter * 1000}ms before retry`);
+          await new Promise(resolve => setTimeout(resolve, error.retryAfter * 1000));
+          continue; // Continue without incrementing attempt
+        }
+        
+        // For other errors, retry with delay
         if (attempt < 3) {
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
