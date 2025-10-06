@@ -1422,6 +1422,10 @@ export type Database = {
           seller_id: string
           seller_name: string
           status: Database["public"]["Enums"]["product_status"]
+          telegram_confirmed_at: string | null
+          telegram_last_error: string | null
+          telegram_message_id: number | null
+          telegram_notification_status: string | null
           telegram_url: string | null
           tg_notify_attempts: number
           tg_notify_error: string | null
@@ -1467,6 +1471,10 @@ export type Database = {
           seller_id: string
           seller_name: string
           status?: Database["public"]["Enums"]["product_status"]
+          telegram_confirmed_at?: string | null
+          telegram_last_error?: string | null
+          telegram_message_id?: number | null
+          telegram_notification_status?: string | null
           telegram_url?: string | null
           tg_notify_attempts?: number
           tg_notify_error?: string | null
@@ -1512,6 +1520,10 @@ export type Database = {
           seller_id?: string
           seller_name?: string
           status?: Database["public"]["Enums"]["product_status"]
+          telegram_confirmed_at?: string | null
+          telegram_last_error?: string | null
+          telegram_message_id?: number | null
+          telegram_notification_status?: string | null
           telegram_url?: string | null
           tg_notify_attempts?: number
           tg_notify_error?: string | null
