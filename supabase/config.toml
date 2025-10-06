@@ -108,6 +108,9 @@ verify_jwt = true
 [functions.telegram-bot-webhook]
 verify_jwt = false
 
+[functions.telegram-webhook]
+verify_jwt = false
+
 [functions.validate-profile-token]
 verify_jwt = false
 
