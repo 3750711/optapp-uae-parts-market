@@ -120,20 +120,56 @@ export class ProductNotificationHandler {
   }
 
   private buildMessage(product: any, telegram: string, type: string): string {
-    const emoji = type === 'sold' ? '✅ ПРОДАНО' : type === 'repost' ? '🔄 РЕПОСТ' : '📦 НОВЫЙ ТОВАР';
-    const price = product.price ? `💰 Цена: ${product.price} AED` : '';
-    const productUrl = `https://partsbay.ae/product/${product.id}`;
+    // Format brand and model
+    const formatBrandModel = (brand: string | null, model: string | null): string => {
+      const brandText = brand || '';
+      const modelText = model || '';
+      
+      if (brandText && modelText) {
+        return ` ${brandText} ${modelText}`;
+      } else if (brandText) {
+        return ` ${brandText}`;
+      } else if (modelText) {
+        return ` ${modelText}`;
+      }
+      return '';
+    };
 
-    return `${emoji}
+    const brandModelText = formatBrandModel(product.brand, product.model);
 
-🚗 ${product.title}
-${product.brand ? `Бренд: ${product.brand}` : ''}
-${product.model ? `Модель: ${product.model}` : ''}
-${price}
+    if (type === 'sold') {
+      // Специальное сообщение для проданных товаров
+      return `😔 Жаль, но Лот #${product.lot_number} ${product.title}${brandModelText} уже ушел!\nКто-то оказался быстрее... в следующий раз повезет - будь начеку.`;
+    }
 
-📍 ${product.location || 'Dubai'}
-📞 Контакт: ${telegram}
+    if (type === 'repost') {
+      // Сообщение для репоста
+      const priceText = `${product.price} $`;
+      
+      return [
+        `LOT(лот) #${product.lot_number}`,
+        `📦 ${product.title}${brandModelText}`,
+        `💰 Цена: ${priceText}`,
+        `🚚 Цена доставки: ${product.delivery_price || 0} $`,
+        `🆔 OPT_ID продавца: ${product.optid_created || ''}`,
+        `👤 Telegram продавца: ${telegram}`,
+        '',
+        `📊 Статус: ${product.status === 'active' ? 'Опубликован' : 
+               product.status === 'sold' ? 'Продан' : 'На модерации'}`
+      ].join('\n');
+    }
 
-🔗 ${productUrl}`;
+    // Стандартное сообщение для новых товаров (product_published)
+    return [
+      `LOT(лот) #${product.lot_number}`,
+      `📦 ${product.title}${brandModelText}`,
+      `💰 Цена: ${product.price} $`,
+      `🚚 Цена доставки: ${product.delivery_price || 0} $`,
+      `🆔 OPT_ID продавца: ${product.optid_created || ''}`,
+      `👤 Telegram продавца: ${telegram}`,
+      '',
+      `📊 Статус: ${product.status === 'active' ? 'Опубликован' : 
+             product.status === 'sold' ? 'Продан' : 'На модерации'}`
+    ].join('\n');
   }
 }
