@@ -30,7 +30,7 @@ export const ResendProductNotificationButton = ({
     setIsResending(true);
     
     try {
-      await sendProductNotification(productId, 'status_change');
+      await sendProductNotification(productId, 'product_published');
       
       // Инвалидируем кэш
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
