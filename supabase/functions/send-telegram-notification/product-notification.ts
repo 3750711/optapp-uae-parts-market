@@ -301,9 +301,10 @@ export async function handleProductNotification(productId: string, notificationT
     );
   }
 
-  // Handle 'repost' notification type - add to notification queue
+  // Handle 'repost' notification type - send full ad with images and update timestamp
   if (notificationType === 'repost') {
-    console.log('🔄 Adding repost notification to queue');
+    // For repost, send full ad with images like published product
+    console.log('Sending repost notification with images');
     
     let userId: string | null = null;
     
@@ -371,40 +372,18 @@ export async function handleProductNotification(productId: string, notificationT
         }
       }
       
-      // Add notification to queue instead of sending directly
-      const { error: queueError } = await supabaseClient
-        .from('notification_queue')
-        .insert({
-          notification_type: 'product_repost',
-          priority: 'normal',
-          payload: {
-            product_id: productId,
-            lot_number: product.lot_number,
-            title: product.title,
-            brand: product.brand,
-            model: product.model,
-            price: product.price,
-            old_price: oldPrice,
-            delivery_price: product.delivery_price,
-            optid_created: product.optid_created,
-            telegram_url: product.telegram_url,
-            status: product.status,
-            price_changed: priceChanged || false,
-            message_text: messageText,
-            images: images.map((img: any) => img.url),
-            chat_id: PRODUCT_GROUP_CHAT_ID
-          },
-          request_id: requestId
-        });
+      // Send the media group with images
+      const result = await sendImageMediaGroups(
+        images.map((image: any) => image.url), 
+        messageText, 
+        supabaseClient, 
+        productId,
+        PRODUCT_GROUP_CHAT_ID,
+        corsHeaders,
+        BOT_TOKEN
+      );
       
-      if (queueError) {
-        console.error('❌ Failed to add repost to notification queue:', queueError);
-        throw queueError;
-      }
-      
-      console.log('✅ Repost notification added to queue successfully');
-      
-      // Log successful repost queuing
+      // Log successful repost
       await supabaseClient.from('event_logs').insert({
         entity_type: 'product',
         entity_id: productId,
@@ -418,22 +397,14 @@ export async function handleProductNotification(productId: string, notificationT
           price_changed: priceChanged || false,
           new_price: priceChanged ? newPrice : undefined,
           old_price: priceChanged ? oldPrice : undefined,
-          request_id: requestId,
-          queued: true
+          request_id: requestId
         }
       });
       
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Repost notification queued successfully',
-          queued: true
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return result;
       
     } catch (error) {
-      console.error('Error queueing repost notification:', error);
+      console.error('Error sending repost notification:', error);
       
       // Log failed repost (include user_id if available)
       await supabaseClient.from('event_logs').insert({
@@ -448,13 +419,12 @@ export async function handleProductNotification(productId: string, notificationT
           price_changed: priceChanged || false,
           new_price: priceChanged ? newPrice : undefined,
           old_price: priceChanged ? oldPrice : undefined,
-          request_id: requestId,
-          queued: false
+          request_id: requestId
         }
       });
       
       return new Response(
-        JSON.stringify({ success: false, message: `Failed to queue repost notification: ${error.message}` }),
+        JSON.stringify({ success: false, message: `Failed to send repost notification: ${error.message}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
