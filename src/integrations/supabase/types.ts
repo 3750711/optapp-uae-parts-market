@@ -742,57 +742,6 @@ export type Database = {
         }
         Relationships: []
       }
-      notification_queue: {
-        Row: {
-          attempts: number
-          created_at: string
-          id: string
-          last_error: string | null
-          max_attempts: number
-          notification_type: string
-          payload: Json
-          priority: string
-          processed_at: string | null
-          processing_time_ms: number | null
-          request_id: string | null
-          scheduled_for: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          attempts?: number
-          created_at?: string
-          id?: string
-          last_error?: string | null
-          max_attempts?: number
-          notification_type: string
-          payload: Json
-          priority?: string
-          processed_at?: string | null
-          processing_time_ms?: number | null
-          request_id?: string | null
-          scheduled_for?: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          attempts?: number
-          created_at?: string
-          id?: string
-          last_error?: string | null
-          max_attempts?: number
-          notification_type?: string
-          payload?: Json
-          priority?: string
-          processed_at?: string | null
-          processing_time_ms?: number | null
-          request_id?: string | null
-          scheduled_for?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       notifications: {
         Row: {
           created_at: string
@@ -2431,18 +2380,6 @@ export type Database = {
         }
         Relationships: []
       }
-      notification_queue_stats: {
-        Row: {
-          avg_processing_time_ms: number | null
-          count: number | null
-          max_processing_time_ms: number | null
-          min_processing_time_ms: number | null
-          notification_type: string | null
-          priority: string | null
-          status: string | null
-        }
-        Relationships: []
-      }
       products_with_view_estimate: {
         Row: {
           admin_notification_sent_at: string | null
@@ -3001,25 +2938,6 @@ export type Database = {
       get_next_order_number: {
         Args: Record<PropertyKey, never>
         Returns: number
-      }
-      get_next_queue_item: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          attempts: number
-          created_at: string
-          id: string
-          last_error: string | null
-          max_attempts: number
-          notification_type: string
-          payload: Json
-          priority: string
-          processed_at: string | null
-          processing_time_ms: number | null
-          request_id: string | null
-          scheduled_for: string
-          status: string
-          updated_at: string
-        }[]
       }
       get_product_content_for_embedding: {
         Args: { product_id: string }
