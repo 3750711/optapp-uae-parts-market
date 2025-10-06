@@ -1,5 +1,5 @@
 
-import { useProductsQuery } from './useProductsQuery';
+import { useProductsQueryRouter } from './useProductsQueryRouter';
 import { useSellersQuery } from './useSellersQuery';
 import { useProductsFilters } from './useProductsFilters';
 import { useProductsSelection } from './useProductsSelection';
@@ -37,8 +37,8 @@ export const useEnhancedProductsState = (props: UseEnhancedProductsStateProps = 
     hasActiveFilters
   } = filtersState;
 
-  // Products query - используем стабильные значения
-  const productsQuery = useProductsQuery({
+  // Products query - используем роутер для выбора нужного хука
+  const productsQuery = useProductsQueryRouter({
     debouncedSearchTerm,
     statusFilter,
     sellerFilter,

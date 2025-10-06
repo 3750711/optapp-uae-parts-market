@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, X } from 'lucide-react';
-import { useProductsQuery } from '@/hooks/useProductsQuery';
+import { useProductsNormalQuery } from '@/hooks/useProductsNormalQuery';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Product } from '@/types/product';
 
@@ -20,7 +20,7 @@ const GlobalProductSelectionStep: React.FC<GlobalProductSelectionStepProps> = ({
   
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   
-  const { products, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useProductsQuery({
+  const { products, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } = useProductsNormalQuery({
     debouncedSearchTerm,
     statusFilter: 'active',
     sellerFilter: 'all',

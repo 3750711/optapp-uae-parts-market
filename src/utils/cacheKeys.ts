@@ -23,13 +23,34 @@ export const createCacheKey = (key: string, ...params: (string | undefined)[]) =
 // Централизованные фабрики ключей кеша для админ-продуктов
 export const adminProductsKeys = {
   all: ['admin-products'] as const,
+  
+  // Обычные товары
+  normal: (params: {
+    debouncedSearchTerm?: string;
+    statusFilter?: string;
+    sellerFilter?: string;
+    pageSize?: number;
+  }) => [...adminProductsKeys.all, 'normal', params] as const,
+  
+  // Товары с проблемами
+  withIssues: (params: {
+    debouncedSearchTerm?: string;
+    statusFilter?: string;
+    sellerFilter?: string;
+    pageSize?: number;
+  }) => [...adminProductsKeys.all, 'with-issues', params] as const,
+  
+  // Роутер (использует один из двух выше)
   list: (params: {
     debouncedSearchTerm?: string;
     statusFilter?: string;
     sellerFilter?: string;
     notificationIssuesFilter?: boolean;
     pageSize?: number;
-  }) => [...adminProductsKeys.all, params] as const,
+  }) => params.notificationIssuesFilter 
+    ? adminProductsKeys.withIssues(params)
+    : adminProductsKeys.normal(params),
+  
   byId: (id: string) => [...adminProductsKeys.all, 'by-id', id] as const,
 } as const;
 
