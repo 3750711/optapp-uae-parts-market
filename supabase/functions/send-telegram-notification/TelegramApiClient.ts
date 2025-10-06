@@ -14,11 +14,23 @@ interface MediaItem {
   parse_mode?: string;
 }
 
+export class RateLimitError extends Error {
+  constructor(public retryAfter: number, message: string) {
+    super(message);
+    this.name = 'RateLimitError';
+  }
+}
+
 export class TelegramApiClient {
   private baseUrl: string;
 
   constructor(private botToken: string) {
     this.baseUrl = `https://api.telegram.org/bot${botToken}`;
+  }
+
+  private parseRetryAfter(description: string): number | null {
+    const match = description.match(/retry after (\d+)/i);
+    return match ? parseInt(match[1], 10) : null;
   }
 
   async sendMessage(options: SendMessageOptions): Promise<any> {
@@ -38,6 +50,10 @@ export class TelegramApiClient {
     const data = await response.json();
     
     if (!data.ok) {
+      const retryAfter = this.parseRetryAfter(data.description || '');
+      if (retryAfter !== null) {
+        throw new RateLimitError(retryAfter, `Telegram rate limit: retry after ${retryAfter}s`);
+      }
       throw new Error(`Telegram API error: ${data.description}`);
     }
 
@@ -72,6 +88,11 @@ export class TelegramApiClient {
         const data = await response.json();
         
         if (!data.ok) {
+          const retryAfter = this.parseRetryAfter(data.description || '');
+          if (retryAfter !== null) {
+            throw new RateLimitError(retryAfter, `Telegram rate limit: retry after ${retryAfter}s`);
+          }
+          
           if (data.description?.includes('WEBPAGE_MEDIA_EMPTY') && attempt < 3) {
             console.log(`⚠️ WEBPAGE_MEDIA_EMPTY error, attempt ${attempt}/3, retrying in 2s...`);
             await new Promise(resolve => setTimeout(resolve, 2000));
