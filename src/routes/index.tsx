@@ -118,6 +118,7 @@ const AdminFreeOrderUploadMonitoring = lazy(() => import('@/pages/admin/AdminFre
 const AdminSellerUploadMonitoring = lazy(() => import('@/pages/admin/AdminSellerUploadMonitoring'));
 const ActivityMonitor = lazy(() => import('@/pages/admin/ActivityMonitor'));
 const SessionDetailsPage = lazy(() => import('@/pages/admin/SessionDetailsPage'));
+const AdminTelegramSettings = lazy(() => import('@/pages/admin/AdminTelegramSettings'));
 const UserActivityPage = lazy(() => import('@/pages/UserActivityPage'));
 
 // Mobile specific pages
@@ -518,6 +519,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/telegram-monitoring" element={
               <AdminRoute>
                 <AdminTelegramMonitoring />
+              </AdminRoute>
+            } />
+            <Route path="/admin/telegram-settings" element={
+              <AdminRoute>
+                <AdminTelegramSettings />
               </AdminRoute>
             } />
             <Route path="/admin/help-editor" element={
