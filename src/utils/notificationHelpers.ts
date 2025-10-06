@@ -2,18 +2,10 @@ import { Product } from '@/types/product';
 
 /**
  * Проверяет, есть ли у товара проблема с уведомлением
- * Показывает индикатор только если:
- * 1. Товар активен (status = 'active')
- * 2. Триггер notify_on_product_status_changes сработал (last_notification_sent_at не null)
- * 3. Но в логах telegram_notifications_log нет записи о доставке (notification_logs пустой)
+ * Показывает индикатор если telegram_notification_status === 'failed'
  */
 export const hasNotificationIssue = (product: Product): boolean => {
-  return (
-    product.status === 'active' &&
-    product.last_notification_sent_at !== null &&
-    product.last_notification_sent_at !== undefined &&
-    (!product.notification_logs || product.notification_logs.length === 0)
-  );
+  return product.telegram_notification_status === 'failed';
 };
 
 /**
@@ -24,6 +16,7 @@ export const getNotificationIssueReason = (product: Product): string => {
     return '';
   }
   
+  const errorDetails = product.telegram_last_error || 'Неизвестная ошибка';
   const attemptTime = product.last_notification_sent_at 
     ? new Date(product.last_notification_sent_at).toLocaleString('ru-RU', {
         day: '2-digit',
@@ -34,5 +27,5 @@ export const getNotificationIssueReason = (product: Product): string => {
       })
     : 'неизвестно';
   
-  return `Триггер сработал ${attemptTime}, но Edge Function не смогла отправить уведомление в Telegram. Возможные причины: таймаут (5 сек), ошибка в коде Edge Function, проблемы с Telegram API.`;
+  return `Попытка отправки ${attemptTime} завершилась ошибкой: ${errorDetails}`;
 };

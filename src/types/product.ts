@@ -62,14 +62,14 @@ export interface Product {
   // Catalog position for sorting
   catalog_position?: string;
   
+  // Telegram notification tracking
+  telegram_notification_status?: 'not_sent' | 'pending' | 'sent' | 'failed';
+  telegram_message_id?: number | null;
+  telegram_confirmed_at?: string | null;
+  telegram_last_error?: string | null;
+  
   // Notification tracking - для индикатора неудачных уведомлений
   last_notification_sent_at?: string | null;
-  notification_logs?: Array<{
-    id: string;
-    status: string;
-    created_at: string;
-    notification_type: string;
-  }>;
 }
 
 export interface SellerProfile {

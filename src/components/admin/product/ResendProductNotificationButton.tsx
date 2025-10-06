@@ -29,9 +29,26 @@ export const ResendProductNotificationButton = ({
     setIsResending(true);
     
     try {
-      console.log('🔄 Step 1: Updating last_notification_sent_at via RPC');
+      console.log('🔄 Resending product notification for:', productId);
       
-      // Step 1: Update database timestamp
+      // Reset notification status before resend
+      const { error: resetError } = await supabase
+        .from('products')
+        .update({
+          telegram_notification_status: 'not_sent',
+          telegram_last_error: null,
+          last_notification_sent_at: null
+        })
+        .eq('id', productId);
+      
+      if (resetError) {
+        console.error('❌ Error resetting status:', resetError);
+        throw resetError;
+      }
+      
+      console.log('✅ Status reset, now updating timestamp via RPC');
+      
+      // Update database timestamp
       const { data: rpcData, error: rpcError } = await supabase.rpc('resend_product_notification', {
         p_product_id: productId
       });
@@ -45,10 +62,9 @@ export const ResendProductNotificationButton = ({
         throw new Error(rpcData?.error || 'Failed to update timestamp');
       }
 
-      console.log('✅ Step 1 complete: Timestamp updated');
-      console.log('🔄 Step 2: Sending Telegram notification via Edge Function');
+      console.log('✅ Timestamp updated, sending Telegram notification via Edge Function');
 
-      // Step 2: Send Telegram notification
+      // Send Telegram notification
       const { data: notificationData, error: notificationError } = await supabase.functions.invoke(
         'send-telegram-notification',
         {
@@ -64,7 +80,7 @@ export const ResendProductNotificationButton = ({
         throw notificationError;
       }
 
-      console.log('✅ Step 2 complete: Telegram notification sent', notificationData);
+      console.log('✅ Telegram notification sent', notificationData);
       
       // Invalidate cache
       queryClient.invalidateQueries({ 

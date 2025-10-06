@@ -96,11 +96,14 @@ export async function handleProductNotification(productId: string, notificationT
 
   console.log('Successfully fetched product:', product.title, 'status:', product.status);
   
-  // STEP 1: Immediately update timestamp to prevent duplicate notifications
+  // STEP 1: Immediately update timestamp and status to prevent duplicate notifications
   // This prevents race conditions where the trigger fires multiple times
   const { error: lockError } = await supabaseClient
     .from('products')
-    .update({ last_notification_sent_at: new Date().toISOString() })
+    .update({ 
+      last_notification_sent_at: new Date().toISOString(),
+      telegram_notification_status: 'pending'
+    })
     .eq('id', productId);
     
   if (lockError) {
@@ -110,7 +113,7 @@ export async function handleProductNotification(productId: string, notificationT
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   } else {
-    console.log('✅ Notification lock set - preventing duplicate calls');
+    console.log('✅ Notification lock set with status "pending" - preventing duplicate calls');
   }
   
   // Check if there are any images for this product
@@ -123,16 +126,19 @@ export async function handleProductNotification(productId: string, notificationT
   if (notificationType !== 'sold' && notificationType !== 'product_published' && images.length < MIN_IMAGES_REQUIRED) {
     console.log(`Not enough images found for product (${images.length}/${MIN_IMAGES_REQUIRED}), skipping notification`);
     
-    // Reset the notification timestamp to allow another attempt later
+    // Reset the notification timestamp and status to allow another attempt later
     const { error: updateError } = await supabaseClient
       .from('products')
-      .update({ last_notification_sent_at: null })
+      .update({ 
+        last_notification_sent_at: null,
+        telegram_notification_status: 'not_sent'
+      })
       .eq('id', productId);
     
     if (updateError) {
       console.log('Error resetting notification timestamp:', updateError);
     } else {
-      console.log('Successfully reset notification timestamp to allow retry later');
+      console.log('Successfully reset notification timestamp and status to allow retry later');
     }
     
     return new Response(

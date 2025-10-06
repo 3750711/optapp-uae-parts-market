@@ -221,7 +221,11 @@ export async function sendImageMediaGroups(
       console.log('All media groups failed - resetting timestamp to allow retry');
       const { error: updateError } = await supabaseClient
         .from('products')
-        .update({ last_notification_sent_at: null })
+        .update({ 
+          last_notification_sent_at: null,
+          telegram_notification_status: 'failed',
+          telegram_last_error: 'All media groups failed to send after multiple retries'
+        })
         .eq('id', productId);
         
       if (updateError) {
@@ -250,6 +254,22 @@ export async function sendImageMediaGroups(
     );
   } catch (error) {
     console.error('Error sending media groups:', error);
+    
+    // Update product status to failed on exception
+    if (productId) {
+      try {
+        await supabaseClient
+          .from('products')
+          .update({ 
+            telegram_notification_status: 'failed',
+            telegram_last_error: error.message || 'Unknown error in sendImageMediaGroups'
+          })
+          .eq('id', productId);
+      } catch (updateError) {
+        console.error('Error updating product status after exception:', updateError);
+      }
+    }
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
