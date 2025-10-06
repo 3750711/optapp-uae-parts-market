@@ -32,8 +32,11 @@ export const ResendProductNotificationButton = ({
     try {
       await sendProductNotification(productId, 'product_published');
       
-      // Инвалидируем кэш
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      // Инвалидируем кэш (включая with-issues)
+      queryClient.invalidateQueries({ 
+        queryKey: ['admin-products'],
+        exact: false 
+      });
       
       toast.success('Уведомление отправлено в Telegram');
     } catch (error) {
