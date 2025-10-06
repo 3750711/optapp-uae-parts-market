@@ -106,6 +106,7 @@ const AdminMessages = lazy(() => import('@/pages/AdminMessages'));
 const AdminPriceOffers = lazy(() => import('@/pages/admin/AdminPriceOffers'));
 const AdminProductModeration = lazy(() => import('@/pages/AdminProductModeration'));
 const AdminTelegramMonitoring = lazy(() => import('@/pages/AdminTelegramMonitoring'));
+const AdminNotifications = lazy(() => import('@/pages/AdminNotifications'));
 const AdminHelpEditor = lazy(() => import('@/pages/AdminHelpEditor'));
 const AdminSynonyms = lazy(() => import('@/pages/AdminSynonyms'));
 const AdminSellerStatistics = lazy(() => import('@/pages/admin/AdminSellerStatistics'));
@@ -518,6 +519,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/admin/telegram-monitoring" element={
               <AdminRoute>
                 <AdminTelegramMonitoring />
+              </AdminRoute>
+            } />
+            <Route path="/admin/notifications" element={
+              <AdminRoute>
+                <AdminNotifications />
               </AdminRoute>
             } />
             <Route path="/admin/help-editor" element={
