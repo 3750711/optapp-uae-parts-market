@@ -45,17 +45,23 @@ export const ResendProductNotificationButton = ({
   };
 
   return (
-    <Button
-      onClick={handleResend}
-      disabled={isResending}
-      size="icon"
-      variant="ghost"
-      className={`h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg ${className}`}
-      aria-label="Отправить уведомление повторно"
-    >
-      <RefreshCw 
-        className={`h-3 w-3 sm:h-4 sm:w-4 ${isResending ? 'animate-spin' : ''}`} 
-      />
-    </Button>
+    <div className="relative">
+      {/* Пульсирующий фон за кнопкой */}
+      <div className="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-75 pointer-events-none" />
+      
+      {/* Сама кнопка */}
+      <Button
+        onClick={handleResend}
+        disabled={isResending}
+        size="icon"
+        variant="ghost"
+        className={`relative h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-lg ${className}`}
+        aria-label="Отправить уведомление повторно"
+      >
+        <RefreshCw 
+          className={`h-3 w-3 sm:h-4 sm:w-4 ${isResending ? 'animate-spin' : ''}`} 
+        />
+      </Button>
+    </div>
   );
 };

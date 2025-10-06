@@ -100,40 +100,9 @@ const AdminProductCardComponent: React.FC<AdminProductCardProps> = ({
         <div className="relative p-2">
           {/* Кнопка ручной отправки уведомления для проблемных товаров */}
           {hasNotificationIssue(product) && (
-            <Tooltip delayDuration={200}>
-              <TooltipTrigger asChild>
-                <div 
-                  className="absolute top-4 right-4 z-20"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="relative">
-                    {/* Пульсирующая анимация */}
-                    <div className="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-75" />
-                    {/* Кнопка отправки */}
-                    <ResendProductNotificationButton productId={product.id} />
-                  </div>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="left" className="max-w-sm">
-                <div className="space-y-2">
-                  <p className="font-semibold text-red-600">⚠️ Уведомление не отправлено</p>
-                  <p className="text-sm">{getNotificationIssueReason(product)}</p>
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Лот:</strong> #{product.lot_number}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      <strong>Попытка:</strong> {product.last_notification_sent_at 
-                        ? new Date(product.last_notification_sent_at).toLocaleString('ru-RU')
-                        : 'неизвестно'}
-                    </p>
-                    <p className="text-xs text-green-600 mt-2 font-medium">
-                      💡 Нажмите на кнопку, чтобы отправить повторно
-                    </p>
-                  </div>
-                </div>
-              </TooltipContent>
-            </Tooltip>
+            <div className="absolute top-4 right-4 z-20">
+              <ResendProductNotificationButton productId={product.id} />
+            </div>
           )}
           
           <div className="w-full h-48 bg-gray-50 rounded-md overflow-hidden">
