@@ -1,4 +1,5 @@
 import { ProductNotificationHandler } from './ProductNotificationHandler.ts';
+import { RateLimitError } from './TelegramApiClient.ts';
 
 interface QueueItem {
   id: string;
@@ -15,6 +16,7 @@ interface QueueItem {
 export class NotificationQueueSystem {
   private processing = false;
   private intervalId: number | null = null;
+  private rateLimitUntil: number = 0;
 
   constructor(
     private supabaseClient: any,
@@ -139,6 +141,13 @@ export class NotificationQueueSystem {
   }
 
   private async processNext(): Promise<void> {
+    // Check if we're rate limited
+    if (Date.now() < this.rateLimitUntil) {
+      const waitSeconds = Math.ceil((this.rateLimitUntil - Date.now()) / 1000);
+      console.log(`⏸️ [Queue] Rate limited, waiting ${waitSeconds}s until ${new Date(this.rateLimitUntil).toISOString()}`);
+      return;
+    }
+
     // Fetch next pending item
     const { data: items, error } = await this.supabaseClient
       .from('notification_queue')
@@ -164,7 +173,10 @@ export class NotificationQueueSystem {
     // Update to processing
     await this.supabaseClient
       .from('notification_queue')
-      .update({ status: 'processing' })
+      .update({ 
+        status: 'processing',
+        updated_at: new Date().toISOString()
+      })
       .eq('id', item.id);
 
     console.log(`⚙️ [Queue] Processing ${item.notification_type} notification (priority: ${item.priority})`);
@@ -180,15 +192,36 @@ export class NotificationQueueSystem {
         .update({
           status: 'completed',
           processed_at: new Date().toISOString(),
-          processing_time_ms: processingTime
+          processing_time_ms: processingTime,
+          updated_at: new Date().toISOString()
         })
         .eq('id', item.id);
 
       console.log(`✅ [Queue] Completed ${item.notification_type} in ${processingTime}ms`);
     } catch (error) {
-      const newAttempts = item.attempts + 1;
       const processingTime = Date.now() - startTime;
 
+      // Handle rate limit errors separately
+      if (error instanceof RateLimitError) {
+        this.rateLimitUntil = Date.now() + (error.retryAfter * 1000);
+        console.log(`⏸️ [Queue] Rate limited! Pausing queue for ${error.retryAfter}s until ${new Date(this.rateLimitUntil).toISOString()}`);
+        
+        // Reset to pending WITHOUT incrementing attempts
+        await this.supabaseClient
+          .from('notification_queue')
+          .update({
+            status: 'pending',
+            last_error: error.message,
+            scheduled_for: new Date(this.rateLimitUntil).toISOString(),
+            processing_time_ms: processingTime,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.id);
+        
+        return;
+      }
+
+      const newAttempts = item.attempts + 1;
       console.error(`❌ [Queue] Failed to process ${item.notification_type}:`, error);
 
       if (newAttempts >= item.max_attempts) {
@@ -199,7 +232,8 @@ export class NotificationQueueSystem {
             status: 'dead_letter',
             attempts: newAttempts,
             last_error: error instanceof Error ? error.message : String(error),
-            processing_time_ms: processingTime
+            processing_time_ms: processingTime,
+            updated_at: new Date().toISOString()
           })
           .eq('id', item.id);
 
@@ -216,7 +250,8 @@ export class NotificationQueueSystem {
             attempts: newAttempts,
             last_error: error instanceof Error ? error.message : String(error),
             scheduled_for: scheduledFor,
-            processing_time_ms: processingTime
+            processing_time_ms: processingTime,
+            updated_at: new Date().toISOString()
           })
           .eq('id', item.id);
 
