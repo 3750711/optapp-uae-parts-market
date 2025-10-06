@@ -210,12 +210,11 @@ export class NotificationQueueSystem {
   }
 
   private generateRequestId(type: string, payload: any): string {
-    // Add random component to ensure uniqueness even for rapid requests
-    const randomPart = Math.random().toString(36).substring(2, 10);
-    const timestamp = Date.now();
-    const key = `${type}_${payload.notificationType || ''}_${payload.productId || payload.orderId || payload.userId}_${timestamp}_${randomPart}`;
+    // Round timestamp to seconds to deduplicate rapid duplicate requests (e.g., from React StrictMode)
+    const timestampInSeconds = Math.floor(Date.now() / 1000);
+    const key = `${type}_${payload.notificationType || ''}_${payload.productId || payload.orderId || payload.userId}_${timestampInSeconds}`;
     
-    // Use full base64 hash without truncation to preserve uniqueness
+    // Use full base64 hash
     return btoa(key);
   }
 }
