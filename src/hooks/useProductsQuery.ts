@@ -8,6 +8,7 @@ interface UseProductsQueryProps {
   debouncedSearchTerm: string;
   statusFilter: string;
   sellerFilter: string;
+  notificationIssuesFilter?: boolean;
   pageSize?: number;
 }
 
@@ -25,11 +26,79 @@ export const useProductsQuery = ({
   debouncedSearchTerm,
   statusFilter,
   sellerFilter,
+  notificationIssuesFilter = false,
   pageSize = 12
 }: UseProductsQueryProps) => {
   const queryClient = useQueryClient();
 
   const fetchProducts = async ({ pageParam = 0 }: { pageParam?: number }): Promise<Page> => {
+    console.log('[AdminProducts] Fetching products:', {
+      page: pageParam,
+      search: debouncedSearchTerm,
+      status: statusFilter,
+      seller: sellerFilter,
+      notificationIssues: notificationIssuesFilter,
+      pageSize
+    });
+
+    // Если включен фильтр проблемных уведомлений - использовать RPC функцию
+    if (notificationIssuesFilter) {
+      const { data, error, count } = await supabase
+        .rpc('get_products_with_notification_issues', {
+          p_limit: pageSize,
+          p_offset: pageParam * pageSize,
+          p_search: debouncedSearchTerm || null,
+          p_status: statusFilter !== 'all' ? statusFilter : 'all',
+          p_seller_id: sellerFilter !== 'all' ? sellerFilter : null
+        })
+        .select('*, product_images(id, url, is_primary)')
+        .returns<any[]>();
+
+      if (error) {
+        console.error('[AdminProducts] RPC error:', error);
+        throw new Error(`Failed to fetch products with notification issues: ${error.message}`);
+      }
+
+      // Fetch notification logs for these products
+      let logsMap: Record<string, any[]> = {};
+      if (data && data.length > 0) {
+        const productIds = data.map(p => p.id);
+        const { data: logs } = await supabase
+          .from('telegram_notifications_log')
+          .select('id, status, created_at, notification_type, related_entity_id')
+          .in('related_entity_id', productIds);
+        
+        logs?.forEach(log => {
+          if (!logsMap[log.related_entity_id]) {
+            logsMap[log.related_entity_id] = [];
+          }
+          logsMap[log.related_entity_id].push(log);
+        });
+      }
+
+      const dataWithSortedImages = data?.map(product => ({
+        ...product,
+        product_images: product.product_images?.slice().sort((a: any, b: any) => {
+          if (a.is_primary && !b.is_primary) return -1;
+          if (!a.is_primary && b.is_primary) return 1;
+          return 0;
+        }),
+        notification_logs: logsMap[product.id] || []
+      })) as Product[];
+
+      console.log('[AdminProducts] RPC returned:', {
+        count: data?.length || 0,
+        totalCount: count,
+        hasMore: data && data.length === pageSize
+      });
+
+      return { 
+        data: dataWithSortedImages || [], 
+        count: count || 0
+      };
+    }
+
+    // Обычный запрос без фильтра проблемных уведомлений
     let query = supabase
       .from('products')
       .select(`
@@ -189,7 +258,7 @@ export const useProductsQuery = ({
   };
 
   const queryResult = useInfiniteQuery({
-    queryKey: adminProductsKeys.list({ debouncedSearchTerm, statusFilter, sellerFilter, pageSize }),
+    queryKey: adminProductsKeys.list({ debouncedSearchTerm, statusFilter, sellerFilter, notificationIssuesFilter, pageSize }),
     queryFn: fetchProducts,
     getNextPageParam: (lastPage, allPages) => {
       const totalItems = allPages.reduce((sum, page) => sum + page.data.length, 0);

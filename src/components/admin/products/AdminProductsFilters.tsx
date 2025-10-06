@@ -5,7 +5,8 @@ import StatusFilter from '@/components/admin/filters/StatusFilter';
 import SellerFilter from '@/components/admin/filters/SellerFilter';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Filter, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Filter, X, AlertCircle } from "lucide-react";
 
 interface AdminProductsFiltersProps {
   searchTerm: string;
@@ -14,6 +15,8 @@ interface AdminProductsFiltersProps {
   setStatusFilter: (status: string) => void;
   sellerFilter: string;
   setSellerFilter: (sellerId: string) => void;
+  notificationIssuesFilter?: boolean;
+  setNotificationIssuesFilter?: (enabled: boolean) => void;
   sellers: Array<{ id: string; name: string; opt_id?: string; }>;
   clearFilters: () => void;
   isLoading: boolean;
@@ -33,6 +36,8 @@ const AdminProductsFilters: React.FC<AdminProductsFiltersProps> = ({
   setStatusFilter,
   sellerFilter,
   setSellerFilter,
+  notificationIssuesFilter = false,
+  setNotificationIssuesFilter,
   sellers,
   clearFilters,
   isLoading,
@@ -85,6 +90,25 @@ const AdminProductsFilters: React.FC<AdminProductsFiltersProps> = ({
               sellers={sellers}
               disabled={isLoading}
             />
+          </div>
+          
+          {/* Notification Issues Filter */}
+          <div className="mt-4 flex items-center gap-2">
+            <Button 
+              variant={notificationIssuesFilter ? "default" : "outline"}
+              size="sm"
+              onClick={() => setNotificationIssuesFilter?.(!notificationIssuesFilter)}
+              disabled={isLoading}
+              className="flex items-center gap-2"
+            >
+              <AlertCircle className="h-4 w-4" />
+              {notificationIssuesFilter ? 'Показаны только проблемные' : 'Показать проблемные уведомления'}
+            </Button>
+            {notificationIssuesFilter && (
+              <Badge variant="destructive" className="text-xs">
+                Активен фильтр проблем
+              </Badge>
+            )}
           </div>
           
           {hasActiveFilters && (

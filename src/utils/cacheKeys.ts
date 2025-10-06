@@ -27,6 +27,7 @@ export const adminProductsKeys = {
     debouncedSearchTerm?: string;
     statusFilter?: string;
     sellerFilter?: string;
+    notificationIssuesFilter?: boolean;
     pageSize?: number;
   }) => [...adminProductsKeys.all, params] as const,
   byId: (id: string) => [...adminProductsKeys.all, 'by-id', id] as const,

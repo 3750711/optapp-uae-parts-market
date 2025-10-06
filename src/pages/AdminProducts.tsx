@@ -31,6 +31,8 @@ const AdminProducts = () => {
     setStatusFilter,
     sellerFilter,
     setSellerFilter,
+    notificationIssuesFilter,
+    setNotificationIssuesFilter,
     allSellers,
     isSellersLoading,
     selectedProducts,
@@ -63,6 +65,8 @@ const AdminProducts = () => {
             setStatusFilter={setStatusFilter}
             sellerFilter={sellerFilter}
             setSellerFilter={setSellerFilter}
+            notificationIssuesFilter={notificationIssuesFilter}
+            setNotificationIssuesFilter={setNotificationIssuesFilter}
             sellers={allSellers}
             clearFilters={clearFilters}
             isLoading={isLoading || isSellersLoading}

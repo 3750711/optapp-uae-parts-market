@@ -31,6 +31,8 @@ export const useEnhancedProductsState = (props: UseEnhancedProductsStateProps = 
     setStatusFilter,
     sellerFilter,
     setSellerFilter,
+    notificationIssuesFilter,
+    setNotificationIssuesFilter,
     clearFilters,
     hasActiveFilters
   } = filtersState;
@@ -40,6 +42,7 @@ export const useEnhancedProductsState = (props: UseEnhancedProductsStateProps = 
     debouncedSearchTerm,
     statusFilter,
     sellerFilter,
+    notificationIssuesFilter,
     pageSize
   });
 
@@ -89,6 +92,8 @@ export const useEnhancedProductsState = (props: UseEnhancedProductsStateProps = 
     setStatusFilter,
     sellerFilter,
     setSellerFilter,
+    notificationIssuesFilter,
+    setNotificationIssuesFilter,
     
     // Sellers data
     allSellers,

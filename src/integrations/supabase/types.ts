@@ -2935,6 +2935,60 @@ export type Database = {
         Args: { product_id: string }
         Returns: string
       }
+      get_products_with_notification_issues: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_seller_id?: string
+          p_status?: string
+        }
+        Returns: {
+          admin_notification_sent_at: string
+          ai_confidence: number
+          ai_delivery_confidence: number
+          ai_delivery_reasoning: Json
+          ai_enriched_at: string
+          ai_original_title: string
+          ai_suggested_brand: string
+          ai_suggested_delivery_prices: Json
+          ai_suggested_model: string
+          ai_suggested_title: string
+          brand: string
+          catalog_position: string
+          cloudinary_public_id: string
+          cloudinary_url: string
+          condition: string
+          created_at: string
+          delivery_price: number
+          description: string
+          id: string
+          last_notification_sent_at: string
+          location: string
+          lot_number: number
+          model: string
+          optid_created: string
+          phone_url: string
+          place_number: number
+          preview_image_url: string
+          price: number
+          product_location: string
+          product_url: string
+          rating_seller: number
+          requires_moderation: boolean
+          seller_id: string
+          seller_name: string
+          status: Database["public"]["Enums"]["product_status"]
+          telegram_url: string
+          tg_notify_attempts: number
+          tg_notify_error: string
+          tg_notify_status: string
+          tg_views_frozen: number
+          title: string
+          updated_at: string
+          view_count: number
+        }[]
+      }
       get_profile_access_stats: {
         Args: { p_end_date?: string; p_start_date?: string }
         Returns: {

@@ -19,6 +19,7 @@ export const useProductsFilters = ({
   const searchTerm = searchParams.get('search') || '';
   const statusFilter = searchParams.get('status') || 'all';
   const sellerFilter = searchParams.get('seller') || 'all';
+  const notificationIssuesFilter = searchParams.get('notificationIssues') === 'true';
 
   // Дебаунс применяется к значению из URL для запросов к API
   const debouncedSearchTerm = useDebounceValue(searchTerm, 500);
@@ -63,6 +64,19 @@ export const useProductsFilters = ({
     }, { replace: true });
   }, [setSearchParams]);
 
+  // Функция для переключения фильтра проблемных уведомлений
+  const setNotificationIssuesFilter = useCallback((enabled: boolean) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      if (enabled) {
+        newParams.set('notificationIssues', 'true');
+      } else {
+        newParams.delete('notificationIssues');
+      }
+      return newParams;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   // Очистка поиска
   const clearSearch = useCallback(() => {
     updateSearchTerm('');
@@ -79,8 +93,9 @@ export const useProductsFilters = ({
   const hasActiveFilters = useMemo(() => {
     return hasActiveSearch ||
            statusFilter !== 'all' ||
-           sellerFilter !== 'all';
-  }, [hasActiveSearch, statusFilter, sellerFilter]);
+           sellerFilter !== 'all' ||
+           notificationIssuesFilter;
+  }, [hasActiveSearch, statusFilter, sellerFilter, notificationIssuesFilter]);
 
   return {
     searchTerm,
@@ -94,6 +109,9 @@ export const useProductsFilters = ({
     setStatusFilter,
     sellerFilter,
     setSellerFilter,
+    
+    notificationIssuesFilter,
+    setNotificationIssuesFilter,
     
     clearFilters,
     hasActiveFilters
