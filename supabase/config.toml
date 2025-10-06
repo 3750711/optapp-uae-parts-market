@@ -111,6 +111,9 @@ verify_jwt = false
 [functions.telegram-webhook]
 verify_jwt = false
 
+[functions.retry-failed-notifications]
+verify_jwt = false
+
 [functions.validate-profile-token]
 verify_jwt = false
 
