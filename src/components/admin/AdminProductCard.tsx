@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, Hash, Calendar, AlertCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { hasNotificationIssue, getNotificationIssueReason } from '@/utils/notificationHelpers';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
 import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
@@ -16,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProductImage } from '@/hooks/useProductImage';
-import { ResendProductNotificationButton } from '@/components/admin/product/ResendProductNotificationButton';
+import { TelegramNotificationBadge } from '@/components/admin/product/TelegramNotificationBadge';
 
 interface AdminProductCardProps {
   product: Product;
@@ -98,12 +97,10 @@ const AdminProductCardComponent: React.FC<AdminProductCardProps> = ({
             <Checkbox checked={isSelected} className="m-1" aria-label={`Выбрать товар ${product.title}`} />
         </div>
         <div className="relative p-2">
-          {/* Кнопка ручной отправки уведомления для проблемных товаров */}
-          {hasNotificationIssue(product) && (
-            <div className="absolute top-4 right-4 z-20">
-              <ResendProductNotificationButton productId={product.id} />
-            </div>
-          )}
+          {/* Индикатор статуса отправки в Telegram */}
+          <div className="absolute top-4 right-4 z-20">
+            <TelegramNotificationBadge product={product} />
+          </div>
           
           <div className="w-full h-48 bg-gray-50 rounded-md overflow-hidden">
             <OptimizedImage
