@@ -273,18 +273,11 @@ export class NotificationQueueSystem {
   private async handleItem(item: QueueItem): Promise<void> {
     switch (item.notification_type) {
       case 'product':
+        console.log('📦 [Queue] Processing product notification');
         await this.productHandler.handle(item.payload);
         break;
-      case 'order':
-        // TODO: Implement OrderNotificationHandler
-        console.log('⚠️ [Queue] Order notifications not yet implemented');
-        break;
-      case 'admin':
-        // TODO: Implement AdminNotificationHandler
-        console.log('⚠️ [Queue] Admin notifications not yet implemented');
-        break;
       default:
-        throw new Error(`Unknown notification type: ${item.notification_type}`);
+        throw new Error(`Unknown notification type: ${item.notification_type}. v2.0 only handles products.`);
     }
   }
 

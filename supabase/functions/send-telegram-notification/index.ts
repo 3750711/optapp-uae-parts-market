@@ -1,15 +1,17 @@
 // ======================== IMPORTANT NOTICE ========================
-// Notification Queue System v2.0
-// This file implements a queue-based notification system for Telegram
+// Notification System Architecture v2.0.1
 // 
-// Key Features:
-// - Asynchronous queue processing with priority support
-// - Automatic retry with exponential backoff
-// - Dead letter queue for failed notifications
-// - Idempotency via request_id
-// - 72-hour cooldown for product reposts
+// PRODUCTS (v2.0 Queue System):
+// - New products, reposts, sold notifications
+// - Uses NotificationQueueSystem with priorities, retries, DLQ
+// - Async processing with rate limit handling
 // 
-// Version: 2.0.0
+// ORDERS (Legacy Direct System):
+// - Order creation notifications handled by trigger_notify_on_new_order
+// - Direct processing via order-notification.ts
+// - NOT processed through v2.0 queue
+// 
+// Version: 2.0.1
 // Last Updated: 2025-10-06
 // ================================================================
 
@@ -82,41 +84,13 @@ serve(async (req) => {
     const requestData = await req.json();
     console.log("📨 Received request:", JSON.stringify(requestData, null, 2));
 
-    // Determine notification type and priority
-    let type = 'product';
-    let priority = 'normal';
-    let payload = requestData;
-
-    if (requestData.order && requestData.action) {
-      type = 'order';
-      priority = 'high'; // Orders are always high priority
-      payload = {
-        orderId: requestData.order.id,
-        action: requestData.action
-      };
-    } else if (requestData.productId) {
-      type = 'product';
-      const notificationType = requestData.notificationType || 'status_change';
-      
-      // Set priority based on notification type
-      if (notificationType === 'sold') {
-        priority = 'high';
-      } else if (notificationType === 'repost') {
-        priority = 'normal';
-      } else {
-        priority = 'low';
-      }
-
-      payload = {
-        productId: requestData.productId,
-        notificationType
-      };
-    } else {
-      console.error("❌ Invalid request data - missing required fields");
+    // Only handle product notifications through v2.0 queue
+    if (!requestData.productId) {
+      console.error("❌ Invalid request data - productId required");
       return new Response(
         JSON.stringify({ 
           error: "Invalid request data",
-          message: "Request must include either (order + action) or productId"
+          message: "v2.0 queue only handles product notifications. Orders use legacy system."
         }),
         { 
           status: 400,
@@ -125,17 +99,35 @@ serve(async (req) => {
       );
     }
 
-    // Enqueue notification
-    const queueId = await queue.enqueue(type, payload, priority);
+    const notificationType = requestData.notificationType || 'status_change';
+    
+    // Set priority based on notification type
+    let priority = 'normal';
+    if (notificationType === 'sold') {
+      priority = 'high';
+    } else if (notificationType === 'repost') {
+      priority = 'normal';
+    } else {
+      priority = 'low';
+    }
 
-    console.log(`✅ Notification queued successfully: ${queueId}`);
+    const payload = {
+      productId: requestData.productId,
+      notificationType
+    };
+
+    // Enqueue product notification
+    const queueId = await queue.enqueue('product', payload, priority);
+
+    console.log(`✅ Product notification queued successfully: ${queueId}`);
 
     return new Response(
       JSON.stringify({ 
         success: true,
-        message: "Notification queued successfully",
+        message: "Product notification queued successfully",
         queueId,
-        priority
+        priority,
+        notificationType
       }),
       { 
         status: 200,
