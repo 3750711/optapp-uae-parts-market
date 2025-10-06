@@ -9,6 +9,7 @@ import { Product } from "@/types/product";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 import { getSellerPagesTranslations } from "@/utils/translations/sellerPages";
+import { useTelegramNotification } from "@/hooks/useTelegramNotification";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
   const { language } = useLanguage();
   const t = getProductStatusTranslations(language);
   const sp = getSellerPagesTranslations(language);
+  const { sendProductNotification } = useTelegramNotification();
 
   // Status update mutation
   const statusMutation = useMutation({
@@ -46,10 +48,17 @@ const MobileSellerActions: React.FC<MobileSellerActionsProps> = ({
         .eq('id', product.id);
       
       if (error) throw error;
+      return newStatus;
     },
-    onSuccess: () => {
+    onSuccess: async (newStatus) => {
       queryClient.invalidateQueries({ queryKey: ['seller-product', product.id] });
       queryClient.invalidateQueries({ queryKey: ['seller-products'] });
+      
+      // Send notification when status changed to sold
+      if (newStatus === 'sold') {
+        await sendProductNotification(product.id, 'sold');
+      }
+      
       toast({
         title: sp.mobileActions.statusUpdated,
         description: sp.mobileActions.statusUpdateDescription,

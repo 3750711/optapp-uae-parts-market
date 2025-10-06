@@ -11,6 +11,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 import { getCommonTranslations } from '@/utils/translations/common';
 import { getProductStatusTranslations } from '@/utils/translations/productStatuses';
+import { useTelegramNotification } from "@/hooks/useTelegramNotification";
 
 import {
   AlertDialog,
@@ -40,7 +41,7 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
   const sp = getSellerPagesTranslations(language);
   const c = getCommonTranslations(language);
   const t = getProductStatusTranslations(language);
-  
+  const { sendProductNotification } = useTelegramNotification();
 
   // Status update mutation
   const statusMutation = useMutation({
@@ -57,6 +58,10 @@ const SellerProductActions: React.FC<SellerProductActionsProps> = ({
       queryClient.invalidateQueries({ queryKey: ['seller-product', product.id] });
       queryClient.invalidateQueries({ queryKey: ['seller-products'] });
       
+      // Send notification when status changed to sold
+      if (newStatus === 'sold') {
+        await sendProductNotification(product.id, 'sold');
+      }
       
       toast({
         title: sp.productActions?.updated || sp.mobileActions.statusUpdated,
