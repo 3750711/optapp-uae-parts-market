@@ -34,13 +34,7 @@ export const useProductsQuery = ({
       .from('products')
       .select(`
           *,
-          product_images(id, url, is_primary),
-          notification_logs:telegram_notifications_log!related_entity_id(
-            id,
-            status,
-            created_at,
-            notification_type
-          )
+          product_images(id, url, is_primary)
         `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);
@@ -156,8 +150,28 @@ export const useProductsQuery = ({
       throw enhancedError;
     }
 
+    // Fetch notification logs separately to avoid PGRST200 foreign key error
+    let logsMap: Record<string, any[]> = {};
+    if (data && data.length > 0) {
+      const productIds = data.map(p => p.id);
+      const { data: logs } = await supabase
+        .from('telegram_notifications_log')
+        .select('id, status, created_at, notification_type, related_entity_id')
+        .in('related_entity_id', productIds)
+        .eq('status', 'sent')
+        .in('notification_type', ['product_published', 'status_change']);
+      
+      // Group logs by product_id
+      logs?.forEach(log => {
+        if (!logsMap[log.related_entity_id]) {
+          logsMap[log.related_entity_id] = [];
+        }
+        logsMap[log.related_entity_id].push(log);
+      });
+    }
+
     // Sort product_images so primary images come first (non-mutating)
-    // Filter notification_logs to only include sent product-related notifications
+    // Attach notification_logs from separate query
     const dataWithSortedImages = data?.map(product => ({
       ...product,
       product_images: product.product_images?.slice().sort((a: any, b: any) => {
@@ -165,10 +179,7 @@ export const useProductsQuery = ({
         if (!a.is_primary && b.is_primary) return 1;
         return 0;
       }),
-      notification_logs: product.notification_logs?.filter((log: any) => 
-        log.status === 'sent' && 
-        ['product_published', 'status_change'].includes(log.notification_type)
-      )
+      notification_logs: logsMap[product.id] || []
     })) as Product[];
 
     return { 
