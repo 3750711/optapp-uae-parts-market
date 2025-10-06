@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useTelegramNotification } from '@/hooks/useTelegramNotification';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ResendProductNotificationButtonProps {
   productId: string;
@@ -16,7 +16,6 @@ export const ResendProductNotificationButton = ({
   className = '' 
 }: ResendProductNotificationButtonProps) => {
   const [isResending, setIsResending] = useState(false);
-  const { sendProductNotification } = useTelegramNotification();
   const { profile } = useAuth();
   const queryClient = useQueryClient();
 
@@ -30,7 +29,22 @@ export const ResendProductNotificationButton = ({
     setIsResending(true);
     
     try {
-      await sendProductNotification(productId, 'product_published');
+      console.log('🔄 Calling resend_product_notification RPC for product:', productId);
+      
+      const { data, error } = await supabase.rpc('resend_product_notification', {
+        p_product_id: productId
+      });
+
+      if (error) {
+        console.error('❌ RPC error:', error);
+        throw error;
+      }
+
+      console.log('✅ RPC response:', data);
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to send notification');
+      }
       
       // Инвалидируем кэш (включая with-issues)
       queryClient.invalidateQueries({ 
@@ -40,7 +54,7 @@ export const ResendProductNotificationButton = ({
       
       toast.success('Уведомление отправлено в Telegram');
     } catch (error) {
-      console.error('Error resending notification:', error);
+      console.error('❌ Error resending notification:', error);
       toast.error('Ошибка отправки уведомления');
     } finally {
       setIsResending(false);

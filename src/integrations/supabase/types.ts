@@ -3206,6 +3206,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: boolean
       }
+      resend_product_notification: {
+        Args: { p_product_id: string }
+        Returns: Json
+      }
       restore_account_from_backup: {
         Args: { backup_id: string }
         Returns: Json

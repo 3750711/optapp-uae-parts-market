@@ -122,6 +122,15 @@ interface CustomRPCFunctions {
     p_video_url: string[];
     p_text_order: string;
   }) => string; // Returns UUID
+
+  resend_product_notification: (args: {
+    p_product_id: string;
+  }) => {
+    success: boolean;
+    message?: string;
+    error?: string;
+    response?: any;
+  };
 }
 
 // Extend the built-in Database type
