@@ -10,11 +10,16 @@ interface TelegramUpdate {
   update_id: number;
   message?: {
     message_id: number;
-    from: {
+    from?: {
       id: number;
       is_bot: boolean;
       first_name: string;
       username?: string;
+    };
+    sender_chat?: {
+      id: number;
+      title?: string;
+      type: string;
     };
     chat: {
       id: number;
@@ -26,14 +31,32 @@ interface TelegramUpdate {
     caption?: string;
     photo?: Array<any>;
     media_group_id?: string;
+    forward_from?: {
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      username?: string;
+    };
+    forward_from_chat?: {
+      id: number;
+      title?: string;
+      type: string;
+    };
+    forward_from_message_id?: number;
+    forward_date?: number;
   };
   channel_post?: {
     message_id: number;
-    from: {
+    from?: {
       id: number;
       is_bot: boolean;
       first_name: string;
       username?: string;
+    };
+    sender_chat?: {
+      id: number;
+      title?: string;
+      type: string;
     };
     chat: {
       id: number;
@@ -45,6 +68,19 @@ interface TelegramUpdate {
     caption?: string;
     photo?: Array<any>;
     media_group_id?: string;
+    forward_from?: {
+      id: number;
+      is_bot: boolean;
+      first_name: string;
+      username?: string;
+    };
+    forward_from_chat?: {
+      id: number;
+      title?: string;
+      type: string;
+    };
+    forward_from_message_id?: number;
+    forward_date?: number;
   };
 }
 
@@ -65,22 +101,54 @@ serve(async (req) => {
       });
     }
 
-    // Проверяем что это наша группа продуктов
-    const PRODUCT_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || '-1002804153717';
-    const chatIdStr = message.chat.id.toString().replace('-', '');
-    const targetChatIdStr = PRODUCT_GROUP_CHAT_ID.replace('-', '').replace('100', '');
-    
-    if (chatIdStr !== targetChatIdStr && chatIdStr !== PRODUCT_GROUP_CHAT_ID.replace('-', '')) {
-      console.log(`⏭️ Skip: chat ${message.chat.id} != ${PRODUCT_GROUP_CHAT_ID}`);
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Проверяем что сообщение от нашего бота
+    // Группы для мониторинга
+    const MONITORING_CHAT_ID = '-1679816540';  // OPT UAE MARKET - принимаем ВСЕ сообщения
+    const PRODUCT_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || '-1002804153717';  // Запасная группа
     const BOT_ID = parseInt(Deno.env.get('TELEGRAM_BOT_ID') || '0');
-    if (!message.from?.is_bot || message.from.id !== BOT_ID) {
-      console.log(`⏭️ Skip: from ${message.from?.id} (is_bot: ${message.from?.is_bot}) != bot ${BOT_ID}`);
+
+    // Нормализуем chat_id для сравнения
+    const currentChatId = message.chat.id.toString();
+    const isMonitoringGroup = currentChatId === MONITORING_CHAT_ID || 
+                              currentChatId === '-100' + MONITORING_CHAT_ID.replace('-', '') ||
+                              currentChatId.replace('-', '') === MONITORING_CHAT_ID.replace('-', '');
+    const isProductGroup = currentChatId === PRODUCT_GROUP_CHAT_ID ||
+                           currentChatId === '-100' + PRODUCT_GROUP_CHAT_ID.replace('-', '') ||
+                           currentChatId.replace('-', '').replace('100', '') === PRODUCT_GROUP_CHAT_ID.replace('-', '').replace('100', '');
+
+    let messageSource = 'unknown';
+    
+    if (isMonitoringGroup) {
+      // ✅ Принимаем ВСЕ сообщения из OPT UAE MARKET
+      console.log('✅ Message from OPT UAE MARKET monitoring group');
+      
+      // Определяем источник для логирования
+      if (message.from?.is_bot && message.from.id === BOT_ID) {
+        messageSource = 'direct_bot';
+      } else if (message.sender_chat?.id) {
+        messageSource = 'sender_chat_anonymous';
+      } else if (message.forward_from?.id === BOT_ID) {
+        messageSource = 'forwarded_from_bot';
+      } else if (message.from?.id) {
+        messageSource = 'user_' + message.from.id;
+      }
+      
+      console.log(`📍 Message source: ${messageSource}, from: ${message.from?.id || 'N/A'}, sender_chat: ${message.sender_chat?.id || 'N/A'}`);
+      
+    } else if (isProductGroup) {
+      // Запасной вариант для старой группы (только от бота)
+      console.log('✅ Message from Product Group (legacy)');
+      
+      if (!message.from?.is_bot || message.from.id !== BOT_ID) {
+        console.log(`⏭️ Skip: legacy group requires bot messages only (from: ${message.from?.id}, is_bot: ${message.from?.is_bot})`);
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      messageSource = 'direct_bot_legacy';
+      
+    } else {
+      console.log(`⏭️ Skip: chat ${message.chat.id} is not a monitored group`);
       return new Response(JSON.stringify({ ok: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -124,12 +192,16 @@ serve(async (req) => {
 
     console.log(`📦 Product found: ${product.id} (${product.title}), current status: ${product.telegram_notification_status}`);
 
+    // Определяем правильный message_id (для пересланных сообщений используем оригинальный ID)
+    const originalMessageId = message.forward_from_message_id || message.message_id;
+    console.log(`📨 Using message_id: ${originalMessageId} (forwarded: ${!!message.forward_from_message_id})`);
+
     // Обновляем статус
     const { error: updateError } = await supabase
       .from('products')
       .update({
         telegram_notification_status: 'sent',
-        telegram_message_id: message.message_id,
+        telegram_message_id: originalMessageId,
         telegram_confirmed_at: new Date().toISOString(),
         last_notification_sent_at: new Date(message.date * 1000).toISOString(),
         telegram_last_error: null
@@ -151,16 +223,22 @@ serve(async (req) => {
       function_name: 'telegram-webhook-confirmation',
       notification_type: 'product_published_confirmed',
       recipient_type: 'group',
-      recipient_identifier: PRODUCT_GROUP_CHAT_ID,
-      recipient_name: 'Product Group',
+      recipient_identifier: isMonitoringGroup ? MONITORING_CHAT_ID : PRODUCT_GROUP_CHAT_ID,
+      recipient_name: isMonitoringGroup ? 'OPT UAE MARKET' : 'Product Group',
       message_text: messageText.substring(0, 500),
       status: 'sent',
-      telegram_message_id: message.message_id.toString(),
+      telegram_message_id: originalMessageId.toString(),
       related_entity_type: 'product',
       related_entity_id: product.id,
       metadata: {
         lot_number: lotNumber,
         confirmed_by_webhook: true,
+        monitoring_group: isMonitoringGroup,
+        message_source: messageSource,
+        chat_id: message.chat.id,
+        from_user_id: message.from?.id,
+        sender_chat_id: message.sender_chat?.id,
+        is_forwarded: !!message.forward_from_message_id,
         message_date: new Date(message.date * 1000).toISOString()
       }
     });
