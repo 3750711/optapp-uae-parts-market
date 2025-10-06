@@ -43,20 +43,56 @@ export const useProductsQuery = ({
 
     // Если включен фильтр проблемных уведомлений - использовать RPC функцию
     if (notificationIssuesFilter) {
-      const { data, error, count } = await supabase
+      console.log('[AdminProducts] Using RPC for notification issues filter');
+
+      // First, get the total count
+      const { data: countData, error: countError } = await supabase
+        .rpc('count_products_with_notification_issues', {
+          p_search: debouncedSearchTerm || null,
+          p_status: statusFilter !== 'all' ? statusFilter : 'all',
+          p_seller_id: sellerFilter !== 'all' ? sellerFilter : null
+        });
+
+      if (countError) {
+        console.error('[AdminProducts] Count RPC error:', countError);
+        throw new Error(`Failed to count products with notification issues: ${countError.message}`);
+      }
+
+      const totalCount = Number(countData) || 0;
+      console.log('[AdminProducts] Total count:', totalCount);
+
+      // Then get the actual products
+      const { data, error } = await supabase
         .rpc('get_products_with_notification_issues', {
           p_limit: pageSize,
           p_offset: pageParam * pageSize,
           p_search: debouncedSearchTerm || null,
           p_status: statusFilter !== 'all' ? statusFilter : 'all',
           p_seller_id: sellerFilter !== 'all' ? sellerFilter : null
-        })
-        .select('*, product_images(id, url, is_primary)')
-        .returns<any[]>();
+        });
 
       if (error) {
         console.error('[AdminProducts] RPC error:', error);
         throw new Error(`Failed to fetch products with notification issues: ${error.message}`);
+      }
+
+      console.log('[AdminProducts] RPC returned products:', data?.length);
+
+      // Fetch product_images separately
+      let imagesMap: Record<string, any[]> = {};
+      if (data && data.length > 0) {
+        const productIds = data.map(p => p.id);
+        const { data: images } = await supabase
+          .from('product_images')
+          .select('id, url, is_primary, product_id')
+          .in('product_id', productIds);
+        
+        images?.forEach(img => {
+          if (!imagesMap[img.product_id]) {
+            imagesMap[img.product_id] = [];
+          }
+          imagesMap[img.product_id].push(img);
+        });
       }
 
       // Fetch notification logs for these products
@@ -76,9 +112,9 @@ export const useProductsQuery = ({
         });
       }
 
-      const dataWithSortedImages = data?.map(product => ({
+      const dataWithImagesAndLogs = data?.map(product => ({
         ...product,
-        product_images: product.product_images?.slice().sort((a: any, b: any) => {
+        product_images: (imagesMap[product.id] || []).slice().sort((a: any, b: any) => {
           if (a.is_primary && !b.is_primary) return -1;
           if (!a.is_primary && b.is_primary) return 1;
           return 0;
@@ -86,15 +122,15 @@ export const useProductsQuery = ({
         notification_logs: logsMap[product.id] || []
       })) as Product[];
 
-      console.log('[AdminProducts] RPC returned:', {
-        count: data?.length || 0,
-        totalCount: count,
-        hasMore: data && data.length === pageSize
+      console.log('[AdminProducts] Final data:', {
+        productsCount: data?.length || 0,
+        totalCount,
+        hasMore: (data?.length || 0) === pageSize
       });
 
       return { 
-        data: dataWithSortedImages || [], 
-        count: count || 0
+        data: dataWithImagesAndLogs || [], 
+        count: totalCount
       };
     }
 

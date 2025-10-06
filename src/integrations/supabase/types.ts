@@ -2791,6 +2791,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: number
       }
+      count_products_with_notification_issues: {
+        Args: { p_search?: string; p_seller_id?: string; p_status?: string }
+        Returns: number
+      }
       create_bilingual_notification: {
         Args: { p_data?: Json; p_type: string; p_user_id: string }
         Returns: string

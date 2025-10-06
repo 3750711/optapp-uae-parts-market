@@ -4,6 +4,20 @@ import { SupabaseClient } from '@supabase/supabase-js';
 
 // Extend the RPCFunctionsDatabase interface to include our admin functions
 interface CustomRPCFunctions {
+  count_products_with_notification_issues: (args: {
+    p_search?: string | null;
+    p_status?: string;
+    p_seller_id?: string | null;
+  }) => number;
+
+  get_products_with_notification_issues: (args: {
+    p_limit?: number;
+    p_offset?: number;
+    p_search?: string | null;
+    p_status?: string;
+    p_seller_id?: string | null;
+  }) => any[];
+
   admin_create_product: (args: {
     p_title: string;
     p_price: number;
