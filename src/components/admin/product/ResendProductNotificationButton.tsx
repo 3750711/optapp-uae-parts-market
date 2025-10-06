@@ -29,24 +29,44 @@ export const ResendProductNotificationButton = ({
     setIsResending(true);
     
     try {
-      console.log('🔄 Calling resend_product_notification RPC for product:', productId);
+      console.log('🔄 Step 1: Updating last_notification_sent_at via RPC');
       
-      const { data, error } = await supabase.rpc('resend_product_notification', {
+      // Step 1: Update database timestamp
+      const { data: rpcData, error: rpcError } = await supabase.rpc('resend_product_notification', {
         p_product_id: productId
       });
 
-      if (error) {
-        console.error('❌ RPC error:', error);
-        throw error;
+      if (rpcError) {
+        console.error('❌ RPC error:', rpcError);
+        throw rpcError;
       }
 
-      console.log('✅ RPC response:', data);
-
-      if (!data?.success) {
-        throw new Error(data?.error || 'Failed to send notification');
+      if (!rpcData?.success) {
+        throw new Error(rpcData?.error || 'Failed to update timestamp');
       }
+
+      console.log('✅ Step 1 complete: Timestamp updated');
+      console.log('🔄 Step 2: Sending Telegram notification via Edge Function');
+
+      // Step 2: Send Telegram notification
+      const { data: notificationData, error: notificationError } = await supabase.functions.invoke(
+        'send-telegram-notification',
+        {
+          body: {
+            productId: productId,
+            notificationType: 'product_published'
+          }
+        }
+      );
+
+      if (notificationError) {
+        console.error('❌ Edge Function error:', notificationError);
+        throw notificationError;
+      }
+
+      console.log('✅ Step 2 complete: Telegram notification sent', notificationData);
       
-      // Инвалидируем кэш (включая with-issues)
+      // Invalidate cache
       queryClient.invalidateQueries({ 
         queryKey: ['admin-products'],
         exact: false 
