@@ -5,7 +5,8 @@
 // Any changes may affect both order and product notifications
 // that send messages to Telegram. This system is currently working properly.
 // 
-// Version: 1.0.0
+// Version: 1.0.1
+// Last Modified: 2025-10-06 - Fixed successfulBatches bug
 // Last Verified Working: 2025-05-22
 // ================================================================
 
@@ -50,6 +51,7 @@ export async function sendImageMediaGroups(
     
     // Send each chunk as a media group
     let allMediaGroupsSuccessful = true;
+    let successfulBatches = 0; // Track successful batches
     
     for (let i = 0; i < imageChunks.length; i++) {
       const chunk = imageChunks[i];
@@ -68,7 +70,7 @@ export async function sendImageMediaGroups(
         
         // Add caption only to the first image of the first group
         const isFirstImageOfFirstGroup = i === 0 && j === 0;
-        const mediaItem = {
+        const mediaItem: any = {
           type: 'photo',
           media: imageUrl,
         };
@@ -107,6 +109,7 @@ export async function sendImageMediaGroups(
             mediaGroupResult.ok ? 'SUCCESS' : 'FAILED');
           
           if (mediaGroupResult.ok) {
+            successfulBatches++; // Increment successful batch counter
             break; // Exit retry loop on success
           } else {
             const retryAfter = mediaGroupResult.parameters?.retry_after || 10;
@@ -177,6 +180,10 @@ export async function sendImageMediaGroups(
             
             const smallerResult = await smallerResponse.json();
             console.log(`Smaller batch result:`, smallerResult.ok ? 'SUCCESS' : 'FAILED');
+            
+            if (smallerResult.ok) {
+              successfulBatches++; // Increment if smaller batch succeeded
+            }
           } catch (error) {
             console.error(`Error sending smaller batch:`, error);
           }
@@ -224,13 +231,20 @@ export async function sendImageMediaGroups(
       }
     }
     
-    // Return success response
+    // Return success response with detailed batch information
+    const responseMessage = allMediaGroupsSuccessful 
+      ? 'Notification sent successfully' 
+      : successfulBatches > 0
+        ? `Notification partially sent (${successfulBatches}/${imageChunks.length} groups succeeded)`
+        : 'All media groups failed to send';
+    
     return new Response(
       JSON.stringify({ 
-        success: allMediaGroupsSuccessful, 
-        message: allMediaGroupsSuccessful 
-          ? 'Notification sent successfully' 
-          : 'Notification partially sent, some image groups failed'
+        success: allMediaGroupsSuccessful,
+        partial_success: successfulBatches > 0 && !allMediaGroupsSuccessful,
+        successful_batches: successfulBatches,
+        total_batches: imageChunks.length,
+        message: responseMessage
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
