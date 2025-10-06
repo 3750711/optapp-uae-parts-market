@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminProductFormValues } from "@/schemas/adminProductSchema";
 import { useRoleValidation } from "@/hooks/useRoleValidation";
 import { ProductMediaService } from "@/services/ProductMediaService";
-import { useTelegramNotification } from "@/hooks/useTelegramNotification";
 import { logger } from "@/utils/logger";
 
 interface CreateTrustedProductParams {
@@ -22,7 +21,6 @@ export const useTrustedSellerProductCreation = () => {
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const { validateTrustedSeller } = useRoleValidation();
-  const { sendProductNotification } = useTelegramNotification();
 
   const createTrustedSellerProduct = async ({
     values,
@@ -104,14 +102,14 @@ export const useTrustedSellerProductCreation = () => {
         userType: 'trusted_seller'
       });
 
-      // Send notification via new queue system (fire-and-forget)
-      sendProductNotification(productId, 'product_published')
-        .then(() => {
-          logger.log(`✅ Notification queued via send-telegram-notification for trusted seller product ${productId}`);
-        })
-        .catch(error => {
-          logger.error(`⚠️ Failed to queue notification for trusted seller product ${productId}:`, error);
-        });
+      // Send background notifications (fire-and-forget)
+      supabase.functions.invoke('send-tg-product-once', {
+        body: { productId }
+      }).then(() => {
+        logger.log(`✅ Telegram notification queued for trusted seller product ${productId}`);
+      }).catch(error => {
+        logger.error(`⚠️ Failed to queue Telegram notification for trusted seller product ${productId}:`, error);
+      });
 
       toast({
         title: "Товар успешно опубликован",

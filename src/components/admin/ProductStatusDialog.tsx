@@ -30,7 +30,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/product';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
-import { useTelegramNotification } from '@/hooks/useTelegramNotification';
 
 const formSchema = z.object({
   status: z.enum(['pending', 'active', 'sold', 'archived'])
@@ -46,7 +45,6 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
   const { isAdmin } = useAdminAccess();
-  const { sendProductNotification } = useTelegramNotification();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -88,7 +86,7 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
 
-      // Update product status
+      // Update product status - DB triggers will handle notifications
       console.log(`💾 [ProductStatusDialog] Updating product status in database...`);
       const { data, error } = await supabase
         .from('products')
@@ -103,11 +101,7 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
 
       console.log(`✅ [ProductStatusDialog] Database update successful:`, data);
 
-      // Send Telegram notification if status changed to 'sold'
-      if (values.status === 'sold') {
-        console.log(`📢 [ProductStatusDialog] Sending 'sold' notification...`);
-        await sendProductNotification(product.id, 'sold');
-      }
+      // Note: Removed fallback Telegram notification to avoid duplicate messages.
 
       // Логирование отключено - используется Microsoft Clarity
 

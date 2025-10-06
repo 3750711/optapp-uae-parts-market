@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   AlertDialog,
@@ -15,7 +16,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
-import { useTelegramNotification } from "@/hooks/useTelegramNotification";
 
 
 interface ProductStatusChangeDialogProps {
@@ -32,7 +32,6 @@ const ProductStatusChangeDialog = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const { language } = useLanguage();
   const t = getProductStatusTranslations(language);
-  const { sendProductNotification } = useTelegramNotification();
   
 
   const handleMarkAsSold = async () => {
@@ -62,7 +61,7 @@ const ProductStatusChangeDialog = ({
       const oldStatus = currentProduct?.status || "unknown";
       console.log(`📊 [ProductStatusChangeDialog] Current status: ${oldStatus} -> sold`);
       
-      // Update the product status
+      // Update the product status - the database trigger will handle the notification automatically
       console.log(`💾 [ProductStatusChangeDialog] Updating product status in database...`);
       const { data, error } = await supabase
         .from("products")
@@ -75,11 +74,7 @@ const ProductStatusChangeDialog = ({
         throw error;
       }
       
-      console.log(`✅ [ProductStatusChangeDialog] Database update successful:`, data);
-      
-      // Send Telegram notification
-      console.log(`📢 [ProductStatusChangeDialog] Sending 'sold' notification...`);
-      await sendProductNotification(productId, 'sold');
+      console.log(`✅ [ProductStatusChangeDialog] Database update successful - notification will be sent automatically by trigger:`, data);
 
       // Логирование отключено - используется Microsoft Clarity
 

@@ -173,15 +173,18 @@ export const useAdminProductCreation = () => {
         });
       });
 
-      // Step 5: Queue Telegram notification via new queue system
+      // Step 5: Queue Telegram notification (fire-and-forget)
       monitoring.executeStep('telegram', async () => {
-        try {
-          await sendProductNotification(productId, 'product_published');
-          console.log(`✅ Notification queued via send-telegram-notification for product ${productId}`);
-        } catch (error) {
-          console.error(`⚠️ Failed to queue notification for product ${productId}:`, error);
-          throw error;
-        }
+        // Send notification in background without blocking
+        supabase.functions.invoke('send-tg-product-once', {
+          body: { productId }
+        }).then(() => {
+          console.log(`✅ Telegram notification queued for product ${productId}`);
+        }).catch(error => {
+          console.error(`⚠️ Failed to queue Telegram notification for product ${productId}:`, error);
+        });
+        
+        console.log(`📨 Telegram notification being sent in background for product ${productId}`);
       }).catch(error => {
         console.error("⚠️ Telegram notification queueing failed (non-critical):", error);
         monitoring.updateStep('telegram', { status: 'completed', error: 'Non-critical error' });
