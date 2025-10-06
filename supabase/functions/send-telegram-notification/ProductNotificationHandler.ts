@@ -69,17 +69,26 @@ export class ProductNotificationHandler {
         .map((img: any) => img.url) || [];
 
       // Send notification
-      if (images.length > 0) {
-        if (images.length <= 10) {
-          await this.telegramClient.sendMediaGroup(this.productGroupChatId, images, message);
-        } else {
-          await this.telegramClient.sendMultipleMediaGroups(this.productGroupChatId, images, message);
-        }
-      } else {
+      if (notificationType === 'sold') {
+        // Для проданных товаров ВСЕГДА только текст (без фото)
         await this.telegramClient.sendMessage({
           chatId: this.productGroupChatId,
           text: message
         });
+      } else {
+        // Для остальных типов отправляем с фото
+        if (images.length > 0) {
+          if (images.length <= 10) {
+            await this.telegramClient.sendMediaGroup(this.productGroupChatId, images, message);
+          } else {
+            await this.telegramClient.sendMultipleMediaGroups(this.productGroupChatId, images, message);
+          }
+        } else {
+          await this.telegramClient.sendMessage({
+            chatId: this.productGroupChatId,
+            text: message
+          });
+        }
       }
 
       // Update product: success
