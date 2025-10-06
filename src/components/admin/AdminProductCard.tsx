@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { Checkbox } from "@/components/ui/checkbox";
 import { useProductImage } from '@/hooks/useProductImage';
+import { ResendProductNotificationButton } from '@/components/admin/product/ResendProductNotificationButton';
 
 interface AdminProductCardProps {
   product: Product;
@@ -97,21 +98,19 @@ const AdminProductCardComponent: React.FC<AdminProductCardProps> = ({
             <Checkbox checked={isSelected} className="m-1" aria-label={`Выбрать товар ${product.title}`} />
         </div>
         <div className="relative p-2">
-          {/* Индикатор неотправленного уведомления (триггер сработал, но Edge Function упала) */}
+          {/* Кнопка ручной отправки уведомления для проблемных товаров */}
           {hasNotificationIssue(product) && (
             <Tooltip delayDuration={200}>
               <TooltipTrigger asChild>
                 <div 
-                  className="absolute top-4 right-4 z-20 cursor-help"
+                  className="absolute top-4 right-4 z-20"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="relative">
                     {/* Пульсирующая анимация */}
                     <div className="absolute inset-0 animate-ping rounded-full bg-red-400 opacity-75" />
-                    {/* Основной значок */}
-                    <div className="relative flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-red-600 rounded-full shadow-lg">
-                      <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                    </div>
+                    {/* Кнопка отправки */}
+                    <ResendProductNotificationButton productId={product.id} />
                   </div>
                 </div>
               </TooltipTrigger>
@@ -127,6 +126,9 @@ const AdminProductCardComponent: React.FC<AdminProductCardProps> = ({
                       <strong>Попытка:</strong> {product.last_notification_sent_at 
                         ? new Date(product.last_notification_sent_at).toLocaleString('ru-RU')
                         : 'неизвестно'}
+                    </p>
+                    <p className="text-xs text-green-600 mt-2 font-medium">
+                      💡 Нажмите на кнопку, чтобы отправить повторно
                     </p>
                   </div>
                 </div>
