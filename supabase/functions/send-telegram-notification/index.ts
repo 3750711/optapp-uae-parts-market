@@ -1,84 +1,158 @@
-
 // ======================== IMPORTANT NOTICE ========================
-// This file orchestrates critical notification functionality.
-// DO NOT EDIT unless absolutely necessary!
+// Notification Queue System v2.0
+// This file implements a queue-based notification system for Telegram
 // 
-// Any changes may affect both order and product notifications
-// that send messages to Telegram. This system is currently working properly.
+// Key Features:
+// - Asynchronous queue processing with priority support
+// - Automatic retry with exponential backoff
+// - Dead letter queue for failed notifications
+// - Idempotency via request_id
+// - 72-hour cooldown for product reposts
 // 
-// Version: 1.1.0
-// Last Verified Working: 2025-06-21
-// Change: Added support for resend notifications
+// Version: 2.0.0
+// Last Updated: 2025-10-06
 // ================================================================
 
-// Follow this setup guide to integrate the Deno language server with your editor:
-// https://deno.land/manual/getting_started/setup_your_environment
-// This enables autocomplete, go to definition, etc.
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { corsHeaders } from "./config.ts";
-import { handleOrderNotification } from "./order-notification.ts";
-import { handleProductNotification } from "./product-notification.ts";
+import { corsHeaders, BOT_TOKEN, PRODUCT_GROUP_CHAT_ID } from "./config.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { logTelegramNotification } from "../shared/telegram-logger.ts";
+import { TelegramApiClient } from './TelegramApiClient.ts';
+import { NotificationLogger } from './NotificationLogger.ts';
+import { ProductNotificationHandler } from './ProductNotificationHandler.ts';
+import { NotificationQueueSystem } from './NotificationQueueSystem.ts';
 
-console.log('🚀 Edge Function starting up...');
-console.log('Environment variables check:');
-console.log('- SUPABASE_URL exists:', !!Deno.env.get('SUPABASE_URL'));
-console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
-console.log('- TELEGRAM_BOT_TOKEN exists:', !!Deno.env.get('TELEGRAM_BOT_TOKEN'));
+console.log("🚀 send-telegram-notification function started v2.0 (Queue System)");
+
+// Check environment variables
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("❌ Missing required environment variables");
+}
+
+if (!BOT_TOKEN) {
+  console.error("❌ Missing TELEGRAM_BOT_TOKEN");
+}
+
+// Initialize global queue system
+let queueSystem: NotificationQueueSystem | null = null;
+
+async function initializeQueueSystem() {
+  if (queueSystem) return queueSystem;
+
+  const supabaseClient = createClient(
+    SUPABASE_URL!,
+    SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: { persistSession: false, autoRefreshToken: false }
+    }
+  );
+
+  const telegramClient = new TelegramApiClient(BOT_TOKEN!);
+  const logger = new NotificationLogger(supabaseClient);
+  const productHandler = new ProductNotificationHandler(
+    telegramClient,
+    logger,
+    supabaseClient,
+    PRODUCT_GROUP_CHAT_ID!
+  );
+
+  queueSystem = new NotificationQueueSystem(supabaseClient, productHandler);
+  
+  // Restore queue from database and start processing
+  await queueSystem.restoreQueueFromDatabase();
+  queueSystem.startProcessing();
+
+  console.log("✅ Queue system initialized and started");
+  
+  return queueSystem;
+}
 
 serve(async (req) => {
-  console.log('=== EDGE FUNCTION CALLED ===');
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  console.log('Headers:', Object.fromEntries(req.headers.entries()));
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? "",
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ""
-    );
+    // Initialize queue system
+    const queue = await initializeQueueSystem();
 
-    // Parse request body
-    const reqData = await req.json();
-    console.log('Received request data:', reqData);
+    const requestData = await req.json();
+    console.log("📨 Received request:", JSON.stringify(requestData, null, 2));
 
-    // Handle different request types
-    if (reqData.order && (reqData.action === 'create' || reqData.action === 'status_change' || reqData.action === 'resend' || reqData.action === 'registered')) {
-      const notificationType = reqData.action === 'registered' ? 'registered' : 'regular';
-      return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders, notificationType);
-    } else if (reqData.productId) {
-      return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders, req, reqData.priceChanged, reqData.newPrice, reqData.oldPrice, reqData.requestId);
+    // Determine notification type and priority
+    let type = 'product';
+    let priority = 'normal';
+    let payload = requestData;
+
+    if (requestData.order && requestData.action) {
+      type = 'order';
+      priority = 'high'; // Orders are always high priority
+      payload = {
+        orderId: requestData.order.id,
+        action: requestData.action
+      };
+    } else if (requestData.productId) {
+      type = 'product';
+      const notificationType = requestData.notificationType || 'status_change';
+      
+      // Set priority based on notification type
+      if (notificationType === 'sold') {
+        priority = 'high';
+      } else if (notificationType === 'repost') {
+        priority = 'normal';
+      } else {
+        priority = 'low';
+      }
+
+      payload = {
+        productId: requestData.productId,
+        notificationType
+      };
     } else {
-      console.log('Invalid request data: missing required parameters');
+      console.error("❌ Invalid request data - missing required fields");
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: order+action or productId required' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({ 
+          error: "Invalid request data",
+          message: "Request must include either (order + action) or productId"
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
       );
     }
-  } catch (error) {
-    console.error('=== EDGE FUNCTION ERROR ===');
-    console.error('Error details:', {
-      message: error?.message || 'Unknown error',
-      stack: error?.stack || 'No stack trace',
-      name: error?.name || 'Unknown error type'
-    });
+
+    // Enqueue notification
+    const queueId = await queue.enqueue(type, payload, priority);
+
+    console.log(`✅ Notification queued successfully: ${queueId}`);
 
     return new Response(
       JSON.stringify({ 
-        error: 'Internal server error',
-        details: error?.message || 'An unexpected error occurred',
-        timestamp: new Date().toISOString()
+        success: true,
+        message: "Notification queued successfully",
+        queueId,
+        priority
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      { 
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
+  } catch (error) {
+    console.error("💥 Error in send-telegram-notification:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || "Internal server error",
+        details: error.toString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
     );
   }
 });
