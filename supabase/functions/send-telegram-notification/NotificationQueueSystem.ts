@@ -211,6 +211,6 @@ export class NotificationQueueSystem {
 
   private generateRequestId(type: string, payload: any): string {
     const key = `${type}_${payload.notificationType || ''}_${payload.productId || payload.orderId || payload.userId}_${Date.now()}`;
-    return btoa(key).substring(0, 32);
+    return btoa(key).substring(0, 64);
   }
 }
