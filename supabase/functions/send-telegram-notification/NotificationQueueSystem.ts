@@ -148,16 +148,9 @@ export class NotificationQueueSystem {
       return;
     }
 
-    // Fetch next pending item
+    // Fetch next pending item atomically with lock
     const { data: items, error } = await this.supabaseClient
-      .from('notification_queue')
-      .select('*')
-      .eq('status', 'pending')
-      .lte('scheduled_for', new Date().toISOString())
-      .order('priority', { ascending: false })
-      .order('created_at', { ascending: true })
-      .limit(1);
-
+      .rpc('get_next_queue_item');
     if (error) {
       console.error('❌ [Queue] Failed to fetch next item:', error);
       return;
@@ -168,10 +161,11 @@ export class NotificationQueueSystem {
     }
 
     const item: QueueItem = items[0];
+    console.log(`⚙️ [Queue] Processing ${item.priority} priority notification: ${item.notification_type}`);
     const startTime = Date.now();
 
-    // Update to processing
-    await this.supabaseClient
+    // Update to processing (item already locked by FOR UPDATE SKIP LOCKED)
+    const { error: updateError } = await this.supabaseClient
       .from('notification_queue')
       .update({ 
         status: 'processing',
@@ -179,7 +173,10 @@ export class NotificationQueueSystem {
       })
       .eq('id', item.id);
 
-    console.log(`⚙️ [Queue] Processing ${item.notification_type} notification (priority: ${item.priority})`);
+    if (updateError) {
+      console.log('🔒 [Queue] Item locked by another worker, skipping');
+      return;
+    }
 
     try {
       // Handle the item

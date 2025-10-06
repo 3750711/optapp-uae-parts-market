@@ -3002,6 +3002,25 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_next_queue_item: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          notification_type: string
+          payload: Json
+          priority: string
+          processed_at: string | null
+          processing_time_ms: number | null
+          request_id: string | null
+          scheduled_for: string
+          status: string
+          updated_at: string
+        }[]
+      }
       get_product_content_for_embedding: {
         Args: { product_id: string }
         Returns: string
