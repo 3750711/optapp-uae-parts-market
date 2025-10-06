@@ -39,12 +39,20 @@ export const useProductsWithIssuesQuery = ({
       });
 
     if (countError) {
-      console.error('[ProductsWithIssues] Count RPC error:', countError);
+      console.error('[ProductsWithIssues] Count RPC error:', {
+        message: countError.message,
+        code: countError.code,
+        hint: countError.hint,
+        details: countError.details
+      });
       throw new Error(`Failed to count products with notification issues: ${countError.message}`);
     }
 
     const totalCount = Number(countData) || 0;
-    console.log('[ProductsWithIssues] Total count:', totalCount);
+    console.log('[ProductsWithIssues] ✅ Successfully fetched count:', {
+      totalCount,
+      filters: { search: debouncedSearchTerm, status: statusFilter, seller: sellerFilter }
+    });
 
     // 2. Get products with issues
     const { data, error } = await supabase
@@ -57,11 +65,20 @@ export const useProductsWithIssuesQuery = ({
       });
 
     if (error) {
-      console.error('[ProductsWithIssues] RPC error:', error);
+      console.error('[ProductsWithIssues] RPC error:', {
+        message: error.message,
+        code: error.code,
+        hint: error.hint,
+        details: error.details
+      });
       throw new Error(`Failed to fetch products with notification issues: ${error.message}`);
     }
 
-    console.log('[ProductsWithIssues] RPC returned products:', data?.length);
+    console.log('[ProductsWithIssues] ✅ Successfully fetched products:', {
+      productsCount: data?.length || 0,
+      page: pageParam,
+      pageSize
+    });
 
     // 3. Fetch product_images
     let imagesMap: Record<string, any[]> = {};
