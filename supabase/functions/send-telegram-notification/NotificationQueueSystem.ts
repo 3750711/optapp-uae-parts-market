@@ -36,6 +36,40 @@ export class NotificationQueueSystem {
       return existing.id;
     }
 
+    // Check for recent similar notifications (within last 10 seconds)
+    const tenSecondsAgo = new Date(Date.now() - 10000).toISOString();
+    const entityId = payload.productId || payload.orderId || payload.userId;
+
+    if (entityId && payload.notificationType) {
+      const { data: recentNotifications } = await this.supabaseClient
+        .from('notification_queue')
+        .select('id, created_at')
+        .eq('notification_type', type)
+        .gte('created_at', tenSecondsAgo)
+        .limit(10);
+
+      if (recentNotifications && recentNotifications.length > 0) {
+        // Check each recent notification's payload
+        for (const recent of recentNotifications) {
+          const { data: recentQueue } = await this.supabaseClient
+            .from('notification_queue')
+            .select('payload')
+            .eq('id', recent.id)
+            .single();
+          
+          if (recentQueue?.payload) {
+            const recentEntityId = recentQueue.payload.productId || recentQueue.payload.orderId || recentQueue.payload.userId;
+            const recentNotificationType = recentQueue.payload.notificationType;
+            
+            if (recentEntityId === entityId && recentNotificationType === payload.notificationType) {
+              console.log(`⚠️ [Queue] Recent similar notification found (within 10s), skipping duplicate for entity ${entityId}`);
+              return recent.id;
+            }
+          }
+        }
+      }
+    }
+
     // Insert into queue
     const { data, error } = await this.supabaseClient
       .from('notification_queue')
