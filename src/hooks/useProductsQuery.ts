@@ -42,9 +42,6 @@ export const useProductsQuery = ({
             notification_type
           )
         `, { count: 'exact' })
-      .eq('telegram_notifications_log.status', 'sent')
-      .eq('telegram_notifications_log.related_entity_type', 'product')
-      .in('telegram_notifications_log.notification_type', ['product_published', 'status_change'])
       .order('created_at', { ascending: false })
       .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);
 
@@ -160,13 +157,18 @@ export const useProductsQuery = ({
     }
 
     // Sort product_images so primary images come first (non-mutating)
+    // Filter notification_logs to only include sent product-related notifications
     const dataWithSortedImages = data?.map(product => ({
       ...product,
       product_images: product.product_images?.slice().sort((a: any, b: any) => {
         if (a.is_primary && !b.is_primary) return -1;
         if (!a.is_primary && b.is_primary) return 1;
         return 0;
-      })
+      }),
+      notification_logs: product.notification_logs?.filter((log: any) => 
+        log.status === 'sent' && 
+        ['product_published', 'status_change'].includes(log.notification_type)
+      )
     })) as Product[];
 
     return { 
