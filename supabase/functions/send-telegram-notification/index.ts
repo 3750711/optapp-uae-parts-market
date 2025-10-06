@@ -22,6 +22,7 @@ import { TelegramApiClient } from './TelegramApiClient.ts';
 import { NotificationLogger } from './NotificationLogger.ts';
 import { ProductNotificationHandler } from './ProductNotificationHandler.ts';
 import { NotificationQueueSystem } from './NotificationQueueSystem.ts';
+import { handleOrderNotification } from './order-notification.ts';
 
 console.log("🚀 send-telegram-notification function started v2.0 (Queue System)");
 
@@ -78,11 +79,43 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize queue system
-    const queue = await initializeQueueSystem();
-
     const requestData = await req.json();
     console.log("📨 Received request:", JSON.stringify(requestData, null, 2));
+
+    // Handle orders via legacy system (direct processing, no queue)
+    if (requestData.order && requestData.action) {
+      console.log("📦 [Legacy] Processing order notification for order:", requestData.order.order_number);
+      
+      const supabaseClient = createClient(
+        SUPABASE_URL!,
+        SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          auth: { persistSession: false, autoRefreshToken: false }
+        }
+      );
+
+      // Determine notification type based on order status
+      const notificationType = requestData.order.status === 'processed' ? 'registered' : 'regular';
+      
+      await handleOrderNotification(requestData.order, supabaseClient, corsHeaders, notificationType);
+      
+      console.log("✅ [Legacy] Order notification processed successfully");
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          message: "Order notification sent successfully (legacy system)",
+          orderNumber: requestData.order.order_number
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        }
+      );
+    }
+
+    // Initialize queue system for products
+    const queue = await initializeQueueSystem();
 
     // Only handle product notifications through v2.0 queue
     if (!requestData.productId) {
