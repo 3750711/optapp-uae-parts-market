@@ -29,6 +29,33 @@ interface TelegramLogData {
   metadata?: any
 }
 
+/**
+ * Optimize Cloudinary image URL for Telegram notifications
+ * Converts raw URLs to WebP with high quality and optimal size
+ */
+function optimizeImageUrl(url: string): string {
+  // Check if this is a Cloudinary URL
+  if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) {
+    return url;
+  }
+  
+  // Check if transformations are already applied
+  if (url.includes('f_webp') || url.includes('q_auto') || url.includes('q_')) {
+    console.log(`✅ Image already optimized: ${url.substring(0, 80)}...`);
+    return url;
+  }
+  
+  // Apply high-quality WebP transformations for Telegram
+  const transformations = 'f_webp,q_auto:best,c_limit,w_2048/';
+  const optimizedUrl = url.replace('/upload/', `/upload/${transformations}`);
+  
+  console.log(`🎨 Optimizing image URL:`);
+  console.log(`   Before: ${url.substring(0, 100)}...`);
+  console.log(`   After:  ${optimizedUrl.substring(0, 100)}...`);
+  
+  return optimizedUrl;
+}
+
 // Log telegram notifications
 async function logTelegramNotification(supabaseClient: any, data: TelegramLogData): Promise<void> {
   try {
@@ -123,8 +150,13 @@ async function sendProductNotification(supabaseClient: any, product: any) {
       return { success: false, error: 'Failed to fetch images', status: 500 }
     }
     
-    const imageUrls = images?.map((img: any) => img.url) || []
+    const imageUrls = images?.map((img: any) => optimizeImageUrl(img.url)) || []
     console.log('Product has', imageUrls.length, 'images')
+    
+    if (imageUrls.length > 0) {
+      console.log('✨ Optimized image URLs for Telegram delivery')
+      console.log(`First image URL: ${imageUrls[0]}`)
+    }
     
     // Check if there are enough images
     if (imageUrls.length < MIN_IMAGES_REQUIRED) {
