@@ -189,8 +189,8 @@ Deno.serve(async (req) => {
     cloudinaryFormData.append('public_id', publicId);
     cloudinaryFormData.append('folder', folder);
     
-    // Unified transformation for all media formats - convert to WebP for images
-    const transformation = 'f_webp,q_auto:good,c_limit,w_1200';
+    // High-quality WebP transformation for products (90% quality, 2560px width)
+    const transformation = 'f_webp,q_90,c_limit,w_2560';
     cloudinaryFormData.append('transformation', transformation);
     
     console.log(`🎯 [${rid}] Applying unified WebP transformation: ${transformation}`);
@@ -285,8 +285,8 @@ Deno.serve(async (req) => {
     
     console.log(`🧹 [${rid}] Cleaned public_id: "${cloudinaryResult.public_id}" → "${cleanPublicId}"`);
     
-    // Generate unified main image URL - all formats converted to WebP with transformations
-    const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_webp,q_auto:good,c_limit,w_1200/${cleanPublicId}`;
+    // Generate high-quality main image URL - all formats converted to WebP with 90% quality
+    const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/f_webp,q_90,c_limit,w_2560/${cleanPublicId}`;
     
     const estimatedCompressedSize = Math.round(cloudinaryResult.bytes * 0.35); // WebP compression estimate
     

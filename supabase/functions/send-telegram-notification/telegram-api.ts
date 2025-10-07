@@ -38,8 +38,8 @@ function optimizeImageUrl(url: string): string {
     return url;
   }
   
-  // Apply WebP transformations
-  const transformations = 'f_webp,q_auto:good,c_limit,w_1200/';
+  // Apply high-quality WebP transformations for Telegram
+  const transformations = 'f_webp,q_auto:best,c_limit,w_2048/';
   const optimizedUrl = url.replace('/upload/', `/upload/${transformations}`);
   
   console.log(`🎨 Optimizing image URL:`);
