@@ -58,6 +58,36 @@ const SellerCreateOrder = () => {
     }
   });
 
+  // Preload Cloudinary Widget SDK
+  useEffect(() => {
+    console.log('🔍 [SellerCreateOrder] Checking Cloudinary SDK...');
+    
+    const existingScript = document.querySelector('script[src*="cloudinary"]');
+    console.log('🔍 Cloudinary script in DOM:', !!existingScript);
+    console.log('🔍 Cloudinary global object:', !!(window as any).cloudinary);
+    
+    const script = document.createElement('script');
+    script.src = 'https://upload-widget.cloudinary.com/global/all.js';
+    script.async = true;
+    
+    script.onload = () => {
+      console.log('✅ [SellerCreateOrder] Cloudinary SDK loaded successfully');
+      console.log('🔍 Cloudinary object after load:', !!(window as any).cloudinary);
+    };
+    
+    script.onerror = () => {
+      console.error('❌ [SellerCreateOrder] Failed to load Cloudinary SDK');
+    };
+    
+    document.head.appendChild(script);
+    
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
+
   // Ref для предотвращения бесконечного цикла изображений
   const prevImagesRef = useRef<string[]>([]);
   

@@ -24,25 +24,59 @@ export const CloudinaryOrderUploader = React.memo<CloudinaryOrderUploaderProps>(
   disabled = false
 }) => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // 🔍 Диагностика: Логируем монтирование компонента
+  useEffect(() => {
+    console.log('🚀 [CloudinaryOrderUploader] Component mounted', {
+      max,
+      disabled,
+      initialUrls: imageUrls.length
+    });
+    
+    return () => {
+      console.log('🔚 [CloudinaryOrderUploader] Component unmounted');
+    };
+  }, []);
   
   // Мемоизированный обработчик загрузки с дедупликацией
   const handleImageUpload = useCallback((newUrls: string[]) => {
-    setImageUrls(prev => {
-      // Дедупликация - добавляем только новые URL
-      const filtered = newUrls.filter(url => !prev.includes(url));
-      if (filtered.length === 0) return prev;
-      
-      const updated = [...prev, ...filtered];
-      console.log('📸 CloudinaryOrderUploader: Images updated', {
-        previous: prev.length,
-        new: filtered.length,
-        total: updated.length
+    try {
+      console.log('🎯 [CloudinaryOrderUploader] Upload started', {
+        receivedUrls: newUrls.length,
+        currentUrls: imageUrls.length
       });
       
-      onChange?.(updated);
-      return updated;
-    });
-  }, [onChange]);
+      setUploadError(null);
+      
+      setImageUrls(prev => {
+        // Дедупликация - добавляем только новые URL
+        const filtered = newUrls.filter(url => !prev.includes(url));
+        if (filtered.length === 0) {
+          console.log('⚠️ [CloudinaryOrderUploader] No new URLs (duplicates)', {
+            received: newUrls.length,
+            existing: prev.length
+          });
+          return prev;
+        }
+        
+        const updated = [...prev, ...filtered];
+        console.log('✅ [CloudinaryOrderUploader] Images updated', {
+          previous: prev.length,
+          new: filtered.length,
+          total: updated.length,
+          urls: updated
+        });
+        
+        onChange?.(updated);
+        return updated;
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown upload error';
+      setUploadError(message);
+      console.error('❌ [CloudinaryOrderUploader] Upload error:', message, error);
+    }
+  }, [onChange, imageUrls.length]);
   
   // Мемоизированный обработчик удаления
   const handleImageDelete = useCallback((urlToDelete: string) => {
@@ -74,7 +108,16 @@ export const CloudinaryOrderUploader = React.memo<CloudinaryOrderUploaderProps>(
     disabled
   }), [imageUrls, handleImageUpload, handleImageDelete, max, disabled]);
   
-  return <CloudinaryPhotoUploader {...uploaderProps} />;
+  return (
+    <>
+      <CloudinaryPhotoUploader {...uploaderProps} />
+      {uploadError && (
+        <div className="mt-2 text-sm text-destructive">
+          ⚠️ Ошибка: {uploadError}
+        </div>
+      )}
+    </>
+  );
 });
 
 CloudinaryOrderUploader.displayName = 'CloudinaryOrderUploader';

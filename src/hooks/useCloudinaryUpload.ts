@@ -371,6 +371,17 @@ export const useNewCloudinaryUpload = () => {
           ]
         },
         (error: any, result: any) => {
+          // 🔍 Диагностика: Логируем ВСЕ события виджета
+          console.log('🎬 [Cloudinary Widget] Event:', result?.event || 'unknown', {
+            hasError: !!error,
+            event: result?.event,
+            info: result?.info ? {
+              filename: result.info.original_filename,
+              bytes: result.info.bytes,
+              format: result.info.format
+            } : null
+          });
+
           if (!error && result && result.event === 'success') {
             const uploadResult: CloudinaryUploadResult = {
               public_id: result.info.public_id,
@@ -382,7 +393,7 @@ export const useNewCloudinaryUpload = () => {
               bytes: result.info.bytes
             };
 
-            console.log('✅ Cloudinary upload success:', {
+            console.log('✅ [Cloudinary Widget] Upload success:', {
               publicId: uploadResult.public_id,
               url: uploadResult.secure_url,
               size: `${uploadResult.width}x${uploadResult.height}`,
@@ -459,7 +470,15 @@ export const useNewCloudinaryUpload = () => {
           }
 
           if (error) {
-            console.error('❌ Cloudinary upload error:', error);
+            console.error('❌ [Cloudinary Widget] Upload error details:', {
+              message: error.message,
+              status: error.status,
+              code: error.code,
+              type: error.type,
+              statusText: error.statusText,
+              fullError: error
+            });
+            
             setValidationErrors(prev => [...prev, {
               file: 'upload',
               error: error.message || "Произошла ошибка при загрузке файла"
