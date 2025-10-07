@@ -19,6 +19,37 @@ import { logTelegramNotification } from "../shared/telegram-logger.ts";
 export const waitBetweenBatches = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
+ * Optimize Cloudinary image URL to use WebP format and compression
+ * Transforms raw Cloudinary URLs to add WebP conversion and size optimization
+ * 
+ * Example:
+ * Input:  https://res.cloudinary.com/.../upload/v1759815755/products/image.jpg
+ * Output: https://res.cloudinary.com/.../upload/f_webp,q_auto:good,c_limit,w_1200/v1759815755/products/image.jpg
+ */
+function optimizeImageUrl(url: string): string {
+  // Check if this is a Cloudinary URL
+  if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) {
+    return url;
+  }
+  
+  // Check if transformations are already applied
+  if (url.includes('f_webp') || url.includes('q_auto')) {
+    console.log(`✅ Image already optimized: ${url.substring(0, 80)}...`);
+    return url;
+  }
+  
+  // Apply WebP transformations
+  const transformations = 'f_webp,q_auto:good,c_limit,w_1200/';
+  const optimizedUrl = url.replace('/upload/', `/upload/${transformations}`);
+  
+  console.log(`🎨 Optimizing image URL:`);
+  console.log(`   Before: ${url.substring(0, 100)}...`);
+  console.log(`   After:  ${optimizedUrl.substring(0, 100)}...`);
+  
+  return optimizedUrl;
+}
+
+/**
  * Pre-validate image URL accessibility
  * Returns true if image is accessible, false otherwise
  */
@@ -84,15 +115,20 @@ export async function sendImageMediaGroups(
     
     console.log('📸 Preparing to send', imageUrls.length, 'images in media group(s)');
     
+    // STEP 0: Optimize all Cloudinary URLs to use WebP format
+    console.log('🎨 Step 0: Optimizing Cloudinary URLs for WebP...');
+    const optimizedUrls = imageUrls.map(url => optimizeImageUrl(url));
+    console.log(`✅ Optimization complete: ${optimizedUrls.length} URLs processed`);
+    
     // STEP 1: Pre-validate all images
-    console.log('🔍 Step 1: Pre-validating all images...');
+    console.log('🔍 Step 1: Pre-validating all optimized images...');
     const validationResults = await Promise.all(
-      imageUrls.map(url => validateImageUrl(url))
+      optimizedUrls.map(url => validateImageUrl(url))
     );
     
-    // Filter out invalid images
+    // Filter out invalid images (use optimized URLs)
     const validImages: string[] = [];
-    imageUrls.forEach((url, index) => {
+    optimizedUrls.forEach((url, index) => {
       if (validationResults[index].valid) {
         validImages.push(url);
       } else {
