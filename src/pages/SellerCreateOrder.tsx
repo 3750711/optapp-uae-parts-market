@@ -9,8 +9,7 @@ import { Progress } from "@/components/ui/progress";
 // Import seller-specific components and hooks
 import { useSellerOrderFormLogic } from "@/hooks/useSellerOrderFormLogic";
 import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
-import SimplePhotoUploader from "@/components/uploader/SimplePhotoUploader";
-import { useStagedCloudinaryUpload } from "@/hooks/useStagedCloudinaryUpload";
+import { CloudinaryOrderUploader } from "@/components/seller/CloudinaryOrderUploader";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,7 +26,6 @@ const SellerCreateOrder = () => {
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = getSellerPagesTranslations(language);
-  const { attachToOrder } = useStagedCloudinaryUpload();
 
   const {
     formData,
@@ -152,23 +150,20 @@ const SellerCreateOrder = () => {
     }
   };
 
-  // Handle attachment of staged images after order creation
+  // Preload Cloudinary Widget SDK for instant opening
   useEffect(() => {
-    if (createdOrder && images.length > 0) {
-      attachToOrder(createdOrder.id)
-        .then(() => {
-          console.log('✅ Staged images attached to order:', createdOrder.id);
-        })
-        .catch((error) => {
-          console.error('❌ Failed to attach staged images:', error);
-          toast({
-            title: "Предупреждение",
-            description: "Заказ создан, но не удалось привязать изображения",
-            variant: "destructive",
-          });
-        });
+    const cloudinaryScriptUrl = 'https://upload-widget.cloudinary.com/global/all.js';
+    const existingScript = document.querySelector(`link[rel="preload"][href="${cloudinaryScriptUrl}"]`);
+    
+    if (!existingScript) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.href = cloudinaryScriptUrl;
+      link.as = 'script';
+      document.head.appendChild(link);
+      console.log('✅ Cloudinary Widget SDK preloaded');
     }
-  }, [createdOrder, attachToOrder, images, toast]);
+  }, []);
 
   const isFormDisabled = isLoading || !canSubmit || isInitializing;
 
@@ -261,10 +256,11 @@ const SellerCreateOrder = () => {
             
             <div>
               <h3 className="text-lg font-medium mb-4">{t.media.photos}</h3>
-              <SimplePhotoUploader
+              <CloudinaryOrderUploader
                 onChange={onImagesUpload}
                 max={25}
                 language={language}
+                disabled={isFormDisabled}
               />
             </div>
             
