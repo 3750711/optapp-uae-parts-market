@@ -41,6 +41,7 @@ interface Product {
 
 const PublicProfile = () => {
   const { sellerId } = useParams<{ sellerId: string }>();
+  console.log('🔍 [PublicProfile] sellerId from URL:', sellerId);
   const { profile: userProfile } = useAuth();
   
   const [language, setLanguage] = useState<'ru' | 'en' | 'bn'>(() => {
@@ -60,6 +61,7 @@ const PublicProfile = () => {
 
   useEffect(() => {
     if (!sellerId) {
+      console.error('❌ [PublicProfile] sellerId is undefined!');
       setError('SELLER_ID_NOT_FOUND');
       setLoading(false);
       return;

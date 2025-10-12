@@ -159,7 +159,7 @@ const AppRoutes: React.FC = () => {
               </HomeRedirect>
             } />
             <Route path="/public-store/:storeId" element={<PublicStore />} />
-            <Route path="/public-profile/:token" element={<PublicProfile />} />
+            <Route path="/public-profile/:sellerId" element={<PublicProfile />} />
             <Route path="/404" element={<NotFound />} />
 
             {/* Маршруты аутентификации - только для гостей */}
