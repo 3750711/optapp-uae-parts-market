@@ -72,6 +72,12 @@ const PublicProfile = () => {
 
   const loadProfileData = async () => {
     try {
+      console.log('🔄 [PublicProfile] loadProfileData() started', { 
+        sellerId, 
+        session: !!session, 
+        userProfile: !!userProfile,
+        userType: userProfile?.user_type || null 
+      });
       setLoading(true);
       
       // Wait for userProfile to load if user is authenticated
@@ -90,11 +96,12 @@ const PublicProfile = () => {
         .single();
 
       if (profileError || !profileData) {
-        console.error('Error loading profile:', profileError);
+        console.error('❌ [PublicProfile] Error loading seller profile:', profileError);
         setError('PROFILE_NOT_FOUND');
         return;
       }
 
+      console.log('✅ [PublicProfile] Seller profile loaded:', profileData.full_name || profileData.company_name);
       setProfile(profileData);
 
       // Determine which VIEW to use based on user type
@@ -103,7 +110,12 @@ const PublicProfile = () => {
       const isBuyer = userProfile?.user_type === 'buyer';
       const viewName = isBuyer ? 'products_for_buyers' : 'products_public';
 
-      console.log(`Loading products from VIEW: ${viewName}, user_type: ${userProfile?.user_type || 'anonymous'}`);
+      console.log('📊 [PublicProfile] VIEW selection:', {
+        isBuyer,
+        viewName,
+        userType: userProfile?.user_type || 'anonymous',
+        hasSession: !!session
+      });
 
       // Load active products from appropriate VIEW
       const { data: productsData, error: productsError } = await supabase
@@ -115,11 +127,12 @@ const PublicProfile = () => {
         .limit(20);
 
       if (productsError) {
-        console.error('Error loading products:', productsError);
+        console.error('❌ [PublicProfile] Error loading products:', productsError);
         setError('ERROR_LOADING_PRODUCTS');
         return;
       }
 
+      console.log(`✅ [PublicProfile] Loaded ${productsData?.length || 0} products from ${viewName}`);
       setProducts(productsData || []);
 
     } catch (error) {
