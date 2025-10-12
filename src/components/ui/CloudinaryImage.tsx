@@ -28,7 +28,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
   // Size configurations for different use cases
   const sizeConfig = {
     thumbnail: { width: 120, height: 90, quality: 'auto:low' as const },
-    card: { width: 400, height: undefined, quality: 'auto:low' as const },
+    card: { width: 400, height: 300, quality: 'auto:low' as const },
     detail: { width: 800, height: undefined, quality: 'auto:good' as const },
     telegramCard: { width: 720, height: 540, quality: 'auto:good' as const },
     preview: { width: 600, height: undefined, quality: 'auto:good' as const }
@@ -75,6 +75,17 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
         'f_auto',
         'fl_progressive'
       ];
+    } else if (size === 'card' && config.height) {
+      // For card size, use c_fill to maintain aspect ratio with smart cropping
+      transformations = [
+        `w_${config.width}`,
+        `h_${config.height}`,
+        `c_fill`,
+        `g_auto`,
+        `q_${config.quality}`,
+        'f_auto',
+        'fl_progressive'
+      ];
     } else {
       // For other sizes, use original logic
       transformations = [
@@ -115,7 +126,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
   }
 
   return (
-    <div className={`relative ${className}`}>
+    <div className="relative w-full h-full">
       {!isLoaded && !priority && (
         <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
       )}
@@ -123,7 +134,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
       <img
         src={imageUrl}
         alt={alt}
-        className={`${className} object-contain transition-opacity duration-300 ${
+        className={`${className} transition-opacity duration-300 ${
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
         onLoad={handleLoad}

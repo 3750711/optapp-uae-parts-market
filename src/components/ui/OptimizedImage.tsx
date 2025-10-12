@@ -75,14 +75,14 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     : getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
 
   return (
-    <div className={`relative ${className}`}>
+    <div className="relative w-full h-full">
       {!isLoaded && !priority && !nativeError && (
         <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
       )}
       <img
         src={imageUrl}
         alt={alt}
-        className={`${className} object-contain transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`${className} transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={handleImageLoad}
         onError={handleNativeError}
         loading={priority ? 'eager' : 'lazy'}
