@@ -30,8 +30,6 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
           src="/placeholder.svg"
           alt={productTitle}
           className="w-full h-full object-cover"
-          cloudinaryPublicId={cloudinaryPublicId}
-          cloudinaryUrl={cloudinaryUrl}
           size="detail"
           priority={true}
         />
@@ -46,8 +44,6 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
           src={images[0].url}
           alt={productTitle}
           className="w-full h-full object-cover"
-          cloudinaryPublicId={cloudinaryPublicId}
-          cloudinaryUrl={cloudinaryUrl}
           size="detail"
           priority={true}
         />
@@ -65,8 +61,6 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
                 src={image.url}
                 alt={`${productTitle} - изображение ${index + 1}`}
                 className="w-full h-full object-cover"
-                cloudinaryPublicId={cloudinaryPublicId}
-                cloudinaryUrl={cloudinaryUrl}
                 size="detail"
                 priority={index === 0}
               />
