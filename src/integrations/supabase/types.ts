@@ -2544,6 +2544,7 @@ export type Database = {
           product_location: string | null
           rating_seller: number | null
           seller_id: string | null
+          seller_name: string | null
           status: Database["public"]["Enums"]["product_status"] | null
           title: string | null
           updated_at: string | null
@@ -2565,6 +2566,7 @@ export type Database = {
           product_location?: string | null
           rating_seller?: number | null
           seller_id?: string | null
+          seller_name?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
           title?: string | null
           updated_at?: string | null
@@ -2586,6 +2588,7 @@ export type Database = {
           product_location?: string | null
           rating_seller?: number | null
           seller_id?: string | null
+          seller_name?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
           title?: string | null
           updated_at?: string | null
