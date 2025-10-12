@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import PublicProductCard from '@/components/product/PublicProductCard';
 import { Loader2, AlertCircle, User, Store, Star, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useLanguage } from '@/hooks/useLanguage';
+// Language management removed - using local state instead
 import { getPublicProfileTranslations } from '@/utils/translations/publicProfile';
 import Layout from '@/components/layout/Layout';
 import LanguageToggle from '@/components/auth/LanguageToggle';
@@ -41,7 +41,16 @@ interface Product {
 
 const PublicProfile = () => {
   const { sellerId } = useParams<{ sellerId: string }>();
-  const { language, changeLanguage } = useLanguage('en'); // English as default for public profiles
+  // Local language management without AuthContext
+  const [language, setLanguage] = useState<'ru' | 'en' | 'bn'>(() => {
+    const saved = localStorage.getItem('login-language');
+    return (saved as 'ru' | 'en' | 'bn') || 'en';
+  });
+
+  const changeLanguage = (newLanguage: 'ru' | 'en' | 'bn') => {
+    setLanguage(newLanguage);
+    localStorage.setItem('login-language', newLanguage);
+  };
   const t = getPublicProfileTranslations(language);  
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
