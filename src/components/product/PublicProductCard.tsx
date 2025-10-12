@@ -199,20 +199,7 @@ const PublicProductCard = memo(({
           )}
           
           
-          {product.telegram_url && (
-            <Button
-              variant="outline"
-              size="sm" 
-              className="flex-1 text-xs"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`https://t.me/${product.telegram_url}`, '_blank');
-              }}
-            >
-              <MessageCircle className="h-3 w-3 mr-1" />
-              {t.telegram}
-            </Button>
-          )}
+          
         </div>
       </CardContent>
     </Card>
