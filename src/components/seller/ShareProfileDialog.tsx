@@ -41,10 +41,10 @@ const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
   const { language } = useLanguage();
   const t = getCommonTranslations(language);
 
-  // Generate the appropriate URL based on sellerId
+  // Generate the appropriate URL based on public_share_token
   const getShareUrl = () => {
-    if (sellerId) {
-      return `${PRODUCTION_DOMAIN}/public-profile/${sellerId}`;
+    if (profileInfo?.public_share_token) {
+      return `${PRODUCTION_DOMAIN}/public-profile/${profileInfo.public_share_token}`;
     }
     return null;
   };
