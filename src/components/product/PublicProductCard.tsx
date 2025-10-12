@@ -1,4 +1,5 @@
 import React, { memo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,7 @@ const PublicProductCard = memo(({
   disableCarousel = false,
   isBuyer = false,
 }: PublicProductCardProps) => {
+  const navigate = useNavigate();
   const t = getPublicProfileTranslations(language);
   const [imageError, setImageError] = useState(false);
   
@@ -190,7 +192,7 @@ const PublicProductCard = memo(({
               className="flex-1 text-xs"
               onClick={(e) => {
                 e.stopPropagation();
-                window.location.href = `/product/${product.id}`;
+                navigate(`/product/${product.id}`);
               }}
             >
               <Eye className="h-3 w-3 mr-1" />
