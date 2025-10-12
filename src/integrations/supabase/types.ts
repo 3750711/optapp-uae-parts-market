@@ -2529,6 +2529,16 @@ export type Database = {
       }
       products_for_buyers: {
         Row: {
+          admin_notification_sent_at: string | null
+          ai_confidence: number | null
+          ai_delivery_confidence: number | null
+          ai_delivery_reasoning: Json | null
+          ai_enriched_at: string | null
+          ai_original_title: string | null
+          ai_suggested_brand: string | null
+          ai_suggested_delivery_prices: Json | null
+          ai_suggested_model: string | null
+          ai_suggested_title: string | null
           brand: string | null
           catalog_position: string | null
           cloudinary_public_id: string | null
@@ -2538,82 +2548,34 @@ export type Database = {
           delivery_price: number | null
           description: string | null
           id: string | null
+          last_notification_sent_at: string | null
           location: string | null
           lot_number: number | null
           model: string | null
+          optid_created: string | null
           phone_url: string | null
           place_number: number | null
           preview_image_url: string | null
           price: number | null
-          product_images: Json | null
           product_location: string | null
+          product_url: string | null
           rating_seller: number | null
+          requires_moderation: boolean | null
           seller_id: string | null
           seller_name: string | null
           status: Database["public"]["Enums"]["product_status"] | null
+          telegram_confirmed_at: string | null
+          telegram_last_error: string | null
+          telegram_message_id: number | null
+          telegram_notification_status: string | null
           telegram_url: string | null
+          tg_notify_attempts: number | null
+          tg_notify_error: string | null
+          tg_notify_status: string | null
           tg_views_frozen: number | null
           title: string | null
           updated_at: string | null
           view_count: number | null
-        }
-        Insert: {
-          brand?: string | null
-          catalog_position?: string | null
-          cloudinary_public_id?: string | null
-          cloudinary_url?: string | null
-          condition?: string | null
-          created_at?: string | null
-          delivery_price?: number | null
-          description?: string | null
-          id?: string | null
-          location?: string | null
-          lot_number?: number | null
-          model?: string | null
-          phone_url?: string | null
-          place_number?: number | null
-          preview_image_url?: string | null
-          price?: number | null
-          product_images?: never
-          product_location?: string | null
-          rating_seller?: number | null
-          seller_id?: string | null
-          seller_name?: string | null
-          status?: Database["public"]["Enums"]["product_status"] | null
-          telegram_url?: string | null
-          tg_views_frozen?: number | null
-          title?: string | null
-          updated_at?: string | null
-          view_count?: number | null
-        }
-        Update: {
-          brand?: string | null
-          catalog_position?: string | null
-          cloudinary_public_id?: string | null
-          cloudinary_url?: string | null
-          condition?: string | null
-          created_at?: string | null
-          delivery_price?: number | null
-          description?: string | null
-          id?: string | null
-          location?: string | null
-          lot_number?: number | null
-          model?: string | null
-          phone_url?: string | null
-          place_number?: number | null
-          preview_image_url?: string | null
-          price?: number | null
-          product_images?: never
-          product_location?: string | null
-          rating_seller?: number | null
-          seller_id?: string | null
-          seller_name?: string | null
-          status?: Database["public"]["Enums"]["product_status"] | null
-          telegram_url?: string | null
-          tg_views_frozen?: number | null
-          title?: string | null
-          updated_at?: string | null
-          view_count?: number | null
         }
         Relationships: [
           {
@@ -2634,6 +2596,16 @@ export type Database = {
       }
       products_public: {
         Row: {
+          admin_notification_sent_at: string | null
+          ai_confidence: number | null
+          ai_delivery_confidence: number | null
+          ai_delivery_reasoning: Json | null
+          ai_enriched_at: string | null
+          ai_original_title: string | null
+          ai_suggested_brand: string | null
+          ai_suggested_delivery_prices: Json | null
+          ai_suggested_model: string | null
+          ai_suggested_title: string | null
           brand: string | null
           catalog_position: string | null
           cloudinary_public_id: string | null
@@ -2642,22 +2614,42 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string | null
+          last_notification_sent_at: string | null
           location: string | null
           lot_number: number | null
           model: string | null
+          optid_created: string | null
           place_number: number | null
           preview_image_url: string | null
-          product_images: Json | null
           product_location: string | null
+          product_url: string | null
           rating_seller: number | null
+          requires_moderation: boolean | null
           seller_id: string | null
           status: Database["public"]["Enums"]["product_status"] | null
+          telegram_confirmed_at: string | null
+          telegram_last_error: string | null
+          telegram_message_id: number | null
+          telegram_notification_status: string | null
+          tg_notify_attempts: number | null
+          tg_notify_error: string | null
+          tg_notify_status: string | null
           tg_views_frozen: number | null
           title: string | null
           updated_at: string | null
           view_count: number | null
         }
         Insert: {
+          admin_notification_sent_at?: string | null
+          ai_confidence?: number | null
+          ai_delivery_confidence?: number | null
+          ai_delivery_reasoning?: Json | null
+          ai_enriched_at?: string | null
+          ai_original_title?: string | null
+          ai_suggested_brand?: string | null
+          ai_suggested_delivery_prices?: Json | null
+          ai_suggested_model?: string | null
+          ai_suggested_title?: string | null
           brand?: string | null
           catalog_position?: string | null
           cloudinary_public_id?: string | null
@@ -2666,22 +2658,42 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string | null
+          last_notification_sent_at?: string | null
           location?: string | null
           lot_number?: number | null
           model?: string | null
+          optid_created?: string | null
           place_number?: number | null
           preview_image_url?: string | null
-          product_images?: never
           product_location?: string | null
+          product_url?: string | null
           rating_seller?: number | null
+          requires_moderation?: boolean | null
           seller_id?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
+          telegram_confirmed_at?: string | null
+          telegram_last_error?: string | null
+          telegram_message_id?: number | null
+          telegram_notification_status?: string | null
+          tg_notify_attempts?: number | null
+          tg_notify_error?: string | null
+          tg_notify_status?: string | null
           tg_views_frozen?: number | null
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
         }
         Update: {
+          admin_notification_sent_at?: string | null
+          ai_confidence?: number | null
+          ai_delivery_confidence?: number | null
+          ai_delivery_reasoning?: Json | null
+          ai_enriched_at?: string | null
+          ai_original_title?: string | null
+          ai_suggested_brand?: string | null
+          ai_suggested_delivery_prices?: Json | null
+          ai_suggested_model?: string | null
+          ai_suggested_title?: string | null
           brand?: string | null
           catalog_position?: string | null
           cloudinary_public_id?: string | null
@@ -2690,16 +2702,26 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string | null
+          last_notification_sent_at?: string | null
           location?: string | null
           lot_number?: number | null
           model?: string | null
+          optid_created?: string | null
           place_number?: number | null
           preview_image_url?: string | null
-          product_images?: never
           product_location?: string | null
+          product_url?: string | null
           rating_seller?: number | null
+          requires_moderation?: boolean | null
           seller_id?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
+          telegram_confirmed_at?: string | null
+          telegram_last_error?: string | null
+          telegram_message_id?: number | null
+          telegram_notification_status?: string | null
+          tg_notify_attempts?: number | null
+          tg_notify_error?: string | null
+          tg_notify_status?: string | null
           tg_views_frozen?: number | null
           title?: string | null
           updated_at?: string | null
