@@ -112,14 +112,6 @@ const PublicProductCard = memo(({
           {product.status === 'pending' && <Loader2 className="h-3 w-3 animate-spin" />}
           {statusText}
         </Badge>
-
-        {/* Telegram Views */}
-        {product.status !== 'pending' && product.tg_views_estimate != null && product.tg_views_estimate > 0 && (
-          <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {product.tg_views_estimate.toLocaleString()}
-          </div>
-        )}
       </div>
 
       <CardContent className="p-4">
