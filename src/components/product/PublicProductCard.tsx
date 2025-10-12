@@ -198,20 +198,6 @@ const PublicProductCard = memo(({
             </Button>
           )}
           
-          {product.phone_url && (
-            <Button
-              variant="outline" 
-              size="sm"
-              className="flex-1 text-xs"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(`tel:${product.phone_url}`, '_blank');
-              }}
-            >
-              <Phone className="h-3 w-3 mr-1" />
-              {t.call}
-            </Button>
-          )}
           
           {product.telegram_url && (
             <Button
