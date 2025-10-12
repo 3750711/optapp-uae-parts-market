@@ -190,7 +190,7 @@ const PublicProductCard = memo(({
               className="flex-1 text-xs"
               onClick={(e) => {
                 e.stopPropagation();
-                window.location.href = `/products/${product.id}`;
+                window.location.href = `/product/${product.id}`;
               }}
             >
               <Eye className="h-3 w-3 mr-1" />
