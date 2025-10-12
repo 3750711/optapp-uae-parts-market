@@ -28,7 +28,7 @@ export interface PublicProductProps {
   telegram_url?: string;
   phone_url?: string;
   view_count?: number;
-  tg_views_estimate?: number;
+  tg_views_frozen?: number;
   rating_seller?: number;
   cloudinary_url?: string;
   cloudinary_public_id?: string;
@@ -114,10 +114,10 @@ const PublicProductCard = memo(({
         </Badge>
 
         {/* Telegram Views */}
-        {product.status !== 'pending' && product.tg_views_estimate != null && product.tg_views_estimate > 0 && (
+        {product.status !== 'pending' && product.tg_views_frozen != null && product.tg_views_frozen > 0 && (
           <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
             <Eye className="h-3 w-3" />
-            {product.tg_views_estimate.toLocaleString()}
+            {product.tg_views_frozen.toLocaleString()}
           </div>
         )}
       </div>
