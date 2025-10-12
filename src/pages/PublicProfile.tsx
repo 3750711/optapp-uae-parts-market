@@ -68,7 +68,7 @@ const PublicProfile = () => {
     }
 
     loadProfileData();
-  }, [sellerId, userProfile]);
+  }, [sellerId, userProfile?.user_type, session?.user?.id]);
 
   const loadProfileData = async () => {
     try {
