@@ -280,6 +280,7 @@ const PublicProfile = () => {
                     key={product.id}
                     product={product}
                     language={language}
+                    isBuyer={userProfile?.user_type === 'buyer'}
                   />
                 ))}
               </div>

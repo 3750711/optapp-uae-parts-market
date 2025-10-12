@@ -41,12 +41,14 @@ interface PublicProductCardProps {
   product: PublicProductProps;
   language: Lang;
   disableCarousel?: boolean;
+  isBuyer?: boolean;
 }
 
 const PublicProductCard = memo(({
   product,
   language,
   disableCarousel = false,
+  isBuyer = false,
 }: PublicProductCardProps) => {
   const t = getPublicProfileTranslations(language);
   const [imageError, setImageError] = useState(false);
@@ -186,8 +188,23 @@ const PublicProductCard = memo(({
           )}
         </div>
 
-        {/* Contact Buttons - Only phone and telegram, no "Details" button */}
+        {/* Contact Buttons + View Details for Buyers */}
         <div className="flex gap-2">
+          {isBuyer && (
+            <Button
+              variant="default"
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                window.location.href = `/products/${product.id}`;
+              }}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              {t.viewDetails}
+            </Button>
+          )}
+          
           {product.phone_url && (
             <Button
               variant="outline" 

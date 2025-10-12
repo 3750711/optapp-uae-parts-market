@@ -38,6 +38,7 @@ export interface PublicProfileTranslations {
   call: string;
   telegram: string;
   noImage: string;
+  viewDetails: string;
 }
 
 const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
@@ -79,6 +80,7 @@ const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
     call: 'Call',
     telegram: 'Telegram',
     noImage: 'No image',
+    viewDetails: 'View Details',
   },
   
   ru: {
@@ -119,6 +121,7 @@ const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
     call: 'Позвонить',
     telegram: 'Telegram',
     noImage: 'Нет изображения',
+    viewDetails: 'Подробнее',
   },
   
   bn: {
@@ -159,6 +162,7 @@ const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
     call: 'কল করুন',
     telegram: 'টেলিগ্রাম',
     noImage: 'কোনো ছবি নেই',
+    viewDetails: 'বিস্তারিত দেখুন',
   },
 };
 
