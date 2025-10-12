@@ -2615,18 +2615,27 @@ export type Database = {
         Row: {
           brand: string | null
           catalog_position: string | null
+          cloudinary_public_id: string | null
+          cloudinary_url: string | null
           condition: string | null
           created_at: string | null
+          delivery_price: number | null
           description: string | null
           id: string | null
+          location: string | null
           lot_number: number | null
           model: string | null
+          phone_url: string | null
           place_number: number | null
           preview_image_url: string | null
+          price: number | null
+          product_images: Json | null
           product_location: string | null
           rating_seller: number | null
           seller_id: string | null
+          seller_name: string | null
           status: Database["public"]["Enums"]["product_status"] | null
+          telegram_url: string | null
           title: string | null
           updated_at: string | null
           view_count: number | null
@@ -2634,18 +2643,27 @@ export type Database = {
         Insert: {
           brand?: string | null
           catalog_position?: string | null
+          cloudinary_public_id?: string | null
+          cloudinary_url?: string | null
           condition?: string | null
           created_at?: string | null
+          delivery_price?: number | null
           description?: string | null
           id?: string | null
+          location?: string | null
           lot_number?: number | null
           model?: string | null
+          phone_url?: string | null
           place_number?: number | null
           preview_image_url?: string | null
+          price?: number | null
+          product_images?: never
           product_location?: string | null
           rating_seller?: number | null
           seller_id?: string | null
+          seller_name?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
+          telegram_url?: string | null
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
@@ -2653,18 +2671,27 @@ export type Database = {
         Update: {
           brand?: string | null
           catalog_position?: string | null
+          cloudinary_public_id?: string | null
+          cloudinary_url?: string | null
           condition?: string | null
           created_at?: string | null
+          delivery_price?: number | null
           description?: string | null
           id?: string | null
+          location?: string | null
           lot_number?: number | null
           model?: string | null
+          phone_url?: string | null
           place_number?: number | null
           preview_image_url?: string | null
+          price?: number | null
+          product_images?: never
           product_location?: string | null
           rating_seller?: number | null
           seller_id?: string | null
+          seller_name?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
+          telegram_url?: string | null
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
