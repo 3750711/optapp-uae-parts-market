@@ -22,6 +22,7 @@ export interface PublicProductProps {
   description?: string;
   lot_number?: number;
   place_number?: number;
+  price?: number;
   delivery_price?: number;
   product_location?: string;
   telegram_url?: string;
@@ -133,18 +134,28 @@ const PublicProductCard = memo(({
 
         {/* Enhanced Product Details */}
         <div className="space-y-1 mb-3 text-xs text-gray-600">
-          {/* Seller Info */}
-          <div className="flex items-center justify-between">
-            <span className="font-medium">{t.seller}:</span>
-            <div className="flex items-center gap-1">
-              <span className="truncate max-w-[120px]">{product.seller_name}</span>
-              {product.rating_seller && (
-                <span className="text-yellow-600 flex items-center">
-                  ⭐ {product.rating_seller}
-                </span>
-              )}
+          {/* Price - only if available */}
+          {product.price != null && (
+            <div className="flex items-center justify-between">
+              <span className="font-medium">{t.price || 'Price'}:</span>
+              <span className="font-bold text-primary">{formatPrice(product.price)}</span>
             </div>
-          </div>
+          )}
+          
+          {/* Seller Info - only if available */}
+          {product.seller_name && (
+            <div className="flex items-center justify-between">
+              <span className="font-medium">{t.seller}:</span>
+              <div className="flex items-center gap-1">
+                <span className="truncate max-w-[120px]">{product.seller_name}</span>
+                {product.rating_seller && (
+                  <span className="text-yellow-600 flex items-center">
+                    ⭐ {product.rating_seller}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
           
           {/* Location */}
           {product.product_location && (
@@ -166,11 +177,11 @@ const PublicProductCard = memo(({
             </div>
           )}
           
-          {/* Delivery Price */}
-          {shouldShowDeliveryPrice && (
+          {/* Delivery Price - only if available and should be shown */}
+          {shouldShowDeliveryPrice && product.delivery_price != null && (
             <div className="flex items-center justify-between">
               <span className="font-medium">{t.delivery}:</span>
-              <span>{formatPrice(product.delivery_price!)}</span>
+              <span>{formatPrice(product.delivery_price)}</span>
             </div>
           )}
         </div>

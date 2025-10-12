@@ -8,11 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import PublicProductCard from '@/components/product/PublicProductCard';
 import { Loader2, AlertCircle, User, Store, Star, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-// Language management removed - using local state instead
 import { getPublicProfileTranslations } from '@/utils/translations/publicProfile';
 import Layout from '@/components/layout/Layout';
 import LanguageToggle from '@/components/auth/LanguageToggle';
-// v3.6.1 - Removed token validation, using direct seller ID
+import { useAuth } from '@/contexts/AuthContext';
 
 type ProductStatus = 'active' | 'sold' | 'pending' | 'archived';
 
@@ -42,7 +41,8 @@ interface Product {
 
 const PublicProfile = () => {
   const { sellerId } = useParams<{ sellerId: string }>();
-  // Local language management without AuthContext
+  const { profile: userProfile } = useAuth();
+  
   const [language, setLanguage] = useState<'ru' | 'en' | 'bn'>(() => {
     const saved = localStorage.getItem('login-language');
     return (saved as 'ru' | 'en' | 'bn') || 'en';
@@ -88,23 +88,18 @@ const PublicProfile = () => {
 
       setProfile(profileData);
 
-      // Load active products
+      // Determine which VIEW to use based on user type
+      // Buyers see prices and seller names (products_for_buyers)
+      // Sellers and anonymous users don't see prices/names (products_public)
+      const isBuyer = userProfile?.user_type === 'buyer';
+      const viewName = isBuyer ? 'products_for_buyers' : 'products_public';
+
+      console.log(`Loading products from VIEW: ${viewName}, user_type: ${userProfile?.user_type || 'anonymous'}`);
+
+      // Load active products from appropriate VIEW
       const { data: productsData, error: productsError } = await supabase
-        .from('products')
-        .select(`
-          id,
-          title,
-          brand,
-          model,
-          price,
-          condition,
-          lot_number,
-          created_at,
-          seller_name,
-          seller_id,
-          status,
-          product_images!inner(url)
-        `)
+        .from(viewName)
+        .select('*')
         .eq('seller_id', profileData.id)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
@@ -116,13 +111,7 @@ const PublicProfile = () => {
         return;
       }
 
-      // Transform products data to include images
-      const transformedProducts = productsData?.map(product => ({
-        ...product,
-        images: product.product_images || []
-      })) || [];
-
-      setProducts(transformedProducts);
+      setProducts(productsData || []);
 
     } catch (error) {
       console.error('Error:', error);

@@ -33,6 +33,7 @@ export interface PublicProfileTranslations {
   location: string;
   lot: string;
   place: string;
+  price: string;
   delivery: string;
   call: string;
   telegram: string;
@@ -73,6 +74,7 @@ const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
     location: 'Location', 
     lot: 'Lot',
     place: 'Place',
+    price: 'Price',
     delivery: 'Delivery',
     call: 'Call',
     telegram: 'Telegram',
@@ -112,6 +114,7 @@ const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
     location: 'Местоположение',
     lot: 'Лот', 
     place: 'Место',
+    price: 'Цена',
     delivery: 'Доставка',
     call: 'Позвонить',
     telegram: 'Telegram',
@@ -150,7 +153,8 @@ const publicProfileTranslations: Record<Lang, PublicProfileTranslations> = {
     seller: 'বিক্রেতা',
     location: 'অবস্থান',
     lot: 'লট',
-    place: 'স্থান', 
+    place: 'স্থান',
+    price: 'মূল্য',
     delivery: 'ডেলিভারি',
     call: 'কল করুন',
     telegram: 'টেলিগ্রাম',
