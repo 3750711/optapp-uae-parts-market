@@ -6,7 +6,10 @@ const LANGUAGE_STORAGE_KEY = 'login-language';
 const LANGUAGE_CHANGE_EVENT = 'language-change';
 
 export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'en') => {
-  const { user, profile, updateProfile } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user ?? null;
+  const profile = auth?.profile ?? null;
+  const updateProfile = auth?.updateProfile ?? null;
   
   const [language, setLanguage] = useState<'ru' | 'en' | 'bn'>(() => {
     // For unauthenticated users, use localStorage or default
@@ -40,7 +43,8 @@ export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'en') => {
       logger.log('useLanguage: Unauthenticated user, using localStorage:', saved || defaultLanguage);
       setLanguage((saved as 'ru' | 'en' | 'bn') || defaultLanguage);
     }
-  }, [user, profile, profile?.preferred_locale, defaultLanguage, updateProfile]);
+    // Note: Don't include updateProfile in deps to avoid loops
+  }, [user, profile, profile?.preferred_locale, defaultLanguage]);
 
   useEffect(() => {
     // Only listen for storage/custom events for unauthenticated users
