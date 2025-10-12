@@ -52,7 +52,7 @@ const SellerListingsContent = () => {
       
       const { data, error } = await supabase
         .from('stores')
-        .select('id, name, phone, telegram, public_share_token, public_share_enabled')
+        .select('id, name, phone, telegram')
         .eq('seller_id', user.id)
         .maybeSingle();
         

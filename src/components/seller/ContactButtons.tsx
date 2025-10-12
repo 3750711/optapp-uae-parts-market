@@ -8,8 +8,6 @@ interface ContactButtonsProps {
   className?: string;
   storeInfo?: {
     id?: string;
-    public_share_token?: string;
-    public_share_enabled?: boolean;
   } | null;
   profileInfo?: {
     public_share_token?: string;
