@@ -42,7 +42,7 @@ interface Product {
 const PublicProfile = () => {
   const { sellerId } = useParams<{ sellerId: string }>();
   console.log('🔍 [PublicProfile] sellerId from URL:', sellerId);
-  const { profile: userProfile } = useAuth();
+  const { profile: userProfile, session, loading: authLoading } = useAuth();
   
   const [language, setLanguage] = useState<'ru' | 'en' | 'bn'>(() => {
     const saved = localStorage.getItem('login-language');
@@ -68,11 +68,18 @@ const PublicProfile = () => {
     }
 
     loadProfileData();
-  }, [sellerId]);
+  }, [sellerId, userProfile]);
 
   const loadProfileData = async () => {
     try {
       setLoading(true);
+      
+      // Wait for userProfile to load if user is authenticated
+      if (session && !userProfile) {
+        console.log('⏳ [PublicProfile] Waiting for userProfile to load...');
+        setLoading(false);
+        return;
+      }
       
       // Load profile directly by seller_id
       const { data: profileData, error: profileError } = await supabase
