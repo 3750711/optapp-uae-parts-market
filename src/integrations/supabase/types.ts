@@ -2552,7 +2552,6 @@ export type Database = {
           seller_name: string | null
           status: Database["public"]["Enums"]["product_status"] | null
           telegram_url: string | null
-          tg_views_frozen: number | null
           title: string | null
           updated_at: string | null
           view_count: number | null
@@ -2581,7 +2580,6 @@ export type Database = {
           seller_name?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
           telegram_url?: string | null
-          tg_views_frozen?: number | null
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
@@ -2610,7 +2608,6 @@ export type Database = {
           seller_name?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
           telegram_url?: string | null
-          tg_views_frozen?: number | null
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
@@ -2652,7 +2649,6 @@ export type Database = {
           rating_seller: number | null
           seller_id: string | null
           status: Database["public"]["Enums"]["product_status"] | null
-          tg_views_frozen: number | null
           title: string | null
           updated_at: string | null
           view_count: number | null
@@ -2676,7 +2672,6 @@ export type Database = {
           rating_seller?: number | null
           seller_id?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
-          tg_views_frozen?: number | null
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
@@ -2700,7 +2695,6 @@ export type Database = {
           rating_seller?: number | null
           seller_id?: string | null
           status?: Database["public"]["Enums"]["product_status"] | null
-          tg_views_frozen?: number | null
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
