@@ -158,7 +158,7 @@ const AppRoutes: React.FC = () => {
                 <Index />
               </HomeRedirect>
             } />
-            <Route path="/public-store/:token" element={<PublicStore />} />
+            <Route path="/public-store/:storeId" element={<PublicStore />} />
             <Route path="/public-profile/:token" element={<PublicProfile />} />
             <Route path="/404" element={<NotFound />} />
 
