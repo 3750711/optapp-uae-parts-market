@@ -34,11 +34,11 @@ export const PublicRoutes = () => (
     <Route path="/requests" element={<Requests />} />
     <Route path="/request/:id" element={<RequestDetail />} />
     <Route path="/buyer-guide" element={<BuyerGuide />} />
-    {/* Old profile routes redirect to new token-based system */}
+    {/* Old profile routes redirect to new seller ID-based system */}
     <Route path="/public-seller-profile/:id" element={<PublicSellerProfileRedirect />} />
     <Route path="/seller/:id" element={<PublicSellerProfileRedirect />} />
-    {/* New token-based public profile */}
-    <Route path="/public-profile/:token" element={<PublicProfile />} />
+    {/* Public profile by seller ID (no token required) */}
+    <Route path="/public-profile/:sellerId" element={<PublicProfile />} />
     <Route path="/generate-og-image" element={<GenerateOGImage />} />
     <Route path="/terms" element={<TermsPage />} />
     <Route path="/privacy" element={<PrivacyPage />} />

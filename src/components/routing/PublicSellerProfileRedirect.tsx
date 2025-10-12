@@ -23,7 +23,7 @@ const PublicSellerProfileRedirect = () => {
         // Проверяем, существует ли продавец
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('id, public_share_token, user_type')
+          .select('id, user_type')
           .eq('id', id)
           .eq('user_type', 'seller')
           .maybeSingle();
@@ -41,34 +41,8 @@ const PublicSellerProfileRedirect = () => {
           return;
         }
 
-        // Если у продавца есть токен, редиректим
-        if (profile.public_share_token) {
-          navigate(`/public-profile/${profile.public_share_token}`, { replace: true });
-          return;
-        }
-
-        // Если токена нет, генерируем новый
-        console.log('Генерируем новый токен для продавца:', id);
-        const { data: tokenData, error: tokenError } = await supabase.functions.invoke(
-          'regenerate-profile-share-token',
-          {
-            body: { profileId: id }
-          }
-        );
-
-        if (tokenError) {
-          console.error('Ошибка при генерации токена:', tokenError);
-          setError('Не удалось создать публичную ссылку');
-          setIsLoading(false);
-          return;
-        }
-
-        if (tokenData?.token) {
-          navigate(`/public-profile/${tokenData.token}`, { replace: true });
-        } else {
-          setError('Не удалось получить токен для профиля');
-          setIsLoading(false);
-        }
+        // Редиректим на новый публичный профиль (без токена)
+        navigate(`/public-profile/${id}`, { replace: true });
 
       } catch (err) {
         console.error('Неожиданная ошибка:', err);

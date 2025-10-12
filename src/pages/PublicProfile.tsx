@@ -40,7 +40,7 @@ interface Product {
 }
 
 const PublicProfile = () => {
-  const { token } = useParams<{ token: string }>();
+  const { sellerId } = useParams<{ sellerId: string }>();
   const { language, changeLanguage } = useLanguage('en'); // English as default for public profiles
   const t = getPublicProfileTranslations(language);  
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -49,53 +49,36 @@ const PublicProfile = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) {
-      setError('TOKEN_NOT_FOUND');
+    if (!sellerId) {
+      setError('SELLER_ID_NOT_FOUND');
       setLoading(false);
       return;
     }
 
-    validateTokenAndLoadData();
-  }, [token]);
+    loadProfileData();
+  }, [sellerId]);
 
-  const validateTokenAndLoadData = async () => {
+  const loadProfileData = async () => {
     try {
       setLoading(true);
       
-      // Token validation process (removed sensitive logging)
-      
-      // Validate token via Edge Function
-      const { data: validation, error: validationError } = await supabase.functions.invoke(
-        'validate-profile-token',
-        {
-          body: { token }
-        }
-      );
+      // Load profile directly by seller_id
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, company_name, user_type, rating, verification_status')
+        .eq('id', sellerId)
+        .eq('user_type', 'seller')
+        .single();
 
-      console.log('📋 [PublicProfile] Edge Function response:');
-      console.log('  - validation:', validation);
-      console.log('  - validationError:', validationError);
-      console.log('  - validation?.valid:', validation?.valid);
-      console.log('  - typeof validation:', typeof validation);
-      console.log('  - JSON.stringify(validation):', JSON.stringify(validation));
-      console.log('  - JSON.stringify(validationError):', JSON.stringify(validationError));
-
-      if (validationError || !validation?.valid) {
-        console.error('❌ [PublicProfile] Token validation failed:');
-        console.error('  - validationError exists:', !!validationError);
-        console.error('  - validation?.valid:', validation?.valid);
-        console.error('  - Full validationError object:', validationError);
-        console.error('  - Full validation object:', validation);
-        setError('INVALID_OR_EXPIRED_LINK');
+      if (profileError || !profileData) {
+        console.error('Error loading profile:', profileError);
+        setError('PROFILE_NOT_FOUND');
         return;
       }
 
-      console.log('✅ [PublicProfile] Token validation successful');
-
-      const profileData = validation.profile;
       setProfile(profileData);
 
-      // Load products
+      // Load active products
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -169,8 +152,8 @@ const PublicProfile = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              {error === 'TOKEN_NOT_FOUND' ? t.tokenNotFound :
-               error === 'INVALID_OR_EXPIRED_LINK' ? t.invalidOrExpiredLink :
+              {error === 'SELLER_ID_NOT_FOUND' ? t.tokenNotFound :
+               error === 'PROFILE_NOT_FOUND' ? t.profileNotFound :
                error === 'ERROR_LOADING_PRODUCTS' ? t.errorLoadingProducts :
                error === 'DATA_LOADING_ERROR' ? t.dataLoadingError :
                t.profileNotFound}
@@ -194,19 +177,19 @@ const PublicProfile = () => {
         <title>{t.catalogTitle(displayName)}</title>
         <meta name="description" content={t.catalogDescription(displayName)} />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href={`https://partsbay.ae/public-profile/${token}`} />
+        <link rel="canonical" href={`https://partsbay.ae/public-profile/${sellerId}`} />
         
         {/* Hreflang tags for multilingual support */}
-        <link rel="alternate" hrefLang="en" href={`https://partsbay.ae/en/public-profile/${token}`} />
-        <link rel="alternate" hrefLang="ru" href={`https://partsbay.ae/ru/public-profile/${token}`} />
-        <link rel="alternate" hrefLang="bn" href={`https://partsbay.ae/bn/public-profile/${token}`} />
-        <link rel="alternate" hrefLang="x-default" href={`https://partsbay.ae/public-profile/${token}`} />
+        <link rel="alternate" hrefLang="en" href={`https://partsbay.ae/en/public-profile/${sellerId}`} />
+        <link rel="alternate" hrefLang="ru" href={`https://partsbay.ae/ru/public-profile/${sellerId}`} />
+        <link rel="alternate" hrefLang="bn" href={`https://partsbay.ae/bn/public-profile/${sellerId}`} />
+        <link rel="alternate" hrefLang="x-default" href={`https://partsbay.ae/public-profile/${sellerId}`} />
         
         {/* OpenGraph tags */}
         <meta property="og:title" content={t.catalogTitle(displayName)} />
         <meta property="og:description" content={t.catalogDescription(displayName)} />
         <meta property="og:type" content="profile" />
-        <meta property="og:url" content={`https://partsbay.ae/public-profile/${token}`} />
+        <meta property="og:url" content={`https://partsbay.ae/public-profile/${sellerId}`} />
         <meta property="og:locale" content={language === 'en' ? 'en_AE' : language === 'ru' ? 'ru_AE' : 'bn_BD'} />
         <meta property="og:site_name" content="PartsBay" />
         
