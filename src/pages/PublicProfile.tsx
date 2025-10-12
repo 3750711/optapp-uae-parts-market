@@ -117,10 +117,13 @@ const PublicProfile = () => {
         hasSession: !!session
       });
 
-      // Load active products from appropriate VIEW
+      // Load active products from appropriate VIEW with product_images
       const { data: productsData, error: productsError } = await supabase
         .from(viewName)
-        .select('*')
+        .select(`
+          *,
+          product_images!inner(id, url, is_primary)
+        `)
         .eq('seller_id', profileData.id)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
