@@ -21,7 +21,7 @@ import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerLi
 import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
 import ContactButtons from './ContactButtons';
-import { usePublicProfileShare } from '@/hooks/usePublicProfileShare';
+
 const SellerListingsContent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -30,14 +30,6 @@ const SellerListingsContent = () => {
   const t = getSellerListingsPageTranslations(language);
   const c = getCommonTranslations(language);
   const ITEMS_PER_PAGE = 12;
-  
-  // Public sharing functionality
-  const { 
-    generatePublicLink, 
-    disablePublicAccess, 
-    isGenerating, 
-    isDisabling 
-  } = usePublicProfileShare();
   
   // Search state
   const [searchInput, setSearchInput] = useState("");
@@ -55,24 +47,6 @@ const SellerListingsContent = () => {
         .select('id, name, phone, telegram')
         .eq('seller_id', user.id)
         .maybeSingle();
-        
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-
-  // Profile data for share functionality 
-  const { data: profileInfo } = useQuery({
-    queryKey: ['seller-profile-info', user?.id],
-    queryFn: async () => {
-      if (!user?.id) throw new Error('User not found');
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, public_share_token, public_share_enabled')
-        .eq('id', user.id)
-        .single();
         
       if (error) throw error;
       return data;
@@ -434,11 +408,8 @@ const SellerListingsContent = () => {
           <h1 className="text-3xl font-bold">{t.myShop}</h1>
           <ContactButtons
             sellerId={user?.id}
-            sellerName={storeInfo?.name || profileInfo?.display_name || 
-              `${profileInfo?.first_name || ''} ${profileInfo?.last_name || ''}`.trim() || 
-              'My Store'}
+            sellerName={storeInfo?.name || 'My Store'}
             storeInfo={storeInfo}
-            profileInfo={profileInfo}
           />
         </div>
       </div>

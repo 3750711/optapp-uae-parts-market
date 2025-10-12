@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import { getPublicProfileTranslations } from '@/utils/translations/publicProfile';
 import Layout from '@/components/layout/Layout';
 import LanguageToggle from '@/components/auth/LanguageToggle';
+// v3.6.1 - Removed token validation, using direct seller ID
 
 type ProductStatus = 'active' | 'sold' | 'pending' | 'archived';
 

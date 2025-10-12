@@ -22,10 +22,6 @@ interface ShareProfileDialogProps {
   storeInfo?: {
     id?: string;
   } | null;
-  profileInfo?: {
-    public_share_token?: string;
-    public_share_enabled?: boolean;
-  } | null;
 }
 
 const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
@@ -33,7 +29,6 @@ const ShareProfileDialog: React.FC<ShareProfileDialogProps> = ({
   sellerName,
   className = "",
   storeInfo,
-  profileInfo,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();

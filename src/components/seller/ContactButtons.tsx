@@ -9,18 +9,13 @@ interface ContactButtonsProps {
   storeInfo?: {
     id?: string;
   } | null;
-  profileInfo?: {
-    public_share_token?: string;
-    public_share_enabled?: boolean;
-  } | null;
 }
 
 const ContactButtons: React.FC<ContactButtonsProps> = ({
   sellerId,
   sellerName,
   className = "",
-  storeInfo,
-  profileInfo
+  storeInfo
 }) => {
   if (!sellerId) {
     return null;
@@ -32,7 +27,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         sellerId={sellerId}
         sellerName={sellerName || 'My Store'}
         storeInfo={storeInfo}
-        profileInfo={profileInfo}
       />
     </div>
   );
