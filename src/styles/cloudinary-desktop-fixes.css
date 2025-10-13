@@ -1,6 +1,7 @@
 /**
  * Cloudinary Upload Widget Desktop Fixes
  * Решает проблему неработающей кнопки "Browse" на десктопе
+ * Enhanced version with Firefox-specific fixes
  */
 
 /* Ensure Cloudinary widget overlay appears above everything */
@@ -13,18 +14,31 @@
   position: relative !important;
 }
 
-/* Fix widget iframe positioning and clickability */
+/* Fix widget iframe positioning and clickability - ENHANCED */
 .cloudinary-widget iframe,
-#cloudinary-overlay iframe {
-  z-index: 100000 !important;
+#cloudinary-overlay iframe,
+iframe[src*="cloudinary"],
+iframe[src*="widget.cloudinary.com"] {
+  z-index: 999999 !important;
   pointer-events: auto !important;
   position: fixed !important;
+  user-select: auto !important;
+  -webkit-user-select: auto !important;
+  -moz-user-select: auto !important;
 }
 
-/* Ensure overlay is clickable and visible */
+/* CRITICAL: Overlay should NOT block clicks to iframe */
 #cloudinary-overlay {
-  pointer-events: auto !important;
+  pointer-events: none !important;
   background: rgba(0, 0, 0, 0.5) !important;
+  z-index: 99998 !important;
+}
+
+/* But allow clicks on widget content inside overlay */
+#cloudinary-overlay > *,
+#cloudinary-overlay iframe,
+#cloudinary-overlay .cloudinary-widget {
+  pointer-events: auto !important;
 }
 
 /* Fix upload widget body */
@@ -33,27 +47,71 @@ body[class*="cloudinary"] {
   overflow: hidden !important;
 }
 
-/* Desktop-specific: Ensure widget buttons are clickable */
+/* Desktop-specific: Ensure widget buttons are clickable - ENHANCED */
 @media (min-width: 769px) {
   .cloudinary-widget button,
   .cloudinary-widget input[type="file"],
   .cloudinary-widget .upload-button,
-  .cloudinary-widget [role="button"] {
+  .cloudinary-widget [role="button"],
+  iframe[src*="cloudinary"] button,
+  iframe[src*="cloudinary"] input[type="file"],
+  iframe[src*="cloudinary"] [role="button"],
+  iframe[src*="cloudinary"] .upload-button,
+  iframe[src*="cloudinary"] .browse-button {
     pointer-events: auto !important;
     cursor: pointer !important;
-    z-index: 100001 !important;
+    z-index: 1000000 !important;
+    -webkit-user-select: auto !important;
+    -moz-user-select: auto !important;
+    user-select: auto !important;
   }
   
   /* Fix widget frame on desktop */
   .cloudinary-widget .widget-frame,
   .cloudinary-widget .upload-frame {
-    z-index: 100000 !important;
+    z-index: 1000000 !important;
     position: fixed !important;
     pointer-events: auto !important;
   }
 }
 
 /* Ensure no other elements block the widget */
-.cloudinary-widget * {
+.cloudinary-widget *,
+iframe[src*="cloudinary"] * {
   pointer-events: auto !important;
+}
+
+/* Firefox-specific fixes */
+@-moz-document url-prefix() {
+  #cloudinary-overlay iframe,
+  .cloudinary-widget iframe,
+  iframe[src*="cloudinary"],
+  iframe[src*="widget.cloudinary.com"] {
+    pointer-events: auto !important;
+    z-index: 999999 !important;
+    position: fixed !important;
+    -moz-user-select: auto !important;
+  }
+  
+  /* CRITICAL: Overlay must not block iframe clicks in Firefox */
+  #cloudinary-overlay {
+    pointer-events: none !important;
+  }
+  
+  /* Re-enable clicks on actual widget content */
+  #cloudinary-overlay > * {
+    pointer-events: auto !important;
+  }
+  
+  /* Ensure all interactive elements inside iframe work */
+  iframe[src*="cloudinary"] button,
+  iframe[src*="cloudinary"] input[type="file"],
+  iframe[src*="cloudinary"] [role="button"],
+  iframe[src*="cloudinary"] .upload-button,
+  iframe[src*="cloudinary"] .browse-button {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 1000000 !important;
+    -moz-user-select: auto !important;
+  }
 }
