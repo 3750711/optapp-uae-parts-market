@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useSimpleCloudinaryUpload } from '@/hooks/useSimpleCloudinaryUpload';
+import { useOrderConfirmationUpload } from '@/hooks/useOrderConfirmationUpload';
 
 export const useConfirmationUpload = (
   open: boolean, 
@@ -21,15 +21,27 @@ export const useConfirmationUpload = (
   const [sessionLost, setSessionLost] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Initialize upload hook for progress tracking
+  // Use new upload system with auto-save to database
   const { 
-    isUploading: isCloudinaryUploading, 
-    uploadProgress, 
     uploadFiles, 
-    clearProgress 
-  } = useSimpleCloudinaryUpload();
+    items: uploadItems,
+    isUploading: isCloudinaryUploading,
+    clearStaging 
+  } = useOrderConfirmationUpload({ orderId, category });
 
   const isUploading = isSaving || isCloudinaryUploading;
+  
+  // Map upload items to progress format
+  const uploadProgress = uploadItems.map(item => ({
+    fileId: item.id,
+    fileName: item.file.name,
+    progress: item.progress,
+    status: (item.status === 'compressing' || item.status === 'signing') ? 'processing' as const : 
+            (item.status === 'pending') ? 'pending' as const :
+            (item.status === 'uploading') ? 'uploading' as const :
+            (item.status === 'success') ? 'success' as const : 'error' as const,
+    error: item.error
+  }));
 
   // Function to get existing images by category
   const getImagesByCategory = useCallback(async (targetCategory: 'chat_screenshot' | 'signed_product') => {
@@ -85,6 +97,9 @@ export const useConfirmationUpload = (
   }, []);
 
   const handleSaveMedia = useCallback(async () => {
+    // Note: Images are now auto-saved during upload via useOrderConfirmationUpload
+    // This function now just validates and closes the dialog
+    
     if (!user || confirmImages.length === 0) {
       setUploadError('No images to upload');
       return;
@@ -101,23 +116,6 @@ export const useConfirmationUpload = (
       setIsSaving(true);
       setUploadError(null);
 
-      // Create individual rows for each image URL
-      const imageRows = confirmImages.map(url => ({
-        order_id: orderId,
-        url: url,
-        category: category || null
-      }));
-
-      // Insert all image URLs as separate rows
-      const { error } = await supabase
-        .from('confirm_images')
-        .insert(imageRows);
-
-      if (error) {
-        console.error('Database error:', error);
-        throw error;
-      }
-
       const successMessage = mode === 'images-only' 
         ? 'Your confirmation screenshot has been saved successfully.'
         : 'Confirmation media uploaded successfully';
@@ -126,13 +124,13 @@ export const useConfirmationUpload = (
       onComplete();
       handleReset();
     } catch (error) {
-      console.error('Error uploading media:', error);
-      setUploadError('Failed to save media. Please try again.');
-      toast.error('Failed to save media');
+      console.error('Error:', error);
+      setUploadError('Failed to complete. Please try again.');
+      toast.error('Failed to complete');
     } finally {
       setIsSaving(false);
     }
-  }, [user, confirmImages, orderId, onComplete, mode, category]);
+  }, [user, confirmImages, onComplete, mode, category]);
 
   const handleSessionRecovery = useCallback(async () => {
     try {
@@ -152,21 +150,26 @@ export const useConfirmationUpload = (
     setConfirmVideos([]);
     setUploadError(null);
     setIsSaving(false);
-    clearProgress();
-  }, [clearProgress]);
+    clearStaging();
+  }, [clearStaging]);
 
-  // New handler for direct file upload with progress
+  // Handler for direct file upload (now auto-saves to DB)
   const handleFilesUpload = useCallback(async (files: File[]) => {
     try {
       setUploadError(null);
-      const urls = await uploadFiles(files, { productId: orderId });
+      console.log('📤 Admin uploading', files.length, 'files');
+      
+      // uploadFiles now automatically saves to database via useOrderConfirmationUpload
+      const urls = await uploadFiles(files);
+      
+      // Update local state for display
       setConfirmImages(prev => [...prev, ...urls]);
     } catch (error) {
       console.error('File upload error:', error);
       setUploadError('Failed to upload files. Please try again.');
       toast.error('Failed to upload files');
     }
-  }, [uploadFiles, orderId]);
+  }, [uploadFiles]);
 
   return {
     // Admin status (for compatibility)
