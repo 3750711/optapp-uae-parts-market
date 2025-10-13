@@ -718,31 +718,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = async (updates: ProfileUpdate) => {
     if (!user?.id) throw new Error("User not authenticated");
     
-    // Fetch current profile to get required fields for RLS validation
-    const { data: currentProfile, error: fetchError } = await supabase
-      .from("profiles")
-      .select("user_type, verification_status, is_trusted_seller")
-      .eq("id", user.id)
-      .single();
-    
-    if (fetchError) throw fetchError;
-    
-    // Merge updates with required fields for RLS policy validation
-    const updateData = {
-      ...updates,
-      user_type: currentProfile.user_type,
-      verification_status: currentProfile.verification_status,
-      is_trusted_seller: currentProfile.is_trusted_seller
-    };
-    
+    // Send only the fields that are actually being updated
     const { error } = await supabase
       .from("profiles")
-      .update(updateData)
+      .update(updates)
       .eq("id", user.id);
       
     if (error) throw error;
     
-    // React Query will handle cache invalidation automatically
+    // Invalidate profile cache to trigger refetch
+    queryClient.invalidateQueries({ queryKey: ['profile', user.id] });
   };
 
   // Additional methods for backward compatibility
