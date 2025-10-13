@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,6 +35,9 @@ const SimpleCarSelector: React.FC<SimpleCarSelectorProps> = ({
   isLoadingModels: externalLoadingModels,
   enableBrandsLoading: externalEnableBrandsLoading
 }) => {
+  // Локальные состояния для поиска
+  const [brandSearchTerm, setBrandSearchTerm] = useState('');
+  const [modelSearchTerm, setModelSearchTerm] = useState('');
   
   // Fallback к useAllCarBrands если внешние данные не переданы
   const {
@@ -59,6 +62,26 @@ const SimpleCarSelector: React.FC<SimpleCarSelectorProps> = ({
   
   const models = externalModels || filteredInternalModels;
 
+  // Фильтрация брендов по поисковому запросу
+  const filteredBrands = useMemo(() => {
+    if (!brandSearchTerm.trim()) return brands;
+    
+    const term = brandSearchTerm.toLowerCase();
+    return brands.filter(brand => 
+      brand.name.toLowerCase().includes(term)
+    );
+  }, [brands, brandSearchTerm]);
+
+  // Фильтрация моделей по поисковому запросу
+  const filteredModels = useMemo(() => {
+    if (!modelSearchTerm.trim()) return models;
+    
+    const term = modelSearchTerm.toLowerCase();
+    return models.filter(model => 
+      model.name.toLowerCase().includes(term)
+    );
+  }, [models, modelSearchTerm]);
+
   // Обработчики изменения значений
   const handleBrandChange = (selectedBrandId: string) => {
     if (externalBrands) {
@@ -76,6 +99,8 @@ const SimpleCarSelector: React.FC<SimpleCarSelectorProps> = ({
         onModelChange('', '');
       }
     }
+    // Сброс поиска после выбора
+    setBrandSearchTerm('');
   };
 
   const handleModelChange = (selectedModelId: string) => {
@@ -92,6 +117,8 @@ const SimpleCarSelector: React.FC<SimpleCarSelectorProps> = ({
         onModelChange(selectedModelId, modelName);
       }
     }
+    // Сброс поиска после выбора
+    setModelSearchTerm('');
   };
 
   const handleBrandFocus = () => {
@@ -119,15 +146,35 @@ const SimpleCarSelector: React.FC<SimpleCarSelectorProps> = ({
               <SelectValue placeholder="Выберите бренд" />
             </SelectTrigger>
             <SelectContent className="bg-white border border-gray-200 shadow-md max-h-60">
-              {brands.map((brand) => (
-                <SelectItem 
-                  key={brand.id} 
-                  value={brand.id}
-                  className={isMobile ? "py-3 text-base" : ""}
-                >
-                  {brand.name}
-                </SelectItem>
-              ))}
+              {/* Поле поиска бренда */}
+              <div className="p-2 border-b sticky top-0 bg-white z-10">
+                <input
+                  type="text"
+                  placeholder="🔍 Поиск бренда..."
+                  value={brandSearchTerm}
+                  onChange={(e) => setBrandSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                />
+              </div>
+
+              {/* Отфильтрованный список брендов */}
+              {filteredBrands.length > 0 ? (
+                filteredBrands.map((brand) => (
+                  <SelectItem 
+                    key={brand.id} 
+                    value={brand.id}
+                    className={isMobile ? "py-3 text-base" : ""}
+                  >
+                    {brand.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <div className="p-4 text-center text-muted-foreground text-sm">
+                  Бренд не найден
+                </div>
+              )}
             </SelectContent>
           </Select>
         )}
@@ -150,12 +197,32 @@ const SimpleCarSelector: React.FC<SimpleCarSelectorProps> = ({
             } />
           </SelectTrigger>
           <SelectContent className="bg-white border border-gray-200 shadow-md max-h-60">
+            {/* Поле поиска модели */}
+            <div className="p-2 border-b sticky top-0 bg-white z-10">
+              <input
+                type="text"
+                placeholder="🔍 Поиск модели..."
+                value={modelSearchTerm}
+                onChange={(e) => setModelSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+              />
+            </div>
+
+            {/* Состояния загрузки/пустоты */}
             {isLoadingModels ? (
-              <SelectItem disabled value="loading">Загрузка моделей...</SelectItem>
+              <div className="p-2 space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
             ) : models.length === 0 ? (
-              <SelectItem disabled value="empty">Модели не найдены</SelectItem>
-            ) : (
-              models.map((model) => (
+              <div className="p-4 text-center text-muted-foreground text-sm">
+                Модели не найдены
+              </div>
+            ) : filteredModels.length > 0 ? (
+              filteredModels.map((model) => (
                 <SelectItem 
                   key={model.id} 
                   value={model.id}
@@ -164,6 +231,10 @@ const SimpleCarSelector: React.FC<SimpleCarSelectorProps> = ({
                   {model.name}
                 </SelectItem>
               ))
+            ) : (
+              <div className="p-4 text-center text-muted-foreground text-sm">
+                Модель не найдена
+              </div>
             )}
           </SelectContent>
         </Select>
