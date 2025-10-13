@@ -35,6 +35,13 @@ export const AIDeliverySuggestions: React.FC<AIDeliverySuggestionsProps> = ({
   onManualPriceChange,
   onRejectSuggestions
 }) => {
+  const [localValue, setLocalValue] = React.useState(currentDeliveryPrice.toString());
+  
+  // Sync local value with prop changes
+  React.useEffect(() => {
+    setLocalValue(currentDeliveryPrice.toString());
+  }, [currentDeliveryPrice]);
+  
   const hasAiSuggestions = suggestedPrices && suggestedPrices.length > 0;
 
   const getConfidenceLevel = (confidence: number) => {
@@ -103,8 +110,20 @@ export const AIDeliverySuggestions: React.FC<AIDeliverySuggestionsProps> = ({
               type="number"
               min="0"
               step="1"
-              value={currentDeliveryPrice}
-              onChange={(e) => onManualPriceChange(Number(e.target.value) || 0)}
+              value={localValue}
+              onChange={(e) => {
+                setLocalValue(e.target.value);
+                const num = Number(e.target.value);
+                if (!isNaN(num) && num >= 0) {
+                  onManualPriceChange(num);
+                }
+              }}
+              onBlur={() => {
+                if (localValue === '' || Number(localValue) < 0) {
+                  onManualPriceChange(0);
+                  setLocalValue('0');
+                }
+              }}
               className="w-20 h-8 text-sm"
               placeholder="0"
             />
