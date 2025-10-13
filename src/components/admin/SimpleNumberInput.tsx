@@ -24,12 +24,31 @@ export const SimpleNumberInput: React.FC<SimpleNumberInputProps> = ({
   min = 0,
   className = ''
 }) => {
+  const [localValue, setLocalValue] = React.useState(value.toString());
+  
+  // Синхронизация с внешним значением
+  React.useEffect(() => {
+    setLocalValue(value.toString());
+  }, [value]);
+  
   const isChanged = value !== originalValue;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
-    const numValue = parseFloat(inputValue) || 0;
-    onChange(Math.max(min, numValue));
+    setLocalValue(inputValue);
+    
+    const numValue = parseFloat(inputValue);
+    if (!isNaN(numValue) && numValue >= min) {
+      onChange(numValue);
+    }
+  };
+  
+  const handleBlur = () => {
+    const numValue = parseFloat(localValue);
+    if (localValue === '' || isNaN(numValue) || numValue < min) {
+      onChange(min);
+      setLocalValue(min.toString());
+    }
   };
 
   return (
@@ -44,8 +63,9 @@ export const SimpleNumberInput: React.FC<SimpleNumberInputProps> = ({
           )}
           <Input
             type="number"
-            value={value}
+            value={localValue}
             onChange={handleChange}
+            onBlur={handleBlur}
             min={min}
             className={`${prefix ? 'pl-8' : ''} ${suffix ? 'pr-12' : ''} ${
               isChanged ? 'border-primary ring-1 ring-primary/20' : ''
