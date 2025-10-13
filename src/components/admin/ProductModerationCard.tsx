@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLazyCarData } from '@/hooks/useLazyCarData';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn, Bot, Sparkles, Clock, AlertCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, Package, ChevronLeft, ChevronRight, ZoomIn, Bot, Sparkles, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
@@ -945,16 +945,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       </CardContent>
 
       <CardFooter className="flex gap-2 p-3">
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1"
-          onClick={() => window.open(`/product/${product.id}`, '_blank')}
-        >
-          <Eye className="h-3 w-3 mr-1" />
-          Просмотр
-        </Button>
-        
         <Button
           onClick={handlePublish}
           disabled={isPublishing}
