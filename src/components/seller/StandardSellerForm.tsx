@@ -429,6 +429,9 @@ const StandardSellerForm = () => {
           className="w-full p-3 border border-input rounded-lg bg-background h-24 resize-none"
           disabled={isSubmitting}
         />
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Пример: Nose cut Toyota Corolla 2005
+        </p>
       </div>
       
       <div>
