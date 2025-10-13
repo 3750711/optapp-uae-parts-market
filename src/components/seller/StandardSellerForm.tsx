@@ -14,6 +14,7 @@ import { useCurrentUserProfile } from "@/hooks/useCurrentUserProfile";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useSellerUploadProtection } from "@/hooks/useSellerUploadProtection";
 import { logger } from "@/utils/logger";
+import { sortCloudinaryUrlsByTimestamp } from "@/utils/cloudinaryHelpers";
 
 const StandardSellerForm = () => {
   const navigate = useNavigate();
@@ -214,7 +215,14 @@ const StandardSellerForm = () => {
       
       setPrimaryImage(prev => {
         if (!prev && urls.length > 0) {
-          return urls[0];
+          // ✅ Сортируем URLs по Cloudinary timestamp, чтобы первое загруженное фото было первым
+          const sortedUrls = sortCloudinaryUrlsByTimestamp(urls);
+          console.log('📸 Setting primary image from sorted URLs:', {
+            original: urls[0],
+            sorted: sortedUrls[0],
+            count: urls.length
+          });
+          return sortedUrls[0];
         }
         return prev;
       });
