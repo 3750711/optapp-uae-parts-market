@@ -171,6 +171,37 @@ export const useConfirmationUpload = (
     }
   }, [uploadFiles]);
 
+  // Handler for Cloudinary Widget uploads (saves URLs directly to database)
+  const handleWidgetUpload = useCallback(async (urls: string[]) => {
+    console.log('🎨 Widget uploaded URLs:', urls);
+    
+    // URLs are already uploaded to Cloudinary via widget
+    // Now save them to confirm_images with category
+    try {
+      const { error } = await supabase
+        .from('confirm_images')
+        .insert(
+          urls.map(url => ({
+            order_id: orderId,
+            url: url,
+            category: category
+          }))
+        );
+
+      if (error) throw error;
+
+      // Update local state
+      setConfirmImages(prev => [...prev, ...urls]);
+      
+      toast.success(`${urls.length} photo${urls.length > 1 ? 's' : ''} saved successfully`);
+    } catch (error) {
+      console.error('Error saving widget uploads:', error);
+      setUploadError('Failed to save photos');
+      toast.error('Failed to save photos');
+      throw error;
+    }
+  }, [orderId, category]);
+
   return {
     // Admin status (for compatibility)
     isAdmin: isAdmin === true,
@@ -195,6 +226,7 @@ export const useConfirmationUpload = (
     handleSessionRecovery,
     handleReset,
     handleFilesUpload,
+    handleWidgetUpload,
     getImagesByCategory
   };
 };

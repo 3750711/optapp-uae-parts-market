@@ -18,6 +18,8 @@ interface CloudinaryPhotoUploaderProps {
   className?: string;
   disabled?: boolean;
   onWidgetStateChange?: (isOpen: boolean) => void;
+  category?: 'chat_screenshot' | 'signed_product';
+  onImageUploadWithCategory?: (newUrls: string[], category: string) => void;
 }
 
 export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = ({
@@ -27,7 +29,9 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
   maxImages = 10,
   className,
   disabled = false,
-  onWidgetStateChange
+  onWidgetStateChange,
+  category,
+  onImageUploadWithCategory
 }) => {
   const { isUploading, uploadProgress, openUploadWidget } = useNewCloudinaryUpload();
   const [isWidgetOpen, setIsWidgetOpen] = useState(false);
@@ -74,6 +78,11 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
         
         console.log('📸 Final URLs to upload:', newUrls);
         onImageUpload(newUrls);
+        
+        // If category is provided, also call the category-specific callback
+        if (category && onImageUploadWithCategory) {
+          onImageUploadWithCategory(newUrls, category);
+        }
         
         // Widget закрыт после успешной загрузки - сбрасываем состояние
         setIsWidgetOpen(false);

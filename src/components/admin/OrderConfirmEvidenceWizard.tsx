@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/sheet';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SessionStatusComponent } from "./SessionStatusComponent";
-import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
+import { CloudinaryPhotoUploader } from "@/components/uploader/CloudinaryPhotoUploader";
 import { useConfirmationUpload } from "./useConfirmationUpload";
 import { useSellerUploadProtection } from "@/hooks/useSellerUploadProtection";
 import ProofExampleCard from "./sell-product/ProofExampleCard";
@@ -345,13 +345,13 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <MobileOptimizedImageUpload
-                  onFilesUpload={step1Hook.handleFilesUpload}
-                  uploadProgress={step1Hook.uploadProgress}
-                  existingImages={step1Hook.confirmImages}
+                <CloudinaryPhotoUploader
+                  images={step1Hook.confirmImages}
+                  onImageUpload={step1Hook.handleWidgetUpload}
                   onImageDelete={step1Hook.handleImageDelete}
                   maxImages={20}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
+                  category="chat_screenshot"
                 />
 
                 {step1Hook.confirmImages.length > 0 && (
@@ -386,13 +386,13 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   </p>
                 </div>
 
-                <MobileOptimizedImageUpload
-                  onFilesUpload={step2Hook.handleFilesUpload}
-                  uploadProgress={step2Hook.uploadProgress}
-                  existingImages={step2Hook.confirmImages}
+                <CloudinaryPhotoUploader
+                  images={step2Hook.confirmImages}
+                  onImageUpload={step2Hook.handleWidgetUpload}
                   onImageDelete={step2Hook.handleImageDelete}
                   maxImages={20}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
+                  category="signed_product"
                 />
 
                 {/* Show step 1 is locked if not completed */}
