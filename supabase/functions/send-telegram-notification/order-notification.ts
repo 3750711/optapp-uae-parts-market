@@ -14,7 +14,7 @@
 // Handler for order notifications
 
 import { BOT_TOKEN, ORDER_GROUP_CHAT_ID, REGISTERED_GROUP_CHAT_ID, ORDER_BASE_URL } from "./config.ts";
-import { waitBetweenBatches } from "./telegram-api.ts";
+import { waitBetweenBatches, optimizeImageUrl } from "./telegram-api.ts";
 import { logTelegramNotification } from "../shared/telegram-logger.ts";
 import { getLocalTelegramAccounts, getTelegramForDisplay } from "../shared/telegram-config.ts";
 
@@ -155,9 +155,14 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
       }
     }
     
+    // Optimize images for Telegram (convert to WebP, compress)
+    console.log('🎨 Optimizing images for Telegram...');
+    const optimizedOrderImages = orderImages.map((url: string) => optimizeImageUrl(url));
+    console.log(`✅ Optimization complete: ${optimizedOrderImages.length} images`);
+    
     // Determine if we have more than 10 images that need to be split
-    const firstBatchImages = orderImages.slice(0, 10);
-    const remainingImages = orderImages.slice(10);
+    const firstBatchImages = optimizedOrderImages.slice(0, 10);
+    const remainingImages = optimizedOrderImages.slice(10);
     const hasRemainingImages = remainingImages.length > 0;
     
     console.log(`Total images: ${orderImages.length}, First batch: ${firstBatchImages.length}, Remaining: ${remainingImages.length}`);

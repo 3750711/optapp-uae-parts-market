@@ -26,7 +26,7 @@ export const waitBetweenBatches = (ms: number) => new Promise(resolve => setTime
  * Input:  https://res.cloudinary.com/.../upload/v1759815755/products/image.jpg
  * Output: https://res.cloudinary.com/.../upload/f_webp,q_auto:good,c_limit,w_1200/v1759815755/products/image.jpg
  */
-function optimizeImageUrl(url: string): string {
+export function optimizeImageUrl(url: string): string {
   // Check if this is a Cloudinary URL
   if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) {
     return url;
