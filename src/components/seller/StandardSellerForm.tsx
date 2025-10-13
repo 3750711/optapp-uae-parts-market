@@ -430,7 +430,7 @@ const StandardSellerForm = () => {
           disabled={isSubmitting}
         />
         <p className="mt-1.5 text-xs text-muted-foreground">
-          Пример: Nose cut Toyota Corolla 2005
+          Example: Nose cut Toyota Corolla 2005
         </p>
       </div>
       
