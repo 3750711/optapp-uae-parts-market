@@ -718,9 +718,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = async (updates: ProfileUpdate) => {
     if (!user?.id) throw new Error("User not authenticated");
     
+    // Fetch current profile to get required fields for RLS validation
+    const { data: currentProfile, error: fetchError } = await supabase
+      .from("profiles")
+      .select("user_type, verification_status, is_trusted_seller")
+      .eq("id", user.id)
+      .single();
+    
+    if (fetchError) throw fetchError;
+    
+    // Merge updates with required fields for RLS policy validation
+    const updateData = {
+      ...updates,
+      user_type: currentProfile.user_type,
+      verification_status: currentProfile.verification_status,
+      is_trusted_seller: currentProfile.is_trusted_seller
+    };
+    
     const { error } = await supabase
       .from("profiles")
-      .update(updates)
+      .update(updateData)
       .eq("id", user.id);
       
     if (error) throw error;
