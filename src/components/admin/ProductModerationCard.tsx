@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { SimpleTextInput } from '@/components/admin/SimpleTextInput';
 import { SimpleNumberInput } from '@/components/admin/SimpleNumberInput';
 import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
@@ -16,6 +16,7 @@ import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
 import { AIConfidenceIndicator } from '@/components/ai/AIConfidenceIndicator';
 import { AIDeliverySuggestions } from '@/components/admin/AIDeliverySuggestions';
+import { CloudinaryPhotoUploader } from '@/components/uploader/CloudinaryPhotoUploader';
 
 
 interface Product {
@@ -86,6 +87,8 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -293,6 +296,67 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       brand: product.brand || '',
       model: product.model || ''
     });
+  };
+
+  // Обработчики загрузки/удаления фото
+  const handleImageUpload = async (newUrls: string[]) => {
+    setIsUploadingImages(true);
+    try {
+      // Вставить новые фото в product_images
+      const imageInserts = newUrls.map(url => ({
+        product_id: product.id,
+        url,
+        is_primary: false
+      }));
+
+      const { error } = await supabase
+        .from('product_images')
+        .insert(imageInserts);
+
+      if (error) throw error;
+
+      setUploadedImages(prev => [...prev, ...newUrls]);
+      
+      toast({
+        title: "Фото добавлены",
+        description: `Добавлено ${newUrls.length} фото к товару`,
+      });
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить фото",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
+
+  const handleImageDelete = async (urlToDelete: string) => {
+    try {
+      const { error } = await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', product.id)
+        .eq('url', urlToDelete);
+
+      if (error) throw error;
+
+      setUploadedImages(prev => prev.filter(url => url !== urlToDelete));
+      
+      toast({
+        title: "Фото удалено",
+        description: "Фото успешно удалено",
+      });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить фото",
+        variant: "destructive",
+      });
+    }
   };
 
   // Функции частичного применения AI предложений
@@ -727,6 +791,36 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
       </div>
 
       <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
+        {/* Раздел для загрузки дополнительных фото */}
+        <div className="pt-4 border-t">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium">Добавить фото к товару</h4>
+            <Badge variant="outline" className="text-xs">
+              {(product.product_images?.length || 0) + uploadedImages.length} / 50
+            </Badge>
+          </div>
+          
+          <Suspense fallback={
+            <div className="flex items-center justify-center p-4">
+              <div className="animate-spin h-6 w-6 border-b-2 border-primary" />
+            </div>
+          }>
+            <CloudinaryPhotoUploader
+              images={uploadedImages}
+              onImageUpload={handleImageUpload}
+              onImageDelete={handleImageDelete}
+              maxImages={50 - (product.product_images?.length || 0)}
+              disabled={isUploadingImages || isPublishing}
+            />
+          </Suspense>
+          
+          {uploadedImages.length > 0 && (
+            <div className="mt-2 text-xs text-muted-foreground bg-green-50 px-2 py-1 rounded border-l-2 border-green-500">
+              <span className="font-medium">✅ Добавлено:</span> {uploadedImages.length} новых фото будут отправлены в Telegram при публикации
+            </div>
+          )}
+        </div>
+
         {/* AI Suggestions Comparison Block */}
         {product.ai_suggested_title && (
           <Card className="border-blue-200 bg-blue-50/50">
