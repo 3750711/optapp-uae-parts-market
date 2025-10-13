@@ -13,7 +13,7 @@ export function useOrderConfirmationUpload({
   orderId, 
   category = null 
 }: UseOrderConfirmationUploadProps) {
-  const hook = useStagedCloudinaryUpload();
+  const hook = useStagedCloudinaryUpload({ uploadContext: 'free_order' });
   const { toast } = useToast();
   const queryClient = useQueryClient();
   

@@ -334,8 +334,13 @@ class StagedUploadDB {
 
 const stagingDB = new StagedUploadDB();
 
-export const useStagedCloudinaryUpload = () => {
+interface UseStagedCloudinaryUploadOptions {
+  uploadContext?: 'free_order' | 'seller_product' | 'admin_product';
+}
+
+export const useStagedCloudinaryUpload = (options?: UseStagedCloudinaryUploadOptions) => {
   const { toast } = useToast();
+  const uploadContext = options?.uploadContext || 'seller_product';
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [stagedUrls, setStagedUrls] = useState<string[]>([]);
   const [uploadItems, setUploadItems] = useState<StagedUploadItem[]>([]);
@@ -1113,7 +1118,7 @@ export const useStagedCloudinaryUpload = () => {
             original_size: item.originalSize,
             compressed_size: item.compressedSize,
             compression_ratio: compressionRatio
-          }, { context: 'seller_product' }).catch(error => {
+          }, { context: uploadContext }).catch(error => {
             console.error('🚨 Upload success logging failed for file:', item.file.name, error);
           });
           
@@ -1134,7 +1139,7 @@ export const useStagedCloudinaryUpload = () => {
             error_details: error instanceof Error ? error.message : 'Upload failed',
             original_size: item.originalSize,
             compressed_size: item.compressedSize
-          }, { context: 'seller_product' }).catch(logError => {
+          }, { context: uploadContext }).catch(logError => {
             console.error('🚨 Upload error logging failed for file:', item.file.name, logError);
           });
         }
