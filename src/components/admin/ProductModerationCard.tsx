@@ -10,9 +10,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLazyCarData } from '@/hooks/useLazyCarData';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { CheckCircle, Package, ChevronLeft, ChevronRight, ZoomIn, Bot, Sparkles, Clock, AlertCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, Package, ZoomIn, Bot, Sparkles, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
+
 import { adminProductsKeys } from '@/utils/cacheKeys';
 import { AIConfidenceIndicator } from '@/components/ai/AIConfidenceIndicator';
 import { AIDeliverySuggestions } from '@/components/admin/AIDeliverySuggestions';
@@ -83,7 +83,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   });
 
   const [isPublishing, setIsPublishing] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,22 +118,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
   
   // Мемоизация данных изображений
   const images = useMemo(() => product.product_images || [], [product.product_images]);
-  const hasMultipleImages = images.length > 1;
-  
-  // Упрощенная навигация
-  const navigate = useCallback((direction: 'prev' | 'next') => {
-    setCurrentImageIndex(prev => {
-      if (direction === 'prev') return prev === 0 ? images.length - 1 : prev - 1;
-      return prev === images.length - 1 ? 0 : prev + 1;
-    });
-  }, [images.length]);
-  
-  // Упрощенный swipe handler
-  const swipeRef = useSwipeNavigation({
-    onSwipeLeft: () => navigate('next'),
-    onSwipeRight: () => navigate('prev'),
-    threshold: 50
-  });
   
   const {
     brands,
@@ -621,14 +604,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     }
   };
 
-  // Предзагрузка следующего изображения для плавности
-  useEffect(() => {
-    if (images.length > 1) {
-      const nextIndex = (currentImageIndex + 1) % images.length;
-      const img = new Image();
-      img.src = images[nextIndex]?.url;
-    }
-  }, [currentImageIndex, images]);
 
   // Мемоизированный цвет статуса
   const statusColor = useMemo(() => {
@@ -683,79 +658,63 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div ref={swipeRef} className="relative h-48 bg-muted overflow-hidden">
+      <div className="relative bg-muted">
         {images.length > 0 ? (
-          <>
-            <div className="relative w-full h-full group cursor-zoom-in" onClick={() => setFullscreenImage(images[currentImageIndex]?.url)}>
-              <img
-                src={images[currentImageIndex]?.url}
-                alt={product.title}
-                className="w-full h-full object-cover transition-all duration-300"
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </div>
-            
-            {/* Navigation Buttons - only show if multiple images */}
-            {hasMultipleImages && (
-              <>
-                <button
-                  onClick={() => navigate('prev')}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-all"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => navigate('next')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full p-1 transition-all"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-                
-                {/* Image Counter */}
-                <div className="absolute bottom-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                  {currentImageIndex + 1} / {images.length}
+          <div className="space-y-0">
+            {images.map((image, index) => (
+              <div 
+                key={image.url}
+                className="relative w-full aspect-square bg-muted overflow-hidden cursor-zoom-in group"
+                onClick={() => setFullscreenImage(image.url)}
+              >
+                <img
+                  src={image.url}
+                  alt={`${product.title} - фото ${index + 1}`}
+                  className="w-full h-full object-cover transition-all duration-300"
+                  loading={index < 2 ? "eager" : "lazy"}
+                  decoding="async"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <ZoomIn className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
                 
-                {/* Image Indicators */}
-                <div className="absolute bottom-2 right-2 flex gap-1">
-                  {images.map((_, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setCurrentImageIndex(index)}
-                      className={`w-2 h-2 rounded-full transition-colors ${
-                        index === currentImageIndex ? 'bg-white' : 'bg-white/40'
-                      }`}
-                      aria-label={`Перейти к фото ${index + 1}`}
+                {/* Счетчик фото */}
+                <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                  {index + 1} / {images.length}
+                </div>
+                
+                {/* Индикатор главного фото */}
+                {image.is_primary && (
+                  <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded font-medium">
+                    Главное
+                  </div>
+                )}
+                
+                {/* Бейджи статуса и AI только на первом фото */}
+                {index === 0 && (
+                  <div className="absolute bottom-2 right-2 flex gap-1 flex-col items-end">
+                    <Badge 
+                      className={statusColor}
+                      variant="outline"
+                    >
+                      {product.status}
+                    </Badge>
+                    <AIConfidenceIndicator
+                      confidence={product.ai_confidence}
+                      enrichedAt={product.ai_enriched_at}
+                      isProcessing={isAiProcessing}
+                      className="items-end"
                     />
-                  ))}
-                </div>
-              </>
-            )}
-          </>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full h-48 flex items-center justify-center">
             <Package className="h-12 w-12 text-muted-foreground" />
           </div>
         )}
-        
-        <div className="absolute top-2 right-2 flex gap-1 flex-col items-end">
-          <Badge 
-            className={statusColor}
-            variant="outline"
-          >
-            {product.status}
-          </Badge>
-          <AIConfidenceIndicator
-            confidence={product.ai_confidence}
-            enrichedAt={product.ai_enriched_at}
-            isProcessing={isAiProcessing}
-            className="items-end"
-          />
-        </div>
       </div>
 
       <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
