@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLazyCarData } from '@/hooks/useLazyCarData';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
-import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn, RotateCcw, Bot, Sparkles, Clock, AlertCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, Eye, Package, ChevronLeft, ChevronRight, ZoomIn, Bot, Sparkles, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
 import { adminProductsKeys } from '@/utils/cacheKeys';
@@ -246,16 +246,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     }
   });
 
-  // Проверяем есть ли изменения
-  const hasChanges = useMemo(() => {
-    return formData.title !== product.title ||
-           formData.price !== product.price ||
-           formData.place_number !== (product.place_number || 1) ||
-           formData.delivery_price !== (product.delivery_price || 0) ||
-           formData.brand !== (product.brand || '') ||
-           formData.model !== (product.model || '');
-  }, [formData, product]);
-
   // Обработчики изменения полей
   const handleTitleChange = (value: string) => {
     setFormData(prev => ({ ...prev, title: value }));
@@ -285,18 +275,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
     const model = models.find(m => m.id === modelId)?.name || '';
     setFormData(prev => ({ ...prev, model }));
   }, [models]);
-
-  // Сброс изменений
-  const handleReset = () => {
-    setFormData({
-      title: product.title,
-      price: product.price,
-      place_number: product.place_number || 1,
-      delivery_price: product.delivery_price || 0,
-      brand: product.brand || '',
-      model: product.model || ''
-    });
-  };
 
   // Обработчики загрузки/удаления фото
   const handleImageUpload = async (newUrls: string[]) => {
@@ -778,16 +756,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
             className="items-end"
           />
         </div>
-
-        {/* Индикатор изменений */}
-        {hasChanges && (
-          <Badge 
-            className="absolute top-2 left-2 bg-primary text-primary-foreground"
-            variant="default"
-          >
-            Изменено
-          </Badge>
-        )}
       </div>
 
       <CardContent className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6">
@@ -986,18 +954,6 @@ const ProductModerationCard: React.FC<ProductModerationCardProps> = ({
           <Eye className="h-3 w-3 mr-1" />
           Просмотр
         </Button>
-
-        {hasChanges && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleReset}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <RotateCcw className="h-3 w-3 mr-1" />
-            Сбросить
-          </Button>
-        )}
         
         <Button
           onClick={handlePublish}
