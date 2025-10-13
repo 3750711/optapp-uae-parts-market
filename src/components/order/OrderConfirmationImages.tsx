@@ -7,8 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, RefreshCw, AlertTriangle, Copy } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { offlineQueue } from "@/utils/offlineQueue";
-import { uploadMetrics } from "@/utils/uploadMetrics";
+import { useOrderConfirmationUpload } from "@/hooks/useOrderConfirmationUpload";
+import UploadProgressIndicator from "@/components/ui/optimized-image-upload/UploadProgressIndicator";
 
 interface OrderConfirmationImagesProps {
   orderId: string;
@@ -106,10 +106,14 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [uploadError, setUploadError] = useState<{
-    error: string;
-    attempts: UploadAttempt[];
-  } | null>(null);
+  
+  // Use new upload system
+  const { 
+    uploadFiles, 
+    items: uploadItems, 
+    isUploading,
+    clearStaging 
+  } = useOrderConfirmationUpload({ orderId });
 
   const { data: images = [], isLoading, isError } = useQuery({
     queryKey: ['confirm-images', orderId],
@@ -163,12 +167,13 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
     }
   };
 
-  const retryUpload = () => {
-    setUploadError(null);
-    // Trigger file selection again
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
-    fileInput?.click();
+  const handleFilesUpload = async (files: File[]) => {
+    console.log('📤 Uploading', files.length, 'confirmation files');
+    await uploadFiles(files);
   };
+  
+  // Failed items for error display
+  const failedItems = uploadItems.filter(i => i.status === 'error');
 
   if (isLoading) {
     return (
@@ -198,73 +203,57 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
     <div className="space-y-4">
       <MobileOptimizedImageUpload
         existingImages={images}
-        onUploadComplete={async (urls) => {
-          console.log('🎯 OrderConfirmationImages - onUploadComplete called:', {
-            newUrls: urls,
-            existingImages: images,
-            orderId: orderId,
-            totalAfter: images.length + urls.length
-          });
-          
-          // MobileOptimizedImageUpload provides URLs after successful upload
-          if (Array.isArray(urls) && urls.length > 0) {
-            console.log('💾 Saving new URLs to database:', urls);
-            
-            try {
-              // URLs are already uploaded, just save them to database
-              const imageInserts = urls.map(url => ({
-                order_id: orderId,
-                url
-              }));
-
-              console.log('📝 Database insert payload:', imageInserts);
-
-              const { error } = await supabase
-                .from('confirm_images')
-                .insert(imageInserts);
-
-              if (!error) {
-                console.log('✅ Database save successful, invalidating cache...');
-                toast({
-                  title: "Загрузка завершена",
-                  description: `Загружено ${urls.length} подтверждающих фото`,
-                });
-                queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
-              } else {
-                console.error('❌ Database save error:', error);
-                toast({
-                  title: "Ошибка сохранения",
-                  description: "Не удалось сохранить URLs фотографий", 
-                  variant: "destructive",
-                });
-              }
-            } catch (error) {
-              console.error('❌ Database save error:', error);
-              toast({
-                title: "Ошибка сохранения",
-                description: "Не удалось сохранить URLs фотографий", 
-                variant: "destructive",
-              });
-            }
-          } else {
-            console.warn('⚠️ No URLs provided or invalid format:', urls);
-          }
-        }}
+        onFilesUpload={handleFilesUpload}
+        uploadProgress={uploadItems.map(item => ({
+          fileId: item.id,
+          fileName: item.file.name,
+          progress: item.progress,
+          status: (item.status === 'compressing' || item.status === 'signing') ? 'processing' : 
+                  (item.status === 'pending') ? 'pending' :
+                  (item.status === 'uploading') ? 'uploading' :
+                  (item.status === 'success') ? 'success' : 'error',
+          error: item.error
+        }))}
         onImageDelete={canEdit ? handleImageDelete : undefined}
         maxImages={50}
         productId={orderId}
-        disabled={!canEdit}
+        disabled={!canEdit || isUploading}
         buttonText="Загрузить подтверждающие фото"
         disableToast={true}
       />
       
-      {uploadError && (
-        <UploadErrorDiagnostics
-          error={uploadError.error}
-          attempts={uploadError.attempts}
-          orderId={orderId}
-          onRetry={retryUpload}
+      {/* Detailed progress indicator */}
+      {uploadItems.length > 0 && (
+        <UploadProgressIndicator
+          uploads={uploadItems.map(item => ({
+            id: item.id,
+            file: item.file,
+            progress: item.progress,
+            status: (item.status === 'compressing' || item.status === 'signing') ? 'processing' : 
+                    (item.status === 'pending') ? 'pending' :
+                    (item.status === 'uploading') ? 'uploading' :
+                    (item.status === 'success') ? 'success' : 'error',
+            error: item.error
+          }))}
+          onClear={clearStaging}
         />
+      )}
+      
+      {/* Error display for failed uploads */}
+      {failedItems.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Не удалось загрузить {failedItems.length} файлов</AlertTitle>
+          <AlertDescription>
+            <div className="space-y-1 mt-2">
+              {failedItems.map(item => (
+                <div key={item.id} className="text-sm">
+                  <strong>{item.file.name}:</strong> {item.error}
+                </div>
+              ))}
+            </div>
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );
