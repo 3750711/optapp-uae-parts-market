@@ -35,7 +35,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   
   const [isZoomed, setIsZoomed] = useState(false);
   const [currentZoomIndex, setCurrentZoomIndex] = useState(0);
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: allMedia.length > 1 });
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: allMedia.length > 1,
+    dragFree: true,
+    skipSnaps: false,
+    containScroll: 'trimSnaps'
+  });
 
   // Preload priority images (first 2 images)
   const { preloadImage } = useImagePreloader({ 
@@ -181,6 +186,10 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                           preloadImage(allMedia[index + 1]);
                         }
                       }}
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder.svg';
+                        e.currentTarget.onerror = null;
+                      }}
                     />
                   )}
                   
@@ -196,17 +205,20 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
         </div>
       </div>
 
+      {/* Swipe indicator */}
+      {allMedia.length > 1 && (
+        <div className="text-center text-xs text-muted-foreground mt-2 mb-2 animate-pulse">
+          ← Swipe for more photos →
+        </div>
+      )}
+
       {/* Progress Indicators */}
       {allMedia.length > 1 && (
         <div className="flex justify-center gap-1 mb-4">
           {allMedia.map((_, index) => (
             <button
               key={index}
-              className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                index === currentActiveIndex 
-                  ? 'bg-primary scale-125' 
-                  : 'bg-gray-300 hover:bg-gray-400'
-              }`}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center touch-target"
               onClick={() => {
                 if (emblaApi) emblaApi.scrollTo(index);
                 if (onImageClick) {
@@ -215,7 +227,13 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   setInternalActiveMedia(allMedia[index]);
                 }
               }}
-            />
+            >
+              <span className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                index === currentActiveIndex 
+                  ? 'bg-primary scale-125' 
+                  : 'bg-gray-300 hover:bg-gray-400'
+              }`} />
+            </button>
           ))}
         </div>
       )}
@@ -256,6 +274,10 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     className="w-full h-full object-cover"
                     loading="lazy"
                     decoding="async"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                      e.currentTarget.onerror = null;
+                    }}
                   />
                 )}
               </div>
@@ -310,6 +332,10 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     touchAction: 'pinch-zoom',
                     userSelect: 'none'
                   }}
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg';
+                    e.currentTarget.onerror = null;
+                  }}
                 />
               </div>
 
@@ -320,7 +346,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     variant="ghost"
                     size="icon"
                     onClick={() => navigateZoom('prev')}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 bg-black/40"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 bg-black/40 min-h-[44px] min-w-[44px]"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
@@ -328,7 +354,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     variant="ghost"
                     size="icon"
                     onClick={() => navigateZoom('next')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 bg-black/40"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 bg-black/40 min-h-[44px] min-w-[44px]"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Button>
@@ -353,6 +379,10 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                             src={url}
                             alt=""
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder.svg';
+                              e.currentTarget.onerror = null;
+                            }}
                           />
                         </button>
                       );
@@ -394,6 +424,10 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   src={allMedia[currentZoomIndex]}
                   alt={title}
                   className="w-full max-h-[70vh] object-contain"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg';
+                    e.currentTarget.onerror = null;
+                  }}
                 />
                 
                 {imageUrls.length > 1 && (
@@ -402,7 +436,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                       variant="ghost"
                       size="icon"
                       onClick={() => navigateZoom('prev')}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 min-h-[44px] min-w-[44px]"
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
@@ -410,7 +444,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                       variant="ghost"
                       size="icon"
                       onClick={() => navigateZoom('next')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 min-h-[44px] min-w-[44px]"
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>

@@ -26,13 +26,13 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
   onImageClick,
   showAddNewButton = false,
 }) => {
+  const { language } = useLanguage();
+  const t = getProductStatusTranslations(language);
+
   // Ensure we have a valid product before using hooks
   if (!product?.id) {
     return null;
   }
-
-  const { language } = useLanguage();
-  const t = getProductStatusTranslations(language);
 
   const getStatusBadge = () => {
     switch (product.status) {
