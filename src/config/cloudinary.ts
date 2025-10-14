@@ -334,7 +334,7 @@ export const getWidgetSources = (isMobile: boolean): string[] => {
   return ['local'];
 };
 
-export const getWidgetUXConfig = (isMobile: boolean) => {
+export const getWidgetUXConfig = (isMobile: boolean, isPWA: boolean = false) => {
   const baseConfig = {
     inline: false,
     queueViewPosition: isMobile ? 'bottom' : 'top',
@@ -350,6 +350,24 @@ export const getWidgetUXConfig = (isMobile: boolean) => {
     // Desktop fix: High z-index to appear above all elements
     zIndex: 99999,
   };
+
+  // PWA-specific optimizations (highest priority)
+  if (isPWA) {
+    return {
+      ...baseConfig,
+      // Enable modal overlay to allow closing by clicking outside
+      modalMode: true,
+      closeOnClickOutside: true,
+      // Show close button prominently
+      showCloseButton: true,
+      // Adjust for smaller size
+      theme: 'minimal',
+      showProgressBar: true,
+      showCompletedButton: true,
+      queueViewPosition: 'bottom',
+      thumbnailTransformation: { width: 60, height: 60, crop: 'fill' },
+    };
+  }
 
   // Mobile-specific optimizations
   if (isMobile) {

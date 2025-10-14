@@ -307,14 +307,18 @@ export const useNewCloudinaryUpload = () => {
       // Определяем темную тему
       const isDark = document.documentElement.classList.contains("dark");
       
+      // PWA detection
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+      
       // Получаем конфигурацию источников и UX настроек
       const isMobileWidget = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       const widgetSources = getWidgetSources(isMobileWidget);
-      const uxConfig = getWidgetUXConfig(isMobileWidget);
+      const uxConfig = getWidgetUXConfig(isMobileWidget, isPWA); // Приоритет PWA
       
       // 🔍 Диагностика: Логируем платформу и конфигурацию
       console.log('📱 Platform detection:', {
         isMobile: isMobileWidget,
+        isPWA: isPWA,
         userAgent: navigator.userAgent,
         sources: widgetSources,
         uxConfig

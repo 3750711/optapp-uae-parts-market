@@ -143,3 +143,121 @@
   contain: layout style paint;
   transform: translateZ(0);
 }
+
+/* ============================================
+   PWA-SPECIFIC CLOUDINARY WIDGET STYLES
+   ============================================ */
+
+/* Detect PWA mode (standalone display) */
+@media all and (display-mode: standalone) {
+  /* Widget backdrop overlay - darkened, clickable to close */
+  #cloudinary-overlay {
+    background: rgba(0, 0, 0, 0.75) !important;
+    z-index: 9999 !important;
+  }
+  
+  /* Main widget container - reduced to 50% size */
+  .cloudinary-widget iframe,
+  div[id^="cloudinary-widget"],
+  .cloudinary-widget-wrapper {
+    max-width: 90vw !important;
+    max-height: 70vh !important;
+    width: 90vw !important;
+    height: 70vh !important;
+    
+    /* Center the widget */
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    
+    /* Add rounded corners and shadow */
+    border-radius: 16px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    overflow: hidden !important;
+  }
+  
+  /* Close button - make it more prominent */
+  .cloudinary-widget [class*="close"],
+  .cloudinary-widget button[aria-label*="close"],
+  .cloudinary-widget button[title*="Close"] {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    width: 44px !important;
+    height: 44px !important;
+    z-index: 10000 !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 24px !important;
+    cursor: pointer !important;
+    border: 2px solid white !important;
+  }
+  
+  /* Widget header with close button area */
+  .cloudinary-widget .widget-header,
+  .cloudinary-widget [class*="header"] {
+    padding-right: 60px !important;
+  }
+  
+  /* Adjust inner content for smaller size */
+  .cloudinary-widget .upload-area {
+    min-height: 150px !important;
+    padding: 24px !important;
+  }
+  
+  .cloudinary-widget .queue-view {
+    max-height: 40vh !important;
+  }
+  
+  /* Ensure buttons are touch-friendly */
+  .cloudinary-widget button {
+    min-height: 44px !important;
+    padding: 12px 20px !important;
+    font-size: 15px !important;
+  }
+  
+  /* Text sizing for smaller widget */
+  .cloudinary-widget .title {
+    font-size: 18px !important;
+  }
+  
+  .cloudinary-widget .text {
+    font-size: 14px !important;
+  }
+}
+
+/* PWA + Small screens (iPhone SE, etc.) */
+@media all and (display-mode: standalone) and (max-width: 428px) {
+  .cloudinary-widget iframe,
+  div[id^="cloudinary-widget"],
+  .cloudinary-widget-wrapper {
+    max-width: 95vw !important;
+    max-height: 75vh !important;
+    width: 95vw !important;
+    height: 75vh !important;
+  }
+  
+  .cloudinary-widget .upload-area {
+    min-height: 120px !important;
+    padding: 16px !important;
+  }
+}
+
+/* PWA + Landscape orientation */
+@media all and (display-mode: standalone) and (orientation: landscape) and (max-height: 500px) {
+  .cloudinary-widget iframe,
+  div[id^="cloudinary-widget"],
+  .cloudinary-widget-wrapper {
+    max-height: 85vh !important;
+    height: 85vh !important;
+  }
+  
+  .cloudinary-widget .queue-view {
+    max-height: 35vh !important;
+  }
+}
