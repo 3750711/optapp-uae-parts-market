@@ -6,8 +6,10 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import BackButton from "@/components/navigation/BackButton";
 
 // Lazy loading для оптимизации
 const StandardSellerForm = React.lazy(() => import("@/components/seller/StandardSellerForm"));
@@ -41,15 +43,20 @@ const SellerAddProduct = () => {
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className={`mx-auto ${isTrustedSeller ? 'max-w-4xl' : 'max-w-lg'}`}>
+            <BackButton fallback="/seller/dashboard" variant="outline" className="mb-4" />
+            
             <div className="mb-6">
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">
                 {t.sections.addProduct}
-                {isTrustedSeller && (
-                  <span className="ml-2 text-sm font-normal text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                    {c.trustedSeller.badge}
-                  </span>
-                )}
               </h1>
+              <p className="text-muted-foreground">
+                Заполните информацию о товаре для добавления в каталог
+              </p>
+              {isTrustedSeller && (
+                <Badge className="mt-2 bg-emerald-50 text-emerald-600 border-emerald-200">
+                  {c.trustedSeller.badge}
+                </Badge>
+              )}
             </div>
             
             <ErrorBoundary>
