@@ -292,11 +292,11 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
         <Sheet open={isZoomed} onOpenChange={setIsZoomed}>
           <SheetContent 
             side="bottom" 
-            className="h-full max-h-full p-0 border-0 rounded-none"
+            className="h-[100dvh] max-h-[100dvh] p-0 border-0 rounded-none overflow-hidden"
           >
             <div className="relative w-full h-full bg-black">
               {/* Header with controls */}
-              <div className="absolute top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-sm p-4">
+              <div className="absolute top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-sm p-4 pt-safe mt-safe">
                 <div className="flex items-center justify-between text-white">
                   <div className="text-sm font-medium">
                     {currentZoomIndex + 1} из {imageUrls.length}
@@ -323,14 +323,16 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </div>
 
               {/* Main image */}
-              <div className="w-full h-full flex items-center justify-center p-4">
+              <div className="w-full max-h-[100dvh] flex items-center justify-center px-4 pt-20 pb-24 overflow-hidden">
                 <img
                   src={allMedia[currentZoomIndex]}
                   alt={title}
-                  className="max-w-full max-h-full object-contain"
+                  className="max-w-[100vw] max-h-[calc(100dvh-12rem)] object-contain"
                   style={{ 
-                    touchAction: 'pinch-zoom',
-                    userSelect: 'none'
+                    touchAction: 'pan-x pan-y pinch-zoom',
+                    userSelect: 'none',
+                    width: 'auto',
+                    height: 'auto'
                   }}
                   onError={(e) => {
                     e.currentTarget.src = '/placeholder.svg';
@@ -363,30 +365,32 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
 
               {/* Bottom thumbnail strip */}
               {imageUrls.length > 1 && (
-                <div className="absolute bottom-4 left-0 right-0 px-4">
-                  <div className="flex gap-2 justify-center overflow-x-auto py-2">
-                    {imageUrls.map((url, index) => {
-                      const globalIndex = allMedia.indexOf(url);
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => setCurrentZoomIndex(globalIndex)}
-                          className={`w-12 h-12 rounded border-2 overflow-hidden flex-shrink-0 ${
-                            globalIndex === currentZoomIndex ? 'border-white' : 'border-gray-400'
-                          }`}
-                        >
-                          <img
-                            src={url}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = '/placeholder.svg';
-                              e.currentTarget.onerror = null;
-                            }}
-                          />
-                        </button>
-                      );
-                    })}
+                <div className="absolute bottom-0 left-0 right-0 px-4 pb-safe mb-safe">
+                  <div className="bg-black/60 backdrop-blur-sm rounded-t-lg pt-2">
+                    <div className="flex gap-2 justify-center overflow-x-auto py-2 px-2">
+                      {imageUrls.map((url, index) => {
+                        const globalIndex = allMedia.indexOf(url);
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => setCurrentZoomIndex(globalIndex)}
+                            className={`w-14 h-14 sm:w-12 sm:h-12 rounded border-2 overflow-hidden flex-shrink-0 min-h-[44px] min-w-[44px] ${
+                              globalIndex === currentZoomIndex ? 'border-white' : 'border-gray-400'
+                            }`}
+                          >
+                            <img
+                              src={url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = '/placeholder.svg';
+                                e.currentTarget.onerror = null;
+                              }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
