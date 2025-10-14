@@ -16,79 +16,68 @@ const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children })
   const { language, changeLanguage } = useLanguage();
 
   useEffect(() => {
-    const safeLanguage = (language || profile?.preferred_locale || 'ru') as 'ru' | 'en' | 'bn';
     const userType = profile?.user_type ?? null;
+    const preferredLocale = profile?.preferred_locale as 'ru' | 'en' | 'bn' | undefined;
+    const currentLanguage = language || preferredLocale || 'ru';
     
     console.log('LanguageProvider: Checking language restrictions', {
-      currentLanguage: safeLanguage,
+      currentLanguage,
+      preferredLocale,
       userType,
-      preferredLocale: profile?.preferred_locale,
       pathname: location.pathname
     });
     
-    // Force Russian language for buyers regardless of database value
-    if (userType === 'buyer' && safeLanguage !== 'ru') {
-      console.log('LanguageProvider: Forcing Russian for buyer user type');
-      changeLanguage('ru');
+    // Force Russian for buyers
+    if (userType === 'buyer' && currentLanguage !== 'ru') {
+      console.log('LanguageProvider: Forcing Russian for buyer');
+      if (language !== 'ru') { // Guard: only call if different
+        changeLanguage('ru');
+      }
       return;
     }
     
-    // Safe language restriction check with fallback
+    // Check if current language is allowed
     let allowed = true;
     try {
-      allowed = isLanguageAllowed(safeLanguage, userType, location.pathname);
+      allowed = isLanguageAllowed(currentLanguage, userType, location.pathname);
     } catch (error) {
-      console.warn('LanguageProvider: Error checking language allowed, defaulting to allowed=true', error);
+      console.warn('LanguageProvider: Error checking language allowed', error);
       allowed = true;
     }
     
     if (!allowed) {
-      // If user has a saved preferred_locale and it's allowed, use that
-      if (profile?.preferred_locale) {
+      // Try preferred_locale if available and allowed
+      if (preferredLocale) {
         try {
-          const preferredAllowed = isLanguageAllowed(profile.preferred_locale as 'ru' | 'en' | 'bn', userType, location.pathname);
-          if (preferredAllowed) {
-            console.log('LanguageProvider: Using profile preferred_locale:', profile.preferred_locale);
-            changeLanguage(profile.preferred_locale as 'ru' | 'en' | 'bn');
+          const preferredAllowed = isLanguageAllowed(preferredLocale, userType, location.pathname);
+          if (preferredAllowed && language !== preferredLocale) { // Guard
+            console.log('LanguageProvider: Using preferred_locale:', preferredLocale);
+            changeLanguage(preferredLocale);
             return;
           }
         } catch (error) {
-          console.warn('LanguageProvider: Error checking preferred language, using default', error);
+          console.warn('LanguageProvider: Error with preferred_locale', error);
         }
       }
       
-      // Otherwise use default language for user role
+      // Otherwise use default for role
       try {
         const defaultLang = getDefaultLanguageFor(userType, location.pathname);
-        console.log('LanguageProvider: Using default language for role:', defaultLang);
-        changeLanguage(defaultLang);
-      } catch (error) {
-        console.warn('LanguageProvider: Error getting default language, using ru', error);
-        changeLanguage('ru');
-      }
-    }
-    
-    // Update HTML lang attribute for accessibility and SEO (guaranteed safe)
-    document.documentElement.lang = safeLanguage;
-  }, [profile?.user_type, profile?.preferred_locale, location.pathname, language, changeLanguage]);
-
-  // Force language update when profile.preferred_locale changes
-  useEffect(() => {
-    const safePreferredLocale = profile?.preferred_locale as 'ru' | 'en' | 'bn' | undefined;
-    const userType = profile?.user_type ?? null;
-    
-    if (safePreferredLocale && language !== safePreferredLocale) {
-      try {
-        const allowed = isLanguageAllowed(safePreferredLocale, userType, location.pathname);
-        if (allowed) {
-          console.log('LanguageProvider: Profile preferred_locale changed, forcing update:', safePreferredLocale);
-          changeLanguage(safePreferredLocale);
+        if (language !== defaultLang) { // Guard
+          console.log('LanguageProvider: Using default language:', defaultLang);
+          changeLanguage(defaultLang);
         }
       } catch (error) {
-        console.warn('LanguageProvider: Error processing preferred_locale change', error);
+        console.warn('LanguageProvider: Error getting default language', error);
+        if (language !== 'ru') {
+          changeLanguage('ru');
+        }
       }
     }
-  }, [profile?.preferred_locale, language, profile?.user_type, location.pathname, changeLanguage]);
+    
+    // Update HTML lang attribute
+    document.documentElement.lang = currentLanguage;
+  }, [profile?.user_type, profile?.preferred_locale, location.pathname, language, changeLanguage]);
 
   return <>{children}</>;
 };

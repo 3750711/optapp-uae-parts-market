@@ -73,10 +73,22 @@ export const useLanguage = (defaultLanguage: 'ru' | 'en' | 'bn' = 'en') => {
   }, [user]);
 
   const changeLanguage = async (newLanguage: 'ru' | 'en' | 'bn') => {
+    // Guard: don't update if language hasn't changed
+    if (language === newLanguage) {
+      logger.log('🌐 useLanguage: Language already set to:', newLanguage);
+      return;
+    }
+    
     logger.log('🌐 useLanguage: changeLanguage called with:', newLanguage, 'current:', language, 'user:', !!user);
     setLanguage(newLanguage);
     
     if (user && updateProfile) {
+      // Additional guard: don't update if profile already has this language
+      if (profile?.preferred_locale === newLanguage) {
+        logger.log('🌐 useLanguage: Profile already has this language, skipping update');
+        return;
+      }
+      
       // For authenticated users: save only to profile
       try {
         logger.log('🌐 useLanguage: Saving language to profile:', newLanguage);
