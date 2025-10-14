@@ -4,13 +4,14 @@ import useEmblaCarousel from "embla-carousel-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { X, ZoomIn, Share2, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ZoomIn, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { useLazyImage } from "@/hooks/useLazyImage";
+import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 
 interface ProductGalleryProps {
   images: string[];
@@ -55,6 +56,13 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       setIsZoomed(true);
     }
   };
+
+  // Swipe navigation for zoomed view
+  const swipeRef = useSwipeNavigation({
+    onSwipeLeft: () => navigateZoom('next'),
+    onSwipeRight: () => navigateZoom('prev'),
+    threshold: 50
+  });
 
   const handleThumbnailClick = useCallback((url: string) => {
     const index = allMedia.indexOf(url);
@@ -323,7 +331,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </div>
 
               {/* Main image */}
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div ref={swipeRef} className="absolute inset-0 flex items-center justify-center">
                 <img
                   src={allMedia[currentZoomIndex]}
                   alt={title}
@@ -340,28 +348,6 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   }}
                 />
               </div>
-
-              {/* Navigation buttons */}
-              {imageUrls.length > 1 && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigateZoom('prev')}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 bg-black/40 min-h-[44px] min-w-[44px]"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => navigateZoom('next')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 bg-black/40 min-h-[44px] min-w-[44px]"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                </>
-              )}
 
             </div>
           </SheetContent>
@@ -402,27 +388,6 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     e.currentTarget.onerror = null;
                   }}
                 />
-                
-                {imageUrls.length > 1 && (
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => navigateZoom('prev')}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 min-h-[44px] min-w-[44px]"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => navigateZoom('next')}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 min-h-[44px] min-w-[44px]"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
               </div>
             </div>
           </DialogContent>
