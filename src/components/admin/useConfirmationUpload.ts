@@ -78,6 +78,23 @@ export const useConfirmationUpload = (
     }
   }, [open, user]);
 
+  // Load existing images for this category when hook becomes active
+  useEffect(() => {
+    if (!open || !orderId || !category) return;
+    
+    const loadExistingImages = async () => {
+      try {
+        const existingUrls = await getImagesByCategory(category);
+        console.log(`📂 Loaded ${existingUrls.length} existing images for ${category}`);
+        setConfirmImages(existingUrls);
+      } catch (error) {
+        console.error('Error loading existing images:', error);
+      }
+    };
+    
+    loadExistingImages();
+  }, [open, orderId, category, getImagesByCategory]);
+
   const handleImagesUpload = useCallback((urls: string[]) => {
     setConfirmImages(urls);
     setUploadError(null);
@@ -190,8 +207,11 @@ export const useConfirmationUpload = (
 
       if (error) throw error;
 
-      // Update local state
-      setConfirmImages(prev => [...prev, ...urls]);
+      // Update local state with deduplication
+      setConfirmImages(prev => {
+        const newUrls = urls.filter(url => !prev.includes(url));
+        return [...prev, ...newUrls];
+      });
       
       toast.success(`${urls.length} photo${urls.length > 1 ? 's' : ''} saved successfully`);
     } catch (error) {
