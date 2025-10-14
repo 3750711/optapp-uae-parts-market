@@ -550,9 +550,6 @@ const SellerSellProduct = () => {
         />
 
         <div className="container mx-auto px-4 py-8 max-w-6xl">
-        {/* Breadcrumbs */}
-        <ProductBreadcrumbs items={breadcrumbItems} />
-        
         <BackButton fallback="/seller/dashboard" variant="outline" className="mb-4" />
 
         <div className="mb-6">
