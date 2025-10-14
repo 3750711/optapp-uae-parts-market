@@ -29,7 +29,8 @@ const RequestDetail = lazy(() => import('@/pages/RequestDetail'));
 const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
 const PublicSellerProfileRedirect = lazy(() => import('@/components/routing/PublicSellerProfileRedirect'));
 const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
-const Help = lazy(() => import('@/pages/Help'));
+const BuyerHelp = lazy(() => import('@/pages/BuyerHelp'));
+const SellerHelp = lazy(() => import('@/pages/SellerHelp'));
 const PublicStore = lazy(() => import('@/pages/PublicStore'));
 const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
@@ -357,8 +358,8 @@ const AppRoutes: React.FC = () => {
               </ProtectedRoute>
             } />
             <Route path="/help" element={
-              <ProtectedRoute>
-                <Help />
+              <ProtectedRoute allowedRoles={['buyer', 'admin']}>
+                <BuyerHelp />
               </ProtectedRoute>
             } />
 
@@ -422,6 +423,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/seller/product/:id" element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <SellerProductDetail />
+              </ProtectedRoute>
+            } />
+            <Route path="/seller/help" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <SellerHelp />
               </ProtectedRoute>
             } />
 
