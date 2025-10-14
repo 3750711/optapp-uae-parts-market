@@ -4,14 +4,14 @@ import useEmblaCarousel from "embla-carousel-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { X, ZoomIn, Share2 } from "lucide-react";
+import { X, ZoomIn, Share2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { useLazyImage } from "@/hooks/useLazyImage";
-import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
+
 
 interface ProductGalleryProps {
   images: string[];
@@ -41,9 +41,17 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   const [currentZoomIndex, setCurrentZoomIndex] = useState(0);
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
     loop: allMedia.length > 1,
-    dragFree: true,
-    skipSnaps: false,
-    containScroll: 'trimSnaps'
+    align: 'center',
+    containScroll: false,
+    dragFree: false,
+    skipSnaps: false
+  });
+
+  // Separate Embla for zoom mode
+  const [zoomEmblaRef, zoomEmblaApi] = useEmblaCarousel({
+    loop: true,
+    dragFree: false,
+    skipSnaps: false
   });
 
   // Preload priority images (first 2 images)
@@ -60,12 +68,6 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
     }
   };
 
-  // Swipe navigation for zoomed view
-  const swipeRef = useSwipeNavigation({
-    onSwipeLeft: () => navigateZoom('next'),
-    onSwipeRight: () => navigateZoom('prev'),
-    threshold: 50
-  });
 
   const handleThumbnailClick = useCallback((url: string) => {
     const index = allMedia.indexOf(url);
@@ -95,6 +97,28 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       return () => { emblaApi.off('select', onCarouselSelect) };
     }
   }, [emblaApi, onCarouselSelect]);
+
+  // Sync zoom Embla with currentZoomIndex
+  useEffect(() => {
+    if (zoomEmblaApi) {
+      const onZoomSelect = () => {
+        setCurrentZoomIndex(zoomEmblaApi.selectedScrollSnap());
+      };
+      zoomEmblaApi.on('select', onZoomSelect);
+      return () => { zoomEmblaApi.off('select', onZoomSelect) };
+    }
+  }, [zoomEmblaApi]);
+
+  // Scroll zoom Embla to currentZoomIndex when it changes externally
+  useEffect(() => {
+    if (zoomEmblaApi && isZoomed) {
+      const imageUrls = allMedia.filter(url => !isVideo(url));
+      const imageIndex = imageUrls.indexOf(allMedia[currentZoomIndex]);
+      if (imageIndex !== -1 && imageIndex !== zoomEmblaApi.selectedScrollSnap()) {
+        zoomEmblaApi.scrollTo(imageIndex);
+      }
+    }
+  }, [currentZoomIndex, zoomEmblaApi, isZoomed, allMedia]);
 
   useEffect(() => {
     if (emblaApi && activeMedia) {
@@ -141,22 +165,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   };
 
   const navigateZoom = (direction: 'prev' | 'next') => {
-    const imageUrls = allMedia.filter(url => !isVideo(url));
-    if (imageUrls.length <= 1) return;
-    
-    const currentImageIndex = imageUrls.indexOf(allMedia[currentZoomIndex]);
-    if (currentImageIndex === -1) return;
-    
-    let nextImageIndex;
-    if (direction === 'next') {
-      nextImageIndex = (currentImageIndex + 1) % imageUrls.length;
-    } else {
-      nextImageIndex = currentImageIndex === 0 ? imageUrls.length - 1 : currentImageIndex - 1;
-    }
-    
-    const nextImageUrl = imageUrls[nextImageIndex];
-    const nextGlobalIndex = allMedia.indexOf(nextImageUrl);
-    setCurrentZoomIndex(nextGlobalIndex);
+    if (!zoomEmblaApi) return;
+    direction === 'next' ? zoomEmblaApi.scrollNext() : zoomEmblaApi.scrollPrev();
   };
 
   const currentActiveIndex = allMedia.indexOf(activeMedia);
@@ -165,10 +175,11 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   return (
     <div className="w-full">
       {/* Main Image Carousel */}
-      <div className="mb-4 overflow-hidden" ref={emblaRef}>
-        <div className="flex">
-          {allMedia.map((media, index) => (
-            <div className="flex-[0_0_100%] min-w-0" key={index}>
+      <div className="relative mb-4 overflow-visible -mx-4 px-4">
+        <div ref={emblaRef} className="overflow-hidden">
+          <div className="flex gap-4">
+            {allMedia.map((media, index) => (
+              <div className="flex-[0_0_85%] min-w-0 sm:flex-[0_0_100%]" key={index}>
               <AspectRatio ratio={4 / 3}>
                 <div 
                   className="w-full h-full cursor-pointer relative overflow-hidden rounded-lg border group"
@@ -213,6 +224,39 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Edge Gradients */}
+      {currentActiveIndex > 0 && (
+        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-background/80 to-transparent pointer-events-none z-10" />
+      )}
+      {currentActiveIndex < allMedia.length - 1 && (
+        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-background/80 to-transparent pointer-events-none z-10" />
+      )}
+
+      {/* Desktop Navigation Buttons */}
+      {!isMobile && allMedia.length > 1 && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+            onClick={() => emblaApi?.scrollPrev()}
+            disabled={!emblaApi?.canScrollPrev()}
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+            onClick={() => emblaApi?.scrollNext()}
+            disabled={!emblaApi?.canScrollNext()}
+          >
+            <ChevronRight className="h-6 w-6" />
+          </Button>
+        </>
+      )}
+    </div>
 
       {/* Swipe indicator */}
       {allMedia.length > 1 && (
@@ -331,23 +375,29 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 </div>
               </div>
 
-              {/* Main image */}
-              <div ref={swipeRef} className="absolute inset-0 flex items-center justify-center">
-                <img
-                  src={allMedia[currentZoomIndex]}
-                  alt={title}
-                  className="max-w-[100vw] max-h-[calc(100dvh-80px)] object-contain"
-                  style={{ 
-                    touchAction: 'pan-x pan-y pinch-zoom',
-                    userSelect: 'none',
-                    width: 'auto',
-                    height: 'auto'
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.src = '/placeholder.svg';
-                    e.currentTarget.onerror = null;
-                  }}
-                />
+              {/* Main image carousel */}
+              <div ref={zoomEmblaRef} className="absolute inset-0 overflow-hidden">
+                <div className="flex h-full">
+                  {imageUrls.map((url, index) => (
+                    <div key={index} className="flex-[0_0_100%] min-w-0 flex items-center justify-center">
+                      <img
+                        src={url}
+                        alt={title}
+                        className="max-w-[100vw] max-h-[calc(100dvh-80px)] object-contain"
+                        style={{ 
+                          touchAction: 'pan-x pan-y pinch-zoom',
+                          userSelect: 'none',
+                          width: 'auto',
+                          height: 'auto'
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder.svg';
+                          e.currentTarget.onerror = null;
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
 
             </div>
@@ -380,15 +430,41 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </div>
               
               <div className="relative">
-                <img
-                  src={allMedia[currentZoomIndex]}
-                  alt={title}
-                  className="w-full max-h-[70vh] object-contain"
-                  onError={(e) => {
-                    e.currentTarget.src = '/placeholder.svg';
-                    e.currentTarget.onerror = null;
-                  }}
-                />
+                <div ref={zoomEmblaRef} className="overflow-hidden">
+                  <div className="flex">
+                    {imageUrls.map((url, index) => (
+                      <div key={index} className="flex-[0_0_100%] min-w-0">
+                        <img
+                          src={url}
+                          alt={title}
+                          className="w-full max-h-[70vh] object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src = '/placeholder.svg';
+                            e.currentTarget.onerror = null;
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Desktop Zoom Navigation */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  onClick={() => navigateZoom('prev')}
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm hover:bg-background/90"
+                  onClick={() => navigateZoom('next')}
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
               </div>
             </div>
           </DialogContent>
