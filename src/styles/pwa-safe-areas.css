@@ -1,5 +1,6 @@
 /* ========================================
-   PWA Safe Area System для iOS
+   УНИВЕРСАЛЬНЫЕ Mobile Safe Areas
+   Работают в PWA и обычном мобильном браузере
    ======================================== */
 
 /* Детект PWA режима */
@@ -41,13 +42,55 @@
   z-index: 50;
 }
 
-/* Fixed элемент с safe bottom */
-.pwa-safe-fixed-bottom {
-  position: fixed;
-  bottom: env(safe-area-inset-bottom, 0px);
-  left: 0;
-  right: 0;
-  z-index: 50;
+/* ========================================
+   Базовые стили для ВСЕХ мобильных устройств
+   ======================================== */
+
+@media (max-width: 768px) {
+  .mobile-sticky-bottom,
+  .pwa-safe-fixed-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    /* Базовый отступ для браузерной навигации */
+    padding-bottom: 20px;
+    
+    /* Универсальные визуальные эффекты */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  }
+  
+  /* Progressive enhancement для PWA mode */
+  @media (display-mode: standalone) {
+    .mobile-sticky-bottom,
+    .pwa-safe-fixed-bottom {
+      /* В PWA используем safe-area-inset */
+      bottom: env(safe-area-inset-bottom, 0px);
+      padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+    }
+  }
+  
+  /* iOS Safari специфичные правила */
+  @supports (-webkit-touch-callout: none) {
+    .mobile-sticky-bottom,
+    .pwa-safe-fixed-bottom {
+      /* В обычном Safari - увеличенный отступ для toolbar */
+      padding-bottom: 24px;
+    }
+    
+    /* В PWA на iOS - используем safe-area */
+    @media (display-mode: standalone) {
+      .mobile-sticky-bottom,
+      .pwa-safe-fixed-bottom {
+        padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+      }
+    }
+  }
 }
 
 /* Sticky с safe top */
