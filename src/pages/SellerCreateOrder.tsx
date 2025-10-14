@@ -5,6 +5,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Save, Loader, Eye, ArrowLeft } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import Layout from "@/components/layout/Layout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Import seller-specific components and hooks
 import { useSellerOrderFormLogic } from "@/hooks/useSellerOrderFormLogic";
@@ -200,34 +202,38 @@ const SellerCreateOrder = () => {
   // Show loading state while initializing
   if (isInitializing) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header with Back Button */}
-          <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">{t.createOrder}</h1>
-            <p className="text-muted-foreground">{t.fillOrderInfo}</p>
-          </div>
-          <Button variant="outline" onClick={handleGoBack}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t.back}
-          </Button>
-          </div>
-          
-            <Card>
-            <CardHeader>
-              <CardTitle>{t.createOrder}</CardTitle>
-              <CardDescription>{t.loading}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-center py-8">
-                <Loader className="h-8 w-8 animate-spin mr-2" />
-                <span>{t.loading}</span>
+      <ProtectedRoute allowedRoles={['seller']}>
+        <Layout language={language}>
+          <div className="container mx-auto px-4 py-8">
+            <div className="max-w-4xl mx-auto">
+              {/* Header with Back Button */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-3xl font-bold">{t.createOrder}</h1>
+                  <p className="text-muted-foreground">{t.fillOrderInfo}</p>
+                </div>
+                <Button variant="outline" onClick={handleGoBack}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  {t.back}
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t.createOrder}</CardTitle>
+                  <CardDescription>{t.loading}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-center py-8">
+                    <Loader className="h-8 w-8 animate-spin mr-2" />
+                    <span>{t.loading}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </Layout>
+      </ProtectedRoute>
     );
   }
 
@@ -245,19 +251,21 @@ const SellerCreateOrder = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header with Back Button */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">{t.createOrder}</h1>
-            <p className="text-muted-foreground">{t.fillOrderInfo}</p>
-          </div>
-          <Button variant="outline" onClick={handleGoBack}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t.back}
-          </Button>
-        </div>
+    <ProtectedRoute allowedRoles={['seller']}>
+      <Layout language={language}>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            {/* Header with Back Button */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-3xl font-bold">{t.createOrder}</h1>
+                <p className="text-muted-foreground">{t.fillOrderInfo}</p>
+              </div>
+              <Button variant="outline" onClick={handleGoBack}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                {t.back}
+              </Button>
+            </div>
         
         <Card>
           <CardHeader>
@@ -352,6 +360,8 @@ const SellerCreateOrder = () => {
 
       </div>
     </div>
+      </Layout>
+    </ProtectedRoute>
   );
 };
 

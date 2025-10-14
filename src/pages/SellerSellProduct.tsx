@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 import { getCommonTranslations } from '@/utils/translations/common';
+import Layout from "@/components/layout/Layout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -541,15 +543,16 @@ const SellerSellProduct = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Keyboard shortcuts */}
-      <KeyboardShortcuts
-        onCancel={handleKeyboardCancel}
-        onSearch={handleKeyboardSearch}
-        disabled={isCreatingOrder || showConfirmImagesDialog}
-      />
+    <ProtectedRoute allowedRoles={['seller']}>
+      <Layout language={language}>
+        {/* Keyboard shortcuts */}
+        <KeyboardShortcuts
+          onCancel={handleKeyboardCancel}
+          onSearch={handleKeyboardSearch}
+          disabled={isCreatingOrder || showConfirmImagesDialog}
+        />
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Breadcrumbs */}
         <ProductBreadcrumbs items={breadcrumbItems} />
 
@@ -733,7 +736,8 @@ const SellerSellProduct = () => {
         />
         )}
       </div>
-    </div>
+      </Layout>
+    </ProtectedRoute>
   );
 };
 

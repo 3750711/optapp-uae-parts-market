@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { OrderConfirmButton } from "@/components/order/OrderConfirmButton";
 import { PhotoConfirmationStatus } from "@/components/order/PhotoConfirmationStatus";
+import Layout from "@/components/layout/Layout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -303,48 +305,51 @@ const SellerOrders = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/seller/dashboard')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t.backToDashboard}
-            </Button>
+      <ProtectedRoute allowedRoles={['seller']}>
+        <Layout language={language}>
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex items-center gap-4 mb-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/seller/dashboard')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {t.backToDashboard}
+              </Button>
+            </div>
+            <div className="flex justify-center items-center min-h-[60vh]">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
           </div>
-          <div className="flex justify-center items-center min-h-[60vh]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </div>
-      </div>
+        </Layout>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col gap-4 md:gap-6">
-          <div className="flex items-center justify-between gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/seller/dashboard')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t.backToDashboard}
-            </Button>
-          </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">{t.pageTitle}</h1>
-            <p className="text-sm md:text-base text-muted-foreground mt-1">
-              {t.pageDescription}
-            </p>
-          </div>
+    <ProtectedRoute allowedRoles={['seller']}>
+      <Layout language={language}>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col gap-4 md:gap-6">
+            <div className="flex items-center justify-between gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/seller/dashboard')}
+                className="flex items-center gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {t.backToDashboard}
+              </Button>
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold">{t.pageTitle}</h1>
+              <p className="text-sm md:text-base text-muted-foreground mt-1">
+                {t.pageDescription}
+              </p>
+            </div>
 
           <OrdersSearchBar
             searchTerm={searchTerm}
@@ -628,7 +633,8 @@ const SellerOrders = () => {
         }}
         isSubmitting={confirmOrderMutation.isPending}
       />
-    </div>
+      </Layout>
+    </ProtectedRoute>
   );
 };
 
