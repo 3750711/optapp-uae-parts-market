@@ -61,6 +61,14 @@ export default {
           foreground: 'hsl(var(--destructive-foreground))',
         },
       },
+      spacing: {
+        'safe': 'env(safe-area-inset-bottom, 1rem)',
+        'safe-top': 'env(safe-area-inset-top, 1rem)',
+        'safe-bottom': 'env(safe-area-inset-bottom, 1rem)',
+      },
+      padding: {
+        'safe-mobile': 'max(1rem, env(safe-area-inset-bottom, 1rem))',
+      },
       boxShadow: {
         card: "0 4px 24px 0 rgba(34, 41, 47, 0.09)",
         elevation: "0 6px 24px -8px rgba(0, 0, 0, 0.2)",
