@@ -18,6 +18,7 @@ import StoreEditForm from "@/components/store/StoreEditForm";
 import { DeleteAccountButton } from "@/components/profile/DeleteAccountButton";
 import { PasswordChangeSection } from "@/components/profile/PasswordChangeSection";
 import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
+import { useOrderStats } from "@/hooks/useOrderStats";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,8 +61,8 @@ const Profile = () => {
     refetch 
   } = profileQuery;
   
-  // For backward compatibility, provide empty values for orderStats and storeInfo
-  const orderStats = { totalOrders: 0, completedOrders: 0, pendingOrders: 0 };
+  // Fetch order statistics
+  const { data: orderStats, isLoading: isOrderStatsLoading } = useOrderStats(profile?.id, profile?.user_type);
   const storeInfo = null;
   
   useEffect(() => {
@@ -268,7 +269,7 @@ const Profile = () => {
               <OptimizedProfileStats 
                 profile={profile} 
                 orderStats={orderStats}
-                isLoading={isLoading}
+                isLoading={isLoading || isOrderStatsLoading}
               />
               <ProfileProgress profile={profile} />
               <ProfileForm
@@ -297,7 +298,7 @@ const Profile = () => {
                 <OptimizedProfileStats 
                   profile={profile} 
                   orderStats={orderStats}
-                  isLoading={isLoading}
+                  isLoading={isLoading || isOrderStatsLoading}
                 />
               </div>
 
