@@ -347,7 +347,8 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
                 <CloudinaryPhotoUploader
                   images={step1Hook.confirmImages}
-                  onImageUpload={step1Hook.handleWidgetUpload}
+                  onImageUpload={() => {}}
+                  onImageUploadWithCategory={step1Hook.handleWidgetUpload}
                   onImageDelete={step1Hook.handleImageDelete}
                   maxImages={20}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
@@ -388,7 +389,8 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
                 <CloudinaryPhotoUploader
                   images={step2Hook.confirmImages}
-                  onImageUpload={step2Hook.handleWidgetUpload}
+                  onImageUpload={() => {}}
+                  onImageUploadWithCategory={step2Hook.handleWidgetUpload}
                   onImageDelete={step2Hook.handleImageDelete}
                   maxImages={20}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
