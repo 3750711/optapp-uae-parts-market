@@ -19,7 +19,7 @@ interface CloudinaryPhotoUploaderProps {
   disabled?: boolean;
   onWidgetStateChange?: (isOpen: boolean) => void;
   category?: 'chat_screenshot' | 'signed_product';
-  onImageUploadWithCategory?: (newUrls: string[], category: string) => Promise<void>;
+  onImageUploadWithCategory?: (newUrls: string[], category: string) => void;
 }
 
 export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = ({
@@ -66,7 +66,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
     setIsWidgetOpen(true);
     
     openUploadWidget(
-      async (results: CloudinaryNormalized[]) => {
+      (results: CloudinaryNormalized[]) => {
         console.log('🎯 CloudinaryPhotoUploader received normalized results:', results);
         
         if (process.env.NODE_ENV !== "production") {
@@ -77,21 +77,12 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
         const newUrls = results.map(result => result.url).filter(Boolean);
         
         console.log('📸 Final URLs to upload:', newUrls);
-        
-        // If category is provided, save to database first
-        if (category && onImageUploadWithCategory) {
-          try {
-            await onImageUploadWithCategory(newUrls, category);
-            console.log('✅ Database save complete, updating UI');
-          } catch (error) {
-            console.error('❌ Failed to save to database:', error);
-            setIsWidgetOpen(false);
-            return;
-          }
-        }
-        
-        // Update UI only after successful database save
         onImageUpload(newUrls);
+        
+        // If category is provided, also call the category-specific callback
+        if (category && onImageUploadWithCategory) {
+          onImageUploadWithCategory(newUrls, category);
+        }
         
         // Widget закрыт после успешной загрузки - сбрасываем состояние
         setIsWidgetOpen(false);
