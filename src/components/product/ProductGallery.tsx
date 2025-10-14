@@ -323,11 +323,11 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </div>
 
               {/* Main image */}
-              <div className="absolute inset-0 flex items-center justify-center px-4">
+              <div className="absolute inset-0 flex items-center justify-center">
                 <img
                   src={allMedia[currentZoomIndex]}
                   alt={title}
-                  className="max-w-[90vw] max-h-[70vh] object-contain"
+                  className="max-w-[100vw] max-h-[calc(100dvh-80px)] object-contain"
                   style={{ 
                     touchAction: 'pan-x pan-y pinch-zoom',
                     userSelect: 'none',
@@ -363,37 +363,6 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 </>
               )}
 
-              {/* Bottom thumbnail strip */}
-              {imageUrls.length > 1 && (
-                <div className="absolute bottom-0 left-0 right-0 px-4 pb-safe mb-safe">
-                  <div className="bg-black/60 backdrop-blur-sm rounded-t-lg pt-2">
-                    <div className="flex gap-2 justify-center overflow-x-auto py-2 px-2">
-                      {imageUrls.map((url, index) => {
-                        const globalIndex = allMedia.indexOf(url);
-                        return (
-                          <button
-                            key={index}
-                            onClick={() => setCurrentZoomIndex(globalIndex)}
-                            className={`w-14 h-14 sm:w-12 sm:h-12 rounded border-2 overflow-hidden flex-shrink-0 min-h-[44px] min-w-[44px] ${
-                              globalIndex === currentZoomIndex ? 'border-white' : 'border-gray-400'
-                            }`}
-                          >
-                            <img
-                              src={url}
-                              alt=""
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = '/placeholder.svg';
-                                e.currentTarget.onerror = null;
-                              }}
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </SheetContent>
         </Sheet>
