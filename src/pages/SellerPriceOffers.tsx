@@ -4,7 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 import { getCommonTranslations } from '@/utils/translations/common';
-import SellerLayout from "@/components/layout/SellerLayout";
+import Layout from "@/components/layout/Layout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import BackButton from "@/components/navigation/BackButton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -242,27 +244,32 @@ const SellerPriceOffers = () => {
 
   if (isLoading) {
     return (
-      <SellerLayout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center py-12">
-            <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+      <ProtectedRoute allowedRoles={['seller']}>
+        <Layout language={language}>
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
           </div>
-        </div>
-      </SellerLayout>
+        </Layout>
+      </ProtectedRoute>
     );
   }
 
 
   return (
     <PriceOffersErrorBoundary>
-      <SellerLayout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">{sp.priceOffers}</h1>
-            <p className="text-muted-foreground">
-              {sp.managePriceOffers}
-            </p>
-          </div>
+      <ProtectedRoute allowedRoles={['seller']}>
+        <Layout language={language}>
+          <div className="container mx-auto px-4 py-8">
+            <BackButton fallback="/seller/dashboard" variant="outline" className="mb-6" />
+            
+            <div className="mb-8">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">{sp.priceOffers}</h1>
+              <p className="text-muted-foreground">
+                {sp.managePriceOffers}
+              </p>
+            </div>
 
           {!groupedOffers || groupedOffers.length === 0 ? (
             <Card>
@@ -392,7 +399,8 @@ const SellerPriceOffers = () => {
           </DialogContent>
         </Dialog>
         </div>
-      </SellerLayout>
+      </Layout>
+    </ProtectedRoute>
     </PriceOffersErrorBoundary>
   );
 };
