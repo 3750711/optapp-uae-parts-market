@@ -53,17 +53,17 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
         'fl_progressive'    // Progressive loading
       ];
     } else if (size === 'telegramCard') {
-      // Special transformations for telegram cards with sharpening
+      // Special transformations for telegram cards WITHOUT cropping
       transformations = [
-        'f_auto',
-        'q_auto:good',
-        'dpr_auto',
-        'c_fill',
-        'g_auto',
-        'e_sharpen:100',
+        'f_auto',           // Auto format (WebP/AVIF when supported)
+        'q_auto:good',      // Good quality with smart compression
+        'dpr_auto',         // Adapt to device pixel density
+        'c_fit',            // Fit image without cropping (preserves aspect ratio)
+        'g_center',         // Center positioning
+        'e_sharpen:100',    // Sharpening for better quality
         `w_${config.width}`,
         `h_${config.height}`,
-        'fl_progressive'
+        'fl_progressive'    // Progressive loading
       ];
     } else if (size === 'thumbnail' && config.height) {
       // For thumbnails, use c_fit to preserve image proportions
