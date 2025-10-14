@@ -121,17 +121,14 @@ const ProtectedRoute = ({
     }
   }
 
-  // If profile is loading, show children with optional loading indicator
+  // If profile is loading, show ONLY loading indicator (don't render children yet)
   if (isLoading && !profile) {
     return (
-      <div className="min-h-screen">
-        <div className="fixed top-4 right-4 z-50">
-          <div className="bg-white shadow-lg rounded-lg p-3 flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-            <span className="text-sm text-gray-600">Загрузка профиля...</span>
-          </div>
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-sm text-muted-foreground">Загрузка профиля...</p>
         </div>
-        {children}
       </div>
     );
   }

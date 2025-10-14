@@ -49,7 +49,7 @@ import LanguageToggle from '@/components/auth/LanguageToggle';
 import { logger } from '@/utils/logger';
 
 
-const Header = () => {
+const Header = React.memo(() => {
   const { user, signOut, profile, isAdmin, isCheckingAdmin, loading } = useAuth();
   const { unreadCount } = useNotifications();
   const { favorites } = useFavorites();
@@ -59,6 +59,10 @@ const Header = () => {
   const location = useLocation();
   const { language, changeLanguage } = useLanguage();
   const t = getMainPageTranslations(language);
+  
+  // Мемоизация производных значений
+  const userEmail = React.useMemo(() => user?.email, [user?.email]);
+  const userType = React.useMemo(() => profile?.user_type, [profile?.user_type]);
   const l = language === 'bn' ? {
     logoutSuccessTitle: 'সাইন আউট',
     logoutSuccessDesc: 'আপনি সফলভাবে সাইন আউট করেছেন',
@@ -117,14 +121,19 @@ const Header = () => {
     help: 'Помощь',
     logout: 'Выйти',
   };
-  // Отладочная информация для Header - только при изменениях состояния
-  logger.throttledDevLog('🏠 Header State:', {
-    user_email: user?.email,
-    profile_user_type: profile?.user_type,
-    isAdmin,
-    isCheckingAdmin,
-    loading
-  });
+  
+  // Логгирование только при изменении критичных значений
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      logger.log('🏠 Header State:', {
+        user_email: userEmail ? '[REDACTED]' : null,
+        profile_user_type: userType,
+        isAdmin,
+        isCheckingAdmin,
+        loading
+      });
+    }
+  }, [userEmail, userType, isAdmin, isCheckingAdmin, loading]);
 
   // Show skeleton while loading or checking admin
   if (loading || (user && isCheckingAdmin)) {
@@ -398,6 +407,8 @@ const Header = () => {
       </div>
     </header>
   );
-};
+});
+
+Header.displayName = 'Header';
 
 export default Header;

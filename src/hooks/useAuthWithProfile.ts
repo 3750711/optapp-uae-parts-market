@@ -1,5 +1,4 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useOptimizedProfile } from './useOptimizedProfile';
 
 /**
  * Combined hook that provides both auth state and profile data
@@ -7,7 +6,6 @@ import { useOptimizedProfile } from './useOptimizedProfile';
  */
 export function useAuthWithProfile() {
   const auth = useAuth();
-  const profileQuery = useOptimizedProfile();
   
   return {
     // Auth state
@@ -15,14 +13,14 @@ export function useAuthWithProfile() {
     session: auth.session,
     loading: auth.loading,
     
-    // Profile data
-    profile: profileQuery.data || null,
-    isAdmin: profileQuery.data?.user_type === 'admin' || null,
-    isProfileLoading: profileQuery.isLoading,
-    profileError: profileQuery.error?.message || null,
+    // Profile data - используем из AuthContext (уже загружен!)
+    profile: auth.profile,
+    isAdmin: auth.isAdmin,
+    isProfileLoading: auth.isCheckingAdmin,
+    profileError: null,
     
     // Combined loading state
-    isLoading: auth.loading || (auth.user && profileQuery.isLoading),
+    isLoading: auth.loading || auth.isCheckingAdmin,
     
     // Auth methods
     signIn: auth.signIn,
@@ -36,8 +34,8 @@ export function useAuthWithProfile() {
     needsFirstLoginCompletion: false,
     
     // Profile methods
-    refreshProfile: profileQuery.refetch,
-    retryProfileLoad: profileQuery.refetch,
+    refreshProfile: async () => {}, // Profile refreshes automatically via AuthContext
+    retryProfileLoad: async () => {},
     clearAuthError: () => {},
     forceReauth: auth.signOut,
     runDiagnostic: async () => {},
