@@ -41,7 +41,7 @@ const SellerAddProduct = () => {
   return (
     <ProtectedRoute allowedRoles={['seller']}>
       <Layout>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
           <div className={`mx-auto ${isTrustedSeller ? 'max-w-4xl' : 'max-w-lg'}`}>
             <BackButton fallback="/seller/dashboard" variant="outline" className="mb-4" />
             

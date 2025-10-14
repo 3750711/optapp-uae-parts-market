@@ -564,14 +564,14 @@ const SellerSellProduct = () => {
 
         {/* Progress */}
         <div className="mb-8">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 md:space-x-4 overflow-x-auto">
             {[
               { num: 1, title: sp.selectProduct, completed: step > 1 },
               { num: 2, title: sp.selectBuyer, completed: step > 2 },
               { num: 3, title: sp.confirmation, completed: false }
             ].map((stepItem, index) => (
               <React.Fragment key={stepItem.num}>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 md:space-x-2">
                   <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 ${
                     step === stepItem.num 
                       ? 'border-primary bg-primary text-white' 
@@ -581,7 +581,7 @@ const SellerSellProduct = () => {
                   }`}>
                     {getStepIcon(stepItem.num)}
                   </div>
-                  <span className={`text-sm font-medium ${
+                  <span className={`text-xs md:text-sm font-medium ${
                     step === stepItem.num ? 'text-primary' : stepItem.completed ? 'text-green-600' : 'text-gray-500'
                   }`}>
                     {stepItem.title}

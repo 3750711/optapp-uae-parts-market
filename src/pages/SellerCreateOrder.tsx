@@ -201,7 +201,7 @@ const SellerCreateOrder = () => {
     return (
       <ProtectedRoute allowedRoles={['seller']}>
         <Layout language={language}>
-          <div className="container mx-auto px-4 py-8">
+          <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
           <div className="max-w-4xl mx-auto">
             <BackButton fallback="/seller/dashboard" variant="outline" className="mb-6" />
             
@@ -245,7 +245,7 @@ const SellerCreateOrder = () => {
   return (
     <ProtectedRoute allowedRoles={['seller']}>
       <Layout language={language}>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
           <div className="max-w-4xl mx-auto">
             <BackButton fallback="/seller/dashboard" variant="outline" className="mb-6" />
             
