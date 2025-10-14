@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const HeaderSkeleton = () => {
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
+    <header className="bg-white shadow-sm pwa-safe-sticky-top z-50 border-b border-gray-100">
       <div className="container flex items-center justify-between py-3 md:py-4 px-4 md:px-8 mx-auto">
         <Link to="/" className="text-2xl font-extrabold tracking-tight">
           <span className="text-primary">partsbay</span>
