@@ -61,7 +61,7 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
   return (
     <div className="min-h-screen bg-background">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
+      <div className="pwa-safe-sticky-top z-20 bg-background border-b shadow-sm">
           <div className="p-4">
             {/* Back Button */}
             <BackButton 
