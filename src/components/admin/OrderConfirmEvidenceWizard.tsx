@@ -77,7 +77,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
   // Get hooks for each step
   const step1Hook = useConfirmationUpload(
-    open && currentStep === 'chat_confirmation', 
+    open, 
     orderId, 
     () => {}, // We handle completion manually
     'images-only',
@@ -85,7 +85,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   );
 
   const step2Hook = useConfirmationUpload(
-    open && currentStep === 'signed_product', 
+    open, 
     orderId, 
     () => {}, // We handle completion manually
     'images-only',
