@@ -196,7 +196,7 @@ const SellerMobileProfileMenu = () => {
         <Separator className="my-4" />
 
         {/* Help */}
-        <Link to="/help">
+        <Link to="/seller/help">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <HelpCircle className="mr-3 h-5 w-5" />
             {t.help}
