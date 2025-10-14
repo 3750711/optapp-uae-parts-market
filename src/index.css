@@ -119,6 +119,24 @@
     /* Prevent FOUT with immediate fallback fonts */
     font-display: swap;
   }
+  
+  /* PWA-специфичные правила для предотвращения bounce-эффекта */
+  @media (display-mode: standalone) {
+    body {
+      overscroll-behavior-y: contain;
+      position: fixed;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    #root {
+      width: 100%;
+      height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
 
   /* Bengali font support */
   html[lang="bn"] body {
