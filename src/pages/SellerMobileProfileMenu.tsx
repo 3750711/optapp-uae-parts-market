@@ -70,7 +70,7 @@ const SellerMobileProfileMenu = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header with PWA safe-area support */}
-      <div className="pwa-safe-sticky-top flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur-sm">
+      <div className="pwa-safe-sticky-top flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur-sm z-20">
         <Button variant="ghost" size="sm" onClick={() => navigate('/seller/dashboard')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -78,8 +78,8 @@ const SellerMobileProfileMenu = () => {
         <div className="w-10" />
       </div>
 
-      {/* Profile Section */}
-      <div className="pt-2 p-6 bg-accent/10">
+      {/* Profile Section - добавлен отступ для sticky header */}
+      <div className="pt-20 p-6 bg-accent/10">
         <div className="flex items-center space-x-4">
           <Avatar className="h-20 w-20">
             <AvatarImage 
