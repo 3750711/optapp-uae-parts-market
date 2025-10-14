@@ -4,6 +4,7 @@ import { getSellerPagesTranslations } from '@/utils/translations/sellerPages';
 import { getCommonTranslations } from '@/utils/translations/common';
 import Layout from "@/components/layout/Layout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import BackButton from "@/components/navigation/BackButton";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Package, UserCheck, ShoppingCart, ChevronLeft, Eye } from "lucide-react";
+import { ChevronRight, Package, UserCheck, ShoppingCart, Eye } from "lucide-react";
 import OrderConfirmationStep from "@/components/admin/sell-product/OrderConfirmationStep";
 import { useNavigate } from "react-router-dom";
 import { OrderConfirmEvidenceWizard } from "@/components/admin/OrderConfirmEvidenceWizard";
@@ -534,10 +535,6 @@ const SellerSellProduct = () => {
     }
   };
 
-  const handleGoBack = () => {
-    navigate('/seller/dashboard');
-  };
-
   if (!profile || profile.user_type !== 'seller') {
     return null;
   }
@@ -555,20 +552,12 @@ const SellerSellProduct = () => {
         <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Breadcrumbs */}
         <ProductBreadcrumbs items={breadcrumbItems} />
+        
+        <BackButton fallback="/seller/dashboard" variant="outline" className="mb-4" />
 
         <div className="mb-6">
-          <div className="flex items-center mb-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="mr-4" 
-              onClick={handleGoBack}
-            >
-              <ChevronLeft className="h-5 w-5 mr-1" /> {c.buttons.back}
-            </Button>
-            <h1 className="text-3xl font-bold">{sp.sellProductTitle}</h1>
-          </div>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">{sp.sellProductTitle}</h1>
+          <p className="text-muted-foreground">
             {sp.selectProductAndBuyer}
           </p>
         </div>
