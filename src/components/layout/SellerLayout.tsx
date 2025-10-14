@@ -16,9 +16,9 @@ const SellerLayout: React.FC<SellerLayoutProps> = ({ children, className }) => {
   }, []);
 
   return (
-    <div className="flex flex-col safe-viewport safe-area-container bg-background text-foreground">
+    <div className="flex flex-col safe-viewport bg-background text-foreground overflow-hidden">
       <Header />
-      <main className={className || "flex-1"}>{children}</main>
+      <main className={`${className || "flex-1"} safe-area-container no-bounce`}>{children}</main>
     </div>
   );
 };
