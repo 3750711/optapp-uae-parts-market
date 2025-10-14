@@ -10,8 +10,9 @@ import { toast } from "@/hooks/use-toast";
 import ProductBreadcrumb from "@/components/product/ProductBreadcrumb";
 import ProductSEO from "@/components/seo/ProductSEO";
 import ProductSkeleton from "@/components/product/ProductSkeleton";
-import ProductDetailHeader from "@/components/product/ProductDetailHeader";
+import BackButton from "@/components/navigation/BackButton";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
+import ProductStatusBadge from "@/components/product/ProductStatusBadge";
 import SellerProductContent from "@/components/seller/SellerProductContent";
 import SellerProductActions from "@/components/seller/SellerProductActions";
 import SellerOffersSummary from "@/components/seller/SellerOffersSummary";
@@ -99,10 +100,6 @@ const SellerProductDetail = () => {
     retry: false,
   });
   
-  // Handle back navigation
-  const handleBack = () => {
-    navigate('/seller/listings');
-  };
   
   
   // Loading state
@@ -128,9 +125,7 @@ const SellerProductDetail = () => {
               {sp.accessDeniedDescription}
             </AlertDescription>
           </Alert>
-          <Button variant="default" onClick={handleBack}>
-            {c.buttons.backToOrders}
-          </Button>
+          <BackButton fallback="/seller/listings" />
         </div>
       </SellerLayout>
     );
@@ -199,6 +194,9 @@ const SellerProductDetail = () => {
         />
         
         <div className="container mx-auto px-4 py-6 max-w-7xl">
+          {/* Back Button */}
+          <BackButton className="mb-4" fallback="/seller/listings" />
+          
           {/* Breadcrumb Navigation */}
           <ProductBreadcrumb
             productTitle={product.title}
@@ -208,10 +206,22 @@ const SellerProductDetail = () => {
           />
           
           {/* Header */}
-          <ProductDetailHeader 
-            product={product}
-            onBack={handleBack}
-          />
+          <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-8">
+            <h1 className="text-xl md:text-3xl font-bold text-foreground">
+              {product.title}
+              {product.brand && ` - ${product.brand}`}
+              {product.model && ` ${product.model}`}
+            </h1>
+            
+            <div className="flex items-center gap-3 shrink-0">
+              {product.lot_number && (
+                <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-200">
+                  {sp.lotLabel}: {product.lot_number}
+                </div>
+              )}
+              <ProductStatusBadge status={product.status} size="md" />
+            </div>
+          </div>
           
           {/* Status warnings */}
           <ProductDetailAlerts 

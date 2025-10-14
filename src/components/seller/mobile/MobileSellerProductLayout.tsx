@@ -6,6 +6,7 @@ import ProductGallery from "@/components/product/ProductGallery";
 import { Badge } from "@/components/ui/badge";
 import CompactOffersSummary from "./CompactOffersSummary";
 import MobileSellerActions from "./MobileSellerActions";
+import BackButton from "@/components/navigation/BackButton";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
 
@@ -62,6 +63,14 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
       {/* Sticky Header */}
       <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
           <div className="p-4">
+            {/* Back Button */}
+            <BackButton 
+              className="mb-3" 
+              fallback="/seller/listings"
+              variant="ghost"
+              size="sm"
+            />
+            
             <div className="flex items-center justify-between mb-2">
               <div className="flex-1 min-w-0">
                 <h1 className="text-lg font-bold line-clamp-2 text-foreground mb-1">
