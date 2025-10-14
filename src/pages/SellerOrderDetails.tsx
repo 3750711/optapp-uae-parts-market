@@ -255,7 +255,7 @@ const SellerOrderDetails = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/seller/orders")}
+            onClick={() => navigate("/seller/orders", { replace: true })}
             className="flex items-center gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
