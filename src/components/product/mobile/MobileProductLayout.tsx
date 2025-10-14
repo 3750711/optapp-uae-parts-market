@@ -165,7 +165,7 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
+      <div className="pwa-safe-sticky-top z-20 bg-white border-b shadow-sm">
         <div className="p-4">
           {/* Full title */}
           <h1 className="text-lg font-bold text-foreground mb-2">
