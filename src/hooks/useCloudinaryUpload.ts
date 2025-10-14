@@ -294,7 +294,7 @@ export const useNewCloudinaryUpload = () => {
       initializeWidget();
     }
 
-    function initializeWidget() {
+    async function initializeWidget() {
       const cloudinary = (window as any).cloudinary;
       
       // Создаем публичный ID с учетом productId
@@ -509,6 +509,12 @@ export const useNewCloudinaryUpload = () => {
       });
       
       widget.open();
+      
+      // 🆕 Применяем PWA-стили после открытия виджета
+      if (isPWA) {
+        const { applyPWAWidgetStyles } = await import('@/utils/cloudinaryPWAFix');
+        applyPWAWidgetStyles();
+      }
       
       // 🔍 Диагностика: Проверяем состояние DOM после открытия
       setTimeout(() => {
