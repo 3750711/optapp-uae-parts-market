@@ -27,6 +27,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { formatPrice } from "@/utils/formatPrice";
 import { ProductOffersCard } from "@/components/offers/ProductOffersCard";
 import { usePerformanceMonitor } from "@/hooks/usePerformanceMonitor";
@@ -40,6 +48,7 @@ const SellerPriceOffers = () => {
   const { language } = useLanguage();
   const sp = getSellerPagesTranslations(language);
   const c = getCommonTranslations(language);
+  const isMobile = useIsMobile();
   
   const [responseModal, setResponseModal] = useState<{
     isOpen: boolean;
@@ -246,7 +255,7 @@ const SellerPriceOffers = () => {
     return (
       <ProtectedRoute allowedRoles={['seller']}>
         <Layout language={language}>
-          <div className="container mx-auto px-4 py-8">
+          <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
             <div className="flex items-center justify-center py-12">
               <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
@@ -261,7 +270,7 @@ const SellerPriceOffers = () => {
     <PriceOffersErrorBoundary>
       <ProtectedRoute allowedRoles={['seller']}>
         <Layout language={language}>
-          <div className="container mx-auto px-4 py-8">
+          <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
             <BackButton fallback="/seller/dashboard" variant="outline" className="mb-6" />
             
             <div className="mb-8">
@@ -295,109 +304,215 @@ const SellerPriceOffers = () => {
           )}
 
         {/* Response Modal */}
-        <Dialog 
-          open={responseModal.isOpen} 
-          onOpenChange={(open) => !open && setResponseModal({ isOpen: false })}
-        >
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {responseModal.action === "accept" ? sp.acceptOffer : sp.rejectOffer}
-              </DialogTitle>
-            </DialogHeader>
+        {isMobile ? (
+          <Sheet 
+            open={responseModal.isOpen} 
+            onOpenChange={(open) => !open && setResponseModal({ isOpen: false })}
+          >
+            <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle>
+                  {responseModal.action === "accept" ? sp.acceptOffer : sp.rejectOffer}
+                </SheetTitle>
+              </SheetHeader>
+              
+              <div className="space-y-4 mt-4">
+                {responseModal.offer && (
+                  <div className="bg-muted p-4 rounded-lg space-y-3">
+                    <div className="flex gap-3">
+                      {responseModal.offer.product?.product_images?.[0] && (
+                        <img
+                          src={responseModal.offer.product.product_images[0].url}
+                          alt={responseModal.offer.product.title}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      )}
+                      <div>
+                        <p className="font-medium">{responseModal.offer.product?.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {responseModal.offer.product?.brand} {responseModal.offer.product?.model}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <div>
+                        <div className="text-sm text-muted-foreground">{sp.yourPrice}</div>
+                        <div className="font-semibold line-through text-gray-500">
+                          {formatPrice(responseModal.offer.original_price)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">{sp.offer}</div>
+                        <div className="text-lg font-bold text-green-600">
+                          {formatPrice(responseModal.offer.offered_price)}
+                        </div>
+                      </div>
+                    </div>
 
-            <div className="space-y-4">
-              {responseModal.offer && (
-                <div className="bg-muted p-4 rounded-lg space-y-3">
-                  <div className="flex gap-3">
-                    {responseModal.offer.product?.product_images?.[0] && (
-                      <img
-                        src={responseModal.offer.product.product_images[0].url}
-                        alt={responseModal.offer.product.title}
-                        className="w-16 h-16 object-cover rounded-lg"
-                      />
+                    {responseModal.action === "accept" && (
+                      <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                        <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
+                          <ShoppingCart className="h-4 w-4" />
+                          {sp.orderWillBeCreated}
+                        </p>
+                        <p className="text-xs text-green-700">
+                          {sp.offerElements.afterAcceptingMessage}
+                        </p>
+                      </div>
                     )}
-                    <div>
-                      <p className="font-medium">{responseModal.offer.product?.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {responseModal.offer.product?.brand} {responseModal.offer.product?.model}
-                      </p>
-                    </div>
                   </div>
-                  
-                  <div className="flex justify-between items-center pt-2 border-t">
-                    <div>
-                      <div className="text-sm text-muted-foreground">{sp.yourPrice}</div>
-                      <div className="font-semibold line-through text-gray-500">
-                        {formatPrice(responseModal.offer.original_price)}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-sm text-muted-foreground">{sp.offer}</div>
-                      <div className="text-lg font-bold text-green-600">
-                        {formatPrice(responseModal.offer.offered_price)}
-                      </div>
-                    </div>
-                  </div>
+                )}
 
-                  {responseModal.action === "accept" && (
-                    <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                      <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
-                        <ShoppingCart className="h-4 w-4" />
-                        {sp.orderWillBeCreated}
-                      </p>
-                      <p className="text-xs text-green-700">
-                        {sp.offerElements.afterAcceptingMessage}
-                      </p>
-                    </div>
-                  )}
+                <div>
+                  <Label htmlFor="response">
+                    {responseModal.action === "accept" 
+                      ? sp.messageTobuyer 
+                      : sp.reasonForRejection
+                    }
+                  </Label>
+                  <Textarea
+                    id="response"
+                    value={sellerResponse}
+                    onChange={(e) => setSellerResponse(e.target.value)}
+                    placeholder={
+                      responseModal.action === "accept"
+                        ? sp.offerElements.acceptPlaceholder
+                        : sp.offerElements.rejectPlaceholder
+                    }
+                    rows={3}
+                  />
                 </div>
-              )}
 
-              <div>
-                <Label htmlFor="response">
-                  {responseModal.action === "accept" 
-                    ? sp.messageTobuyer 
-                    : sp.reasonForRejection
-                  }
-                </Label>
-                <Textarea
-                  id="response"
-                  value={sellerResponse}
-                  onChange={(e) => setSellerResponse(e.target.value)}
-                  placeholder={
-                    responseModal.action === "accept"
-                      ? sp.offerElements.acceptPlaceholder
-                      : sp.offerElements.rejectPlaceholder
-                  }
-                  rows={3}
-                />
+                <div className="flex flex-col gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setResponseModal({ isOpen: false })}
+                    disabled={isSubmitting}
+                    className={cn("w-full", isMobile && "min-h-[44px] touch-target")}
+                  >
+                    {c.buttons.cancel}
+                  </Button>
+                  <Button
+                    onClick={handleSubmitResponse}
+                    disabled={isSubmitting}
+                    className={cn("w-full", isMobile && "min-h-[44px] touch-target")}
+                    variant={responseModal.action === "accept" ? "default" : "destructive"}
+                  >
+                    {isSubmitting ? sp.processingOffer : 
+                     responseModal.action === "accept" ? sp.acceptOffer : sp.rejectOffer
+                    }
+                  </Button>
+                </div>
               </div>
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Dialog 
+            open={responseModal.isOpen} 
+            onOpenChange={(open) => !open && setResponseModal({ isOpen: false })}
+          >
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {responseModal.action === "accept" ? sp.acceptOffer : sp.rejectOffer}
+                </DialogTitle>
+              </DialogHeader>
 
-              <div className="flex flex-col md:flex-row gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setResponseModal({ isOpen: false })}
-                  disabled={isSubmitting}
-                  className="flex-1"
-                >
-                  {c.buttons.cancel}
-                </Button>
-                <Button
-                  onClick={handleSubmitResponse}
-                  disabled={isSubmitting}
-                  className="flex-1"
-                  variant={responseModal.action === "accept" ? "default" : "destructive"}
-                >
-                  {isSubmitting ? sp.processingOffer : 
-                   responseModal.action === "accept" ? sp.acceptOffer : sp.rejectOffer
-                  }
-                </Button>
+              <div className="space-y-4">
+                {responseModal.offer && (
+                  <div className="bg-muted p-4 rounded-lg space-y-3">
+                    <div className="flex gap-3">
+                      {responseModal.offer.product?.product_images?.[0] && (
+                        <img
+                          src={responseModal.offer.product.product_images[0].url}
+                          alt={responseModal.offer.product.title}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                      )}
+                      <div>
+                        <p className="font-medium">{responseModal.offer.product?.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {responseModal.offer.product?.brand} {responseModal.offer.product?.model}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-between items-center pt-2 border-t">
+                      <div>
+                        <div className="text-sm text-muted-foreground">{sp.yourPrice}</div>
+                        <div className="font-semibold line-through text-gray-500">
+                          {formatPrice(responseModal.offer.original_price)}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-muted-foreground">{sp.offer}</div>
+                        <div className="text-lg font-bold text-green-600">
+                          {formatPrice(responseModal.offer.offered_price)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {responseModal.action === "accept" && (
+                      <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                        <p className="text-sm font-medium text-green-800 mb-1 flex items-center gap-2">
+                          <ShoppingCart className="h-4 w-4" />
+                          {sp.orderWillBeCreated}
+                        </p>
+                        <p className="text-xs text-green-700">
+                          {sp.offerElements.afterAcceptingMessage}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="response">
+                    {responseModal.action === "accept" 
+                      ? sp.messageTobuyer 
+                      : sp.reasonForRejection
+                    }
+                  </Label>
+                  <Textarea
+                    id="response"
+                    value={sellerResponse}
+                    onChange={(e) => setSellerResponse(e.target.value)}
+                    placeholder={
+                      responseModal.action === "accept"
+                        ? sp.offerElements.acceptPlaceholder
+                        : sp.offerElements.rejectPlaceholder
+                    }
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setResponseModal({ isOpen: false })}
+                    disabled={isSubmitting}
+                    className={cn("flex-1", isMobile && "min-h-[44px] touch-target")}
+                  >
+                    {c.buttons.cancel}
+                  </Button>
+                  <Button
+                    onClick={handleSubmitResponse}
+                    disabled={isSubmitting}
+                    className={cn("flex-1", isMobile && "min-h-[44px] touch-target")}
+                    variant={responseModal.action === "accept" ? "default" : "destructive"}
+                  >
+                    {isSubmitting ? sp.processingOffer : 
+                     responseModal.action === "accept" ? sp.acceptOffer : sp.rejectOffer
+                    }
+                  </Button>
+                </div>
               </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogContent>
+          </Dialog>
+        )}
         </div>
       </Layout>
     </ProtectedRoute>

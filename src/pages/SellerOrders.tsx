@@ -26,6 +26,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { cn } from "@/lib/utils";
 import OrderPriceConfirmDialog from "@/components/order/OrderPriceConfirmDialog";
 
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
@@ -308,7 +309,7 @@ const SellerOrders = () => {
     return (
       <ProtectedRoute allowedRoles={['seller']}>
         <Layout language={language}>
-          <div className="container mx-auto px-4 py-8">
+          <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
             <BackButton fallback="/seller/dashboard" variant="outline" className="mb-6" />
             
             <div className="flex justify-center items-center min-h-[60vh]">
@@ -323,7 +324,7 @@ const SellerOrders = () => {
   return (
     <ProtectedRoute allowedRoles={['seller']}>
       <Layout language={language}>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
           <div className="flex flex-col gap-4 md:gap-6">
             <BackButton fallback="/seller/dashboard" variant="outline" className="mb-4" />
             
@@ -399,7 +400,7 @@ const SellerOrders = () => {
                 </div>
               )}
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {(orders || ordersData).map((order) => (
                 <Card 
                   key={order.id}
@@ -430,7 +431,7 @@ const SellerOrders = () => {
                     />
                     
                     <div className="space-y-1">
-                      <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
+                      <CardTitle className="text-lg md:text-xl font-bold">№ {order.order_number}</CardTitle>
                       {order.lot_number_order && (
                         <div className="text-sm text-muted-foreground">
                           {t.lot} {order.lot_number_order}
@@ -502,7 +503,10 @@ const SellerOrders = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            className={cn(
+                              "text-green-600 hover:text-green-700 hover:bg-green-50",
+                              isMobile && "min-h-[44px] touch-target"
+                            )}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleConfirmOrder(order.id, order.price || 0);
@@ -517,7 +521,10 @@ const SellerOrders = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                className={cn(
+                                  "text-red-600 hover:text-red-700 hover:bg-red-50",
+                                  isMobile && "min-h-[44px] touch-target"
+                                )}
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <X className="h-4 w-4 mr-2" />
