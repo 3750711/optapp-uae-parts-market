@@ -156,25 +156,29 @@
     z-index: 9999 !important;
   }
   
-  /* Main widget container - reduced to 50% size */
+  /* Main widget container - адаптивная высота с учетом safe-area */
   .cloudinary-widget iframe,
   div[id^="cloudinary-widget"],
   .cloudinary-widget-wrapper {
     max-width: 90vw !important;
-    max-height: 70vh !important;
+    /* ✅ Используем calc() с safe-area */
+    max-height: calc(70vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 40px) !important;
     width: 90vw !important;
-    height: 70vh !important;
+    height: auto !important; /* ✅ Авто-высота */
+    min-height: 50vh !important; /* ✅ Минимальная высота */
     
-    /* Center the widget */
+    /* ✅ Позиционирование с учетом safe-area */
     position: fixed !important;
-    top: 50% !important;
+    top: max(20px, env(safe-area-inset-top, 20px)) !important;
     left: 50% !important;
-    transform: translate(-50%, -50%) !important;
+    transform: translateX(-50%) !important; /* ✅ Только горизонтальное центрирование */
+    bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
     
     /* Add rounded corners and shadow */
     border-radius: 16px !important;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
     overflow: hidden !important;
+    overflow-y: auto !important; /* ✅ Скролл при необходимости */
   }
   
   /* Close button - make it more prominent */
@@ -237,14 +241,15 @@
   div[id^="cloudinary-widget"],
   .cloudinary-widget-wrapper {
     max-width: 95vw !important;
-    max-height: 75vh !important;
+    /* ✅ Увеличенный вычет для маленьких экранов */
+    max-height: calc(80vh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 60px) !important;
     width: 95vw !important;
-    height: 75vh !important;
+    min-height: 50vh !important;
   }
   
   .cloudinary-widget .upload-area {
-    min-height: 120px !important;
-    padding: 16px !important;
+    min-height: 100px !important; /* ✅ Уменьшена для экономии места */
+    padding: 12px !important;
   }
 }
 

@@ -33,6 +33,12 @@ export const applyPWAWidgetStyles = () => {
       console.log('⏳ Widget elements not found yet, will retry...');
       return false;
     }
+    
+    // Определяем доступную высоту с учетом safe-area (вынесено из цикла для debug логов)
+    const safeAreaTop = parseInt(getComputedStyle(document.documentElement)
+      .getPropertyValue('--safe-area-inset-top') || '0');
+    const safeAreaBottom = parseInt(getComputedStyle(document.documentElement)
+      .getPropertyValue('--safe-area-inset-bottom') || '0');
 
     allElements.forEach((element: Element) => {
       const el = element as HTMLElement;
@@ -42,20 +48,34 @@ export const applyPWAWidgetStyles = () => {
       
       // Determine screen size
       const isSmallScreen = window.innerWidth < 640 || window.innerHeight < 640;
+      
+      // Базовая высота: 75vh для маленьких экранов, 70vh для обычных
+      const baseHeight = isSmallScreen ? 75 : 70;
+      
+      // Вычисляем максимальную высоту с учетом safe-area (в пикселях)
+      const viewportHeight = window.innerHeight;
+      const maxHeightPx = (viewportHeight * baseHeight / 100) - safeAreaTop - safeAreaBottom - 40; // -40px для отступов
+      
       const maxWidth = isSmallScreen ? '95vw' : '90vw';
-      const maxHeight = isSmallScreen ? '75vh' : '70vh';
+      const maxHeight = `${maxHeightPx}px`;
+      
+      // Центрируем с учетом safe-area
+      const topOffset = safeAreaTop + 20; // +20px отступ от верхней safe-area
       
       // Force PWA-friendly size with !important
       el.style.setProperty('max-width', maxWidth, 'important');
       el.style.setProperty('max-height', maxHeight, 'important');
       el.style.setProperty('width', maxWidth, 'important');
-      el.style.setProperty('height', maxHeight, 'important');
+      el.style.setProperty('height', 'auto', 'important'); // ✅ auto вместо фиксированной высоты
+      el.style.setProperty('min-height', '50vh', 'important'); // ✅ минимальная высота
       el.style.setProperty('position', 'fixed', 'important');
-      el.style.setProperty('top', '50%', 'important');
+      el.style.setProperty('top', `${topOffset}px`, 'important');
       el.style.setProperty('left', '50%', 'important');
-      el.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
+      el.style.setProperty('transform', 'translateX(-50%)', 'important'); // ✅ только горизонтальное центрирование
+      el.style.setProperty('bottom', `max(20px, env(safe-area-inset-bottom, 20px))`, 'important'); // ✅ отступ от нижней safe-area
       el.style.setProperty('border-radius', '16px', 'important');
       el.style.setProperty('overflow', 'hidden', 'important');
+      el.style.setProperty('overflow-y', 'auto', 'important'); // ✅ Скролл при необходимости
       el.style.setProperty('box-shadow', '0 25px 50px -12px rgba(0, 0, 0, 0.5)', 'important');
       el.style.setProperty('z-index', '99999', 'important');
       
@@ -74,6 +94,49 @@ export const applyPWAWidgetStyles = () => {
       overlay.dataset.pwaStyled = 'true';
       console.log('✅ Applied PWA styles to overlay');
     }
+    
+    // Стилизация кнопки закрытия с учетом safe-area
+    const applyCloseButtonStyles = () => {
+      const closeButtons = document.querySelectorAll(
+        '.cloudinary-widget [class*="close"], ' +
+        '.cloudinary-widget button[aria-label*="close"], ' +
+        '.cloudinary-widget button[title*="Close"]'
+      );
+      
+      closeButtons.forEach((btn: Element) => {
+        const el = btn as HTMLElement;
+        if (el.dataset.pwaCloseStyled === 'true') return;
+        
+        el.style.setProperty('position', 'absolute', 'important');
+        el.style.setProperty('top', '12px', 'important');
+        el.style.setProperty('right', '12px', 'important');
+        el.style.setProperty('width', '44px', 'important');
+        el.style.setProperty('height', '44px', 'important');
+        el.style.setProperty('z-index', '10001', 'important');
+        el.style.setProperty('background', 'rgba(0, 0, 0, 0.8)', 'important');
+        el.style.setProperty('color', 'white', 'important');
+        el.style.setProperty('border-radius', '50%', 'important');
+        el.style.setProperty('border', '2px solid white', 'important');
+        el.style.setProperty('cursor', 'pointer', 'important');
+        el.style.setProperty('display', 'flex', 'important');
+        el.style.setProperty('align-items', 'center', 'important');
+        el.style.setProperty('justify-content', 'center', 'important');
+        
+        el.dataset.pwaCloseStyled = 'true';
+      });
+    };
+    
+    // Вызвать после применения стилей к виджету
+    setTimeout(() => applyCloseButtonStyles(), 300);
+    setTimeout(() => applyCloseButtonStyles(), 600); // Retry для медленных устройств
+    
+    // Диагностика для отладки
+    console.log('📐 Widget dimensions:', {
+      viewportHeight: window.innerHeight,
+      safeAreaTop,
+      safeAreaBottom,
+      appliedTo: allElements.length
+    });
 
     console.log('✅ PWA widget styles applied to', allElements.length, 'elements');
     return true;
