@@ -27,9 +27,9 @@ const Layout: React.FC<LayoutProps> = ({ children, className, language = 'en' })
   }, [language]);
 
   return (
-    <div className="flex flex-col safe-viewport safe-area-container bg-background text-foreground">
+    <div className="flex flex-col safe-viewport bg-background text-foreground overflow-hidden">
       <Header />
-      <main className={className || ""}>{children}</main>
+      <main className={`${className || ""} safe-area-container no-bounce`}>{children}</main>
       <Footer language={language} />
       
     </div>
