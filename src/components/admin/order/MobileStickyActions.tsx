@@ -48,7 +48,7 @@ export const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
   }
 
   return (
-    <div className="mobile-sticky-bottom bg-white border-t border-gray-200 p-4 space-y-3">
+    <div className="mobile-sticky-bottom p-4 space-y-3">
       <Button
         onClick={primaryAction.onClick}
         disabled={primaryAction.disabled}

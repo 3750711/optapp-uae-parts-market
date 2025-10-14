@@ -27,7 +27,7 @@ const StickyMobileActions: React.FC<StickyMobileActionsProps> = ({
   }
 
   return (
-    <div className="pwa-safe-fixed-bottom bg-background/95 backdrop-blur-sm border-t border-border/50 p-4 shadow-lg">
+    <div className="pwa-safe-fixed-bottom p-4">
       <div className="max-w-sm mx-auto">
         <Button 
           type="submit" 

@@ -36,7 +36,11 @@ export const optimizeForMobile = () => {
     // @ts-ignore
     window.navigator.standalone === true;
 
-  // Add viewport meta for optimal mobile rendering
+  // ============================================
+  // 🌍 УНИВЕРСАЛЬНЫЕ оптимизации (для всех)
+  // ============================================
+  
+  // 1. Viewport meta - работает везде
   let viewport = document.querySelector('meta[name=viewport]');
   if (!viewport) {
     viewport = document.createElement('meta');
@@ -44,13 +48,13 @@ export const optimizeForMobile = () => {
     document.head.appendChild(viewport);
   }
   
-  // PWA-optimized viewport settings
+  // Адаптивный viewport (user-scalable=no только в PWA)
   const viewportContent = isPWA 
     ? 'width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no'
     : 'width=device-width,initial-scale=1,viewport-fit=cover';
   viewport.setAttribute('content', viewportContent);
 
-  // Prevent zoom on input focus (iOS Safari) with PWA considerations
+  // 2. Предотвращение zoom на input focus (iOS Safari) - работает везде
   const style = document.createElement('style');
   style.textContent = `
     @media screen and (max-width: 767px) {
@@ -65,8 +69,14 @@ export const optimizeForMobile = () => {
       }
     }
     
+    /* File inputs - работают везде */
+    input[type="file"] {
+      pointer-events: auto !important;
+      touch-action: manipulation;
+    }
+    
     ${isPWA ? `
-      /* PWA-specific optimizations */
+      /* 🏠 PWA-специфичные стили */
       * {
         -webkit-touch-callout: none;
         -webkit-user-select: none;
@@ -78,13 +88,11 @@ export const optimizeForMobile = () => {
         user-select: text;
       }
       
-      /* Exception for file inputs - ensure they work on mobile */
+      /* Exception for file inputs in PWA */
       input[type="file"] {
         -webkit-touch-callout: default;
         -webkit-user-select: none;
         user-select: none;
-        pointer-events: auto !important;
-        touch-action: manipulation;
       }
       
       /* Prevent pull-to-refresh in PWA */
@@ -95,17 +103,19 @@ export const optimizeForMobile = () => {
   `;
   document.head.appendChild(style);
 
-  // Add passive event listeners for better scroll performance
-  // Minimize for PWA to reduce bfcache blocking
+  // 3. Passive listeners (нужны везде для производительности)
   document.addEventListener('touchstart', () => {}, { passive: true });
   document.addEventListener('touchmove', () => {}, { passive: true });
 
-  // PWA-specific optimizations
+  // ============================================
+  // 🏠 PWA-СПЕЦИФИЧНЫЕ оптимизации
+  // ============================================
+  
   if (isPWA) {
-    // Prevent context menu in PWA
+    // Context menu prevention - только в PWA
     document.addEventListener('contextmenu', (e) => e.preventDefault(), { passive: false });
     
-    // Optimize memory for PWA
+    // Memory optimization через visibilitychange - только в PWA
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         // Pause non-essential animations

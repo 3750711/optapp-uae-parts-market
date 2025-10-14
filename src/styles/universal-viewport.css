@@ -83,3 +83,33 @@
 .optimized-scroll:not(:active) {
   will-change: auto;
 }
+
+/* ========================================
+   Универсальные Touch Targets
+   ======================================== */
+
+.touch-target {
+  /* Минимальный размер для всех устройств */
+  min-height: 48px;
+  min-width: 48px;
+  
+  /* Touch optimization */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -ms-touch-action: manipulation;
+  
+  /* Transitions для visual feedback */
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.touch-target:active {
+  transform: scale(0.98);
+}
+
+/* Увеличенные touch targets для маленьких экранов */
+@media (max-width: 375px) {
+  .touch-target {
+    min-height: 52px;
+    min-width: 52px;
+  }
+}
