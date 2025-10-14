@@ -195,15 +195,15 @@ const SellerMobileProfileMenu = () => {
 
         <Separator className="my-4" />
 
-        {/* Help */}
-        <Link to="/seller/help">
+        {/* Help - Временно скрыто до готовности правильной инструкции */}
+        {/* <Link to="/seller/help">
           <Button variant="ghost" className="w-full justify-start h-12 text-base">
             <HelpCircle className="mr-3 h-5 w-5" />
             {t.help}
           </Button>
         </Link>
 
-        <Separator className="my-4" />
+        <Separator className="my-4" /> */}
         
         {/* Logout */}
         <Button 
