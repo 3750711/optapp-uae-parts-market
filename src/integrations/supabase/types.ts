@@ -623,6 +623,7 @@ export type Database = {
           icon_name: string
           id: string
           order_index: number
+          target_audience: string
           title: string
           updated_at: string
         }
@@ -631,6 +632,7 @@ export type Database = {
           icon_name?: string
           id?: string
           order_index?: number
+          target_audience?: string
           title: string
           updated_at?: string
         }
@@ -639,6 +641,7 @@ export type Database = {
           icon_name?: string
           id?: string
           order_index?: number
+          target_audience?: string
           title?: string
           updated_at?: string
         }
@@ -3586,7 +3589,7 @@ export type Database = {
       }
       l2_normalize: {
         Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: string
+        Returns: unknown
       }
       log_password_reset_event: {
         Args: { p_email: string; p_opt_id?: string; p_user_id: string }
