@@ -1,5 +1,5 @@
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 
 interface SwipeHandlers {
   onSwipeLeft?: () => void;
@@ -8,50 +8,56 @@ interface SwipeHandlers {
 }
 
 export const useSwipeNavigation = ({ onSwipeLeft, onSwipeRight, threshold = 50 }: SwipeHandlers) => {
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const touchStart = useRef<number | null>(null);
+  const touchEnd = useRef<number | null>(null);
   const elementRef = useRef<HTMLDivElement>(null);
-
-  const minSwipeDistance = threshold;
-
-  const onTouchStart = (e: TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+  
+  const onSwipeLeftRef = useRef(onSwipeLeft);
+  const onSwipeRightRef = useRef(onSwipeRight);
+  
+  useEffect(() => {
+    onSwipeLeftRef.current = onSwipeLeft;
+    onSwipeRightRef.current = onSwipeRight;
+  }, [onSwipeLeft, onSwipeRight]);
+  
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    touchEnd.current = null;
+    touchStart.current = e.targetTouches[0].clientX;
+  }, []);
+  
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    touchEnd.current = e.targetTouches[0].clientX;
+  }, []);
+  
+  const handleTouchEnd = useCallback(() => {
+    if (!touchStart.current || !touchEnd.current) return;
     
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe && onSwipeLeft) {
-      onSwipeLeft();
+    const distance = touchStart.current - touchEnd.current;
+    const isLeftSwipe = distance > threshold;
+    const isRightSwipe = distance < -threshold;
+    
+    if (isLeftSwipe && onSwipeLeftRef.current) {
+      onSwipeLeftRef.current();
     }
-    if (isRightSwipe && onSwipeRight) {
-      onSwipeRight();
+    if (isRightSwipe && onSwipeRightRef.current) {
+      onSwipeRightRef.current();
     }
-  };
-
+  }, [threshold]);
+  
   useEffect(() => {
     const element = elementRef.current;
     if (!element) return;
-
-    element.addEventListener('touchstart', onTouchStart);
-    element.addEventListener('touchmove', onTouchMove);
-    element.addEventListener('touchend', onTouchEnd);
-
+    
+    element.addEventListener('touchstart', handleTouchStart);
+    element.addEventListener('touchmove', handleTouchMove);
+    element.addEventListener('touchend', handleTouchEnd);
+    
     return () => {
-      element.removeEventListener('touchstart', onTouchStart);
-      element.removeEventListener('touchmove', onTouchMove);
-      element.removeEventListener('touchend', onTouchEnd);
+      element.removeEventListener('touchstart', handleTouchStart);
+      element.removeEventListener('touchmove', handleTouchMove);
+      element.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [touchStart, touchEnd, onSwipeLeft, onSwipeRight]);
-
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+  
   return elementRef;
 };
