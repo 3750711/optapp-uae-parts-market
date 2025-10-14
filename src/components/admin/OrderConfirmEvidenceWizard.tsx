@@ -132,14 +132,25 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
     loadExistingData();
   }, [open, step1Hook.getImagesByCategory, step2Hook.getImagesByCategory]);
 
-  // Update step images when uploads change
+  // Sync step 1 images with hook (merge, don't replace)
   useEffect(() => {
-    if (currentStep === 'chat_confirmation') {
-      setStep1Images(step1Hook.confirmImages);
-    } else if (currentStep === 'signed_product') {
-      setStep2Images(step2Hook.confirmImages);
+    if (step1Hook.confirmImages.length > 0) {
+      setStep1Images(prevImages => {
+        const allImages = [...prevImages, ...step1Hook.confirmImages];
+        return Array.from(new Set(allImages)); // Deduplicate
+      });
     }
-  }, [currentStep, step1Hook.confirmImages, step2Hook.confirmImages]);
+  }, [step1Hook.confirmImages]);
+
+  // Sync step 2 images with hook (merge, don't replace)
+  useEffect(() => {
+    if (step2Hook.confirmImages.length > 0) {
+      setStep2Images(prevImages => {
+        const allImages = [...prevImages, ...step2Hook.confirmImages];
+        return Array.from(new Set(allImages)); // Deduplicate
+      });
+    }
+  }, [step2Hook.confirmImages]);
 
   // Define steps
   const steps: Array<{
@@ -163,7 +174,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   ];
 
   const currentHook = currentStep === 'chat_confirmation' ? step1Hook : step2Hook;
-  const canProceedStep1 = step1Hook.confirmImages.length > 0 && step1Confirmed;
+  const canProceedStep1 = step1Images.length > 0 && step1Confirmed;
   const canProceedStep2 = step2Hook.confirmImages.length > 0;
   const canSaveCurrentStep = currentStep === 'chat_confirmation' ? canProceedStep1 : canProceedStep2;
 
@@ -182,6 +193,12 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   }, [currentStep, canProceedStep1, step1Hook]);
 
   const handleFinish = useCallback(async () => {
+    // Check that Step 1 is completed
+    if (step1Images.length === 0) {
+      toast.error('Please complete Step 1 (Chat Screenshot) first');
+      return;
+    }
+
     if (currentStep === 'signed_product' && canProceedStep2) {
       try {
         await step2Hook.handleSaveMedia();
@@ -191,7 +208,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
         toast.error('Failed to save signed product photo');
       }
     }
-  }, [currentStep, canProceedStep2, step2Hook, onComplete]);
+  }, [currentStep, canProceedStep2, step2Hook, onComplete, step1Images.length]);
 
   const handleSkip = useCallback(() => {
     if (currentStep === 'signed_product') {
@@ -346,7 +363,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 </div>
 
                 <CloudinaryPhotoUploader
-                  images={step1Hook.confirmImages}
+                  images={step1Images}
                   onImageUpload={() => {}}
                   onImageUploadWithCategory={step1Hook.handleWidgetUpload}
                   onImageDelete={step1Hook.handleImageDelete}
@@ -388,7 +405,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                 </div>
 
                 <CloudinaryPhotoUploader
-                  images={step2Hook.confirmImages}
+                  images={step2Images}
                   onImageUpload={() => {}}
                   onImageUploadWithCategory={step2Hook.handleWidgetUpload}
                   onImageDelete={step2Hook.handleImageDelete}
