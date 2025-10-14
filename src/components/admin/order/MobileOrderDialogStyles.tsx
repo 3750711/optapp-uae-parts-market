@@ -28,15 +28,15 @@ export const MobileOrderDialogStyles = () => {
         /* Фиксированный footer с blur эффектом */
         .mobile-dialog-footer {
           position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
+          bottom: env(safe-area-inset-bottom, 0px);
+          left: env(safe-area-inset-left, 0px);
+          right: env(safe-area-inset-right, 0px);
           background: rgba(255, 255, 255, 0.95);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
           border-top: 1px solid rgba(229, 231, 235, 0.8);
           padding: 0.75rem 1rem;
-          padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+          padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
           z-index: 50;
           box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
         }

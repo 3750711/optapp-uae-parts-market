@@ -6,9 +6,13 @@ export function PBLogoLoader({ className }: { className?: string }) {
   return (
     <div
       className={clsx(
-        "fixed inset-0 z-[9999] grid place-items-center bg-background/80 backdrop-blur-sm",
+        "pwa-safe-overlay z-[9999] bg-background/80 backdrop-blur-sm",
         className
       )}
+      style={{
+        display: 'grid',
+        placeItems: 'center'
+      }}
       role="status"
       aria-live="polite"
       aria-busy="true"

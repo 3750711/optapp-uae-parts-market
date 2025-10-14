@@ -18,7 +18,7 @@ const MobileStickyBuyButton: React.FC<MobileStickyBuyButtonProps> = ({
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 p-4 safe-area-bottom">
+    <div className="pwa-safe-fixed-bottom bg-white border-t border-gray-200 p-4">
       <Button 
         onClick={onBuyNow}
         size="lg"

@@ -17,6 +17,13 @@ const Layout: React.FC<LayoutProps> = ({ children, className, language = 'en' })
     
     // Set HTML lang attribute for accessibility and SEO
     document.documentElement.lang = language;
+    
+    // Enable safe-area debug in development
+    if (process.env.NODE_ENV === 'development') {
+      import('@/utils/pwaDetection').then(({ enableSafeAreaDebug }) => {
+        enableSafeAreaDebug();
+      });
+    }
   }, [language]);
 
   return (
