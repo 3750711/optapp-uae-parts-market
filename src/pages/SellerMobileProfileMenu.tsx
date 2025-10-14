@@ -69,8 +69,8 @@ const SellerMobileProfileMenu = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      {/* Header with PWA safe-area support */}
+      <div className="pwa-safe-sticky-top flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur-sm">
         <Button variant="ghost" size="sm" onClick={() => navigate('/seller/dashboard')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -79,7 +79,7 @@ const SellerMobileProfileMenu = () => {
       </div>
 
       {/* Profile Section */}
-      <div className="p-6 bg-accent/10">
+      <div className="pt-2 p-6 bg-accent/10">
         <div className="flex items-center space-x-4">
           <Avatar className="h-20 w-20">
             <AvatarImage 
