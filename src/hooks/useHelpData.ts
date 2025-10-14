@@ -50,6 +50,33 @@ export const useHelpData = () => {
   });
 };
 
+// Hook for filtering help data by target audience (buyer/seller)
+export const useFilteredHelpData = (targetAudience: 'buyer' | 'seller') => {
+  return useQuery({
+    queryKey: ['help-data', targetAudience],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('help_categories')
+        .select(`
+          *,
+          help_items(*)
+        `)
+        .in('target_audience', ['all', targetAudience])
+        .order('order_index', { ascending: true });
+
+      if (error) throw error;
+      
+      // Sort help items within each category
+      const sortedData = data.map(category => ({
+        ...category,
+        help_items: category.help_items.sort((a, b) => a.order_index - b.order_index)
+      }));
+
+      return sortedData as HelpCategoryWithItems[];
+    },
+  });
+};
+
 export const useCreateCategory = () => {
   const queryClient = useQueryClient();
 
