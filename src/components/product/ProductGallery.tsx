@@ -323,11 +323,11 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </div>
 
               {/* Main image */}
-              <div className="w-full max-h-[100dvh] flex items-center justify-center px-4 pt-20 pb-24 overflow-hidden">
+              <div className="absolute inset-0 flex items-center justify-center px-4">
                 <img
                   src={allMedia[currentZoomIndex]}
                   alt={title}
-                  className="max-w-[100vw] max-h-[calc(100dvh-12rem)] object-contain"
+                  className="max-w-[90vw] max-h-[70vh] object-contain"
                   style={{ 
                     touchAction: 'pan-x pan-y pinch-zoom',
                     userSelect: 'none',
