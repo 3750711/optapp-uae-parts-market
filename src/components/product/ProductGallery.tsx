@@ -28,9 +28,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   selectedImage,
   onImageClick
 }) => {
-  const isMobile = useIsMobile();
   const allMedia = [...images, ...videos];
   
+  // Early return before any hooks
+  if (allMedia.length === 0) return null;
+  
+  const isMobile = useIsMobile();
   const [internalActiveMedia, setInternalActiveMedia] = useState<string>(allMedia[0] || "");
   const activeMedia = selectedImage !== undefined ? selectedImage : internalActiveMedia;
   
@@ -155,8 +158,6 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
     const nextGlobalIndex = allMedia.indexOf(nextImageUrl);
     setCurrentZoomIndex(nextGlobalIndex);
   };
-
-  if (allMedia.length === 0) return null;
 
   const currentActiveIndex = allMedia.indexOf(activeMedia);
   const imageUrls = allMedia.filter(url => !isVideo(url));
