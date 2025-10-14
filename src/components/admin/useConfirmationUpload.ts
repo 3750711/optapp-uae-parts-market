@@ -200,7 +200,7 @@ export const useConfirmationUpload = (
       toast.error('Failed to save photos');
       throw error;
     }
-  }, [orderId, category]);
+  }, [orderId, category, supabase]);
 
   return {
     // Admin status (for compatibility)

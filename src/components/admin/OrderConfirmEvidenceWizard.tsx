@@ -163,8 +163,8 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
   ];
 
   const currentHook = currentStep === 'chat_confirmation' ? step1Hook : step2Hook;
-  const canProceedStep1 = step1Images.length > 0 && step1Confirmed;
-  const canProceedStep2 = step2Images.length > 0;
+  const canProceedStep1 = step1Hook.confirmImages.length > 0 && step1Confirmed;
+  const canProceedStep2 = step2Hook.confirmImages.length > 0;
   const canSaveCurrentStep = currentStep === 'chat_confirmation' ? canProceedStep1 : canProceedStep2;
 
   // Step navigation
