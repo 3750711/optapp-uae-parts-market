@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Save, Loader, Eye, ArrowLeft } from "lucide-react";
+import { Save, Loader, Eye } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import Layout from "@/components/layout/Layout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import BackButton from "@/components/navigation/BackButton";
 
 // Import seller-specific components and hooks
 import { useSellerOrderFormLogic } from "@/hooks/useSellerOrderFormLogic";
@@ -113,10 +114,6 @@ const SellerCreateOrder = () => {
     setVideos((prev) => prev.filter((v) => v !== url));
   }, [setVideos]);
 
-  const handleGoBack = () => {
-    navigate('/seller/dashboard');
-  };
-
   const handleDataFromProduct = (productData: any) => {
     console.log("Product data received:", productData);
   };
@@ -205,18 +202,13 @@ const SellerCreateOrder = () => {
       <ProtectedRoute allowedRoles={['seller']}>
         <Layout language={language}>
           <div className="container mx-auto px-4 py-8">
-            <div className="max-w-4xl mx-auto">
-              {/* Header with Back Button */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-3xl font-bold">{t.createOrder}</h1>
-                  <p className="text-muted-foreground">{t.fillOrderInfo}</p>
-                </div>
-                <Button variant="outline" onClick={handleGoBack}>
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  {t.back}
-                </Button>
-              </div>
+          <div className="max-w-4xl mx-auto">
+            <BackButton fallback="/seller/dashboard" variant="outline" className="mb-6" />
+            
+            <div className="mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">{t.createOrder}</h1>
+              <p className="text-muted-foreground">{t.fillOrderInfo}</p>
+            </div>
               
               <Card>
                 <CardHeader>
@@ -255,16 +247,11 @@ const SellerCreateOrder = () => {
       <Layout language={language}>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
-            {/* Header with Back Button */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-3xl font-bold">{t.createOrder}</h1>
-                <p className="text-muted-foreground">{t.fillOrderInfo}</p>
-              </div>
-              <Button variant="outline" onClick={handleGoBack}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                {t.back}
-              </Button>
+            <BackButton fallback="/seller/dashboard" variant="outline" className="mb-6" />
+            
+            <div className="mb-6">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">{t.createOrder}</h1>
+              <p className="text-muted-foreground">{t.fillOrderInfo}</p>
             </div>
         
         <Card>
