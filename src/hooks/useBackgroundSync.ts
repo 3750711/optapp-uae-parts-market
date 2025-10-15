@@ -23,12 +23,25 @@ export const useBackgroundSync = () => {
 
   // Process sync queue with concurrency protection
   const processSyncQueue = useCallback(async (): Promise<void> => {
+    // Проверка локального флага
     if (isProcessingRef.current) {
       console.log('📱 BG Sync: Already processing, skipping');
       return;
     }
 
+    // Проверка межвкладочного флага через localStorage
+    const processingFlag = localStorage.getItem('sync_processing_flag');
+    if (processingFlag) {
+      const flagTime = parseInt(processingFlag);
+      if (!isNaN(flagTime) && Date.now() - flagTime < 10000) {
+        console.log('📱 BG Sync: Another tab/instance is processing, skipping');
+        return;
+      }
+    }
+
+    // Устанавливаем флаги обработки
     isProcessingRef.current = true;
+    localStorage.setItem('sync_processing_flag', Date.now().toString());
 
     try {
       const queue = getQueueFromStorage();
@@ -47,7 +60,17 @@ export const useBackgroundSync = () => {
           const success = await syncItem(item);
           if (success) {
             successfulSyncs.push(item.id);
-            console.log('✅ BG Sync: Successfully synced', item.type, item.id);
+            
+            // НЕМЕДЛЕННО удаляем успешную задачу из localStorage
+            const currentQueue = getQueueFromStorage();
+            const updatedQueue = currentQueue.filter(q => q.id !== item.id);
+            
+            try {
+              localStorage.setItem(SYNC_STORAGE_KEY, JSON.stringify(updatedQueue));
+              console.log(`✅ BG Sync: Задача ${item.id} (${item.type}) успешно отправлена и удалена из очереди`);
+            } catch (e) {
+              console.error('❌ BG Sync: Ошибка при обновлении очереди:', e);
+            }
             
             // Call success callback if exists
             const callback = callbacksRef.current.get(item.id);
@@ -96,7 +119,9 @@ export const useBackgroundSync = () => {
         setTimeout(() => processSyncQueue(), RETRY_DELAY);
       }
     } finally {
+      // Снимаем флаги обработки
       isProcessingRef.current = false;
+      localStorage.removeItem('sync_processing_flag');
     }
   }, []);
 
@@ -212,6 +237,26 @@ export const useBackgroundSync = () => {
 
       // Store in localStorage with error handling
       const existingQueue = getQueueFromStorage();
+      
+      // Предотвращаем дублирование repost для одного товара
+      if (type === 'product-repost') {
+        const existingRepost = existingQueue.find(
+          item => item.type === 'product-repost' && 
+                  item.data.productId === data.productId
+        );
+        
+        if (existingRepost) {
+          console.log(`⚠️ BG Sync: Repost для товара ${data.productId} уже в очереди, используем существующий (ID: ${existingRepost.id})`);
+          
+          // Обновляем callback если передан новый
+          if (callback) {
+            callbacksRef.current.set(existingRepost.id, callback);
+          }
+          
+          return existingRepost.id;
+        }
+      }
+      
       const updatedQueue = [...existingQueue, syncData];
       
       try {
