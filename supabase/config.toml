@@ -144,6 +144,9 @@ verify_jwt = true
 [functions.novu-webhook-handler]
 verify_jwt = false
 
+[functions.trigger-hookdeck-repost]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
