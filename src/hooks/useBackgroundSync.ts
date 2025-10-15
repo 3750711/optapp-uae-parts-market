@@ -33,8 +33,10 @@ export const useBackgroundSync = () => {
     const processingFlag = localStorage.getItem('sync_processing_flag');
     if (processingFlag) {
       const flagTime = parseInt(processingFlag);
-      if (!isNaN(flagTime) && Date.now() - flagTime < 10000) {
-        console.log('📱 BG Sync: Another tab/instance is processing, skipping');
+      if (!isNaN(flagTime) && Date.now() - flagTime < 3000) { // 3 секунды достаточно для Telegram API
+        const queue = getQueueFromStorage();
+        console.warn(`⚠️ BG Sync: Another tab is processing, will retry in 3s. Queued items: ${queue.length}`);
+        setTimeout(() => processSyncQueue(), 3000); // Попробуем через 3 сек вместо skip
         return;
       }
     }
@@ -42,6 +44,13 @@ export const useBackgroundSync = () => {
     // Устанавливаем флаги обработки
     isProcessingRef.current = true;
     localStorage.setItem('sync_processing_flag', Date.now().toString());
+
+    // Heartbeat для автоматического обновления флага каждую секунду
+    const heartbeatInterval = setInterval(() => {
+      if (isProcessingRef.current) {
+        localStorage.setItem('sync_processing_flag', Date.now().toString());
+      }
+    }, 1000); // Обновляем каждую секунду
 
     try {
       const queue = getQueueFromStorage();
@@ -119,6 +128,8 @@ export const useBackgroundSync = () => {
         setTimeout(() => processSyncQueue(), RETRY_DELAY);
       }
     } finally {
+      // Останавливаем heartbeat
+      clearInterval(heartbeatInterval);
       // Снимаем флаги обработки
       isProcessingRef.current = false;
       localStorage.removeItem('sync_processing_flag');
@@ -174,6 +185,23 @@ export const useBackgroundSync = () => {
 
   // Setup event listeners and periodic checks
   useEffect(() => {
+    // Проверка зависших задач при старте (через 2 сек после загрузки)
+    const checkStuckTasks = () => {
+      const queue = getQueueFromStorage();
+      const now = Date.now();
+      
+      const stuckTasks = queue.filter(task => 
+        now - task.timestamp > 60000 // Старше 1 минуты
+      );
+      
+      if (stuckTasks.length > 0) {
+        console.warn(`⚠️ BG Sync: Found ${stuckTasks.length} stuck tasks on startup, forcing retry...`);
+        processSyncQueue(); // Принудительно обработать
+      }
+    };
+    
+    setTimeout(checkStuckTasks, 2000);
+
     // Service Worker message listener
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'BACKGROUND_SYNC') {
