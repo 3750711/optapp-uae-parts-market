@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBackgroundSync } from "./useBackgroundSync";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
+import { useNovuRepost } from "./useNovuRepost";
 
 const STUCK_TIMEOUT = 60000; // 60 seconds timeout for stuck reposts
 
@@ -12,7 +13,13 @@ export const useProductRepost = () => {
   const [isReposting, setIsReposting] = useState<Record<string, boolean>>({});
   const [queuedReposts, setQueuedReposts] = useState<Record<string, string>>({}); // Track queued reposts by productId -> syncId
   const { user } = useAuth();
-  const { queueForSync, getPendingCount } = useBackgroundSync();
+  
+  // 🆕 NOVU Integration (new reliable system)
+  const { sendRepostViaNovu, isReposting: novuReposting } = useNovuRepost();
+  
+  // 🗑️ OLD SYSTEM (kept for rollback, currently not used)
+  // const { queueForSync, getPendingCount } = useBackgroundSync();
+  
   const { language } = useLanguage();
   const t = getProductStatusTranslations(language);
 
@@ -95,7 +102,111 @@ export const useProductRepost = () => {
     };
   };
 
-  // Send repost notification via background queue with optional price change
+  // 🆕 NEW: Send repost via Novu (guaranteed delivery + deduplication)
+  const sendRepost = async (productId: string, newPrice?: number) => {
+    if (!user) {
+      toast.error(t.repostMessages.loginRequired);
+      return false;
+    }
+
+    if (isReposting[productId] || novuReposting[productId]) {
+      return false;
+    }
+
+    setIsReposting(prev => ({ ...prev, [productId]: true }));
+
+    try {
+      console.log(`📢 [ProductRepost] Processing repost for product: ${productId}${newPrice ? ` with new price: ${newPrice}` : ''}`);
+      
+      let oldPrice: number | undefined;
+
+      // If price is changed, update product price first
+      if (newPrice !== undefined) {
+        const { data: currentProduct } = await supabase
+          .from('products')
+          .select('price, catalog_position')
+          .eq('id', productId)
+          .single();
+
+        oldPrice = currentProduct?.price;
+
+        // Update catalog_position to current time to move product to top
+        const newCatalogPosition = new Date().toISOString();
+        console.log(`📍 Updating catalog_position for product ${productId} with price change to ${newCatalogPosition}`);
+        
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ 
+            price: newPrice,
+            catalog_position: newCatalogPosition
+          })
+          .eq('id', productId);
+
+        if (updateError) {
+          console.error(`💥 [ProductRepost] Error updating product price:`, updateError);
+          toast.error(t.repostMessages.queueError, {
+            description: 'Failed to update product price'
+          });
+          return false;
+        }
+        
+        console.log(`✅ [ProductRepost] Product price updated from ${oldPrice} to ${newPrice}`);
+      } else {
+        // Update catalog position for repost without price change
+        const newCatalogPosition = new Date().toISOString();
+        console.log(`📍 Updating catalog_position for product ${productId} without price change to ${newCatalogPosition}`);
+        
+        const { error: positionError } = await supabase
+          .from('products')
+          .update({ catalog_position: newCatalogPosition })
+          .eq('id', productId);
+
+        if (positionError) {
+          console.error(`💥 [ProductRepost] Error updating catalog position:`, positionError);
+          // Continue anyway as this is not critical
+        }
+      }
+
+      // 🆕 Send via Novu (guaranteed delivery)
+      const success = await sendRepostViaNovu({
+        productId,
+        priceChanged: !!newPrice,
+        newPrice,
+        oldPrice
+      });
+
+      if (!success && newPrice !== undefined && oldPrice !== undefined) {
+        // Rollback price change if Novu failed
+        console.warn(`⚠️ [ProductRepost] Novu failed, rolling back price`);
+        const { data: currentProduct } = await supabase
+          .from('products')
+          .select('catalog_position')
+          .eq('id', productId)
+          .single();
+
+        await supabase
+          .from('products')
+          .update({ 
+            price: oldPrice,
+            catalog_position: currentProduct?.catalog_position 
+          })
+          .eq('id', productId);
+      }
+
+      return success;
+
+    } catch (error) {
+      console.error(`💥 [ProductRepost] Exception during repost:`, error);
+      toast.error(t.repostMessages.queueError, {
+        description: t.repostMessages.queueErrorDescription
+      });
+      return false;
+    } finally {
+      setIsReposting(prev => ({ ...prev, [productId]: false }));
+    }
+  };
+
+  /* 🗑️ OLD SYSTEM - Kept for rollback (comment out above and uncomment this)
   const sendRepost = async (productId: string, newPrice?: number) => {
     if (!user) {
       toast.error(t.repostMessages.loginRequired);
@@ -233,12 +344,14 @@ export const useProductRepost = () => {
       setIsReposting(prev => ({ ...prev, [productId]: false }));
     }
   };
+  */
 
   return {
     checkCanRepost,
     sendRepost,
-    isReposting,
+    isReposting: { ...isReposting, ...novuReposting },
     queuedReposts,
-    pendingCount: getPendingCount()
+    pendingCount: 0 // Novu handles queue internally
+    // pendingCount: getPendingCount() // OLD: for rollback uncomment this
   };
 };
