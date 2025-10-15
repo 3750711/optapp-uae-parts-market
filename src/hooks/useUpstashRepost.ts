@@ -10,11 +10,11 @@ interface RepostData {
   oldPrice?: number;
 }
 
-export const useHookdeckRepost = () => {
+export const useUpstashRepost = () => {
   const [isReposting, setIsReposting] = useState<Record<string, boolean>>({});
   const { user } = useAuth();
 
-  const sendRepostViaHookdeck = useCallback(async (data: RepostData) => {
+  const sendRepostViaUpstash = useCallback(async (data: RepostData) => {
     if (!user) {
       toast.error('Please login to repost');
       return false;
@@ -26,10 +26,10 @@ export const useHookdeckRepost = () => {
       // Генерируем уникальный idempotency key для дедупликации
       const idempotencyKey = `repost-${data.productId}-${Date.now()}`;
       
-      console.log('📮 [Hookdeck] Sending repost to queue:', idempotencyKey);
+      console.log('📮 [QStash] Sending repost to queue:', idempotencyKey);
 
-      // Вызываем Edge Function который отправит в Hookdeck
-      const { data: result, error } = await supabase.functions.invoke('trigger-hookdeck-repost', {
+      // Вызываем Edge Function который отправит в QStash
+      const { data: result, error } = await supabase.functions.invoke('trigger-upstash-repost', {
         body: {
           productId: data.productId,
           priceChanged: data.priceChanged,
@@ -41,19 +41,19 @@ export const useHookdeckRepost = () => {
       });
 
       if (error) {
-        console.error('❌ [Hookdeck] Failed to queue repost:', error);
+        console.error('❌ [QStash] Failed to queue repost:', error);
         toast.error('Failed to queue repost');
         return false;
       }
 
-      console.log('✅ [Hookdeck] Repost queued successfully:', result);
+      console.log('✅ [QStash] Repost queued successfully:', result);
       toast.success('Repost queued successfully!', {
         description: 'Your product will be reposted shortly'
       });
 
       return true;
     } catch (error) {
-      console.error('💥 [Hookdeck] Exception:', error);
+      console.error('💥 [QStash] Exception:', error);
       toast.error('Failed to queue repost');
       return false;
     } finally {
@@ -62,7 +62,7 @@ export const useHookdeckRepost = () => {
   }, [user]);
 
   return {
-    sendRepostViaHookdeck,
+    sendRepostViaUpstash,
     isReposting
   };
 };

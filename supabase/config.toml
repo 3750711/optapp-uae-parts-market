@@ -144,6 +144,12 @@ verify_jwt = true
 [functions.novu-webhook-handler]
 verify_jwt = false
 
+[functions.trigger-upstash-repost]
+verify_jwt = false
+
+[functions.upstash-repost-handler]
+verify_jwt = false
+
 [functions.trigger-hookdeck-repost]
 verify_jwt = false
 

@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBackgroundSync } from "./useBackgroundSync";
 import { useLanguage } from "@/hooks/useLanguage";
 import { getProductStatusTranslations } from "@/utils/translations/productStatuses";
-import { useHookdeckRepost } from "./useHookdeckRepost";
+import { useUpstashRepost } from "./useUpstashRepost";
 
 const STUCK_TIMEOUT = 60000; // 60 seconds timeout for stuck reposts
 
@@ -14,8 +14,8 @@ export const useProductRepost = () => {
   const [queuedReposts, setQueuedReposts] = useState<Record<string, string>>({}); // Track queued reposts by productId -> syncId
   const { user } = useAuth();
   
-  // 🆕 HOOKDECK Integration (new reliable system with queue)
-  const { sendRepostViaHookdeck, isReposting: hookdeckReposting } = useHookdeckRepost();
+  // 🆕 UPSTASH QStash Integration (new reliable system with queue)
+  const { sendRepostViaUpstash, isReposting: upstashReposting } = useUpstashRepost();
   
   // 🗑️ OLD SYSTEM (kept for rollback, currently not used)
   // const { queueForSync, getPendingCount } = useBackgroundSync();
@@ -102,14 +102,14 @@ export const useProductRepost = () => {
     };
   };
 
-  // 🆕 NEW: Send repost via Hookdeck (guaranteed delivery + deduplication + queue)
+  // 🆕 NEW: Send repost via Upstash QStash (guaranteed delivery + deduplication + queue)
   const sendRepost = async (productId: string, newPrice?: number) => {
     if (!user) {
       toast.error(t.repostMessages.loginRequired);
       return false;
     }
 
-    if (isReposting[productId] || hookdeckReposting[productId]) {
+    if (isReposting[productId] || upstashReposting[productId]) {
       return false;
     }
 
@@ -167,8 +167,8 @@ export const useProductRepost = () => {
         }
       }
 
-      // 🆕 Send via Hookdeck (guaranteed delivery + queue)
-      const success = await sendRepostViaHookdeck({
+      // 🆕 Send via Upstash QStash (guaranteed delivery + queue)
+      const success = await sendRepostViaUpstash({
         productId,
         priceChanged: !!newPrice,
         newPrice,
@@ -176,8 +176,8 @@ export const useProductRepost = () => {
       });
 
       if (!success && newPrice !== undefined && oldPrice !== undefined) {
-        // Rollback price change if Hookdeck failed
-        console.warn(`⚠️ [ProductRepost] Hookdeck failed, rolling back price`);
+        // Rollback price change if QStash failed
+        console.warn(`⚠️ [ProductRepost] QStash failed, rolling back price`);
         const { data: currentProduct } = await supabase
           .from('products')
           .select('catalog_position')
@@ -349,9 +349,9 @@ export const useProductRepost = () => {
   return {
     checkCanRepost,
     sendRepost,
-    isReposting: { ...isReposting, ...hookdeckReposting },
+    isReposting: { ...isReposting, ...upstashReposting },
     queuedReposts,
-    pendingCount: 0 // Hookdeck handles queue internally
+    pendingCount: 0 // QStash handles queue internally
     // pendingCount: getPendingCount() // OLD: for rollback uncomment this
   };
 };
