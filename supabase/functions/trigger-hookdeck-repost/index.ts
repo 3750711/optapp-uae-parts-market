@@ -1,7 +1,6 @@
 import { createServiceClient } from '../_shared/client.ts';
 
-const NOVU_API_KEY = Deno.env.get('NOVU_API_KEY');
-const NOVU_BACKEND_URL = 'https://api.novu.co/v1';
+const HOOKDECK_SOURCE_URL = Deno.env.get('HOOKDECK_SOURCE_URL');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,14 +13,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { productId, priceChanged, newPrice, oldPrice, transactionId, userId } = await req.json();
+    const { productId, priceChanged, newPrice, oldPrice, idempotencyKey, userId } = await req.json();
 
-    console.log('🔔 [Novu Trigger] Received request:', { productId, transactionId });
+    console.log('📮 [Hookdeck] Received request:', { productId, idempotencyKey });
 
-    if (!NOVU_API_KEY) {
-      console.error('❌ [Novu] NOVU_API_KEY not configured');
+    if (!HOOKDECK_SOURCE_URL) {
+      console.error('❌ [Hookdeck] HOOKDECK_SOURCE_URL not configured');
       return new Response(
-        JSON.stringify({ error: 'NOVU_API_KEY not configured' }),
+        JSON.stringify({ error: 'HOOKDECK_SOURCE_URL not configured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
@@ -52,52 +51,46 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Триггерим Novu workflow
-    const novuResponse = await fetch(`${NOVU_BACKEND_URL}/events/trigger`, {
+    // Отправляем событие в Hookdeck
+    const hookdeckResponse = await fetch(HOOKDECK_SOURCE_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `ApiKey ${NOVU_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'idempotency-key': idempotencyKey // Hookdeck автоматически дедуплицирует по этому ключу
       },
       body: JSON.stringify({
-        name: 'product-repost', // Workflow ID в Novu
-        to: {
-          subscriberId: 'telegram-group' // ID нашей Telegram группы
-        },
-        payload: {
-          productId,
-          priceChanged,
-          newPrice,
-          oldPrice,
-          lotNumber: product.lot_number,
-          title: product.title,
-          brand: product.brand,
-          model: product.model,
-          currentPrice: product.price
-        },
-        transactionId // Дедупликация!
+        productId,
+        notificationType: 'repost',
+        priceChanged,
+        newPrice,
+        oldPrice,
+        lotNumber: product.lot_number,
+        title: product.title,
+        brand: product.brand,
+        model: product.model,
+        currentPrice: product.price
       })
     });
 
-    const novuResult = await novuResponse.json();
-
-    if (!novuResponse.ok) {
-      console.error('❌ [Novu] API error:', novuResult);
+    if (!hookdeckResponse.ok) {
+      const errorText = await hookdeckResponse.text();
+      console.error('❌ [Hookdeck] API error:', errorText);
       return new Response(
-        JSON.stringify({ error: 'Failed to trigger Novu workflow', details: novuResult }),
+        JSON.stringify({ error: 'Failed to queue repost in Hookdeck', details: errorText }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       );
     }
 
-    console.log('✅ [Novu] Workflow triggered:', novuResult);
+    const hookdeckResult = await hookdeckResponse.json();
+    console.log('✅ [Hookdeck] Event queued:', hookdeckResult);
 
     return new Response(
-      JSON.stringify({ success: true, data: novuResult }),
+      JSON.stringify({ success: true, data: hookdeckResult }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('💥 [Novu Trigger] Error:', error);
+    console.error('💥 [Hookdeck] Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

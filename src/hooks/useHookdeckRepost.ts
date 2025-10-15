@@ -10,11 +10,11 @@ interface RepostData {
   oldPrice?: number;
 }
 
-export const useNovuRepost = () => {
+export const useHookdeckRepost = () => {
   const [isReposting, setIsReposting] = useState<Record<string, boolean>>({});
   const { user } = useAuth();
 
-  const sendRepostViaNovu = useCallback(async (data: RepostData) => {
+  const sendRepostViaHookdeck = useCallback(async (data: RepostData) => {
     if (!user) {
       toast.error('Please login to repost');
       return false;
@@ -23,37 +23,37 @@ export const useNovuRepost = () => {
     setIsReposting(prev => ({ ...prev, [data.productId]: true }));
 
     try {
-      // Генерируем уникальный transactionId для дедупликации
-      const transactionId = `repost-${data.productId}-${Date.now()}`;
+      // Генерируем уникальный idempotency key для дедупликации
+      const idempotencyKey = `repost-${data.productId}-${Date.now()}`;
       
-      console.log('🔔 [Novu] Triggering repost workflow:', transactionId);
+      console.log('📮 [Hookdeck] Sending repost to queue:', idempotencyKey);
 
-      // Вызываем Edge Function который будет триггерить Novu
-      const { data: result, error } = await supabase.functions.invoke('trigger-novu-repost', {
+      // Вызываем Edge Function который отправит в Hookdeck
+      const { data: result, error } = await supabase.functions.invoke('trigger-hookdeck-repost', {
         body: {
           productId: data.productId,
           priceChanged: data.priceChanged,
           newPrice: data.newPrice,
           oldPrice: data.oldPrice,
-          transactionId,
+          idempotencyKey,
           userId: user.id
         }
       });
 
       if (error) {
-        console.error('❌ [Novu] Failed to trigger workflow:', error);
+        console.error('❌ [Hookdeck] Failed to queue repost:', error);
         toast.error('Failed to queue repost');
         return false;
       }
 
-      console.log('✅ [Novu] Workflow triggered successfully:', result);
+      console.log('✅ [Hookdeck] Repost queued successfully:', result);
       toast.success('Repost queued successfully!', {
         description: 'Your product will be reposted shortly'
       });
 
       return true;
     } catch (error) {
-      console.error('💥 [Novu] Exception:', error);
+      console.error('💥 [Hookdeck] Exception:', error);
       toast.error('Failed to queue repost');
       return false;
     } finally {
@@ -62,7 +62,7 @@ export const useNovuRepost = () => {
   }, [user]);
 
   return {
-    sendRepostViaNovu,
+    sendRepostViaHookdeck,
     isReposting
   };
 };
