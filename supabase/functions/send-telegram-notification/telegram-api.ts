@@ -478,6 +478,13 @@ export async function sendImageMediaGroups(
       }
     });
     
+    // Extract first message ID from successful attempts for DB storage
+    const firstMessageId = allAttempts.find(attempt => 
+      attempt.status === 'success' && attempt.telegram_message_id
+    )?.telegram_message_id || null;
+    
+    console.log(`📝 First message ID extracted for DB: ${firstMessageId}`);
+    
     // Update product status based on result
     if (productId) {
       const currentProduct = await supabaseClient
