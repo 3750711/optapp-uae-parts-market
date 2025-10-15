@@ -212,6 +212,23 @@ Deno.serve(async (req) => {
 
         console.log(`✅ [QStash] Product ${productId} notification sent successfully on attempt ${attempt}`);
 
+        // Update product notification timestamp and status
+        try {
+          await supabaseClient
+            .from('products')
+            .update({ 
+              last_notification_sent_at: new Date().toISOString(),
+              telegram_notification_status: 'sent',
+              catalog_position: new Date().toISOString() // обновляем позицию в каталоге
+            })
+            .eq('id', productId);
+
+          console.log(`✅ [QStash] Updated last_notification_sent_at and catalog_position for product ${productId}`);
+        } catch (dbError) {
+          console.error('⚠️ [QStash] Failed to update product timestamp:', dbError);
+          // Не возвращаем ошибку, так как уведомление было отправлено успешно
+        }
+
         return new Response(
           JSON.stringify({ success: true, attempt }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

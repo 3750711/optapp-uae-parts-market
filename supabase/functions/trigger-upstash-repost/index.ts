@@ -1,4 +1,3 @@
-import { Client } from "npm:@upstash/qstash@2";
 import { createServiceClient } from '../_shared/client.ts';
 
 const corsHeaders = {
@@ -28,10 +27,10 @@ Deno.serve(async (req) => {
     // Создаем Supabase client для проверки прав
     const supabaseClient = createServiceClient();
 
-    // Проверяем что товар принадлежит пользователю
+    // Проверяем что товар принадлежит пользователю и получаем данные о cooldown
     const { data: product, error: productError } = await supabaseClient
       .from('products')
-      .select('seller_id, title, lot_number, price, brand, model')
+      .select('seller_id, title, lot_number, price, brand, model, last_notification_sent_at')
       .eq('id', productId)
       .single();
 
@@ -51,13 +50,45 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Инициализируем QStash клиент
-    const qstash = new Client({ token: QSTASH_TOKEN });
+    // Проверяем cooldown для не-админов
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('user_type')
+      .eq('id', userId)
+      .single();
 
-    // Отправляем событие в QStash очередь
-    const result = await qstash.publishJSON({
-      url: "https://api.partsbay.ae/functions/v1/upstash-repost-handler",
-      body: {
+    const isAdmin = profile?.user_type === 'admin';
+
+    if (!isAdmin && product.last_notification_sent_at) {
+      const hoursSince = (Date.now() - new Date(product.last_notification_sent_at).getTime()) / 3600000;
+      if (hoursSince < 72) {
+        const hoursRemaining = Math.ceil(72 - hoursSince);
+        console.warn(`⏱️ [QStash] Cooldown active for product ${productId}: ${hoursRemaining} hours remaining`);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Cooldown active',
+            hours_remaining: hoursRemaining,
+            message: `You can repost in ${hoursRemaining} hours`
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
+        );
+      }
+    }
+
+    // Отправляем событие в QStash через REST API
+    console.log('📤 [QStash] Publishing to QStash via REST API');
+    
+    const qstashResponse = await fetch('https://qstash.upstash.io/v2/publish', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${QSTASH_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Upstash-Method': 'POST',
+        'Upstash-Url': 'https://api.partsbay.ae/functions/v1/upstash-repost-handler',
+        'Upstash-Retries': '3',
+        'Upstash-Deduplication-Id': idempotencyKey
+      },
+      body: JSON.stringify({
         productId,
         notificationType: 'repost',
         priceChanged,
@@ -68,15 +99,16 @@ Deno.serve(async (req) => {
         brand: product.brand,
         model: product.model,
         currentPrice: product.price
-      },
-      retries: 3,
-      delay: 0,
-      deduplicationId: idempotencyKey,
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      })
     });
 
+    if (!qstashResponse.ok) {
+      const errorText = await qstashResponse.text();
+      console.error('❌ [QStash] Failed to publish:', errorText);
+      throw new Error(`QStash API error (${qstashResponse.status}): ${errorText}`);
+    }
+
+    const result = await qstashResponse.json();
     console.log('✅ [QStash] Event queued:', result);
 
     return new Response(
