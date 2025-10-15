@@ -96,25 +96,9 @@ export async function handleProductNotification(productId: string, notificationT
 
   console.log('Successfully fetched product:', product.title, 'status:', product.status);
   
-  // STEP 1: Immediately update timestamp and status to prevent duplicate notifications
-  // This prevents race conditions where the trigger fires multiple times
-  const { error: lockError } = await supabaseClient
-    .from('products')
-    .update({ 
-      last_notification_sent_at: new Date().toISOString(),
-      telegram_notification_status: 'pending'
-    })
-    .eq('id', productId);
-    
-  if (lockError) {
-    console.error('Error setting notification lock:', lockError);
-    return new Response(
-      JSON.stringify({ error: 'Failed to set notification lock' }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-    );
-  } else {
-    console.log('✅ Notification lock set with status "pending" - preventing duplicate calls');
-  }
+  // Idempotency is handled via event_logs (requestId) - no premature DB update
+  // We'll update last_notification_sent_at ONLY after successful Telegram send
+  console.log('⏳ Preparing to send notification, will update DB only after success');
   
   // Check if there are any images for this product
   const images = product.product_images || [];
@@ -126,20 +110,8 @@ export async function handleProductNotification(productId: string, notificationT
   if (notificationType !== 'sold' && notificationType !== 'product_published' && images.length < MIN_IMAGES_REQUIRED) {
     console.log(`Not enough images found for product (${images.length}/${MIN_IMAGES_REQUIRED}), skipping notification`);
     
-    // Reset the notification timestamp and status to allow another attempt later
-    const { error: updateError } = await supabaseClient
-      .from('products')
-      .update({ 
-        last_notification_sent_at: null,
-        telegram_notification_status: 'not_sent'
-      })
-      .eq('id', productId);
-    
-    if (updateError) {
-      console.log('Error resetting notification timestamp:', updateError);
-    } else {
-      console.log('Successfully reset notification timestamp and status to allow retry later');
-    }
+    // No need to reset - we never set last_notification_sent_at in the first place
+    console.log('Skipping notification - not enough images, will allow retry later');
     
     return new Response(
       JSON.stringify({ 
@@ -258,6 +230,16 @@ export async function handleProductNotification(productId: string, notificationT
       }
       
       console.log('Sold notification sent successfully');
+      
+      // Update product status ONLY after successful Telegram send
+      await supabaseClient
+        .from('products')
+        .update({ 
+          last_notification_sent_at: new Date().toISOString(),
+          telegram_notification_status: 'sent',
+          tg_notify_status: 'sent'
+        })
+        .eq('id', productId);
       
       // Log successful sold notification
       await logTelegramNotification(supabaseClient, {

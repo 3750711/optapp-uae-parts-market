@@ -519,18 +519,22 @@ export async function sendImageMediaGroups(
           })
           .eq('id', productId);
       } else {
-        // Complete success
+        // Complete success - update timestamp ONLY after confirmed Telegram send
         console.log(`✅ Complete success: all ${imageChunks.length} chunks sent`);
         await supabaseClient
           .from('products')
           .update({ 
+            last_notification_sent_at: new Date().toISOString(),
             telegram_notification_status: 'sent',
             telegram_last_error: null,
             tg_notify_status: 'sent',
             tg_notify_error: null,
-            tg_notify_attempts: attemptCount
+            tg_notify_attempts: attemptCount,
+            telegram_message_id: firstMessageId
           })
           .eq('id', productId);
+        
+        console.log('✅ Product status updated after successful Telegram send');
       }
     }
     
@@ -607,6 +611,7 @@ export async function sendImageMediaGroups(
     
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: error.message,
         problematic_images: problematicImages.length > 0 ? problematicImages : undefined,
         attempts: allAttempts.length
