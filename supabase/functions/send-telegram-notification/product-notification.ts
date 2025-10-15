@@ -118,7 +118,7 @@ export async function handleProductNotification(productId: string, notificationT
         success: false, 
         message: `Notification skipped - not enough images found (${images.length}/${MIN_IMAGES_REQUIRED})` 
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     );
   }
   
