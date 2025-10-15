@@ -365,9 +365,17 @@ export const useBackgroundSync = () => {
   // Sync product repost
   const syncProductRepost = useCallback(async (repostData: { productId: string; priceChanged?: boolean; newPrice?: number; oldPrice?: number; requestId?: string }): Promise<boolean> => {
     try {
-      console.log('📱 BG Sync: Sending product repost for', repostData.productId, repostData.priceChanged ? `with price change: ${repostData.oldPrice} -> ${repostData.newPrice}` : '', `requestId: ${repostData.requestId}`);
+      // Детализированное логирование запроса
+      console.log('📱 BG Sync: Sending product repost request:', {
+        productId: repostData.productId,
+        priceChanged: repostData.priceChanged,
+        oldPrice: repostData.oldPrice,
+        newPrice: repostData.newPrice,
+        requestId: repostData.requestId,
+        timestamp: new Date().toISOString()
+      });
       
-      const { error } = await supabase.functions.invoke('send-telegram-notification', {
+      const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
         body: { 
           productId: repostData.productId,
           notificationType: 'repost',
@@ -378,15 +386,32 @@ export const useBackgroundSync = () => {
         }
       });
       
+      // Детализированное логирование ответа
+      console.log('📱 BG Sync: Edge Function response:', {
+        error: error,
+        data: data,
+        hasData: !!data,
+        hasSuccess: data?.success,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Проверка 1: Сетевая ошибка
       if (error) {
-        console.error('📱 BG Sync: Product repost failed:', error);
+        console.error('📱 BG Sync: Network error:', error);
         return false;
       }
       
-      console.log('📱 BG Sync: Product repost sent successfully');
+      // Проверка 2: Успешность выполнения функции (КРИТИЧНО!)
+      if (!data || data.success !== true) {
+        console.error('📱 BG Sync: Edge Function returned failure or no success flag:', data);
+        return false;
+      }
+      
+      // Только если оба условия пройдены - считаем успехом
+      console.log('✅ BG Sync: Product repost sent successfully, confirmed by Edge Function');
       return true;
     } catch (error) {
-      console.error('📱 BG Sync: Failed to sync product repost:', error);
+      console.error('❌ BG Sync: Exception during product repost:', error);
       return false;
     }
   }, []);
