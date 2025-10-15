@@ -78,13 +78,14 @@ Deno.serve(async (req) => {
     // Отправляем событие в QStash через REST API
     console.log('📤 [QStash] Publishing to QStash via REST API');
     
-    const qstashResponse = await fetch('https://qstash.upstash.io/v2/publish', {
+    // URL должен быть в пути запроса, а не в заголовке
+    const destinationUrl = 'https://api.partsbay.ae/functions/v1/upstash-repost-handler';
+    const qstashResponse = await fetch(`https://qstash.upstash.io/v2/publish/${destinationUrl}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${QSTASH_TOKEN}`,
         'Content-Type': 'application/json',
         'Upstash-Method': 'POST',
-        'Upstash-Url': 'https://api.partsbay.ae/functions/v1/upstash-repost-handler',
         'Upstash-Retries': '3',
         'Upstash-Deduplication-Id': idempotencyKey
       },
