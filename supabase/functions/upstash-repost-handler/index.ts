@@ -1,5 +1,6 @@
 import { Receiver } from "npm:@upstash/qstash@2";
 import { createServiceClient } from '../_shared/client.ts';
+import { getLocalTelegramAccounts, getTelegramForDisplay } from "../shared/telegram-config.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -103,6 +104,9 @@ Deno.serve(async (req) => {
     const imageUrls = product.product_images?.map(img => optimizeImageUrl(img.url)) || [];
     console.log('✨ Optimized image URLs for Telegram delivery');
 
+    // Load local telegram accounts for proper display
+    const localTelegramAccounts = await getLocalTelegramAccounts();
+
     // Validate all image URLs
     const validImageUrls: string[] = [];
     for (const url of imageUrls) {
@@ -133,7 +137,7 @@ Deno.serve(async (req) => {
       ? `\n💰 Новая цена: ${newPrice} $ (было ${oldPrice} $)`
       : `\n💰 Цена: ${product.price} $`;
 
-    const caption = `LOT(лот) #${product.lot_number}\n📦 ${product.title}\n${priceInfo}\n🚚 Цена доставки: ${product.delivery_price || 0} $\n🆔 OPT_ID продавца: ${product.profiles?.opt_id || 'N/A'}\n👤 Telegram продавца: @${product.profiles?.telegram || 'unknown'}\n\n📊 Статус: Опубликован`;
+    const caption = `LOT(лот) #${product.lot_number}\n📦 ${product.title}\n${priceInfo}\n🚚 Цена доставки: ${product.delivery_price || 0} $\n🆔 OPT_ID продавца: ${product.profiles?.opt_id || 'N/A'}\n👤 Telegram продавца: ${getTelegramForDisplay(product.profiles?.telegram || '', localTelegramAccounts)}\n\n📊 Статус: Опубликован`;
 
     // Send to Telegram with retry logic
     let lastError: any = null;
