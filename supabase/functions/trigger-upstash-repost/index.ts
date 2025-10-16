@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://api.partsbay.ae';
     const destinationUrl = `${supabaseUrl}/functions/v1/upstash-repost-handler`;
-    const qstashUrl = `https://qstash.upstash.io/v2/enqueue/telegram-repost-queue/${encodeURIComponent(destinationUrl)}`;
+    const qstashUrl = 'https://qstash.upstash.io/v2/enqueue/telegram-repost-queue';
     
     console.log(`📤 [QStash] Queuing to: ${qstashUrl}`);
     console.log(`📤 [QStash] Destination: ${destinationUrl}`);
@@ -94,16 +94,19 @@ Deno.serve(async (req) => {
         'Upstash-Deduplication-Id': idempotencyKey
       },
       body: JSON.stringify({
-        productId,
-        notificationType: 'repost',
-        priceChanged,
-        newPrice,
-        oldPrice,
-        lotNumber: product.lot_number,
-        title: product.title,
-        brand: product.brand,
-        model: product.model,
-        currentPrice: product.price
+        url: destinationUrl,
+        body: JSON.stringify({
+          productId,
+          notificationType: 'repost',
+          priceChanged,
+          newPrice,
+          oldPrice,
+          lotNumber: product.lot_number,
+          title: product.title,
+          brand: product.brand,
+          model: product.model,
+          currentPrice: product.price
+        })
       })
     });
 
