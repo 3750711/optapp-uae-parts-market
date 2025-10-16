@@ -79,17 +79,17 @@ Deno.serve(async (req) => {
     console.log('📤 [QStash] Enqueueing to telegram-repost-queue');
     
     const destinationUrl = 'https://api.partsbay.ae/functions/v1/upstash-repost-handler';
-    const qstashResponse = await fetch('https://qstash.upstash.io/v2/enqueue/telegram-repost-queue', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${QSTASH_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Upstash-Deduplication-Id': idempotencyKey
-      },
-      body: JSON.stringify({
-        url: destinationUrl,
-        delay: 3000,
-        retries: 3,
+    const qstashResponse = await fetch(
+      `https://qstash.upstash.io/v2/enqueue/telegram-repost-queue/${destinationUrl}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${QSTASH_TOKEN}`,
+          'Content-Type': 'application/json',
+          'Upstash-Delay': '3s',
+          'Upstash-Retries': '3',
+          'Upstash-Deduplication-Id': idempotencyKey
+        },
         body: JSON.stringify({
           productId,
           notificationType: 'repost',
@@ -102,8 +102,8 @@ Deno.serve(async (req) => {
           model: product.model,
           currentPrice: product.price
         })
-      })
-    });
+      }
+    );
 
     if (!qstashResponse.ok) {
       const errorText = await qstashResponse.text();
