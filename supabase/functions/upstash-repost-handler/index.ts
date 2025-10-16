@@ -25,9 +25,9 @@ Deno.serve(async (req) => {
 
     const body = await req.text();
     const data = JSON.parse(body);
-    const { productId, priceChanged, newPrice, oldPrice } = data;
+    const { productId, notificationType = 'repost', priceChanged, newPrice, oldPrice } = data;
 
-    console.log('📮 [QStash] Processing repost:', { productId });
+    console.log(`📮 [QStash] Processing ${notificationType} notification:`, { productId });
 
     if (!TG_BOT_TOKEN || !TG_CHAT_ID) {
       console.error('❌ [QStash] Telegram credentials not configured');
@@ -62,6 +62,84 @@ Deno.serve(async (req) => {
       );
     }
 
+    // === SPECIAL CASE: Sold notification (text-only) ===
+    if (notificationType === 'sold') {
+      console.log('📝 [QStash] Sending sold notification (text-only)');
+      
+      const titleParts = [product.title, product.brand, product.model].filter(Boolean);
+      const fullTitle = titleParts.join(' ').trim();
+      
+      const textMessage = `😔 Жаль, но Лот #${product.lot_number} ${fullTitle} уже ушел!\nКто-то оказался быстрее... в следующий раз повезет - будь начеку.`;
+      
+      try {
+        const response = await fetch(
+          `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: TG_CHAT_ID,
+              text: textMessage,
+              parse_mode: 'HTML'
+            })
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Telegram API error: ${errorText}`);
+        }
+
+        console.log(`✅ [QStash] Sold notification sent successfully for product ${productId}`);
+        
+        // Update product and log
+        await supabaseClient
+          .from('products')
+          .update({ 
+            last_notification_sent_at: new Date().toISOString(),
+            telegram_notification_status: 'sent'
+          })
+          .eq('id', productId);
+
+        await supabaseClient.from('telegram_notifications_log').insert({
+          function_name: 'upstash-repost-handler',
+          notification_type: 'sold',
+          recipient_type: 'group',
+          recipient_identifier: TG_CHAT_ID || 'unknown',
+          message_text: textMessage,
+          status: 'sent',
+          related_entity_type: 'product',
+          related_entity_id: productId
+        });
+
+        return new Response(
+          JSON.stringify({ success: true, type: 'sold' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        console.error('❌ [QStash] Failed to send sold notification:', error);
+        
+        await supabaseClient.from('telegram_notifications_log').insert({
+          function_name: 'upstash-repost-handler',
+          notification_type: 'sold',
+          recipient_type: 'group',
+          recipient_identifier: TG_CHAT_ID || 'unknown',
+          message_text: textMessage,
+          status: 'failed',
+          error_details: { error: error.message },
+          related_entity_type: 'product',
+          related_entity_id: productId
+        });
+
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+    }
+
+    // === IMAGE-BASED NOTIFICATIONS (repost, product_published) ===
+    
     // Optimize image URLs for Telegram
     const optimizeImageUrl = (url: string): string => {
       if (!url.includes('cloudinary.com')) return url;
@@ -132,7 +210,12 @@ Deno.serve(async (req) => {
       ? `\n📝 ${product.description.slice(0, 200)}${product.description.length > 200 ? '...' : ''}` 
       : '';
 
-    const caption = `LOT(лот) ${lotNumber}\n📦 ${fullTitle}${priceInfo}\n🚚 Цена доставки: ${product.delivery_price || 0} $\n🆔 OPT_ID продавца: ${product.profiles?.opt_id || 'N/A'}\n👤 Telegram продавца: ${getTelegramForDisplay(product.profiles?.telegram || '', localTelegramAccounts)}${descriptionLine}\n\n📊 Статус: Опубликован`;
+    // Caption зависит от типа уведомления
+    const statusLine = notificationType === 'product_published' 
+      ? '\n\n📊 Статус: Опубликован'
+      : '\n\n📊 Статус: Опубликован';
+    
+    const caption = `LOT(лот) ${lotNumber}\n📦 ${fullTitle}${priceInfo}\n🚚 Цена доставки: ${product.delivery_price || 0} $\n🆔 OPT_ID продавца: ${product.profiles?.opt_id || 'N/A'}\n👤 Telegram продавца: ${getTelegramForDisplay(product.profiles?.telegram || '', localTelegramAccounts)}${descriptionLine}${statusLine}`;
 
     // Send to Telegram with retry logic
     let lastError: any = null;
@@ -183,12 +266,12 @@ Deno.serve(async (req) => {
             try {
               await supabaseClient.from('telegram_notifications_log').insert({
                 function_name: 'upstash-repost-handler',
-                notification_type: 'repost_rate_limit',
+                notification_type: `${notificationType}_rate_limit`,
                 recipient_type: 'group',
                 recipient_identifier: TG_CHAT_ID || 'unknown',
-                message_text: `Rate limit for product ${productId}`,
+                message_text: `Rate limit for product ${productId} (${notificationType})`,
                 status: 'failed',
-                error_details: { retry_after: retryAfter, attempt, status: response.status },
+                error_details: { retry_after: retryAfter, attempt, status: response.status, notification_type: notificationType },
                 related_entity_type: 'product',
                 related_entity_id: productId
               });
@@ -249,10 +332,10 @@ Deno.serve(async (req) => {
 
           console.log(`✅ [QStash] Updated last_notification_sent_at for product ${productId}`);
           
-          // Log successful repost to telegram_notifications_log
+          // Log successful notification to telegram_notifications_log
           await supabaseClient.from('telegram_notifications_log').insert({
             function_name: 'upstash-repost-handler',
-            notification_type: 'repost',
+            notification_type: notificationType,
             recipient_type: 'group',
             recipient_identifier: TG_CHAT_ID || 'unknown',
             message_text: caption.substring(0, 500), // First 500 chars
@@ -264,11 +347,12 @@ Deno.serve(async (req) => {
               image_count: validImageUrls.length,
               price_changed: priceChanged,
               new_price: newPrice,
-              old_price: oldPrice
+              old_price: oldPrice,
+              notification_type: notificationType
             }
           });
           
-          console.log(`✅ [QStash] Logged successful repost to telegram_notifications_log`);
+          console.log(`✅ [QStash] Logged successful ${notificationType} notification to telegram_notifications_log`);
         } catch (dbError) {
           console.error('⚠️ [QStash] Failed to update product or log repost:', dbError);
           // Не возвращаем ошибку, так как уведомление было отправлено успешно
