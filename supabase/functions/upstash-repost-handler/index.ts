@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       const parts = url.split('/upload/');
       if (parts.length !== 2) return url;
       
-      const optimizedUrl = `${parts[0]}/upload/f_webp,q_auto:best,c_limit,w_2048/${parts[1]}`;
+      const optimizedUrl = `${parts[0]}/upload/c_limit,w_2048/${parts[1]}`;
       console.log(`🎨 Optimizing image URL:\n   Before: ${url.substring(0, 100)}...\n   After:  ${optimizedUrl.substring(0, 100)}...`);
       
       return optimizedUrl;
@@ -159,18 +159,6 @@ Deno.serve(async (req) => {
     // Load local telegram accounts for proper display
     const localTelegramAccounts = await getLocalTelegramAccounts();
 
-    // Test first image URL accessibility (temporary debugging)
-    if (imageUrls.length > 0) {
-      console.log('🧪 [DEBUG] Testing first image URL direct access...');
-      const testUrl = imageUrls[0];
-      try {
-        const testResponse = await fetch(testUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
-        console.log(`🧪 [DEBUG] Test image response: ${testResponse.status} ${testResponse.statusText}`);
-        console.log(`🧪 [DEBUG] Test image headers:`, Object.fromEntries(testResponse.headers.entries()));
-      } catch (e) {
-        console.error('🧪 [DEBUG] Test image failed:', e);
-      }
-    }
 
     // Validate all image URLs with timeout
     const VALIDATION_TIMEOUT = 3000; // 3 seconds per image
