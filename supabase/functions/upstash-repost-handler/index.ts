@@ -159,20 +159,39 @@ Deno.serve(async (req) => {
     // Load local telegram accounts for proper display
     const localTelegramAccounts = await getLocalTelegramAccounts();
 
-    // Validate all image URLs
+    // Validate all image URLs with timeout
+    const VALIDATION_TIMEOUT = 3000; // 3 seconds per image
+    const validationStart = Date.now();
     const validImageUrls: string[] = [];
+    
     for (const url of imageUrls) {
       try {
-        const response = await fetch(url, { method: 'HEAD' });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), VALIDATION_TIMEOUT);
+        
+        const response = await fetch(url, { 
+          method: 'HEAD',
+          signal: controller.signal 
+        });
+        
+        clearTimeout(timeoutId);
+        
         if (response.ok) {
           validImageUrls.push(url);
         } else {
           console.warn(`⚠️ [QStash] Invalid image URL (${response.status}): ${url}`);
         }
       } catch (error) {
-        console.warn(`⚠️ [QStash] Error validating image URL: ${url}`, error);
+        if (error.name === 'AbortError') {
+          console.warn(`⚠️ [QStash] Image validation timeout (${VALIDATION_TIMEOUT}ms): ${url}`);
+        } else {
+          console.warn(`⚠️ [QStash] Error validating image URL: ${url}`, error);
+        }
       }
     }
+
+    const validationDuration = Date.now() - validationStart;
+    console.log(`⏱️ [QStash] Validation took ${validationDuration}ms for ${imageUrls.length} images`);
 
     if (validImageUrls.length === 0) {
       console.error('❌ [QStash] No valid images found');
