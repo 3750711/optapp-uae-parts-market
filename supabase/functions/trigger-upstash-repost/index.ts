@@ -111,10 +111,26 @@ Deno.serve(async (req) => {
     }
 
     const result = await qstashResponse.json();
-    console.log('✅ [QStash] Event queued:', result);
+    
+    // Log QStash metrics for monitoring
+    console.log('✅ [QStash] Event queued successfully:', {
+      messageId: result.messageId,
+      queueLength: result.queueLength,
+      estimatedDelay: result.estimatedDelay,
+      productId,
+      lotNumber: product.lot_number
+    });
 
     return new Response(
-      JSON.stringify({ success: true, data: result }),
+      JSON.stringify({ 
+        success: true, 
+        data: result,
+        metrics: {
+          messageId: result.messageId,
+          queueLength: result.queueLength,
+          estimatedDelay: result.estimatedDelay
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

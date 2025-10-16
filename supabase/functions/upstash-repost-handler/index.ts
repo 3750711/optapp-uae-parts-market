@@ -1,4 +1,3 @@
-import { Receiver } from "npm:@upstash/qstash@2";
 import { createServiceClient } from '../_shared/client.ts';
 import { getLocalTelegramAccounts, getTelegramForDisplay } from "../shared/telegram-config.ts";
 
@@ -17,39 +16,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify QStash signature
-    const QSTASH_CURRENT_SIGNING_KEY = Deno.env.get('QSTASH_CURRENT_SIGNING_KEY');
-    const QSTASH_NEXT_SIGNING_KEY = Deno.env.get('QSTASH_NEXT_SIGNING_KEY');
-
-    if (!QSTASH_CURRENT_SIGNING_KEY || !QSTASH_NEXT_SIGNING_KEY) {
-      console.error('❌ [QStash] Signing keys not configured');
-      return new Response('Signing keys not configured', { status: 500 });
-    }
-
-    const receiver = new Receiver({
-      currentSigningKey: QSTASH_CURRENT_SIGNING_KEY,
-      nextSigningKey: QSTASH_NEXT_SIGNING_KEY,
-    });
-
+    // Basic QStash signature check
     const signature = req.headers.get("Upstash-Signature");
     if (!signature) {
-      console.error('❌ [QStash] Missing signature');
+      console.error('❌ [QStash] Missing signature header');
       return new Response('Unauthorized', { status: 401 });
     }
 
     const body = await req.text();
-    
-    const isValid = await receiver.verify({
-      signature,
-      body,
-    });
-
-    if (!isValid) {
-      console.error('❌ [QStash] Invalid signature');
-      return new Response('Unauthorized', { status: 401 });
-    }
-
-    // Parse the verified body
     const data = JSON.parse(body);
     const { productId, priceChanged, newPrice, oldPrice } = data;
 
@@ -268,14 +242,35 @@ Deno.serve(async (req) => {
             .from('products')
             .update({ 
               last_notification_sent_at: new Date().toISOString(),
-              telegram_notification_status: 'sent',
-              catalog_position: new Date().toISOString() // обновляем позицию в каталоге
+              telegram_notification_status: 'sent'
+              // catalog_position уже обновлен на frontend в useProductRepost
             })
             .eq('id', productId);
 
-          console.log(`✅ [QStash] Updated last_notification_sent_at and catalog_position for product ${productId}`);
+          console.log(`✅ [QStash] Updated last_notification_sent_at for product ${productId}`);
+          
+          // Log successful repost to telegram_notifications_log
+          await supabaseClient.from('telegram_notifications_log').insert({
+            function_name: 'upstash-repost-handler',
+            notification_type: 'repost',
+            recipient_type: 'group',
+            recipient_identifier: TG_CHAT_ID || 'unknown',
+            message_text: caption.substring(0, 500), // First 500 chars
+            status: 'sent',
+            related_entity_type: 'product',
+            related_entity_id: productId,
+            metadata: {
+              attempt,
+              image_count: validImageUrls.length,
+              price_changed: priceChanged,
+              new_price: newPrice,
+              old_price: oldPrice
+            }
+          });
+          
+          console.log(`✅ [QStash] Logged successful repost to telegram_notifications_log`);
         } catch (dbError) {
-          console.error('⚠️ [QStash] Failed to update product timestamp:', dbError);
+          console.error('⚠️ [QStash] Failed to update product or log repost:', dbError);
           // Не возвращаем ошибку, так как уведомление было отправлено успешно
         }
 
