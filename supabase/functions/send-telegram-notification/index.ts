@@ -56,6 +56,74 @@ serve(async (req) => {
       const notificationType = reqData.action === 'registered' ? 'registered' : 'regular';
       return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders, notificationType);
     } else if (reqData.productId) {
+      // === PRODUCT NOTIFICATIONS: Route through QStash ===
+      console.log('📮 [Router] Product notification detected, attempting QStash routing');
+      
+      // Get QSTASH_TOKEN from app_settings
+      const { data: qstashSetting } = await supabaseClient
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'qstash_token')
+        .maybeSingle();
+      
+      const QSTASH_TOKEN = qstashSetting?.value;
+      
+      if (!QSTASH_TOKEN || QSTASH_TOKEN === '') {
+        console.warn('⚠️ [Router] QSTASH_TOKEN not configured, falling back to direct send');
+        return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders, req, reqData.priceChanged, reqData.newPrice, reqData.oldPrice, reqData.requestId);
+      }
+      
+      try {
+        // Get functions_base_url from app_settings
+        const { data: baseUrlSetting } = await supabaseClient
+          .from('app_settings')
+          .select('value')
+          .eq('key', 'functions_base_url')
+          .maybeSingle();
+        
+        const functionsBaseUrl = baseUrlSetting?.value || 'https://api.partsbay.ae';
+        const destinationUrl = `${functionsBaseUrl}/functions/v1/upstash-repost-handler`;
+        const qstashUrl = `https://qstash.upstash.io/v2/enqueue/telegram-repost-queue/${destinationUrl}`;
+        
+        console.log(`📤 [Router] Queuing to QStash: ${qstashUrl}`);
+        
+        const qstashResponse = await fetch(qstashUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${QSTASH_TOKEN}`,
+            'Content-Type': 'application/json',
+            'Upstash-Retries': '3',
+            'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${Date.now()}`
+          },
+          body: JSON.stringify({
+            productId: reqData.productId,
+            notificationType: reqData.notificationType || 'status_change',
+            priceChanged: reqData.priceChanged,
+            newPrice: reqData.newPrice,
+            oldPrice: reqData.oldPrice
+          })
+        });
+        
+        if (qstashResponse.ok) {
+          const qstashResult = await qstashResponse.json();
+          console.log('✅ [Router] Product notification queued via QStash:', qstashResult);
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: 'Product notification queued via QStash',
+              qstashMessageId: qstashResult.messageId 
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.warn('⚠️ [Router] QStash queue failed, falling back to direct send');
+      } catch (qstashError) {
+        console.error('❌ [Router] QStash error:', qstashError);
+        console.warn('⚠️ [Router] Falling back to direct send');
+      }
+      
+      // Fallback: Direct send if QStash fails
       return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders, req, reqData.priceChanged, reqData.newPrice, reqData.oldPrice, reqData.requestId);
     } else {
       console.log('Invalid request data: missing required parameters');
