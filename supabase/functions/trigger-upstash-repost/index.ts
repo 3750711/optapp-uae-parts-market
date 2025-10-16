@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     console.log('📤 [QStash] Enqueueing to telegram-repost-queue');
     
     // Get QStash endpoint name from app_settings
-    const { data: endpointSetting } = await supabaseAdmin
+    const { data: endpointSetting } = await supabaseClient
       .from('app_settings')
       .select('value')
       .eq('key', 'qstash_endpoint_name')
