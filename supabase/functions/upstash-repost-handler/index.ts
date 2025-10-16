@@ -70,9 +70,10 @@ Deno.serve(async (req) => {
       console.warn('⚠️ [QStash] For production, please configure signing keys for enhanced security');
     }
 
-    // Parse request data
+    // Parse request data - QStash wraps payload in { body: {...} }
     const data = JSON.parse(body);
-    const { productId, notificationType = 'repost', priceChanged, newPrice, oldPrice } = data;
+    const reqData = data.body || data; // Support both wrapped and unwrapped formats
+    const { productId, notificationType = 'repost', priceChanged, newPrice, oldPrice } = reqData;
     console.log(`📮 [QStash] Processing ${notificationType} notification:`, { productId });
 
     if (!TG_BOT_TOKEN || !TG_CHAT_ID) {
