@@ -132,12 +132,33 @@ Deno.serve(async (req) => {
 
     console.log(`✅ [QStash] Validated ${validImageUrls.length}/${imageUrls.length} images`);
 
-    // Prepare caption with price change info
+    // Формируем полный заголовок с брендом и моделью
+    const titleParts = [
+      product.title,
+      product.brand,
+      product.model
+    ].filter(Boolean);
+    const fullTitle = titleParts.join(' ').trim();
+
+    // Проверяем снижение цены
+    const isPriceReduced = priceChanged && newPrice && oldPrice && newPrice < oldPrice;
+
+    // Добавляем ❗️SALE❗️ к номеру лота при снижении цены
+    const lotNumber = isPriceReduced 
+      ? `#${product.lot_number}❗️SALE❗️`
+      : `#${product.lot_number}`;
+
+    // Формируем информацию о цене
     const priceInfo = priceChanged && newPrice && oldPrice
       ? `\n💰 Новая цена: ${newPrice} $ (было ${oldPrice} $)`
       : `\n💰 Цена: ${product.price} $`;
 
-    const caption = `LOT(лот) #${product.lot_number}\n📦 ${product.title}\n${priceInfo}\n🚚 Цена доставки: ${product.delivery_price || 0} $\n🆔 OPT_ID продавца: ${product.profiles?.opt_id || 'N/A'}\n👤 Telegram продавца: ${getTelegramForDisplay(product.profiles?.telegram || '', localTelegramAccounts)}\n\n📊 Статус: Опубликован`;
+    // Добавляем описание, если оно есть (с ограничением в 200 символов)
+    const descriptionLine = product.description 
+      ? `\n📝 ${product.description.slice(0, 200)}${product.description.length > 200 ? '...' : ''}` 
+      : '';
+
+    const caption = `LOT(лот) ${lotNumber}\n📦 ${fullTitle}${priceInfo}\n🚚 Цена доставки: ${product.delivery_price || 0} $\n🆔 OPT_ID продавца: ${product.profiles?.opt_id || 'N/A'}\n👤 Telegram продавца: ${getTelegramForDisplay(product.profiles?.telegram || '', localTelegramAccounts)}${descriptionLine}\n\n📊 Статус: Опубликован`;
 
     // Send to Telegram with retry logic
     let lastError: any = null;
