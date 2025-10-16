@@ -86,7 +86,6 @@ Deno.serve(async (req) => {
         headers: {
           'Authorization': `Bearer ${QSTASH_TOKEN}`,
           'Content-Type': 'application/json',
-          'Upstash-Delay': '3s',
           'Upstash-Retries': '3',
           'Upstash-Deduplication-Id': idempotencyKey
         },
