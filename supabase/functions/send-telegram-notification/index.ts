@@ -92,7 +92,7 @@ serve(async (req) => {
             'Authorization': `Bearer ${QSTASH_TOKEN}`,
             'Content-Type': 'application/json',
             'Upstash-Retries': '3',
-            'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${Date.now()}`,
+            'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${reqData.notificationType || 'status_change'}-${Math.floor(Date.now() / 1000)}`,
             'Upstash-Forward-Queue': 'telegram-repost-queue'
           },
           body: JSON.stringify({
