@@ -56,6 +56,68 @@ function optimizeImageUrl(url: string): string {
   return optimizedUrl;
 }
 
+/**
+ * Validate image URL by performing a HEAD request
+ * Returns true if image is accessible and valid
+ */
+async function validateImageUrl(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    
+    if (!response.ok) {
+      console.warn(`⚠️ Image validation failed (HTTP ${response.status}): ${url.substring(0, 80)}...`);
+      return false;
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.startsWith('image/')) {
+      console.warn(`⚠️ Invalid content type "${contentType}" for: ${url.substring(0, 80)}...`);
+      return false;
+    }
+    
+    console.log(`✅ Image validated successfully: ${url.substring(0, 80)}...`);
+    return true;
+  } catch (error) {
+    console.warn(`⚠️ Image validation error: ${error.message} for: ${url.substring(0, 80)}...`);
+    return false;
+  }
+}
+
+/**
+ * Validate array of image URLs and return only valid ones
+ * If all optimized images fail, fallback to original URLs
+ */
+async function validateImages(optimizedUrls: string[], originalUrls: string[]): Promise<string[]> {
+  console.log(`🔍 Validating ${optimizedUrls.length} optimized image URLs...`);
+  
+  const validationResults = await Promise.all(
+    optimizedUrls.map(url => validateImageUrl(url))
+  );
+  
+  const validOptimizedUrls = optimizedUrls.filter((_, index) => validationResults[index]);
+  
+  if (validOptimizedUrls.length > 0) {
+    console.log(`✅ ${validOptimizedUrls.length}/${optimizedUrls.length} optimized images are valid`);
+    return validOptimizedUrls;
+  }
+  
+  console.warn(`⚠️ All optimized images failed validation, trying original URLs...`);
+  
+  const originalValidationResults = await Promise.all(
+    originalUrls.map(url => validateImageUrl(url))
+  );
+  
+  const validOriginalUrls = originalUrls.filter((_, index) => originalValidationResults[index]);
+  
+  if (validOriginalUrls.length > 0) {
+    console.log(`✅ Fallback: ${validOriginalUrls.length}/${originalUrls.length} original images are valid`);
+    return validOriginalUrls;
+  }
+  
+  console.error(`❌ All images (optimized and original) failed validation`);
+  return [];
+}
+
 // Log telegram notifications
 async function logTelegramNotification(supabaseClient: any, data: TelegramLogData): Promise<void> {
   try {
@@ -150,12 +212,20 @@ async function sendProductNotification(supabaseClient: any, product: any) {
       return { success: false, error: 'Failed to fetch images', status: 500 }
     }
     
-    const imageUrls = images?.map((img: any) => optimizeImageUrl(img.url)) || []
-    console.log('Product has', imageUrls.length, 'images')
+    const originalImageUrls = images?.map((img: any) => img.url) || []
+    const optimizedImageUrls = originalImageUrls.map(url => optimizeImageUrl(url))
+    console.log('Product has', originalImageUrls.length, 'images')
     
-    if (imageUrls.length > 0) {
+    if (optimizedImageUrls.length > 0) {
       console.log('✨ Optimized image URLs for Telegram delivery')
-      console.log(`First image URL: ${imageUrls[0]}`)
+      console.log(`First optimized image URL: ${optimizedImageUrls[0]}`)
+    }
+    
+    // Validate images before sending
+    const imageUrls = await validateImages(optimizedImageUrls, originalImageUrls)
+    
+    if (imageUrls.length < originalImageUrls.length) {
+      console.warn(`⚠️ Some images failed validation: ${originalImageUrls.length - imageUrls.length} images skipped`)
     }
     
     // Check if there are enough images
