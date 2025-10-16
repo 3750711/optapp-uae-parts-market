@@ -80,14 +80,15 @@ Deno.serve(async (req) => {
     
     const destinationUrl = 'https://api.partsbay.ae/functions/v1/upstash-repost-handler';
     const qstashResponse = await fetch(
-      `https://qstash.upstash.io/v2/enqueue/telegram-repost-queue/${destinationUrl}`,
+      `https://qstash.upstash.io/v2/publish/${destinationUrl}`,
       {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${QSTASH_TOKEN}`,
           'Content-Type': 'application/json',
           'Upstash-Retries': '3',
-          'Upstash-Deduplication-Id': idempotencyKey
+          'Upstash-Deduplication-Id': idempotencyKey,
+          'Upstash-Forward-Queue': 'telegram-repost-queue'
         },
         body: JSON.stringify({
           productId,

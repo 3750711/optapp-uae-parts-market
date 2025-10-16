@@ -83,7 +83,7 @@ serve(async (req) => {
         
         const functionsBaseUrl = baseUrlSetting?.value || 'https://api.partsbay.ae';
         const destinationUrl = `${functionsBaseUrl}/functions/v1/upstash-repost-handler`;
-        const qstashUrl = `https://qstash.upstash.io/v2/enqueue/telegram-repost-queue/${destinationUrl}`;
+        const qstashUrl = `https://qstash.upstash.io/v2/publish/${destinationUrl}`;
         
         console.log(`📤 [Router] Queuing to QStash: ${qstashUrl}`);
         
@@ -93,7 +93,8 @@ serve(async (req) => {
             'Authorization': `Bearer ${QSTASH_TOKEN}`,
             'Content-Type': 'application/json',
             'Upstash-Retries': '3',
-            'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${Date.now()}`
+            'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${Date.now()}`,
+            'Upstash-Forward-Queue': 'telegram-repost-queue'
           },
           body: JSON.stringify({
             productId: reqData.productId,
