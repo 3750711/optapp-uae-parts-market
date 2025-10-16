@@ -56,7 +56,7 @@ serve(async (req) => {
       const notificationType = reqData.action === 'registered' ? 'registered' : 'regular';
       return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders, notificationType);
     } else if (reqData.productId) {
-      // === PRODUCT NOTIFICATIONS: Route through QStash ===
+      // === PRODUCT NOTIFICATIONS: Route through QStash ONLY ===
       console.log('📮 [Router] Product notification detected, attempting QStash routing');
       
       // Get QSTASH_TOKEN from app_settings
@@ -69,8 +69,27 @@ serve(async (req) => {
       const QSTASH_TOKEN = qstashSetting?.value;
       
       if (!QSTASH_TOKEN || QSTASH_TOKEN === '') {
-        console.warn('⚠️ [Router] QSTASH_TOKEN not configured, falling back to direct send');
-        return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders, req, reqData.priceChanged, reqData.newPrice, reqData.oldPrice, reqData.requestId);
+        console.error('❌ [Router] QSTASH_TOKEN not configured');
+        
+        // Log to event_logs for monitoring
+        await supabaseClient.from('event_logs').insert({
+          action_type: 'notification_failed',
+          entity_type: 'product',
+          entity_id: reqData.productId,
+          details: {
+            error: 'QSTASH_TOKEN not configured',
+            notification_type: reqData.notificationType || 'status_change',
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        return new Response(
+          JSON.stringify({ 
+            error: 'QStash not configured',
+            details: 'QSTASH_TOKEN is required for product notifications'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+        );
       }
       
       try {
@@ -117,14 +136,55 @@ serve(async (req) => {
           );
         }
         
-        console.warn('⚠️ [Router] QStash queue failed, falling back to direct send');
+        // QStash returned non-OK response
+        const errorText = await qstashResponse.text();
+        console.error('❌ [Router] QStash queue failed:', errorText);
+        
+        // Log to event_logs for monitoring
+        await supabaseClient.from('event_logs').insert({
+          action_type: 'notification_failed',
+          entity_type: 'product',
+          entity_id: reqData.productId,
+          details: {
+            error: 'QStash queue failed',
+            qstash_response: errorText,
+            notification_type: reqData.notificationType || 'status_change',
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        return new Response(
+          JSON.stringify({ 
+            error: 'QStash queue failed',
+            details: errorText
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+        );
+        
       } catch (qstashError) {
         console.error('❌ [Router] QStash error:', qstashError);
-        console.warn('⚠️ [Router] Falling back to direct send');
+        
+        // Log to event_logs for monitoring
+        await supabaseClient.from('event_logs').insert({
+          action_type: 'notification_failed',
+          entity_type: 'product',
+          entity_id: reqData.productId,
+          details: {
+            error: 'QStash connection error',
+            error_message: qstashError?.message || 'Unknown error',
+            notification_type: reqData.notificationType || 'status_change',
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        return new Response(
+          JSON.stringify({ 
+            error: 'QStash connection error',
+            details: qstashError?.message || 'Unknown error'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+        );
       }
-      
-      // Fallback: Direct send if QStash fails
-      return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders, req, reqData.priceChanged, reqData.newPrice, reqData.oldPrice, reqData.requestId);
     } else {
       console.log('Invalid request data: missing required parameters');
       return new Response(
