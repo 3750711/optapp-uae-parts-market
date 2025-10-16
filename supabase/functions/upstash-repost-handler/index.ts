@@ -140,21 +140,11 @@ Deno.serve(async (req) => {
 
     // === IMAGE-BASED NOTIFICATIONS (repost, product_published) ===
     
-    // Optimize image URLs for Telegram
-    const optimizeImageUrl = (url: string): string => {
-      if (!url.includes('cloudinary.com')) return url;
-      
-      const parts = url.split('/upload/');
-      if (parts.length !== 2) return url;
-      
-      const optimizedUrl = `${parts[0]}/upload/c_limit,w_2048/${parts[1]}`;
-      console.log(`🎨 Optimizing image URL:\n   Before: ${url.substring(0, 100)}...\n   After:  ${optimizedUrl.substring(0, 100)}...`);
-      
-      return optimizedUrl;
-    };
-
-    const imageUrls = product.product_images?.map(img => optimizeImageUrl(img.url)) || [];
-    console.log('✨ Optimized image URLs for Telegram delivery');
+    // Get product images - use original URLs without Cloudinary optimization
+    // Telegram performs its own optimization, so additional transformations can cause
+    // WEBPAGE_MEDIA_EMPTY errors due to redirects or on-the-fly generation
+    const imageUrls = product.product_images?.map(img => img.url) || [];
+    console.log(`📷 Using ${imageUrls.length} original image URLs for Telegram delivery`);
 
     // Load local telegram accounts for proper display
     const localTelegramAccounts = await getLocalTelegramAccounts();
