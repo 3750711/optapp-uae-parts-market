@@ -177,7 +177,32 @@ Deno.serve(async (req) => {
         );
 
         if (!response.ok) {
-          const errorText = await response.text();
+          // Парсим retry_after из Telegram ответа
+          const errorData = await response.json().catch(() => ({}));
+          const retryAfter = errorData.retry_after || 0;
+
+          if (response.status === 429) {
+            console.warn(`⚠️ [Telegram] Rate limit hit (429) on attempt ${attempt}, retry_after: ${retryAfter}s`);
+            
+            // Логируем в БД для мониторинга
+            try {
+              await supabaseClient.from('telegram_notifications_log').insert({
+                function_name: 'upstash-repost-handler',
+                notification_type: 'repost_rate_limit',
+                recipient_type: 'group',
+                recipient_identifier: TG_CHAT_ID || 'unknown',
+                message_text: `Rate limit for product ${productId}`,
+                status: 'failed',
+                error_details: { retry_after: retryAfter, attempt, status: response.status },
+                related_entity_type: 'product',
+                related_entity_id: productId
+              });
+            } catch (logError) {
+              console.error('⚠️ Failed to log rate limit:', logError);
+            }
+          }
+
+          const errorText = await response.text().catch(() => `Status ${response.status}`);
           throw new Error(`Telegram API error (${response.status}): ${errorText}`);
         }
 
@@ -243,8 +268,23 @@ Deno.serve(async (req) => {
         console.error(`❌ [QStash] Attempt ${attempt} failed:`, error);
         
         if (attempt < MAX_RETRIES) {
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-          console.log(`⏳ [QStash] Waiting ${delay}ms before retry...`);
+          // Извлекаем retry_after из ошибки Telegram если есть
+          let retryAfter = 0;
+          if (error.message && error.message.includes('retry_after')) {
+            try {
+              const match = error.message.match(/"retry_after":(\d+)/);
+              if (match) retryAfter = parseInt(match[1], 10);
+            } catch (parseError) {
+              console.warn('Failed to parse retry_after from error:', parseError);
+            }
+          }
+
+          // Используем retry_after из Telegram или стандартный backoff
+          const baseDelay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s, 8s, 16s
+          const telegramDelay = retryAfter * 1000;
+          const delay = Math.max(telegramDelay, baseDelay, 3000); // Минимум 3 секунды
+
+          console.log(`🔄 [QStash] Retrying in ${delay}ms (attempt ${attempt}/${MAX_RETRIES}, telegram retry_after: ${retryAfter}s)`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }

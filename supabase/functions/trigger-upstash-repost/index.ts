@@ -75,31 +75,33 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Отправляем событие в QStash через REST API
-    console.log('📤 [QStash] Publishing to QStash via REST API');
+    // Отправляем событие в QStash Queue для последовательной обработки
+    console.log('📤 [QStash] Enqueueing to telegram-repost-queue');
     
-    // URL должен быть в пути запроса, а не в заголовке
     const destinationUrl = 'https://api.partsbay.ae/functions/v1/upstash-repost-handler';
-    const qstashResponse = await fetch(`https://qstash.upstash.io/v2/publish/${destinationUrl}`, {
+    const qstashResponse = await fetch('https://qstash.upstash.io/v2/enqueue/telegram-repost-queue', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${QSTASH_TOKEN}`,
         'Content-Type': 'application/json',
-        'Upstash-Method': 'POST',
-        'Upstash-Retries': '3',
         'Upstash-Deduplication-Id': idempotencyKey
       },
       body: JSON.stringify({
-        productId,
-        notificationType: 'repost',
-        priceChanged,
-        newPrice,
-        oldPrice,
-        lotNumber: product.lot_number,
-        title: product.title,
-        brand: product.brand,
-        model: product.model,
-        currentPrice: product.price
+        url: destinationUrl,
+        delay: 3000,
+        retries: 3,
+        body: JSON.stringify({
+          productId,
+          notificationType: 'repost',
+          priceChanged,
+          newPrice,
+          oldPrice,
+          lotNumber: product.lot_number,
+          title: product.title,
+          brand: product.brand,
+          model: product.model,
+          currentPrice: product.price
+        })
       })
     });
 
