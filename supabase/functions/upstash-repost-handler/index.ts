@@ -159,6 +159,19 @@ Deno.serve(async (req) => {
     // Load local telegram accounts for proper display
     const localTelegramAccounts = await getLocalTelegramAccounts();
 
+    // Test first image URL accessibility (temporary debugging)
+    if (imageUrls.length > 0) {
+      console.log('🧪 [DEBUG] Testing first image URL direct access...');
+      const testUrl = imageUrls[0];
+      try {
+        const testResponse = await fetch(testUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) });
+        console.log(`🧪 [DEBUG] Test image response: ${testResponse.status} ${testResponse.statusText}`);
+        console.log(`🧪 [DEBUG] Test image headers:`, Object.fromEntries(testResponse.headers.entries()));
+      } catch (e) {
+        console.error('🧪 [DEBUG] Test image failed:', e);
+      }
+    }
+
     // Validate all image URLs with timeout
     const VALIDATION_TIMEOUT = 3000; // 3 seconds per image
     const validationStart = Date.now();
@@ -236,6 +249,14 @@ Deno.serve(async (req) => {
     
     const caption = `LOT(лот) ${lotNumber}\n📦 ${fullTitle}${priceInfo}\n🚚 Цена доставки: ${product.delivery_price || 0} $\n🆔 OPT_ID продавца: ${product.profiles?.opt_id || 'N/A'}\n👤 Telegram продавца: ${getTelegramForDisplay(product.profiles?.telegram || '', localTelegramAccounts)}${descriptionLine}${statusLine}`;
 
+    // Check caption length (Telegram limit is 1024 chars)
+    console.log(`📝 [QStash] Caption length: ${caption.length} chars`);
+    if (caption.length > 1024) {
+      console.warn(`⚠️ [QStash] Caption exceeds Telegram limit (1024 chars), truncating...`);
+      const truncatedCaption = caption.substring(0, 1020) + '...';
+      console.log(`📝 [QStash] Truncated to: ${truncatedCaption.length} chars`);
+    }
+
     // Send to Telegram with retry logic
     let lastError: any = null;
     
@@ -261,6 +282,12 @@ Deno.serve(async (req) => {
           ...(index === 0 ? { caption } : {})
         }));
 
+        // Log URLs being sent to Telegram for debugging
+        console.log(`📸 [QStash] Sending ${mediaGroup.length} images to Telegram:`);
+        mediaGroup.forEach((m, i) => {
+          console.log(`  [${i}] ${m.media.substring(0, 120)}${m.media.length > 120 ? '...' : ''}`);
+        });
+
         const response = await fetch(
           `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMediaGroup`,
           {
@@ -277,6 +304,17 @@ Deno.serve(async (req) => {
           // Парсим retry_after из Telegram ответа
           const errorData = await response.json().catch(() => ({}));
           const retryAfter = errorData.retry_after || 0;
+
+          // Detailed error logging for debugging
+          console.error(`❌ [Telegram] API error ${response.status}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            error_description: errorData.description || 'No description',
+            error_code: errorData.error_code,
+            parameters: errorData.parameters,
+            retry_after: retryAfter,
+            full_error: JSON.stringify(errorData)
+          });
 
           if (response.status === 429) {
             console.warn(`⚠️ [Telegram] Rate limit hit (429) on attempt ${attempt}, retry_after: ${retryAfter}s`);
