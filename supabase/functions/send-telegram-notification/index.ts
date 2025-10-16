@@ -74,18 +74,17 @@ serve(async (req) => {
       }
       
       try {
-        // Get functions_base_url from app_settings
-        const { data: baseUrlSetting } = await supabaseClient
+        // Get QStash endpoint name from app_settings
+        const { data: endpointSetting } = await supabaseClient
           .from('app_settings')
           .select('value')
-          .eq('key', 'functions_base_url')
+          .eq('key', 'qstash_endpoint_name')
           .maybeSingle();
         
-        const functionsBaseUrl = baseUrlSetting?.value || 'https://api.partsbay.ae';
-        const destinationUrl = `${functionsBaseUrl}/functions/v1/upstash-repost-handler`;
-        const qstashUrl = `https://qstash.upstash.io/v2/publish/${destinationUrl}`;
+        const endpointName = endpointSetting?.value || 'partsbay-repost';
+        const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
         
-        console.log(`📤 [Router] Queuing to QStash: ${qstashUrl}`);
+        console.log(`📤 [Router] Queuing to QStash endpoint: ${endpointName}`);
         
         const qstashResponse = await fetch(qstashUrl, {
           method: 'POST',

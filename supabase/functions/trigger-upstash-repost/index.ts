@@ -78,9 +78,16 @@ Deno.serve(async (req) => {
     // Отправляем событие в QStash Queue для последовательной обработки
     console.log('📤 [QStash] Enqueueing to telegram-repost-queue');
     
-    const destinationUrl = 'https://api.partsbay.ae/functions/v1/upstash-repost-handler';
+    // Get QStash endpoint name from app_settings
+    const { data: endpointSetting } = await supabaseAdmin
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_endpoint_name')
+      .maybeSingle();
+    
+    const endpointName = endpointSetting?.value || 'partsbay-repost';
     const qstashResponse = await fetch(
-      `https://qstash.upstash.io/v2/publish/${destinationUrl}`,
+      `https://qstash.upstash.io/v2/publish/${endpointName}`,
       {
         method: 'POST',
         headers: {
