@@ -1,6 +1,5 @@
 import { createServiceClient } from '../_shared/client.ts';
 import { getLocalTelegramAccounts, getTelegramForDisplay } from "../shared/telegram-config.ts";
-import { Receiver } from "npm:@upstash/qstash@2.8.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,63 +16,17 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // QStash signature validation
-    const QSTASH_CURRENT_SIGNING_KEY = Deno.env.get('QSTASH_CURRENT_SIGNING_KEY');
-    const QSTASH_NEXT_SIGNING_KEY = Deno.env.get('QSTASH_NEXT_SIGNING_KEY');
-    
+    // Basic QStash signature check
     const signature = req.headers.get("Upstash-Signature");
-    const retryAttempt = req.headers.get('Upstash-Retry-Attempt');
-    
     if (!signature) {
       console.error('❌ [QStash] Missing signature header');
-      return new Response('Unauthorized - Missing signature', { status: 401 });
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    // Log retry attempts for monitoring
-    if (retryAttempt && parseInt(retryAttempt) > 0) {
-      console.warn(`⚠️ [QStash] Retry attempt: ${retryAttempt}`);
-    }
-
-    // Read body once
     const body = await req.text();
-
-    // Full signature validation if signing keys are configured
-    if (QSTASH_CURRENT_SIGNING_KEY) {
-      console.log('🔐 [QStash] Validating signature with signing keys');
-      
-      const receiver = new Receiver({
-        currentSigningKey: QSTASH_CURRENT_SIGNING_KEY,
-        nextSigningKey: QSTASH_NEXT_SIGNING_KEY || "",
-      });
-
-      try {
-        const isValid = await receiver.verify({
-          signature: signature,
-          body,
-          url: req.url
-        });
-
-        if (!isValid) {
-          console.error('❌ [QStash] Invalid signature');
-          return new Response('Unauthorized - Invalid signature', { status: 401 });
-        }
-        
-        console.log('✅ [QStash] Signature validated successfully');
-        
-      } catch (verifyError) {
-        console.error('❌ [QStash] Signature validation error:', verifyError);
-        return new Response('Unauthorized - Signature validation failed', { status: 401 });
-      }
-      
-    } else {
-      console.warn('⚠️ [QStash] QSTASH_CURRENT_SIGNING_KEY not configured - using basic validation only');
-      console.warn('⚠️ [QStash] For production, please configure signing keys for enhanced security');
-    }
-
-    // Parse request data - QStash wraps payload in { body: "..." }
     const data = JSON.parse(body);
-    const reqData = data.body ? JSON.parse(data.body) : data;
-    const { productId, notificationType = 'repost', priceChanged, newPrice, oldPrice } = reqData;
+    const { productId, notificationType = 'repost', priceChanged, newPrice, oldPrice } = data;
+
     console.log(`📮 [QStash] Processing ${notificationType} notification:`, { productId });
 
     if (!TG_BOT_TOKEN || !TG_CHAT_ID) {
