@@ -1,6 +1,6 @@
 import { createServiceClient } from '../_shared/client.ts';
 import { getLocalTelegramAccounts, getTelegramForDisplay } from "../shared/telegram-config.ts";
-import { Receiver } from "https://deno.land/x/upstash_qstash@v1.1.2/mod.ts";
+import { Receiver } from "npm:@upstash/qstash@2.7.26";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
