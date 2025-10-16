@@ -102,7 +102,7 @@ serve(async (req) => {
         
         const functionsBaseUrl = baseUrlSetting?.value || 'https://api.partsbay.ae';
         const destinationUrl = `${functionsBaseUrl}/functions/v1/upstash-repost-handler`;
-        const qstashUrl = 'https://qstash.upstash.io/v2/enqueue/telegram-repost-queue';
+        const qstashUrl = `https://qstash.upstash.io/v2/enqueue/telegram-repost-queue/${encodeURIComponent(destinationUrl)}`;
         
         console.log(`📤 [Router] Queuing to: ${qstashUrl}`);
         console.log(`📤 [Router] Destination: ${destinationUrl}`);
@@ -116,14 +116,11 @@ serve(async (req) => {
             'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${reqData.notificationType || 'status_change'}-${Math.floor(Date.now() / 1000)}`
           },
           body: JSON.stringify({
-            url: destinationUrl,
-            body: {
-              productId: reqData.productId,
-              notificationType: reqData.notificationType || 'status_change',
-              priceChanged: reqData.priceChanged,
-              newPrice: reqData.newPrice,
-              oldPrice: reqData.oldPrice
-            }
+            productId: reqData.productId,
+            notificationType: reqData.notificationType || 'status_change',
+            priceChanged: reqData.priceChanged,
+            newPrice: reqData.newPrice,
+            oldPrice: reqData.oldPrice
           })
         });
         
