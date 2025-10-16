@@ -93,17 +93,19 @@ serve(async (req) => {
       }
       
       try {
-        // Get QStash endpoint name from app_settings
-        const { data: endpointSetting } = await supabaseClient
+        // Get functions base URL from app_settings
+        const { data: baseUrlSetting } = await supabaseClient
           .from('app_settings')
           .select('value')
-          .eq('key', 'qstash_endpoint_name')
+          .eq('key', 'functions_base_url')
           .maybeSingle();
         
-        const endpointName = endpointSetting?.value || 'partsbay-repost';
-        const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+        const functionsBaseUrl = baseUrlSetting?.value || 'https://api.partsbay.ae';
+        const destinationUrl = `${functionsBaseUrl}/functions/v1/upstash-repost-handler`;
+        const qstashUrl = `https://qstash.upstash.io/v2/enqueue/telegram-repost-queue/${encodeURIComponent(destinationUrl)}`;
         
-        console.log(`📤 [Router] Queuing to QStash endpoint: ${endpointName}`);
+        console.log(`📤 [Router] Queuing to: ${qstashUrl}`);
+        console.log(`📤 [Router] Destination: ${destinationUrl}`);
         
         const qstashResponse = await fetch(qstashUrl, {
           method: 'POST',
@@ -111,8 +113,7 @@ serve(async (req) => {
             'Authorization': `Bearer ${QSTASH_TOKEN}`,
             'Content-Type': 'application/json',
             'Upstash-Retries': '3',
-            'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${reqData.notificationType || 'status_change'}-${Math.floor(Date.now() / 1000)}`,
-            'Upstash-Forward-Queue': 'telegram-repost-queue'
+            'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${reqData.notificationType || 'status_change'}-${Math.floor(Date.now() / 1000)}`
           },
           body: JSON.stringify({
             productId: reqData.productId,

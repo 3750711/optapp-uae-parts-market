@@ -78,39 +78,34 @@ Deno.serve(async (req) => {
     // Отправляем событие в QStash Queue для последовательной обработки
     console.log('📤 [QStash] Enqueueing to telegram-repost-queue');
     
-    // Get QStash endpoint name from app_settings
-    const { data: endpointSetting } = await supabaseClient
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_endpoint_name')
-      .maybeSingle();
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://api.partsbay.ae';
+    const destinationUrl = `${supabaseUrl}/functions/v1/upstash-repost-handler`;
+    const qstashUrl = `https://qstash.upstash.io/v2/enqueue/telegram-repost-queue/${encodeURIComponent(destinationUrl)}`;
     
-    const endpointName = endpointSetting?.value || 'partsbay-repost';
-    const qstashResponse = await fetch(
-      `https://qstash.upstash.io/v2/publish/${endpointName}`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${QSTASH_TOKEN}`,
-          'Content-Type': 'application/json',
-          'Upstash-Retries': '3',
-          'Upstash-Deduplication-Id': idempotencyKey,
-          'Upstash-Forward-Queue': 'telegram-repost-queue'
-        },
-        body: JSON.stringify({
-          productId,
-          notificationType: 'repost',
-          priceChanged,
-          newPrice,
-          oldPrice,
-          lotNumber: product.lot_number,
-          title: product.title,
-          brand: product.brand,
-          model: product.model,
-          currentPrice: product.price
-        })
-      }
-    );
+    console.log(`📤 [QStash] Queuing to: ${qstashUrl}`);
+    console.log(`📤 [QStash] Destination: ${destinationUrl}`);
+    
+    const qstashResponse = await fetch(qstashUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${QSTASH_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Upstash-Retries': '3',
+        'Upstash-Deduplication-Id': idempotencyKey
+      },
+      body: JSON.stringify({
+        productId,
+        notificationType: 'repost',
+        priceChanged,
+        newPrice,
+        oldPrice,
+        lotNumber: product.lot_number,
+        title: product.title,
+        brand: product.brand,
+        model: product.model,
+        currentPrice: product.price
+      })
+    });
 
     if (!qstashResponse.ok) {
       const errorText = await qstashResponse.text();
