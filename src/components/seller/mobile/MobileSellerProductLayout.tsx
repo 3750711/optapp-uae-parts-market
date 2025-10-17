@@ -159,9 +159,9 @@ const MobileSellerProductLayout: React.FC<MobileSellerProductLayoutProps> = Reac
           {product.delivery_price !== null && product.delivery_price !== undefined && (
             <div className="mt-4 bg-muted p-3 rounded-lg">
               <div className="text-xs text-muted-foreground mb-1">{t.labels.deliveryPrice}</div>
-              <div className="text-lg font-bold text-secondary">
-                ${product.delivery_price}
-              </div>
+            <div className="text-lg font-bold text-primary">
+              ${product.delivery_price}
+            </div>
             </div>
           )}
         </CardContent>

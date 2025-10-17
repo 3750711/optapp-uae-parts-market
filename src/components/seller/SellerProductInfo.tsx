@@ -69,7 +69,7 @@ const SellerProductInfo: React.FC<SellerProductInfoProps> = ({
               <DollarSign className="h-4 w-4" />
               {t.labels.deliveryPrice}
             </div>
-            <div className="text-lg font-semibold text-secondary">
+            <div className="text-lg font-semibold text-primary">
               ${product.delivery_price}
             </div>
           </div>
