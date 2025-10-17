@@ -22,10 +22,10 @@ export const RoutePreloader: React.FC = () => {
     const timer = setTimeout(() => {
       preloadRoutes({
         routes: CRITICAL_ROUTES,
-        disablePrefetchTag: false, // можно отключить через feature flag если нужно
-        debug: false // включить для отладки
+        disablePrefetchTag: false,
+        debug: true // временно включён для проверки
       });
-    }, 1000);
+    }, 500);
     
     return () => clearTimeout(timer);
   }, [location.pathname]);

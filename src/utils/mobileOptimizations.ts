@@ -8,24 +8,6 @@ export const preloadCriticalAssets = () => {
   fontLink.as = 'style';
   fontLink.crossOrigin = 'anonymous';
   document.head.appendChild(fontLink);
-
-  // Preload critical routes for instant navigation
-  if ('requestIdleCallback' in window) {
-    requestIdleCallback(() => {
-      // Preload common routes users navigate to
-      const routes = [
-        '/seller/add-product',
-        '/seller/listings', 
-        '/seller/orders'
-      ];
-      routes.forEach(route => {
-        const link = document.createElement('link');
-        link.rel = 'prefetch';
-        link.href = route;
-        document.head.appendChild(link);
-      });
-    });
-  }
 };
 
 export const optimizeForMobile = () => {
