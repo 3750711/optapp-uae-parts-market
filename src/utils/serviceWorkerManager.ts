@@ -24,8 +24,8 @@ export async function registerServiceWorker() {
     // 🔧 CRITICAL: Clean up old/conflicting service worker registrations first
     await cleanupOldServiceWorkers();
 
-    // 🚨 CRITICAL: Version 3.5.0-orders-fix to prevent NS_ERROR_CORRUPTED_CONTENT
-    const versionTag = '3.5.0-orders-fix';
+    // 🚨 CRITICAL: Version 3.7.0-sw-unified - Single SW architecture
+    const versionTag = '3.7.0-sw-unified';
     const swUrl = `/sw-minimal.js?v=${encodeURIComponent(versionTag)}`;
 
     // Check if we already have this exact SW registered
@@ -91,45 +91,67 @@ export async function registerServiceWorker() {
   }
 }
 
-// 🧹 Enhanced cleanup - removes ALL conflicting service workers including sw-cache.js
+// 🧹 AGGRESSIVE cleanup - removes ALL conflicting service workers and caches
 async function cleanupOldServiceWorkers() {
+  if (!('serviceWorker' in navigator)) return;
+  
   try {
+    console.log('[PWA] 🧹 Starting aggressive SW cleanup...');
+    
     const registrations = await navigator.serviceWorker.getRegistrations();
     const currentOrigin = location.origin + '/';
     
+    // STEP 1: Unregister ALL conflicting Service Workers
     for (const registration of registrations) {
-      // 🚨 CRITICAL: Remove ALL problematic SW registrations
-      const scriptURL = registration.active?.scriptURL || '';
+      const scriptURL = registration.active?.scriptURL || 
+                        registration.waiting?.scriptURL || 
+                        registration.installing?.scriptURL || '';
       
-      if (scriptURL.includes('/sw.js') || 
-          scriptURL.includes('/sw-cache.js')) {
-        console.log('[PWA] 🚨 REMOVING CONFLICTING SW:', scriptURL, '->', registration.scope);
+      // Remove old/conflicting SWs
+      const shouldRemove = 
+        scriptURL.includes('/sw.js') || 
+        scriptURL.includes('/sw-cache.js') ||
+        scriptURL.includes('sw-v6-stable') ||
+        scriptURL.includes('app-shell-') ||
+        (!scriptURL.includes('sw-minimal.js') && scriptURL.includes('.js'));
+      
+      if (shouldRemove) {
+        console.log('[PWA] 🗑️ REMOVING CONFLICTING SW:', scriptURL);
         await registration.unregister();
         continue;
       }
       
-      // Keep only our current minimal SW, remove all others
+      // Keep only current sw-minimal.js on correct scope
       if (registration.scope !== currentOrigin || 
           !scriptURL.includes('sw-minimal.js')) {
-        console.log('[PWA] Unregistering old/conflicting SW:', scriptURL);
+        console.log('[PWA] 🗑️ Removing outdated SW:', scriptURL);
         await registration.unregister();
       }
     }
     
-    // 🚨 CRITICAL: Clear caches that cause conflicts
+    // STEP 2: Delete ALL old caches
     const cacheNames = await caches.keys();
+    const currentCache = 'offline-fallback-v3-7-0-unified';
+    
     for (const cacheName of cacheNames) {
-      if (cacheName.includes('app-shell-') || 
-          cacheName.includes('runtime-') || 
-          cacheName.includes('supabase') || 
-          cacheName.includes('auth') ||
-          cacheName.includes('cloudinary-images-')) {
-        console.log('[PWA] 🚨 CLEARING CONFLICTING CACHE:', cacheName);
+      // Remove caches from old SWs
+      const isOldCache = 
+        cacheName.includes('app-shell-') || 
+        cacheName.includes('runtime-') ||
+        cacheName.includes('cloudinary-images-') ||
+        cacheName.includes('supabase') ||
+        cacheName.includes('auth') ||
+        (cacheName.includes('offline-fallback-') && cacheName !== currentCache);
+      
+      if (isOldCache) {
+        console.log('[PWA] 🗑️ DELETING OLD CACHE:', cacheName);
         await caches.delete(cacheName);
       }
     }
+    
+    console.log('[PWA] ✅ Aggressive cleanup completed');
   } catch (error) {
-    console.warn('[PWA] Failed to cleanup old service workers:', error);
+    console.error('[PWA] ❌ Cleanup failed:', error);
   }
 }
 
@@ -169,6 +191,6 @@ export async function cleanupCorruptedServiceWorker() {
 // Legacy compatibility
 export const swManager = {
   register: registerServiceWorker,
-  getVersion: () => Promise.resolve('3.5.0-orders-fix'),
+  getVersion: () => Promise.resolve('3.7.0-sw-unified'),
   getRegistration: () => navigator.serviceWorker?.getRegistration('/'),
 };

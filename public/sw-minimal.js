@@ -1,7 +1,7 @@
-// Minimal Service Worker - Enhanced privacy protection for api.partsbay.ae
-// Version: 3.3.0 - Strict private request skipping
+// Minimal Service Worker - Enhanced privacy + route warming
+// Version: 3.7.0-unified - Prefetch protection, WARM_ROUTE support, single SW architecture
 
-const CACHE_NAME = 'offline-fallback-v3-6-0';
+const CACHE_NAME = 'offline-fallback-v3-7-0-unified';
 const OFFLINE_HTML = '/index.html';
 
 // 🚨 CRITICAL: Enhanced private request detection - never intercept these
@@ -67,6 +67,30 @@ const isStaticAsset = (request) => {
   return false;
 };
 
+// 🚨 CRITICAL: Detect prefetch requests to prevent NS_BINDING_ABORTED
+const isPrefetchRequest = (request) => {
+  // Check Purpose headers (standard way)
+  const purpose = request.headers.get('Purpose') || 
+                  request.headers.get('Sec-Purpose') || '';
+  if (purpose.toLowerCase().includes('prefetch')) {
+    return true;
+  }
+  
+  // Check Sec-Fetch-Dest (Firefox/Chrome)
+  const dest = request.headers.get('Sec-Fetch-Dest');
+  if (dest && dest !== 'document' && dest !== 'empty') {
+    return true;
+  }
+  
+  // Check Sec-Fetch-Mode (additional safety)
+  const mode = request.headers.get('Sec-Fetch-Mode');
+  if (mode === 'no-cors' && request.mode === 'navigate') {
+    return true; // Likely prefetch
+  }
+  
+  return false;
+};
+
 // Minimal install - just cache the offline fallback
 self.addEventListener('install', (event) => {
   console.log('📦 SW: Installing minimal service worker');
@@ -102,18 +126,24 @@ self.addEventListener('activate', (event) => {
 
 // 🚨 CRITICAL: Minimal fetch - strict private request skipping
 self.addEventListener('fetch', (event) => {
-  // Skip ALL private requests - let them go to network directly
+  // 🚨 STEP 1: Skip prefetch requests to prevent NS_BINDING_ABORTED
+  if (isPrefetchRequest(event.request)) {
+    console.log('🔄 SW: Skipping prefetch request:', event.request.url);
+    return; // Let browser handle prefetch directly
+  }
+  
+  // 🚨 STEP 2: Skip ALL private requests - let them go to network directly
   if (SKIP(event.request.url)) {
     return; // Pass through to network without interception
   }
   
-  // Skip static assets to prevent corruption
+  // 🚨 STEP 3: Skip static assets to prevent corruption
   if (isStaticAsset(event.request)) {
     console.log('🚨 SW: Skipping static asset to prevent corruption:', event.request.url);
     return;
   }
   
-  // Only handle navigation requests for offline fallback
+  // STEP 4: Only handle navigation requests for offline fallback
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request).catch(() => {
@@ -126,7 +156,47 @@ self.addEventListener('fetch', (event) => {
 
 // Handle messages from the main app
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  const { data } = event;
+  if (!data || typeof data !== 'object') return;
+
+  // Route warming: preload HTML for critical routes
+  if (data.type === 'WARM_ROUTE' && typeof data.url === 'string') {
+    const url = new URL(data.url, self.location.origin).toString();
+    
+    // Skip if not allowed or is prefetch-like
+    if (SKIP(url)) {
+      console.log('⏭️ SW: Skipping WARM_ROUTE (private):', url);
+      return;
+    }
+    
+    event.waitUntil((async () => {
+      try {
+        const resp = await fetch(url, { 
+          method: 'GET', 
+          credentials: 'same-origin',
+          headers: { 
+            'Accept': 'text/html',
+            'X-SW-Warming': 'true' // маркер для отладки
+          }
+        });
+        
+        if (resp.ok && (resp.headers.get('content-type') || '').includes('text/html')) {
+          // Warm cache with offline fallback
+          const cache = await caches.open(CACHE_NAME);
+          await cache.put(OFFLINE_HTML, resp.clone());
+          console.log('✅ SW: Route warmed and cached:', url);
+        } else {
+          console.log('⚠️ SW: Route warming failed (not HTML):', url);
+        }
+      } catch (e) {
+        console.warn('❌ SW: Route warming error:', url, e.message);
+      }
+    })());
+  }
+
+  // Allow skip waiting when requested
+  if (data.type === 'SKIP_WAITING') {
+    console.log('⏩ SW: Skip waiting requested');
     self.skipWaiting();
   }
 });

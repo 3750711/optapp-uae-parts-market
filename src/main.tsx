@@ -6,7 +6,6 @@ import { cleanupCorruptedCache } from './utils/localStorage';
 import { quarantineStaleRefreshTokens } from './auth/quarantineStaleRefresh';
 import { getRuntimeSupabaseUrl, getRuntimeAnonKey } from './config/runtimeSupabase';
 import { registerServiceWorker, cleanupCorruptedServiceWorker } from './utils/serviceWorkerManager';
-import { ServiceWorkerCache } from './utils/serviceWorkerCache';
 import { ModuleLoadingBoundary } from './components/ModuleLoadingBoundary';
 import { AppInitializer } from './components/AppInitializer';
 
