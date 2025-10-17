@@ -4,6 +4,7 @@ import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carouse
 import CompactProductCard from '@/components/product/CompactProductCard';
 import { CompactProductCardSkeleton } from '@/components/ui/SkeletonLoader';
 import { AlertCircle } from 'lucide-react';
+import { useProductImage } from '@/hooks/useProductImage';
 
 // Error component
 const ErrorFallback = ({ onRetry }: { onRetry: () => void }) => (
@@ -68,9 +69,7 @@ const MobileProductsCarousel = () => {
       >
         <CarouselContent className="-ml-1 gap-3">
           {limitedProducts.map((product, index) => {
-            // Get primary image or first image
-            const primaryImage = product.product_images?.find(img => img.is_primary);
-            const imageUrl = primaryImage?.url || product.product_images?.[0]?.url;
+            const { primaryImage: imageUrl } = useProductImage(product as any);
             
             return (
               <CarouselItem 
