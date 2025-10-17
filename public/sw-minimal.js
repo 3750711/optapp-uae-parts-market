@@ -171,23 +171,16 @@ self.addEventListener('message', (event) => {
     
     event.waitUntil((async () => {
       try {
-        const resp = await fetch(url, { 
+        // Просто прогреваем HTTP кеш браузера, не кешируем в SW
+        await fetch(url, { 
           method: 'GET', 
           credentials: 'same-origin',
           headers: { 
             'Accept': 'text/html',
-            'X-SW-Warming': 'true' // маркер для отладки
+            'X-SW-Warming': 'true'
           }
         });
-        
-        if (resp.ok && (resp.headers.get('content-type') || '').includes('text/html')) {
-          // Warm cache with offline fallback
-          const cache = await caches.open(CACHE_NAME);
-          await cache.put(OFFLINE_HTML, resp.clone());
-          console.log('✅ SW: Route warmed and cached:', url);
-        } else {
-          console.log('⚠️ SW: Route warming failed (not HTML):', url);
-        }
+        console.log('✅ SW: Route warmed (HTTP cache):', url);
       } catch (e) {
         console.warn('❌ SW: Route warming error:', url, e.message);
       }
