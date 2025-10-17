@@ -83,6 +83,7 @@ export interface FormTranslations {
   };
   sections: {
     addProduct: string;
+    addProductDescription: string;
     basicInformation: string;
     carInformation: string;
     mediaFiles: string;
@@ -178,6 +179,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
     },
     sections: {
       addProduct: 'Добавить товар',
+      addProductDescription: 'Заполните информацию о товаре для добавления в каталог',
       basicInformation: 'Основная информация',
       carInformation: 'Информация об автомобиле',
       mediaFiles: 'Медиафайлы',
@@ -271,6 +273,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
     },
     sections: {
       addProduct: 'Add Product',
+      addProductDescription: 'Fill in the product information to add to the catalog',
       basicInformation: 'Basic Information',
       carInformation: 'Car Information',
       mediaFiles: 'Media Files',
@@ -364,6 +367,7 @@ const formTranslations: Record<Lang, FormTranslations> = {
     },
     sections: {
       addProduct: 'পণ্য যোগ করুন',
+      addProductDescription: 'ক্যাটালগে যোগ করতে পণ্যের তথ্য পূরণ করুন',
       basicInformation: 'মৌলিক তথ্য',
       carInformation: 'গাড়ির তথ্য',
       mediaFiles: 'মিডিয়া ফাইল',

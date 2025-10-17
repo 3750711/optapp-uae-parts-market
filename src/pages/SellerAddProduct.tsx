@@ -50,7 +50,7 @@ const SellerAddProduct = () => {
                 {t.sections.addProduct}
               </h1>
               <p className="text-muted-foreground">
-                Заполните информацию о товаре для добавления в каталог
+                {t.sections.addProductDescription}
               </p>
               {isTrustedSeller && (
                 <Badge className="mt-2 bg-emerald-50 text-emerald-600 border-emerald-200">
