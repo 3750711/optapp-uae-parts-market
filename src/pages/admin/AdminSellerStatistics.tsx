@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CalendarIcon, Download, TrendingUp, Users, Package, ShoppingCart } from 'lucide-react';
+import { CalendarIcon, Download, TrendingUp, Users, Package, ShoppingCart, Truck } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -33,6 +33,7 @@ const AdminSellerStatistics = () => {
       'Объявления': stat.products_created,
       'Заказы': stat.orders_created,
       'Сумма заказов': stat.total_revenue,
+      'Сумма доставки': stat.total_delivery_cost,
       'Средний чек': stat.avg_order_value
     }));
 
@@ -48,6 +49,7 @@ const AdminSellerStatistics = () => {
   const totalProductsCreated = statistics?.reduce((sum, stat) => sum + stat.products_created, 0) || 0;
   const totalOrdersCreated = statistics?.reduce((sum, stat) => sum + stat.orders_created, 0) || 0;
   const totalOrderValue = statistics?.reduce((sum, stat) => sum + stat.total_revenue, 0) || 0;
+  const totalDeliveryCost = statistics?.reduce((sum, stat) => sum + stat.total_delivery_cost, 0) || 0;
   const activeSellers = new Set(statistics?.map(stat => stat.seller_id) || []).size;
 
   if (error) {
@@ -119,7 +121,7 @@ const AdminSellerStatistics = () => {
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-6">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center space-x-2">
@@ -163,6 +165,18 @@ const AdminSellerStatistics = () => {
                     <div>
                       <p className="text-sm font-medium">Общая сумма</p>
                       <p className="text-2xl font-bold">${totalOrderValue.toFixed(0)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-2">
+                    <Truck className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">Сумма доставки</p>
+                      <p className="text-2xl font-bold">${totalDeliveryCost.toFixed(0)}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -220,6 +234,10 @@ const AdminSellerStatistics = () => {
                             <span className="text-muted-foreground">Средний чек:</span>
                             <span className="ml-2 font-medium">${stat.avg_order_value.toFixed(0)}</span>
                           </div>
+                          <div>
+                            <span className="text-muted-foreground">Доставка:</span>
+                            <span className="ml-2 font-medium">${stat.total_delivery_cost.toFixed(0)}</span>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -236,6 +254,7 @@ const AdminSellerStatistics = () => {
                         <TableHead className="text-right">Объявления</TableHead>
                         <TableHead className="text-right">Заказы</TableHead>
                         <TableHead className="text-right">Сумма заказов</TableHead>
+                        <TableHead className="text-right">Доставка</TableHead>
                         <TableHead className="text-right">Средний чек</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -253,6 +272,7 @@ const AdminSellerStatistics = () => {
                           <TableCell className="text-right">{stat.products_created}</TableCell>
                           <TableCell className="text-right">{stat.orders_created}</TableCell>
                           <TableCell className="text-right">${stat.total_revenue.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">${stat.total_delivery_cost.toFixed(2)}</TableCell>
                           <TableCell className="text-right">${stat.avg_order_value.toFixed(2)}</TableCell>
                         </TableRow>
                       ))}

@@ -3454,13 +3454,14 @@ export type Database = {
         Returns: string[]
       }
       get_seller_daily_statistics: {
-        Args: { end_date?: string; start_date?: string }
+        Args: { end_date: string; start_date: string }
         Returns: {
           orders_created: number
           products_created: number
           seller_id: string
           seller_name: string
           seller_opt_id: string
+          total_delivery_cost: number
           total_revenue: number
         }[]
       }

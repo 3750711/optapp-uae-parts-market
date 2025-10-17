@@ -9,6 +9,7 @@ export interface SellerStatistic {
   products_created: number;
   orders_created: number;
   total_revenue: number;
+  total_delivery_cost: number;
   avg_order_value: number;
 }
 
