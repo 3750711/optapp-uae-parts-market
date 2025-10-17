@@ -4,7 +4,28 @@ import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carouse
 import CompactProductCard from '@/components/product/CompactProductCard';
 import { CompactProductCardSkeleton } from '@/components/ui/SkeletonLoader';
 import { AlertCircle } from 'lucide-react';
-import { useProductImage } from '@/hooks/useProductImage';
+
+// Helper function to get primary image URL (duplicates useProductImage logic)
+const getPrimaryImageUrl = (product: any): string | undefined => {
+  if (!product.product_images || product.product_images.length === 0) {
+    return undefined;
+  }
+
+  const sortedImages = [...product.product_images].sort((a, b) => {
+    // Primary images first
+    if (a.is_primary && !b.is_primary) return -1;
+    if (!a.is_primary && b.is_primary) return 1;
+    
+    // Then by created_at (oldest first)
+    if (a.created_at && b.created_at) {
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    }
+    
+    return 0;
+  });
+
+  return sortedImages[0]?.url;
+};
 
 // Error component
 const ErrorFallback = ({ onRetry }: { onRetry: () => void }) => (
@@ -69,7 +90,7 @@ const MobileProductsCarousel = () => {
       >
         <CarouselContent className="-ml-1 gap-3">
           {limitedProducts.map((product, index) => {
-            const { primaryImage: imageUrl } = useProductImage(product as any);
+            const imageUrl = getPrimaryImageUrl(product);
             
             return (
               <CarouselItem 
