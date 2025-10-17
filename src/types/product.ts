@@ -16,7 +16,7 @@ export interface Product {
   cloudinary_public_id?: string | null;
   cloudinary_url?: string | null;
   rating_seller?: number | null;
-  product_images?: Array<{ url: string; is_primary?: boolean }>;
+  product_images?: Array<{ url: string; is_primary?: boolean; created_at?: string }>;
   
   // Недостающие поля для корректной работы
   lot_number?: number;
