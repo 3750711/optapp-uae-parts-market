@@ -12,7 +12,7 @@ import ProductSkeleton from "@/components/product/ProductSkeleton";
 import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import ProductDetailContent from "@/components/product/ProductDetailContent";
-
+import { useProductImage } from "@/hooks/useProductImage";
 import SellerProducts from "@/components/product/SimilarProducts";
 import MobileProductLayout from "@/components/product/mobile/MobileProductLayout";
 import { Product } from "@/types/product";
@@ -201,14 +201,11 @@ const ProductDetail = () => {
   
   if (!product) return null;
   
+  const { primaryImage: productPrimaryImage } = useProductImage(product);
+  
   // Set the first image as selected if none is selected
-  if (product.product_images?.length && !selectedImage) {
-    const primaryImage = product.product_images.find(img => img.is_primary)?.url 
-      || product.product_images[0]?.url;
-      
-    if (primaryImage) {
-      setSelectedImage(primaryImage);
-    }
+  if (!selectedImage && productPrimaryImage) {
+    setSelectedImage(productPrimaryImage);
   }
   
   const handleImageClick = (url: string) => {

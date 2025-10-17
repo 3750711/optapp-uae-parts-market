@@ -13,6 +13,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useNavigate } from "react-router-dom";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { useDeliveryLogic } from "@/hooks/useDeliveryLogic";
+import { useProductImage } from "@/hooks/useProductImage";
 
 export interface ProductProps {
   id: string;
@@ -114,7 +115,8 @@ const ProductCard = memo(({
     rejected: "bg-gray-100 text-gray-800"
   }[product.status] || "bg-gray-100 text-gray-800";
 
-  const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
+  const { primaryImage: productPrimaryImageUrl } = useProductImage(product as any);
+  const primaryImage = product.product_images?.find(img => img.url === productPrimaryImageUrl);
   
   // Determine if this product has high similarity score (threshold: 0.45 for current 0.3 search threshold)
   const isHighRelevance = product.similarity_score !== undefined && product.similarity_score > 0.45;
