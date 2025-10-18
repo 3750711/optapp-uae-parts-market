@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -35,6 +35,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
 }) => {
   const { isUploading, uploadProgress, openUploadWidget } = useNewCloudinaryUpload();
   const [isWidgetOpen, setIsWidgetOpen] = useState(false);
+  const isOpeningRef = useRef(false); // ✅ FIX: Синхронная защита от двойного клика на Android
   const { language } = useLanguage();
   const t = getFormTranslations(language);
 
@@ -43,9 +44,18 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
     onWidgetStateChange?.(isWidgetOpen);
   }, [isWidgetOpen, onWidgetStateChange]);
 
-  // ✅ FIX: Event listener cleanup - правильный подход через useEffect
+  // ✅ FIX: Cleanup ref при unmount компонента
+  useEffect(() => {
+    return () => {
+      isOpeningRef.current = false;
+    };
+  }, []);
+
+  // ✅ FIX: Event listener cleanup с синхронным сбросом ref
   useEffect(() => {
     const handleWidgetClose = () => {
+      console.log('🎬 Widget close event detected');
+      isOpeningRef.current = false; // ✅ Сбрасываем ref синхронно
       setIsWidgetOpen(false);
     };
     
@@ -60,10 +70,22 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
   const remainingSlots = maxImages - images.length;
 
   const handleUpload = () => {
-    if (!canUploadMore || disabled || isWidgetOpen) return; // ✅ FIX: Блокируем если виджет уже открыт
+    // ✅ FIX: Синхронная проверка через ref для защиты от touch/click race на Android
+    if (!canUploadMore || disabled || isWidgetOpen || isOpeningRef.current) {
+      console.log('🚫 Upload blocked:', {
+        canUploadMore,
+        disabled,
+        isWidgetOpen,
+        isOpening: isOpeningRef.current
+      });
+      return;
+    }
 
-    // Widget будет открыт - устанавливаем состояние
+    // ✅ FIX: Немедленная синхронная блокировка через ref
+    isOpeningRef.current = true;
     setIsWidgetOpen(true);
+    
+    console.log('🎬 Opening Cloudinary widget...');
     
     openUploadWidget(
       async (results: CloudinaryNormalized[]) => {
@@ -86,6 +108,8 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
             console.log('✅ Database save complete');
           } catch (error) {
             console.error('❌ Failed to save to database:', error);
+            // ✅ FIX: Сброс блокировки при ошибке
+            isOpeningRef.current = false;
             setIsWidgetOpen(false);
             return; // Don't update UI if save failed
           }
@@ -94,7 +118,8 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
         // Only update UI after successful DB save
         onImageUpload(newUrls);
         
-        // Widget закрыт после успешной загрузки - сбрасываем состояние
+        // ✅ FIX: Сброс блокировки после успешной загрузки
+        isOpeningRef.current = false;
         setIsWidgetOpen(false);
       },
       {
@@ -117,7 +142,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
       <Button
         type="button"
         onClick={handleUpload}
-        disabled={!canUploadMore || disabled || isUploading || isWidgetOpen}
+        disabled={!canUploadMore || disabled || isUploading || isWidgetOpen || isOpeningRef.current}
         variant="outline"
         size="lg"
         className="flex items-center gap-2 w-full min-h-[48px] text-base touch-manipulation sm:w-auto sm:min-h-[40px] sm:text-sm"
