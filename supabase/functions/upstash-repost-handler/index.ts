@@ -305,10 +305,8 @@ Deno.serve(async (req) => {
             retry_after: retryAfter,
             full_error: JSON.stringify(errorData)
           });
-          
-          console.log(`⚠️ [Telegram] Rate limit: retry_after=${retryAfter}s`);
 
-          // ✅ Специальная обработка для недоступных изображений
+          // ✅ СПЕЦИАЛЬНАЯ ОБРАБОТКА: WEBPAGE_MEDIA_EMPTY (обрабатываем ПЕРВОЙ)
           if (response.status === 400 && errorData.description?.includes('WEBPAGE_MEDIA_EMPTY')) {
             const failedIndex = parseFailedImageIndex(errorData.description);
             
@@ -316,7 +314,7 @@ Deno.serve(async (req) => {
             
             if (failedIndex !== null && failedIndex < currentImageUrls.length) {
               const removedUrl = currentImageUrls[failedIndex];
-              console.log(`🗑️ [QStash] Removing from current attempt only: ${removedUrl}`);
+              console.log(`🗑️ [QStash] Removing inaccessible image: ${removedUrl}`);
               
               // ✅ Удаляем только из ЛОКАЛЬНОЙ копии, не из БД
               currentImageUrls.splice(failedIndex, 1);
@@ -342,15 +340,19 @@ Deno.serve(async (req) => {
               });
               
               if (currentImageUrls.length > 0) {
-                console.log(`🔄 [QStash] Retrying with ${currentImageUrls.length}/${validImageUrls.length} images`);
+                console.log(`🔄 [QStash] Retrying IMMEDIATELY with ${currentImageUrls.length}/${validImageUrls.length} images`);
                 attempt--; // Не засчитываем как попытку
-                continue; // Повторяем с оставшимися изображениями
+                continue; // ✅ Повторяем СРАЗУ без задержки
               } else {
                 throw new Error('No valid images remaining after filtering');
               }
             }
+            
+            // ✅ Если не удалось обработать, продолжаем с обычной ошибкой
+            console.error(`❌ [WEBPAGE_MEDIA_EMPTY] Could not parse failed image index, treating as regular error`);
           }
 
+          // ✅ СПЕЦИАЛЬНАЯ ОБРАБОТКА: Rate limit (429)
           if (response.status === 429) {
             console.warn(`⚠️ [Telegram] Rate limit hit (429) on attempt ${attempt}, retry_after: ${retryAfter}s`);
             
@@ -500,7 +502,10 @@ Deno.serve(async (req) => {
         error_details: { 
           last_error: lastError?.message || 'Unknown error',
           total_attempts: MAX_RETRIES,
-          last_retry_after: lastRetryAfter
+          last_retry_after: lastRetryAfter,
+          images_sent: currentImageUrls.length,
+          images_original: validImageUrls.length,
+          images_skipped: validImageUrls.length - currentImageUrls.length
         },
         related_entity_type: 'product',
         related_entity_id: productId
