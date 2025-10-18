@@ -8,12 +8,12 @@ import PublicExceptSellers from '@/components/auth/PublicExceptSellers';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import GuestRoute from '@/components/auth/GuestRoute';
 import PendingApprovalWrapper from '@/components/auth/PendingApprovalWrapper';
+import { RateLimitedRoute } from '@/components/auth/RateLimitedRoute';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 import TermsPage from "@/pages/TermsPage";
 import PrivacyPage from "@/pages/PrivacyPage";
 import BlockedPage from "@/pages/BlockedPage";
 import ForbiddenPage from "@/pages/403";
-import AuthState from "@/pages/debug/AuthState";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 
 // Lazy loaded публичные страницы
@@ -56,7 +56,6 @@ const BuyerPriceOffers = lazy(() => import('@/pages/BuyerPriceOffers'));
 const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
 const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
 const OrderDetailsRedirect = lazy(() => import('@/components/routing/OrderDetailsRedirect').then(module => ({ default: module.default })));
-const SellerOrderRedirect = lazy(() => import('@/components/routing/SellerOrderRedirect'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const Favorites = lazy(() => import('@/pages/Favorites'));
 
@@ -136,31 +135,22 @@ const AppRoutes: React.FC = () => {
       <RouteErrorBoundary>
         <Suspense fallback={<RouteSuspenseFallback />}>
           <Routes>
-            {/* Debug routes (temporary for troubleshooting) */}
-            <Route path="/debug/auth-state" element={
-              <Suspense fallback={<PBLogoLoader />}>
-                <AuthState />
-              </Suspense>
-            } />
-            <Route path="/debug/auth-foundation" element={
-              <Suspense fallback={<PBLogoLoader />}>
-                {React.createElement(lazy(() => import('@/pages/debug/AuthFoundationAudit')))}
-              </Suspense>
-            } />
-            <Route path="/debug/auth-inspect" element={
-              <Suspense fallback={<PBLogoLoader />}>
-                {React.createElement(lazy(() => import('@/pages/debug/AuthInspect')))}
-              </Suspense>
-            } />
-
             {/* Публичные маршруты - доступны всем */}
             <Route path="/" element={
               <HomeRedirect>
                 <Index />
               </HomeRedirect>
             } />
-            <Route path="/public-store/:storeId" element={<PublicStore />} />
-            <Route path="/public-profile/:sellerId" element={<PublicProfile />} />
+            <Route path="/public-store/:storeId" element={
+              <RateLimitedRoute action="view_public_store" limitPerHour={100}>
+                <PublicStore />
+              </RateLimitedRoute>
+            } />
+            <Route path="/public-profile/:sellerId" element={
+              <RateLimitedRoute action="view_public_profile" limitPerHour={100}>
+                <PublicProfile />
+              </RateLimitedRoute>
+            } />
             <Route path="/404" element={<NotFound />} />
 
             {/* Маршруты аутентификации - только для гостей */}
@@ -243,8 +233,6 @@ const AppRoutes: React.FC = () => {
                 <Stores />
               </ProtectedRoute>
             } />
-            <Route path="/store/:id" element={<Navigate to="/stores/:id" replace />} />
-            {/* Alias path to support /stores/:id links */}
             <Route path="/stores/:id" element={
               <ProtectedRoute excludedRoles={['seller']}>
                 <StoreDetail />
@@ -392,12 +380,6 @@ const AppRoutes: React.FC = () => {
             <Route path="/seller/orders/:id" element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <SellerOrderDetails />
-              </ProtectedRoute>
-            } />
-            {/* Redirect old route to new unified route */}
-            <Route path="/seller/order-details/:id" element={
-              <ProtectedRoute allowedRoles={['seller']}>
-                <SellerOrderRedirect />
               </ProtectedRoute>
             } />
             <Route path="/seller/create-order" element={
@@ -562,7 +544,11 @@ const AppRoutes: React.FC = () => {
                 <AdminSearchAnalytics />
               </AdminRoute>
             } />
-            <Route path="/search/ai" element={<SemanticSearch />} />
+            <Route path="/search/ai" element={
+              <ProtectedRoute>
+                <SemanticSearch />
+              </ProtectedRoute>
+            } />
             <Route path="/admin/monitoring/free-order-upload" element={
               <AdminRoute>
                 <AdminFreeOrderUploadMonitoring />

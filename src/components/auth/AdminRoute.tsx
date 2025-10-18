@@ -57,43 +57,10 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     return <Navigate to={`/login${redirectPath}`} replace />;
   }
 
-  // Check admin permissions using cached/JWT/sessionStorage role
+  // Check admin permissions - redirect to /403 if not admin
   if (!authState.isAdmin) {
     devLog('❌ User does not have admin rights:', authState.role);
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-        <div className="max-w-md w-full space-y-4">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              У вас нет прав администратора для доступа к этой странице.
-              <br />
-              <span className="text-xs text-gray-500 mt-1 block">
-                Тип пользователя: {authState.role || 'неизвестно'}
-                <br />
-                Email: {authState.userEmail}
-              </span>
-            </AlertDescription>
-          </Alert>
-          <div className="flex gap-2">
-            <Button 
-              onClick={() => window.location.reload()}
-              variant="outline"
-              className="flex-1"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Проверить снова
-            </Button>
-            <Button 
-              onClick={() => window.location.href = '/profile'}
-              className="flex-1"
-            >
-              В профиль
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+    return <Navigate to="/403" replace />;
   }
 
   // isAdmin === true - показываем контент
