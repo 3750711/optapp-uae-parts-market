@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_RETRIES = 5;
+const MAX_RETRIES = 3; // ✅ Уменьшено с 5, т.к. теперь ждём правильные интервалы
 const TG_BOT_TOKEN = Deno.env.get('TG_BOT_TOKEN');
 const TG_CHAT_ID = Deno.env.get('TG_CHAT_ID');
 
@@ -237,6 +237,7 @@ Deno.serve(async (req) => {
 
     // Send to Telegram with retry logic
     let lastError: any = null;
+    let lastRetryAfter = 0; // ✅ Сохраняем retry_after между попытками
     
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
@@ -282,6 +283,7 @@ Deno.serve(async (req) => {
           // Парсим retry_after из Telegram ответа
           const errorData = await response.json().catch(() => ({}));
           const retryAfter = errorData.retry_after || 0;
+          lastRetryAfter = retryAfter; // ✅ Сохраняем для использования в retry loop
 
           // Detailed error logging for debugging
           console.error(`❌ [Telegram] API error ${response.status}:`, {
@@ -293,6 +295,8 @@ Deno.serve(async (req) => {
             retry_after: retryAfter,
             full_error: JSON.stringify(errorData)
           });
+          
+          console.log(`⚠️ [Telegram] Rate limit: retry_after=${retryAfter}s`);
 
           if (response.status === 429) {
             console.warn(`⚠️ [Telegram] Rate limit hit (429) on attempt ${attempt}, retry_after: ${retryAfter}s`);
@@ -306,7 +310,13 @@ Deno.serve(async (req) => {
                 recipient_identifier: TG_CHAT_ID || 'unknown',
                 message_text: `Rate limit for product ${productId} (${notificationType})`,
                 status: 'failed',
-                error_details: { retry_after: retryAfter, attempt, status: response.status, notification_type: notificationType },
+                error_details: { 
+                  retry_after: retryAfter, // ✅ Сохраняем реальное значение
+                  attempt, 
+                  status: response.status, 
+                  notification_type: notificationType,
+                  description: errorData.description
+                },
                 related_entity_type: 'product',
                 related_entity_id: productId
               });
@@ -403,29 +413,47 @@ Deno.serve(async (req) => {
         console.error(`❌ [QStash] Attempt ${attempt} failed:`, error);
         
         if (attempt < MAX_RETRIES) {
-          // Извлекаем retry_after из ошибки Telegram если есть
-          let retryAfter = 0;
-          if (error.message && error.message.includes('retry_after')) {
-            try {
-              const match = error.message.match(/"retry_after":(\d+)/);
-              if (match) retryAfter = parseInt(match[1], 10);
-            } catch (parseError) {
-              console.warn('Failed to parse retry_after from error:', parseError);
-            }
-          }
-
+          // ✅ FIX: Используем сохранённое значение retry_after
+          const retryAfter = lastRetryAfter || 0;
+          
           // Используем retry_after из Telegram или стандартный backoff
-          const baseDelay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s, 8s, 16s
+          const baseDelay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
           const telegramDelay = retryAfter * 1000;
-          const delay = Math.max(telegramDelay, baseDelay, 3000); // Минимум 3 секунды
+          const delay = Math.max(telegramDelay, baseDelay, 60000); // ✅ Минимум 60 секунд
 
-          console.log(`🔄 [QStash] Retrying in ${delay}ms (attempt ${attempt}/${MAX_RETRIES}, telegram retry_after: ${retryAfter}s)`);
+          console.log(`🔄 [QStash] Retrying in ${delay}ms (attempt ${attempt}/${MAX_RETRIES})`);
+          console.log(`   - Telegram retry_after: ${retryAfter}s`);
+          console.log(`   - Base exponential: ${baseDelay}ms`);
+          console.log(`   - Final delay: ${delay}ms`);
+          
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
 
-    console.error(`💥 [QStash] All ${MAX_RETRIES} attempts failed for product ${productId}`);
+    console.error(`💥 [QStash] All ${MAX_RETRIES} attempts exhausted for product ${productId}`);
+    
+    // ✅ Логируем финальный сбой в telegram_notifications_log
+    try {
+      await supabaseClient.from('telegram_notifications_log').insert({
+        function_name: 'upstash-repost-handler',
+        notification_type: `${notificationType}_all_retries_failed`,
+        recipient_type: 'group',
+        recipient_identifier: TG_CHAT_ID || 'unknown',
+        message_text: `All retries exhausted for product ${productId}`,
+        status: 'failed',
+        error_details: { 
+          last_error: lastError?.message || 'Unknown error',
+          total_attempts: MAX_RETRIES,
+          last_retry_after: lastRetryAfter
+        },
+        related_entity_type: 'product',
+        related_entity_id: productId
+      });
+    } catch (logError) {
+      console.error('⚠️ Failed to log final failure:', logError);
+    }
+    
     return new Response(
       JSON.stringify({ error: 'All retry attempts failed', lastError: lastError?.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
