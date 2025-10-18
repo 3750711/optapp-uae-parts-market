@@ -6,6 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Извлекает номер проблемного изображения из Telegram ошибки
+function parseFailedImageIndex(errorDescription: string): number | null {
+  // "Bad Request: failed to send message #3 with the error message \"WEBPAGE_MEDIA_EMPTY\""
+  const match = errorDescription.match(/message #(\d+)/);
+  return match ? parseInt(match[1], 10) - 1 : null; // -1 т.к. Telegram считает с 1, массив с 0
+}
+
 const MAX_RETRIES = 3; // ✅ Уменьшено с 5, т.к. теперь ждём правильные интервалы
 const TG_BOT_TOKEN = Deno.env.get('TG_BOT_TOKEN');
 const TG_CHAT_ID = Deno.env.get('TG_CHAT_ID');
@@ -239,6 +246,9 @@ Deno.serve(async (req) => {
     let lastError: any = null;
     let lastRetryAfter = 0; // ✅ Сохраняем retry_after между попытками
     
+    // ✅ Создаём локальную копию для фильтрации, не затрагиваем исходный массив из БД
+    let currentImageUrls = [...validImageUrls];
+    
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         console.log(`📤 [QStash] Attempt ${attempt}/${MAX_RETRIES} to send to Telegram`);
@@ -247,11 +257,11 @@ Deno.serve(async (req) => {
         const CHUNK_SIZE = 10;
         const imageChunks: string[][] = [];
         
-        for (let i = 0; i < validImageUrls.length; i += CHUNK_SIZE) {
-          imageChunks.push(validImageUrls.slice(i, i + CHUNK_SIZE));
+        for (let i = 0; i < currentImageUrls.length; i += CHUNK_SIZE) {
+          imageChunks.push(currentImageUrls.slice(i, i + CHUNK_SIZE));
         }
 
-        console.log(`Divided ${validImageUrls.length} images into ${imageChunks.length} chunks`);
+        console.log(`Divided ${currentImageUrls.length} images into ${imageChunks.length} chunks`);
 
         // Send first chunk with caption
         const firstChunk = imageChunks[0];
@@ -297,6 +307,49 @@ Deno.serve(async (req) => {
           });
           
           console.log(`⚠️ [Telegram] Rate limit: retry_after=${retryAfter}s`);
+
+          // ✅ Специальная обработка для недоступных изображений
+          if (response.status === 400 && errorData.description?.includes('WEBPAGE_MEDIA_EMPTY')) {
+            const failedIndex = parseFailedImageIndex(errorData.description);
+            
+            console.warn(`⚠️ [Telegram] Image not accessible at index ${failedIndex}`);
+            
+            if (failedIndex !== null && failedIndex < currentImageUrls.length) {
+              const removedUrl = currentImageUrls[failedIndex];
+              console.log(`🗑️ [QStash] Removing from current attempt only: ${removedUrl}`);
+              
+              // ✅ Удаляем только из ЛОКАЛЬНОЙ копии, не из БД
+              currentImageUrls.splice(failedIndex, 1);
+              
+              // Логируем удаление для аналитики
+              await supabaseClient.from('telegram_notifications_log').insert({
+                function_name: 'upstash-repost-handler',
+                notification_type: `${notificationType}_image_skipped`,
+                recipient_type: 'system',
+                recipient_identifier: 'validation',
+                message_text: `Skipped inaccessible image for product ${productId}`,
+                status: 'warning',
+                error_details: {
+                  product_id: productId,
+                  skipped_url: removedUrl,
+                  failed_index: failedIndex,
+                  remaining_images: currentImageUrls.length,
+                  original_image_count: validImageUrls.length,
+                  error: errorData.description
+                },
+                related_entity_type: 'product',
+                related_entity_id: productId
+              });
+              
+              if (currentImageUrls.length > 0) {
+                console.log(`🔄 [QStash] Retrying with ${currentImageUrls.length}/${validImageUrls.length} images`);
+                attempt--; // Не засчитываем как попытку
+                continue; // Повторяем с оставшимися изображениями
+              } else {
+                throw new Error('No valid images remaining after filtering');
+              }
+            }
+          }
 
           if (response.status === 429) {
             console.warn(`⚠️ [Telegram] Rate limit hit (429) on attempt ${attempt}, retry_after: ${retryAfter}s`);
@@ -389,7 +442,9 @@ Deno.serve(async (req) => {
             related_entity_id: productId,
             metadata: {
               attempt,
-              image_count: validImageUrls.length,
+              image_count: currentImageUrls.length,
+              images_original: validImageUrls.length,
+              images_skipped: validImageUrls.length - currentImageUrls.length,
               price_changed: priceChanged,
               new_price: newPrice,
               old_price: oldPrice,
