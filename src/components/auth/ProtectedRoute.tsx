@@ -49,15 +49,6 @@ const ProtectedRoute = ({
       }
     }
 
-    // Check profile completion for non-telegram users
-    if (!profile.profile_completed && profile.auth_method !== 'telegram') {
-      if (profile.user_type === 'seller' && location.pathname !== '/seller/dashboard') {
-        return <Navigate to="/seller/dashboard" replace />;
-      }
-      if (profile.user_type === 'buyer' && location.pathname !== '/profile') {
-        return <Navigate to="/profile" replace />;
-      }
-    }
 
     // Check allowed roles
     if (allowedRoles && !allowedRoles.includes(profile.user_type || '')) {
