@@ -1,6 +1,5 @@
 
 import React, { useState, useMemo } from "react";
-import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import BackButton from "@/components/navigation/BackButton";
+import StoresSEO from "@/components/stores/StoresSEO";
 
 interface Store {
   id: string;
@@ -103,10 +103,10 @@ const Stores = () => {
 
   return (
     <Layout>
-      <Helmet>
-        <title>Магазины автозапчастей | PartsBay.ae</title>
-        <meta name="description" content="Каталог магазинов автозапчастей в ОАЭ. Найдите проверенных продавцов автозапчастей в Дубае." />
-      </Helmet>
+      <StoresSEO 
+        totalCount={filteredStores?.length || 0}
+        searchQuery={searchTerm || undefined}
+      />
 
       <div className="container mx-auto py-8 space-y-6">
         <BackButton className="mb-4" fallback="/" />

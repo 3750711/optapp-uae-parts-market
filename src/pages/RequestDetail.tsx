@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import RequestProcessing from '@/components/request/RequestProcessing';
 import RequestStatusBadge from '@/components/request/RequestStatusBadge';
 import RequestMatchingService from '@/components/request/RequestMatchingService';
+import RequestDetailSEO from '@/components/request/RequestDetailSEO';
 
 const RequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -79,6 +80,8 @@ const RequestDetail: React.FC = () => {
   
   return (
     <Layout>
+      <RequestDetailSEO request={request} />
+      
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-8">
           {/* Always show the request processing component */}

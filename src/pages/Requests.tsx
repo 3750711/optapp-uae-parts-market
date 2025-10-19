@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import RequestMatchCount from '@/components/request/RequestMatchCount';
 import BackButton from "@/components/navigation/BackButton";
+import RequestsSEO from '@/components/request/RequestsSEO';
 
 interface Request {
   id: string;
@@ -55,6 +56,10 @@ const Requests: React.FC = () => {
 
   return (
     <Layout>
+      <RequestsSEO 
+        totalCount={requests?.length || 0}
+      />
+      
       <div className="container mx-auto px-4 py-8">
         <BackButton className="mb-4" fallback="/" />
         {/* Enhanced header with gradient background */}
