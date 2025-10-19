@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { SafeHelmet } from "@/components/seo/SafeHelmet";
 import { useOptimizedCatalogProducts } from "@/hooks/useOptimizedCatalogProducts";
 import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
@@ -10,6 +9,7 @@ import CatalogContent from "@/components/catalog/CatalogContent";
 import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
 import BackButton from "@/components/navigation/BackButton";
+import CatalogSEO from "@/components/catalog/CatalogSEO";
 
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -105,9 +105,9 @@ const Catalog: React.FC = () => {
 
   return (
     <Layout>
-      <SafeHelmet
-        title="Каталог товаров"
-        description="Browse our wide selection of products."
+      <CatalogSEO
+        searchQuery={searchTerm}
+        totalProducts={mappedProducts.length}
       />
 
       <div className="container mx-auto px-4 py-4">

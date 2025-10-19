@@ -1,6 +1,6 @@
-
 import React from "react";
 import Layout from "@/components/layout/Layout";
+import SEOHead from "@/components/seo/SEOHead";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight, ShoppingCart, Store, Wallet, Package, MessageSquare, HelpCircle, CheckCircle2 } from "lucide-react";
@@ -10,6 +10,50 @@ import BackButton from "@/components/navigation/BackButton";
 const BuyerGuide = () => {
   return (
     <Layout>
+      <SEOHead
+        title="Руководство покупателя - Как покупать автозапчасти | PartsBay.ae"
+        description="Пошаговая инструкция по покупке автозапчастей на PartsBay.ae. Регистрация, поиск товаров, связь с продавцами, оплата и получение заказа. Все этапы покупки для новых пользователей."
+        keywords="руководство покупателя, как купить автозапчасти, инструкция, PartsBay, пошаговое руководство, регистрация, поиск запчастей"
+        canonicalUrl="https://partsbay.ae/buyer-guide"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          "name": "Как купить автозапчасти на PartsBay.ae",
+          "description": "Полное руководство по покупке автозапчастей",
+          "step": [
+            {
+              "@type": "HowToStep",
+              "name": "Регистрация",
+              "text": "Создайте аккаунт на платформе"
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Поиск товаров",
+              "text": "Найдите нужные автозапчасти в каталоге"
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Связь с продавцом",
+              "text": "Свяжитесь с продавцом через Telegram"
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Создание запроса",
+              "text": "Создайте запрос если не нашли нужную запчасть"
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Оформление заказа",
+              "text": "Согласуйте условия и оформите заказ"
+            },
+            {
+              "@type": "HowToStep",
+              "name": "Получение товара",
+              "text": "Отслеживайте заказ и получите товар"
+            }
+          ]
+        }}
+      />
       <div className="container mx-auto px-4 py-8 md:py-12">
         <BackButton className="mb-6" fallback="/" />
         <div className="flex flex-col max-w-4xl mx-auto">

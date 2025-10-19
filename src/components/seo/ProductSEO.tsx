@@ -1,6 +1,7 @@
-
+import { useState, useEffect } from 'react';
 import SEOHead from '@/components/seo/SEOHead';
 import { Product } from '@/types/product';
+import { generateProductOGImage } from '@/utils/ogImageGenerator';
 
 interface ProductSEOProps {
   product: Product;
@@ -13,6 +14,28 @@ const ProductSEO: React.FC<ProductSEOProps> = ({
   sellerName = "Неизвестный продавец",
   images = []
 }) => {
+  const primaryImageUrl = images.length > 0 ? images[0] : 'https://partsbay.ae/placeholder.svg';
+  const [ogImage, setOgImage] = useState<string>(primaryImageUrl);
+
+  // Автогенерация OG-изображения если нет фото
+  useEffect(() => {
+    const generateOG = async () => {
+      if (!images.length || primaryImageUrl === 'https://partsbay.ae/placeholder.svg') {
+        const generated = await generateProductOGImage(
+          product.title,
+          product.brand,
+          product.model,
+          product.price
+        );
+        setOgImage(generated);
+      } else {
+        setOgImage(primaryImageUrl);
+      }
+    };
+    
+    generateOG();
+  }, [primaryImageUrl, product, images.length]);
+
   // Построение динамического title
   const buildTitle = () => {
     let title = product.title;
@@ -59,9 +82,6 @@ const ProductSEO: React.FC<ProductSEOProps> = ({
     return keywords.join(', ');
   };
 
-  // Главное изображение для Open Graph - используем полные URL
-  const primaryImage = images.length > 0 ? images[0] : '/placeholder.svg';
-
   // Canonical URL
   const canonicalUrl = `${window.location.origin}/product/${product.id}`;
 
@@ -77,7 +97,7 @@ const ProductSEO: React.FC<ProductSEOProps> = ({
       "name": product.brand
     } : undefined,
     "model": product.model,
-    "image": images.length > 0 ? images : [primaryImage],
+    "image": images.length > 0 ? images : [ogImage],
     "offers": {
       "@type": "Offer",
       "price": product.price,
@@ -116,15 +136,12 @@ const ProductSEO: React.FC<ProductSEOProps> = ({
     ].filter(Boolean)
   };
 
-  console.log('ProductSEO: Using image:', primaryImage);
-  console.log('ProductSEO: Product data:', { title: buildTitle(), description: buildDescription() });
-
   return (
     <SEOHead
       title={buildTitle()}
       description={buildDescription()}
       keywords={buildKeywords()}
-      ogImage={primaryImage}
+      ogImage={ogImage}
       canonicalUrl={canonicalUrl}
       structuredData={structuredData}
     />

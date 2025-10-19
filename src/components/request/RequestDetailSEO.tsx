@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import SEOHead from '@/components/seo/SEOHead';
+import { generateRequestOGImage } from '@/utils/ogImageGenerator';
 
 interface RequestDetailSEOProps {
   request: {
@@ -15,6 +17,22 @@ interface RequestDetailSEOProps {
 }
 
 const RequestDetailSEO: React.FC<RequestDetailSEOProps> = ({ request }) => {
+  const [ogImage, setOgImage] = useState<string>('https://partsbay.ae/placeholder.svg');
+
+  // Автогенерация OG-изображения
+  useEffect(() => {
+    const generateOG = async () => {
+      const generated = await generateRequestOGImage(
+        request.title,
+        request.brand,
+        request.model
+      );
+      setOgImage(generated);
+    };
+    
+    generateOG();
+  }, [request]);
+
   // Построение динамического title
   const buildTitle = () => {
     if (request.brand && request.model) {
@@ -104,9 +122,6 @@ const RequestDetailSEO: React.FC<RequestDetailSEOProps> = ({ request }) => {
   };
 
   const canonicalUrl = `${window.location.origin}/requests/${request.id}`;
-
-  // OG Image - используем дефолтное изображение или можно генерировать динамически
-  const ogImage = `${window.location.origin}/placeholder.svg`;
 
   return (
     <SEOHead

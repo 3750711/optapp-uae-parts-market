@@ -1,6 +1,7 @@
-
+import { useState, useEffect } from 'react';
 import SEOHead from '@/components/seo/SEOHead';
 import { StoreWithImages } from '@/types/store';
+import { generateStoreOGImage } from '@/utils/ogImageGenerator';
 
 interface StoreSEOProps {
   store: StoreWithImages;
@@ -13,6 +14,26 @@ const StoreSEO: React.FC<StoreSEOProps> = ({
   reviewsCount = 0,
   averageRating
 }) => {
+  const storeImageUrl = store.store_images?.[0]?.url || 'https://partsbay.ae/placeholder.svg';
+  const [ogImage, setOgImage] = useState<string>(storeImageUrl);
+
+  // Автогенерация OG-изображения если нет фото
+  useEffect(() => {
+    const generateOG = async () => {
+      if (!store.store_images || store.store_images.length === 0) {
+        const generated = await generateStoreOGImage(
+          store.name,
+          store.description
+        );
+        setOgImage(generated);
+      } else {
+        setOgImage(storeImageUrl);
+      }
+    };
+    
+    generateOG();
+  }, [store, storeImageUrl]);
+
   // Построение динамического title
   const buildTitle = () => {
     const rating = averageRating ? ` (${averageRating.toFixed(1)}★)` : '';
@@ -82,7 +103,6 @@ const StoreSEO: React.FC<StoreSEOProps> = ({
   };
 
   const canonicalUrl = `${window.location.origin}/stores/${store.id}`;
-  const ogImage = store.store_images?.[0]?.url || '/og-image.jpg';
 
   return (
     <SEOHead
