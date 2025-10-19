@@ -21,8 +21,8 @@ const ProtectedRoute = ({
   const { isFirstLoad } = useUserAccess();
   const location = useLocation();
 
-  // Show loading only on first load
-  if (isFirstLoad) {
+  // Show loading only on first load OR while checking auth
+  if (isFirstLoad || (isLoading && !profile)) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -30,8 +30,8 @@ const ProtectedRoute = ({
     );
   }
 
-  // Redirect to login if not authenticated
-  if (!user) {
+  // Redirect to login if not authenticated (only after loading is complete)
+  if (!user && !isLoading) {
     return <Navigate to={`/login?from=${encodeURIComponent(location.pathname)}`} replace />;
   }
 
