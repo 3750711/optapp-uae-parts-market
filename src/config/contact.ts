@@ -1,5 +1,8 @@
 // Contact configuration for the application
 export const CONTACT_CONFIG = {
+  // Phone configuration
+  PHONE: '+971 56 247 2906',
+  
   // Telegram manager configuration
   TELEGRAM_MANAGER: {
     username: 'Nastya_PostingLots_OptCargo',

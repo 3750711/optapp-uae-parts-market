@@ -78,4 +78,4 @@ Disallow: /*?token=
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://partsbay.ae/sitemap.xml
+Sitemap: https://api.partsbay.ae/functions/v1/generate-sitemap

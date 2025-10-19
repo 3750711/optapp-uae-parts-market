@@ -7,12 +7,47 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
-
 import BackButton from "@/components/navigation/BackButton";
+import SEOHead from "@/components/seo/SEOHead";
+import { CONTACT_CONFIG } from "@/config/contact";
 
 const Contact = () => {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    "name": "Контакты PartsBay.ae",
+    "description": "Свяжитесь с нами для получения информации о маркетплейсе автозапчастей",
+    "url": "https://partsbay.ae/contact",
+    "mainEntity": {
+      "@type": "Organization",
+      "@id": "https://partsbay.ae/#organization",
+      "name": "PartsBay.ae",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+971-56-247-2906",
+        "contactType": "Customer Service",
+        "email": "info@partsbay.ae",
+        "areaServed": "AE",
+        "availableLanguage": ["Russian", "English", "Arabic"]
+      },
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Sheikh Zayed Road",
+        "addressLocality": "Dubai",
+        "addressCountry": "AE"
+      }
+    }
+  };
+
   return (
     <Layout>
+      <SEOHead
+        title="Контакты - PartsBay.ae | Связаться с нами"
+        description="Свяжитесь с командой PartsBay.ae. Telegram, email, телефон +971 56 247 2906. Мы ответим на все ваши вопросы о работе платформы. Sheikh Zayed Road, Dubai, UAE."
+        keywords="контакты, связаться, PartsBay, support, поддержка, Dubai, UAE, телефон, email, Telegram"
+        canonicalUrl="https://partsbay.ae/contact"
+        structuredData={structuredData}
+      />
       <div className="container mx-auto px-4 py-12">
         <BackButton className="mb-6" fallback="/" />
         <h1 className="text-3xl font-bold text-center mb-12">Связаться с нами</h1>
@@ -64,7 +99,7 @@ const Contact = () => {
                   <Phone className="h-5 w-5 mr-3 text-white" />
                   <div>
                     <p className="font-medium text-white">Телефон</p>
-                    <p className="text-white">+971 58 123 4567</p>
+                    <p className="text-white">{CONTACT_CONFIG.PHONE}</p>
                   </div>
                 </div>
                 <div className="flex items-start">

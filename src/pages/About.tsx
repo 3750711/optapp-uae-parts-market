@@ -3,12 +3,61 @@ import Layout from "@/components/layout/Layout";
 import { Award, ShieldCheck, TrendingUp, Truck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import BackButton from "@/components/navigation/BackButton";
+import SEOHead from "@/components/seo/SEOHead";
 
 const About = () => {
   const { user } = useAuth();
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    "name": "О компании PartsBay.ae",
+    "description": "PartsBay.ae - инновационный B2B маркетплейс автозапчастей из Объединенных Арабских Эмиратов",
+    "url": "https://partsbay.ae/about",
+    "mainEntity": {
+      "@type": "Organization",
+      "@id": "https://partsbay.ae/#organization",
+      "name": "PartsBay.ae",
+      "description": "Крупнейший B2B маркетплейс автозапчастей в ОАЭ",
+      "url": "https://partsbay.ae",
+      "foundingDate": "2024",
+      "foundingLocation": {
+        "@type": "Place",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Dubai",
+          "addressCountry": "AE"
+        }
+      }
+    },
+    "breadcrumb": {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Главная",
+          "item": "https://partsbay.ae/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "О нас",
+          "item": "https://partsbay.ae/about"
+        }
+      ]
+    }
+  };
+
   return (
     <Layout>
+      <SEOHead
+        title="О нас - PartsBay.ae | B2B маркетплейс автозапчастей из ОАЭ"
+        description="PartsBay.ae - крупнейший B2B маркетплейс автозапчастей в ОАЭ. Прямые поставки от 100+ проверенных продавцов из Дубая и Шарджи. Качество, надежность, быстрая доставка."
+        keywords="о компании, PartsBay, автозапчасти ОАЭ, B2B маркетплейс, оптовые поставки, Дубай, Шарджа, история компании"
+        canonicalUrl="https://partsbay.ae/about"
+        structuredData={structuredData}
+      />
       <div className="container mx-auto px-4 py-12">
         <BackButton className="mb-6" fallback="/" />
         <div className="max-w-4xl mx-auto">
