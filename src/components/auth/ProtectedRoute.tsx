@@ -82,7 +82,7 @@ const ProtectedRoute = ({
     }
 
     // Check email verification requirement
-    if (requireEmailVerification && !profile.email_confirmed) {
+    if (requireEmailVerification && !profile.email_confirmed && profile.verification_status !== 'verified') {
       return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
           <div className="container mx-auto px-4 py-8">
@@ -109,7 +109,7 @@ const ProtectedRoute = ({
     }
 
     // Show email verification banner for unverified users (but still allow access)
-    if (!profile.email_confirmed) {
+    if (!profile.email_confirmed && profile.verification_status !== 'verified') {
       return (
         <>
           <div className="sticky top-0 z-50">
