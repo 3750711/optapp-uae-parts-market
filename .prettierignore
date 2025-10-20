@@ -1,9 +1,0 @@
-dist
-node_modules
-build
-coverage
-*.min.js
-public/runtime-config.json
-supabase/migrations/
-bun.lockb
-package-lock.json
