@@ -2,8 +2,10 @@
 import React, { memo, useMemo, useState, useEffect } from "react";
 import { FixedSizeGrid as Grid } from 'react-window';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobileLayout } from "@/hooks/useMobileLayout";
 import ProductCard, { ProductProps } from "./ProductCard";
 import ProductListItem from "./ProductListItem";
+import MobileCatalogCard from "./MobileCatalogCard";
 import VirtualizedProductList from "./VirtualizedProductList";
 import ProductSkeleton from "@/components/catalog/ProductSkeleton";
 import { useAdminAccess } from '@/hooks/useAdminAccess';
@@ -37,6 +39,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
   useSimpleOfferButton = false
 }) => {
   const isMobile = useIsMobile();
+  const { isMobile: isMobileLayout } = useMobileLayout();
   const { isAdmin } = useAdminAccess();
   const [containerWidth, setContainerWidth] = useState(window.innerWidth);
   
@@ -189,6 +192,23 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
 
   // List view mode
   if (viewMode === 'list') {
+    // Mobile layout uses MobileCatalogCard
+    if (isMobileLayout) {
+      return (
+        <div className="space-y-3">
+          {visibleProducts.map((product) => (
+            <MobileCatalogCard
+              key={product.id}
+              product={product}
+              showSoldButton={showSoldButton}
+              onStatusChange={onStatusChange}
+            />
+          ))}
+        </div>
+      );
+    }
+    
+    // Desktop layout uses ProductListItem
     return (
       <div className="space-y-3">
          {visibleProducts.map((product) => (
