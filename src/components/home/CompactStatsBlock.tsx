@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Package, ShoppingBag, CheckCircle2, Star, Truck, Shield } from 'lucide-react';
+import { Package, ShoppingBag, CheckCircle2, Star, Truck, Shield, LogIn, UserPlus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { useStatistics } from '@/hooks/useStatistics';
 import { AutomotiveCard } from '@/components/ui/automotive-card';
+import { Button } from '@/components/ui/button';
 import {
   Carousel,
   CarouselContent,
@@ -15,6 +18,8 @@ interface CompactStatsBlockProps {
 
 export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language = 'ru' }) => {
   const { data: stats, isLoading } = useStatistics();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
 
@@ -137,12 +142,63 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
               </div>
             </AutomotiveCard>
           </CarouselItem>
+
+          {/* Слайд 3: CTA для авторизации (только для неавторизованных) */}
+          {!user && (
+            <CarouselItem>
+              <AutomotiveCard 
+                metallic 
+                glowing 
+                className="transition-all duration-300"
+              >
+                <div className="p-6 text-center">
+                  {/* Иконка */}
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+                    <LogIn className="w-8 h-8 text-primary" />
+                  </div>
+                  
+                  {/* Заголовок */}
+                  <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">
+                    Начните работу
+                  </h3>
+                  
+                  {/* Подзаголовок */}
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Получите полный доступ к платформе
+                  </p>
+                  
+                  {/* Кнопки */}
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Button
+                      onClick={() => navigate('/login')}
+                      variant="default"
+                      size="default"
+                      className="gap-2"
+                    >
+                      <LogIn className="w-4 h-4" />
+                      Войти
+                    </Button>
+                    
+                    <Button
+                      onClick={() => navigate('/register')}
+                      variant="outline"
+                      size="default"
+                      className="gap-2"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      Регистрация
+                    </Button>
+                  </div>
+                </div>
+              </AutomotiveCard>
+            </CarouselItem>
+          )}
         </CarouselContent>
       </Carousel>
 
       {/* Индикаторы слайдов (dots) */}
       <div className="flex justify-center gap-2 mt-4">
-        {[0, 1].map((index) => (
+        {(user ? [0, 1] : [0, 1, 2]).map((index) => (
           <button
             key={index}
             onClick={() => api?.scrollTo(index)}
