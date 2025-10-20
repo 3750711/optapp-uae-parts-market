@@ -27,11 +27,11 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
 
   // Size configurations for different use cases
   const sizeConfig = {
-    thumbnail: { width: 120, height: 90, quality: 'auto:low' as const },
-    card: { width: 400, height: 300, quality: 'auto:low' as const },
-    detail: { width: 800, height: undefined, quality: 'auto:good' as const },
+    thumbnail: { width: 200, height: 200, quality: 'auto:good' as const },
+    card: { width: 600, height: 450, quality: 'auto:good' as const },
+    detail: { width: 1200, height: undefined, quality: 'auto:best' as const },
     telegramCard: { width: 720, height: 540, quality: 'auto:good' as const },
-    preview: { width: 600, height: undefined, quality: 'auto:good' as const }
+    preview: { width: 800, height: undefined, quality: 'auto:good' as const }
   };
 
   const config = sizeConfig[size];
@@ -71,19 +71,22 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
         `w_${config.width}`,
         `h_${config.height}`,
         `c_fit`,
+        `g_center`,
         `q_${config.quality}`,
         'f_auto',
+        'dpr_auto',
         'fl_progressive'
       ];
     } else if (size === 'card' && config.height) {
-      // For card size, use c_fill to maintain aspect ratio with smart cropping
+      // For card size, use c_fit to preserve aspect ratio WITHOUT cropping
       transformations = [
         `w_${config.width}`,
         `h_${config.height}`,
-        `c_fill`,
-        `g_auto`,
+        `c_fit`,
+        `g_center`,
         `q_${config.quality}`,
         'f_auto',
+        'dpr_auto',
         'fl_progressive'
       ];
     } else {
