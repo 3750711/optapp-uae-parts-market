@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useOptimizedCatalogProducts } from "@/hooks/useOptimizedCatalogProducts";
 import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
+import { useMobileLayout } from "@/hooks/useMobileLayout";
 import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import SearchControls from "@/components/catalog/SearchControls";
@@ -10,8 +11,10 @@ import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
 import BackButton from "@/components/navigation/BackButton";
 import CatalogSEO from "@/components/catalog/CatalogSEO";
+import { cn } from "@/lib/utils";
 
 const Catalog: React.FC = () => {
+  const { isMobile } = useMobileLayout();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const prefetchTriggerRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "100px");
@@ -105,60 +108,65 @@ const Catalog: React.FC = () => {
 
   return (
     <Layout>
-      <CatalogSEO
-        searchQuery={searchTerm}
-        totalProducts={mappedProducts.length}
-      />
+      <div className={cn(isMobile && "min-h-screen bg-[#f5f5f5]")}>
+        <CatalogSEO
+          searchQuery={searchTerm}
+          totalProducts={mappedProducts.length}
+        />
 
-      <div className="container mx-auto px-4 py-4">
-        <BackButton className="mb-3" fallback="/" />
+        <div className={cn(
+          "container mx-auto py-4",
+          isMobile ? "px-3 max-w-[390px]" : "px-4"
+        )}>
+          <BackButton className="mb-3" fallback="/" />
         
-        <div className="mb-4">
-          <CatalogBreadcrumb searchQuery={searchTerm} />
-        </div>
+          <div className="mb-4">
+            <CatalogBreadcrumb searchQuery={searchTerm} />
+          </div>
 
-        <div data-filters-section className="mb-6">
-          <SearchControls 
-            searchTerm={searchTerm}
-            onSearch={handleEnhancedSearch}
-            hideSoldProducts={hideSoldProducts}
-            setHideSoldProducts={setHideSoldProducts}
-            isSearching={isLoading}
+          <div data-filters-section className="mb-6">
+            <SearchControls 
+              searchTerm={searchTerm}
+              onSearch={handleEnhancedSearch}
+              hideSoldProducts={hideSoldProducts}
+              setHideSoldProducts={setHideSoldProducts}
+              isSearching={isLoading}
+              onClearSearch={handleClearSearch}
+              onClearSoldFilter={handleClearSoldFilter}
+              onClearAll={handleClearAll}
+            />
+          </div>
+
+          <StickyFilters
+            searchQuery={searchTerm}
+            setSearchQuery={() => {}}
             onClearSearch={handleClearSearch}
-            onClearSoldFilter={handleClearSoldFilter}
-            onClearAll={handleClearAll}
+            onOpenFilters={() => {
+              const filtersSection = document.querySelector('[data-filters-section]');
+              if (filtersSection) {
+                filtersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }}
+            hasActiveFilters={hasAnyFilters}
+            handleSearchSubmit={(e) => e.preventDefault()}
+          />
+
+          <CatalogContent
+            isLoading={isLoading}
+            isError={isError}
+            mappedProducts={mappedProducts}
+            productChunks={productChunks}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            allProductsLoaded={allProductsLoaded}
+            hasAnyFilters={hasAnyFilters}
+            loadMoreRef={loadMoreRef}
+            handleLoadMore={handleLoadMore}
+            handleRetry={handleRetry}
+            handleClearAll={handleClearAll}
+            totalProductsCount={totalProductsCount}
           />
         </div>
-
-        <StickyFilters
-          searchQuery={searchTerm}
-          setSearchQuery={() => {}}
-          onClearSearch={handleClearSearch}
-          onOpenFilters={() => {
-            const filtersSection = document.querySelector('[data-filters-section]');
-            if (filtersSection) {
-              filtersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }}
-          hasActiveFilters={hasAnyFilters}
-          handleSearchSubmit={(e) => e.preventDefault()}
-        />
-
-        <CatalogContent
-          isLoading={isLoading}
-          isError={isError}
-          mappedProducts={mappedProducts}
-          productChunks={productChunks}
-          hasNextPage={hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-          allProductsLoaded={allProductsLoaded}
-          hasAnyFilters={hasAnyFilters}
-          loadMoreRef={loadMoreRef}
-          handleLoadMore={handleLoadMore}
-          handleRetry={handleRetry}
-          handleClearAll={handleClearAll}
-          totalProductsCount={totalProductsCount}
-        />
       </div>
     </Layout>
   );
