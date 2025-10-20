@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Package, ShoppingBag, CheckCircle2, Star, Truck, Shield, LogIn, UserPlus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { Package, ShoppingBag, CheckCircle2, Star, Truck, Shield } from 'lucide-react';
 import { useStatistics } from '@/hooks/useStatistics';
 import { AutomotiveCard } from '@/components/ui/automotive-card';
-import { Button } from '@/components/ui/button';
 import {
   Carousel,
   CarouselContent,
@@ -18,8 +15,6 @@ interface CompactStatsBlockProps {
 
 export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language = 'ru' }) => {
   const { data: stats, isLoading } = useStatistics();
-  const { user } = useAuth();
-  const navigate = useNavigate();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
 
@@ -151,51 +146,6 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
             </AutomotiveCard>
           </CarouselItem>
 
-          {/* Слайд 3: CTA для авторизации (только для неавторизованных) */}
-          {!user && (
-            <CarouselItem>
-              <AutomotiveCard 
-                metallic 
-                glowing 
-                className="group transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:transform-none"
-              >
-                <div className="min-h-[160px] flex items-center justify-center">
-                  <div className="flex items-center justify-around w-full px-6">
-                    {/* Кнопка Войти */}
-                    <Button
-                      onClick={() => navigate('/login')}
-                      variant="default"
-                      size="lg"
-                      className="relative gap-2 flex-1 max-w-[180px] overflow-hidden group/btn hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 motion-reduce:transition-none"
-                    >
-                      {/* Shine overlay */}
-                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000 ease-out motion-reduce:transform-none" />
-                      
-                      <LogIn className="w-5 h-5 relative z-10 transition-transform duration-300 group-hover/btn:scale-110 motion-reduce:transition-none" />
-                      <span className="relative z-10">Войти</span>
-                    </Button>
-                    
-                    {/* Вертикальный разделитель */}
-                    <div className="h-16 w-px bg-gradient-to-b from-transparent via-border to-transparent"></div>
-                    
-                    {/* Кнопка Регистрация */}
-                    <Button
-                      onClick={() => navigate('/register')}
-                      variant="outline"
-                      size="lg"
-                      className="relative gap-2 flex-1 max-w-[180px] overflow-hidden group/btn hover:shadow-lg hover:shadow-border/20 transition-all duration-300 motion-reduce:transition-none"
-                    >
-                      {/* Shine overlay */}
-                      <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000 ease-out motion-reduce:transform-none" />
-                      
-                      <UserPlus className="w-5 h-5 relative z-10 transition-transform duration-300 group-hover/btn:scale-110 motion-reduce:transition-none" />
-                      <span className="relative z-10">Регистрация</span>
-                    </Button>
-                  </div>
-                </div>
-              </AutomotiveCard>
-            </CarouselItem>
-          )}
         </CarouselContent>
       </Carousel>
 
