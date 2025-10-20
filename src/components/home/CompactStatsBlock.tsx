@@ -151,44 +151,31 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
                 glowing 
                 className="transition-all duration-300"
               >
-                <div className="p-6 text-center">
-                  {/* Иконка */}
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
-                    <LogIn className="w-8 h-8 text-primary" />
-                  </div>
+                <div className="flex items-center justify-around p-6">
+                  {/* Кнопка Войти */}
+                  <Button
+                    onClick={() => navigate('/login')}
+                    variant="default"
+                    size="lg"
+                    className="gap-2 flex-1 max-w-[180px]"
+                  >
+                    <LogIn className="w-5 h-5" />
+                    Войти
+                  </Button>
                   
-                  {/* Заголовок */}
-                  <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">
-                    Начните работу
-                  </h3>
+                  {/* Вертикальный разделитель */}
+                  <div className="h-16 w-px bg-gradient-to-b from-transparent via-border to-transparent"></div>
                   
-                  {/* Подзаголовок */}
-                  <p className="text-sm text-muted-foreground mb-6">
-                    Получите полный доступ к платформе
-                  </p>
-                  
-                  {/* Кнопки */}
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    <Button
-                      onClick={() => navigate('/login')}
-                      variant="default"
-                      size="default"
-                      className="gap-2"
-                    >
-                      <LogIn className="w-4 h-4" />
-                      Войти
-                    </Button>
-                    
-                    <Button
-                      onClick={() => navigate('/register')}
-                      variant="outline"
-                      size="default"
-                      className="gap-2"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Регистрация
-                    </Button>
-                  </div>
+                  {/* Кнопка Регистрация */}
+                  <Button
+                    onClick={() => navigate('/register')}
+                    variant="outline"
+                    size="lg"
+                    className="gap-2 flex-1 max-w-[180px]"
+                  >
+                    <UserPlus className="w-5 h-5" />
+                    Регистрация
+                  </Button>
                 </div>
               </AutomotiveCard>
             </CarouselItem>
