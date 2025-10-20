@@ -1,11 +1,13 @@
-
 import React from 'react';
 import UnifiedProductGrid from "@/components/product/UnifiedProductGrid";
 import CatalogSkeleton from "@/components/catalog/CatalogSkeleton";
+import { MobileCatalogCardSkeleton } from "@/components/product/MobileCatalogCardSkeleton";
+import { useMobileLayout } from "@/hooks/useMobileLayout";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProductProps } from '@/components/product/ProductCard';
+import { cn } from "@/lib/utils";
 
 interface CatalogContentProps {
   isLoading: boolean;
@@ -38,10 +40,20 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   handleClearAll,
   totalProductsCount,
 }) => {
+  const { isMobile } = useMobileLayout();
+
   if (isLoading) {
     return (
       <div>
-        <CatalogSkeleton />
+        {isMobile ? (
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <MobileCatalogCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <CatalogSkeleton />
+        )}
         <div className="text-center mt-4 text-gray-500">
           Загрузка товаров...
         </div>
