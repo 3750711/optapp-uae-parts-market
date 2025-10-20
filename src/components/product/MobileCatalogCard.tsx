@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { formatPrice } from "@/utils/formatPrice";
 import { ProductProps } from "@/components/product/ProductCard";
@@ -92,10 +93,10 @@ export const MobileCatalogCard = React.memo(({
 
   return (
     <Card 
-      className="overflow-hidden bg-white rounded-xl shadow cursor-pointer hover:shadow-md transition-shadow"
+      className="overflow-hidden bg-transparent border-0 shadow-none cursor-pointer"
       onClick={handleClick}
     >
-      <div className="p-2.5 space-y-2.5">
+      <div className="p-2.5 space-y-3">
         {/* Image Carousel Section */}
         <div className="relative w-full">
           {images.length > 1 ? (
@@ -157,6 +158,8 @@ export const MobileCatalogCard = React.memo(({
           )}
         </div>
 
+        <Separator className="bg-gray-200" />
+
         {/* Info Block */}
         <div className="px-2.5 space-y-2">
           {/* Title Line - Single line with ellipsis */}
@@ -180,12 +183,8 @@ export const MobileCatalogCard = React.memo(({
 
           {/* Meta Row */}
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            {product.product_location && (
-              <>
-                <span>{product.product_location}</span>
-                <span className="text-gray-400">·</span>
-              </>
-            )}
+            <span>UAE</span>
+            <span className="text-gray-400">·</span>
             <span>
               {formatDistanceToNow(new Date(product.created_at), { 
                 addSuffix: false,
@@ -196,7 +195,7 @@ export const MobileCatalogCard = React.memo(({
         </div>
 
         {/* Footer Panel */}
-        <div className="border-t border-gray-100 pt-2 px-2.5 flex items-center justify-between">
+        <div className="border-t border-gray-200/50 pt-2 px-2.5 flex items-center justify-between">
           {/* Left: Lot Number */}
           <span className="text-xs font-mono text-gray-600">
             Lot {product.lot_number || '—'}
