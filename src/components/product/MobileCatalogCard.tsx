@@ -98,13 +98,13 @@ export const MobileCatalogCard = React.memo(({
     >
       <div className="p-2.5 space-y-3">
         {/* Image Carousel Section */}
-        <div className="relative w-full">
+        <div className="relative w-full overflow-hidden">
           {images.length > 1 ? (
             <>
-              <div ref={emblaRef} className="overflow-hidden rounded-lg">
+              <div ref={emblaRef} className="overflow-visible rounded-lg">
                 <div className="flex gap-2">
                   {images.map((imageUrl, index) => (
-                    <div key={index} className="flex-[0_0_100%] min-w-0">
+                    <div key={index} className="flex-[0_0_85%] min-w-0">
                       <div className="aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden">
                         <OptimizedImage
                           src={imageUrl}
