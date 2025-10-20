@@ -102,30 +102,32 @@ export const MobileCatalogCard = React.memo(({
           {images.length > 1 ? (
             <>
               <div ref={emblaRef} className="overflow-hidden rounded-lg">
-                <div className="flex gap-2 pr-4">
+                <div className="flex gap-0 items-stretch h-[240px]">
                   {images.map((imageUrl, index) => (
-                    <div key={index} className="flex-[0_0_85%] min-w-0">
-                      <div className="aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden">
-                        <OptimizedImage
-                          src={imageUrl}
-                          alt={`${product.title} - фото ${index + 1}`}
-                          className="w-full h-full object-contain"
-                          cloudinaryPublicId={product.cloudinary_public_id}
-                          cloudinaryUrl={product.cloudinary_url}
-                          priority={index === 0}
-                        />
-                      </div>
+                    <div 
+                      key={index} 
+                      className="flex-shrink-0 h-full bg-gray-100 rounded-lg overflow-hidden"
+                      style={{ minWidth: '200px' }}
+                    >
+                      <OptimizedImage
+                        src={imageUrl}
+                        alt={`${product.title} - фото ${index + 1}`}
+                        className="h-full w-auto object-contain"
+                        cloudinaryPublicId={product.cloudinary_public_id}
+                        cloudinaryUrl={product.cloudinary_url}
+                        priority={index === 0}
+                      />
                     </div>
                   ))}
                 </div>
               </div>
             </>
           ) : (
-            <div className="aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden">
+            <div className="h-[240px] bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
               <OptimizedImage
                 src={images[0]}
                 alt={product.title}
-                className="w-full h-full object-contain"
+                className="h-full w-auto max-w-full object-contain"
                 cloudinaryPublicId={product.cloudinary_public_id}
                 cloudinaryUrl={product.cloudinary_url}
                 priority={true}
