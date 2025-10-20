@@ -302,9 +302,6 @@ export const useOptimizedCatalogProducts = ({
             product_images(url, is_primary)
           `);
 
-        // Limit images per product
-        query.limit(2, { foreignTable: 'product_images' });
-
         query = buildSortQuery(query, sortBy);
 
         // Use shared filter function to ensure identical filtering with count query
