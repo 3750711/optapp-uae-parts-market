@@ -25,6 +25,8 @@ export default defineConfig(({ mode }) => ({
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       "react/jsx-runtime": path.resolve(__dirname, "./node_modules/react/jsx-runtime"),
       "react/jsx-dev-runtime": path.resolve(__dirname, "./node_modules/react/jsx-dev-runtime"),
+      // CRITICAL: Alias lodash to lodash-es for tree-shaking
+      "lodash": "lodash-es",
     },
     // CRITICAL: Prevent React duplicates at resolve level
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
@@ -58,7 +60,7 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-switch',
             'lucide-react',
           ],
-          'vendor-lodash': ['lodash'],
+          'vendor-lodash': ['lodash-es'],
           'vendor-utils': ['zod', 'react-hook-form', 'date-fns', 'clsx', 'class-variance-authority'],
           'vendor-cloudinary': [
             'browser-image-compression',
@@ -131,7 +133,7 @@ export default defineConfig(({ mode }) => ({
       'clsx',
       'class-variance-authority'
     ],
-    exclude: ['lodash'],
+    exclude: ['lodash-es'],
     // Force optimization in development for stability
     force: mode === 'development'
   },
