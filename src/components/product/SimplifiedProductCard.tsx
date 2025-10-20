@@ -77,10 +77,26 @@ export const SimplifiedProductCard: React.FC<SimplifiedProductCardProps> = ({ pr
           </p>
         )}
         
-        {/* Product Details - WITHOUT price and OPT ID */}
+        {/* Price or Login Prompt */}
+        {!product.price && (
+          <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-md text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">
+            <span>🔒</span>
+            <span>Войдите, чтобы увидеть цену и контакты</span>
+          </div>
+        )}
+        
+        {product.price && (
+          <p className="text-xl font-bold text-primary mb-3">
+            {typeof product.price === 'number' 
+              ? product.price.toLocaleString('ru-RU') 
+              : product.price} руб.
+          </p>
+        )}
+        
+        {/* Product Details */}
         <div className="space-y-1 text-xs text-muted-foreground">
-          {/* Seller Name - WITHOUT OPT ID */}
-          {product.seller_name && (
+          {/* Seller Name (only if price is visible) */}
+          {product.seller_name && product.price && (
             <div className="flex items-center justify-between">
               <span className="font-medium text-foreground">Продавец:</span>
               <span className="truncate max-w-[140px]">{product.seller_name}</span>

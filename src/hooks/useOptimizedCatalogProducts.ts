@@ -228,8 +228,14 @@ export const useOptimizedCatalogProducts = ({
       try {
         console.log('🔢 Executing count query with filters:', filters);
         
+        // Get user session to determine table access
+        const { data: { session } } = await supabase.auth.getSession();
+        const tableName = session?.user ? 'products' : 'products_public';
+        
+        console.log(`🔢 [Count Query] Using table: ${tableName} (authenticated: ${!!session?.user})`);
+        
         let countQuery = supabase
-          .from('products')
+          .from(tableName)
           .select('*', { count: 'exact', head: true });
 
         // Use shared filter function to ensure identical filtering
@@ -273,6 +279,12 @@ export const useOptimizedCatalogProducts = ({
         console.log('🔎 Executing optimized product search...');
         const startTime = performance.now();
         
+        // Get user session to determine table access
+        const { data: { session } } = await supabase.auth.getSession();
+        const tableName = session?.user ? 'products' : 'products_public';
+        
+        console.log(`🔍 [Products Query] Using table: ${tableName} (authenticated: ${!!session?.user})`);
+        
         // Оптимизированный запрос - выбираем только необходимые поля
         const selectFields = [
           'id', 'title', 'price', 'condition', 'brand', 'model',
@@ -284,7 +296,7 @@ export const useOptimizedCatalogProducts = ({
         ].join(', ');
         
         let query = supabase
-          .from('products')
+          .from(tableName)
           .select(`
             ${selectFields},
             product_images(url, is_primary)

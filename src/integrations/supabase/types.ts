@@ -90,13 +90,6 @@ export type Database = {
             foreignKeyName: "ai_correction_analysis_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "products_for_buyers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_correction_analysis_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
           },
@@ -143,13 +136,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_enrichment_logs_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_for_buyers"
             referencedColumns: ["id"]
           },
           {
@@ -223,13 +209,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ai_moderation_corrections_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_for_buyers"
             referencedColumns: ["id"]
           },
           {
@@ -1112,13 +1091,6 @@ export type Database = {
             foreignKeyName: "orders_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "products_for_buyers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
           },
@@ -1248,13 +1220,6 @@ export type Database = {
             foreignKeyName: "price_offers_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
-            referencedRelation: "products_for_buyers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "price_offers_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
             referencedRelation: "products_public"
             referencedColumns: ["id"]
           },
@@ -1318,13 +1283,6 @@ export type Database = {
             foreignKeyName: "product_embeddings_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: true
-            referencedRelation: "products_for_buyers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_embeddings_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: true
             referencedRelation: "products_public"
             referencedColumns: ["id"]
           },
@@ -1365,13 +1323,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_images_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_for_buyers"
             referencedColumns: ["id"]
           },
           {
@@ -1475,13 +1426,6 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_videos_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products_for_buyers"
             referencedColumns: ["id"]
           },
           {
@@ -2530,16 +2474,12 @@ export type Database = {
         }
         Relationships: []
       }
-      products_for_buyers: {
+      products_public: {
         Row: {
-          admin_notification_sent_at: string | null
           ai_confidence: number | null
-          ai_delivery_confidence: number | null
-          ai_delivery_reasoning: Json | null
           ai_enriched_at: string | null
           ai_original_title: string | null
           ai_suggested_brand: string | null
-          ai_suggested_delivery_prices: Json | null
           ai_suggested_model: string | null
           ai_suggested_title: string | null
           brand: string | null
@@ -2551,8 +2491,6 @@ export type Database = {
           delivery_price: number | null
           description: string | null
           id: string | null
-          last_notification_sent_at: string | null
-          location: string | null
           lot_number: number | null
           model: string | null
           optid_created: string | null
@@ -2561,96 +2499,21 @@ export type Database = {
           preview_image_url: string | null
           price: number | null
           product_location: string | null
-          product_url: string | null
           rating_seller: number | null
           requires_moderation: boolean | null
           seller_id: string | null
           seller_name: string | null
           status: Database["public"]["Enums"]["product_status"] | null
-          telegram_confirmed_at: string | null
-          telegram_last_error: string | null
-          telegram_message_id: number | null
-          telegram_notification_status: string | null
           telegram_url: string | null
-          tg_notify_attempts: number | null
-          tg_notify_error: string | null
-          tg_notify_status: string | null
-          tg_views_frozen: number | null
-          title: string | null
-          updated_at: string | null
-          view_count: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "products_seller_id_fkey"
-            columns: ["seller_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_seller_id_fkey"
-            columns: ["seller_id"]
-            isOneToOne: false
-            referencedRelation: "public_seller_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      products_public: {
-        Row: {
-          admin_notification_sent_at: string | null
-          ai_confidence: number | null
-          ai_delivery_confidence: number | null
-          ai_delivery_reasoning: Json | null
-          ai_enriched_at: string | null
-          ai_original_title: string | null
-          ai_suggested_brand: string | null
-          ai_suggested_delivery_prices: Json | null
-          ai_suggested_model: string | null
-          ai_suggested_title: string | null
-          brand: string | null
-          catalog_position: string | null
-          cloudinary_public_id: string | null
-          cloudinary_url: string | null
-          condition: string | null
-          created_at: string | null
-          description: string | null
-          id: string | null
-          last_notification_sent_at: string | null
-          location: string | null
-          lot_number: number | null
-          model: string | null
-          optid_created: string | null
-          place_number: number | null
-          preview_image_url: string | null
-          product_location: string | null
-          product_url: string | null
-          rating_seller: number | null
-          requires_moderation: boolean | null
-          seller_id: string | null
-          status: Database["public"]["Enums"]["product_status"] | null
-          telegram_confirmed_at: string | null
-          telegram_last_error: string | null
-          telegram_message_id: number | null
-          telegram_notification_status: string | null
-          tg_notify_attempts: number | null
-          tg_notify_error: string | null
-          tg_notify_status: string | null
-          tg_views_frozen: number | null
           title: string | null
           updated_at: string | null
           view_count: number | null
         }
         Insert: {
-          admin_notification_sent_at?: string | null
           ai_confidence?: number | null
-          ai_delivery_confidence?: number | null
-          ai_delivery_reasoning?: Json | null
           ai_enriched_at?: string | null
           ai_original_title?: string | null
           ai_suggested_brand?: string | null
-          ai_suggested_delivery_prices?: Json | null
           ai_suggested_model?: string | null
           ai_suggested_title?: string | null
           brand?: string | null
@@ -2659,42 +2522,32 @@ export type Database = {
           cloudinary_url?: string | null
           condition?: string | null
           created_at?: string | null
+          delivery_price?: never
           description?: string | null
           id?: string | null
-          last_notification_sent_at?: string | null
-          location?: string | null
           lot_number?: number | null
           model?: string | null
-          optid_created?: string | null
+          optid_created?: never
+          phone_url?: never
           place_number?: number | null
           preview_image_url?: string | null
+          price?: never
           product_location?: string | null
-          product_url?: string | null
-          rating_seller?: number | null
+          rating_seller?: never
           requires_moderation?: boolean | null
-          seller_id?: string | null
+          seller_id?: never
+          seller_name?: never
           status?: Database["public"]["Enums"]["product_status"] | null
-          telegram_confirmed_at?: string | null
-          telegram_last_error?: string | null
-          telegram_message_id?: number | null
-          telegram_notification_status?: string | null
-          tg_notify_attempts?: number | null
-          tg_notify_error?: string | null
-          tg_notify_status?: string | null
-          tg_views_frozen?: number | null
+          telegram_url?: never
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
         }
         Update: {
-          admin_notification_sent_at?: string | null
           ai_confidence?: number | null
-          ai_delivery_confidence?: number | null
-          ai_delivery_reasoning?: Json | null
           ai_enriched_at?: string | null
           ai_original_title?: string | null
           ai_suggested_brand?: string | null
-          ai_suggested_delivery_prices?: Json | null
           ai_suggested_model?: string | null
           ai_suggested_title?: string | null
           brand?: string | null
@@ -2703,49 +2556,28 @@ export type Database = {
           cloudinary_url?: string | null
           condition?: string | null
           created_at?: string | null
+          delivery_price?: never
           description?: string | null
           id?: string | null
-          last_notification_sent_at?: string | null
-          location?: string | null
           lot_number?: number | null
           model?: string | null
-          optid_created?: string | null
+          optid_created?: never
+          phone_url?: never
           place_number?: number | null
           preview_image_url?: string | null
+          price?: never
           product_location?: string | null
-          product_url?: string | null
-          rating_seller?: number | null
+          rating_seller?: never
           requires_moderation?: boolean | null
-          seller_id?: string | null
+          seller_id?: never
+          seller_name?: never
           status?: Database["public"]["Enums"]["product_status"] | null
-          telegram_confirmed_at?: string | null
-          telegram_last_error?: string | null
-          telegram_message_id?: number | null
-          telegram_notification_status?: string | null
-          tg_notify_attempts?: number | null
-          tg_notify_error?: string | null
-          tg_notify_status?: string | null
-          tg_views_frozen?: number | null
+          telegram_url?: never
           title?: string | null
           updated_at?: string | null
           view_count?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "products_seller_id_fkey"
-            columns: ["seller_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_seller_id_fkey"
-            columns: ["seller_id"]
-            isOneToOne: false
-            referencedRelation: "public_seller_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       products_with_view_estimate: {
         Row: {
