@@ -1,16 +1,22 @@
-import React from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { useOptimizedCatalogProducts } from '@/hooks/useOptimizedCatalogProducts';
-import { SimplifiedProductCard } from '@/components/product/SimplifiedProductCard';
+import { useIntersection } from '@/hooks/useIntersection';
+import CatalogContent from '@/components/catalog/CatalogContent';
 import SearchControls from '@/components/catalog/SearchControls';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 export const HomeProductsSection: React.FC = () => {
+  // Refs for intersection observer
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const prefetchTriggerRef = useRef<HTMLDivElement>(null);
+
   const {
     searchTerm,
     hideSoldProducts,
     setHideSoldProducts,
     mappedProducts,
+    productChunks,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
@@ -21,7 +27,7 @@ export const HomeProductsSection: React.FC = () => {
     refetch,
     totalProductsCount
   } = useOptimizedCatalogProducts({
-    productsPerPage: 12,
+    productsPerPage: 24,
   });
 
   const handleClearSoldFilter = () => {
@@ -32,6 +38,49 @@ export const HomeProductsSection: React.FC = () => {
     handleClearSearch();
     setHideSoldProducts(false);
   };
+
+  // Intersection observers for auto-loading
+  const isLoadMoreVisible = useIntersection(loadMoreRef, "100px");
+  const isPrefetchTriggerVisible = useIntersection(prefetchTriggerRef, "300px");
+
+  // Helper functions
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const handleRetry = async () => {
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error retrying products fetch:', error);
+    }
+  };
+
+  const prefetchNextPage = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Computed values
+  const hasAnyFilters = !!(searchTerm || hideSoldProducts);
+  const allProductsLoaded = mappedProducts.length > 0 && !hasNextPage && !isFetchingNextPage;
+
+  // Auto-load more products when visible
+  useEffect(() => {
+    if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  // Prefetch next page when user is getting close
+  useEffect(() => {
+    if (isPrefetchTriggerVisible && hasNextPage && !isFetchingNextPage) {
+      prefetchNextPage();
+    }
+  }, [isPrefetchTriggerVisible, prefetchNextPage, hasNextPage, isFetchingNextPage]);
 
   if (isError) {
     return (
@@ -65,53 +114,22 @@ export const HomeProductsSection: React.FC = () => {
         </div>
       )}
 
-      {/* Loading State */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
-        </div>
-      ) : mappedProducts.length === 0 ? (
-        /* Empty State */
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg mb-2">Товары не найдены</p>
-          <p className="text-sm text-muted-foreground">Попробуйте изменить параметры поиска</p>
-        </div>
-      ) : (
-        /* Products Grid */
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {mappedProducts.map(product => (
-              <SimplifiedProductCard key={product.id} product={product} />
-            ))}
-          </div>
-
-          {/* Load More Button */}
-          {hasNextPage && (
-            <div className="flex justify-center pt-6">
-              <Button
-                onClick={() => fetchNextPage()}
-                disabled={isFetchingNextPage}
-                variant="secondary"
-                size="lg"
-                className="min-w-[200px]"
-              >
-                {isFetchingNextPage ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Загрузка...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2" />
-                    Загрузить ещё
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-        </>
-      )}
+      {/* CatalogContent - unified display logic */}
+      <CatalogContent
+        isLoading={isLoading}
+        isError={isError}
+        mappedProducts={mappedProducts}
+        productChunks={productChunks}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        allProductsLoaded={allProductsLoaded}
+        hasAnyFilters={hasAnyFilters}
+        loadMoreRef={loadMoreRef}
+        handleLoadMore={handleLoadMore}
+        handleRetry={handleRetry}
+        handleClearAll={handleClearAll}
+        totalProductsCount={totalProductsCount}
+      />
     </div>
   );
 };
