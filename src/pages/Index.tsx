@@ -7,6 +7,7 @@ import StatisticsSection from "@/components/home/StatisticsSection";
 import { ProfessionalAuthBlock } from "@/components/auth/ProfessionalAuthBlock";
 import { TelegramLoginWidget } from "@/components/auth/TelegramLoginWidget";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { HomeProductsSection } from "@/components/home/HomeProductsSection";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Building2 } from "lucide-react";
@@ -68,9 +69,10 @@ const Index = () => {
             </div>
           </div>
         }>
-          <section className="min-h-screen bg-background">
+          <section className="bg-background">
             <div className="container mx-auto px-4 py-20">
-              <div className="max-w-2xl mx-auto text-center">
+              {/* Hero Section */}
+              <div className="max-w-2xl mx-auto text-center mb-16">
                 
                 {/* Company Logo */}
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-primary rounded-lg mb-8">
@@ -157,6 +159,24 @@ const Index = () => {
                        </div>
                      )}
                    </ErrorBoundary>
+               </div>
+
+               {/* Products Catalog Section */}
+               <div className="max-w-7xl mx-auto mt-20">
+                 <div className="mb-8">
+                   <h2 className="text-3xl font-bold text-foreground mb-2">Каталог запчастей</h2>
+                   <p className="text-muted-foreground">Просмотрите доступные товары с возможностью поиска</p>
+                 </div>
+                 <ErrorBoundary fallback={
+                   <div className="text-center py-12">
+                     <p className="text-muted-foreground mb-4">Ошибка загрузки каталога</p>
+                     <Button variant="outline" onClick={() => window.location.reload()}>
+                       Обновить страницу
+                     </Button>
+                   </div>
+                 }>
+                   <HomeProductsSection />
+                 </ErrorBoundary>
                </div>
              </div>
            </section>
