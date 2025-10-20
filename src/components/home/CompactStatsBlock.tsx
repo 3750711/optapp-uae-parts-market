@@ -209,37 +209,6 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
         </div>
       </div>
 
-      {/* Прогресс-бар с индикаторами */}
-      <div className="flex items-center gap-3 mt-4 px-4">
-        <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-          {current + 1} / {user ? 2 : 3}
-        </span>
-        
-        <div className="flex-1 relative h-1.5 bg-muted/20 rounded-full overflow-hidden">
-          <div 
-            className="absolute h-full bg-gradient-to-r from-primary via-primary/80 to-primary rounded-full transition-all duration-500 ease-out"
-            style={{ 
-              width: `${((current + 1) / (user ? 2 : 3)) * 100}%` 
-            }}
-          />
-        </div>
-        
-        {/* Интерактивные точки для быстрого перехода */}
-        <div className="flex gap-1.5">
-          {(user ? [0, 1] : [0, 1, 2]).map((index) => (
-            <button
-              key={index}
-              onClick={() => api?.scrollTo(index)}
-              className={`h-1.5 w-1.5 rounded-full transition-all duration-300 motion-reduce:transition-none ${
-                current === index 
-                  ? 'bg-primary scale-125' 
-                  : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-              }`}
-              aria-label={`Перейти к слайду ${index + 1}`}
-            />
-          ))}
-        </div>
-      </div>
     </div>
   );
 };
