@@ -119,30 +119,6 @@ export const MobileCatalogCard = React.memo(({
                   ))}
                 </div>
               </div>
-              
-              {/* Dot Indicators */}
-              <div className="flex justify-center gap-1.5 mt-2">
-                {images.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      scrollTo(index);
-                    }}
-                    className="p-1"
-                    aria-label={`Перейти к фото ${index + 1}`}
-                  >
-                    <span
-                      className={cn(
-                        "block w-2 h-2 rounded-full transition-colors",
-                        index === currentIndex
-                          ? "bg-primary"
-                          : "bg-gray-300"
-                      )}
-                    />
-                  </button>
-                ))}
-              </div>
             </>
           ) : (
             <div className="aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden">
