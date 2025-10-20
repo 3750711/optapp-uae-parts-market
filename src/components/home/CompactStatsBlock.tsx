@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Package, ShoppingBag, CheckCircle2, Star, Truck, Shield, LogIn, UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, ShoppingBag, CheckCircle2, Star, Truck, Shield, LogIn, UserPlus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useStatistics } from '@/hooks/useStatistics';
@@ -198,16 +198,6 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
           )}
         </CarouselContent>
       </Carousel>
-
-      {/* Touch indicators для мобильных */}
-      <div className="flex sm:hidden justify-between absolute inset-x-4 top-1/2 -translate-y-1/2 pointer-events-none z-10">
-        <div className="w-8 h-8 rounded-full bg-primary/10 backdrop-blur-sm flex items-center justify-center border border-white/10">
-          <ChevronLeft className="w-4 h-4 text-primary" />
-        </div>
-        <div className="w-8 h-8 rounded-full bg-primary/10 backdrop-blur-sm flex items-center justify-center border border-white/10">
-          <ChevronRight className="w-4 h-4 text-primary" />
-        </div>
-      </div>
 
     </div>
   );
