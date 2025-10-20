@@ -109,7 +109,7 @@ export const MobileCatalogCard = React.memo(({
                         <OptimizedImage
                           src={imageUrl}
                           alt={`${product.title} - фото ${index + 1}`}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                           cloudinaryPublicId={product.cloudinary_public_id}
                           cloudinaryUrl={product.cloudinary_url}
                           priority={index === 0}
@@ -125,7 +125,7 @@ export const MobileCatalogCard = React.memo(({
               <OptimizedImage
                 src={images[0]}
                 alt={product.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 cloudinaryPublicId={product.cloudinary_public_id}
                 cloudinaryUrl={product.cloudinary_url}
                 priority={true}
