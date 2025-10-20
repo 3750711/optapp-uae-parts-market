@@ -18,20 +18,20 @@ import { useProductImage } from "@/hooks/useProductImage";
 export interface ProductProps {
   id: string;
   title: string;
-  price: number;
+  price: number | null; // Nullable for unauthenticated users
   brand?: string;
   model?: string;
   condition?: string;
-  seller_name?: string;
-  seller_id: string;
+  seller_name?: string | null; // Nullable for unauthenticated users
+  seller_id: string | null; // Nullable for unauthenticated users
   status: 'pending' | 'active' | 'sold' | 'archived';
   description?: string;
   lot_number?: number;
   place_number?: number;
-  delivery_price?: number;
+  delivery_price?: number | null; // Nullable for unauthenticated users
   product_location?: string;
-  telegram_url?: string;
-  phone_url?: string;
+  telegram_url?: string | null; // Nullable for unauthenticated users
+  phone_url?: string | null; // Nullable for unauthenticated users
   view_count?: number;
   rating_seller?: number;
   cloudinary_url?: string;
@@ -236,25 +236,33 @@ const ProductCard = memo(({
 
           {/* Price and Details */}
           <div className="flex items-center justify-between mb-3">
-            <div className="text-lg font-bold text-primary">
-              {formatPrice(product.price)}
-            </div>
+            {product.price !== null ? (
+              <div className="text-lg font-bold text-primary">
+                {formatPrice(product.price)}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+                🔒 Войдите для просмотра
+              </div>
+            )}
           </div>
 
           {/* Enhanced Product Details */}
           <div className="space-y-1 mb-3 text-xs text-gray-600">
             {/* Seller Info */}
-            <div className="flex items-center justify-between">
-              <span className="font-medium">Продавец:</span>
-              <div className="flex items-center gap-1">
-                <span className="truncate max-w-[120px]">{product.seller_name}</span>
-                {product.rating_seller && (
-                  <span className="text-yellow-600 flex items-center">
-                    ⭐ {product.rating_seller}
-                  </span>
-                )}
+            {product.seller_name && (
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Продавец:</span>
+                <div className="flex items-center gap-1">
+                  <span className="truncate max-w-[120px]">{product.seller_name}</span>
+                  {product.rating_seller && (
+                    <span className="text-yellow-600 flex items-center">
+                      ⭐ {product.rating_seller}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
             
             {/* Location */}
             {product.product_location && (
@@ -290,7 +298,7 @@ const ProductCard = memo(({
       {/* Action Buttons */}
       <div className="px-4 pb-4 space-y-2">
         {/* Blitz Buy Section for active products */}
-        {product.status === 'active' && (
+        {product.status === 'active' && product.price !== null && (
           <BlitzPriceSection
             price={product.price}
             onBuyNow={handleBuyNow}
@@ -328,7 +336,7 @@ const ProductCard = memo(({
             </Button>
           )}
           
-          {product.telegram_url && (
+          {product.telegram_url && product.seller_id && (
             <Button
               variant="outline"
               size="sm" 

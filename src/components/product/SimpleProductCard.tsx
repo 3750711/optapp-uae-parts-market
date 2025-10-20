@@ -68,9 +68,15 @@ export const SimpleProductCard: React.FC<SimpleProductCardProps> = ({ product })
         
         {/* Price */}
         <div className="pt-1">
-          <span className="font-bold text-lg text-foreground">
-            {formatPrice(product.price)}
-          </span>
+          {product.price !== null ? (
+            <span className="font-bold text-lg text-foreground">
+              {formatPrice(product.price)}
+            </span>
+          ) : (
+            <div className="text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded">
+              🔒 Войдите, чтобы увидеть цену
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -58,17 +58,20 @@ const ProductDetail = () => {
     }
   };
 
-  // Product query
+  // Product query - use products_public for unauthenticated users
   const { data: product, isLoading, error, isError } = useQuery({
-    queryKey: ['product', id],
+    queryKey: ['product', id, user?.id],
     queryFn: async () => {
       if (!id) {
         throw new Error('No product ID provided');
       }
       
       try {
+        // Use products_public for unauthenticated users, products for authenticated
+        const tableName = user ? 'products' : 'products_public';
+        
         const { data, error } = await supabase
-          .from('products')
+          .from(tableName)
           .select(`
             *,
             product_images(*),

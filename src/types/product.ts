@@ -2,14 +2,14 @@
 export interface Product {
   id: string;
   title: string;
-  price: number;
+  price: number | null; // Nullable for unauthenticated users
   brand?: string;
   model?: string;
   condition?: string;
   description?: string;
-  seller_name: string;
+  seller_name: string | null; // Nullable for unauthenticated users
   status: 'pending' | 'active' | 'sold' | 'archived';
-  seller_id: string;
+  seller_id: string | null; // Nullable for unauthenticated users
   created_at?: string;
   delivery_price?: number | null;
   optid_created?: string | null;
@@ -23,8 +23,8 @@ export interface Product {
   place_number?: number;
   product_location?: string;
   view_count?: number;
-  phone_url?: string;
-  telegram_url?: string;
+  phone_url?: string | null; // Nullable for unauthenticated users
+  telegram_url?: string | null; // Nullable for unauthenticated users
   product_videos?: Array<{ url: string }>;
   location?: string;
   image?: string;

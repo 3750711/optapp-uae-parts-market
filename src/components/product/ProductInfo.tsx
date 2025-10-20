@@ -34,6 +34,11 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const navigate = useNavigate();
   const { invalidateAllCaches } = useImageCacheManager();
   const isOwner = user?.id === product.seller_id;
+  
+  // Hide if no price data (unauthenticated user)
+  if (product.price === null) {
+    return null;
+  }
 
   // Function to get product videos with enhanced logging
   const getProductVideos = () => {
@@ -250,7 +255,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             className="flex-1 bg-green-600 hover:bg-green-700"
           >
             <ShoppingCart className="h-4 w-4 mr-2" />
-            Купить за ${product.price}
+            Купить за ${product.price !== null ? product.price : 0}
           </Button>
         </div>
       )}
