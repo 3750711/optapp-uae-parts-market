@@ -93,10 +93,10 @@ export const MobileCatalogCard = React.memo(({
 
   return (
     <Card 
-      className="overflow-hidden bg-transparent border-0 shadow-none cursor-pointer"
+      className="bg-transparent border-0 shadow-none cursor-pointer"
       onClick={handleClick}
     >
-      <div className="p-2.5 space-y-3">
+      <div className="p-2.5 space-y-3 overflow-hidden">
         {/* Image Carousel Section */}
         <div className="relative w-full">
           {images.length > 1 ? (
