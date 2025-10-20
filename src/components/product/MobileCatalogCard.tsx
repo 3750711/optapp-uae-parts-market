@@ -4,12 +4,12 @@ import { ru } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { formatPrice } from "@/utils/formatPrice";
-import { Product } from "@/types/product";
+import { ProductProps } from "@/components/product/ProductCard";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface MobileCatalogCardProps {
-  product: Product;
+  product: ProductProps;
   onStatusChange?: (productId: string, newStatus: string) => void;
   showSoldButton?: boolean;
 }

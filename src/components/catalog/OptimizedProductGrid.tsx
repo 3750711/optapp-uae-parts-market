@@ -1,7 +1,8 @@
-
 import React, { useMemo } from "react";
 import ProductCard, { ProductProps } from "@/components/product/ProductCard";
+import MobileCatalogCard from "@/components/product/MobileCatalogCard";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
+import { useMobileLayout } from "@/hooks/useMobileLayout";
 
 // View mode type definition
 type ViewMode = "grid" | "list";
@@ -26,26 +27,25 @@ export const OptimizedProductGrid = React.memo(({
   hideMakeOfferButton = false,
   batchOffersData,
 }: OptimizedProductGridProps) => {
+  const { isMobile } = useMobileLayout();
 
-  if (viewMode === "list") {
+  // На мобильных или в list view используем MobileCatalogCard
+  if (isMobile || viewMode === "list") {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {products.map((product) => (
-          <div key={product.id} className="w-full">
-            <ProductCard
-              product={product}
-              onStatusChange={onStatusChange}
-              showSoldButton={showSoldButton}
-              disableCarousel={disableCarousel}
-              hideMakeOfferButton={hideMakeOfferButton}
-              batchOffersData={batchOffersData}
-            />
-          </div>
+          <MobileCatalogCard
+            key={product.id}
+            product={product}
+            onStatusChange={onStatusChange}
+            showSoldButton={showSoldButton}
+          />
         ))}
       </div>
     );
   }
 
+  // Desktop grid view
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
       {products.map((product) => (
