@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "lodash": "lodash-es",
       // CRITICAL: Force single React instance - исправляем дублирование
       "react": path.resolve(__dirname, "./node_modules/react"),
       "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
@@ -58,7 +59,7 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-switch',
             'lucide-react',
           ],
-          'vendor-lodash': ['lodash'],
+          'vendor-lodash': ['lodash-es'],
           'vendor-utils': ['zod', 'react-hook-form', 'date-fns', 'clsx', 'class-variance-authority'],
           'vendor-cloudinary': [
             'browser-image-compression',
@@ -131,7 +132,7 @@ export default defineConfig(({ mode }) => ({
       'clsx',
       'class-variance-authority'
     ],
-    exclude: ['lodash'],
+    exclude: ['lodash-es'],
     // Force optimization in development for stability
     force: mode === 'development'
   },
