@@ -80,6 +80,10 @@ export default {
         md: '0.75rem',
         '2xl': '2rem',
       },
+      perspective: {
+        '1000': '1000px',
+        '2000': '2000px',
+      },
       keyframes: {
         'accordion-down': {
           from: { height: '0' },
@@ -116,6 +120,10 @@ export default {
         'shimmer': {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' }
+        },
+        'gradient-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' }
         }
       },
       animation: {
@@ -127,7 +135,8 @@ export default {
         'slide-out-right': 'slide-out-right 0.3s ease-out',
         'scale-in': 'scale-in 0.2s ease-out',
         'fade-in': 'fade-in 0.5s ease-out forwards',
-        'shimmer': 'shimmer 2s linear infinite'
+        'shimmer': 'shimmer 2s linear infinite',
+        'gradient-shift': 'gradient-shift 8s ease-in-out infinite'
       }
     }
   },
