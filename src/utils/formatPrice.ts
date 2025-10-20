@@ -1,5 +1,6 @@
-
-export const formatPrice = (price: number): string => {
+export const formatPrice = (price: number | null): string => {
+  if (price === null) return '—';
+  
   return new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'USD',

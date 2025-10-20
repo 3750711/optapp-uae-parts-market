@@ -101,7 +101,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 
   // Memoized calculations that react to data changes
   const { 
-    formatPrice, 
     getTimeRemaining,
     batchData,
     totalOffers,
@@ -109,8 +108,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     isUserLeading,
     isFreshData
   } = useMemo(() => {
-    const formatPriceFunc = (price: number) => new Intl.NumberFormat('ru-RU').format(price);
-    
     const getTimeRemainingFunc = (expiresAt: string) => {
       const now = new Date();
       const expiry = new Date(expiresAt);
@@ -148,7 +145,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     });
     
     return {
-      formatPrice: formatPriceFunc,
       getTimeRemaining: getTimeRemainingFunc,
       batchData: batchDataForProduct,
       totalOffers: totalOffersCount,
@@ -262,7 +258,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                 )}
                 {maxCompetitorPrice > 0 && (
                    <div className="text-xs text-green-600 font-medium">
-                     Offer ${formatPrice(maxCompetitorPrice)}
+                     Offer {formatPrice(maxCompetitorPrice)}
                    </div>
                 )}
               </div>
@@ -281,10 +277,11 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 
               <div className="text-right">
                 <div className={cn(
-                  "text-xl sm:text-2xl font-bold text-gray-900 transition-all duration-300",
-                  priceChanged && "text-blue-600 animate-pulse"
+                  "text-xl sm:text-2xl font-bold transition-all duration-300",
+                  priceChanged && "text-blue-600 animate-pulse",
+                  product.price === null ? "text-gray-500 text-base" : "text-gray-900"
                 )}>
-                  ${formatPrice(product.price)}
+                  {product.price !== null ? formatPrice(product.price) : '🔒 Войдите для просмотра'}
                 </div>
                 
                 {showOfferStatus && product.user_offer_price && (
@@ -292,7 +289,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
                     "text-sm text-gray-600 transition-all duration-300 mt-1",
                     priceChanged && "text-blue-600 font-medium"
                   )}>
-                    Ваше предложение: <span className="font-medium">${formatPrice(product.user_offer_price)}</span>
+                    Ваше предложение: <span className="font-medium">{formatPrice(product.user_offer_price)}</span>
                   </div>
                 )}
                 
