@@ -26,21 +26,29 @@ function makeCloudinaryTelegramFriendly(url: string): string {
     return url; // Not a Cloudinary URL, return as-is
   }
 
-  // Pattern: https://res.cloudinary.com/{cloud_name}/image/upload/{transforms}/{version}/{path}
-  const pattern = /(https:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)([^\/]*\/)?(v\d+\/)?(.+)/;
-  const match = url.match(pattern);
-
-  if (!match) {
-    console.warn(`⚠️ [Cloudinary] Could not parse URL: ${url}`);
-    return url; // Return original if can't parse
+  // Более простой подход: вставляем fl_attachment сразу после /upload/
+  const uploadMarker = '/image/upload/';
+  const uploadIndex = url.indexOf(uploadMarker);
+  
+  if (uploadIndex === -1) {
+    console.warn(`⚠️ [Cloudinary] Could not find /image/upload/ in URL: ${url}`);
+    return url;
   }
-
-  const [, baseUrl, , version, path] = match;
-
-  // Add fl_attachment to force file download instead of webpage
-  // Also add f_jpg to ensure JPEG format
+  
+  // Вставляем трансформации сразу после /upload/
+  const beforeUpload = url.substring(0, uploadIndex + uploadMarker.length);
+  const afterUpload = url.substring(uploadIndex + uploadMarker.length);
+  
+  // Добавляем fl_attachment для принудительной отдачи файла
   const transforms = 'fl_attachment,f_jpg/';
-  const newUrl = `${baseUrl}${transforms}${version || ''}${path}`;
+  
+  // Проверяем, нет ли уже трансформаций
+  if (afterUpload.startsWith('fl_attachment')) {
+    console.log(`✅ [Cloudinary] URL already has fl_attachment`);
+    return url;
+  }
+  
+  const newUrl = `${beforeUpload}${transforms}${afterUpload}`;
   
   console.log(`🔄 [Cloudinary] Transformed for Telegram:`);
   console.log(`   Original: ${url.substring(0, 80)}...`);
@@ -350,7 +358,7 @@ Deno.serve(async (req) => {
 
         if (!testResponse.ok) {
           console.error(`❌ [Test] Telegram rejected image:`, {
-            url: firstChunk[0],
+            url: telegramFriendlyUrls[0],  // ✅ Трансформированный URL
             status: testResponse.status,
             error: testResult
           });
