@@ -290,6 +290,41 @@ Deno.serve(async (req) => {
           console.log(`  [${i}] ${m.media.substring(0, 120)}${m.media.length > 120 ? '...' : ''}`);
         });
 
+        // 🧪 ТЕСТОВЫЙ ЗАПРОС: Проверяем доступность первого изображения
+        console.log(`🧪 [Test] Testing first image with Telegram sendPhoto API...`);
+        console.log(`🧪 [Test] Image URL: ${firstChunk[0]}`);
+
+        const testResponse = await fetch(
+          `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendPhoto`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: TG_CHAT_ID,
+              photo: firstChunk[0],
+              caption: '🧪 Test image - диагностика доступности'
+            })
+          }
+        );
+
+        const testResult = await testResponse.json();
+        console.log(`🧪 [Test] Telegram sendPhoto response status: ${testResponse.status}`);
+        console.log(`🧪 [Test] Telegram sendPhoto response:`, JSON.stringify(testResult, null, 2));
+
+        if (!testResponse.ok) {
+          console.error(`❌ [Test] Telegram rejected image:`, {
+            url: firstChunk[0],
+            status: testResponse.status,
+            error: testResult
+          });
+          
+          // Если тест не прошёл, логируем детали но продолжаем с sendMediaGroup
+          console.warn(`⚠️ [Test] Single image test failed, but will try sendMediaGroup anyway`);
+        } else {
+          console.log(`✅ [Test] Single image test PASSED - image is accessible to Telegram`);
+        }
+
+        // Продолжаем с обычной отправкой mediaGroup
         const response = await fetch(
           `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMediaGroup`,
           {
