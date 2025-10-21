@@ -102,7 +102,7 @@ export const MobileCatalogCard = React.memo(({
           {images.length > 1 ? (
             <>
               <div ref={emblaRef} className="overflow-hidden rounded-lg">
-                <div className="flex gap-0 items-stretch h-[240px]">
+                <div className="flex gap-3 px-2 items-stretch h-[240px]">
                   {images.map((imageUrl, index) => (
                     <div 
                       key={index} 
