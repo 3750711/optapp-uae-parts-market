@@ -144,6 +144,133 @@ async function sendToTelegram(
 }
 
 /**
+ * Handler for product notifications
+ * Supports: active, repost, sold
+ */
+async function handleProductNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  
+  const { productId, notificationType, priceChanged, newPrice, oldPrice } = payload;
+  const chatId = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || Deno.env.get('TELEGRAM_GROUP_CHAT_ID_PRODUCTS');
+  
+  if (!chatId) {
+    throw new Error('TELEGRAM_GROUP_CHAT_ID not configured');
+  }
+  
+  // Fetch product with images and seller profile
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select(`
+      *,
+      product_images (url),
+      profiles!products_seller_id_fkey (
+        opt_id,
+        telegram,
+        full_name
+      )
+    `)
+    .eq('id', productId)
+    .single();
+  
+  if (productError || !product) {
+    throw new Error('Product not found');
+  }
+  
+  // === SPECIAL CASE: Sold notification (text-only) ===
+  if (notificationType === 'sold') {
+    console.log('📝 [Product] Sending sold notification (text-only)');
+    
+    const titleParts = [product.title, product.brand, product.model].filter(Boolean);
+    const fullTitle = titleParts.join(' ').trim();
+    
+    const textMessage = `😔 Жаль, но Лот #${product.lot_number} ${fullTitle} уже ушел!\nКто-то оказался быстрее... в следующий раз повезет - будь начеку.`;
+    
+    const result = await sendToTelegram(chatId, textMessage);
+    
+    if (result.success) {
+      // Update product
+      await supabase
+        .from('products')
+        .update({ 
+          last_notification_sent_at: new Date().toISOString(),
+          telegram_notification_status: 'sent'
+        })
+        .eq('id', productId);
+    }
+    
+    return result;
+  }
+  
+  // === IMAGE-BASED NOTIFICATIONS (active, repost) ===
+  
+  const imageUrls = product.product_images?.map(img => img.url) || [];
+  console.log(`📷 [Product] Using ${imageUrls.length} images`);
+  
+  if (imageUrls.length === 0) {
+    throw new Error('No images found for product');
+  }
+  
+  // Load local telegram accounts for proper display
+  const localTelegramAccounts = await getLocalTelegramAccounts();
+  
+  // Form full title with brand and model
+  const titleParts = [product.title, product.brand, product.model].filter(Boolean);
+  const fullTitle = titleParts.join(' ').trim();
+  
+  // Check if price was reduced
+  const isPriceReduced = priceChanged && newPrice && oldPrice && newPrice < oldPrice;
+  
+  // Add SALE marker if price reduced
+  const lotNumber = isPriceReduced 
+    ? `#${product.lot_number}❗️SALE❗️`
+    : `#${product.lot_number}`;
+  
+  // Form price info
+  const priceInfo = priceChanged && newPrice && oldPrice
+    ? `\n💰 Новая цена: ${newPrice} $ (было ${oldPrice} $)`
+    : `\n💰 Цена: ${product.price} $`;
+  
+  // Add description if exists (limited to 200 chars)
+  const descriptionLine = product.description 
+    ? `\n📝 ${product.description.slice(0, 200)}${product.description.length > 200 ? '...' : ''}` 
+    : '';
+  
+  // Caption depends on notification type
+  const statusLine = notificationType === 'product_published' 
+    ? '\n\n📊 Статус: Опубликован'
+    : '\n\n📊 Статус: Опубликован';
+  
+  const caption = `LOT(лот) ${lotNumber}\n📦 ${fullTitle}${priceInfo}\n🚚 Цена доставки: ${product.delivery_price || 0} $\n🆔 OPT_ID продавца: ${product.profiles?.opt_id || 'N/A'}\n👤 Telegram продавца: ${getTelegramForDisplay(product.profiles?.telegram || '', localTelegramAccounts)}${descriptionLine}${statusLine}`;
+  
+  // Check caption length (Telegram limit is 1024 chars)
+  let finalCaption = caption;
+  if (caption.length > 1024) {
+    console.warn(`⚠️ [Product] Caption exceeds 1024 chars, truncating...`);
+    finalCaption = caption.substring(0, 1020) + '...';
+  }
+  
+  console.log(`📝 [Product] Caption length: ${finalCaption.length} chars`);
+  
+  // Send to Telegram
+  const result = await sendToTelegram(chatId, finalCaption, imageUrls);
+  
+  if (result.success) {
+    // Update product
+    await supabase
+      .from('products')
+      .update({ 
+        last_notification_sent_at: new Date().toISOString(),
+        telegram_notification_status: 'sent'
+      })
+      .eq('id', productId);
+  }
+  
+  return result;
+}
+
+/**
  * Main handler - routes notifications by type
  */
 Deno.serve(async (req) => {
@@ -175,8 +302,7 @@ Deno.serve(async (req) => {
     // Route to appropriate handler
     switch (notificationType) {
       case 'product':
-        // TODO: Implement in Step 2
-        result = { success: false, error: 'Product handler not implemented yet' };
+        result = await handleProductNotification(payload, supabase);
         break;
         
       case 'order':
