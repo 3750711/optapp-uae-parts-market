@@ -17,6 +17,38 @@ const MAX_RETRIES = 3; // ✅ Уменьшено с 5, т.к. теперь жд�
 const TG_BOT_TOKEN = Deno.env.get('TG_BOT_TOKEN');
 const TG_CHAT_ID = Deno.env.get('TG_CHAT_ID');
 
+/**
+ * Transforms Cloudinary URL to force direct file delivery for Telegram
+ * Adds fl_attachment flag to prevent HTML page delivery
+ */
+function makeCloudinaryTelegramFriendly(url: string): string {
+  if (!url.includes('res.cloudinary.com')) {
+    return url; // Not a Cloudinary URL, return as-is
+  }
+
+  // Pattern: https://res.cloudinary.com/{cloud_name}/image/upload/{transforms}/{version}/{path}
+  const pattern = /(https:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)([^\/]*\/)?(v\d+\/)?(.+)/;
+  const match = url.match(pattern);
+
+  if (!match) {
+    console.warn(`⚠️ [Cloudinary] Could not parse URL: ${url}`);
+    return url; // Return original if can't parse
+  }
+
+  const [, baseUrl, , version, path] = match;
+
+  // Add fl_attachment to force file download instead of webpage
+  // Also add f_jpg to ensure JPEG format
+  const transforms = 'fl_attachment,f_jpg/';
+  const newUrl = `${baseUrl}${transforms}${version || ''}${path}`;
+  
+  console.log(`🔄 [Cloudinary] Transformed for Telegram:`);
+  console.log(`   Original: ${url.substring(0, 80)}...`);
+  console.log(`   Modified: ${newUrl.substring(0, 80)}...`);
+  
+  return newUrl;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -278,11 +310,16 @@ Deno.serve(async (req) => {
 
         // Send first chunk with caption
         const firstChunk = imageChunks[0];
-        const mediaGroup = firstChunk.map((url, index) => ({
+
+        // 🔄 Трансформируем URL для Telegram (добавляем fl_attachment)
+        const telegramFriendlyUrls = firstChunk.map(makeCloudinaryTelegramFriendly);
+        const mediaGroup = telegramFriendlyUrls.map((url, index) => ({
           type: 'photo',
           media: url,
           ...(index === 0 ? { caption } : {})
         }));
+
+        console.log(`📤 [Telegram] Sending ${mediaGroup.length} Telegram-friendly URLs`);
 
         // Log URLs being sent to Telegram for debugging
         console.log(`📸 [QStash] Sending ${mediaGroup.length} images to Telegram:`);
@@ -292,7 +329,7 @@ Deno.serve(async (req) => {
 
         // 🧪 ТЕСТОВЫЙ ЗАПРОС: Проверяем доступность первого изображения
         console.log(`🧪 [Test] Testing first image with Telegram sendPhoto API...`);
-        console.log(`🧪 [Test] Image URL: ${firstChunk[0]}`);
+        console.log(`🧪 [Test] Image URL (transformed): ${telegramFriendlyUrls[0]}`);
 
         const testResponse = await fetch(
           `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendPhoto`,
@@ -301,7 +338,7 @@ Deno.serve(async (req) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               chat_id: TG_CHAT_ID,
-              photo: firstChunk[0],
+              photo: telegramFriendlyUrls[0], // Используем трансформированный URL
               caption: '🧪 Test image - диагностика доступности'
             })
           }
@@ -437,7 +474,10 @@ Deno.serve(async (req) => {
         // Send remaining chunks
         for (let i = 1; i < imageChunks.length; i++) {
           const chunk = imageChunks[i];
-          const chunkMediaGroup = chunk.map(url => ({
+
+          // 🔄 Трансформируем URL для Telegram
+          const telegramChunkUrls = chunk.map(makeCloudinaryTelegramFriendly);
+          const chunkMediaGroup = telegramChunkUrls.map(url => ({
             type: 'photo',
             media: url
           }));
