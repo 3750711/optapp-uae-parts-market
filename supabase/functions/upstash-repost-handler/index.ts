@@ -476,7 +476,7 @@ Deno.serve(async (req) => {
           // Используем retry_after из Telegram или стандартный backoff
           const baseDelay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s
           const telegramDelay = retryAfter * 1000;
-          const delay = Math.max(telegramDelay, baseDelay, 60000); // ✅ Минимум 60 секунд
+          const delay = Math.min(Math.max(telegramDelay, baseDelay), 10000); // Максимум 10 секунд
 
           console.log(`🔄 [QStash] Retrying in ${delay}ms (attempt ${attempt}/${MAX_RETRIES})`);
           console.log(`   - Telegram retry_after: ${retryAfter}s`);
