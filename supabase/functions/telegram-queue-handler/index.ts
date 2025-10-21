@@ -1295,13 +1295,17 @@ Deno.serve(async (req) => {
     const { notificationType, payload } = data;
     
     console.log(`📨 [telegram-queue-handler] Processing: ${notificationType}`);
-    console.log(`   Payload:`, JSON.stringify(payload).substring(0, 200));
+    console.log(`   Payload:`, payload ? JSON.stringify(payload).substring(0, 200) : 'undefined');
     
     let result: any;
     
     // Route to appropriate handler
     switch (notificationType) {
       case 'product':
+        result = await handleProductNotification(payload, supabase);
+        break;
+        
+      case 'repost':
         result = await handleProductNotification(payload, supabase);
         break;
         
