@@ -36,8 +36,8 @@ export async function getQStashConfig(): Promise<QStashConfig> {
     throw new Error('qstash_queue_name not found in app_settings');
   }
   
-  // Queue URL format for QStash Queue API
-  const queueUrl = `https://qstash.upstash.io/v2/queues/${queueName}/messages`;
+  // Queue URL format for QStash Queue API (v2/enqueue)
+  const queueUrl = `https://qstash.upstash.io/v2/enqueue/${queueName}`;
   
   console.log(`✅ QStash Config loaded: queue=${queueName}`);
   
@@ -73,7 +73,15 @@ export async function publishToQueue(
   };
   
   try {
-    const response = await fetch(config.queueUrl, {
+    // QStash Queue requires destination URL in the request URL
+    const destinationUrl = Deno.env.get('TELEGRAM_QUEUE_HANDLER_URL') || 
+      'https://api.partsbay.ae/functions/v1/telegram-queue-handler';
+    
+    const fullQueueUrl = `${config.queueUrl}/${destinationUrl}`;
+    
+    console.log(`📮 Enqueuing to: ${fullQueueUrl}`);
+    
+    const response = await fetch(fullQueueUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
