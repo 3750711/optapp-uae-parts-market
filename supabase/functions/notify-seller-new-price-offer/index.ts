@@ -299,7 +299,7 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
             original_price: originalPrice,
             old_price: oldPrice,
             notification_type: notificationType,
-            qstash_message_id: qstashResult.messageId
+            qstash_message_id: result.messageId
           }
         });
       console.log('Action logged successfully');
