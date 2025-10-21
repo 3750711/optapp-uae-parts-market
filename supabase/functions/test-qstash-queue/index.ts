@@ -12,11 +12,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🧪 Testing QStash Queue configuration...');
+    console.log('🧪 Testing QStash Direct Publish configuration...');
     
     // Get config
     const config = await getQStashConfig();
-    console.log(`✅ Config loaded: ${config.queueName}`);
+    console.log(`✅ Config loaded: ${config.endpointUrl}`);
     
     // Publish test message
     const result = await publishToQueue(
@@ -33,8 +33,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         config: {
-          queueName: config.queueName,
-          queueUrl: config.queueUrl
+          endpointUrl: config.endpointUrl,
+          publishUrl: config.publishUrl
         },
         result
       }),

@@ -2,12 +2,13 @@ import { createServiceClient } from './client.ts';
 
 export interface QStashConfig {
   token: string;
-  queueName: string;
-  queueUrl: string;
+  endpointUrl: string;  // Full URL of the endpoint to call
+  publishUrl: string;   // QStash Direct Publish API URL
 }
 
 /**
  * Get QStash configuration from app_settings
+ * Now uses Direct Publish API instead of Queue API
  */
 export async function getQStashConfig(): Promise<QStashConfig> {
   const supabase = createServiceClient();
@@ -15,7 +16,7 @@ export async function getQStashConfig(): Promise<QStashConfig> {
   const { data: settings, error } = await supabase
     .from('app_settings')
     .select('key, value')
-    .in('key', ['qstash_token', 'qstash_queue_name']);
+    .in('key', ['qstash_token', 'qstash_endpoint_url']);
   
   if (error) {
     throw new Error(`Failed to fetch QStash config: ${error.message}`);
@@ -26,26 +27,27 @@ export async function getQStashConfig(): Promise<QStashConfig> {
   }
   
   const token = settings.find(s => s.key === 'qstash_token')?.value;
-  const queueName = settings.find(s => s.key === 'qstash_queue_name')?.value;
+  const endpointUrl = settings.find(s => s.key === 'qstash_endpoint_url')?.value;
   
   if (!token) {
     throw new Error('qstash_token not found in app_settings');
   }
   
-  if (!queueName) {
-    throw new Error('qstash_queue_name not found in app_settings');
+  if (!endpointUrl) {
+    throw new Error('qstash_endpoint_url not found in app_settings');
   }
   
-  // Queue URL format for QStash Queue API (v2/enqueue)
-  const queueUrl = `https://qstash.upstash.io/v2/enqueue/${queueName}`;
+  // Direct Publish API format: v2/publish/{destination-url}
+  const publishUrl = `https://qstash.upstash.io/v2/publish/${endpointUrl}`;
   
-  console.log(`✅ QStash Config loaded: queue=${queueName}`);
+  console.log(`✅ QStash Direct Publish configured: ${endpointUrl}`);
   
-  return { token, queueName, queueUrl };
+  return { token, endpointUrl, publishUrl };
 }
 
 /**
- * Publish message to QStash Queue with deduplication
+ * Publish message to QStash using Direct Publish API
+ * Provides retry and deduplication without intermediate queue
  */
 export async function publishToQueue(
   config: QStashConfig,
@@ -54,11 +56,13 @@ export async function publishToQueue(
   deduplicationId?: string
 ): Promise<{ messageId: string; success: boolean }> {
   
-  console.log(`📤 Publishing to QStash queue: ${notificationType}`);
+  console.log(`📤 Publishing to QStash (Direct): ${notificationType}`);
   
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${config.token}`,
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    'Upstash-Retries': '3',  // Enable retry on QStash side (3 attempts with exponential backoff)
+    'Upstash-Forward-Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY') || ''}`, // Forward auth to endpoint
   };
   
   // Add deduplication ID if provided (prevents duplicate messages)
@@ -73,15 +77,9 @@ export async function publishToQueue(
   };
   
   try {
-    // QStash Queue requires destination URL in the request URL
-    const destinationUrl = Deno.env.get('TELEGRAM_QUEUE_HANDLER_URL') || 
-      'https://api.partsbay.ae/functions/v1/telegram-queue-handler';
+    console.log(`📮 Publishing to: ${config.publishUrl}`);
     
-    const fullQueueUrl = `${config.queueUrl}/${destinationUrl}`;
-    
-    console.log(`📮 Enqueuing to: ${fullQueueUrl}`);
-    
-    const response = await fetch(fullQueueUrl, {
+    const response = await fetch(config.publishUrl, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
@@ -89,12 +87,12 @@ export async function publishToQueue(
     
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`QStash queue publish failed: ${response.status} ${errorText}`);
+      throw new Error(`QStash publish failed: ${response.status} ${errorText}`);
     }
     
     const result = await response.json();
     
-    console.log(`✅ Queued successfully: ${result.messageId}`);
+    console.log(`✅ Published successfully: ${result.messageId}`);
     
     return {
       messageId: result.messageId,
@@ -102,7 +100,7 @@ export async function publishToQueue(
     };
     
   } catch (error) {
-    console.error(`❌ QStash queue error:`, error);
+    console.error(`❌ QStash publish error:`, error);
     throw error;
   }
 }
