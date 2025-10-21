@@ -271,6 +271,232 @@ async function handleProductNotification(
 }
 
 /**
+ * Handler for admin notifications about new products
+ * Sends product details to all admins with telegram_id
+ */
+async function handleAdminNewProductNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; messageId?: string; error?: string; results?: any[] }> {
+  
+  const { productId } = payload;
+  
+  console.log(`🔔 [AdminProduct] Processing notification for product ${productId}`);
+  
+  // Get product details with images
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select(`
+      *,
+      product_images(url, is_primary)
+    `)
+    .eq('id', productId)
+    .single();
+  
+  if (productError || !product) {
+    throw new Error('Product not found');
+  }
+  
+  // Get admin profiles with telegram IDs
+  const { data: admins, error: adminsError } = await supabase
+    .from('profiles')
+    .select('id, email, telegram_id, full_name')
+    .eq('user_type', 'admin')
+    .not('telegram_id', 'is', null);
+  
+  if (adminsError) {
+    throw new Error('Failed to fetch admin profiles');
+  }
+  
+  if (!admins || admins.length === 0) {
+    console.warn('⚠️ [AdminProduct] No admins with Telegram IDs found');
+    return {
+      success: true,
+      results: [],
+      error: 'No admins found'
+    };
+  }
+  
+  console.log(`👥 [AdminProduct] Found ${admins.length} admins to notify`);
+  
+  // Prepare message text
+  const messageText = `🔥 У нас новый товар на проверке! Срочно проверьте его и опубликуйте
+
+📦 Товар: ${product.title}
+💰 Цена: ${product.price} AED
+🚚 Доставка: ${product.delivery_price || 0} AED
+👤 Продавец: ${product.seller_name}
+🏷️ Бренд: ${product.brand}
+🚗 Модель: ${product.model}
+📍 Место: ${product.place_number}
+📋 Описание: ${product.description || 'Не указано'}
+
+🔗 Перейти к модерации: https://partsbay.ae/admin/product-moderation`;
+  
+  // Prepare images array (will be transformed by sendToTelegram)
+  const images = product.product_images?.map((img: any) => img.url) || [];
+  
+  // Send notifications to all admins
+  const results = [];
+  for (const admin of admins) {
+    try {
+      console.log(`📤 [AdminProduct] Sending to admin: ${admin.email}`);
+      
+      const result = await sendToTelegram(admin.telegram_id, messageText, images);
+      
+      results.push({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        success: result.success,
+        error: result.error
+      });
+      
+      // Delay between messages to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+    } catch (error) {
+      console.error(`❌ [AdminProduct] Failed to send to ${admin.email}:`, error);
+      results.push({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        success: false,
+        error: error.message
+      });
+    }
+  }
+  
+  // Update admin_notification_sent_at timestamp
+  await supabase
+    .from('products')
+    .update({ admin_notification_sent_at: new Date().toISOString() })
+    .eq('id', productId);
+  
+  const successCount = results.filter(r => r.success).length;
+  console.log(`✅ [AdminProduct] Sent ${successCount}/${results.length} notifications`);
+  
+  return {
+    success: true,
+    results: results
+  };
+}
+
+/**
+ * Handler for admin notifications about new users
+ * Sends user details to all admins with telegram_id
+ */
+async function handleAdminNewUserNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; messageId?: string; error?: string; results?: any[] }> {
+  
+  const { userId, fullName, email, userType, phone, optId, telegram, createdAt } = payload;
+  
+  console.log(`🔔 [AdminUser] Processing notification for user ${userId}`);
+  
+  // Get admin Telegram IDs
+  const { data: admins, error: adminsError } = await supabase
+    .from('profiles')
+    .select('id, email, telegram_id, full_name')
+    .eq('user_type', 'admin')
+    .not('telegram_id', 'is', null);
+  
+  if (adminsError) {
+    throw new Error('Failed to fetch admin profiles');
+  }
+  
+  if (!admins || admins.length === 0) {
+    console.warn('⚠️ [AdminUser] No admins with Telegram IDs found');
+    return {
+      success: true,
+      results: [],
+      error: 'No admins found'
+    };
+  }
+  
+  console.log(`👥 [AdminUser] Found ${admins.length} admins to notify`);
+  
+  // Get seller store info if applicable
+  let storeInfo: any = {};
+  if (userType === 'seller') {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('company_name, location, description_user')
+      .eq('id', userId)
+      .single();
+    
+    const { data: store } = await supabase
+      .from('stores')
+      .select('name, location, description')
+      .eq('seller_id', userId)
+      .limit(1)
+      .maybeSingle();
+    
+    storeInfo = {
+      storeName: store?.name || profile?.company_name,
+      storeLocation: store?.location || profile?.location,
+      storeDescription: store?.description || profile?.description_user
+    };
+  }
+  
+  // Format message
+  const userTypeRu = userType === 'buyer' ? 'Покупатель' : 'Продавец';
+  const userTypeIcon = userType === 'buyer' ? '🛒' : '🏪';
+  
+  let messageText = `${userTypeIcon} Новый пользователь на рассмотрении\n\n`;
+  messageText += `👤 Имя: ${fullName || 'Неизвестно'}\n`;
+  messageText += `📧 Email: ${email}\n`;
+  messageText += `👥 Тип: ${userTypeRu}\n`;
+  
+  if (phone) messageText += `📱 Телефон: ${phone}\n`;
+  if (optId) messageText += `🆔 OPT ID: ${optId}\n`;
+  if (telegram) messageText += `📱 Telegram: @${telegram}\n`;
+  
+  if (userType === 'seller' && storeInfo) {
+    if (storeInfo.storeName) messageText += `🏬 Магазин: ${storeInfo.storeName}\n`;
+    if (storeInfo.storeLocation) messageText += `📍 Локация: ${storeInfo.storeLocation}\n`;
+    if (storeInfo.storeDescription) messageText += `📝 Описание: ${storeInfo.storeDescription}\n`;
+  }
+  
+  messageText += `📅 Дата регистрации: ${new Date(createdAt || Date.now()).toLocaleString('ru-RU')}\n\n`;
+  messageText += `🔗 Проверить пользователя: https://partsbay.ae/admin/users\n`;
+  messageText += `ID: ${userId}`;
+  
+  // Send notifications to all admins
+  const results = [];
+  for (const admin of admins) {
+    try {
+      console.log(`📤 [AdminUser] Sending to admin: ${admin.email}`);
+      
+      const result = await sendToTelegram(admin.telegram_id, messageText);
+      
+      results.push({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        success: result.success,
+        error: result.error
+      });
+      
+    } catch (error) {
+      console.error(`❌ [AdminUser] Failed to send to ${admin.email}:`, error);
+      results.push({
+        adminId: admin.id,
+        adminEmail: admin.email,
+        success: false,
+        error: error.message
+      });
+    }
+  }
+  
+  const successCount = results.filter(r => r.success).length;
+  console.log(`✅ [AdminUser] Sent ${successCount}/${results.length} notifications`);
+  
+  return {
+    success: true,
+    results: results
+  };
+}
+
+/**
  * Handler for user welcome notifications
  * Sends welcome message to new users with deduplication
  */
@@ -849,13 +1075,11 @@ Deno.serve(async (req) => {
         break;
         
       case 'admin_new_product':
-        // TODO: Implement in Step 6
-        result = { success: false, error: 'Admin product handler not implemented yet' };
+        result = await handleAdminNewProductNotification(payload, supabase);
         break;
         
       case 'admin_new_user':
-        // TODO: Implement in Step 6
-        result = { success: false, error: 'Admin user handler not implemented yet' };
+        result = await handleAdminNewUserNotification(payload, supabase);
         break;
         
       case 'bulk':
