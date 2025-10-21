@@ -239,10 +239,11 @@ async function sendToTelegram(
  */
 async function handleProductNotification(
   payload: any,
-  supabase: any
+  supabase: any,
+  notificationType: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   
-  const { productId, notificationType, priceChanged, newPrice, oldPrice } = payload;
+  const { productId, priceChanged, newPrice, oldPrice } = payload;
   const chatId = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || Deno.env.get('TELEGRAM_GROUP_CHAT_ID_PRODUCTS');
   
   if (!chatId) {
@@ -1292,21 +1293,27 @@ Deno.serve(async (req) => {
     
     // Parse body after verification
     const data = JSON.parse(bodyText);
+    
+    // 🔍 DEBUG: Log raw body
+    console.log(`🔍 [DEBUG] Raw body:`, bodyText.substring(0, 300));
+    console.log(`🔍 [DEBUG] Parsed data keys:`, Object.keys(data));
+    
     const { notificationType, payload } = data;
     
     console.log(`📨 [telegram-queue-handler] Processing: ${notificationType}`);
-    console.log(`   Payload:`, payload ? JSON.stringify(payload).substring(0, 200) : 'undefined');
+    console.log(`   Payload keys:`, payload ? Object.keys(payload) : 'undefined');
+    console.log(`   Payload preview:`, payload ? JSON.stringify(payload).substring(0, 200) : 'undefined');
     
     let result: any;
     
     // Route to appropriate handler
     switch (notificationType) {
       case 'product':
-        result = await handleProductNotification(payload, supabase);
+        result = await handleProductNotification(payload, supabase, notificationType);
         break;
         
       case 'repost':
-        result = await handleProductNotification(payload, supabase);
+        result = await handleProductNotification(payload, supabase, notificationType);
         break;
         
       case 'order':
