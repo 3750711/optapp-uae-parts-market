@@ -159,6 +159,12 @@ verify_jwt = false
 [functions.generate-sitemap]
 verify_jwt = false
 
+[functions.trigger-upstash-notification]
+verify_jwt = false
+
+[functions.telegram-queue-handler]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
