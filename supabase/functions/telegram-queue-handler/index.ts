@@ -1262,23 +1262,38 @@ Deno.serve(async (req) => {
   }
   
   try {
-    // Verify QStash signature
+    // Read body as text for signature verification
+    const bodyText = await req.text();
     const signature = req.headers.get('Upstash-Signature');
-    if (!signature) {
-      console.error('❌ Missing QStash signature');
+    const timestamp = req.headers.get('Upstash-Timestamp');
+    
+    // Create supabase client for verification
+    const supabase = createServiceClient();
+    
+    // Verify QStash signature
+    const { verifyQStashSignature } = await import('../_shared/qstash-verify.ts');
+    const isValid = await verifyQStashSignature(
+      bodyText,
+      signature,
+      timestamp,
+      supabase
+    );
+    
+    if (!isValid) {
+      console.error('❌ Invalid QStash signature');
       return new Response('Unauthorized', { 
         status: 401,
         headers: corsHeaders 
       });
     }
     
-    const data = await req.json();
+    // Parse body after verification
+    const data = JSON.parse(bodyText);
     const { notificationType, payload } = data;
     
     console.log(`📨 [telegram-queue-handler] Processing: ${notificationType}`);
     console.log(`   Payload:`, JSON.stringify(payload).substring(0, 200));
     
-    const supabase = createServiceClient();
     let result: any;
     
     // Route to appropriate handler
