@@ -260,59 +260,104 @@ if (userData.userType === 'seller') {
   storeInfo = await getSellerStoreInfo(supabase, userId);
 }
 
-const message = formatUserMessage(userData, storeInfo);
-const results = [];
+    // === MIGRATED TO QSTASH ===
+    console.log('📮 [AdminUser] Publishing to QStash');
+    
+    const { data: qstashSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_token')
+      .maybeSingle();
+    
+    const QSTASH_TOKEN = qstashSetting?.value;
+    
+    if (!QSTASH_TOKEN) {
+      console.error('❌ QStash not configured, reverting claim');
+      await supabase
+        .from('profiles')
+        .update({ admin_new_user_notified_at: null })
+        .eq('id', userId);
+      throw new Error('QStash not configured');
+    }
+    
+    const { data: endpointSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_endpoint_name')
+      .maybeSingle();
+    
+    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
+    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+    
+    const qstashResponse = await fetch(qstashUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${QSTASH_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Upstash-Retries': '3',
+        'Upstash-Deduplication-Id': `admin-user-${userId}-${Date.now()}`,
+        'Upstash-Forward-Queue': 'telegram-notification-queue'
+      },
+      body: JSON.stringify({
+        notificationType: 'admin_new_user',
+        payload: userData
+      })
+    });
+    
+    if (!qstashResponse.ok) {
+      const errorText = await qstashResponse.text();
+      console.error('❌ QStash failed, reverting claim');
+      await supabase
+        .from('profiles')
+        .update({ admin_new_user_notified_at: null })
+        .eq('id', userId);
+      throw new Error(`QStash failed: ${errorText}`);
+    }
+    
+    const qstashResult = await qstashResponse.json();
+    console.log('✅ [AdminUser] Queued via QStash:', qstashResult.messageId);
 
-    // Send notifications to all admins
-    for (const admin of adminTelegramIds) {
-      try {
-        console.log(`📤 Sending notification to admin: ${admin.name} (${admin.telegramId})`);
-        const result = await sendAdminNotification(admin.telegramId, message);
+const results = [{
+  success: true,
+  qstash_message_id: qstashResult.messageId
+}];
+
+    // No longer sending to individual admins - queue handler will do it
+    try {
+      console.log(`📤 Queued admin notification via QStash`);
         
-        // Log successful notification
+        // Log as queued
         await logTelegramNotification(supabase, {
           function_name: 'notify-admins-new-user',
           notification_type: 'new_user_pending',
-          recipient_type: 'personal',
-          recipient_identifier: admin.telegramId,
-          recipient_name: admin.name,
-          message_text: message,
-          status: 'sent',
-          telegram_message_id: result.result?.message_id?.toString(),
+          recipient_type: 'group',
+          recipient_identifier: 'qstash',
+          recipient_name: 'All Admins (via QStash)',
+          message_text: `Queued: ${userId}`,
+          status: 'queued',
           related_entity_type: 'user',
           related_entity_id: userId,
-metadata: { userType, adminId: admin.id, storeName: storeInfo?.storeName, storeLocation: storeInfo?.storeLocation, storeDescription: storeInfo?.storeDescription }
+          metadata: { 
+            userType, 
+            qstash_message_id: qstashResult.messageId,
+            storeName: storeInfo?.storeName, 
+            storeLocation: storeInfo?.storeLocation, 
+            storeDescription: storeInfo?.storeDescription 
+          }
         });
 
-        results.push({ adminId: admin.id, success: true });
-        console.log(`✅ Notification sent successfully to admin: ${admin.name}`);
+        console.log(`✅ Admin notification queued successfully`);
         
       } catch (error) {
-        console.error(`❌ Failed to send notification to admin ${admin.name}:`, error);
-        
-        // Log failed notification
-        await logTelegramNotification(supabase, {
-          function_name: 'notify-admins-new-user',
-          notification_type: 'new_user_pending',
-          recipient_type: 'personal',
-          recipient_identifier: admin.telegramId,
-          recipient_name: admin.name,
-          message_text: message,
-          status: 'failed',
-          related_entity_type: 'user',
-          related_entity_id: userId,
-          error_details: { error: error.message },
-          metadata: { userType, adminId: admin.id, storeName: storeInfo?.storeName, storeLocation: storeInfo?.storeLocation, storeDescription: storeInfo?.storeDescription }
-        });
-
-        results.push({ adminId: admin.id, success: false, error: error.message });
+        console.error(`❌ QStash queue failed:`, error);
+        results[0].success = false;
+        results[0].error = error.message;
       }
-    }
 
     const successCount = results.filter(r => r.success).length;
-    const totalCount = results.length;
+    const totalCount = 1; // Single QStash message
 
-    console.log(`✅ [AdminNewUserNotification] Sent ${successCount}/${totalCount} notifications for user ${userId}`);
+    console.log(`✅ [AdminNewUserNotification] Queued via QStash for user ${userId}`);
 
     if (successCount === 0) {
       console.warn('↩️ No notifications were sent, reverting claim flag to NULL for user', userId);
@@ -325,8 +370,8 @@ metadata: { userType, adminId: admin.id, storeName: storeInfo?.storeName, storeL
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Sent ${successCount}/${totalCount} admin notifications`,
-        results
+        message: 'Admin notification queued via QStash',
+        qstash_message_id: results[0].qstash_message_id
       }),
       { 
         status: 200, 

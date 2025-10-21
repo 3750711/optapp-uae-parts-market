@@ -131,50 +131,71 @@ Congratulations on your sale! You can view order details in your dashboard.
 Поздравляем с продажей! Детали заказа можно посмотреть в личном кабинете.
     `.trim();
 
-    // Send Telegram notification (with photo if available)
-    let telegramResponse;
-    if (optimizedImageUrl) {
-      // Send photo with caption
-      telegramResponse = await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: seller.telegram_id,
-            photo: optimizedImageUrl,
-            caption: telegramMessage,
-            parse_mode: 'HTML'
-          })
-        }
-      );
-    } else {
-      // Fallback to text message
-      telegramResponse = await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: seller.telegram_id,
-            text: telegramMessage,
-            parse_mode: 'HTML',
-            disable_web_page_preview: true
-          })
-        }
-      );
+    // === REMOVED: Direct Telegram sending ===
+    // Now handled by telegram-queue-handler via QStash
+
+    // === MIGRATED TO QSTASH ===
+    console.log('📮 [SellerSold] Publishing to QStash instead of direct send');
+    
+    // Get QStash credentials
+    const { data: qstashSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_token')
+      .maybeSingle();
+    
+    const QSTASH_TOKEN = qstashSetting?.value;
+    
+    if (!QSTASH_TOKEN) {
+      throw new Error('QStash not configured');
     }
-
-    const telegramResult = await telegramResponse.json();
-
-    if (!telegramResponse.ok) {
-      console.error('Telegram API error:', telegramResult);
-      throw new Error(`Failed to send Telegram message: ${telegramResult.description}`);
+    
+    // Get QStash endpoint
+    const { data: endpointSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_endpoint_name')
+      .maybeSingle();
+    
+    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
+    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+    
+    // Publish to QStash
+    const qstashResponse = await fetch(qstashUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${QSTASH_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Upstash-Retries': '3',
+        'Upstash-Deduplication-Id': `seller-sold-${orderId}-${Date.now()}`,
+        'Upstash-Forward-Queue': 'telegram-notification-queue'
+      },
+      body: JSON.stringify({
+        notificationType: 'seller_sold',
+        payload: {
+          orderId,
+          sellerId,
+          orderNumber,
+          buyerOptId,
+          productId,
+          title,
+          price,
+          brand,
+          model,
+          images
+        }
+      })
+    });
+    
+    if (!qstashResponse.ok) {
+      const errorText = await qstashResponse.text();
+      throw new Error(`QStash failed: ${errorText}`);
     }
+    
+    const qstashResult = await qstashResponse.json();
+    console.log(`✅ [SellerSold] Queued via QStash: ${qstashResult.messageId}`);
 
-    console.log(`Product sold notification sent successfully to seller ${seller.full_name}`);
-
-    // Log to telegram notifications tracking
+    // Log to telegram notifications tracking (as queued)
     try {
       await logTelegramNotification(supabase, {
         function_name: 'notify-seller-product-sold',
@@ -182,9 +203,8 @@ Congratulations on your sale! You can view order details in your dashboard.
         recipient_type: 'personal',
         recipient_identifier: seller.telegram_id.toString(),
         recipient_name: seller.full_name,
-        message_text: telegramMessage,
-        status: 'sent',
-        telegram_message_id: telegramResult.result?.message_id?.toString(),
+        message_text: `Queued via QStash: ${orderId}`,
+        status: 'queued',
         related_entity_type: 'order',
         related_entity_id: orderId,
         metadata: {
@@ -192,7 +212,8 @@ Congratulations on your sale! You can view order details in your dashboard.
           product_title: title,
           sale_price: price,
           product_id: productId,
-          buyer_opt_id: buyerOptId
+          buyer_opt_id: buyerOptId,
+          qstash_message_id: qstashResult.messageId
         }
       });
     } catch (logError) {
@@ -227,8 +248,8 @@ Congratulations on your sale! You can view order details in your dashboard.
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Product sold notification sent successfully',
-        telegram_result: telegramResult.result
+        message: 'Product sold notification queued via QStash',
+        qstash_message_id: qstashResult.messageId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

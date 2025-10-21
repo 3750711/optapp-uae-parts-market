@@ -127,13 +127,58 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: true, sent: false, reason: 'no_telegram_id' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Send telegram message
+    // === MIGRATED TO QSTASH ===
+    console.log('📮 [Welcome] Publishing to QStash');
+    
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    const adminSupabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+    
+    const { data: qstashSetting } = await adminSupabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_token')
+      .maybeSingle();
+    
+    const QSTASH_TOKEN = qstashSetting?.value;
+    
+    if (!QSTASH_TOKEN) {
+      throw new Error('QStash not configured');
+    }
+    
+    const { data: endpointSetting } = await adminSupabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_endpoint_name')
+      .maybeSingle();
+    
+    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
+    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+    
     let tgResult: any = null;
     try {
-      tgResult = await sendTelegramMessage(BOT_TOKEN, String(profile.telegram_id), messageText);
-      console.log('Telegram message sent:', tgResult?.result?.message_id);
+      const qstashResponse = await fetch(qstashUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${QSTASH_TOKEN}`,
+          'Content-Type': 'application/json',
+          'Upstash-Retries': '3',
+          'Upstash-Deduplication-Id': `welcome-${userId}-${Date.now()}`,
+          'Upstash-Forward-Queue': 'telegram-notification-queue'
+        },
+        body: JSON.stringify({
+          notificationType: 'user_welcome',
+          payload: { userId, force }
+        })
+      });
+      
+      if (!qstashResponse.ok) {
+        throw new Error('QStash publish failed');
+      }
+      
+      tgResult = await qstashResponse.json();
+      console.log('✅ [Welcome] Queued via QStash:', tgResult.messageId);
     } catch (err) {
-      console.error('Telegram send failed:', err);
+      console.error('❌ [Welcome] QStash failed:', err);
       // Log failure
       await supabase.from('telegram_notifications_log').insert({
         function_name: 'notify-user-welcome-registration',
@@ -152,22 +197,24 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'telegram_send_failed' }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Log success
+    // Log as queued
     await supabase.from('telegram_notifications_log').insert({
       function_name: 'notify-user-welcome-registration',
       notification_type: 'welcome_registration',
       recipient_type: 'personal',
       recipient_identifier: String(profile.telegram_id),
       recipient_name: profile.full_name || null,
-      message_text: messageText,
-      status: 'sent',
-      telegram_message_id: tgResult?.result?.message_id || null,
+      message_text: `Queued via QStash: ${userId}`,
+      status: 'queued',
       related_entity_type: 'user',
       related_entity_id: profile.id,
-      metadata: { user_type: profile.user_type }
+      metadata: { 
+        user_type: profile.user_type,
+        qstash_message_id: tgResult?.messageId
+      }
     });
 
-    return new Response(JSON.stringify({ success: true, sent: true, messageId: tgResult?.result?.message_id }), {
+    return new Response(JSON.stringify({ success: true, sent: true, qstashMessageId: tgResult?.messageId }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

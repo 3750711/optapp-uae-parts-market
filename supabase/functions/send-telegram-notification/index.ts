@@ -17,7 +17,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./config.ts";
-import { handleOrderNotification } from "./order-notification.ts";
+import { handleOrderNotificationQStash } from "./order-notification-qstash.ts";
 import { handleProductNotification } from "./product-notification.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logTelegramNotification } from "../shared/telegram-logger.ts";
@@ -53,8 +53,10 @@ serve(async (req) => {
 
     // Handle different request types
     if (reqData.order && (reqData.action === 'create' || reqData.action === 'status_change' || reqData.action === 'resend' || reqData.action === 'registered')) {
+      // === ORDERS: Route through QStash ===
+      console.log('📮 [Router] Order notification detected, routing via QStash');
       const notificationType = reqData.action === 'registered' ? 'registered' : 'regular';
-      return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders, notificationType);
+      return await handleOrderNotificationQStash(reqData.order, supabaseClient, corsHeaders, notificationType);
     } else if (reqData.productId) {
       // === PRODUCT NOTIFICATIONS: Route through QStash ONLY ===
       console.log('📮 [Router] Product notification detected, attempting QStash routing');
@@ -112,7 +114,7 @@ serve(async (req) => {
             'Content-Type': 'application/json',
             'Upstash-Retries': '3',
             'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${reqData.notificationType || 'status_change'}-${Math.floor(Date.now() / 1000)}`,
-            'Upstash-Forward-Queue': 'telegram-repost-queue'
+            'Upstash-Forward-Queue': 'telegram-notification-queue'
           },
           body: JSON.stringify({
             productId: reqData.productId,

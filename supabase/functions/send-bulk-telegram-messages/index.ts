@@ -49,17 +49,67 @@ serve(async (req) => {
     }
 
     console.log('=== ADMIN VERIFICATION SUCCESS ===')
-    console.log('=== SENDING BULK MESSAGES ===')
-    console.log('Recipients type:', Array.isArray(recipients) ? 'array' : recipients)
-    console.log('Message length:', messageText.length)
-    console.log('Images count:', images.length)
     
-    // Send bulk messages
-    const result = await sendBulkMessages(recipients, messageText, images, supabase, adminUser)
+    // === MIGRATED TO QSTASH ===
+    console.log('📮 [Bulk] Publishing to QStash instead of direct send');
     
-    console.log('Bulk messages sent successfully')
+    const { data: qstashSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_token')
+      .maybeSingle();
     
-    return new Response(JSON.stringify(result), {
+    const QSTASH_TOKEN = qstashSetting?.value;
+    
+    if (!QSTASH_TOKEN) {
+      throw new Error('QStash not configured');
+    }
+    
+    const { data: endpointSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_endpoint_name')
+      .maybeSingle();
+    
+    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
+    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+    
+    const qstashResponse = await fetch(qstashUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${QSTASH_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Upstash-Retries': '3',
+        'Upstash-Deduplication-Id': `bulk-${adminUser.id}-${Date.now()}`,
+        'Upstash-Forward-Queue': 'telegram-notification-queue'
+      },
+      body: JSON.stringify({
+        notificationType: 'bulk',
+        payload: {
+          recipients,
+          messageText,
+          images: images || [],
+          adminUserId: adminUser.id
+        }
+      })
+    });
+    
+    if (!qstashResponse.ok) {
+      const errorText = await qstashResponse.text();
+      throw new Error(`QStash failed: ${errorText}`);
+    }
+    
+    const result = await qstashResponse.json();
+    console.log('✅ [Bulk] Queued via QStash:', result.messageId)
+    
+    console.log('Bulk messages queued via QStash')
+    
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: 'Bulk messages queued via QStash',
+      qstash_message_id: result.messageId,
+      recipients_type: Array.isArray(recipients) ? 'array' : recipients
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

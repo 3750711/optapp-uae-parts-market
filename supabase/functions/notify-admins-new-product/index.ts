@@ -50,11 +50,59 @@ serve(async (req) => {
       );
     }
 
-    // Send notifications
-    const result = await sendAdminNotifications(productId, supabase, user);
+    // === MIGRATED TO QSTASH ===
+    console.log('📮 [AdminProduct] Publishing to QStash');
+    
+    const { data: qstashSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_token')
+      .maybeSingle();
+    
+    const QSTASH_TOKEN = qstashSetting?.value;
+    
+    if (!QSTASH_TOKEN) {
+      throw new Error('QStash not configured');
+    }
+    
+    const { data: endpointSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_endpoint_name')
+      .maybeSingle();
+    
+    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
+    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+    
+    const qstashResponse = await fetch(qstashUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${QSTASH_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Upstash-Retries': '3',
+        'Upstash-Deduplication-Id': `admin-product-${productId}-${Date.now()}`,
+        'Upstash-Forward-Queue': 'telegram-notification-queue'
+      },
+      body: JSON.stringify({
+        notificationType: 'admin_new_product',
+        payload: { productId }
+      })
+    });
+    
+    if (!qstashResponse.ok) {
+      const errorText = await qstashResponse.text();
+      throw new Error(`QStash failed: ${errorText}`);
+    }
+    
+    const result = await qstashResponse.json();
+    console.log('✅ [AdminProduct] Queued via QStash:', result.messageId);
 
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify({
+        success: true,
+        message: 'Admin product notification queued via QStash',
+        qstash_message_id: result.messageId
+      }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

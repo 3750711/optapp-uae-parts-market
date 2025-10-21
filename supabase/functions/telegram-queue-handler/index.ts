@@ -48,8 +48,19 @@ function makeCloudinaryTelegramFriendly(url: string): string {
 }
 
 /**
+ * Parse failed image index from Telegram error message
+ * Example: "Wrong file identifier/http url specified: failed at index 3"
+ */
+function parseFailedImageIndex(errorDescription: string): number | null {
+  const match = errorDescription.match(/failed at index (\d+)/i);
+  return match ? parseInt(match[1], 10) : null;
+}
+
+/**
  * Simple Telegram send function WITHOUT retry logic
  * Retry is handled by QStash, not here
+ * 
+ * CRITICAL: Includes fallback for WEBPAGE_MEDIA_EMPTY errors
  */
 async function sendToTelegram(
   chatId: string,
@@ -62,7 +73,12 @@ async function sendToTelegram(
   }
 
   // Transform all images to be Telegram-friendly
-  const telegramImages = images.map(makeCloudinaryTelegramFriendly);
+  const telegramImages = images.map(makeCloudinaryTelegramFriendly).filter(url => url && url.trim() !== '');
+  
+  // Check for empty images array after filtering
+  if (images.length > 0 && telegramImages.length === 0) {
+    console.warn('⚠️ All images were filtered out (empty/invalid URLs), sending text-only');
+  }
   
   // Text-only message
   if (telegramImages.length === 0) {
@@ -127,7 +143,54 @@ async function sendToTelegram(
       
       if (!response.ok) {
         const error = await response.json();
-        return { success: false, error: error.description };
+        const errorDesc = error.description || 'Unknown error';
+        
+        // CRITICAL: Handle WEBPAGE_MEDIA_EMPTY and similar image errors
+        if (errorDesc.includes('WEBPAGE_MEDIA_EMPTY') || 
+            errorDesc.includes('failed to get HTTP URL content') ||
+            errorDesc.includes('Wrong file identifier')) {
+          
+          console.warn(`⚠️ Image error: ${errorDesc}, attempting text-only fallback`);
+          
+          // Try to identify failed image
+          const failedIndex = parseFailedImageIndex(errorDesc);
+          if (failedIndex !== null) {
+            console.log(`🔍 Failed at image index ${failedIndex}: ${chunks[i][failedIndex]}`);
+          }
+          
+          // Fallback to text-only message
+          console.log('📝 Falling back to text-only message');
+          const textResponse = await fetch(
+            `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'HTML'
+              })
+            }
+          );
+          
+          if (!textResponse.ok) {
+            const textError = await textResponse.json();
+            return { success: false, error: `Image failed, text fallback also failed: ${textError.description}` };
+          }
+          
+          const textResult = await textResponse.json();
+          console.log('✅ Text-only fallback successful');
+          return { success: true, messageId: textResult.result.message_id, error: 'Sent as text-only (images failed)' };
+        }
+        
+        // Handle rate limiting (429)
+        if (response.status === 429) {
+          const retryAfter = error.parameters?.retry_after || 60;
+          console.warn(`⏳ Rate limited, retry after ${retryAfter}s`);
+          return { success: false, error: `Rate limited, retry after ${retryAfter} seconds` };
+        }
+        
+        return { success: false, error: errorDesc };
       }
       
       // Store first message ID
@@ -139,6 +202,33 @@ async function sendToTelegram(
     
     return { success: true, messageId: firstMessageId };
   } catch (error) {
+    console.error('💥 Exception in sendToTelegram:', error);
+    
+    // Final fallback: try text-only
+    try {
+      console.log('📝 Exception occurred, attempting text-only fallback');
+      const textResponse = await fetch(
+        `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'HTML'
+          })
+        }
+      );
+      
+      if (textResponse.ok) {
+        const textResult = await textResponse.json();
+        console.log('✅ Exception fallback successful');
+        return { success: true, messageId: textResult.result.message_id, error: 'Sent as text-only (exception occurred)' };
+      }
+    } catch (fallbackError) {
+      console.error('💥 Text fallback also failed:', fallbackError);
+    }
+    
     return { success: false, error: error.message };
   }
 }
@@ -277,11 +367,11 @@ async function handleProductNotification(
 async function handleBulkNotification(
   payload: any,
   supabase: any
-): Promise<{ success: boolean; total: number; sent: number; failed: number; no_telegram: number; errors?: any[] }> {
+): Promise<{ success: boolean; total: number; sent: number; failed: number; no_telegram: number; errors?: any[]; deduplicated?: number }> {
   
-  const { recipients, messageText, images, batchIndex } = payload;
+  const { recipients, messageText, images, batchIndex, deduplicationId } = payload;
   
-  console.log(`📨 [Bulk] Processing bulk notification, recipients type: ${typeof recipients}`);
+  console.log(`📨 [Bulk] Processing bulk notification, recipients type: ${typeof recipients}, dedupe: ${deduplicationId || 'none'}`);
   
   // Get recipient user IDs
   let recipientIds: string[] = [];

@@ -54,19 +54,64 @@ serve(async (req) => {
       );
     }
 
-    // Send the personal message
-    const result = await sendPersonalMessage(
-      user_id,
-      message_text,
-      images,
-      supabase,
-      adminUser
-    );
-
-    console.log('Personal message sent successfully');
+    // === MIGRATED TO QSTASH ===
+    console.log('📮 [Personal] Publishing to QStash');
+    
+    const { data: qstashSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_token')
+      .maybeSingle();
+    
+    const QSTASH_TOKEN = qstashSetting?.value;
+    
+    if (!QSTASH_TOKEN) {
+      throw new Error('QStash not configured');
+    }
+    
+    const { data: endpointSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_endpoint_name')
+      .maybeSingle();
+    
+    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
+    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+    
+    const qstashResponse = await fetch(qstashUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${QSTASH_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Upstash-Retries': '3',
+        'Upstash-Deduplication-Id': `personal-${user_id}-${adminUser.id}-${Date.now()}`,
+        'Upstash-Forward-Queue': 'telegram-notification-queue'
+      },
+      body: JSON.stringify({
+        notificationType: 'personal',
+        payload: {
+          userId: user_id,
+          messageText: message_text,
+          images: images || [],
+          adminUserId: adminUser.id
+        }
+      })
+    });
+    
+    if (!qstashResponse.ok) {
+      const errorText = await qstashResponse.text();
+      throw new Error(`QStash failed: ${errorText}`);
+    }
+    
+    const result = await qstashResponse.json();
+    console.log('✅ [Personal] Queued via QStash:', result.messageId);
 
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify({
+        success: true,
+        message: 'Personal message queued via QStash',
+        qstash_message_id: result.messageId
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 

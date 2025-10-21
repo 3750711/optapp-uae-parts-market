@@ -205,57 +205,72 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
       `.trim();
     }
 
-    // Send Telegram notification (with photo if available)
-    let telegramResponse;
-    if (optimizedImageUrl) {
-      // Send photo with caption
-      telegramResponse = await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: seller.telegram_id,
-            photo: optimizedImageUrl,
-            caption: telegramMessage,
-            parse_mode: 'HTML'
-          })
-        }
-      );
-    } else {
-      // Fallback to text message
-      telegramResponse = await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: seller.telegram_id,
-            text: telegramMessage,
-            parse_mode: 'HTML',
-            disable_web_page_preview: true
-          })
-        }
-      );
+    // === MIGRATED TO QSTASH ===
+    console.log('📮 [PriceOffer] Publishing to QStash');
+    
+    const { data: qstashSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_token')
+      .maybeSingle();
+    
+    const QSTASH_TOKEN = qstashSetting?.value;
+    
+    if (!QSTASH_TOKEN) {
+      throw new Error('QStash not configured');
     }
-
-    const telegramResult = await telegramResponse.json();
-
-    if (!telegramResponse.ok) {
-      console.error('Telegram API error:', telegramResult);
+    
+    const { data: endpointSetting } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_endpoint_name')
+      .maybeSingle();
+    
+    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
+    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+    
+    const qstashResponse = await fetch(qstashUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${QSTASH_TOKEN}`,
+        'Content-Type': 'application/json',
+        'Upstash-Retries': '3',
+        'Upstash-Deduplication-Id': `price-offer-${offerId}-${Date.now()}`,
+        'Upstash-Forward-Queue': 'telegram-notification-queue'
+      },
+      body: JSON.stringify({
+        notificationType: 'price_offer',
+        payload: {
+          offerId,
+          productId,
+          sellerId,
+          buyerId,
+          offeredPrice,
+          originalPrice,
+          message,
+          expiresAt,
+          notificationType,
+          oldPrice
+        }
+      })
+    });
+    
+    if (!qstashResponse.ok) {
+      const errorText = await qstashResponse.text();
+      console.error('❌ [PriceOffer] QStash failed:', errorText);
       
-      // Log failed notification
+      // QStash failed
       await logTelegramNotification(supabase, {
         function_name: 'notify-seller-new-price-offer',
         notification_type: notificationType === 'price_update' ? 'price_offer_update' : 'price_offer_new',
         recipient_type: 'personal',
         recipient_identifier: seller.telegram_id.toString(),
         recipient_name: seller.full_name,
-        message_text: telegramMessage,
+        message_text: `QStash failed for offer ${offerId}`,
         status: 'failed',
         related_entity_type: 'price_offer',
         related_entity_id: offerId,
-        error_details: telegramResult,
+        error_details: { qstash_error: errorText },
         metadata: {
           product_id: productId,
           offered_price: offeredPrice,
@@ -265,21 +280,21 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
         }
       });
       
-      throw new Error(`Failed to send Telegram message: ${telegramResult.description}`);
+      throw new Error(`QStash failed: ${errorText}`);
     }
 
-    console.log(`Telegram notification sent successfully to seller ${seller.full_name}`);
+    const qstashResult = await qstashResponse.json();
+    console.log(`✅ [PriceOffer] Queued via QStash: ${qstashResult.messageId}`);
 
-    // Log successful notification
+    // Log as queued
     await logTelegramNotification(supabase, {
       function_name: 'notify-seller-new-price-offer',
       notification_type: notificationType === 'price_update' ? 'price_offer_update' : 'price_offer_new',
       recipient_type: 'personal',
       recipient_identifier: seller.telegram_id.toString(),
       recipient_name: seller.full_name,
-      message_text: telegramMessage,
-      status: 'sent',
-      telegram_message_id: telegramResult.result?.message_id?.toString(),
+      message_text: `Queued via QStash: ${offerId}`,
+      status: 'queued',
       related_entity_type: 'price_offer',
       related_entity_id: offerId,
       metadata: {
@@ -287,7 +302,8 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
         offered_price: offeredPrice,
         original_price: originalPrice,
         old_price: oldPrice,
-        buyer_name: buyer.full_name
+        buyer_name: buyer.full_name,
+        qstash_message_id: qstashResult.messageId
       }
     });
 
@@ -308,7 +324,7 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
             original_price: originalPrice,
             old_price: oldPrice,
             notification_type: notificationType,
-            telegram_message_id: telegramResult.result?.message_id
+            qstash_message_id: qstashResult.messageId
           }
         });
       console.log('Action logged successfully');
@@ -320,8 +336,8 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Notification sent successfully',
-        telegram_result: telegramResult.result
+        message: 'Notification queued via QStash',
+        qstash_message_id: qstashResult.messageId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
