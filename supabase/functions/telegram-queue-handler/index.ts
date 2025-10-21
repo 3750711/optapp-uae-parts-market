@@ -1362,14 +1362,27 @@ Deno.serve(async (req) => {
     }
     
     // Log to database
+    // Determine recipient_type based on notification type
+    const recipientType = ['personal', 'seller_sold'].includes(notificationType) 
+      ? 'personal' 
+      : 'group';
+    
+    // Determine recipient_identifier based on type
+    let recipientIdentifier = 'unknown';
+    if (recipientType === 'personal') {
+      recipientIdentifier = payload.sellerId || payload.telegram_id || 'personal_chat';
+    } else {
+      recipientIdentifier = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || 'group_chat';
+    }
+    
     await logTelegramNotification(supabase, {
       function_name: 'telegram-queue-handler',
       notification_type: notificationType,
-      recipient_type: 'queue',
-      recipient_identifier: 'qstash',
+      recipient_type: recipientType,
+      recipient_identifier: recipientIdentifier,
       message_text: 'Queued notification',
       status: result.success ? 'sent' : 'failed',
-      telegram_message_id: result.messageId,
+      telegram_message_id: result.messageId?.toString(),
       error_details: result.error ? { error: result.error } : null,
       metadata: { payload, result }
     });

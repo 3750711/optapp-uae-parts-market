@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logTelegramNotification } from '../shared/telegram-logger.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -107,11 +108,29 @@ serve(async (req) => {
         for (const admin of admins) {
           try {
             if (primaryImage?.url) {
-              await sendTelegramMessage(admin.telegram_id, messageText, [primaryImage.url]);
+              await sendTelegramMessage(admin.telegram_id, messageText, [primaryImage.url], supabase);
             } else {
-              await sendTelegramMessage(admin.telegram_id, messageText);
+              await sendTelegramMessage(admin.telegram_id, messageText, [], supabase);
             }
             console.log(`✅ [PeriodicAdminNotifications] Sent notification to admin ${admin.full_name} for product ${product.id}`);
+            
+            // Log successful notification
+            await logTelegramNotification(supabase, {
+              function_name: 'send-periodic-admin-notifications',
+              notification_type: 'periodic_admin_reminder',
+              recipient_type: 'personal',
+              recipient_identifier: admin.telegram_id.toString(),
+              recipient_name: admin.full_name,
+              message_text: messageText,
+              status: 'sent',
+              related_entity_type: 'product',
+              related_entity_id: product.id,
+              metadata: {
+                product_title: product.title,
+                hours_pending: hoursPending,
+                has_image: !!primaryImage
+              }
+            });
           } catch (telegramError) {
             console.error(`❌ [PeriodicAdminNotifications] Failed to send to admin ${admin.full_name}:`, telegramError);
             errors++;
@@ -178,7 +197,22 @@ serve(async (req) => {
   }
 });
 
-async function sendTelegramMessage(telegramId: number, messageText: string, images: string[] = []) {
+/**
+ * Transform Cloudinary URL for Telegram compatibility
+ * Adds fl_attachment to force download and f_jpg for format
+ */
+function transformImageForTelegram(url: string): string {
+  if (!url) return url;
+  
+  if (url.includes('cloudinary.com')) {
+    // Add fl_attachment for forced download and f_jpg for format
+    return url.replace('/upload/', '/upload/fl_attachment,f_jpg/');
+  }
+  
+  return url;
+}
+
+async function sendTelegramMessage(telegramId: number, messageText: string, images: string[] = [], supabaseClient?: any) {
   if (!BOT_TOKEN) {
     throw new Error('Telegram bot token not configured');
   }
@@ -187,13 +221,13 @@ async function sendTelegramMessage(telegramId: number, messageText: string, imag
 
   try {
     if (images && images.length > 0) {
-      // Send message with image
+      // Send message with image (with Cloudinary transformation)
       const response = await fetch(`${telegramApiUrl}/sendPhoto`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: telegramId,
-          photo: images[0],
+          photo: transformImageForTelegram(images[0]),
           caption: messageText,
           parse_mode: 'HTML'
         })

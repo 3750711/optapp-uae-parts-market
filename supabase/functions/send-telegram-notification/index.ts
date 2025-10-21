@@ -98,7 +98,7 @@ serve(async (req) => {
         console.log(`🔄 [Router] Routing product notification to QStash queue`);
         
         // Import QStash utilities
-        const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('./_shared/qstash-config.ts');
+        const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('../_shared/qstash-config.ts');
         
         // Get QStash config from database
         const qstashConfig = await getQStashConfig();
