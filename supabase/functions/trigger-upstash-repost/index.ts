@@ -1,4 +1,5 @@
 import { createServiceClient } from '../_shared/client.ts';
+import { getQStashConfig, publishToQueue } from '../_shared/qstash-config.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,15 +15,6 @@ Deno.serve(async (req) => {
     const { productId, priceChanged, newPrice, oldPrice, idempotencyKey, userId } = await req.json();
 
     console.log('📮 [QStash] Received request:', { productId, idempotencyKey });
-
-    const QSTASH_TOKEN = Deno.env.get('QSTASH_TOKEN');
-    if (!QSTASH_TOKEN) {
-      console.error('❌ [QStash] QSTASH_TOKEN not configured');
-      return new Response(
-        JSON.stringify({ error: 'QSTASH_TOKEN not configured' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
 
     // Создаем Supabase client для проверки прав
     const supabaseClient = createServiceClient();
@@ -75,69 +67,40 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Отправляем событие в QStash Queue для последовательной обработки
-    console.log('📤 [QStash] Enqueueing to telegram-repost-queue');
+    // Получаем QStash конфигурацию из app_settings
+    const qstashConfig = await getQStashConfig();
     
-    // Get QStash endpoint name from app_settings
-    const { data: endpointSetting } = await supabaseClient
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_endpoint_name')
-      .maybeSingle();
-    
-    const endpointName = endpointSetting?.value || 'partsbay-repost';
-    const qstashResponse = await fetch(
-      `https://qstash.upstash.io/v2/publish/${endpointName}`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${QSTASH_TOKEN}`,
-          'Content-Type': 'application/json',
-          'Upstash-Retries': '3',
-          'Upstash-Deduplication-Id': idempotencyKey,
-          'Upstash-Forward-Queue': 'telegram-repost-queue'
-        },
-        body: JSON.stringify({
-          productId,
-          notificationType: 'repost',
-          priceChanged,
-          newPrice,
-          oldPrice,
-          lotNumber: product.lot_number,
-          title: product.title,
-          brand: product.brand,
-          model: product.model,
-          currentPrice: product.price
-        })
-      }
+    // Формируем payload для отправки
+    const payload = {
+      productId,
+      priceChanged,
+      newPrice,
+      oldPrice,
+      lotNumber: product.lot_number,
+      title: product.title,
+      brand: product.brand,
+      model: product.model,
+      currentPrice: product.price
+    };
+
+    // Отправляем через shared utility с правильной структурой
+    const result = await publishToQueue(
+      qstashConfig,
+      'repost',
+      payload,
+      idempotencyKey
     );
-
-    if (!qstashResponse.ok) {
-      const errorText = await qstashResponse.text();
-      console.error('❌ [QStash] Failed to publish:', errorText);
-      throw new Error(`QStash API error (${qstashResponse.status}): ${errorText}`);
-    }
-
-    const result = await qstashResponse.json();
     
-    // Log QStash metrics for monitoring
-    console.log('✅ [QStash] Event queued successfully:', {
+    console.log('✅ [QStash] Repost queued successfully:', {
       messageId: result.messageId,
-      queueLength: result.queueLength,
-      estimatedDelay: result.estimatedDelay,
       productId,
       lotNumber: product.lot_number
     });
 
     return new Response(
       JSON.stringify({ 
-        success: true, 
-        data: result,
-        metrics: {
-          messageId: result.messageId,
-          queueLength: result.queueLength,
-          estimatedDelay: result.estimatedDelay
-        }
+        success: true,
+        messageId: result.messageId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
