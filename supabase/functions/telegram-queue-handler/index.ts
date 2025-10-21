@@ -271,6 +271,134 @@ async function handleProductNotification(
 }
 
 /**
+ * Handler for order notifications
+ * Supports: regular, registered
+ */
+async function handleOrderNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  
+  const { orderData, notificationType } = payload;
+  
+  // Determine target group
+  const targetGroupId = notificationType === 'registered' 
+    ? Deno.env.get('TELEGRAM_GROUP_CHAT_ID_REGISTERED')
+    : Deno.env.get('TELEGRAM_GROUP_CHAT_ID_ORDERS');
+  
+  if (!targetGroupId) {
+    throw new Error('TELEGRAM_GROUP_CHAT_ID not configured for orders');
+  }
+  
+  console.log(`📦 [Order] Processing order #${orderData.order_number}, type: ${notificationType}`);
+  
+  // Helper: get status text in Russian
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'created': return 'Создан';
+      case 'seller_confirmed': return 'Подтвержден продавцом';
+      case 'admin_confirmed': return 'Подтвержден администратором';
+      case 'processed': return 'Зарегистрирован';
+      case 'shipped': return 'Отправлен';
+      case 'delivered': return 'Доставлен';
+      case 'cancelled': return 'Отменен';
+      default: return status;
+    }
+  };
+  
+  const statusText = getStatusText(orderData.status);
+  
+  // Format delivery method
+  const deliveryMethodText = orderData.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
+                            orderData.delivery_method === 'self_pickup' ? 'Самовывоз' : 
+                            orderData.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 
+                            orderData.delivery_method;
+  
+  // Get display telegram using shared config logic
+  let displayTelegram = '';
+  try {
+    const localAccounts = await getLocalTelegramAccounts();
+    
+    // Fetch seller telegram from profiles
+    let sellerTelegram = '';
+    if (orderData.seller_id) {
+      const { data: sellerProfile } = await supabase
+        .from('profiles')
+        .select('telegram')
+        .eq('id', orderData.seller_id)
+        .single();
+      
+      sellerTelegram = sellerProfile?.telegram || '';
+    }
+    
+    // Use fallback if no seller telegram found
+    const telegramToCheck = sellerTelegram || orderData.telegram_url_order || '';
+    
+    // Determine display telegram
+    displayTelegram = getTelegramForDisplay(telegramToCheck, localAccounts);
+    
+  } catch (e) {
+    console.warn('⚠️ [Order] Error with telegram config, using fallback:', e);
+    displayTelegram = 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
+  }
+  
+  // Format order number with leading zero
+  const formattedOrderNumber = orderData.order_number.toString().padStart(5, '0');
+  
+  // Compose name: title + brand + model
+  const nameParts = [orderData.title, orderData.brand, orderData.model]
+    .filter((v: string | null | undefined) => !!v && String(v).trim());
+  const composedName = nameParts.join(' ').trim();
+  
+  // Compose message text
+  const messageText = [
+    `Номер заказа: ${formattedOrderNumber}`,
+    `Статус: ${statusText}`,
+    displayTelegram,
+    ``,
+    `🟰🟰🟰🟰🟰🟰`,
+    `Наименование: ${composedName}`,
+    ``,
+    `Количество мест для отправки: ${orderData.place_number || 1}`,
+    `Доставка: ${deliveryMethodText}`,
+    ``,
+    `Дополнительная информация: ${orderData.text_order || 'Не указана'}`,
+    ``,
+    `🟰🟰🟰🟰🟰🟰`,
+    `Цена: ${orderData.price} $`,
+    `Цена доставки: ${orderData.delivery_price_confirm || 0} $`,
+    ``,
+    `===`,
+    `${orderData.seller_opt_id || ''}`,
+    `${orderData.buyer_opt_id || ''}`
+  ].join('\n');
+  
+  // Get order images
+  let orderImages: string[] = [];
+  
+  if (orderData.images && orderData.images.length > 0) {
+    console.log(`📷 [Order] Using ${orderData.images.length} images from payload`);
+    orderImages = orderData.images;
+  } else {
+    console.log('📷 [Order] Fetching images from database');
+    const { data: imagesData } = await supabase
+      .from('order_images')
+      .select('url')
+      .eq('order_id', orderData.id);
+    
+    if (imagesData && imagesData.length > 0) {
+      console.log(`📷 [Order] Found ${imagesData.length} images in database`);
+      orderImages = imagesData.map((img: any) => img.url);
+    }
+  }
+  
+  // Send to Telegram (images will be transformed via makeCloudinaryTelegramFriendly)
+  const result = await sendToTelegram(targetGroupId, messageText, orderImages);
+  
+  return result;
+}
+
+/**
  * Main handler - routes notifications by type
  */
 Deno.serve(async (req) => {
@@ -306,8 +434,7 @@ Deno.serve(async (req) => {
         break;
         
       case 'order':
-        // TODO: Implement in Step 3
-        result = { success: false, error: 'Order handler not implemented yet' };
+        result = await handleOrderNotification(payload, supabase);
         break;
         
       case 'seller_sold':
