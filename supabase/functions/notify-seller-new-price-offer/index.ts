@@ -213,53 +213,25 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
     const qstashConfig = await getQStashConfig();
     const deduplicationId = generateDeduplicationId('price-offer', offerId);
     
-    let result;
-    try {
-      result = await publishToQueue(
-        qstashConfig,
-        'price_offer',
-        {
-          offerId,
-          productId,
-          sellerId,
-          buyerId,
-          offeredPrice,
-          originalPrice,
-          message,
-          expiresAt,
-          notificationType,
-          oldPrice
-        },
-        deduplicationId
-      );
-      
-      console.log('✅ [PriceOffer] Queued via QStash:', result.messageId);
-    } catch (error) {
-      console.error('❌ [PriceOffer] QStash failed:', error);
-      
-      // QStash failed
-      await logTelegramNotification(supabase, {
-        function_name: 'notify-seller-new-price-offer',
-        notification_type: notificationType === 'price_update' ? 'price_offer_update' : 'price_offer_new',
-        recipient_type: 'personal',
-        recipient_identifier: seller.telegram_id.toString(),
-        recipient_name: seller.full_name,
-        message_text: `QStash failed for offer ${offerId}`,
-        status: 'failed',
-        related_entity_type: 'price_offer',
-        related_entity_id: offerId,
-        error_details: { qstash_error: error.message },
-        metadata: {
-          product_id: productId,
-          offered_price: offeredPrice,
-          original_price: originalPrice,
-          old_price: oldPrice,
-          buyer_name: buyer.full_name
-        }
-      });
-      
-      throw error;
-    }
+    const result = await publishToQueue(
+      qstashConfig,
+      'price_offer',
+      {
+        offerId,
+        productId,
+        sellerId,
+        buyerId,
+        offeredPrice,
+        originalPrice,
+        message,
+        expiresAt,
+        notificationType,
+        oldPrice
+      },
+      deduplicationId
+    );
+    
+    console.log('✅ [PriceOffer] Queued via QStash:', result.messageId);
 
     // Log as queued
     await logTelegramNotification(supabase, {
@@ -319,8 +291,11 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
 
   } catch (error) {
     console.error('Error in notify-seller-new-price-offer function:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
