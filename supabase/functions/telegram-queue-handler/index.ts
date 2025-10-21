@@ -289,6 +289,19 @@ async function handleProductNotification(
           telegram_notification_status: 'sent'
         })
         .eq('id', productId);
+      
+      // Log notification
+      await logTelegramNotification(supabase, {
+        function_name: 'telegram-queue-handler',
+        notification_type: 'product_sold',
+        recipient_type: 'group',
+        recipient_identifier: chatId,
+        message_text: textMessage,
+        status: 'sent',
+        telegram_message_id: result.messageId?.toString(),
+        related_entity_type: 'product',
+        related_entity_id: productId
+      });
     }
     
     return result;
