@@ -1298,11 +1298,16 @@ Deno.serve(async (req) => {
     console.log(`🔍 [DEBUG] Raw body:`, bodyText.substring(0, 300));
     console.log(`🔍 [DEBUG] Parsed data keys:`, Object.keys(data));
     
-    const { notificationType, payload } = data;
+    // Универсальная обработка: поддержка обоих форматов
+    // Формат 1 (вложенный): {notificationType, payload: {...}}
+    // Формат 2 (плоский): {notificationType, productId, ...}
+    const payload = data.payload || data;
+    const notificationType = data.notificationType || payload.notificationType || 'unknown';
     
     console.log(`📨 [telegram-queue-handler] Processing: ${notificationType}`);
-    console.log(`   Payload keys:`, payload ? Object.keys(payload) : 'undefined');
-    console.log(`   Payload preview:`, payload ? JSON.stringify(payload).substring(0, 200) : 'undefined');
+    console.log(`   Payload format:`, data.payload ? 'nested' : 'flat');
+    console.log(`   Payload keys:`, Object.keys(payload));
+    console.log(`   Payload preview:`, JSON.stringify(payload).substring(0, 200));
     
     let result: any;
     
