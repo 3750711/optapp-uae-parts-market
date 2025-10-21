@@ -27,28 +27,40 @@ export const useBulkMessaging = () => {
     setProgress(0);
 
     try {
-      const { data, error } = await supabase.functions.invoke('send-bulk-telegram-messages', {
+      console.log('📮 [BulkMessaging] Queueing bulk message via QStash');
+      
+      const { data, error } = await supabase.functions.invoke('trigger-upstash-notification', {
         body: {
-          recipients: params.recipients,
-          messageText: params.messageText,
-          images: params.images || []
+          notificationType: 'bulk',
+          payload: {
+            recipients: params.recipients,
+            messageText: params.messageText,
+            images: params.images || []
+          }
         }
       });
 
       if (error) {
-        console.error('Error calling bulk message function:', error);
-        throw new Error(error.message || 'Failed to send bulk messages');
+        console.error('❌ [BulkMessaging] Failed to queue bulk message:', error);
+        throw new Error(error.message || 'Failed to queue bulk messages');
       }
 
+      console.log('✅ [BulkMessaging] Bulk message queued successfully');
       setProgress(100);
-      return data;
+      
+      // Return success result - actual sending happens in background
+      return {
+        total: Array.isArray(params.recipients) ? params.recipients.length : 0,
+        sent: 0,
+        failed: 0,
+        errors: []
+      };
 
     } catch (error) {
-      console.error('Error in bulk messaging:', error);
+      console.error('💥 [BulkMessaging] Exception:', error);
       throw error;
     } finally {
       setIsLoading(false);
-      // Reset progress after a delay
       setTimeout(() => setProgress(0), 2000);
     }
   };

@@ -3,21 +3,22 @@ import { supabase } from "@/integrations/supabase/client";
 export const useAdminNotifications = () => {
   const notifyAdminsNewProduct = async (productId: string) => {
     try {
-      console.log(`📢 [AdminNotification] Sending notification for new product: ${productId}`);
+      console.log(`📢 [AdminNotification] Queueing notification for new product: ${productId}`);
       
-      const { error } = await supabase.functions.invoke('notify-admins-new-product', {
-        body: { productId }
+      const { error } = await supabase.functions.invoke('trigger-upstash-notification', {
+        body: { 
+          notificationType: 'admin_new_product',
+          payload: { productId }
+        }
       });
 
       if (error) {
-        console.error(`❌ [AdminNotification] Failed to notify admins:`, error);
-        // Don't throw - this is a secondary operation
+        console.error(`❌ [AdminNotification] Failed to queue admin notification:`, error);
       } else {
-        console.log(`✅ [AdminNotification] Successfully notified admins about product: ${productId}`);
+        console.log(`✅ [AdminNotification] Admin notification queued successfully via QStash`);
       }
     } catch (error) {
-      console.error(`💥 [AdminNotification] Exception while notifying admins:`, error);
-      // Don't throw - notification is secondary to the main action
+      console.error(`💥 [AdminNotification] Exception while queueing admin notification:`, error);
     }
   };
 
@@ -32,27 +33,30 @@ export const useAdminNotifications = () => {
     createdAt?: string;
   }) => {
     try {
-      console.log(`📢 [AdminNotification] Sending new user notification: ${params.email} (${params.userType})`);
-      const { error } = await supabase.functions.invoke('notify-admins-new-user', {
+      console.log(`📢 [AdminNotification] Queueing new user notification: ${params.email} (${params.userType})`);
+      const { error } = await supabase.functions.invoke('trigger-upstash-notification', {
         body: {
-          userId: params.userId,
-          fullName: params.fullName || 'User',
-          email: params.email,
-          userType: params.userType,
-          phone: params.phone || undefined,
-          optId: params.optId || undefined,
-          telegram: params.telegram || undefined,
-          createdAt: params.createdAt || new Date().toISOString(),
+          notificationType: 'admin_new_user',
+          payload: {
+            userId: params.userId,
+            fullName: params.fullName || 'User',
+            email: params.email,
+            userType: params.userType,
+            phone: params.phone || undefined,
+            optId: params.optId || undefined,
+            telegram: params.telegram || undefined,
+            createdAt: params.createdAt || new Date().toISOString(),
+          }
         }
       });
 
       if (error) {
-        console.error(`❌ [AdminNotification] Failed to notify admins about new user:`, error);
+        console.error(`❌ [AdminNotification] Failed to queue new user notification:`, error);
       } else {
-        console.log(`✅ [AdminNotification] Admins notified about new user: ${params.email}`);
+        console.log(`✅ [AdminNotification] New user notification queued successfully via QStash`);
       }
     } catch (error) {
-      console.error(`💥 [AdminNotification] Exception while notifying admins about new user:`, error);
+      console.error(`💥 [AdminNotification] Exception while queueing new user notification:`, error);
     }
   };
 

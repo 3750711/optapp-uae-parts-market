@@ -4,25 +4,26 @@ import { toast } from "sonner";
 export const useTelegramNotification = () => {
   const sendProductNotification = async (productId: string, notificationType: string = 'status_change') => {
     try {
-      console.log(`📢 [TelegramNotification] Sending ${notificationType} notification for product: ${productId}`);
+      console.log(`📢 [TelegramNotification] Queueing ${notificationType} notification for product: ${productId}`);
       
-      const { error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
+      const { error: notificationError } = await supabase.functions.invoke('trigger-upstash-notification', {
         body: { 
-          productId,
-          notificationType 
+          notificationType: 'product',
+          payload: {
+            productId,
+            notificationType 
+          }
         }
       });
 
       if (notificationError) {
-        console.error(`❌ [TelegramNotification] Telegram notification failed:`, notificationError);
-        // Don't show error toast for notification failures - the main action succeeded
+        console.error(`❌ [TelegramNotification] Failed to queue notification:`, notificationError);
         console.warn(`⚠️ [TelegramNotification] Notification failed but product status was updated successfully`);
       } else {
-        console.log(`✅ [TelegramNotification] Telegram notification sent successfully`);
+        console.log(`✅ [TelegramNotification] Notification queued successfully via QStash`);
       }
     } catch (error) {
-      console.error(`💥 [TelegramNotification] Exception while sending notification:`, error);
-      // Don't throw or show error - notification is secondary to the main action
+      console.error(`💥 [TelegramNotification] Exception while queueing notification:`, error);
     }
   };
 
