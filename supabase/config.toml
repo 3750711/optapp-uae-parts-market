@@ -162,6 +162,9 @@ verify_jwt = false
 [functions.telegram-queue-handler]
 verify_jwt = false
 
+[functions.test-qstash-queue]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327

@@ -10,36 +10,20 @@ export async function handleOrderNotificationQStash(
   console.log('📮 [OrderQStash] Routing order notification through QStash, order #:', orderData.order_number, 'type:', notificationType);
   
   try {
-    // Get QStash credentials from app_settings
-    const { data: qstashSetting } = await supabaseClient
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_token')
-      .maybeSingle();
+    // Import QStash utilities
+    const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('../_shared/qstash-config.ts');
     
-    const QSTASH_TOKEN = qstashSetting?.value;
+    // Get QStash config from database
+    const qstashConfig = await getQStashConfig();
     
-    if (!QSTASH_TOKEN) {
-      console.error('❌ [OrderQStash] QSTASH_TOKEN not configured');
-      throw new Error('QStash not configured');
-    }
+    // Use order ID for deduplication
+    const deduplicationId = generateDeduplicationId('order', orderData.id);
     
-    // Get QStash endpoint name
-    const { data: endpointSetting } = await supabaseClient
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_endpoint_name')
-      .maybeSingle();
-    
-    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
-    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
-    
-    console.log(`📤 [OrderQStash] Publishing to: ${endpointName}`);
-    
-    // Prepare QStash payload
-    const qstashPayload = {
-      notificationType: 'order',
-      payload: {
+    // Publish to queue
+    const result = await publishToQueue(
+      qstashConfig,
+      'order',
+      {
         orderId: orderData.id,
         notificationType: notificationType === 'registered' ? 'registered' : 'regular',
         orderNumber: orderData.order_number,
@@ -56,36 +40,17 @@ export async function handleOrderNotificationQStash(
         buyerOptId: orderData.buyer_opt_id,
         sellerId: orderData.seller_id,
         images: orderData.images || []
-      }
-    };
-    
-    // Publish to QStash
-    const qstashResponse = await fetch(qstashUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${QSTASH_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Upstash-Retries': '3',
-        'Upstash-Deduplication-Id': `order-${orderData.id}-${notificationType}-${Math.floor(Date.now() / 1000)}`,
-        'Upstash-Forward-Queue': 'telegram-notification-queue'
       },
-      body: JSON.stringify(qstashPayload)
-    });
+      deduplicationId
+    );
     
-    if (!qstashResponse.ok) {
-      const errorText = await qstashResponse.text();
-      console.error('❌ [OrderQStash] Failed to publish:', errorText);
-      throw new Error(`QStash publish failed: ${errorText}`);
-    }
-    
-    const qstashResult = await qstashResponse.json();
-    console.log('✅ [OrderQStash] Order notification queued:', qstashResult.messageId);
+    console.log('✅ [OrderQStash] Order notification queued:', result.messageId);
     
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Order notification queued via QStash',
-        qstashMessageId: qstashResult.messageId
+        qstashMessageId: result.messageId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

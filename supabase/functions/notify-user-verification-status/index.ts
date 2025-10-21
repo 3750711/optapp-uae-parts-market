@@ -152,54 +152,22 @@ Deno.serve(async (req) => {
     }
 
     // === MIGRATED TO QSTASH ===
-    console.log('📮 [Verification] Publishing to QStash');
+    console.log('📮 [Verification] Publishing to QStash queue');
     
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
-    const adminSupabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    
-    const { data: qstashSetting } = await adminSupabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_token')
-      .maybeSingle();
-    
-    const QSTASH_TOKEN = qstashSetting?.value;
-    
-    if (!QSTASH_TOKEN) {
-      throw new Error('QStash not configured');
-    }
-    
-    const { data: endpointSetting } = await adminSupabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_endpoint_name')
-      .maybeSingle();
-    
-    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
-    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+    const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('../_shared/qstash-config.ts');
     
     let tgResult: any = null;
     try {
-      const qstashResponse = await fetch(qstashUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${QSTASH_TOKEN}`,
-          'Content-Type': 'application/json',
-          'Upstash-Retries': '3',
-          'Upstash-Deduplication-Id': `verification-${userId}-${status}-${Date.now()}`,
-          'Upstash-Forward-Queue': 'telegram-notification-queue'
-        },
-        body: JSON.stringify({
-          notificationType: 'verification',
-          payload: { userId, status, userType, fullName, telegramId }
-        })
-      });
+      const qstashConfig = await getQStashConfig();
+      const deduplicationId = generateDeduplicationId('verification', userId);
       
-      if (!qstashResponse.ok) {
-        throw new Error('QStash publish failed');
-      }
+      tgResult = await publishToQueue(
+        qstashConfig,
+        'verification',
+        { userId, status, userType, fullName, telegramId },
+        deduplicationId
+      );
       
-      tgResult = await qstashResponse.json();
       console.log('✅ [Verification] Queued via QStash:', tgResult.messageId);
     } catch (err) {
       console.error('❌ [Verification] QStash failed:', err);

@@ -261,65 +261,35 @@ if (userData.userType === 'seller') {
 }
 
     // === MIGRATED TO QSTASH ===
-    console.log('📮 [AdminUser] Publishing to QStash');
+    console.log('📮 [AdminUser] Publishing to QStash queue');
     
-    const { data: qstashSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_token')
-      .maybeSingle();
+    const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('../_shared/qstash-config.ts');
     
-    const QSTASH_TOKEN = qstashSetting?.value;
-    
-    if (!QSTASH_TOKEN) {
-      console.error('❌ QStash not configured, reverting claim');
-      await supabase
-        .from('profiles')
-        .update({ admin_new_user_notified_at: null })
-        .eq('id', userId);
-      throw new Error('QStash not configured');
-    }
-    
-    const { data: endpointSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_endpoint_name')
-      .maybeSingle();
-    
-    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
-    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
-    
-    const qstashResponse = await fetch(qstashUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${QSTASH_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Upstash-Retries': '3',
-        'Upstash-Deduplication-Id': `admin-user-${userId}-${Date.now()}`,
-        'Upstash-Forward-Queue': 'telegram-notification-queue'
-      },
-      body: JSON.stringify({
-        notificationType: 'admin_new_user',
-        payload: userData
-      })
-    });
-    
-    if (!qstashResponse.ok) {
-      const errorText = await qstashResponse.text();
+    let result;
+    try {
+      const qstashConfig = await getQStashConfig();
+      const deduplicationId = generateDeduplicationId('admin-user', userId);
+      
+      result = await publishToQueue(
+        qstashConfig,
+        'admin_new_user',
+        userData,
+        deduplicationId
+      );
+      
+      console.log('✅ [AdminUser] Queued via QStash:', result.messageId);
+    } catch (error) {
       console.error('❌ QStash failed, reverting claim');
       await supabase
         .from('profiles')
         .update({ admin_new_user_notified_at: null })
         .eq('id', userId);
-      throw new Error(`QStash failed: ${errorText}`);
+      throw error;
     }
-    
-    const qstashResult = await qstashResponse.json();
-    console.log('✅ [AdminUser] Queued via QStash:', qstashResult.messageId);
 
 const results = [{
   success: true,
-  qstash_message_id: qstashResult.messageId
+  qstash_message_id: result.messageId
 }];
 
     // No longer sending to individual admins - queue handler will do it
@@ -339,7 +309,7 @@ const results = [{
           related_entity_id: userId,
           metadata: { 
             userType, 
-            qstash_message_id: qstashResult.messageId,
+            qstash_message_id: result.messageId,
             storeName: storeInfo?.storeName, 
             storeLocation: storeInfo?.storeLocation, 
             storeDescription: storeInfo?.storeDescription 

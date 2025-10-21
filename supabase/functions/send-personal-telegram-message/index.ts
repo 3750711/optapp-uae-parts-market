@@ -55,55 +55,25 @@ serve(async (req) => {
     }
 
     // === MIGRATED TO QSTASH ===
-    console.log('📮 [Personal] Publishing to QStash');
+    console.log('📮 [Personal] Publishing to QStash queue');
     
-    const { data: qstashSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_token')
-      .maybeSingle();
+    const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('../_shared/qstash-config.ts');
     
-    const QSTASH_TOKEN = qstashSetting?.value;
+    const qstashConfig = await getQStashConfig();
+    const deduplicationId = generateDeduplicationId('personal', user_id);
     
-    if (!QSTASH_TOKEN) {
-      throw new Error('QStash not configured');
-    }
-    
-    const { data: endpointSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_endpoint_name')
-      .maybeSingle();
-    
-    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
-    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
-    
-    const qstashResponse = await fetch(qstashUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${QSTASH_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Upstash-Retries': '3',
-        'Upstash-Deduplication-Id': `personal-${user_id}-${adminUser.id}-${Date.now()}`,
-        'Upstash-Forward-Queue': 'telegram-notification-queue'
+    const result = await publishToQueue(
+      qstashConfig,
+      'personal',
+      {
+        userId: user_id,
+        messageText: message_text,
+        images: images || [],
+        adminUserId: adminUser.id
       },
-      body: JSON.stringify({
-        notificationType: 'personal',
-        payload: {
-          userId: user_id,
-          messageText: message_text,
-          images: images || [],
-          adminUserId: adminUser.id
-        }
-      })
-    });
+      deduplicationId
+    );
     
-    if (!qstashResponse.ok) {
-      const errorText = await qstashResponse.text();
-      throw new Error(`QStash failed: ${errorText}`);
-    }
-    
-    const result = await qstashResponse.json();
     console.log('✅ [Personal] Queued via QStash:', result.messageId);
 
     return new Response(

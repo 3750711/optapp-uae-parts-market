@@ -135,65 +135,32 @@ Congratulations on your sale! You can view order details in your dashboard.
     // Now handled by telegram-queue-handler via QStash
 
     // === MIGRATED TO QSTASH ===
-    console.log('📮 [SellerSold] Publishing to QStash instead of direct send');
+    console.log('📮 [SellerSold] Publishing to QStash queue');
     
-    // Get QStash credentials
-    const { data: qstashSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_token')
-      .maybeSingle();
+    const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('../_shared/qstash-config.ts');
     
-    const QSTASH_TOKEN = qstashSetting?.value;
+    const qstashConfig = await getQStashConfig();
+    const deduplicationId = generateDeduplicationId('seller-sold', orderId);
     
-    if (!QSTASH_TOKEN) {
-      throw new Error('QStash not configured');
-    }
-    
-    // Get QStash endpoint
-    const { data: endpointSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_endpoint_name')
-      .maybeSingle();
-    
-    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
-    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
-    
-    // Publish to QStash
-    const qstashResponse = await fetch(qstashUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${QSTASH_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Upstash-Retries': '3',
-        'Upstash-Deduplication-Id': `seller-sold-${orderId}-${Date.now()}`,
-        'Upstash-Forward-Queue': 'telegram-notification-queue'
+    const result = await publishToQueue(
+      qstashConfig,
+      'seller_sold',
+      {
+        orderId,
+        sellerId,
+        orderNumber,
+        buyerOptId,
+        productId,
+        title,
+        price,
+        brand,
+        model,
+        images
       },
-      body: JSON.stringify({
-        notificationType: 'seller_sold',
-        payload: {
-          orderId,
-          sellerId,
-          orderNumber,
-          buyerOptId,
-          productId,
-          title,
-          price,
-          brand,
-          model,
-          images
-        }
-      })
-    });
+      deduplicationId
+    );
     
-    if (!qstashResponse.ok) {
-      const errorText = await qstashResponse.text();
-      throw new Error(`QStash failed: ${errorText}`);
-    }
-    
-    const qstashResult = await qstashResponse.json();
-    console.log(`✅ [SellerSold] Queued via QStash: ${qstashResult.messageId}`);
+    console.log('✅ [SellerSold] Queued via QStash:', result.messageId);
 
     // Log to telegram notifications tracking (as queued)
     try {
@@ -213,43 +180,18 @@ Congratulations on your sale! You can view order details in your dashboard.
           sale_price: price,
           product_id: productId,
           buyer_opt_id: buyerOptId,
-          qstash_message_id: qstashResult.messageId
+          qstash_message_id: result.messageId
         }
       });
     } catch (logError) {
       console.error('Failed to log telegram notification:', logError);
     }
 
-    // Log the action
-    try {
-      await supabase
-        .from('event_logs')
-        .insert({
-          action_type: 'product_sold_telegram_notification',
-          entity_type: 'order',
-          entity_id: orderId,
-          user_id: sellerId,
-          details: {
-            seller_name: seller.full_name,
-            buyer_opt_id: buyerOptId,
-            order_number: orderNumber,
-            product_title: title,
-            sale_price: price,
-            product_id: productId,
-            telegram_message_id: telegramResult.result?.message_id
-          }
-        });
-      console.log('Product sold notification logged successfully');
-    } catch (logError) {
-      console.error('Failed to log product sold notification:', logError);
-      // Don't throw here, notification was sent successfully
-    }
-
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'Product sold notification queued via QStash',
-        qstash_message_id: qstashResult.messageId
+        qstash_message_id: result.messageId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

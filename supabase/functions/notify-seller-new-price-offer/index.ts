@@ -206,41 +206,19 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
     }
 
     // === MIGRATED TO QSTASH ===
-    console.log('📮 [PriceOffer] Publishing to QStash');
+    console.log('📮 [PriceOffer] Publishing to QStash queue');
     
-    const { data: qstashSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_token')
-      .maybeSingle();
+    const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('../_shared/qstash-config.ts');
     
-    const QSTASH_TOKEN = qstashSetting?.value;
+    const qstashConfig = await getQStashConfig();
+    const deduplicationId = generateDeduplicationId('price-offer', offerId);
     
-    if (!QSTASH_TOKEN) {
-      throw new Error('QStash not configured');
-    }
-    
-    const { data: endpointSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_endpoint_name')
-      .maybeSingle();
-    
-    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
-    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
-    
-    const qstashResponse = await fetch(qstashUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${QSTASH_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Upstash-Retries': '3',
-        'Upstash-Deduplication-Id': `price-offer-${offerId}-${Date.now()}`,
-        'Upstash-Forward-Queue': 'telegram-notification-queue'
-      },
-      body: JSON.stringify({
-        notificationType: 'price_offer',
-        payload: {
+    let result;
+    try {
+      result = await publishToQueue(
+        qstashConfig,
+        'price_offer',
+        {
           offerId,
           productId,
           sellerId,
@@ -251,13 +229,13 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
           expiresAt,
           notificationType,
           oldPrice
-        }
-      })
-    });
-    
-    if (!qstashResponse.ok) {
-      const errorText = await qstashResponse.text();
-      console.error('❌ [PriceOffer] QStash failed:', errorText);
+        },
+        deduplicationId
+      );
+      
+      console.log('✅ [PriceOffer] Queued via QStash:', result.messageId);
+    } catch (error) {
+      console.error('❌ [PriceOffer] QStash failed:', error);
       
       // QStash failed
       await logTelegramNotification(supabase, {
@@ -270,7 +248,7 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
         status: 'failed',
         related_entity_type: 'price_offer',
         related_entity_id: offerId,
-        error_details: { qstash_error: errorText },
+        error_details: { qstash_error: error.message },
         metadata: {
           product_id: productId,
           offered_price: offeredPrice,
@@ -280,11 +258,8 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
         }
       });
       
-      throw new Error(`QStash failed: ${errorText}`);
+      throw error;
     }
-
-    const qstashResult = await qstashResponse.json();
-    console.log(`✅ [PriceOffer] Queued via QStash: ${qstashResult.messageId}`);
 
     // Log as queued
     await logTelegramNotification(supabase, {
@@ -303,7 +278,7 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
         original_price: originalPrice,
         old_price: oldPrice,
         buyer_name: buyer.full_name,
-        qstash_message_id: qstashResult.messageId
+        qstash_message_id: result.messageId
       }
     });
 
@@ -337,7 +312,7 @@ ${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Дейс�
       JSON.stringify({ 
         success: true, 
         message: 'Notification queued via QStash',
-        qstash_message_id: qstashResult.messageId
+        qstash_message_id: result.messageId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

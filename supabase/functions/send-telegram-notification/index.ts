@@ -95,72 +95,41 @@ serve(async (req) => {
       }
       
       try {
-        // Get QStash endpoint name from app_settings
-        const { data: endpointSetting } = await supabaseClient
-          .from('app_settings')
-          .select('value')
-          .eq('key', 'qstash_endpoint_name')
-          .maybeSingle();
+        console.log(`🔄 [Router] Routing product notification to QStash queue`);
         
-        const endpointName = endpointSetting?.value || 'partsbay-repost';
-        const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
+        // Import QStash utilities
+        const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('./_shared/qstash-config.ts');
         
-        console.log(`📤 [Router] Queuing to QStash endpoint: ${endpointName}`);
+        // Get QStash config from database
+        const qstashConfig = await getQStashConfig();
         
-        const qstashResponse = await fetch(qstashUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${QSTASH_TOKEN}`,
-            'Content-Type': 'application/json',
-            'Upstash-Retries': '3',
-            'Upstash-Deduplication-Id': reqData.requestId || `product-${reqData.productId}-${reqData.notificationType || 'status_change'}-${Math.floor(Date.now() / 1000)}`,
-            'Upstash-Forward-Queue': 'telegram-notification-queue'
-          },
-          body: JSON.stringify({
+        // Generate deduplication ID to prevent duplicate sends
+        const deduplicationId = generateDeduplicationId('product', reqData.productId);
+        
+        // Publish to queue
+        const qstashResponse = await publishToQueue(
+          qstashConfig,
+          'product',
+          {
             productId: reqData.productId,
             notificationType: reqData.notificationType || 'status_change',
             priceChanged: reqData.priceChanged,
             newPrice: reqData.newPrice,
             oldPrice: reqData.oldPrice
-          })
-        });
+          },
+          deduplicationId
+        );
         
-        if (qstashResponse.ok) {
-          const qstashResult = await qstashResponse.json();
-          console.log('✅ [Router] Product notification queued via QStash:', qstashResult);
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              message: 'Product notification queued via QStash',
-              qstashMessageId: qstashResult.messageId 
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        
-        // QStash returned non-OK response
-        const errorText = await qstashResponse.text();
-        console.error('❌ [Router] QStash queue failed:', errorText);
-        
-        // Log to event_logs for monitoring
-        await supabaseClient.from('event_logs').insert({
-          action_type: 'notification_failed',
-          entity_type: 'product',
-          entity_id: reqData.productId,
-          details: {
-            error: 'QStash queue failed',
-            qstash_response: errorText,
-            notification_type: reqData.notificationType || 'status_change',
-            timestamp: new Date().toISOString()
-          }
-        });
+        console.log('✅ [Router] Product notification queued:', qstashResponse.messageId);
         
         return new Response(
           JSON.stringify({ 
-            error: 'QStash queue failed',
-            details: errorText
+            success: true, 
+            messageId: qstashResponse.messageId,
+            queued: true,
+            queueName: qstashConfig.queueName
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
         
       } catch (qstashError) {
@@ -172,7 +141,7 @@ serve(async (req) => {
           entity_type: 'product',
           entity_id: reqData.productId,
           details: {
-            error: 'QStash connection error',
+            error: 'QStash queue failed',
             error_message: qstashError?.message || 'Unknown error',
             notification_type: reqData.notificationType || 'status_change',
             timestamp: new Date().toISOString()
@@ -181,7 +150,7 @@ serve(async (req) => {
         
         return new Response(
           JSON.stringify({ 
-            error: 'QStash connection error',
+            error: 'QStash queue failed',
             details: qstashError?.message || 'Unknown error'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }

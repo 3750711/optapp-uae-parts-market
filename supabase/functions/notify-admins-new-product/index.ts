@@ -51,59 +51,37 @@ serve(async (req) => {
     }
 
     // === MIGRATED TO QSTASH ===
-    console.log('📮 [AdminProduct] Publishing to QStash');
+    console.log('📮 [AdminProduct] Publishing to QStash queue');
     
-    const { data: qstashSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_token')
-      .maybeSingle();
+    // Import QStash utilities
+    const { getQStashConfig, publishToQueue, generateDeduplicationId } = await import('../_shared/qstash-config.ts');
     
-    const QSTASH_TOKEN = qstashSetting?.value;
+    // Get QStash config from database
+    const qstashConfig = await getQStashConfig();
     
-    if (!QSTASH_TOKEN) {
-      throw new Error('QStash not configured');
-    }
+    // Generate deduplication ID
+    const deduplicationId = generateDeduplicationId('admin-product', productId);
     
-    const { data: endpointSetting } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'qstash_endpoint_name')
-      .maybeSingle();
+    // Publish to queue
+    const result = await publishToQueue(
+      qstashConfig,
+      'admin_new_product',
+      { productId },
+      deduplicationId
+    );
     
-    const endpointName = endpointSetting?.value || 'telegram-notification-queue';
-    const qstashUrl = `https://qstash.upstash.io/v2/publish/${endpointName}`;
-    
-    const qstashResponse = await fetch(qstashUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${QSTASH_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Upstash-Retries': '3',
-        'Upstash-Deduplication-Id': `admin-product-${productId}-${Date.now()}`,
-        'Upstash-Forward-Queue': 'telegram-notification-queue'
-      },
-      body: JSON.stringify({
-        notificationType: 'admin_new_product',
-        payload: { productId }
-      })
-    });
-    
-    if (!qstashResponse.ok) {
-      const errorText = await qstashResponse.text();
-      throw new Error(`QStash failed: ${errorText}`);
-    }
-    
-    const result = await qstashResponse.json();
-    console.log('✅ [AdminProduct] Queued via QStash:', result.messageId);
+    console.log('✅ [AdminProduct] Product notification queued:', result.messageId);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Admin product notification queued via QStash',
-        qstash_message_id: result.messageId
+        message: 'Admin notification queued via QStash',
+        qstashMessageId: result.messageId
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
+      }
     );
 
   } catch (error) {
