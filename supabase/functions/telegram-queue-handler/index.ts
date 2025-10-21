@@ -243,7 +243,7 @@ async function handleProductNotification(
   notificationType: string
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   
-  const { productId, priceChanged, newPrice, oldPrice } = payload;
+  const { productId, priceChanged, newPrice, oldPrice, notificationType: payloadNotificationType } = payload;
   const chatId = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || Deno.env.get('TELEGRAM_GROUP_CHAT_ID_PRODUCTS');
   
   if (!chatId) {
@@ -270,7 +270,7 @@ async function handleProductNotification(
   }
   
   // === SPECIAL CASE: Sold notification (text-only) ===
-  if (notificationType === 'sold') {
+  if (payloadNotificationType === 'sold' || notificationType === 'sold') {
     console.log('📝 [Product] Sending sold notification (text-only)');
     
     const titleParts = [product.title, product.brand, product.model].filter(Boolean);
@@ -329,8 +329,10 @@ async function handleProductNotification(
     : '';
   
   // Caption depends on notification type
-  const statusLine = notificationType === 'product_published' 
-    ? '\n\n📊 Статус: Опубликован'
+  const statusLine = (payloadNotificationType === 'sold' || notificationType === 'sold')
+    ? '\n\n📊 Статус: ❌ ПРОДАН ❌'
+    : (payloadNotificationType === 'repost' || notificationType === 'repost')
+    ? '\n\n📊 Статус: 🔄 Репост'
     : '\n\n📊 Статус: Опубликован';
   
   const caption = `LOT(лот) ${lotNumber}\n📦 ${fullTitle}${priceInfo}\n🚚 Цена доставки: ${product.delivery_price || 0} $\n🆔 OPT_ID продавца: ${product.profiles?.opt_id || 'N/A'}\n👤 Telegram продавца: ${getTelegramForDisplay(product.profiles?.telegram || '', localTelegramAccounts)}${descriptionLine}${statusLine}`;
