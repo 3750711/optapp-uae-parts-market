@@ -271,6 +271,149 @@ async function handleProductNotification(
 }
 
 /**
+ * Handler for bulk notifications
+ * Sends same message to multiple users (group or array of IDs)
+ */
+async function handleBulkNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; total: number; sent: number; failed: number; no_telegram: number; errors?: any[] }> {
+  
+  const { recipients, messageText, images, batchIndex } = payload;
+  
+  console.log(`📨 [Bulk] Processing bulk notification, recipients type: ${typeof recipients}`);
+  
+  // Get recipient user IDs
+  let recipientIds: string[] = [];
+  
+  if (Array.isArray(recipients)) {
+    recipientIds = recipients;
+  } else if (typeof recipients === 'string') {
+    // Handle predefined groups
+    if (recipients === 'all_buyers') {
+      const { data: users } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_type', 'buyer');
+      recipientIds = users?.map(u => u.id) || [];
+    } else if (recipients === 'all_sellers') {
+      const { data: users } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_type', 'seller');
+      recipientIds = users?.map(u => u.id) || [];
+    }
+  }
+  
+  console.log(`📋 [Bulk] Processing ${recipientIds.length} recipients`);
+  
+  // Get user profiles with telegram_id
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, telegram_id, full_name, email')
+    .in('id', recipientIds);
+  
+  // Separate users with and without telegram_id
+  const usersWithTelegram = profiles?.filter(p => p.telegram_id) || [];
+  const usersWithoutTelegram = profiles?.filter(p => !p.telegram_id) || [];
+  
+  console.log(`✅ [Bulk] ${usersWithTelegram.length} with Telegram, ${usersWithoutTelegram.length} without`);
+  
+  const results = {
+    total: recipientIds.length,
+    sent: 0,
+    failed: 0,
+    no_telegram: usersWithoutTelegram.length,
+    errors: [] as any[]
+  };
+  
+  // Add admin signature to message
+  const messageWithSignature = `${messageText}\n\n📩 Сообщение от администратора partsbay.ae`;
+  
+  // Send to each user with telegram_id
+  for (const profile of usersWithTelegram) {
+    const userName = profile.full_name || profile.email || 'user';
+    
+    try {
+      const result = await sendToTelegram(
+        profile.telegram_id,
+        messageWithSignature,
+        images || []
+      );
+      
+      if (result.success) {
+        results.sent++;
+        console.log(`✅ [Bulk] Sent to ${userName}`);
+      } else {
+        results.failed++;
+        results.errors.push({
+          userId: profile.id,
+          userName,
+          error: result.error
+        });
+        console.error(`❌ [Bulk] Failed to ${userName}: ${result.error}`);
+      }
+      
+      // Delay between messages to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+    } catch (error) {
+      results.failed++;
+      results.errors.push({
+        userId: profile.id,
+        userName,
+        error: error.message
+      });
+      console.error(`❌ [Bulk] Exception for ${userName}:`, error);
+    }
+  }
+  
+  console.log(`📊 [Bulk] Results: ${results.sent} sent, ${results.failed} failed, ${results.no_telegram} no telegram`);
+  
+  return results;
+}
+
+/**
+ * Handler for personal notifications
+ * Sends message to specific user
+ */
+async function handlePersonalNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  
+  const { userId, messageText, images } = payload;
+  
+  console.log(`👤 [Personal] Sending to user ${userId}`);
+  
+  // Get user's telegram_id
+  const { data: targetUser, error: userError } = await supabase
+    .from('profiles')
+    .select('telegram_id, full_name, email')
+    .eq('id', userId)
+    .single();
+  
+  if (userError || !targetUser) {
+    throw new Error('User not found');
+  }
+  
+  if (!targetUser.telegram_id) {
+    throw new Error('User does not have Telegram ID');
+  }
+  
+  console.log(`👤 [Personal] Sending to ${targetUser.full_name} (${targetUser.telegram_id})`);
+  
+  // Send message
+  const result = await sendToTelegram(
+    targetUser.telegram_id,
+    messageText,
+    images || []
+  );
+  
+  return result;
+}
+
+/**
  * Handler for admin notifications about new products
  * Sends product details to all admins with telegram_id
  */
@@ -1083,13 +1226,11 @@ Deno.serve(async (req) => {
         break;
         
       case 'bulk':
-        // TODO: Implement in Step 7
-        result = { success: false, error: 'Bulk handler not implemented yet' };
+        result = await handleBulkNotification(payload, supabase);
         break;
         
       case 'personal':
-        // TODO: Implement in Step 7
-        result = { success: false, error: 'Personal message handler not implemented yet' };
+        result = await handlePersonalNotification(payload, supabase);
         break;
         
       default:
