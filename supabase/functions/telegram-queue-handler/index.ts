@@ -271,6 +271,152 @@ async function handleProductNotification(
 }
 
 /**
+ * Handler for user welcome notifications
+ * Sends welcome message to new users with deduplication
+ */
+async function handleUserWelcomeNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; messageId?: string; error?: string; skipped?: boolean; reason?: string }> {
+  
+  const { userId, force } = payload;
+  
+  console.log(`👋 [Welcome] Processing welcome for user ${userId}, force: ${force}`);
+  
+  // Fetch profile data
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id, user_type, full_name, telegram_id')
+    .eq('id', userId)
+    .single();
+  
+  if (profileError || !profile) {
+    throw new Error('Profile not found');
+  }
+  
+  if (!profile.telegram_id) {
+    console.log('⚠️ [Welcome] No telegram_id for user, skipping');
+    return { success: true, skipped: true, reason: 'no_telegram_id' };
+  }
+  
+  // Check deduplication (unless force=true)
+  if (!force) {
+    const { data: existingSent } = await supabase
+      .from('telegram_notifications_log')
+      .select('id')
+      .eq('notification_type', 'welcome_registration')
+      .eq('related_entity_type', 'user')
+      .eq('related_entity_id', profile.id)
+      .eq('status', 'sent')
+      .not('telegram_message_id', 'is', null)
+      .limit(1)
+      .maybeSingle();
+    
+    if (existingSent) {
+      console.log('✅ [Welcome] Already sent, skipping');
+      return { success: true, skipped: true, reason: 'already_sent' };
+    }
+  }
+  
+  // Determine language based on user_type
+  const isSeller = profile.user_type === 'seller';
+  
+  const messageText = isSeller
+    ? 'Thank you for registering on partsbay.ae! We\'ll review your account shortly and you\'ll get access to the platform. Our administrator may contact you via Telegram if any details need clarification.'
+    : 'Спасибо за регистрацию на partsbay.ae! Скоро мы проверим ваш аккаунт и вы получите доступ к платформе. Возможно, наш администратор свяжется с вами в Telegram, если потребуется уточнить информацию.';
+  
+  // Send to Telegram
+  const result = await sendToTelegram(profile.telegram_id, messageText);
+  
+  return result;
+}
+
+/**
+ * Handler for user verification status notifications
+ * Sends verification status updates to users
+ */
+async function handleVerificationNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; messageId?: string; error?: string; skipped?: boolean; reason?: string }> {
+  
+  let { userId, status, userType, fullName, telegramId } = payload;
+  
+  console.log(`✅ [Verification] Processing for user ${userId}, status: ${status}`);
+  
+  // Fetch missing profile fields if needed
+  if (!status || !userType || !telegramId) {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, verification_status, user_type, full_name, telegram_id')
+      .eq('id', userId)
+      .single();
+    
+    if (profileError || !profile) {
+      throw new Error('Profile not found');
+    }
+    
+    status = status || profile.verification_status;
+    userType = userType || profile.user_type;
+    fullName = fullName || profile.full_name;
+    telegramId = telegramId || profile.telegram_id;
+  }
+  
+  if (!telegramId) {
+    console.log('⚠️ [Verification] No telegram_id, skipping');
+    return { success: true, skipped: true, reason: 'no_telegram_id' };
+  }
+  
+  // Check deduplication - don't send same status twice
+  const { data: lastSent } = await supabase
+    .from('telegram_notifications_log')
+    .select('id, metadata')
+    .eq('notification_type', 'verification_status')
+    .eq('status', 'sent')
+    .eq('related_entity_type', 'user')
+    .eq('related_entity_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  
+  if (lastSent) {
+    const lastStatus = lastSent.metadata?.status;
+    if (lastStatus === status) {
+      console.log('✅ [Verification] Already sent for this status, skipping');
+      return { success: true, skipped: true, reason: 'already_sent_for_status' };
+    }
+  }
+  
+  // Build message with site link for verified
+  const siteUrl = 'https://partsbay.ae';
+  const isSeller = userType === 'seller';
+  let messageText: string;
+  
+  if (status === 'verified') {
+    messageText = isSeller
+      ? `Your account has been approved. You can now access the platform: ${siteUrl}`
+      : `Ваш аккаунт одобрен. Теперь вы можете войти на сайт: ${siteUrl}`;
+  } else if (status === 'pending') {
+    messageText = isSeller
+      ? 'Your account is under review. We will notify you once it is approved.'
+      : 'Ваш аккаунт на модерации. Мы уведомим вас после проверки.';
+  } else if (status === 'blocked') {
+    messageText = isSeller
+      ? 'Your account has been blocked. If you think this is a mistake, please contact support.'
+      : 'Ваш аккаунт заблокирован. Если это ошибка — свяжитесь с поддержкой.';
+  } else {
+    messageText = isSeller
+      ? `Your verification status has changed to: ${status}`
+      : `Ваш статус верификации изменен на: ${status}`;
+  }
+  
+  // Send to Telegram
+  const result = await sendToTelegram(telegramId, messageText);
+  
+  return result;
+}
+
+/**
  * Handler for seller notifications (product sold)
  * Sends personal message to seller when their product is sold
  */
@@ -695,13 +841,11 @@ Deno.serve(async (req) => {
         break;
         
       case 'user_welcome':
-        // TODO: Implement in Step 5
-        result = { success: false, error: 'User welcome handler not implemented yet' };
+        result = await handleUserWelcomeNotification(payload, supabase);
         break;
         
       case 'verification':
-        // TODO: Implement in Step 5
-        result = { success: false, error: 'Verification handler not implemented yet' };
+        result = await handleVerificationNotification(payload, supabase);
         break;
         
       case 'admin_new_product':
