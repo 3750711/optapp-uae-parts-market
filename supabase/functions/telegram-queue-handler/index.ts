@@ -271,6 +271,255 @@ async function handleProductNotification(
 }
 
 /**
+ * Handler for seller notifications (product sold)
+ * Sends personal message to seller when their product is sold
+ */
+async function handleSellerNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  
+  const { 
+    orderId, 
+    sellerId, 
+    orderNumber, 
+    buyerOptId, 
+    productId,
+    title,
+    price,
+    brand,
+    model,
+    images
+  } = payload;
+  
+  console.log(`💰 [Seller] Processing product sold notification for seller ${sellerId}`);
+  
+  // Get seller's telegram_id and user_type for language
+  const { data: seller, error: sellerError } = await supabase
+    .from('profiles')
+    .select('telegram_id, full_name, user_type')
+    .eq('id', sellerId)
+    .single();
+  
+  if (sellerError || !seller) {
+    throw new Error('Seller not found');
+  }
+  
+  if (!seller.telegram_id) {
+    console.log('⚠️ [Seller] Seller has no Telegram ID, skipping');
+    return { success: true, error: 'No Telegram ID' };
+  }
+  
+  // Determine language based on user_type
+  const isEnglish = seller.user_type === 'seller';
+  const locale = isEnglish ? 'en-US' : 'ru-RU';
+  const saleDate = new Date().toLocaleString(locale, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  // Create localized message
+  const telegramMessage = isEnglish ? `
+🎉 <b>Your product sold!</b>
+
+🏷️ <b>Product:</b> ${title}${brand ? ` (${brand}` : ''}${model ? ` ${model})` : brand ? ')' : ''}
+
+💰 <b>Sale Price:</b> $${price}
+📋 <b>Order #:</b> ${orderNumber}
+👤 <b>Buyer ID:</b> ${buyerOptId}
+
+📅 <b>Sale Date:</b> ${saleDate}
+
+🔗 <b>Order Link:</b> https://partsbay.ae/order/${orderId}
+
+Congratulations on your sale! You can view order details in your dashboard.
+  `.trim() : `
+🎉 <b>Ваш товар продан!</b>
+
+🏷️ <b>Товар:</b> ${title}${brand ? ` (${brand}` : ''}${model ? ` ${model})` : brand ? ')' : ''}
+
+💰 <b>Цена продажи:</b> ${price?.toLocaleString('ru-RU')}₽
+📋 <b>Заказ №:</b> ${orderNumber}
+👤 <b>ID покупателя:</b> ${buyerOptId}
+
+📅 <b>Дата продажи:</b> ${saleDate}
+
+🔗 <b>Ссылка на заказ:</b> https://partsbay.ae/order/${orderId}
+
+Поздравляем с продажей! Детали заказа можно посмотреть в личном кабинете.
+  `.trim();
+  
+  // Get first image if available (will be transformed by sendToTelegram)
+  const orderImages = images && images.length > 0 ? [images[0]] : [];
+  
+  // Send to Telegram
+  const result = await sendToTelegram(seller.telegram_id, telegramMessage, orderImages);
+  
+  return result;
+}
+
+/**
+ * Handler for price offer notifications
+ * Sends personal message to seller about new/updated price offers
+ */
+async function handlePriceOfferNotification(
+  payload: any,
+  supabase: any
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  
+  const { 
+    offerId, 
+    productId, 
+    sellerId, 
+    buyerId, 
+    offeredPrice, 
+    originalPrice, 
+    message, 
+    expiresAt,
+    notificationType = 'new_offer',
+    oldPrice 
+  } = payload;
+  
+  console.log(`💵 [PriceOffer] Processing ${notificationType} for seller ${sellerId}`);
+  
+  // Get seller's telegram_id and user_type
+  const { data: seller, error: sellerError } = await supabase
+    .from('profiles')
+    .select('telegram_id, full_name, user_type')
+    .eq('id', sellerId)
+    .single();
+  
+  if (sellerError || !seller) {
+    throw new Error('Seller not found');
+  }
+  
+  if (!seller.telegram_id) {
+    console.log('⚠️ [PriceOffer] Seller has no Telegram ID, skipping');
+    return { success: true, error: 'No Telegram ID' };
+  }
+  
+  // Get buyer's info
+  const { data: buyer } = await supabase
+    .from('profiles')
+    .select('full_name, opt_id')
+    .eq('id', buyerId)
+    .single();
+  
+  if (!buyer) {
+    throw new Error('Buyer not found');
+  }
+  
+  // Get product info with images
+  const { data: product } = await supabase
+    .from('products')
+    .select(`
+      title, brand, model, cloudinary_url,
+      product_images(url, is_primary)
+    `)
+    .eq('id', productId)
+    .single();
+  
+  if (!product) {
+    throw new Error('Product not found');
+  }
+  
+  // Determine language
+  const isEnglish = seller.user_type === 'seller';
+  const locale = isEnglish ? 'en-US' : 'ru-RU';
+  const expirationDate = new Date(expiresAt).toLocaleString(locale, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  // Create localized message based on type
+  let telegramMessage;
+  
+  if (notificationType === 'price_update') {
+    telegramMessage = isEnglish ? `
+📝 <b>Price Offer Updated!</b>
+
+🏷️ <b>Product:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
+
+💰 <b>Original Price:</b> $${originalPrice}
+📉 <b>Previous Offer:</b> $${oldPrice}
+🎯 <b>New Offer:</b> $${offeredPrice}
+
+👤 <b>From Buyer:</b> ${buyer.full_name} (ID: ${buyer.opt_id})
+
+${message ? `💬 <b>Message:</b> ${message}\n` : ''}⏰ <b>Valid Until:</b> ${expirationDate}
+
+🔗 <b>Link:</b> https://partsbay.ae/product/${productId}
+
+Buyer updated their offer. You can respond in your account dashboard.
+    `.trim() : `
+📝 <b>Предложение цены обновлено!</b>
+
+🏷️ <b>Товар:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
+
+💰 <b>Первоначальная цена:</b> ${originalPrice.toLocaleString('ru-RU')}₽
+📉 <b>Предыдущее предложение:</b> ${oldPrice.toLocaleString('ru-RU')}₽
+🎯 <b>Новое предложение:</b> ${offeredPrice.toLocaleString('ru-RU')}₽
+
+👤 <b>От покупателя:</b> ${buyer.full_name} (ID: ${buyer.opt_id})
+
+${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Действительно до:</b> ${expirationDate}
+
+🔗 <b>Ссылка:</b> https://partsbay.ae/product/${productId}
+
+Покупатель изменил своё предложение. Ответить можно в личном кабинете на сайте.
+    `.trim();
+  } else {
+    telegramMessage = isEnglish ? `
+📦 <b>New Price Offer!</b>
+
+🏷️ <b>Product:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
+
+💰 <b>Original Price:</b> $${originalPrice}
+🎯 <b>Offered Price:</b> $${offeredPrice}
+
+👤 <b>From Buyer:</b> ${buyer.full_name} (ID: ${buyer.opt_id})
+
+${message ? `💬 <b>Message:</b> ${message}\n` : ''}⏰ <b>Valid Until:</b> ${expirationDate}
+
+🔗 <b>Link:</b> https://partsbay.ae/product/${productId}
+
+You can respond to this offer in your account dashboard.
+    `.trim() : `
+📦 <b>Новое предложение цены!</b>
+
+🏷️ <b>Товар:</b> ${product.title}${product.brand ? ` (${product.brand}` : ''}${product.model ? ` ${product.model})` : product.brand ? ')' : ''}
+
+💰 <b>Первоначальная цена:</b> ${originalPrice.toLocaleString('ru-RU')}₽
+🎯 <b>Предложенная цена:</b> ${offeredPrice.toLocaleString('ru-RU')}₽
+
+👤 <b>От покупателя:</b> ${buyer.full_name} (ID: ${buyer.opt_id})
+
+${message ? `💬 <b>Сообщение:</b> ${message}\n` : ''}⏰ <b>Действительно до:</b> ${expirationDate}
+
+🔗 <b>Ссылка:</b> https://partsbay.ae/product/${productId}
+
+Ответить на предложение можно в личном кабинете на сайте.
+    `.trim();
+  }
+  
+  // Get product image (will be transformed by sendToTelegram)
+  const primaryImage = product.product_images?.find(img => img.is_primary);
+  const productImage = primaryImage?.url || product.product_images?.[0]?.url || product.cloudinary_url;
+  const productImages = productImage ? [productImage] : [];
+  
+  // Send to Telegram
+  const result = await sendToTelegram(seller.telegram_id, telegramMessage, productImages);
+  
+  return result;
+}
+
+/**
  * Handler for order notifications
  * Supports: regular, registered
  */
@@ -438,13 +687,11 @@ Deno.serve(async (req) => {
         break;
         
       case 'seller_sold':
-        // TODO: Implement in Step 4
-        result = { success: false, error: 'Seller notification handler not implemented yet' };
+        result = await handleSellerNotification(payload, supabase);
         break;
         
       case 'price_offer':
-        // TODO: Implement in Step 4
-        result = { success: false, error: 'Price offer handler not implemented yet' };
+        result = await handlePriceOfferNotification(payload, supabase);
         break;
         
       case 'user_welcome':
