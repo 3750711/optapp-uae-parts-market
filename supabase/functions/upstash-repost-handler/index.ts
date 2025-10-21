@@ -263,6 +263,19 @@ Deno.serve(async (req) => {
 
         console.log(`Divided ${currentImageUrls.length} images into ${imageChunks.length} chunks`);
 
+        // 🛡️ Критичная проверка: есть ли изображения для отправки
+        if (imageChunks.length === 0 || !imageChunks[0] || imageChunks[0].length === 0) {
+          console.error('❌ [Telegram] No valid images remaining after validation');
+          console.error('   Original images count:', validImageUrls.length);
+          console.error('   Current images count:', currentImageUrls.length);
+          console.error('   Attempt:', attempt);
+          throw new Error(
+            `All images returned WEBPAGE_MEDIA_EMPTY from Telegram after ${attempt} attempt(s). ` +
+            `This usually means Cloudinary is blocking Telegram bot or images are private/inaccessible. ` +
+            `Check: 1) Cloudinary public access settings 2) Cloudinary hotlink protection 3) Image URLs validity`
+          );
+        }
+
         // Send first chunk with caption
         const firstChunk = imageChunks[0];
         const mediaGroup = firstChunk.map((url, index) => ({
