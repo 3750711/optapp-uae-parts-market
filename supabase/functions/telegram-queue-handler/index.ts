@@ -10,7 +10,8 @@ const DELAY_BETWEEN_CHUNKS = 1000; // ms
 
 /**
  * Transform Cloudinary URL to be Telegram-friendly
- * Adds fl_attachment,f_jpg/ to force file download instead of webpage preview
+ * Converts to JPEG with quality optimization
+ * Removes fl_attachment which causes WEBPAGE_MEDIA_EMPTY error
  */
 function makeCloudinaryTelegramFriendly(url: string): string {
   if (!url.includes('res.cloudinary.com')) {
@@ -30,14 +31,14 @@ function makeCloudinaryTelegramFriendly(url: string): string {
   const beforeUpload = url.substring(0, uploadIndex + uploadMarker.length);
   const afterUpload = url.substring(uploadIndex + uploadMarker.length);
   
-  // Check if already has fl_attachment
-  if (afterUpload.startsWith('fl_attachment')) {
-    console.log(`✅ [Cloudinary] URL already has fl_attachment`);
+  // Check if already has transformations
+  if (afterUpload.startsWith('f_jpg,q_auto')) {
+    console.log(`✅ [Cloudinary] URL already has transformations`);
     return url;
   }
   
-  // Add fl_attachment to force file download and f_jpg for format
-  const transforms = 'fl_attachment,f_jpg/';
+  // Convert to JPEG with quality optimization (no fl_attachment)
+  const transforms = 'f_jpg,q_auto:good/';
   const newUrl = `${beforeUpload}${transforms}${afterUpload}`;
   
   console.log(`🔄 [Cloudinary] Transformed for Telegram:`);
