@@ -1157,24 +1157,27 @@ async function handleOrderNotification(
   
   const { orderData, notificationType } = payload;
   
+  // Support both formats: nested (orderData) and flat (direct payload)
+  const sourceData = orderData || payload;
+  
   // Transform camelCase to snake_case for compatibility with both data formats
   const normalizedOrderData = {
-    id: orderData.orderId || orderData.id,
-    order_number: orderData.orderNumber || orderData.order_number,
-    status: orderData.status,
-    delivery_method: orderData.deliveryMethod || orderData.delivery_method,
-    title: orderData.title,
-    brand: orderData.brand,
-    model: orderData.model,
-    price: orderData.price,
-    delivery_price_confirm: orderData.deliveryPriceConfirm || orderData.delivery_price_confirm,
-    place_number: orderData.placeNumber || orderData.place_number,
-    text_order: orderData.textOrder || orderData.text_order,
-    seller_opt_id: orderData.sellerOptId || orderData.seller_opt_id,
-    buyer_opt_id: orderData.buyerOptId || orderData.buyer_opt_id,
-    seller_id: orderData.sellerId || orderData.seller_id,
-    telegram_url_order: orderData.telegramUrlOrder || orderData.telegram_url_order,
-    images: orderData.images || []
+    id: sourceData.orderId || sourceData.id,
+    order_number: sourceData.orderNumber || sourceData.order_number,
+    status: sourceData.status,
+    delivery_method: sourceData.deliveryMethod || sourceData.delivery_method,
+    title: sourceData.title,
+    brand: sourceData.brand,
+    model: sourceData.model,
+    price: sourceData.price,
+    delivery_price_confirm: sourceData.deliveryPriceConfirm || sourceData.delivery_price_confirm,
+    place_number: sourceData.placeNumber || sourceData.place_number,
+    text_order: sourceData.textOrder || sourceData.text_order,
+    seller_opt_id: sourceData.sellerOptId || sourceData.seller_opt_id,
+    buyer_opt_id: sourceData.buyerOptId || sourceData.buyer_opt_id,
+    seller_id: sourceData.sellerId || sourceData.seller_id,
+    telegram_url_order: sourceData.telegramUrlOrder || sourceData.telegram_url_order,
+    images: sourceData.images || []
   };
   
   // Determine target group with fallback constants
