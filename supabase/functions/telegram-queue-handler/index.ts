@@ -151,21 +151,96 @@ async function sendToTelegram(
         const error = await response.json();
         const errorDesc = error.description || 'Unknown error';
         
-        // CRITICAL: Handle WEBPAGE_MEDIA_EMPTY and similar image errors
+        // CRITICAL: Handle WEBPAGE_MEDIA_EMPTY and similar image errors with Smart Retry
         if (errorDesc.includes('WEBPAGE_MEDIA_EMPTY') || 
+            errorDesc.includes('WEBPAGE_CURL_FAILED') ||
             errorDesc.includes('failed to get HTTP URL content') ||
             errorDesc.includes('Wrong file identifier')) {
           
-          console.warn(`⚠️ Image error: ${errorDesc}, attempting text-only fallback`);
+          console.warn(`⚠️ Image loading error detected: ${errorDesc}`);
           
-          // Try to identify failed image
+          // ========== STRATEGY 1: Remove specific failed image ==========
           const failedIndex = parseFailedImageIndex(errorDesc);
-          if (failedIndex !== null) {
-            console.log(`🔍 Failed at image index ${failedIndex}: ${chunks[i][failedIndex]}`);
+          
+          if (failedIndex !== null && failedIndex < chunks[i].length) {
+            console.log(`🎯 Strategy 1: Removing specific image at index ${failedIndex}`);
+            console.log(`   Problem URL: ${chunks[i][failedIndex]}`);
+            
+            // Remove only the problematic image
+            const workingImages = chunks[i].filter((_, idx) => idx !== failedIndex);
+            
+            if (workingImages.length > 0) {
+              const retryMedia = workingImages.map((url, idx) => ({
+                type: 'photo',
+                media: url,
+                ...(i === 0 && idx === 0 ? { caption: message, parse_mode: 'HTML' } : {})
+              }));
+              
+              const retryResponse = await fetch(
+                `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMediaGroup`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ chat_id: chatId, media: retryMedia })
+                }
+              );
+              
+              if (retryResponse.ok) {
+                const result = await retryResponse.json();
+                console.log(`✅ Strategy 1 SUCCESS: Sent ${workingImages.length}/${chunks[i].length} images`);
+                return { 
+                  success: true, 
+                  messageId: result.result?.[0]?.message_id,
+                  error: `Removed problematic image at index ${failedIndex}, sent ${workingImages.length} images`
+                };
+              } else {
+                console.warn('⚠️ Strategy 1 FAILED, trying Strategy 2');
+              }
+            }
           }
           
-          // Fallback to text-only message
-          console.log('📝 Falling back to text-only message');
+          // ========== STRATEGY 2: Progressive reduction ==========
+          console.log('🔄 Strategy 2: Progressive reduction');
+          
+          const originalCount = chunks[i].length;
+          
+          for (let photoCount = originalCount - 1; photoCount > 0; photoCount--) {
+            console.log(`   🔄 Trying with ${photoCount}/${originalCount} images`);
+            
+            const retryMedia = chunks[i].slice(0, photoCount).map((url, idx) => ({
+              type: 'photo',
+              media: url,
+              ...(i === 0 && idx === 0 ? { caption: message, parse_mode: 'HTML' } : {})
+            }));
+            
+            const retryResponse = await fetch(
+              `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMediaGroup`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, media: retryMedia })
+              }
+            );
+            
+            if (retryResponse.ok) {
+              const result = await retryResponse.json();
+              console.log(`✅ Strategy 2 SUCCESS: Sent ${photoCount}/${originalCount} images`);
+              return { 
+                success: true, 
+                messageId: result.result?.[0]?.message_id,
+                error: `Progressive retry: sent ${photoCount}/${originalCount} images`
+              };
+            }
+            
+            // Delay between retries
+            await new Promise(r => setTimeout(r, 500));
+          }
+          
+          console.warn('⚠️ Strategy 2 FAILED, trying Strategy 3');
+          
+          // ========== STRATEGY 3: Text-only fallback ==========
+          console.log('📝 Strategy 3: Text-only fallback');
+          
           const textResponse = await fetch(
             `https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`,
             {
@@ -181,12 +256,12 @@ async function sendToTelegram(
           
           if (!textResponse.ok) {
             const textError = await textResponse.json();
-            return { success: false, error: `Image failed, text fallback also failed: ${textError.description}` };
+            return { success: false, error: `All strategies failed. Last error: ${textError.description}` };
           }
           
           const textResult = await textResponse.json();
-          console.log('✅ Text-only fallback successful');
-          return { success: true, messageId: textResult.result.message_id, error: 'Sent as text-only (images failed)' };
+          console.log('✅ Strategy 3 SUCCESS: Text-only message sent');
+          return { success: true, messageId: textResult.result.message_id, error: 'All images failed, sent text-only' };
         }
         
         // Handle rate limiting (429)
