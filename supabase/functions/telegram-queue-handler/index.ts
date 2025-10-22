@@ -58,8 +58,10 @@ function makeCloudinaryTelegramFriendly(url: string): string {
  * Example: "Wrong file identifier/http url specified: failed at index 3"
  */
 function parseFailedImageIndex(errorDescription: string): number | null {
-  const match = errorDescription.match(/failed at index (\d+)/i);
-  return match ? parseInt(match[1], 10) : null;
+  // Telegram error format: "failed to send message #3 with the error message..."
+  // Extract message number (starts from 1) and convert to 0-based array index
+  const match = errorDescription.match(/message #(\d+)/i);
+  return match ? parseInt(match[1], 10) - 1 : null;
 }
 
 /**
