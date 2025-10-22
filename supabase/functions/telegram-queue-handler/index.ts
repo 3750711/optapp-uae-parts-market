@@ -1157,14 +1157,32 @@ async function handleOrderNotification(
   
   const { orderData, notificationType } = payload;
   
+  // Transform camelCase to snake_case for compatibility with both data formats
+  const normalizedOrderData = {
+    id: orderData.orderId || orderData.id,
+    order_number: orderData.orderNumber || orderData.order_number,
+    status: orderData.status,
+    delivery_method: orderData.deliveryMethod || orderData.delivery_method,
+    title: orderData.title,
+    brand: orderData.brand,
+    model: orderData.model,
+    price: orderData.price,
+    delivery_price_confirm: orderData.deliveryPriceConfirm || orderData.delivery_price_confirm,
+    place_number: orderData.placeNumber || orderData.place_number,
+    text_order: orderData.textOrder || orderData.text_order,
+    seller_opt_id: orderData.sellerOptId || orderData.seller_opt_id,
+    buyer_opt_id: orderData.buyerOptId || orderData.buyer_opt_id,
+    seller_id: orderData.sellerId || orderData.seller_id,
+    telegram_url_order: orderData.telegramUrlOrder || orderData.telegram_url_order,
+    images: orderData.images || []
+  };
+  
   // Determine target group with fallback constants
   const targetGroupId = notificationType === 'registered' 
     ? TELEGRAM_GROUP_CHAT_ID_REGISTERED
     : TELEGRAM_GROUP_CHAT_ID_ORDERS;
   
-  console.log(`📦 [Order] Processing order #${orderData.order_number}, type: ${notificationType}, target: ${targetGroupId}`);
-  
-  console.log(`📦 [Order] Processing order #${orderData.order_number}, type: ${notificationType}`);
+  console.log(`📦 [Order] Processing order #${normalizedOrderData.order_number}, type: ${notificationType}, target: ${targetGroupId}`);
   
   // Helper: get status text in Russian
   const getStatusText = (status: string) => {
@@ -1180,13 +1198,13 @@ async function handleOrderNotification(
     }
   };
   
-  const statusText = getStatusText(orderData.status);
+  const statusText = getStatusText(normalizedOrderData.status);
   
   // Format delivery method
-  const deliveryMethodText = orderData.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
-                            orderData.delivery_method === 'self_pickup' ? 'Самовывоз' : 
-                            orderData.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 
-                            orderData.delivery_method;
+  const deliveryMethodText = normalizedOrderData.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
+                            normalizedOrderData.delivery_method === 'self_pickup' ? 'Самовывоз' : 
+                            normalizedOrderData.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 
+                            normalizedOrderData.delivery_method;
   
   // Get display telegram using shared config logic
   let displayTelegram = '';
@@ -1195,18 +1213,18 @@ async function handleOrderNotification(
     
     // Fetch seller telegram from profiles
     let sellerTelegram = '';
-    if (orderData.seller_id) {
+    if (normalizedOrderData.seller_id) {
       const { data: sellerProfile } = await supabase
         .from('profiles')
         .select('telegram')
-        .eq('id', orderData.seller_id)
+        .eq('id', normalizedOrderData.seller_id)
         .single();
       
       sellerTelegram = sellerProfile?.telegram || '';
     }
     
     // Use fallback if no seller telegram found
-    const telegramToCheck = sellerTelegram || orderData.telegram_url_order || '';
+    const telegramToCheck = sellerTelegram || normalizedOrderData.telegram_url_order || '';
     
     // Determine display telegram
     displayTelegram = getTelegramForDisplay(telegramToCheck, localAccounts);
@@ -1217,10 +1235,10 @@ async function handleOrderNotification(
   }
   
   // Format order number with leading zero
-  const formattedOrderNumber = orderData.order_number.toString().padStart(5, '0');
+  const formattedOrderNumber = normalizedOrderData.order_number.toString().padStart(5, '0');
   
   // Compose name: title + brand + model
-  const nameParts = [orderData.title, orderData.brand, orderData.model]
+  const nameParts = [normalizedOrderData.title, normalizedOrderData.brand, normalizedOrderData.model]
     .filter((v: string | null | undefined) => !!v && String(v).trim());
   const composedName = nameParts.join(' ').trim();
   
@@ -1233,32 +1251,32 @@ async function handleOrderNotification(
     `🟰🟰🟰🟰🟰🟰`,
     `Наименование: ${composedName}`,
     ``,
-    `Количество мест для отправки: ${orderData.place_number || 1}`,
+    `Количество мест для отправки: ${normalizedOrderData.place_number || 1}`,
     `Доставка: ${deliveryMethodText}`,
     ``,
-    `Дополнительная информация: ${orderData.text_order || 'Не указана'}`,
+    `Дополнительная информация: ${normalizedOrderData.text_order || 'Не указана'}`,
     ``,
     `🟰🟰🟰🟰🟰🟰`,
-    `Цена: ${orderData.price} $`,
-    `Цена доставки: ${orderData.delivery_price_confirm || 0} $`,
+    `Цена: ${normalizedOrderData.price} $`,
+    `Цена доставки: ${normalizedOrderData.delivery_price_confirm || 0} $`,
     ``,
     `===`,
-    `${orderData.seller_opt_id || ''}`,
-    `${orderData.buyer_opt_id || ''}`
+    `${normalizedOrderData.seller_opt_id || ''}`,
+    `${normalizedOrderData.buyer_opt_id || ''}`
   ].join('\n');
   
   // Get order images
   let orderImages: string[] = [];
   
-  if (orderData.images && orderData.images.length > 0) {
-    console.log(`📷 [Order] Using ${orderData.images.length} images from payload`);
-    orderImages = orderData.images;
+  if (normalizedOrderData.images && normalizedOrderData.images.length > 0) {
+    console.log(`📷 [Order] Using ${normalizedOrderData.images.length} images from payload`);
+    orderImages = normalizedOrderData.images;
   } else {
     console.log('📷 [Order] Fetching images from database');
     const { data: imagesData } = await supabase
       .from('order_images')
       .select('url')
-      .eq('order_id', orderData.id);
+      .eq('order_id', normalizedOrderData.id);
     
     if (imagesData && imagesData.length > 0) {
       console.log(`📷 [Order] Found ${imagesData.length} images in database`);
