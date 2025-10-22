@@ -62,6 +62,7 @@ export async function publishToQueue(
     'Authorization': `Bearer ${config.token}`,
     'Content-Type': 'application/json',
     'Upstash-Retries': '3',  // Enable retry on QStash side (3 attempts with exponential backoff)
+    'Upstash-Retry-Backoff': '30',  // Wait 30s between retries (for Telegram rate limit recovery)
     'Upstash-Forward-Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY') || ''}`, // Forward auth to endpoint
   };
   

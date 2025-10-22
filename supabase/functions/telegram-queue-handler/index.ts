@@ -6,7 +6,7 @@ import { getLocalTelegramAccounts, getTelegramForDisplay } from '../shared/teleg
 // Constants
 const TG_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
 const MAX_IMAGES_PER_GROUP = 10;
-const DELAY_BETWEEN_CHUNKS = 1000; // ms
+const DELAY_BETWEEN_CHUNKS = 3000; // ms - Prevent Telegram rate limit (max 20 msg/min, 1 msg per 3s for groups)
 
 // Telegram Group IDs with fallback constants
 const TELEGRAM_GROUP_CHAT_ID_ORDERS = Deno.env.get('TELEGRAM_GROUP_CHAT_ID_ORDERS') || '-4749346030';
