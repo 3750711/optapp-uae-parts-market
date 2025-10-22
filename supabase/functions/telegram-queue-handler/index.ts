@@ -8,6 +8,11 @@ const TG_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
 const MAX_IMAGES_PER_GROUP = 10;
 const DELAY_BETWEEN_CHUNKS = 1000; // ms
 
+// Telegram Group IDs with fallback constants
+const TELEGRAM_GROUP_CHAT_ID_ORDERS = Deno.env.get('TELEGRAM_GROUP_CHAT_ID_ORDERS') || '-4749346030';
+const TELEGRAM_GROUP_CHAT_ID_REGISTERED = Deno.env.get('TELEGRAM_GROUP_CHAT_ID_REGISTERED') || '-1002024698284';
+const TELEGRAM_PRODUCT_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || '-1002804153717';
+
 /**
  * Transform Cloudinary URL to be Telegram-friendly
  * Converts to JPEG with quality optimization
@@ -245,7 +250,7 @@ async function handleProductNotification(
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   
   const { productId, priceChanged, newPrice, oldPrice, notificationType: payloadNotificationType } = payload;
-  const chatId = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || Deno.env.get('TELEGRAM_GROUP_CHAT_ID_PRODUCTS');
+  const chatId = TELEGRAM_PRODUCT_GROUP_CHAT_ID;
   
   if (!chatId) {
     throw new Error('TELEGRAM_GROUP_CHAT_ID not configured');
@@ -1152,14 +1157,12 @@ async function handleOrderNotification(
   
   const { orderData, notificationType } = payload;
   
-  // Determine target group
+  // Determine target group with fallback constants
   const targetGroupId = notificationType === 'registered' 
-    ? Deno.env.get('TELEGRAM_GROUP_CHAT_ID_REGISTERED')
-    : Deno.env.get('TELEGRAM_GROUP_CHAT_ID_ORDERS');
+    ? TELEGRAM_GROUP_CHAT_ID_REGISTERED
+    : TELEGRAM_GROUP_CHAT_ID_ORDERS;
   
-  if (!targetGroupId) {
-    throw new Error('TELEGRAM_GROUP_CHAT_ID not configured for orders');
-  }
+  console.log(`📦 [Order] Processing order #${orderData.order_number}, type: ${notificationType}, target: ${targetGroupId}`);
   
   console.log(`📦 [Order] Processing order #${orderData.order_number}, type: ${notificationType}`);
   
