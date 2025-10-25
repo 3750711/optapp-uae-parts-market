@@ -15,9 +15,10 @@ export function allowedLocalesFor(
   const isHome = pathname === '/' || pathname.startsWith('/home');
   const isSellerRoute = pathname.startsWith('/seller/');
   const isPublicProfile = pathname.startsWith('/public-profile/');
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password' || pathname === '/seller-register' || pathname === '/reset-password';
   
-  // Bengali is only available on home page, for sellers, and public profiles
-  if (userRole === 'seller' || isHome || isSellerRoute || isPublicProfile) {
+  // Bengali is available on home page, for sellers, public profiles, and auth pages
+  if (userRole === 'seller' || isHome || isSellerRoute || isPublicProfile || isAuthPage) {
     return ['ru', 'en', 'bn'];
   }
   
