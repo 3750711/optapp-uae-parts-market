@@ -91,7 +91,7 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
   }, [emblaApi, onSelect]);
 
   const handleCardClick = () => {
-    navigate(`/product/${product.id}`);
+    navigate(`/seller/product/${product.id}`);
   };
 
   return (
