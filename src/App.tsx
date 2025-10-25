@@ -70,12 +70,22 @@ const App = () => {
     return cleanup;
   }, []);
   
-  // Initialize Microsoft Clarity in production
+  // Initialize Microsoft Clarity in production (delayed for better LCP)
   useEffect(() => {
     if (import.meta.env.PROD) {
-      initializeClarity()
-        .then(() => console.log('✅ Microsoft Clarity initialized'))
-        .catch((error) => console.warn('⚠️ Clarity initialization failed:', error));
+      const initClarityDelayed = () => {
+        setTimeout(() => {
+          initializeClarity()
+            .then(() => console.log('✅ Microsoft Clarity initialized (delayed)'))
+            .catch((error) => console.warn('⚠️ Clarity initialization failed:', error));
+        }, 3000);
+      };
+
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(initClarityDelayed, { timeout: 5000 });
+      } else {
+        initClarityDelayed();
+      }
     }
   }, []);
   

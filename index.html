@@ -11,17 +11,19 @@
     
     <!-- Critical resources will be preloaded by Vite automatically -->
     
-    <!-- Google Fonts - async loading to prevent FOUT -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <!-- Google Fonts - async loading to prevent FOUT (optimized: only 400,600 weights) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     </noscript>
     
     <!-- Cloudinary preconnects for faster uploads -->
     <link rel="preconnect" href="https://api.cloudinary.com" crossorigin>
     <link rel="preconnect" href="https://res.cloudinary.com" crossorigin>
+    
+    <!-- DNS prefetch for analytics (loaded after page interactive) -->
+    <link rel="dns-prefetch" href="https://www.clarity.ms">
+    <link rel="dns-prefetch" href="https://scripts.clarity.ms">
     
     <!-- Security Headers -->
     <meta http-equiv="X-Frame-Options" content="DENY">
