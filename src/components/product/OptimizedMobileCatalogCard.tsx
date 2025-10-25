@@ -167,8 +167,13 @@ export const OptimizedMobileCatalogCard = React.memo(({
     if (!emblaApi) return;
     
     const handleSelect = () => {
-      if (emblaApi) {
-        setSelectedIndex(emblaApi.selectedScrollSnap());
+      try {
+        if (emblaApi) {
+          setSelectedIndex(emblaApi.selectedScrollSnap());
+        }
+      } catch (e) {
+        // Embla API может быть уничтожен между проверкой и вызовом
+        // Игнорируем ошибку - это нормальный сценарий при unmount
       }
     };
     
