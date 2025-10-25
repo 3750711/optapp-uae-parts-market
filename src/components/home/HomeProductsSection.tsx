@@ -123,6 +123,7 @@ export const HomeProductsSection: React.FC<HomeProductsSectionProps> = ({ langua
         onClearSearch={handleClearSearch}
         onClearSoldFilter={handleClearSoldFilter}
         onClearAll={handleClearAll}
+        language={language}
       />
 
       {/* Products Count */}

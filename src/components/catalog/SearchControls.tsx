@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { getSearchControlsTranslations } from '@/utils/searchControlsTranslations';
 
 interface SearchControlsProps {
   searchTerm: string;
@@ -14,6 +15,7 @@ interface SearchControlsProps {
   onClearSearch?: () => void;
   onClearSoldFilter?: () => void;
   onClearAll?: () => void;
+  language?: 'ru' | 'en' | 'bn';
 }
 
 const SearchControls: React.FC<SearchControlsProps> = ({
@@ -24,8 +26,10 @@ const SearchControls: React.FC<SearchControlsProps> = ({
   isSearching = false,
   onClearSearch,
   onClearSoldFilter,
-  onClearAll
+  onClearAll,
+  language = 'ru'
 }) => {
+  const t = getSearchControlsTranslations(language);
   const [inputValue, setInputValue] = React.useState(searchTerm);
 
   React.useEffect(() => {
@@ -58,7 +62,7 @@ const SearchControls: React.FC<SearchControlsProps> = ({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               type="text"
-              placeholder="Поиск товаров..."
+              placeholder={t.searchPlaceholder}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               className="pl-10 pr-20 h-10 bg-background border-input focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
@@ -77,7 +81,7 @@ const SearchControls: React.FC<SearchControlsProps> = ({
                   size="sm"
                   onClick={handleClear}
                   className="h-6 w-6 p-0 hover:bg-muted/50"
-                  title="Очистить"
+                  title={t.clearButton}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -99,7 +103,7 @@ const SearchControls: React.FC<SearchControlsProps> = ({
               htmlFor="hide-sold"
               className="text-xs font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors duration-200 whitespace-nowrap"
             >
-              Скрыть проданные
+              {t.hideSoldCheckbox}
             </label>
           </div>
         </div>
@@ -119,7 +123,7 @@ const SearchControls: React.FC<SearchControlsProps> = ({
               <button
                 onClick={onClearSearch}
                 className="ml-1.5 hover:bg-primary/30 rounded-full p-0.5 transition-colors duration-200"
-                aria-label="Удалить поисковый запрос"
+                aria-label={t.clearSearchLabel}
               >
                 <X className="h-2.5 w-2.5" />
               </button>
@@ -131,11 +135,11 @@ const SearchControls: React.FC<SearchControlsProps> = ({
               variant="secondary" 
               className="text-xs px-2 py-1 bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors duration-200 border-0"
             >
-              <span>Активные</span>
+              <span>{t.activeFilter}</span>
               <button
                 onClick={onClearSoldFilter}
                 className="ml-1.5 hover:bg-secondary/60 rounded-full p-0.5 transition-colors duration-200"
-                aria-label="Показать проданные товары"
+                aria-label={t.showSoldLabel}
               >
                 <X className="h-2.5 w-2.5" />
               </button>
@@ -148,11 +152,11 @@ const SearchControls: React.FC<SearchControlsProps> = ({
               size="sm"
               onClick={onClearAll}
               className="text-xs px-2 py-1 h-6 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-200 ml-auto"
-              aria-label="Очистить все фильтры"
+              aria-label={t.clearAllFiltersLabel}
             >
               <X className="h-3 w-3 mr-1" />
-              <span className="hidden sm:inline">Очистить все</span>
-              <span className="sm:hidden">Очистить</span>
+              <span className="hidden sm:inline">{t.clearAll}</span>
+              <span className="sm:hidden">{t.clear}</span>
             </Button>
           )}
         </div>
