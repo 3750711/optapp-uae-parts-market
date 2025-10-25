@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/sheet";
 import { useLanguage } from '@/hooks/useLanguage';
 import { getMainPageTranslations } from '@/utils/mainPageTranslations';
+import { getLoginTranslations } from '@/utils/loginTranslations';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import HeaderSkeleton from './HeaderSkeleton';
 import LanguageToggle from '@/components/auth/LanguageToggle';
@@ -59,6 +60,7 @@ const Header = React.memo(() => {
   const location = useLocation();
   const { language, changeLanguage } = useLanguage();
   const t = getMainPageTranslations(language);
+  const loginT = getLoginTranslations(language);
   
   // Мемоизация производных значений
   const userEmail = React.useMemo(() => user?.email, [user?.email]);
@@ -188,13 +190,25 @@ const Header = React.memo(() => {
 
         <div className="flex items-center space-x-3">
           
-          {/* Language Toggle for public pages */}
+          {/* Language Toggle and Login Button for non-authenticated users */}
           {!user && (
-            <LanguageToggle 
-              language={language}
-              onLanguageChange={changeLanguage}
-              className="mr-2"
-            />
+            <>
+              <LanguageToggle 
+                language={language}
+                onLanguageChange={changeLanguage}
+              />
+              
+              <Button
+                asChild
+                size="sm"
+                variant="default"
+                className="h-9 px-4 text-sm font-medium shadow-button hover:shadow-elevation-hover hover:-translate-y-0.5 transition-all"
+              >
+                <Link to="/login">
+                  {loginT.signIn}
+                </Link>
+              </Button>
+            </>
           )}
           
           {/* Admin Panel Button */}
