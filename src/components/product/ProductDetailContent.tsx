@@ -20,6 +20,7 @@ interface ProductDetailContentProps {
   sellerName: string;
   deliveryMethod: Database["public"]["Enums"]["delivery_method"];
   onDeliveryMethodChange: (method: Database["public"]["Enums"]["delivery_method"]) => void;
+  language?: 'ru' | 'en' | 'bn';
 }
 
 const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
@@ -33,6 +34,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
   sellerName,
   deliveryMethod,
   onDeliveryMethodChange,
+  language = 'ru',
 }) => {
   // Preload critical resources
   useResourcePreloader({
@@ -61,6 +63,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
           sellerProfile={null}
           deliveryMethod={deliveryMethod}
           onDeliveryMethodChange={onDeliveryMethodChange}
+          language={language}
         />
         
         <EnhancedSellerInfo 
@@ -79,6 +82,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
           }}
           seller_name={sellerName}
           seller_id={product.seller_id}
+          language={language}
         >
           <ContactButtons 
             sellerPhone={product.phone_url || sellerProfile?.phone}
