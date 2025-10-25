@@ -39,8 +39,14 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const { invalidateAllCaches } = useImageCacheManager();
   const isOwner = user?.id === product.seller_id;
   
-  // Show blurred section for unauthenticated users
-  if (!user || product.price === null) {
+  // Show blurred section for:
+  // 1. Unauthenticated users
+  // 2. Products without price
+  // 3. Sellers viewing other sellers' products
+  const isSeller = profile?.user_type === 'seller';
+  const isSellerViewingOtherProduct = isSeller && !isOwner;
+
+  if (!user || product.price === null || isSellerViewingOtherProduct) {
     return (
       <BlurredPriceSection 
         product={product}

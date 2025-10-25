@@ -231,9 +231,22 @@ export const useOptimizedCatalogProducts = ({
       try {
         console.log('🔢 Executing count query with filters:', filters);
         
-        // Get user session to determine table access
+        // Get user session and profile to determine table access
         const { data: { session } } = await supabase.auth.getSession();
-        const tableName = session?.user ? 'products' : 'products_public';
+        let tableName = 'products_public';
+        
+        if (session?.user) {
+          // Get user type from profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('user_type')
+            .eq('id', session.user.id)
+            .single();
+          
+          const userType = profileData?.user_type;
+          // Sellers see products_public (without prices), buyers and admins see products (with prices)
+          tableName = (userType !== 'seller') ? 'products' : 'products_public';
+        }
         
         console.log(`🔢 [Count Query] Using table: ${tableName} (authenticated: ${!!session?.user})`);
         
@@ -282,9 +295,22 @@ export const useOptimizedCatalogProducts = ({
         console.log('🔎 Executing optimized product search...');
         const startTime = performance.now();
         
-        // Get user session to determine table access
+        // Get user session and profile to determine table access
         const { data: { session } } = await supabase.auth.getSession();
-        const tableName = session?.user ? 'products' : 'products_public';
+        let tableName = 'products_public';
+        
+        if (session?.user) {
+          // Get user type from profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('user_type')
+            .eq('id', session.user.id)
+            .single();
+          
+          const userType = profileData?.user_type;
+          // Sellers see products_public (without prices), buyers and admins see products (with prices)
+          tableName = (userType !== 'seller') ? 'products' : 'products_public';
+        }
         
         console.log(`🔍 [Products Query] Using table: ${tableName} (authenticated: ${!!session?.user})`);
         

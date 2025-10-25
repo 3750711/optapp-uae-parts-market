@@ -34,11 +34,16 @@ const EnhancedSellerInfo: React.FC<EnhancedSellerInfoProps> = ({
   } | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
 
-  // Show blurred version for unauthenticated users
-  if (!user) {
+  // Show blurred version for:
+  // 1. Unauthenticated users
+  // 2. Sellers viewing other sellers' products
+  const isSeller = profile?.user_type === 'seller';
+  const isOwner = user?.id === seller_id;
+
+  if (!user || (isSeller && !isOwner)) {
     return (
       <BlurredSellerInfo 
         sellerName={seller_name}

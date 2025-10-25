@@ -369,9 +369,9 @@ export const OptimizedMobileCatalogCard = React.memo(({
             {product.price !== null ? (
               <span className="text-destructive">{formatPrice(product.price)}</span>
             ) : (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
-                <span className="text-sm text-muted-foreground">Войдите для просмотра</span>
+              <div className="relative inline-flex items-center gap-2">
+                <Loader2 className="h-4 w-4 text-destructive" />
+                <span className="blur-[4px] select-none text-muted-foreground">$999</span>
               </div>
             )}
           </div>
