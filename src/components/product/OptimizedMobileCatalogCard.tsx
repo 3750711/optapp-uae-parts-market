@@ -54,13 +54,6 @@ export const OptimizedMobileCatalogCard = React.memo(({
   const [isVisible, setIsVisible] = useState(false);
   const [imageLoading, setImageLoading] = useState<Record<number, boolean>>({});
   const cardRef = useRef<HTMLDivElement>(null);
-  
-  const [emblaRef, emblaApi] = useEmblaCarousel({ 
-    loop: false, 
-    align: 'center',
-    containScroll: 'trimSnaps'
-  });
-  const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Get all images
   const images = useMemo(() => {
@@ -83,6 +76,15 @@ export const OptimizedMobileCatalogCard = React.memo(({
     
     return imageList;
   }, [product.product_images, product.cloudinary_url]);
+  
+  const shouldUseCarousel = isVisible && images.length > 1;
+  
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    shouldUseCarousel 
+      ? { loop: false, align: 'center', containScroll: 'trimSnaps' }
+      : { watchDrag: false, active: false }
+  );
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   // Initialize loading state incrementally (avoid resetting already loaded images)
   useEffect(() => {
