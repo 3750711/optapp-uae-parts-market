@@ -85,6 +85,35 @@ export const generateSrcSet = (
 };
 
 /**
+ * Generate srcSet for specific format (AVIF, WebP, etc.)
+ */
+export const generateSrcSetWithFormat = (
+  publicIdOrUrl: string,
+  widths: readonly number[] | number[] = [640, 800, 1200, 1600],
+  format: 'avif' | 'webp' | 'jpg',
+  options: Omit<CloudinaryUrlOptions, 'width' | 'format'> = {}
+): string => {
+  return widths
+    .map((width) => {
+      const url = generateCloudinaryUrl(publicIdOrUrl, { ...options, width, format });
+      return `${url} ${width}w`;
+    })
+    .join(', ');
+};
+
+/**
+ * Generate blur placeholder URL (tiny blurred image for instant display)
+ */
+export const generateBlurPlaceholder = (publicIdOrUrl: string): string => {
+  return generateCloudinaryUrl(publicIdOrUrl, {
+    width: 30,
+    height: 30,
+    quality: 'auto:low',
+    crop: 'fill',
+  });
+};
+
+/**
  * Generate sizes attribute based on common breakpoints
  */
 export const generateSizesAttr = (
@@ -125,3 +154,37 @@ export const RESPONSIVE_PRESETS = {
     quality: 'auto:best' as const,
   },
 } as const;
+
+/**
+ * Generate picture element sources with format fallbacks (AVIF → WebP → JPEG)
+ */
+export interface PictureSourceData {
+  avifSrcSet?: string;
+  webpSrcSet?: string;
+  jpegSrcSet: string;
+  sizes: string;
+  blurDataUrl?: string;
+}
+
+export const generatePictureSources = (
+  publicIdOrUrl: string,
+  preset: keyof typeof RESPONSIVE_PRESETS = 'card'
+): PictureSourceData => {
+  const config = RESPONSIVE_PRESETS[preset];
+  
+  // Only generate AVIF/WebP for Cloudinary URLs
+  if (!isCloudinaryUrl(publicIdOrUrl)) {
+    return {
+      jpegSrcSet: publicIdOrUrl,
+      sizes: config.sizes,
+    };
+  }
+
+  return {
+    avifSrcSet: generateSrcSetWithFormat(publicIdOrUrl, config.widths, 'avif', { quality: config.quality }),
+    webpSrcSet: generateSrcSetWithFormat(publicIdOrUrl, config.widths, 'webp', { quality: config.quality }),
+    jpegSrcSet: generateSrcSetWithFormat(publicIdOrUrl, config.widths, 'jpg', { quality: config.quality }),
+    sizes: config.sizes,
+    blurDataUrl: generateBlurPlaceholder(publicIdOrUrl),
+  };
+};

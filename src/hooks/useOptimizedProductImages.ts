@@ -3,7 +3,9 @@ import {
   generateSrcSet, 
   generateCloudinaryUrl, 
   isCloudinaryUrl,
-  RESPONSIVE_PRESETS 
+  RESPONSIVE_PRESETS,
+  generatePictureSources,
+  generateBlurPlaceholder
 } from '@/utils/cloudinaryResponsive';
 
 /**
@@ -33,8 +35,32 @@ export interface OptimizedImageVariant {
   // Blur placeholder for instant display
   blurDataUrl: string;
   
-  // Responsive srcSet for each context
+  // Responsive srcSet for each context (JPEG fallback)
   srcSets: {
+    thumbnail: string;
+    card: string;
+    gallery: string;
+    fullscreen: string;
+  };
+  
+  // AVIF srcSets (best compression)
+  avifSrcSets?: {
+    thumbnail?: string;
+    card?: string;
+    gallery?: string;
+    fullscreen?: string;
+  };
+  
+  // WebP srcSets (good compression)
+  webpSrcSets?: {
+    thumbnail?: string;
+    card?: string;
+    gallery?: string;
+    fullscreen?: string;
+  };
+  
+  // Sizes attributes for responsive images
+  sizes: {
     thumbnail: string;
     card: string;
     gallery: string;
@@ -49,12 +75,17 @@ export interface OptimizedImageVariant {
 /**
  * Input types - can be from different sources
  */
-type ProductImageInput = ProductImage | string;
+export type ProductImageInput = ProductImage | string;
 
-interface ProductLike {
+/**
+ * Product-like interface that components might pass
+ */
+export interface ProductLike {
+  id?: string;
   product_images?: ProductImageInput[];
   cloudinary_url?: string;
-  image?: string; // Legacy field
+  image?: string;
+  [key: string]: any;
 }
 
 /**
@@ -120,138 +151,156 @@ export function useOptimizedProductImages(
   const { maxImages = 50, generateVariants = true } = options;
 
   return useMemo(() => {
-    // Early return for null/undefined
     if (!product) {
-      return {
-        images: [],
-        primaryImage: null,
-        isEmpty: true,
-        count: 0,
-      };
+      return generateVariants 
+        ? { images: [], primaryImage: null, isEmpty: true, count: 0 }
+        : { images: [], primaryImage: null, isEmpty: true, count: 0 };
     }
 
-    // Extract and normalize image URLs
-    const extractedImages: ProductImage[] = [];
-
-    // 1. Process product_images array (main source)
+    // Extract and normalize image URLs from various fields
+    const rawImages: ProductImage[] = [];
+    
+    // 1. Приоритет: product_images (основной источник с метаданными)
     if (product.product_images && Array.isArray(product.product_images)) {
-      product.product_images.forEach((img) => {
+      product.product_images.forEach(img => {
         if (typeof img === 'string') {
-          extractedImages.push({ url: img });
-        } else if (img && typeof img === 'object' && img.url) {
-          extractedImages.push(img);
+          rawImages.push({ url: img });
+        } else {
+          rawImages.push(img);
         }
       });
     }
-
-    // 2. Fallback to legacy cloudinary_url
-    if (extractedImages.length === 0 && product.cloudinary_url) {
-      extractedImages.push({ 
+    
+    // 2. Fallback: cloudinary_url (legacy)
+    if (!rawImages.length && product.cloudinary_url) {
+      rawImages.push({
         url: product.cloudinary_url,
-        is_primary: true 
+        is_primary: true
+      });
+    }
+    
+    // 3. Fallback: direct image field (legacy)
+    if (!rawImages.length && (product as any).image) {
+      rawImages.push({
+        url: (product as any).image,
+        is_primary: true
       });
     }
 
-    // 3. Fallback to very old image field
-    if (extractedImages.length === 0 && product.image) {
-      extractedImages.push({ 
-        url: product.image,
-        is_primary: true 
-      });
-    }
-
-    // 4. Final fallback to placeholder
-    if (extractedImages.length === 0) {
-      return {
-        images: [],
-        primaryImage: null,
-        isEmpty: true,
-        count: 0,
-      };
-    }
-
-    // Smart sorting: is_primary first, then by created_at (oldest first)
-    const sortedImages = [...extractedImages].sort((a, b) => {
-      // Priority 1: Primary image always first
+    // Умная сортировка:
+    // 1. is_primary: true — в начало
+    // 2. Если нет primary → сортировать по created_at (первое загруженное)
+    const sortedImages = [...rawImages].sort((a, b) => {
+      // Приоритет 1: Основное фото всегда первое
       if (a.is_primary && !b.is_primary) return -1;
       if (!a.is_primary && b.is_primary) return 1;
-
-      // Priority 2: Sort by created_at (oldest first = first uploaded)
+      
+      // Приоритет 2: Если оба не primary — сортировать по created_at (ASC)
       if (a.created_at && b.created_at) {
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
-
-      // Fallback: keep original order
+      
+      // Fallback: Если нет created_at — не менять порядок
       return 0;
     });
 
     // Limit to maxImages
     const limitedImages = sortedImages.slice(0, maxImages);
+    
+    // Extract URLs
+    const imageUrls = limitedImages
+      .map(img => img.url)
+      .filter(Boolean);
+    
+    // Fallback to placeholder
+    const finalUrls = imageUrls.length > 0 
+      ? imageUrls 
+      : ['/placeholder.svg'];
 
-    // Generate optimized variants if requested
+    // Simple mode: return just URLs
     if (!generateVariants) {
-      // Simple mode: just return URLs
       return {
-        images: limitedImages.map(img => img.url),
-        primaryImage: limitedImages[0]?.url || null,
-        isEmpty: limitedImages.length === 0,
-        count: limitedImages.length,
+        images: finalUrls,
+        primaryImage: finalUrls[0] || null,
+        isEmpty: finalUrls.length === 0,
+        count: finalUrls.length,
       };
     }
 
-    // Full mode: generate all variants
-    const optimizedVariants: OptimizedImageVariant[] = limitedImages.map((img, index) => {
-      const url = img.url;
-      const isCloudinary = isCloudinaryUrl(url);
-      const imgId = img.id || `img-${index}`;
+    // Full mode: generate optimized variants with AVIF/WebP support
+    const optimizedVariants: OptimizedImageVariant[] = finalUrls.map((url, index) => {
+      const isPrimary = index === 0;
+      const isCloudinary = url.includes('cloudinary.com');
+      
+      // Generate picture sources with AVIF/WebP/JPEG
+      const thumbnailSources = isCloudinary 
+        ? generatePictureSources(url, 'thumbnail')
+        : { jpegSrcSet: url, sizes: RESPONSIVE_PRESETS.thumbnail.sizes };
+        
+      const cardSources = isCloudinary
+        ? generatePictureSources(url, 'card')
+        : { jpegSrcSet: url, sizes: RESPONSIVE_PRESETS.card.sizes };
+        
+      const gallerySources = isCloudinary
+        ? generatePictureSources(url, 'gallery')
+        : { jpegSrcSet: url, sizes: RESPONSIVE_PRESETS.gallery.sizes };
+        
+      const fullscreenSources = isCloudinary
+        ? generatePictureSources(url, 'fullscreen')
+        : { jpegSrcSet: url, sizes: RESPONSIVE_PRESETS.fullscreen.sizes };
+      
+      // Generate individual size URLs
+      const thumbnail = isCloudinary 
+        ? generateCloudinaryUrl(url, { width: 200, quality: 'auto:good', format: 'auto' })
+        : url;
+      
+      const card = isCloudinary
+        ? generateCloudinaryUrl(url, { width: 600, quality: 'auto:good', format: 'auto' })
+        : url;
+        
+      const detail = isCloudinary
+        ? generateCloudinaryUrl(url, { width: 1200, quality: 'auto:best', format: 'auto' })
+        : url;
+        
+      const zoom = isCloudinary
+        ? generateCloudinaryUrl(url, { width: 2400, quality: 'auto:best', format: 'auto' })
+        : url;
 
       return {
-        id: imgId,
+        id: `${product.id || 'unknown'}-${index}`,
         original: url,
-
-        // Generate different sizes (only for Cloudinary images)
-        thumbnail: isCloudinary 
-          ? generateCloudinaryUrl(url, { width: 200, height: 200, crop: 'fit' })
-          : url,
-        card: isCloudinary
-          ? generateCloudinaryUrl(url, { width: 600, height: 450, crop: 'fit' })
-          : url,
-        detail: isCloudinary
-          ? generateCloudinaryUrl(url, { width: 1200, quality: 'auto:best', crop: 'limit' })
-          : url,
-        zoom: isCloudinary
-          ? generateCloudinaryUrl(url, { width: 2400, quality: 'auto:best', crop: 'limit' })
-          : url,
-
-        // Blur placeholder for instant display
-        blurDataUrl: isCloudinary
-          ? generateCloudinaryUrl(url, { 
-              width: 30, 
-              height: 30, 
-              quality: 'auto:low',
-              crop: 'fill'
-            }) + ',e_blur:1000'
-          : url,
-
-        // Responsive srcSets
+        thumbnail,
+        card,
+        detail,
+        zoom,
+        blurDataUrl: isCloudinary ? generateBlurPlaceholder(url) : url,
         srcSets: {
-          thumbnail: isCloudinary 
-            ? generateSrcSet(url, RESPONSIVE_PRESETS.thumbnail.widths)
-            : '',
-          card: isCloudinary
-            ? generateSrcSet(url, RESPONSIVE_PRESETS.card.widths)
-            : '',
-          gallery: isCloudinary
-            ? generateSrcSet(url, RESPONSIVE_PRESETS.gallery.widths)
-            : '',
-          fullscreen: isCloudinary
-            ? generateSrcSet(url, RESPONSIVE_PRESETS.fullscreen.widths)
-            : '',
+          thumbnail: thumbnailSources.jpegSrcSet,
+          card: cardSources.jpegSrcSet,
+          gallery: gallerySources.jpegSrcSet,
+          fullscreen: fullscreenSources.jpegSrcSet,
         },
-
-        // Metadata
-        isPrimary: img.is_primary || index === 0,
-        priority: index === 0, // First image should load eagerly
+        // Store AVIF/WebP sources for <picture> element
+        avifSrcSets: isCloudinary ? {
+          thumbnail: thumbnailSources.avifSrcSet,
+          card: cardSources.avifSrcSet,
+          gallery: gallerySources.avifSrcSet,
+          fullscreen: fullscreenSources.avifSrcSet,
+        } : undefined,
+        webpSrcSets: isCloudinary ? {
+          thumbnail: thumbnailSources.webpSrcSet,
+          card: cardSources.webpSrcSet,
+          gallery: gallerySources.webpSrcSet,
+          fullscreen: fullscreenSources.webpSrcSet,
+        } : undefined,
+        sizes: {
+          thumbnail: thumbnailSources.sizes,
+          card: cardSources.sizes,
+          gallery: gallerySources.sizes,
+          fullscreen: fullscreenSources.sizes,
+        },
+        isPrimary,
+        priority: isPrimary, // First image should be loaded eagerly
       };
     });
 
