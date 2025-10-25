@@ -1,6 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Globe, ChevronDown } from 'lucide-react';
+import React from 'react';
+import { Globe, ChevronDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 interface LanguageToggleProps {
@@ -16,15 +22,11 @@ const LanguageToggle: React.FC<LanguageToggleProps> = ({
   className,
   allowedLanguages = ['ru', 'en', 'bn']
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   const handleLanguageSelect = (selectedLanguage: 'ru' | 'en' | 'bn') => {
     if (selectedLanguage !== language) {
       console.log(`Language changed from ${language} to ${selectedLanguage}`);
       onLanguageChange(selectedLanguage);
     }
-    setIsExpanded(false);
   };
 
   const languageButtons = [
@@ -38,64 +40,49 @@ const LanguageToggle: React.FC<LanguageToggleProps> = ({
 
   const currentLanguage = languageButtons.find(lang => lang.code === language);
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsExpanded(false);
-      }
-    };
-
-    if (isExpanded) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isExpanded]);
-
   return (
-    <div 
-      ref={containerRef}
-      className={cn("relative flex items-center bg-muted/50 rounded-lg p-1", className)}
-    >
-      {!isExpanded ? (
-        // Collapsed state - show only current language
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setIsExpanded(true)}
-          className="h-8 px-3 text-xs font-medium transition-all flex items-center gap-1.5"
+          className={cn(
+            "h-8 px-3 text-xs font-medium transition-all flex items-center gap-1.5",
+            className
+          )}
         >
           <Globe className="h-3 w-3 text-muted-foreground" />
           <span>{currentLanguage?.label}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" />
         </Button>
-      ) : (
-        // Expanded state - show all languages
-        <div className="flex items-center gap-1">
-          <Globe className="h-3 w-3 text-muted-foreground" />
-          {languageButtons.map(({ code, label }) => (
-            <Button
-              key={code}
-              variant="ghost"
-              size="sm"
-              onClick={() => handleLanguageSelect(code)}
-              disabled={language === code}
-              className={cn(
-                "h-8 px-3 text-xs font-medium transition-all",
-                language === code 
-                  ? "bg-background text-foreground shadow-sm cursor-default" 
-                  : "text-muted-foreground hover:text-foreground cursor-pointer"
-              )}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      )}
-    </div>
+      </DropdownMenuTrigger>
+      
+      <DropdownMenuContent 
+        align="end" 
+        className="min-w-[160px] bg-background/95 backdrop-blur-sm border shadow-lg"
+      >
+        {languageButtons.map(({ code, label, name }) => (
+          <DropdownMenuItem
+            key={code}
+            onClick={() => handleLanguageSelect(code)}
+            className={cn(
+              "flex items-center justify-between cursor-pointer text-sm py-2",
+              language === code && "bg-accent"
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <span className="text-base">
+                {code === 'ru' ? '🇷🇺' : code === 'en' ? '🇬🇧' : '🇧🇩'}
+              </span>
+              <span>{name}</span>
+            </span>
+            {language === code && (
+              <Check className="h-4 w-4 text-primary" />
+            )}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
