@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import useEmblaCarousel from 'embla-carousel-react';
 import { useOptimizedProductImages } from "@/hooks/useOptimizedProductImages";
+import { OptimizedProductImage } from "@/components/ui/OptimizedProductImage";
 
 interface ProductImage {
   url: string;
@@ -247,16 +248,14 @@ export const OptimizedMobileCatalogCard = React.memo(({
                         key={index} 
                         className="relative flex-[0_0_100%] min-w-0 bg-muted"
                       >
-                        <img
-                          src={displayImages[index].card}
-                          srcSet={displayImages[index].srcSets.card}
-                          sizes="(max-width: 640px) 320px, 400px"
+                        <OptimizedProductImage
+                          image={imgVariant}
                           alt={`${product.title} - изображение ${index + 1}`}
+                          size="card"
                           className={cn(
                             "w-full h-full object-contain transition-opacity duration-300",
                             imageLoading[index] ? "opacity-0" : "opacity-100"
                           )}
-                          loading="lazy"
                           onLoad={() => handleImageLoad(index)}
                           onError={(e) => handleImageError(e, index)}
                         />
@@ -295,16 +294,14 @@ export const OptimizedMobileCatalogCard = React.memo(({
             ) : (
               // Single image
               <div className="relative h-[240px] sm:h-[280px] bg-muted rounded-lg overflow-hidden">
-                <img
-                  src={displayImages[0].card}
-                  srcSet={displayImages[0].srcSets.card}
-                  sizes="(max-width: 640px) 320px, 400px"
+                <OptimizedProductImage
+                  image={displayImages[0]}
                   alt={product.title}
+                  size="card"
                   className={cn(
                     "w-full h-full object-contain transition-opacity duration-300",
                     imageLoading[0] ? "opacity-0" : "opacity-100"
                   )}
-                  loading="lazy"
                   onLoad={() => handleImageLoad(0)}
                   onError={(e) => handleImageError(e, 0)}
                 />

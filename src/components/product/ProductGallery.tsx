@@ -11,7 +11,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { useLazyImage } from "@/hooks/useLazyImage";
-import { generateSrcSet, isCloudinaryUrl, RESPONSIVE_PRESETS } from "@/utils/cloudinaryResponsive";
+import { generateSrcSet, isCloudinaryUrl, RESPONSIVE_PRESETS, generatePictureSources } from "@/utils/cloudinaryResponsive";
+import { ResponsivePicture } from "@/components/ui/ResponsivePicture";
 
 
 interface ProductGalleryProps {
@@ -195,23 +196,17 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                       playsInline
                     />
                   ) : (
-                    <img
+                    <ResponsivePicture
                       src={media}
-                      srcSet={isCloudinaryUrl(media) ? generateSrcSet(media, RESPONSIVE_PRESETS.gallery.widths) : undefined}
-                      sizes={isCloudinaryUrl(media) ? RESPONSIVE_PRESETS.gallery.sizes : undefined}
                       alt={title}
+                      preset="gallery"
                       className="w-full h-full object-contain"
-                      loading={index === 0 ? 'eager' : 'lazy'}
-                      decoding={index === 0 ? 'sync' : 'async'}
+                      priority={index === 0}
                       onLoad={() => {
                         // Preload next image when current loads
                         if (index < allMedia.length - 1 && !isVideo(allMedia[index + 1])) {
                           preloadImage(allMedia[index + 1]);
                         }
-                      }}
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder.svg';
-                        e.currentTarget.onerror = null;
                       }}
                     />
                   )}
@@ -324,18 +319,11 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     </div>
                   </div>
                 ) : (
-                  <img
+                  <ResponsivePicture
                     src={media}
-                    srcSet={isCloudinaryUrl(media) ? generateSrcSet(media, RESPONSIVE_PRESETS.thumbnail.widths) : undefined}
-                    sizes={isCloudinaryUrl(media) ? RESPONSIVE_PRESETS.thumbnail.sizes : undefined}
                     alt={`${title} - изображение ${index + 1}`}
+                    preset="thumbnail"
                     className="w-full h-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                      e.currentTarget.onerror = null;
-                    }}
                   />
                 )}
               </div>
@@ -385,22 +373,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <div className="flex h-full">
                   {imageUrls.map((url, index) => (
                     <div key={index} className="flex-[0_0_100%] min-w-0 flex items-center justify-center">
-                      <img
+                      <ResponsivePicture
                         src={url}
-                        srcSet={isCloudinaryUrl(url) ? generateSrcSet(url, RESPONSIVE_PRESETS.fullscreen.widths) : undefined}
-                        sizes={isCloudinaryUrl(url) ? RESPONSIVE_PRESETS.fullscreen.sizes : undefined}
                         alt={title}
+                        preset="fullscreen"
                         className="max-w-[100vw] max-h-[calc(100dvh-80px)] object-contain"
-                        style={{ 
-                          touchAction: 'pan-x pan-y pinch-zoom',
-                          userSelect: 'none',
-                          width: 'auto',
-                          height: 'auto'
-                        }}
-                        onError={(e) => {
-                          e.currentTarget.src = '/placeholder.svg';
-                          e.currentTarget.onerror = null;
-                        }}
+                        priority={index === 0}
                       />
                     </div>
                   ))}
@@ -441,16 +419,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   <div className="flex">
                     {imageUrls.map((url, index) => (
                       <div key={index} className="flex-[0_0_100%] min-w-0">
-                        <img
+                        <ResponsivePicture
                           src={url}
-                          srcSet={isCloudinaryUrl(url) ? generateSrcSet(url, RESPONSIVE_PRESETS.fullscreen.widths) : undefined}
-                          sizes={isCloudinaryUrl(url) ? RESPONSIVE_PRESETS.fullscreen.sizes : undefined}
                           alt={title}
+                          preset="fullscreen"
                           className="w-full max-h-[70vh] object-contain"
-                          onError={(e) => {
-                            e.currentTarget.src = '/placeholder.svg';
-                            e.currentTarget.onerror = null;
-                          }}
+                          priority={index === 0}
                         />
                       </div>
                     ))}
