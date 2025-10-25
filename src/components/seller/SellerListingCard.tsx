@@ -10,6 +10,7 @@ import ProductStatusChangeDialog from '@/components/product/ProductStatusChangeD
 import { RepostButton } from '@/components/product/RepostButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOptimizedProductImages } from '@/hooks/useOptimizedProductImages';
+import { OptimizedProductImage } from '@/components/ui/OptimizedProductImage';
 
 interface SellerListingCardProps {
   product: ProductProps;
@@ -143,19 +144,17 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
                     <div 
                       key={index} 
                       className="relative flex-[0_0_100%] min-w-0"
+                      onClick={handleCardClick}
                     >
-                      <img
-                        src={image.card}
-                        srcSet={image.srcSets.card}
-                        sizes="(max-width: 640px) 320px, (max-width: 1024px) 400px, 450px"
+                      <OptimizedProductImage
+                        image={image}
                         alt={`${product.title} - изображение ${index + 1}`}
+                        size="card"
                         className={`w-full h-full object-contain bg-gray-50 rounded-lg transition-opacity duration-300 cursor-pointer ${
                           imageLoading[index] ? 'opacity-0' : 'opacity-100'
                         }`}
-                        loading="lazy"
                         onLoad={() => handleImageLoad(index)}
                         onError={(e) => handleImageError(e, index)}
-                        onClick={handleCardClick}
                       />
                       {imageLoading[index] && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
@@ -187,19 +186,16 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
               </div>
             </>
           ) : (
-            <div className="relative h-[200px] sm:h-[240px] md:h-[280px] rounded-lg overflow-hidden bg-gray-50">
-              <img
-                src={optimizedImages[0].card}
-                srcSet={optimizedImages[0].srcSets.card}
-                sizes="(max-width: 640px) 320px, (max-width: 1024px) 400px, 450px"
+            <div className="relative h-[200px] sm:h-[240px] md:h-[280px] rounded-lg overflow-hidden bg-gray-50" onClick={handleCardClick}>
+              <OptimizedProductImage
+                image={optimizedImages[0]}
                 alt={product.title}
+                size="card"
                 className={`w-full h-full object-contain transition-opacity duration-300 cursor-pointer ${
                   imageLoading[0] ? 'opacity-0' : 'opacity-100'
                 }`}
-                loading="lazy"
                 onLoad={() => handleImageLoad(0)}
                 onError={(e) => handleImageError(e, 0)}
-                onClick={handleCardClick}
               />
               {imageLoading[0] && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">

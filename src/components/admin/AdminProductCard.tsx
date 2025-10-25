@@ -12,7 +12,7 @@ import { Product } from '@/types/product';
 import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import OptimizedImage from '@/components/ui/OptimizedImage';
+import { OptimizedProductImage } from '@/components/ui/OptimizedProductImage';
 import { Checkbox } from "@/components/ui/checkbox";
 import { useOptimizedProductImages } from '@/hooks/useOptimizedProductImages';
 import { TelegramNotificationBadge } from '@/components/admin/product/TelegramNotificationBadge';
@@ -105,14 +105,16 @@ const AdminProductCardComponent: React.FC<AdminProductCardProps> = ({
           </div>
           
           <div className="w-full h-48 bg-gray-50 rounded-md overflow-hidden">
-            <OptimizedImage
-              src={primaryImageUrl}
-              alt={product.title}
-              className="w-full h-full object-contain"
-              cloudinaryPublicId={product.cloudinary_public_id || undefined}
-              cloudinaryUrl={cloudinaryUrl || undefined}
-              size="thumbnail"
-            />
+            {images[0] ? (
+              <OptimizedProductImage
+                image={images[0]}
+                alt={product.title}
+                size="thumbnail"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <img src="/placeholder.svg" alt={product.title} className="w-full h-full object-contain" />
+            )}
           </div>
           <Badge 
             className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
