@@ -7,7 +7,7 @@ import { formatPrice } from "@/utils/formatPrice";
 import { ProductProps } from "@/components/product/ProductCard";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Loader2, Lock } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import useEmblaCarousel from 'embla-carousel-react';
 import { getOptimizedImage, CLOUDINARY_PRESETS } from '@/utils/cloudinaryOptimization';
 
@@ -370,7 +370,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
               <span className="text-destructive">{formatPrice(product.price)}</span>
             ) : (
               <div className="relative inline-flex items-center gap-2">
-                <Lock className="h-4 w-4 text-destructive" />
+                <Loader2 className="h-4 w-4 text-destructive" />
                 <span className="blur-[4px] select-none text-muted-foreground">$999</span>
               </div>
             )}
