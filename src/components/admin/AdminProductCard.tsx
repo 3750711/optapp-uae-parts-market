@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { Checkbox } from "@/components/ui/checkbox";
-import { useProductImage } from '@/hooks/useProductImage';
+import { useOptimizedProductImages } from '@/hooks/useOptimizedProductImages';
 import { TelegramNotificationBadge } from '@/components/admin/product/TelegramNotificationBadge';
 
 interface AdminProductCardProps {
@@ -38,7 +38,9 @@ const AdminProductCardComponent: React.FC<AdminProductCardProps> = ({
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
-  const { primaryImage, cloudinaryUrl } = useProductImage(product);
+  const images = useOptimizedProductImages(product, { generateVariants: true, maxImages: 1 });
+  const primaryImageUrl = images[0]?.card || '/placeholder.svg';
+  const cloudinaryUrl = images[0]?.original || null;
 
   const getProductCardBackground = (status: string) => {
     switch (status) {
@@ -104,7 +106,7 @@ const AdminProductCardComponent: React.FC<AdminProductCardProps> = ({
           
           <div className="w-full h-48 bg-gray-50 rounded-md overflow-hidden">
             <OptimizedImage
-              src={primaryImage}
+              src={primaryImageUrl}
               alt={product.title}
               className="w-full h-full object-contain"
               cloudinaryPublicId={product.cloudinary_public_id || undefined}

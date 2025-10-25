@@ -9,8 +9,7 @@ import { ru } from 'date-fns/locale';
 import ProductStatusChangeDialog from '@/components/product/ProductStatusChangeDialog';
 import { RepostButton } from '@/components/product/RepostButton';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProductImages } from '@/hooks/useProductImages';
-import { getOptimizedImage, CLOUDINARY_PRESETS } from '@/utils/cloudinaryOptimization';
+import { useOptimizedProductImages } from '@/hooks/useOptimizedProductImages';
 
 interface SellerListingCardProps {
   product: ProductProps;
@@ -32,15 +31,10 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
   });
   const [selectedIndex, setSelectedIndex] = useState(0);
   
-  const images = useProductImages(product);
-  
-  const optimizedImages = useMemo(() => 
-    images.map(url => getOptimizedImage(url, CLOUDINARY_PRESETS.SELLER_CARD)),
-    [images]
-  );
+  const { images: optimizedImages } = useOptimizedProductImages(product, { generateVariants: true });
   
   const [imageLoading, setImageLoading] = useState<Record<number, boolean>>(() => 
-    images.reduce((acc, _, idx) => ({ ...acc, [idx]: true }), {})
+    optimizedImages.reduce((acc, _, idx) => ({ ...acc, [idx]: true }), {})
   );
 
   const getStatusConfig = (status: string) => {
@@ -76,16 +70,11 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
     const target = e.target as HTMLImageElement;
     
     if (target.src !== '/placeholder.svg') {
-      const original = optimizedImages[index]?.original;
-      if (original && target.src !== original) {
-        target.src = original;
-        return;
-      }
       target.src = '/placeholder.svg';
     }
     
     setImageLoading(prev => ({ ...prev, [index]: false }));
-  }, [optimizedImages]);
+  }, []);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -144,20 +133,20 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
 
       {/* Main Content */}
       <div className="p-2.5">
-        {/* Image Carousel */}
+      {/* Image Carousel */}
         <div className="relative w-full">
-          {images.length > 1 ? (
+          {optimizedImages.length > 1 ? (
             <>
               <div ref={emblaRef} className="overflow-hidden rounded-lg">
                 <div className="flex gap-3 px-2 items-stretch h-[200px] sm:h-[240px] md:h-[280px]">
-                  {images.map((imageUrl, index) => (
+                  {optimizedImages.map((image, index) => (
                     <div 
                       key={index} 
                       className="relative flex-[0_0_100%] min-w-0"
                     >
                       <img
-                        src={optimizedImages[index].optimized}
-                        srcSet={optimizedImages[index].srcSet}
+                        src={image.card}
+                        srcSet={image.srcSets.card}
                         sizes="(max-width: 640px) 320px, (max-width: 1024px) 400px, 450px"
                         alt={`${product.title} - изображение ${index + 1}`}
                         className={`w-full h-full object-contain bg-gray-50 rounded-lg transition-opacity duration-300 cursor-pointer ${
@@ -180,7 +169,7 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
               
               {/* Dots Indicator */}
               <div className="flex justify-center gap-1.5 mt-2.5">
-                {images.map((_, index) => (
+                {optimizedImages.map((_, index) => (
                   <button
                     key={index}
                     onClick={(e) => {
@@ -200,8 +189,8 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
           ) : (
             <div className="relative h-[200px] sm:h-[240px] md:h-[280px] rounded-lg overflow-hidden bg-gray-50">
               <img
-                src={optimizedImages[0].optimized}
-                srcSet={optimizedImages[0].srcSet}
+                src={optimizedImages[0].card}
+                srcSet={optimizedImages[0].srcSets.card}
                 sizes="(max-width: 640px) 320px, (max-width: 1024px) 400px, 450px"
                 alt={product.title}
                 className={`w-full h-full object-contain transition-opacity duration-300 cursor-pointer ${

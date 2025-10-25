@@ -11,7 +11,7 @@ import { useCreatePriceOffer, useUpdatePriceOffer } from '@/hooks/use-price-offe
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
 import { PriceOffer } from '@/types/price-offer';
-import { useProductImage } from '@/hooks/useProductImage';
+import { useOptimizedProductImages } from '@/hooks/useOptimizedProductImages';
 import { cn } from '@/lib/utils';
 import { DollarSign, TrendingUp, Clock, Send } from 'lucide-react';
 import { DeliveryMethodPicker } from './DeliveryMethodPicker';
@@ -38,7 +38,8 @@ export const NewMakeOfferModal: React.FC<NewMakeOfferModalProps> = ({
   existingOffer
 }) => {
   const { user } = useAuth();
-  const { primaryImage } = useProductImage(product);
+  const images = useOptimizedProductImages(product, { generateVariants: true, maxImages: 1 });
+  const primaryImage = images[0]?.card || '/placeholder.svg';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<'self_pickup' | 'cargo_rf' | 'cargo_kz'>('cargo_rf');
   

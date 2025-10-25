@@ -10,7 +10,7 @@ import { useCreatePriceOffer, useUpdatePriceOffer } from '@/hooks/use-price-offe
 import { useAuth } from '@/contexts/AuthContext';
 import { Product } from '@/types/product';
 import { PriceOffer } from '@/types/price-offer';
-import { useProductImage } from '@/hooks/useProductImage';
+import { useOptimizedProductImages } from '@/hooks/useOptimizedProductImages';
 import { cn } from '@/lib/utils';
 import { DollarSign, Clock, CheckCircle, AlertCircle, X, Send, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -49,7 +49,8 @@ export const EnhancedOfferModal: React.FC<EnhancedOfferModalProps> = ({
   maxOtherOffer = 0
 }) => {
   const { user } = useAuth();
-  const { primaryImage } = useProductImage(product);
+  const images = useOptimizedProductImages(product, { generateVariants: true, maxImages: 1 });
+  const primaryImage = images[0]?.card || '/placeholder.svg';
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mode, setMode] = useState<'offer' | 'blitz'>('offer');
   const [showConfirmation, setShowConfirmation] = useState(false);

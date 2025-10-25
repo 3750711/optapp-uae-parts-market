@@ -12,7 +12,7 @@ import ProductSkeleton from "@/components/product/ProductSkeleton";
 import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import ProductDetailContent from "@/components/product/ProductDetailContent";
-import { useProductImage } from "@/hooks/useProductImage";
+import { useOptimizedProductImages } from "@/hooks/useOptimizedProductImages";
 import SellerProducts from "@/components/product/SimilarProducts";
 import MobileProductLayout from "@/components/product/mobile/MobileProductLayout";
 import { Product } from "@/types/product";
@@ -171,8 +171,9 @@ const ProductDetail = () => {
     retry: 1,
   });
   
-  // Call useProductImage before any conditional returns (React hooks rules)
-  const { primaryImage: productPrimaryImage } = useProductImage(product || null);
+  // Call useOptimizedProductImages before any conditional returns (React hooks rules)
+  const optimizedImages = useOptimizedProductImages(product || null, { generateVariants: true, maxImages: 1 });
+  const productPrimaryImage = optimizedImages[0]?.card || '/placeholder.svg';
   
   const handleProductUpdate = () => {
     // Product update handled by React Query cache invalidation
