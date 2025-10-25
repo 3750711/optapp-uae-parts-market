@@ -5,8 +5,14 @@ import CatalogContent from '@/components/catalog/CatalogContent';
 import SearchControls from '@/components/catalog/SearchControls';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { getMainPageTranslations } from '@/utils/mainPageTranslations';
 
-export const HomeProductsSection: React.FC = () => {
+interface HomeProductsSectionProps {
+  language?: 'ru' | 'en' | 'bn';
+}
+
+export const HomeProductsSection: React.FC<HomeProductsSectionProps> = ({ language = 'ru' }) => {
+  const t = getMainPageTranslations(language);
   // Refs for intersection observer
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const prefetchTriggerRef = useRef<HTMLDivElement>(null);
@@ -97,9 +103,9 @@ export const HomeProductsSection: React.FC = () => {
   if (isError) {
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground mb-4">Произошла ошибка при загрузке товаров</p>
+        <p className="text-muted-foreground mb-4">{t.errors.productsLoadError}</p>
         <Button onClick={() => refetch()} variant="outline">
-          Попробовать снова
+          {t.errors.tryAgain}
         </Button>
       </div>
     );
@@ -122,7 +128,7 @@ export const HomeProductsSection: React.FC = () => {
       {/* Products Count */}
       {!isLoading && mappedProducts.length > 0 && (
         <div className="text-sm text-muted-foreground">
-          Найдено товаров: <span className="font-semibold text-foreground">{totalProductsCount}</span>
+          {t.errors.productsFoundLabel} <span className="font-semibold text-foreground">{totalProductsCount}</span>
         </div>
       )}
 

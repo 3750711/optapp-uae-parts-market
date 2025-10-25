@@ -86,7 +86,7 @@ const Index = () => {
 
               {/* Products Catalog Section */}
               <div className="max-w-7xl mx-auto">
-                <ErrorBoundary fallback={
+                 <ErrorBoundary fallback={
                    <div className="text-center py-12">
                      <p className="text-muted-foreground mb-4">{t.errors.catalogLoadError}</p>
                      <Button variant="outline" onClick={() => window.location.reload()}>
@@ -94,7 +94,7 @@ const Index = () => {
                      </Button>
                    </div>
                  }>
-                   <HomeProductsSection />
+                   <HomeProductsSection language={language} />
                  </ErrorBoundary>
                </div>
              </div>
