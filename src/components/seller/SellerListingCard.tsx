@@ -131,7 +131,7 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
         <div className="relative w-full">
           {images.length > 1 ? (
             <>
-              <div ref={emblaRef} className="overflow-hidden rounded-lg" onClick={(e) => e.stopPropagation()}>
+              <div ref={emblaRef} className="overflow-hidden rounded-lg">
                 <div className="flex gap-3 px-2 items-stretch h-[200px] sm:h-[240px] md:h-[280px]">
                   {images.map((imageUrl, index) => (
                     <div 
@@ -141,12 +141,13 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
                       <img
                         src={imageUrl}
                         alt={`${product.title} - изображение ${index + 1}`}
-                        className={`w-full h-full object-contain bg-gray-50 rounded-lg transition-opacity duration-300 ${
+                        className={`w-full h-full object-contain bg-gray-50 rounded-lg transition-opacity duration-300 cursor-pointer ${
                           imageLoading[index] ? 'opacity-0' : 'opacity-100'
                         }`}
                         loading="lazy"
                         onLoad={() => handleImageLoad(index)}
                         onError={(e) => handleImageError(e, index)}
+                        onClick={handleCardClick}
                       />
                       {imageLoading[index] && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
@@ -182,12 +183,13 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
               <img
                 src={images[0]}
                 alt={product.title}
-                className={`w-full h-full object-contain transition-opacity duration-300 ${
+                className={`w-full h-full object-contain transition-opacity duration-300 cursor-pointer ${
                   imageLoading[0] ? 'opacity-0' : 'opacity-100'
                 }`}
                 loading="lazy"
                 onLoad={() => handleImageLoad(0)}
                 onError={(e) => handleImageError(e, 0)}
+                onClick={handleCardClick}
               />
               {imageLoading[0] && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
