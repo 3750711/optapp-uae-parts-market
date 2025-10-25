@@ -117,7 +117,7 @@ export const MobileCatalogCard = React.memo(({
         <div className="relative w-full">
           {images.length > 1 ? (
             <>
-              <div ref={emblaRef} className="overflow-hidden rounded-lg">
+              <div ref={emblaRef} className="overflow-hidden rounded-lg" onClick={(e) => e.stopPropagation()}>
                 <div className="flex gap-3 px-2 items-stretch h-[240px]">
                   {images.map((imageUrl, index) => (
                     <div 

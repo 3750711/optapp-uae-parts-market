@@ -341,7 +341,11 @@ const SellerListingsContent = () => {
           optid_created: product.optid_created,
           lot_number: product.lot_number,
           place_number: product.place_number,
-          catalog_position: product.catalog_position
+          catalog_position: product.catalog_position,
+          product_images: product.product_images || [],
+          cloudinary_url: primaryImage?.url || fallbackImage?.url || product.cloudinary_url,
+          cloudinary_public_id: product.cloudinary_public_id,
+          created_at: product.created_at
         };
       });
     } catch (mappingError) {
