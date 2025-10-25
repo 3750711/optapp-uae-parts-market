@@ -10,6 +10,12 @@ import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import useEmblaCarousel from 'embla-carousel-react';
 
+interface ProductImage {
+  url: string;
+  id?: string;
+  is_primary?: boolean;
+}
+
 interface OptimizedMobileCatalogCardProps {
   product: ProductProps;
   onStatusChange?: (productId: string, newStatus: string) => void;
@@ -60,7 +66,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
     const imageList: string[] = [];
     
     if (product.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
-      product.product_images.forEach((img: any) => {
+      product.product_images.forEach((img: ProductImage | string) => {
         const url = typeof img === 'object' ? img.url : img;
         if (url) imageList.push(url);
       });
@@ -145,21 +151,43 @@ export const OptimizedMobileCatalogCard = React.memo(({
     setImageLoading(prev => ({ ...prev, [index]: false }));
   }, []);
 
-  const onSelect = useCallback(() => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
+    
+    if (e.key === 'ArrowLeft') {
+      e.stopPropagation();
+      emblaApi.scrollPrev();
+    } else if (e.key === 'ArrowRight') {
+      e.stopPropagation();
+      emblaApi.scrollNext();
+    }
   }, [emblaApi]);
 
   useEffect(() => {
     if (!emblaApi) return;
-    onSelect();
-    emblaApi.on('select', onSelect);
-    emblaApi.on('reInit', onSelect);
-    return () => {
-      emblaApi.off('select', onSelect);
-      emblaApi.off('reInit', onSelect);
+    
+    const handleSelect = () => {
+      if (emblaApi) {
+        setSelectedIndex(emblaApi.selectedScrollSnap());
+      }
     };
-  }, [emblaApi, onSelect]);
+    
+    emblaApi.on('select', handleSelect);
+    emblaApi.on('reInit', handleSelect);
+    
+    // Call immediately to set initial state
+    handleSelect();
+    
+    return () => {
+      try {
+        emblaApi?.off('select', handleSelect);
+        emblaApi?.off('reInit', handleSelect);
+      } catch (e) {
+        // Embla already destroyed, ignore
+        console.debug('Embla cleanup: already destroyed');
+      }
+    };
+  }, [emblaApi]);
 
   const formattedDate = useMemo(() => {
     if (!product.created_at) return 'недавно';
@@ -193,6 +221,11 @@ export const OptimizedMobileCatalogCard = React.memo(({
                   ref={emblaRef} 
                   className="overflow-hidden rounded-lg" 
                   onClick={(e) => e.stopPropagation()}
+                  onKeyDown={handleKeyDown}
+                  tabIndex={0}
+                  role="region"
+                  aria-label={`Галерея изображений для ${product.title}`}
+                  aria-roledescription="carousel"
                 >
                   <div className="flex h-[240px] sm:h-[280px]">
                     {images.map((imageUrl, index) => (
@@ -232,12 +265,13 @@ export const OptimizedMobileCatalogCard = React.memo(({
                         emblaApi?.scrollTo(index);
                       }}
                       className={cn(
-                        "h-1.5 rounded-full transition-all",
+                        "h-1.5 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
                         index === selectedIndex 
                           ? "w-6 bg-primary" 
                           : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                       )}
-                      aria-label={`Перейти к изображению ${index + 1}`}
+                      aria-label={`Перейти к изображению ${index + 1} из ${images.length}`}
+                      aria-current={index === selectedIndex ? "true" : "false"}
                     />
                   ))}
                 </div>
@@ -252,7 +286,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
                     "w-full h-full object-contain transition-opacity duration-300",
                     imageLoading[0] ? "opacity-0" : "opacity-100"
                   )}
-                  loading="eager"
+                  loading="lazy"
                   onLoad={() => handleImageLoad(0)}
                   onError={(e) => handleImageError(e, 0)}
                 />
