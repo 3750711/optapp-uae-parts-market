@@ -365,11 +365,15 @@ export const OptimizedMobileCatalogCard = React.memo(({
           </h3>
 
           {/* Price */}
-          <div className="text-xl font-bold text-destructive">
-            {product.price !== null 
-              ? formatPrice(product.price)
-              : '🔒 Войдите для просмотра'
-            }
+          <div className="text-xl font-bold">
+            {product.price !== null ? (
+              <span className="text-destructive">{formatPrice(product.price)}</span>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
+                <span className="text-sm text-muted-foreground">Войдите для просмотра</span>
+              </div>
+            )}
           </div>
 
           {/* Meta Row */}

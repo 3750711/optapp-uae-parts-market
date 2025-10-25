@@ -10,19 +10,23 @@ import { SellerDescription } from "./seller/SellerDescription";
 import { SellerContactSection } from "./seller/SellerContactSection";
 import { SellerHelpSection } from "./seller/SellerHelpSection";
 import { AuthDialog } from "./seller/AuthDialog";
+import { BlurredSellerInfo } from "./seller/BlurredSellerInfo";
+import { Lang } from "@/types/i18n";
 
 interface EnhancedSellerInfoProps {
   sellerProfile?: SellerProfile | null;
   seller_name: string;
   seller_id: string;
   children?: React.ReactNode;
+  language?: Lang;
 }
 
 const EnhancedSellerInfo: React.FC<EnhancedSellerInfoProps> = ({
   sellerProfile,
   seller_name,
   seller_id,
-  children
+  children,
+  language = 'ru'
 }) => {
   const [storeInfo, setStoreInfo] = useState<{
     id: string;
@@ -32,6 +36,18 @@ const EnhancedSellerInfo: React.FC<EnhancedSellerInfoProps> = ({
   const [copied, setCopied] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Show blurred version for unauthenticated users
+  if (!user) {
+    return (
+      <BlurredSellerInfo 
+        sellerName={seller_name}
+        sellerId={seller_id}
+        language={language}
+        onLogin={() => navigate('/login')}
+      />
+    );
+  }
 
   useEffect(() => {
     const fetchStoreInfo = async () => {

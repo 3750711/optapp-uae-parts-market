@@ -21,6 +21,8 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useMobileLayout } from "@/hooks/useMobileLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Database } from "@/integrations/supabase/types";
+import { AuthPromptOverlay } from "@/components/product/AuthPromptOverlay";
+import { useLanguage } from "@/hooks/useLanguage";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +30,7 @@ const ProductDetail = () => {
   const { user, isLoading: authLoading } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { isMobile } = useMobileLayout();
+  const { language } = useLanguage();
   const [searchParams] = useSearchParams();
   const fromSeller = searchParams.get("from") === "seller";
   
@@ -297,6 +300,7 @@ const ProductDetail = () => {
           sellerName={sellerName}
           deliveryMethod={deliveryMethod}
           onDeliveryMethodChange={handleDeliveryMethodChange}
+          language={language}
         />
         
 
@@ -307,6 +311,15 @@ const ProductDetail = () => {
           sellerName={sellerName}
         />
       </div>
+
+      {/* Auth Prompt Overlay for unauthenticated users */}
+      {!user && (
+        <AuthPromptOverlay 
+          language={language}
+          onLogin={() => navigate('/login')}
+          onRegister={() => navigate('/register')}
+        />
+      )}
     </Layout>
   );
 };

@@ -11,12 +11,15 @@ import { SimpleMakeOfferButton } from "@/components/price-offer/SimpleMakeOfferB
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useImageCacheManager } from "./images/ImageCacheManager";
+import { BlurredPriceSection } from "./BlurredPriceSection";
+import { Lang } from "@/types/i18n";
 
 interface ProductInfoProps {
   product: Product;
   sellerProfile: any;
   deliveryMethod: any;
   onDeliveryMethodChange: (method: any) => void;
+  language?: Lang;
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({
@@ -24,6 +27,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   sellerProfile,
   deliveryMethod,
   onDeliveryMethodChange,
+  language = 'ru'
 }) => {
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [showContactDialog, setShowContactDialog] = useState(false);
@@ -35,9 +39,15 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const { invalidateAllCaches } = useImageCacheManager();
   const isOwner = user?.id === product.seller_id;
   
-  // Hide if no price data (unauthenticated user)
-  if (product.price === null) {
-    return null;
+  // Show blurred section for unauthenticated users
+  if (!user || product.price === null) {
+    return (
+      <BlurredPriceSection 
+        product={product}
+        language={language}
+        onLogin={() => navigate('/login')}
+      />
+    );
   }
 
   // Function to get product videos with enhanced logging
