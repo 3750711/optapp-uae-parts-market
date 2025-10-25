@@ -11,6 +11,15 @@ export interface LoginTranslations {
   signingIn: string;
   enter: string;
   
+  // Form-specific aliases for backward compatibility
+  title: string;
+  subtitle: string;
+  loading: string;
+  submit: string;
+  errorTitle: string;
+  welcome: string;
+  generalError: string;
+  
   // Placeholders
   emailPlaceholder: string;
   optIdPlaceholder: string;
@@ -83,6 +92,15 @@ export const translations: Record<'ru' | 'en' | 'bn', LoginTranslations> = {
     signingIn: 'Входим...',
     enter: 'Войти',
     
+    // Form-specific aliases
+    title: 'Вход',
+    subtitle: 'Войдите в свой аккаунт',
+    loading: 'Вход...',
+    submit: 'Войти',
+    errorTitle: 'Ошибка входа',
+    welcome: 'Добро пожаловать!',
+    generalError: 'Произошла ошибка при входе',
+    
     // Placeholders
     emailPlaceholder: 'Введите ваш email',
     optIdPlaceholder: 'Введите ваш OPT ID',
@@ -154,6 +172,15 @@ export const translations: Record<'ru' | 'en' | 'bn', LoginTranslations> = {
     signingIn: 'Signing In...',
     enter: 'Enter',
     
+    // Form-specific aliases
+    title: 'Login',
+    subtitle: 'Sign in to your account',
+    loading: 'Signing in...',
+    submit: 'Sign In',
+    errorTitle: 'Login error',
+    welcome: 'Welcome back!',
+    generalError: 'An error occurred during login',
+    
     // Placeholders
     emailPlaceholder: 'Enter your email',
     optIdPlaceholder: 'Enter your OPT ID',
@@ -223,6 +250,15 @@ export const translations: Record<'ru' | 'en' | 'bn', LoginTranslations> = {
     signIn: 'সাইন ইন',
     signingIn: 'সাইন ইন করা হচ্ছে...',
     enter: 'প্রবেশ করুন',
+    
+    // Form-specific aliases
+    title: 'লগইন',
+    subtitle: 'আপনার অ্যাকাউন্টে সাইন ইন করুন',
+    loading: 'লগইন করা হচ্ছে...',
+    submit: 'সাইন ইন',
+    errorTitle: 'লগইন ত্রুটি',
+    welcome: 'স্বাগতম!',
+    generalError: 'লগইন করার সময় একটি ত্রুটি ঘটেছে',
     
     // Placeholders
     emailPlaceholder: 'আপনার ইমেইল প্রবেশ করান',

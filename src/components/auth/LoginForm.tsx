@@ -9,6 +9,7 @@ import { useRateLimit } from '@/hooks/useRateLimit';
 import { toast } from 'sonner';
 import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
 import { logLoginFailure, logLoginSuccess, logRateLimitHit } from '@/utils/authLogger';
+import { getLoginTranslations } from '@/utils/loginTranslations';
 
 interface LoginFormProps {
   language?: 'ru' | 'en' | 'bn';
@@ -17,50 +18,14 @@ interface LoginFormProps {
   hideLinks?: boolean;
 }
 
-const getLoginFormTranslations = (language: 'ru' | 'en' | 'bn') => {
-  const translations = {
-    ru: {
-      title: "Вход",
-      subtitle: "Войдите в свой аккаунт",
-      email: "Email",
-      password: "Пароль",
-      loading: "Вход...",
-      submit: "Войти",
-      forgotPassword: "Забыли пароль?",
-      noAccount: "Нет аккаунта?",
-      register: "Зарегистрироваться",
-      errorTitle: "Ошибка входа",
-      welcome: "Добро пожаловать!",
-      generalError: "Произошла ошибка при входе"
-    },
-    en: {
-      title: "Login",
-      subtitle: "Sign in to your account",
-      email: "Email",
-      password: "Password",
-      loading: "Signing in...",
-      submit: "Sign In",
-      forgotPassword: "Forgot password?",
-      noAccount: "No account?",
-      register: "Register",
-      errorTitle: "Login error",
-      welcome: "Welcome!",
-      generalError: "An error occurred during login"
-    }
-  };
-  return translations[language];
-};
-
 const LoginForm: React.FC<LoginFormProps> = ({ language = 'ru', compact = false, hideHeader = false, hideLinks = false }) => {
-  // Map Bengali to English for fallback
-  const mappedLanguage = language === 'bn' ? 'en' : language;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
   const { checkRateLimit } = useRateLimit();
-  const t = getLoginFormTranslations(mappedLanguage);
+  const t = getLoginTranslations(language);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
