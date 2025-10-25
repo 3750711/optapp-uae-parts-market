@@ -57,10 +57,10 @@ const Index = () => {
         <ErrorBoundary fallback={
           <div className="min-h-screen bg-background flex items-center justify-center">
             <div className="text-center p-8">
-              <h2 className="text-xl font-semibold mb-2">Ошибка загрузки страницы</h2>
-              <p className="text-muted-foreground mb-4">Произошла ошибка при загрузке главной страницы</p>
+              <h2 className="text-xl font-semibold mb-2">{t.errors.pageLoadError}</h2>
+              <p className="text-muted-foreground mb-4">{t.errors.pageLoadErrorDesc}</p>
               <Button onClick={() => window.location.reload()}>
-                Обновить страницу
+                {t.errors.refreshPage}
               </Button>
             </div>
           </div>
@@ -88,9 +88,9 @@ const Index = () => {
               <div className="max-w-7xl mx-auto">
                 <ErrorBoundary fallback={
                    <div className="text-center py-12">
-                     <p className="text-muted-foreground mb-4">Ошибка загрузки каталога</p>
+                     <p className="text-muted-foreground mb-4">{t.errors.catalogLoadError}</p>
                      <Button variant="outline" onClick={() => window.location.reload()}>
-                       Обновить страницу
+                       {t.errors.refreshPage}
                      </Button>
                    </div>
                  }>
