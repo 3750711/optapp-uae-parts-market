@@ -364,17 +364,12 @@ export const OptimizedMobileCatalogCard = React.memo(({
             )}
           </h3>
 
-          {/* Price */}
-          <div className="text-xl font-bold">
-            {product.price !== null ? (
+          {/* Price - показываем только если есть реальная цена > 0 */}
+          {product.price !== null && product.price > 0 && (
+            <div className="text-xl font-bold">
               <span className="text-destructive">{formatPrice(product.price)}</span>
-            ) : (
-              <div className="relative inline-flex items-center gap-2">
-                <Loader2 className="h-4 w-4 text-destructive" />
-                <span className="blur-[4px] select-none text-muted-foreground">$999</span>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Meta Row */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
