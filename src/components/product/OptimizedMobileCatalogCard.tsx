@@ -188,8 +188,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
         emblaApi?.off('select', handleSelect);
         emblaApi?.off('reInit', handleSelect);
       } catch (e) {
-        // Embla already destroyed, ignore
-        console.debug('Embla cleanup: already destroyed');
+        // Silent fail - это нормально при unmount
       }
     };
   }, [emblaApi]);
