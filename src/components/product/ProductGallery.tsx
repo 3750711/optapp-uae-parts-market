@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { useLazyImage } from "@/hooks/useLazyImage";
+import { generateSrcSet, isCloudinaryUrl, RESPONSIVE_PRESETS } from "@/utils/cloudinaryResponsive";
 
 
 interface ProductGalleryProps {
@@ -196,6 +197,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   ) : (
                     <img
                       src={media}
+                      srcSet={isCloudinaryUrl(media) ? generateSrcSet(media, RESPONSIVE_PRESETS.gallery.widths) : undefined}
+                      sizes={isCloudinaryUrl(media) ? RESPONSIVE_PRESETS.gallery.sizes : undefined}
                       alt={title}
                       className="w-full h-full object-contain"
                       loading={index === 0 ? 'eager' : 'lazy'}
@@ -323,6 +326,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 ) : (
                   <img
                     src={media}
+                    srcSet={isCloudinaryUrl(media) ? generateSrcSet(media, RESPONSIVE_PRESETS.thumbnail.widths) : undefined}
+                    sizes={isCloudinaryUrl(media) ? RESPONSIVE_PRESETS.thumbnail.sizes : undefined}
                     alt={`${title} - изображение ${index + 1}`}
                     className="w-full h-full object-cover"
                     loading="lazy"
@@ -382,6 +387,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     <div key={index} className="flex-[0_0_100%] min-w-0 flex items-center justify-center">
                       <img
                         src={url}
+                        srcSet={isCloudinaryUrl(url) ? generateSrcSet(url, RESPONSIVE_PRESETS.fullscreen.widths) : undefined}
+                        sizes={isCloudinaryUrl(url) ? RESPONSIVE_PRESETS.fullscreen.sizes : undefined}
                         alt={title}
                         className="max-w-[100vw] max-h-[calc(100dvh-80px)] object-contain"
                         style={{ 
@@ -436,6 +443,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                       <div key={index} className="flex-[0_0_100%] min-w-0">
                         <img
                           src={url}
+                          srcSet={isCloudinaryUrl(url) ? generateSrcSet(url, RESPONSIVE_PRESETS.fullscreen.widths) : undefined}
+                          sizes={isCloudinaryUrl(url) ? RESPONSIVE_PRESETS.fullscreen.sizes : undefined}
                           alt={title}
                           className="w-full max-h-[70vh] object-contain"
                           onError={(e) => {

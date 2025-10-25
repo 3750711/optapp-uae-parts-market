@@ -36,6 +36,20 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
 
   const config = sizeConfig[size];
 
+  // Generate blur placeholder URL (tiny, blurred image for instant display)
+  const generateBlurPlaceholderUrl = () => {
+    const baseUrl = 'https://res.cloudinary.com/dcuziurrb/image/upload';
+    const transformations = [
+      'w_30',           // Tiny width
+      'h_30',           // Tiny height
+      'c_fill',         // Fill to ensure aspect ratio
+      'q_1',            // Minimal quality
+      'e_blur:1000',    // Heavy blur
+      'f_auto'          // Auto format
+    ];
+    return `${baseUrl}/${transformations.join(',')}/${publicId}`;
+  };
+
   // Generate optimized Cloudinary URL with correct cloud name
   const generateCloudinaryUrl = () => {
     const baseUrl = 'https://res.cloudinary.com/dcuziurrb/image/upload';
@@ -104,6 +118,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
   };
 
   const imageUrl = generateCloudinaryUrl();
+  const blurPlaceholderUrl = generateBlurPlaceholderUrl();
 
   const handleLoad = useCallback(() => {
     setIsLoaded(true);
@@ -129,17 +144,26 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
   }
 
   return (
-    <div className="relative w-full h-full">
-      {!isLoaded && !priority && (
-        <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
-      )}
+    <div className="relative w-full h-full overflow-hidden">
+      {/* Blur placeholder (loads instantly, ~1-2KB) */}
+      <img
+        src={blurPlaceholderUrl}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+        style={{
+          filter: 'blur(20px) saturate(1.2)',
+          transform: 'scale(1.1)', // Remove blur edge artifacts
+          opacity: isLoaded ? 0 : 1,
+        }}
+      />
       
+      {/* Full quality image (fades in smoothly) */}
       <img
         src={imageUrl}
         alt={alt}
-        className={`${className} transition-opacity duration-300 ${
-          isLoaded ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`${className} relative z-10 transition-opacity duration-300`}
+        style={{ opacity: isLoaded ? 1 : 0 }}
         onLoad={handleLoad}
         onError={handleError}
         loading={priority ? 'eager' : 'lazy'}
