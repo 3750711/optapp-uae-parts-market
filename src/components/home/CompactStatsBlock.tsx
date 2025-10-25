@@ -65,9 +65,7 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
           {/* Слайд 1: Статистика */}
           <CarouselItem>
             <AutomotiveCard 
-              metallic 
-              glowing 
-              className="group transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:transform-none"
+              className="bg-background border-border group transition-all duration-500 hover:scale-[1.02] hover:shadow-card hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:transform-none"
             >
               <div className="min-h-[160px] flex items-center justify-center">
                 <div className="flex items-center justify-around w-full px-6">
@@ -107,9 +105,7 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
           {/* Слайд 2: О платформе */}
           <CarouselItem>
             <AutomotiveCard 
-              metallic 
-              glowing 
-              className="group transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:transform-none"
+              className="bg-background border-border group transition-all duration-500 hover:scale-[1.02] hover:shadow-card hover:-translate-y-1 motion-reduce:transition-none motion-reduce:hover:transform-none"
             >
               <div className="min-h-[160px] flex items-center justify-center">
                 <div className="px-6 py-4 text-center w-full">
