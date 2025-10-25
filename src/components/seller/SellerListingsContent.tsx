@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from '@/hooks/useLanguage';
 import { getSellerListingsPageTranslations } from '@/utils/translations/sellerListingsPage';
 import { getCommonTranslations } from '@/utils/translations/common';
-import ProductGrid from "@/components/product/ProductGrid";
+import SellerListingCard from "@/components/seller/SellerListingCard";
 import { Badge } from "@/components/ui/badge";
 import { Product } from "@/types/product";
 import { ProductProps } from "@/components/product/ProductCard";
@@ -448,14 +448,16 @@ const SellerListingsContent = () => {
       
       {mappedProducts.length > 0 ? (
         <>
-          <ProductGrid
-            products={mappedProducts} 
-            showAllStatuses={true}
-            showSoldButton={true}
-            onStatusChange={handleStatusChange}
-            onRepostSuccess={handleRepostSuccess}
-            batchOffersData={batchOffersData}
-          />
+          <div className="space-y-3">
+            {mappedProducts.map((product) => (
+              <SellerListingCard
+                key={product.id}
+                product={product}
+                onStatusChange={handleStatusChange}
+                onRepostSuccess={handleRepostSuccess}
+              />
+            ))}
+          </div>
           
           {/* Pagination Controls */}
           {totalPages > 1 && (
