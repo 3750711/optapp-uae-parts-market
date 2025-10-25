@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { Card } from "@/components/ui/card";
-import { Package, MapPin, Calendar, DollarSign } from "lucide-react";
+import { Package, MapPin, Calendar, DollarSign, Loader2 } from "lucide-react";
 import useEmblaCarousel from 'embla-carousel-react';
 import { ProductProps } from '@/components/product/ProductCard';
 import { useNavigate } from 'react-router-dom';
@@ -9,6 +9,7 @@ import { ru } from 'date-fns/locale';
 import ProductStatusChangeDialog from '@/components/product/ProductStatusChangeDialog';
 import { RepostButton } from '@/components/product/RepostButton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProductImages } from '@/hooks/useProductImages';
 
 interface SellerListingCardProps {
   product: ProductProps;
@@ -29,6 +30,7 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
     containScroll: 'trimSnaps'
   });
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [imageLoading, setImageLoading] = useState<Record<number, boolean>>({});
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -43,7 +45,31 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
     }
   };
 
-  const statusConfig = getStatusConfig(product.status);
+  const images = useProductImages(product);
+
+  const statusConfig = useMemo(
+    () => getStatusConfig(product.status),
+    [product.status]
+  );
+
+  const formattedDate = useMemo(() => 
+    product.created_at 
+      ? format(new Date(product.created_at), 'd MMM yyyy', { locale: ru })
+      : '',
+    [product.created_at]
+  );
+
+  const handleImageLoad = useCallback((index: number) => {
+    setImageLoading(prev => ({ ...prev, [index]: false }));
+  }, []);
+
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>, index: number) => {
+    const target = e.target as HTMLImageElement;
+    if (target.src !== '/placeholder.svg') {
+      target.src = '/placeholder.svg';
+    }
+    setImageLoading(prev => ({ ...prev, [index]: false }));
+  }, []);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -59,37 +85,30 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
       emblaApi.off('select', onSelect);
       emblaApi.off('reInit', onSelect);
     };
-  }, [emblaApi, onSelect]);
+  }, [emblaApi, onSelect, images.length]);
+
+  useEffect(() => {
+    const initialLoading = images.reduce((acc, _, idx) => ({ ...acc, [idx]: true }), {});
+    setImageLoading(initialLoading);
+  }, [images.length]);
 
   const handleCardClick = () => {
     navigate(`/product/${product.id}`);
   };
 
-  // Prepare images array
-  const images: string[] = [];
-  
-  if (product.product_images && product.product_images.length > 0) {
-    product.product_images.forEach((img: any) => {
-      if (img?.url) images.push(img.url);
-    });
-  }
-  
-  if (images.length === 0 && product.cloudinary_url) {
-    images.push(product.cloudinary_url);
-  }
-
-  if (images.length === 0) {
-    images.push('/placeholder.svg');
-  }
-
-  const formattedDate = product.created_at 
-    ? format(new Date(product.created_at), 'd MMM yyyy', { locale: ru })
-    : '';
-
   return (
     <Card 
-      className="w-full overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-200/50"
+      role="article"
+      tabIndex={0}
+      aria-label={`Товар: ${product.title}, цена ${product.price || 'не указана'}`}
+      className="w-full overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-200/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
     >
       {/* Header Bar */}
       <div className="border-b border-gray-200/50 bg-gradient-to-r from-blue-50/50 to-transparent px-2.5 py-2">
@@ -115,7 +134,7 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
           {images.length > 1 ? (
             <>
               <div ref={emblaRef} className="overflow-hidden rounded-lg" onClick={(e) => e.stopPropagation()}>
-                <div className="flex gap-3 px-2 items-stretch h-[240px]">
+                <div className="flex gap-3 px-2 items-stretch h-[200px] sm:h-[240px] md:h-[280px]">
                   {images.map((imageUrl, index) => (
                     <div 
                       key={index} 
@@ -124,15 +143,18 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
                       <img
                         src={imageUrl}
                         alt={`${product.title} - изображение ${index + 1}`}
-                        className="w-full h-full object-contain bg-gray-50 rounded-lg"
+                        className={`w-full h-full object-contain bg-gray-50 rounded-lg transition-opacity duration-300 ${
+                          imageLoading[index] ? 'opacity-0' : 'opacity-100'
+                        }`}
                         loading="lazy"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          if (target.src !== '/placeholder.svg') {
-                            target.src = '/placeholder.svg';
-                          }
-                        }}
+                        onLoad={() => handleImageLoad(index)}
+                        onError={(e) => handleImageError(e, index)}
                       />
+                      {imageLoading[index] && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+                          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -158,19 +180,22 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
               </div>
             </>
           ) : (
-            <div className="relative h-[240px] rounded-lg overflow-hidden bg-gray-50">
+            <div className="relative h-[200px] sm:h-[240px] md:h-[280px] rounded-lg overflow-hidden bg-gray-50">
               <img
                 src={images[0]}
                 alt={product.title}
-                className="w-full h-full object-contain"
+                className={`w-full h-full object-contain transition-opacity duration-300 ${
+                  imageLoading[0] ? 'opacity-0' : 'opacity-100'
+                }`}
                 loading="lazy"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  if (target.src !== '/placeholder.svg') {
-                    target.src = '/placeholder.svg';
-                  }
-                }}
+                onLoad={() => handleImageLoad(0)}
+                onError={(e) => handleImageError(e, 0)}
               />
+              {imageLoading[0] && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -203,40 +228,42 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="border-t border-gray-200/50 mt-2.5 pt-2.5 flex gap-2">
-          {/* Mark as Sold Button */}
-          {product.status === 'active' && onStatusChange && (
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1"
-            >
-              <ProductStatusChangeDialog
-                productId={product.id}
-                productName={product.title}
-                onStatusChange={() => onStatusChange(product.id, 'sold')}
-              />
-            </div>
-          )}
-          
-          {/* Repost Button */}
-          {user?.id === product.seller_id && (
-            <div 
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1"
-            >
-              <RepostButton
-                productId={product.id}
-                catalogPosition={product.catalog_position || ''}
-                status={product.status}
-                sellerId={product.seller_id}
-                currentPrice={product.price || 0}
-                productTitle={product.title}
-                onRepostSuccess={onRepostSuccess}
-              />
-            </div>
-          )}
-        </div>
+        {/* Action Buttons - только если есть что показать */}
+        {(product.status === 'active' && onStatusChange || user?.id === product.seller_id) && (
+          <div className="border-t border-gray-200/50 mt-2.5 pt-2.5 flex gap-2">
+            {/* Mark as Sold Button */}
+            {product.status === 'active' && onStatusChange && (
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className="flex-1"
+              >
+                <ProductStatusChangeDialog
+                  productId={product.id}
+                  productName={product.title}
+                  onStatusChange={() => onStatusChange(product.id, 'sold')}
+                />
+              </div>
+            )}
+            
+            {/* Repost Button */}
+            {user?.id === product.seller_id && (
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className={product.status === 'active' && onStatusChange ? 'flex-1' : 'w-full'}
+              >
+                <RepostButton
+                  productId={product.id}
+                  catalogPosition={product.catalog_position || ''}
+                  status={product.status}
+                  sellerId={product.seller_id}
+                  currentPrice={product.price || 0}
+                  productTitle={product.title}
+                  onRepostSuccess={onRepostSuccess}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </Card>
   );
