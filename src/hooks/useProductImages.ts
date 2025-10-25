@@ -18,7 +18,7 @@ export const useProductImages = (product: ProductProps) => {
     const images: string[] = [];
     
     // Сортируем изображения: primary первым, затем по created_at
-    const sortedImages = [...(product.product_images || [])].sort((a: any, b: any) => {
+    const sortedImages = [...(product.product_images || [])].sort((a: ProductImage, b: ProductImage) => {
       if (a.is_primary && !b.is_primary) return -1;
       if (!a.is_primary && b.is_primary) return 1;
       

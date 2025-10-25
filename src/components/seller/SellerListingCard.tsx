@@ -30,7 +30,12 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
     containScroll: 'trimSnaps'
   });
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [imageLoading, setImageLoading] = useState<Record<number, boolean>>({});
+  
+  const images = useProductImages(product);
+  
+  const [imageLoading, setImageLoading] = useState<Record<number, boolean>>(() => 
+    images.reduce((acc, _, idx) => ({ ...acc, [idx]: true }), {})
+  );
 
   const getStatusConfig = (status: string) => {
     switch (status) {
@@ -44,8 +49,6 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
         return { label: status, className: 'bg-gray-100 text-gray-800 border-gray-200' };
     }
   };
-
-  const images = useProductImages(product);
 
   const statusConfig = useMemo(
     () => getStatusConfig(product.status),
@@ -85,12 +88,7 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
       emblaApi.off('select', onSelect);
       emblaApi.off('reInit', onSelect);
     };
-  }, [emblaApi, onSelect, images.length]);
-
-  useEffect(() => {
-    const initialLoading = images.reduce((acc, _, idx) => ({ ...acc, [idx]: true }), {});
-    setImageLoading(initialLoading);
-  }, [images.length]);
+  }, [emblaApi, onSelect]);
 
   const handleCardClick = () => {
     navigate(`/product/${product.id}`);
@@ -100,7 +98,7 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
     <Card 
       role="article"
       tabIndex={0}
-      aria-label={`Товар: ${product.title}, цена ${product.price || 'не указана'}`}
+      aria-label={`Товар: ${product.title}, цена ${product.price || 'не указана'}, статус: ${statusConfig.label}`}
       className="w-full overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-200/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
       onClick={handleCardClick}
       onKeyDown={(e) => {
@@ -249,7 +247,7 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
             {user?.id === product.seller_id && (
               <div 
                 onClick={(e) => e.stopPropagation()}
-                className={product.status === 'active' && onStatusChange ? 'flex-1' : 'w-full'}
+                className="flex-1"
               >
                 <RepostButton
                   productId={product.id}
