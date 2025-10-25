@@ -28,12 +28,10 @@ const BackButton: React.FC<BackButtonProps> = ({
 
   const handleBack = () => {
     try {
-      if (window.history.length > 1) {
-        navigate(-1);
-      } else {
-        navigate(fallback);
-      }
+      // React Router handles history navigation automatically
+      navigate(-1);
     } catch (e) {
+      // Fallback only if navigation fails
       navigate(fallback);
     }
   };
