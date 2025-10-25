@@ -155,10 +155,10 @@ export const OptimizedMobileCatalogCard = React.memo(({
     if (!emblaApi) return;
     
     if (e.key === 'ArrowLeft') {
-      e.stopPropagation();
+      e.preventDefault();
       emblaApi.scrollPrev();
     } else if (e.key === 'ArrowRight') {
-      e.stopPropagation();
+      e.preventDefault();
       emblaApi.scrollNext();
     }
   }, [emblaApi]);
