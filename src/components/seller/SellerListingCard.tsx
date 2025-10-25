@@ -10,6 +10,7 @@ import ProductStatusChangeDialog from '@/components/product/ProductStatusChangeD
 import { RepostButton } from '@/components/product/RepostButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProductImages } from '@/hooks/useProductImages';
+import { getOptimizedImage, CLOUDINARY_PRESETS } from '@/utils/cloudinaryOptimization';
 
 interface SellerListingCardProps {
   product: ProductProps;
@@ -32,6 +33,11 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   
   const images = useProductImages(product);
+  
+  const optimizedImages = useMemo(() => 
+    images.map(url => getOptimizedImage(url, CLOUDINARY_PRESETS.SELLER_CARD)),
+    [images]
+  );
   
   const [imageLoading, setImageLoading] = useState<Record<number, boolean>>(() => 
     images.reduce((acc, _, idx) => ({ ...acc, [idx]: true }), {})
@@ -68,11 +74,18 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
 
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>, index: number) => {
     const target = e.target as HTMLImageElement;
+    
     if (target.src !== '/placeholder.svg') {
+      const original = optimizedImages[index]?.original;
+      if (original && target.src !== original) {
+        target.src = original;
+        return;
+      }
       target.src = '/placeholder.svg';
     }
+    
     setImageLoading(prev => ({ ...prev, [index]: false }));
-  }, []);
+  }, [optimizedImages]);
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -143,7 +156,9 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
                       className="relative flex-[0_0_100%] min-w-0"
                     >
                       <img
-                        src={imageUrl}
+                        src={optimizedImages[index].optimized}
+                        srcSet={optimizedImages[index].srcSet}
+                        sizes="(max-width: 640px) 320px, (max-width: 1024px) 400px, 450px"
                         alt={`${product.title} - изображение ${index + 1}`}
                         className={`w-full h-full object-contain bg-gray-50 rounded-lg transition-opacity duration-300 cursor-pointer ${
                           imageLoading[index] ? 'opacity-0' : 'opacity-100'
@@ -185,7 +200,9 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
           ) : (
             <div className="relative h-[200px] sm:h-[240px] md:h-[280px] rounded-lg overflow-hidden bg-gray-50">
               <img
-                src={images[0]}
+                src={optimizedImages[0].optimized}
+                srcSet={optimizedImages[0].srcSet}
+                sizes="(max-width: 640px) 320px, (max-width: 1024px) 400px, 450px"
                 alt={product.title}
                 className={`w-full h-full object-contain transition-opacity duration-300 cursor-pointer ${
                   imageLoading[0] ? 'opacity-0' : 'opacity-100'
