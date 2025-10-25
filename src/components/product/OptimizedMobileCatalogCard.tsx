@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Card } from "@/components/ui/card";
@@ -7,7 +7,8 @@ import { formatPrice } from "@/utils/formatPrice";
 import { ProductProps } from "@/components/product/ProductCard";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Loader2, Image as ImageIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import useEmblaCarousel from 'embla-carousel-react';
 
 interface OptimizedMobileCatalogCardProps {
   product: ProductProps;
@@ -15,7 +16,7 @@ interface OptimizedMobileCatalogCardProps {
   showSoldButton?: boolean;
 }
 
-const StatusPill = ({ status }: { status: string }) => {
+const StatusPill = React.memo(({ status }: { status: string }) => {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'active':
@@ -40,7 +41,9 @@ const StatusPill = ({ status }: { status: string }) => {
       {config.label}
     </span>
   );
-};
+});
+
+StatusPill.displayName = "StatusPill";
 
 export const OptimizedMobileCatalogCard = React.memo(({ 
   product,
@@ -49,8 +52,45 @@ export const OptimizedMobileCatalogCard = React.memo(({
 }: OptimizedMobileCatalogCardProps) => {
   const navigate = useNavigate();
   const [isVisible, setIsVisible] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageLoading, setImageLoading] = useState<Record<number, boolean>>({});
   const cardRef = useRef<HTMLDivElement>(null);
+  
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: false, 
+    align: 'center',
+    containScroll: 'trimSnaps'
+  });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Get all images
+  const images = useMemo(() => {
+    const imageList: string[] = [];
+    
+    if (product.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
+      product.product_images.forEach((img: any) => {
+        const url = typeof img === 'object' ? img.url : img;
+        if (url) imageList.push(url);
+      });
+    }
+    
+    if (imageList.length === 0 && product.cloudinary_url) {
+      imageList.push(product.cloudinary_url);
+    }
+    
+    if (imageList.length === 0) {
+      imageList.push('/placeholder.svg');
+    }
+    
+    return imageList;
+  }, [product.product_images, product.cloudinary_url]);
+
+  // Initialize loading state for all images
+  useEffect(() => {
+    if (isVisible) {
+      const initialLoading = images.reduce((acc, _, idx) => ({ ...acc, [idx]: true }), {});
+      setImageLoading(initialLoading);
+    }
+  }, [isVisible, images.length]);
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -62,7 +102,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
         }
       },
       {
-        rootMargin: '50px',
+        rootMargin: '100px', // Start loading earlier for smoother experience
         threshold: 0.01
       }
     );
@@ -80,14 +120,42 @@ export const OptimizedMobileCatalogCard = React.memo(({
     };
   }, []);
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     navigate(`/product/${product.id}`);
-  };
+  }, [navigate, product.id]);
 
-  const formatCreatedDate = (createdAt: string | null | undefined) => {
-    if (!createdAt) return 'недавно';
+  const handleImageLoad = useCallback((index: number) => {
+    setImageLoading(prev => ({ ...prev, [index]: false }));
+  }, []);
+
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>, index: number) => {
+    const target = e.target as HTMLImageElement;
+    if (target.src !== '/placeholder.svg') {
+      target.src = '/placeholder.svg';
+    }
+    setImageLoading(prev => ({ ...prev, [index]: false }));
+  }, []);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+    return () => {
+      emblaApi.off('select', onSelect);
+      emblaApi.off('reInit', onSelect);
+    };
+  }, [emblaApi, onSelect]);
+
+  const formattedDate = useMemo(() => {
+    if (!product.created_at) return 'недавно';
     
-    const date = new Date(createdAt);
+    const date = new Date(product.created_at);
     if (isNaN(date.getTime())) return 'недавно';
     
     try {
@@ -98,22 +166,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
     } catch {
       return 'недавно';
     }
-  };
-
-  // Get ONLY first image for list view
-  const firstImage = React.useMemo(() => {
-    if (product.product_images?.[0]) {
-      const img = product.product_images[0];
-      return typeof img === 'object' ? img.url : img;
-    }
-    return product.cloudinary_url || '/placeholder.svg';
-  }, [product.product_images, product.cloudinary_url]);
-
-  // Count additional photos
-  const additionalPhotosCount = React.useMemo(() => {
-    const totalImages = product.product_images?.length || 0;
-    return totalImages > 1 ? totalImages - 1 : 0;
-  }, [product.product_images]);
+  }, [product.created_at]);
 
   return (
     <Card 
@@ -122,45 +175,89 @@ export const OptimizedMobileCatalogCard = React.memo(({
       onClick={handleClick}
     >
       <div className="p-2.5 space-y-3 overflow-hidden">
-        {/* Image Section - ONLY ONE PHOTO */}
-        <div className="relative w-full aspect-square bg-muted rounded-lg overflow-hidden">
+        {/* Image Carousel Section */}
+        <div className="relative w-full">
           {isVisible ? (
-            <>
-              <img
-                src={firstImage}
-                alt={product.title}
-                className={cn(
-                  "w-full h-full object-contain transition-opacity duration-300",
-                  imageLoaded ? "opacity-100" : "opacity-0"
-                )}
-                loading="lazy"
-                onLoad={() => setImageLoaded(true)}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  if (target.src !== '/placeholder.svg') {
-                    target.src = '/placeholder.svg';
-                  }
-                  setImageLoaded(true);
-                }}
-              />
-              
-              {!imageLoaded && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            images.length > 1 ? (
+              <>
+                <div 
+                  ref={emblaRef} 
+                  className="overflow-hidden rounded-lg" 
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="flex h-[240px] sm:h-[280px]">
+                    {images.map((imageUrl, index) => (
+                      <div 
+                        key={index} 
+                        className="relative flex-[0_0_100%] min-w-0 bg-muted"
+                      >
+                        <img
+                          src={imageUrl}
+                          alt={`${product.title} - изображение ${index + 1}`}
+                          className={cn(
+                            "w-full h-full object-contain transition-opacity duration-300",
+                            imageLoading[index] ? "opacity-0" : "opacity-100"
+                          )}
+                          loading={index === 0 ? "eager" : "lazy"}
+                          onLoad={() => handleImageLoad(index)}
+                          onError={(e) => handleImageError(e, index)}
+                        />
+                        
+                        {imageLoading[index] && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
 
-              {/* Badge with additional photos count */}
-              {additionalPhotosCount > 0 && (
-                <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1">
-                  <ImageIcon className="h-3 w-3" />
-                  +{additionalPhotosCount}
+                {/* Dots Indicator */}
+                <div className="flex justify-center gap-1.5 mt-2.5">
+                  {images.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        emblaApi?.scrollTo(index);
+                      }}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all",
+                        index === selectedIndex 
+                          ? "w-6 bg-primary" 
+                          : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                      )}
+                      aria-label={`Перейти к изображению ${index + 1}`}
+                    />
+                  ))}
                 </div>
-              )}
-            </>
+              </>
+            ) : (
+              // Single image
+              <div className="relative h-[240px] sm:h-[280px] bg-muted rounded-lg overflow-hidden">
+                <img
+                  src={images[0]}
+                  alt={product.title}
+                  className={cn(
+                    "w-full h-full object-contain transition-opacity duration-300",
+                    imageLoading[0] ? "opacity-0" : "opacity-100"
+                  )}
+                  loading="eager"
+                  onLoad={() => handleImageLoad(0)}
+                  onError={(e) => handleImageError(e, 0)}
+                />
+                
+                {imageLoading[0] && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            )
           ) : (
             // Skeleton loader while card is not in viewport
-            <div className="absolute inset-0 bg-muted animate-pulse" />
+            <div className="h-[240px] sm:h-[280px] bg-muted rounded-lg animate-pulse" />
           )}
         </div>
 
@@ -168,7 +265,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
 
         {/* Info Block */}
         <div className="px-2.5 space-y-2">
-          {/* Title Line - Single line with ellipsis */}
+          {/* Title Line */}
           <h3 className="font-semibold text-[16px] leading-tight line-clamp-1">
             {product.title}
             {(product.brand || product.model) && (
@@ -179,7 +276,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
             )}
           </h3>
 
-          {/* Price - Large and Red */}
+          {/* Price */}
           <div className="text-xl font-bold text-destructive">
             {product.price !== null 
               ? formatPrice(product.price)
@@ -191,7 +288,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span>UAE</span>
             <span className="text-muted-foreground/50">·</span>
-            <span>{formatCreatedDate(product.created_at)}</span>
+            <span>{formattedDate}</span>
           </div>
         </div>
 
@@ -207,6 +304,17 @@ export const OptimizedMobileCatalogCard = React.memo(({
         </div>
       </div>
     </Card>
+  );
+}, (prevProps, nextProps) => {
+  // Optimize re-renders
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.product.status === nextProps.product.status &&
+    prevProps.product.price === nextProps.product.price &&
+    prevProps.product.title === nextProps.product.title &&
+    prevProps.product.cloudinary_url === nextProps.product.cloudinary_url &&
+    prevProps.product.created_at === nextProps.product.created_at &&
+    prevProps.product.product_images?.length === nextProps.product.product_images?.length
   );
 });
 
