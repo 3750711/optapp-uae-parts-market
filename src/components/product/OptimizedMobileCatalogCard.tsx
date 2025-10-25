@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import useEmblaCarousel from 'embla-carousel-react';
-import { getOptimizedImage, CLOUDINARY_PRESETS } from '@/utils/cloudinaryOptimization';
+import { useOptimizedProductImages } from "@/hooks/useOptimizedProductImages";
 
 interface ProductImage {
   url: string;
@@ -63,37 +63,10 @@ export const OptimizedMobileCatalogCard = React.memo(({
   const cardRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(true); // Флаг жизненного цикла компонента
 
-  // Get all images with Cloudinary optimization
-  const optimizedImages = useMemo(() => {
-    const imageList: string[] = [];
-    
-    if (product.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
-      product.product_images.forEach((img: ProductImage | string) => {
-        const url = typeof img === 'object' ? img.url : img;
-        if (url) imageList.push(url);
-      });
-    }
-    
-    if (imageList.length === 0 && product.cloudinary_url) {
-      imageList.push(product.cloudinary_url);
-    }
-    
-    if (imageList.length === 0) {
-      imageList.push('/placeholder.svg');
-    }
-    
-    // Оптимизируем каждое изображение
-    return imageList.map(url => 
-      getOptimizedImage(url, CLOUDINARY_PRESETS.CATALOG_CARD)
-    );
-  }, [product.product_images, product.cloudinary_url]);
+  // Use unified optimization hook (full mode with all variants)
+  const { images: displayImages, isEmpty } = useOptimizedProductImages(product);
   
-  const images = useMemo(() => 
-    optimizedImages.map(img => img.original),
-    [optimizedImages]
-  );
-  
-  const shouldUseCarousel = isVisible && images.length > 1;
+  const shouldUseCarousel = isVisible && displayImages.length > 0;
   
   const [emblaRef, emblaApi] = useEmblaCarousel(
     shouldUseCarousel 
@@ -107,7 +80,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
     if (isVisible) {
       setImageLoading(prev => {
         const newLoading = { ...prev };
-        images.forEach((_, idx) => {
+        displayImages.forEach((_, idx) => {
           if (!(idx in newLoading)) {
             newLoading[idx] = true;
           }
@@ -115,7 +88,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
         return newLoading;
       });
     }
-  }, [isVisible, images.length]);
+  }, [isVisible, displayImages.length]);
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -156,20 +129,20 @@ export const OptimizedMobileCatalogCard = React.memo(({
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>, index: number) => {
     const target = e.target as HTMLImageElement;
     
-    // Если это не placeholder - пробуем оригинал
+    // Try original URL if optimized failed
     if (target.src !== '/placeholder.svg') {
-      const original = optimizedImages[index]?.original;
-      if (original && target.src !== original) {
-        target.src = original;
+      const imgVariant = displayImages[index];
+      if (imgVariant && target.src !== imgVariant.original) {
+        target.src = imgVariant.original;
         return;
       }
       
-      // Если оригинал тоже не загрузился - показываем placeholder
+      // Show placeholder as final fallback
       target.src = '/placeholder.svg';
     }
     
     setImageLoading(prev => ({ ...prev, [index]: false }));
-  }, [optimizedImages]);
+  }, [displayImages]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!emblaApi) return;
@@ -256,7 +229,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
         {/* Image Carousel Section */}
         <div className="relative w-full">
           {isVisible ? (
-            images.length > 1 ? (
+            displayImages.length > 1 ? (
               <>
                 <div 
                   ref={emblaRef} 
@@ -269,14 +242,14 @@ export const OptimizedMobileCatalogCard = React.memo(({
                   aria-roledescription="carousel"
                 >
                   <div className="flex h-[240px] sm:h-[280px]">
-                    {images.map((imageUrl, index) => (
-                      <div 
+                    {displayImages.map((imgVariant, index) => (
+                      <div
                         key={index} 
                         className="relative flex-[0_0_100%] min-w-0 bg-muted"
                       >
                         <img
-                          src={optimizedImages[index].optimized}
-                          srcSet={optimizedImages[index].srcSet}
+                          src={displayImages[index].card}
+                          srcSet={displayImages[index].srcSets.card}
                           sizes="(max-width: 640px) 320px, 400px"
                           alt={`${product.title} - изображение ${index + 1}`}
                           className={cn(
@@ -300,7 +273,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
 
                 {/* Dots Indicator */}
                 <div className="flex justify-center gap-1.5 mt-2.5">
-                  {images.map((_, index) => (
+                  {displayImages.map((_, index) => (
                     <button
                       key={index}
                       onClick={(e) => {
@@ -313,7 +286,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
                           ? "w-6 bg-primary" 
                           : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
                       )}
-                      aria-label={`Перейти к изображению ${index + 1} из ${images.length}`}
+                      aria-label={`Перейти к изображению ${index + 1} из ${displayImages.length}`}
                       aria-current={index === selectedIndex ? "true" : "false"}
                     />
                   ))}
@@ -323,8 +296,8 @@ export const OptimizedMobileCatalogCard = React.memo(({
               // Single image
               <div className="relative h-[240px] sm:h-[280px] bg-muted rounded-lg overflow-hidden">
                 <img
-                  src={optimizedImages[0].optimized}
-                  srcSet={optimizedImages[0].srcSet}
+                  src={displayImages[0].card}
+                  srcSet={displayImages[0].srcSets.card}
                   sizes="(max-width: 640px) 320px, 400px"
                   alt={product.title}
                   className={cn(
