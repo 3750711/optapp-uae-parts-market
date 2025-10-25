@@ -171,6 +171,9 @@ const ProductDetail = () => {
     retry: 1,
   });
   
+  // Call useProductImage before any conditional returns (React hooks rules)
+  const { primaryImage: productPrimaryImage } = useProductImage(product || null);
+  
   const handleProductUpdate = () => {
     // Product update handled by React Query cache invalidation
   };
@@ -206,8 +209,6 @@ const ProductDetail = () => {
   }
   
   if (!product) return null;
-  
-  const { primaryImage: productPrimaryImage } = useProductImage(product);
   
   // Set the first image as selected if none is selected
   if (!selectedImage && productPrimaryImage) {
