@@ -10,22 +10,19 @@ import { SellerDescription } from "./seller/SellerDescription";
 import { SellerContactSection } from "./seller/SellerContactSection";
 import { SellerHelpSection } from "./seller/SellerHelpSection";
 import { AuthDialog } from "./seller/AuthDialog";
-import { BlurredSellerSection } from "./seller/BlurredSellerSection";
 
 interface EnhancedSellerInfoProps {
   sellerProfile?: SellerProfile | null;
   seller_name: string;
   seller_id: string;
   children?: React.ReactNode;
-  language?: 'ru' | 'en' | 'bn';
 }
 
 const EnhancedSellerInfo: React.FC<EnhancedSellerInfoProps> = ({
   sellerProfile,
   seller_name,
   seller_id,
-  children,
-  language = 'ru'
+  children
 }) => {
   const [storeInfo, setStoreInfo] = useState<{
     id: string;
@@ -145,16 +142,6 @@ const EnhancedSellerInfo: React.FC<EnhancedSellerInfoProps> = ({
       </div>
     );
   };
-
-  // Show blurred section for unauthenticated users
-  if (!user) {
-    return (
-      <BlurredSellerSection 
-        language={language}
-        onShowAuth={handleShowContactInfo}
-      />
-    );
-  }
 
   return (
     <div className="border rounded-lg p-6 mb-6 shadow-sm hover:shadow-md transition-shadow bg-white">
