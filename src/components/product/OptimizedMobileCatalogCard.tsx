@@ -240,7 +240,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
                             "w-full h-full object-contain transition-opacity duration-300",
                             imageLoading[index] ? "opacity-0" : "opacity-100"
                           )}
-                          loading={index === 0 ? "eager" : "lazy"}
+                          loading="lazy"
                           onLoad={() => handleImageLoad(index)}
                           onError={(e) => handleImageError(e, index)}
                         />
