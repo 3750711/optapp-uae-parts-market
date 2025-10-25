@@ -5,7 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useMobileLayout } from "@/hooks/useMobileLayout";
 import ProductCard, { ProductProps } from "./ProductCard";
 import ProductListItem from "./ProductListItem";
-import MobileCatalogCard from "./MobileCatalogCard";
+import OptimizedMobileCatalogCard from "./OptimizedMobileCatalogCard";
 import VirtualizedProductList from "./VirtualizedProductList";
 import ProductSkeleton from "@/components/catalog/ProductSkeleton";
 import { useAdminAccess } from '@/hooks/useAdminAccess';
@@ -197,7 +197,7 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
       return (
         <div className="space-y-3">
           {visibleProducts.map((product) => (
-            <MobileCatalogCard
+            <OptimizedMobileCatalogCard
               key={product.id}
               product={product}
               showSoldButton={showSoldButton}
