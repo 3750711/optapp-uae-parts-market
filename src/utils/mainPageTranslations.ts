@@ -38,6 +38,29 @@ interface MainPageTranslations {
     description: string;
     keywords: string;
   };
+  
+  // Stats block
+  stats: {
+    partsCount: string;
+    ordersCount: string;
+    platformTitle: string;
+    platformSubtitle: string;
+    trustedSellers: string;
+    buyerReviews: string;
+    cargoDelivery: string;
+    qualityCheck: string;
+  };
+  
+  // Error messages
+  errors: {
+    pageLoadError: string;
+    pageLoadErrorDesc: string;
+    catalogLoadError: string;
+    productsLoadError: string;
+    productsFoundLabel: string;
+    refreshPage: string;
+    tryAgain: string;
+  };
 }
 
 const translations: Record<'ru' | 'en' | 'bn', MainPageTranslations> = {
@@ -72,6 +95,25 @@ const translations: Record<'ru' | 'en' | 'bn', MainPageTranslations> = {
       description: 'Закрытая профессиональная платформа автозапчастей в ОАЭ. Доступ только для зарегистрированных пользователей.',
       keywords: 'B2B автозапчасти ОАЭ, платформа автозапчастей, закрытое сообщество',
     },
+    stats: {
+      partsCount: 'Автозапчастей',
+      ordersCount: 'Заказов создано',
+      platformTitle: 'PartsBay.ae',
+      platformSubtitle: 'Легко найти запчасти в ОАЭ',
+      trustedSellers: 'Проверенные продавцы',
+      buyerReviews: 'Отзывы покупателей',
+      cargoDelivery: 'Cargo доставка',
+      qualityCheck: 'Проверка качества',
+    },
+    errors: {
+      pageLoadError: 'Ошибка загрузки страницы',
+      pageLoadErrorDesc: 'Произошла ошибка при загрузке главной страницы',
+      catalogLoadError: 'Ошибка загрузки каталога',
+      productsLoadError: 'Произошла ошибка при загрузке товаров',
+      productsFoundLabel: 'Найдено товаров:',
+      refreshPage: 'Обновить страницу',
+      tryAgain: 'Попробовать снова',
+    },
   },
   en: {
     header: {
@@ -104,6 +146,25 @@ const translations: Record<'ru' | 'en' | 'bn', MainPageTranslations> = {
       description: 'Closed professional auto parts platform in UAE. Access only for registered users.',
       keywords: 'B2B auto parts UAE, auto parts platform, closed community',
     },
+    stats: {
+      partsCount: 'Auto parts',
+      ordersCount: 'Orders created',
+      platformTitle: 'PartsBay.ae',
+      platformSubtitle: 'Easy to find parts in UAE',
+      trustedSellers: 'Verified sellers',
+      buyerReviews: 'Buyer reviews',
+      cargoDelivery: 'Cargo delivery',
+      qualityCheck: 'Quality check',
+    },
+    errors: {
+      pageLoadError: 'Page load error',
+      pageLoadErrorDesc: 'An error occurred while loading the main page',
+      catalogLoadError: 'Catalog load error',
+      productsLoadError: 'An error occurred while loading products',
+      productsFoundLabel: 'Products found:',
+      refreshPage: 'Refresh page',
+      tryAgain: 'Try again',
+    },
   },
   bn: {
     header: {
@@ -135,6 +196,25 @@ const translations: Record<'ru' | 'en' | 'bn', MainPageTranslations> = {
       title: 'PartsBay.ae - B2B/B2C গাড়ির যন্ত্রাংশের প্ল্যাটফর্ম',
       description: 'UAE-তে বন্ধ পেশাদার গাড়ির যন্ত্রাংশের প্ল্যাটফর্ম। শুধুমাত্র নিবন্ধিত ব্যবহারকারীদের জন্য প্রবেশাধিকার।',
       keywords: 'B2B গাড়ির যন্ত্রাংশ UAE, গাড়ির যন্ত্রাংশের প্ল্যাটফর্ম, বন্ধ কমিউনিটি',
+    },
+    stats: {
+      partsCount: 'অটো পার্টস',
+      ordersCount: 'অর্ডার তৈরি',
+      platformTitle: 'PartsBay.ae',
+      platformSubtitle: 'UAE-তে যন্ত্রাংশ খুঁজে পাওয়া সহজ',
+      trustedSellers: 'যাচাইকৃত বিক্রেতা',
+      buyerReviews: 'ক্রেতার পর্যালোচনা',
+      cargoDelivery: 'কার্গো ডেলিভারি',
+      qualityCheck: 'গুণমান পরীক্ষা',
+    },
+    errors: {
+      pageLoadError: 'পৃষ্ঠা লোড ত্রুটি',
+      pageLoadErrorDesc: 'প্রধান পৃষ্ঠা লোড করার সময় একটি ত্রুটি ঘটেছে',
+      catalogLoadError: 'ক্যাটালগ লোড ত্রুটি',
+      productsLoadError: 'পণ্য লোড করার সময় একটি ত্রুটি ঘটেছে',
+      productsFoundLabel: 'পণ্য পাওয়া গেছে:',
+      refreshPage: 'পৃষ্ঠা রিফ্রেশ করুন',
+      tryAgain: 'আবার চেষ্টা করুন',
     },
   },
 };
