@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
 import useEmblaCarousel from 'embla-carousel-react';
+import { getOptimizedImage, CLOUDINARY_PRESETS } from '@/utils/cloudinaryOptimization';
 
 interface ProductImage {
   url: string;
@@ -61,8 +62,8 @@ export const OptimizedMobileCatalogCard = React.memo(({
   const [imageLoading, setImageLoading] = useState<Record<number, boolean>>({});
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Get all images
-  const images = useMemo(() => {
+  // Get all images with Cloudinary optimization
+  const optimizedImages = useMemo(() => {
     const imageList: string[] = [];
     
     if (product.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
@@ -80,8 +81,16 @@ export const OptimizedMobileCatalogCard = React.memo(({
       imageList.push('/placeholder.svg');
     }
     
-    return imageList;
+    // Оптимизируем каждое изображение
+    return imageList.map(url => 
+      getOptimizedImage(url, CLOUDINARY_PRESETS.CATALOG_CARD)
+    );
   }, [product.product_images, product.cloudinary_url]);
+  
+  const images = useMemo(() => 
+    optimizedImages.map(img => img.original),
+    [optimizedImages]
+  );
   
   const shouldUseCarousel = isVisible && images.length > 1;
   
@@ -145,11 +154,21 @@ export const OptimizedMobileCatalogCard = React.memo(({
 
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>, index: number) => {
     const target = e.target as HTMLImageElement;
+    
+    // Если это не placeholder - пробуем оригинал
     if (target.src !== '/placeholder.svg') {
+      const original = optimizedImages[index]?.original;
+      if (original && target.src !== original) {
+        target.src = original;
+        return;
+      }
+      
+      // Если оригинал тоже не загрузился - показываем placeholder
       target.src = '/placeholder.svg';
     }
+    
     setImageLoading(prev => ({ ...prev, [index]: false }));
-  }, []);
+  }, [optimizedImages]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!emblaApi) return;
@@ -238,7 +257,9 @@ export const OptimizedMobileCatalogCard = React.memo(({
                         className="relative flex-[0_0_100%] min-w-0 bg-muted"
                       >
                         <img
-                          src={imageUrl}
+                          src={optimizedImages[index].optimized}
+                          srcSet={optimizedImages[index].srcSet}
+                          sizes="(max-width: 640px) 320px, 400px"
                           alt={`${product.title} - изображение ${index + 1}`}
                           className={cn(
                             "w-full h-full object-contain transition-opacity duration-300",
@@ -284,7 +305,9 @@ export const OptimizedMobileCatalogCard = React.memo(({
               // Single image
               <div className="relative h-[240px] sm:h-[280px] bg-muted rounded-lg overflow-hidden">
                 <img
-                  src={images[0]}
+                  src={optimizedImages[0].optimized}
+                  srcSet={optimizedImages[0].srcSet}
+                  sizes="(max-width: 640px) 320px, 400px"
                   alt={product.title}
                   className={cn(
                     "w-full h-full object-contain transition-opacity duration-300",
