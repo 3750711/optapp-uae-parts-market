@@ -10,10 +10,6 @@ import GuestRoute from '@/components/auth/GuestRoute';
 import PendingApprovalWrapper from '@/components/auth/PendingApprovalWrapper';
 import { RateLimitedRoute } from '@/components/auth/RateLimitedRoute';
 import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
-import TermsPage from "@/pages/TermsPage";
-import PrivacyPage from "@/pages/PrivacyPage";
-import BlockedPage from "@/pages/BlockedPage";
-import ForbiddenPage from "@/pages/403";
 import { PBLogoLoader } from "@/components/ui/PBLogoLoader";
 
 // Lazy loaded публичные страницы
@@ -35,15 +31,21 @@ const PublicStore = lazy(() => import('@/pages/PublicStore'));
 const PublicProfile = lazy(() => import('@/pages/PublicProfile'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
-// Критические страницы аутентификации - синхронные для быстрой загрузки
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import SellerLogin from '@/pages/SellerLogin';
-import SellerRegister from '@/pages/SellerRegister';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
-import VerifyEmail from '@/pages/VerifyEmail';
-import PendingApprovalPage from '@/pages/PendingApprovalPage';
+// Lazy loaded утилитарные страницы (не критичны для LCP)
+const TermsPage = lazy(() => import('@/pages/TermsPage'));
+const PrivacyPage = lazy(() => import('@/pages/PrivacyPage'));
+const BlockedPage = lazy(() => import('@/pages/BlockedPage'));
+const ForbiddenPage = lazy(() => import('@/pages/403'));
+
+// Lazy loaded страницы аутентификации (оптимизация для LCP)
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const SellerLogin = lazy(() => import('@/pages/SellerLogin'));
+const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+const PendingApprovalPage = lazy(() => import('@/pages/PendingApprovalPage'));
 
 // Lazy loaded защищенные страницы
 const Profile = lazy(() => import('@/pages/Profile'));
