@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Package, ShoppingBag, CheckCircle2, Star, Truck, Shield } from 'lucide-react';
 import { useStatistics } from '@/hooks/useStatistics';
 import { AutomotiveCard } from '@/components/ui/automotive-card';
+import { getMainPageTranslations } from '@/utils/mainPageTranslations';
 import {
   Carousel,
   CarouselContent,
@@ -17,6 +18,7 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
   const { data: stats, isLoading } = useStatistics();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const t = getMainPageTranslations(language);
 
   // Автоплей каждые 5 секунд
   useEffect(() => {
@@ -78,7 +80,7 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
                       {stats?.totalProducts?.toLocaleString() || '1373'}
                     </div>
                     <p className="text-xs md:text-sm text-muted-foreground font-medium">
-                      Автозапчастей
+                      {t.stats.partsCount}
                     </p>
                   </div>
                   
@@ -94,7 +96,7 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
                       {stats?.lastOrderNumber?.toLocaleString() || '7774'}
                     </div>
                     <p className="text-xs md:text-sm text-muted-foreground font-medium">
-                      Заказов создано
+                      {t.stats.ordersCount}
                     </p>
                   </div>
                 </div>
@@ -110,19 +112,19 @@ export const CompactStatsBlock: React.FC<CompactStatsBlockProps> = ({ language =
               <div className="min-h-[160px] flex items-center justify-center">
                 <div className="px-6 py-4 text-center w-full">
                   <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">
-                    PartsBay.ae
+                    {t.stats.platformTitle}
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Легко найти запчасти в ОАЭ
+                    {t.stats.platformSubtitle}
                   </p>
                   
                   {/* Преимущества с staggered animation */}
                   <div className="grid grid-cols-2 gap-3 text-left">
                     {[
-                      { icon: CheckCircle2, text: 'Проверенные продавцы' },
-                      { icon: Star, text: 'Отзывы покупателей' },
-                      { icon: Truck, text: 'Cargo доставка' },
-                      { icon: Shield, text: 'Проверка качества' },
+                      { icon: CheckCircle2, text: t.stats.trustedSellers },
+                      { icon: Star, text: t.stats.buyerReviews },
+                      { icon: Truck, text: t.stats.cargoDelivery },
+                      { icon: Shield, text: t.stats.qualityCheck },
                     ].map((item, index) => {
                       const Icon = item.icon;
                       return (
