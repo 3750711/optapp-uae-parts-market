@@ -84,11 +84,18 @@ export const OptimizedMobileCatalogCard = React.memo(({
     return imageList;
   }, [product.product_images, product.cloudinary_url]);
 
-  // Initialize loading state for all images
+  // Initialize loading state incrementally (avoid resetting already loaded images)
   useEffect(() => {
     if (isVisible) {
-      const initialLoading = images.reduce((acc, _, idx) => ({ ...acc, [idx]: true }), {});
-      setImageLoading(initialLoading);
+      setImageLoading(prev => {
+        const newLoading = { ...prev };
+        images.forEach((_, idx) => {
+          if (!(idx in newLoading)) {
+            newLoading[idx] = true;
+          }
+        });
+        return newLoading;
+      });
     }
   }, [isVisible, images.length]);
 
