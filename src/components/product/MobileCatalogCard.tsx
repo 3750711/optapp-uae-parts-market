@@ -60,6 +60,22 @@ export const MobileCatalogCard = React.memo(({
     navigate(`/product/${product.id}`);
   };
 
+  const formatCreatedDate = (createdAt: string | null | undefined) => {
+    if (!createdAt) return 'недавно';
+    
+    const date = new Date(createdAt);
+    if (isNaN(date.getTime())) return 'недавно';
+    
+    try {
+      return `${formatDistanceToNow(date, { 
+        addSuffix: false,
+        locale: ru 
+      })} назад`;
+    } catch {
+      return 'недавно';
+    }
+  };
+
   // Prepare images array
   const images = React.useMemo(() => {
     if (product.product_images && Array.isArray(product.product_images) && product.product_images.length > 0) {
@@ -163,12 +179,7 @@ export const MobileCatalogCard = React.memo(({
           <div className="flex items-center gap-1.5 text-xs text-gray-500">
             <span>UAE</span>
             <span className="text-gray-400">·</span>
-            <span>
-              {formatDistanceToNow(new Date(product.created_at), { 
-                addSuffix: false,
-                locale: ru 
-              })} назад
-            </span>
+            <span>{formatCreatedDate(product.created_at)}</span>
           </div>
         </div>
 
