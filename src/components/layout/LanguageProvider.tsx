@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -14,11 +14,17 @@ const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children })
   const { profile } = useAuth();
   const location = useLocation();
   const { language, changeLanguage } = useLanguage();
+  const lastAppliedLanguage = useRef<string | null>(null);
 
   useEffect(() => {
     const userType = profile?.user_type ?? null;
     const preferredLocale = profile?.preferred_locale as 'ru' | 'en' | 'bn' | undefined;
     const currentLanguage = language || preferredLocale || 'ru';
+    
+    // Skip if we already processed this language
+    if (lastAppliedLanguage.current === currentLanguage) {
+      return;
+    }
     
     console.log('LanguageProvider: Checking language restrictions', {
       currentLanguage,
@@ -32,6 +38,7 @@ const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children })
       console.log('LanguageProvider: Forcing Russian for buyer');
       if (language !== 'ru') { // Guard: only call if different
         changeLanguage('ru');
+        lastAppliedLanguage.current = 'ru';
       }
       return;
     }
@@ -53,6 +60,7 @@ const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children })
           if (preferredAllowed && language !== preferredLocale) { // Guard
             console.log('LanguageProvider: Using preferred_locale:', preferredLocale);
             changeLanguage(preferredLocale);
+            lastAppliedLanguage.current = preferredLocale;
             return;
           }
         } catch (error) {
@@ -66,16 +74,19 @@ const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children })
         if (language !== defaultLang) { // Guard
           console.log('LanguageProvider: Using default language:', defaultLang);
           changeLanguage(defaultLang);
+          lastAppliedLanguage.current = defaultLang;
         }
       } catch (error) {
         console.warn('LanguageProvider: Error getting default language', error);
         if (language !== 'ru') {
           changeLanguage('ru');
+          lastAppliedLanguage.current = 'ru';
         }
       }
     }
     
-    // Update HTML lang attribute
+    // Mark language as applied and update HTML lang attribute
+    lastAppliedLanguage.current = currentLanguage;
     document.documentElement.lang = currentLanguage;
   }, [profile?.user_type, profile?.preferred_locale, location.pathname, language, changeLanguage]);
 

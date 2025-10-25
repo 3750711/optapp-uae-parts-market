@@ -91,7 +91,11 @@ export const SellerListingCard: React.FC<SellerListingCardProps> = ({
   }, [emblaApi, onSelect]);
 
   const handleCardClick = () => {
-    navigate(`/seller/product/${product.id}`);
+    const targetPath = `/seller/product/${product.id}`;
+    // Prevent duplicate history entries
+    if (window.location.pathname !== targetPath) {
+      navigate(targetPath);
+    }
   };
 
   return (

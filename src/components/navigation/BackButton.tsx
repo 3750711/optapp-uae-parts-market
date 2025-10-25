@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -23,18 +23,24 @@ const BackButton: React.FC<BackButtonProps> = ({
   const navigate = useNavigate();
   const { language } = useLanguage();
   const commonT = getCommonTranslations(language);
+  const [isNavigating, setIsNavigating] = useState(false);
   
   const buttonLabel = label || commonT.buttons.back;
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
+    if (isNavigating) return; // Prevent double clicks
+    
+    setIsNavigating(true);
+    
     try {
-      // React Router handles history navigation automatically
       navigate(-1);
     } catch (e) {
-      // Fallback only if navigation fails
       navigate(fallback);
+    } finally {
+      // Reset after navigation completes
+      setTimeout(() => setIsNavigating(false), 500);
     }
-  };
+  }, [isNavigating, navigate, fallback]);
 
   return (
     <Button
@@ -42,6 +48,7 @@ const BackButton: React.FC<BackButtonProps> = ({
       variant={variant}
       size={size}
       onClick={handleBack}
+      disabled={isNavigating}
       className={`inline-flex items-center ${className || ""}`}
       aria-label={buttonLabel}
     >
