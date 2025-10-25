@@ -70,22 +70,39 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
     if (viewMode !== 'virtualized') return {};
     
     if (isMobile) {
-      const width = containerWidth - 24;
+      const width = Math.max(containerWidth - 24, 300); // Минимум 300px
+      const minCardWidth = 200;
+      
+      // Очень узкий экран (<400px) - 1 колонка (список)
+      if (width < 400) {
+        return {
+          columnCount: 1,
+          columnWidth: width,
+          rowHeight: 280,
+          gridWidth: width
+        };
+      }
+      
+      // Нормальный мобильный - 2 колонки
       return {
         columnCount: 2,
-        columnWidth: width / 2,
+        columnWidth: Math.max(width / 2, minCardWidth),
         rowHeight: 320,
         gridWidth: width
       };
     } else {
-      const width = containerWidth - 100;
-      const minCardWidth = 280;
+      // Desktop/Tablet
+      const width = Math.max(containerWidth - 100, 600); // Минимум 600px
+      const minCardWidth = 250;
+      const maxCols = 4;
+      
       const cols = Math.floor(width / minCardWidth);
-      const finalCols = Math.max(2, Math.min(4, cols));
+      const finalCols = Math.max(2, Math.min(maxCols, cols));
+      
       return {
         columnCount: finalCols,
-        columnWidth: width / finalCols,
-        rowHeight: 380,
+        columnWidth: Math.max(width / finalCols, minCardWidth),
+        rowHeight: finalCols > 2 ? 360 : 380,
         gridWidth: width
       };
     }

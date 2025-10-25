@@ -55,8 +55,11 @@ interface UseOptimizedCatalogProductsProps {
 
 // Helper function to safely escape search terms for PostgREST
 const escapePostgRESTTerm = (term: string): string => {
-  // Escape special PostgREST pattern characters: * % _ " '
-  return term.replace(/[*%_"']/g, '\\$&');
+  // КРИТИЧНО: Сначала экранировать backslash, потом остальные символы!
+  // Escape special PostgREST pattern characters: \ * % _ " '
+  return term
+    .replace(/\\/g, '\\\\')  // Backslash первым!
+    .replace(/[*%_"']/g, '\\$&'); // Потом остальное
 };
 
 // Helper function to normalize Cyrillic characters

@@ -116,7 +116,7 @@ const ProductCard = memo(({
   }[product.status] || "bg-gray-100 text-gray-800";
 
   const { primaryImage: productPrimaryImageUrl } = useProductImage(product as any);
-  const primaryImage = product.product_images?.find(img => img.url === productPrimaryImageUrl);
+  const primaryImage = product.product_images?.find(img => img?.url === productPrimaryImageUrl);
   
   // Determine if this product has high similarity score (threshold: 0.45 for current 0.3 search threshold)
   const isHighRelevance = product.similarity_score !== undefined && product.similarity_score > 0.45;
@@ -179,7 +179,7 @@ const ProductCard = memo(({
               cloudinaryPublicId={product.cloudinary_public_id}
               cloudinaryUrl={product.cloudinary_url}
             />
-          ) : primaryImage && !imageError ? (
+          ) : primaryImage?.url && !imageError ? (
             <OptimizedImage
               src={primaryImage.url}
               alt={product.title}

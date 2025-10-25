@@ -19,6 +19,7 @@ const Catalog: React.FC = () => {
   const prefetchTriggerRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "100px");
   const isPrefetchTriggerVisible = useIntersection(prefetchTriggerRef, "300px");
+  const [fetchNextPageError, setFetchNextPageError] = useState(false);
 
   // Simplified - no car data needed
 
@@ -45,18 +46,34 @@ const Catalog: React.FC = () => {
   });
 
   // Create prefetch function for compatibility
-  const prefetchNextPage = () => {
+  const prefetchNextPage = useCallback(async () => {
     if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+      try {
+        await fetchNextPage();
+      } catch (error) {
+        console.debug('Prefetch error (non-critical):', error);
+      }
     }
-  };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      try {
+        setFetchNextPageError(false);
+        await fetchNextPage();
+      } catch (error) {
+        console.error('Error loading more products:', error);
+        setFetchNextPageError(true);
+      }
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Auto-load more products when visible
   React.useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+      handleLoadMore();
     }
-  }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [isLoadMoreVisible, handleLoadMore, hasNextPage, isFetchingNextPage]);
 
   // Prefetch next page when user is getting close
   React.useEffect(() => {
@@ -67,6 +84,7 @@ const Catalog: React.FC = () => {
 
   const handleRetry = async () => {
     try {
+      setFetchNextPageError(false);
       await refetch();
     } catch (error) {
       console.error('Error retrying catalog fetch:', error);
@@ -99,12 +117,6 @@ const Catalog: React.FC = () => {
   );
 
   const allProductsLoaded = mappedProducts.length > 0 && !hasNextPage && !isFetchingNextPage;
-
-  const handleLoadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <Layout>
@@ -165,6 +177,7 @@ const Catalog: React.FC = () => {
             handleRetry={handleRetry}
             handleClearAll={handleClearAll}
             totalProductsCount={totalProductsCount}
+            fetchNextPageError={fetchNextPageError}
           />
         </div>
       </div>

@@ -10,6 +10,7 @@ export const HomeProductsSection: React.FC = () => {
   // Refs for intersection observer
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const prefetchTriggerRef = useRef<HTMLDivElement>(null);
+  const [fetchNextPageError, setFetchNextPageError] = React.useState(false);
 
   const {
     searchTerm,
@@ -44,23 +45,34 @@ export const HomeProductsSection: React.FC = () => {
   const isPrefetchTriggerVisible = useIntersection(prefetchTriggerRef, "300px");
 
   // Helper functions
-  const handleLoadMore = useCallback(() => {
+  const handleLoadMore = useCallback(async () => {
     if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+      try {
+        setFetchNextPageError(false);
+        await fetchNextPage();
+      } catch (error) {
+        console.error('Error loading more products:', error);
+        setFetchNextPageError(true);
+      }
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleRetry = async () => {
     try {
+      setFetchNextPageError(false);
       await refetch();
     } catch (error) {
       console.error('Error retrying products fetch:', error);
     }
   };
 
-  const prefetchNextPage = useCallback(() => {
+  const prefetchNextPage = useCallback(async () => {
     if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+      try {
+        await fetchNextPage();
+      } catch (error) {
+        console.debug('Prefetch error (non-critical):', error);
+      }
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
@@ -71,9 +83,9 @@ export const HomeProductsSection: React.FC = () => {
   // Auto-load more products when visible
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+      handleLoadMore();
     }
-  }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
+  }, [isLoadMoreVisible, handleLoadMore, hasNextPage, isFetchingNextPage]);
 
   // Prefetch next page when user is getting close
   useEffect(() => {
@@ -129,6 +141,7 @@ export const HomeProductsSection: React.FC = () => {
         handleRetry={handleRetry}
         handleClearAll={handleClearAll}
         totalProductsCount={totalProductsCount}
+        fetchNextPageError={fetchNextPageError}
       />
     </div>
   );

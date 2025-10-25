@@ -23,6 +23,7 @@ interface CatalogContentProps {
   handleRetry: () => void;
   handleClearAll: () => void;
   totalProductsCount: number;
+  fetchNextPageError?: boolean; // Новый проп для ошибок загрузки следующей страницы
 }
 
 const CatalogContent: React.FC<CatalogContentProps> = ({
@@ -39,6 +40,7 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
   handleRetry,
   handleClearAll,
   totalProductsCount,
+  fetchNextPageError = false,
 }) => {
   const { isMobile } = useMobileLayout();
 
@@ -103,13 +105,34 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
           />
         )}
 
-        {(hasNextPage || isFetchingNextPage) && (
+        {(hasNextPage || isFetchingNextPage || fetchNextPageError) && (
           <div className="mt-8 mb-6 flex flex-col items-center justify-center">
             <div className="py-4 w-full flex items-center justify-center">
               {isFetchingNextPage ? (
                 <div className="flex items-center justify-center gap-3 p-3 bg-muted/30 rounded-lg">
                   <div className="w-5 h-5 border-2 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
                   <span className="text-sm text-muted-foreground">Загрузка товаров...</span>
+                </div>
+              ) : fetchNextPageError ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Alert variant="destructive" className="max-w-md">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="font-medium mb-1">Ошибка загрузки</div>
+                      <div className="text-sm">
+                        Не удалось загрузить следующие товары
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                  <Button 
+                    onClick={handleLoadMore} 
+                    variant="outline"
+                    size="lg"
+                    className="min-w-[140px]"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Попробовать снова
+                  </Button>
                 </div>
               ) : (
                 <Button 

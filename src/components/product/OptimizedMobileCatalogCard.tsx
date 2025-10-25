@@ -61,6 +61,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
   const [isVisible, setIsVisible] = useState(false);
   const [imageLoading, setImageLoading] = useState<Record<number, boolean>>({});
   const cardRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true); // Флаг жизненного цикла компонента
 
   // Get all images with Cloudinary optimization
   const optimizedImages = useMemo(() => {
@@ -182,30 +183,47 @@ export const OptimizedMobileCatalogCard = React.memo(({
     }
   }, [emblaApi]);
 
+  // Cleanup при размонтировании
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (!emblaApi) return;
     
     const handleSelect = () => {
       try {
-        if (emblaApi) {
+        // Проверяем что компонент еще живой
+        if (!isMountedRef.current) return;
+        
+        if (emblaApi && emblaApi.selectedScrollSnap) {
           setSelectedIndex(emblaApi.selectedScrollSnap());
         }
       } catch (e) {
         // Embla API может быть уничтожен между проверкой и вызовом
         // Игнорируем ошибку - это нормальный сценарий при unmount
+        console.debug('[OptimizedMobileCatalogCard] Embla select error (safe to ignore):', e);
       }
     };
     
-    emblaApi.on('select', handleSelect);
-    emblaApi.on('reInit', handleSelect);
-    
-    // Call immediately to set initial state
-    handleSelect();
+    try {
+      emblaApi.on('select', handleSelect);
+      emblaApi.on('reInit', handleSelect);
+      
+      // Call immediately to set initial state
+      handleSelect();
+    } catch (e) {
+      console.debug('[OptimizedMobileCatalogCard] Embla init error:', e);
+    }
     
     return () => {
       try {
-        emblaApi?.off('select', handleSelect);
-        emblaApi?.off('reInit', handleSelect);
+        if (emblaApi && typeof emblaApi.off === 'function') {
+          emblaApi.off('select', handleSelect);
+          emblaApi.off('reInit', handleSelect);
+        }
       } catch (e) {
         // Silent fail - это нормально при unmount
       }
