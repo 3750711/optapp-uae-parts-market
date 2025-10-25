@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import ProductCard, { ProductProps } from "@/components/product/ProductCard";
-import MobileCatalogCard from "@/components/product/MobileCatalogCard";
+import OptimizedMobileCatalogCard from "@/components/product/OptimizedMobileCatalogCard";
 import { BatchOfferData } from "@/hooks/use-price-offers-batch";
 import { useMobileLayout } from "@/hooks/useMobileLayout";
 
@@ -29,12 +29,12 @@ export const OptimizedProductGrid = React.memo(({
 }: OptimizedProductGridProps) => {
   const { isMobile } = useMobileLayout();
 
-  // На мобильных или в list view используем MobileCatalogCard
+  // На мобильных или в list view используем OptimizedMobileCatalogCard
   if (isMobile || viewMode === "list") {
     return (
       <div className="space-y-3">
         {products.map((product) => (
-          <MobileCatalogCard
+          <OptimizedMobileCatalogCard
             key={product.id}
             product={product}
             onStatusChange={onStatusChange}
