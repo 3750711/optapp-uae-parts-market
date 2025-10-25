@@ -10,9 +10,6 @@ const SellerLayout: React.FC<SellerLayoutProps> = ({ children, className }) => {
   useEffect(() => {
     // Scroll to top when component mounts
     window.scrollTo(0, 0);
-    
-    // Replace current history entry to prevent going back via browser
-    window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
   return (
