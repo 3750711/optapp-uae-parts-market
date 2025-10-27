@@ -258,6 +258,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
                           )}
                           onLoad={() => handleImageLoad(index)}
                           onError={(e) => handleImageError(e, index)}
+                          onClick={handleClick}
                         />
                         
                         {imageLoading[index] && (
@@ -304,6 +305,7 @@ export const OptimizedMobileCatalogCard = React.memo(({
                   )}
                   onLoad={() => handleImageLoad(0)}
                   onError={(e) => handleImageError(e, 0)}
+                  onClick={handleClick}
                 />
                 
                 {imageLoading[0] && (
