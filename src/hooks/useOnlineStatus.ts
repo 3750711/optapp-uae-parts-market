@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react';
 import { toast } from '@/hooks/use-toast';
 
 export const useOnlineStatus = () => {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(() => {
+    try {
+      return navigator?.onLine ?? true; // ✅ Fallback на true если navigator недоступен
+    } catch (error) {
+      console.warn('⚠️ navigator.onLine недоступен:', error);
+      return true; // По умолчанию считаем что онлайн
+    }
+  });
 
   useEffect(() => {
     const handleOnline = () => {

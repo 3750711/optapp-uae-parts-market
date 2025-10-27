@@ -7,7 +7,8 @@ import { getFormTranslations } from "@/utils/translations/forms";
 import { getCommonTranslations } from "@/utils/translations/common";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, AlertCircle } from "lucide-react";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import BackButton from "@/components/navigation/BackButton";
 
@@ -59,7 +60,37 @@ const SellerAddProduct = () => {
               )}
             </div>
             
-            <ErrorBoundary>
+            <ErrorBoundary
+              fallback={
+                <Card>
+                  <CardContent className="p-8">
+                    <div className="text-center space-y-4">
+                      <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-foreground">
+                          Не удалось загрузить форму
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Попробуйте обновить страницу
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Button onClick={() => window.location.reload()} className="w-full">
+                          Обновить страницу
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => window.history.back()} 
+                          className="w-full"
+                        >
+                          Назад
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              }
+            >
               <Suspense fallback={
                 <Card>
                   <CardContent className="p-8">
