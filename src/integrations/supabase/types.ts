@@ -457,7 +457,7 @@ export type Database = {
           email: string
           expires_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           used: boolean | null
         }
         Insert: {
@@ -466,7 +466,7 @@ export type Database = {
           email: string
           expires_at: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           used?: boolean | null
         }
         Update: {
@@ -475,7 +475,7 @@ export type Database = {
           email?: string
           expires_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           used?: boolean | null
         }
         Relationships: []
@@ -489,7 +489,7 @@ export type Database = {
           entity_type: string
           event_subtype: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           path: string | null
           session_id: string | null
           user_agent: string | null
@@ -503,7 +503,7 @@ export type Database = {
           entity_type: string
           event_subtype?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           path?: string | null
           session_id?: string | null
           user_agent?: string | null
@@ -517,7 +517,7 @@ export type Database = {
           entity_type?: string
           event_subtype?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           path?: string | null
           session_id?: string | null
           user_agent?: string | null
@@ -671,7 +671,7 @@ export type Database = {
           error_message: string | null
           id: string
           identifier: string
-          ip_address: unknown | null
+          ip_address: unknown
           success: boolean
         }
         Insert: {
@@ -680,7 +680,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           identifier: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           success?: boolean
         }
         Update: {
@@ -689,7 +689,7 @@ export type Database = {
           error_message?: string | null
           id?: string
           identifier?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           success?: boolean
         }
         Relationships: []
@@ -1121,19 +1121,19 @@ export type Database = {
         Row: {
           created_at: string
           email: string
-          ip: unknown | null
+          ip: unknown
           verified_at: string
         }
         Insert: {
           created_at?: string
           email: string
-          ip?: unknown | null
+          ip?: unknown
           verified_at?: string
         }
         Update: {
           created_at?: string
           email?: string
-          ip?: unknown | null
+          ip?: unknown
           verified_at?: string
         }
         Relationships: []
@@ -1617,7 +1617,7 @@ export type Database = {
           context_data: Json | null
           created_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           user_agent: string | null
         }
         Insert: {
@@ -1627,7 +1627,7 @@ export type Database = {
           context_data?: Json | null
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
         }
         Update: {
@@ -1637,7 +1637,7 @@ export type Database = {
           context_data?: Json | null
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           user_agent?: string | null
         }
         Relationships: []
@@ -1658,7 +1658,7 @@ export type Database = {
           email: string
           email_confirmed: boolean | null
           first_login_completed: boolean
-          fts: unknown | null
+          fts: unknown
           full_name: string | null
           has_password: boolean | null
           id: string
@@ -1697,7 +1697,7 @@ export type Database = {
           email: string
           email_confirmed?: boolean | null
           first_login_completed?: boolean
-          fts?: unknown | null
+          fts?: unknown
           full_name?: string | null
           has_password?: boolean | null
           id: string
@@ -1736,7 +1736,7 @@ export type Database = {
           email?: string
           email_confirmed?: boolean | null
           first_login_completed?: boolean
-          fts?: unknown | null
+          fts?: unknown
           full_name?: string | null
           has_password?: boolean | null
           id?: string
@@ -1891,7 +1891,7 @@ export type Database = {
           created_at: string
           filters: Json
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           query: string
           results_count: number
           threshold: number
@@ -1902,7 +1902,7 @@ export type Database = {
           created_at?: string
           filters?: Json
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           query: string
           results_count?: number
           threshold?: number
@@ -1913,7 +1913,7 @@ export type Database = {
           created_at?: string
           filters?: Json
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           query?: string
           results_count?: number
           threshold?: number
@@ -2099,7 +2099,7 @@ export type Database = {
         Row: {
           accessed_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           referer: string | null
           store_id: string | null
           user_agent: string | null
@@ -2107,7 +2107,7 @@ export type Database = {
         Insert: {
           accessed_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           referer?: string | null
           store_id?: string | null
           user_agent?: string | null
@@ -2115,7 +2115,7 @@ export type Database = {
         Update: {
           accessed_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           referer?: string | null
           store_id?: string | null
           user_agent?: string | null
@@ -2811,8 +2811,8 @@ export type Database = {
         Row: {
           found_urls: string[] | null
           function_body: string | null
-          function_name: unknown | null
-          schema_name: unknown | null
+          function_name: unknown
+          schema_name: unknown
           url_type: string | null
         }
         Relationships: []
@@ -2896,14 +2896,10 @@ export type Database = {
         }
         Returns: string
       }
-      admin_delete_specific_user: {
-        Args: { p_user_email: string } | { p_user_id: string }
-        Returns: boolean
-      }
-      admin_delete_store: {
-        Args: { p_store_id: string }
-        Returns: boolean
-      }
+      admin_delete_specific_user:
+        | { Args: { p_user_id: string }; Returns: boolean }
+        | { Args: { p_user_email: string }; Returns: Json }
+      admin_delete_store: { Args: { p_store_id: string }; Returns: boolean }
       admin_insert_product_image: {
         Args: { p_is_primary?: boolean; p_product_id: string; p_url: string }
         Returns: undefined
@@ -2912,22 +2908,12 @@ export type Database = {
         Args: { p_product_id: string; p_url: string }
         Returns: undefined
       }
-      admin_resend_welcome: {
-        Args: { p_user_id: string }
-        Returns: Json
-      }
+      admin_resend_welcome: { Args: { p_user_id: string }; Returns: Json }
       apply_translation_rules: {
         Args: { p_limit?: number; p_text: string }
         Returns: string
       }
-      binary_quantize: {
-        Args: { "": string } | { "": unknown }
-        Returns: unknown
-      }
-      calculate_content_hash: {
-        Args: { content: string }
-        Returns: string
-      }
+      calculate_content_hash: { Args: { content: string }; Returns: string }
       calculate_order_shipment_status: {
         Args: { p_order_id: string }
         Returns: string
@@ -2941,19 +2927,19 @@ export type Database = {
         Returns: boolean
       }
       check_no_hardcoded_function_urls: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           details: Json
           message: string
           status: string
         }[]
       }
-      check_opt_id_exists: {
-        Args:
-          | { check_opt_id: string }
-          | { p_ip_address?: unknown; p_opt_id: string }
-        Returns: boolean
-      }
+      check_opt_id_exists:
+        | {
+            Args: { p_ip_address?: unknown; p_opt_id: string }
+            Returns: boolean
+          }
+        | { Args: { check_opt_id: string }; Returns: boolean }
       check_order_number_unique: {
         Args: { p_order_id?: string; p_order_number: number }
         Returns: boolean
@@ -2970,10 +2956,7 @@ export type Database = {
         Args: { p_search_type?: string; p_user_id: string }
         Returns: boolean
       }
-      check_user_auth_method: {
-        Args: { p_login_input: string }
-        Returns: Json
-      }
+      check_user_auth_method: { Args: { p_login_input: string }; Returns: Json }
       check_user_pending_offer: {
         Args: { p_product_id: string; p_user_id: string }
         Returns: {
@@ -2983,19 +2966,13 @@ export type Database = {
         }[]
       }
       cleanup_expired_email_verification_codes: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: undefined
       }
-      cleanup_expired_password_reset_codes: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_expired_telegram_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      cleanup_expired_password_reset_codes: { Args: never; Returns: undefined }
+      cleanup_expired_telegram_sessions: { Args: never; Returns: undefined }
       cleanup_hardcoded_function_urls: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           action: string
           function_name: string
@@ -3004,33 +2981,19 @@ export type Database = {
           status: string
         }[]
       }
-      cleanup_old_login_attempts: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      cleanup_old_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      cleanup_old_security_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      cleanup_orphaned_pending_offers: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      cleanup_old_login_attempts: { Args: never; Returns: undefined }
+      cleanup_old_notifications: { Args: never; Returns: number }
+      cleanup_old_security_logs: { Args: never; Returns: number }
+      cleanup_orphaned_pending_offers: { Args: never; Returns: number }
       cleanup_verification_codes_for_email: {
         Args: { p_email: string }
         Returns: Json
       }
-      clear_all_rls_policies: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      complete_profile_after_signup: {
-        Args:
-          | {
+      clear_all_rls_policies: { Args: never; Returns: string }
+      complete_profile_after_signup:
+        | { Args: { p_email: string; payload: Json }; Returns: Json }
+        | {
+            Args: {
               p_company_name: string
               p_full_name: string
               p_location: string
@@ -3039,7 +3002,10 @@ export type Database = {
               p_telegram: string
               p_user_type: string
             }
-          | {
+            Returns: Json
+          }
+        | {
+            Args: {
               p_company_name?: string
               p_full_name: string
               p_location?: string
@@ -3047,13 +3013,9 @@ export type Database = {
               p_telegram?: string
               p_user_type?: string
             }
-          | { p_email: string; payload: Json }
-        Returns: Json
-      }
-      count_order_photos: {
-        Args: { p_order_id: string }
-        Returns: number
-      }
+            Returns: Json
+          }
+      count_order_photos: { Args: { p_order_id: string }; Returns: number }
       count_products_with_notification_issues: {
         Args: { p_search?: string; p_seller_id?: string; p_status?: string }
         Returns: number
@@ -3062,10 +3024,7 @@ export type Database = {
         Args: { p_data?: Json; p_type: string; p_user_id: string }
         Returns: string
       }
-      create_order_reminder_notifications: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      create_order_reminder_notifications: { Args: never; Returns: undefined }
       create_password_reset_code: {
         Args: { p_email: string; p_opt_id?: string }
         Returns: Json
@@ -3131,14 +3090,10 @@ export type Database = {
         }
         Returns: string
       }
-      delete_user_account: {
-        Args: Record<PropertyKey, never> | { user_id: string }
-        Returns: undefined
-      }
-      diagnose_auth_state: {
-        Args: { p_user_id?: string }
-        Returns: Json
-      }
+      delete_user_account:
+        | { Args: { user_id: string }; Returns: undefined }
+        | { Args: never; Returns: undefined }
+      diagnose_auth_state: { Args: { p_user_id?: string }; Returns: Json }
       disable_profile_public_access: {
         Args: { p_profile_id: string }
         Returns: boolean
@@ -3147,42 +3102,24 @@ export type Database = {
         Args: { p_created_at: string; p_id: string }
         Returns: number
       }
-      expire_old_price_offers: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      expire_old_price_offers: { Args: never; Returns: undefined }
       extract_translation_rules: {
         Args: { p_ai_suggestion: string; p_moderator_correction: string }
         Returns: Json
       }
-      force_user_logout: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      functions_url: {
-        Args: { p_path: string }
-        Returns: string
-      }
-      generate_unique_opt_id: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_admin_add_product_data: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_admin_metrics: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_email_by_opt_id: {
-        Args:
-          | { p_ip_address?: unknown; p_opt_id: string }
-          | { p_opt_id: string }
-        Returns: string
-      }
+      force_user_logout: { Args: never; Returns: undefined }
+      functions_url: { Args: { p_path: string }; Returns: string }
+      generate_unique_opt_id: { Args: never; Returns: Json }
+      get_admin_add_product_data: { Args: never; Returns: Json }
+      get_admin_metrics: { Args: never; Returns: Json }
+      get_email_by_opt_id:
+        | {
+            Args: { p_ip_address?: unknown; p_opt_id: string }
+            Returns: string
+          }
+        | { Args: { p_opt_id: string }; Returns: string }
       get_functions_url_patterns: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           correct_usage: string
           description: string
@@ -3190,10 +3127,7 @@ export type Database = {
           pattern_type: string
         }[]
       }
-      get_next_order_number: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      get_next_order_number: { Args: never; Returns: number }
       get_product_content_for_embedding: {
         Args: { product_id: string }
         Returns: string
@@ -3262,16 +3196,10 @@ export type Database = {
           last_access: string
         }[]
       }
-      get_public_statistics: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      get_queue_metrics: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      get_public_statistics: { Args: never; Returns: Json }
+      get_queue_metrics: { Args: never; Returns: Json }
       get_rls_policies_status: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           policy_cmd: string
           policy_name: string
@@ -3297,62 +3225,7 @@ export type Database = {
           total_revenue: number
         }[]
       }
-      get_user_id_by_email: {
-        Args: { p_email: string }
-        Returns: Json
-      }
-      gtrgm_compress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_decompress: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_in: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      gtrgm_options: {
-        Args: { "": unknown }
-        Returns: undefined
-      }
-      gtrgm_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      halfvec_avg: {
-        Args: { "": number[] }
-        Returns: unknown
-      }
-      halfvec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      halfvec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      halfvec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
-      hnsw_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnsw_sparsevec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      hnswhandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
+      get_user_id_by_email: { Args: { p_email: string }; Returns: Json }
       hybrid_search_products: {
         Args: {
           match_count?: number
@@ -3380,50 +3253,12 @@ export type Database = {
         Args: { product_id: string }
         Returns: undefined
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_admin_user: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_current_user_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_current_user_seller: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      is_product_active: {
-        Args: { p_product_id: string }
-        Returns: boolean
-      }
-      is_seller: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      ivfflat_bit_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflat_halfvec_support: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      ivfflathandler: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      l2_norm: {
-        Args: { "": unknown } | { "": unknown }
-        Returns: number
-      }
-      l2_normalize: {
-        Args: { "": string } | { "": unknown } | { "": unknown }
-        Returns: unknown
-      }
+      is_admin: { Args: never; Returns: boolean }
+      is_admin_user: { Args: never; Returns: boolean }
+      is_current_user_admin: { Args: never; Returns: boolean }
+      is_current_user_seller: { Args: never; Returns: boolean }
+      is_product_active: { Args: { p_product_id: string }; Returns: boolean }
+      is_seller: { Args: never; Returns: boolean }
       log_password_reset_event: {
         Args: { p_email: string; p_opt_id?: string; p_user_id: string }
         Returns: undefined
@@ -3442,14 +3277,8 @@ export type Database = {
         Args: { debug_info: Json; user_id: string }
         Returns: undefined
       }
-      migrate_free_order_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      monitor_function_url_compliance: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      migrate_free_order_logs: { Args: never; Returns: undefined }
+      monitor_function_url_compliance: { Args: never; Returns: Json }
       notify_admins_new_pending_user: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -3478,18 +3307,12 @@ export type Database = {
         Args: { backup_id: string }
         Returns: Json
       }
-      restore_basic_rls_policies: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      restore_basic_rls_policies: { Args: never; Returns: string }
       retry_dead_letter_notification: {
         Args: { p_notification_id: string }
         Returns: boolean
       }
-      safe_seller_check: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      safe_seller_check: { Args: never; Returns: boolean }
       search_car_brands_and_models: {
         Args: { search_term: string }
         Returns: {
@@ -3499,10 +3322,7 @@ export type Database = {
           model_name: string
         }[]
       }
-      secure_check_force_logout_status: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      secure_check_force_logout_status: { Args: never; Returns: boolean }
       secure_check_rate_limit: {
         Args: { p_action: string; p_limit_per_hour: number; p_user_id: string }
         Returns: boolean
@@ -3511,10 +3331,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: string
       }
-      secure_check_user_not_blocked: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      secure_check_user_not_blocked: { Args: never; Returns: boolean }
       secure_check_user_pending_offer: {
         Args: { p_product_id: string; p_user_id: string }
         Returns: boolean
@@ -3536,9 +3353,30 @@ export type Database = {
         }
         Returns: boolean
       }
-      seller_create_order: {
-        Args:
-          | {
+      seller_create_order:
+        | {
+            Args: {
+              p_brand: string
+              p_buyer_id: string
+              p_delivery_method: Database["public"]["Enums"]["delivery_method"]
+              p_delivery_price_confirm: number
+              p_images: string[]
+              p_model: string
+              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
+              p_order_seller_name: string
+              p_place_number: number
+              p_price: number
+              p_product_id: string
+              p_status: Database["public"]["Enums"]["order_status"]
+              p_telegram_url_order: string
+              p_text_order: string
+              p_title: string
+              p_videos?: string[]
+            }
+            Returns: string
+          }
+        | {
+            Args: {
               p_brand: string
               p_buyer_id: string
               p_delivery_method: Database["public"]["Enums"]["delivery_method"]
@@ -3558,26 +3396,8 @@ export type Database = {
               p_title: string
               p_videos?: string[]
             }
-          | {
-              p_brand: string
-              p_buyer_id: string
-              p_delivery_method: Database["public"]["Enums"]["delivery_method"]
-              p_delivery_price_confirm: number
-              p_images: string[]
-              p_model: string
-              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
-              p_order_seller_name: string
-              p_place_number: number
-              p_price: number
-              p_product_id: string
-              p_status: Database["public"]["Enums"]["order_status"]
-              p_telegram_url_order: string
-              p_text_order: string
-              p_title: string
-              p_videos?: string[]
-            }
-        Returns: string
-      }
+            Returns: string
+          }
       seller_create_order_v2: {
         Args: {
           p_brand: string
@@ -3625,38 +3445,13 @@ export type Database = {
         Args: { p_email: string; p_ip_address?: unknown }
         Returns: Json
       }
-      set_limit: {
-        Args: { "": number }
-        Returns: number
-      }
       should_show_resend_button: {
         Args: { p_order_id: string }
         Returns: boolean
       }
-      show_limit: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      show_trgm: {
-        Args: { "": string }
-        Returns: string[]
-      }
-      sparsevec_out: {
-        Args: { "": unknown }
-        Returns: unknown
-      }
-      sparsevec_send: {
-        Args: { "": unknown }
-        Returns: string
-      }
-      sparsevec_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
-      sync_orphaned_telegram_users_safe: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      sync_orphaned_telegram_users_safe: { Args: never; Returns: undefined }
       translate_notification: {
         Args: { p_data: Json; p_type: string; p_user_id?: string }
         Returns: Json
@@ -3677,7 +3472,7 @@ export type Database = {
         Returns: boolean
       }
       validate_catalog_positioning: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           products_with_correct_position: number
           products_with_null_position: number
@@ -3685,10 +3480,7 @@ export type Database = {
           validation_status: string
         }[]
       }
-      validate_functions_url_compliance: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      validate_functions_url_compliance: { Args: never; Returns: boolean }
       validate_profile_update: {
         Args: {
           p_is_trusted_seller: boolean
@@ -3698,34 +3490,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      validate_user_exists: {
-        Args: { p_email: string }
-        Returns: boolean
-      }
-      vector_avg: {
-        Args: { "": number[] }
-        Returns: string
-      }
-      vector_dims: {
-        Args: { "": string } | { "": unknown }
-        Returns: number
-      }
-      vector_norm: {
-        Args: { "": string }
-        Returns: number
-      }
-      vector_out: {
-        Args: { "": string }
-        Returns: unknown
-      }
-      vector_send: {
-        Args: { "": string }
-        Returns: string
-      }
-      vector_typmod_in: {
-        Args: { "": unknown[] }
-        Returns: number
-      }
+      validate_user_exists: { Args: { p_email: string }; Returns: boolean }
       verify_and_reset_password_v2: {
         Args: { p_code: string; p_email: string; p_new_password: string }
         Returns: Json
