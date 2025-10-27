@@ -43,8 +43,7 @@ export const CloudinaryOrderUploader = React.memo<CloudinaryOrderUploaderProps>(
   const handleImageUpload = useCallback((newUrls: string[]) => {
     try {
       console.log('🎯 [CloudinaryOrderUploader] Upload started', {
-        receivedUrls: newUrls.length,
-        currentUrls: imageUrls.length
+        receivedUrls: newUrls.length
       });
       
       setUploadError(null);
@@ -76,7 +75,7 @@ export const CloudinaryOrderUploader = React.memo<CloudinaryOrderUploaderProps>(
       setUploadError(message);
       console.error('❌ [CloudinaryOrderUploader] Upload error:', message, error);
     }
-  }, [onChange, imageUrls.length]);
+  }, [onChange]); // ✅ FIX: Убрали imageUrls.length, используем функциональный update
   
   // Мемоизированный обработчик удаления
   const handleImageDelete = useCallback((urlToDelete: string) => {
