@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { ProductProps } from '@/components/product/ProductCard';
 import { formatPrice } from '@/utils/formatPrice';
 import ProductStatusBadge from '@/components/product/ProductStatusBadge';
+import { useOptimizedProductImages } from '@/hooks/useOptimizedProductImages';
+import { OptimizedProductImage } from '@/components/ui/OptimizedProductImage';
+import { cn } from '@/lib/utils';
 
 interface SimpleProductCardProps {
   product: ProductProps;
@@ -11,8 +14,10 @@ interface SimpleProductCardProps {
 export const SimpleProductCard: React.FC<SimpleProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
   
-  const primaryImage = product.product_images?.find(img => img.is_primary) 
-    || product.product_images?.[0];
+  const { primaryImage } = useOptimizedProductImages(product, {
+    maxImages: 1,
+    generateVariants: true
+  });
 
   const handleClick = () => {
     navigate(`/product/${product.id}`);
@@ -26,12 +31,15 @@ export const SimpleProductCard: React.FC<SimpleProductCardProps> = ({ product })
       {/* Product Image */}
       <div className="aspect-square bg-muted overflow-hidden relative">
         {primaryImage ? (
-          <img 
-            src={primaryImage.url} 
+          <OptimizedProductImage
+            image={primaryImage}
             alt={product.title}
-            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-200 ${
-              product.status === 'sold' ? 'opacity-60' : ''
-            }`}
+            size="card"
+            className={cn(
+              "w-full h-full object-contain group-hover:scale-105 transition-transform duration-200",
+              product.status === 'sold' && "opacity-60"
+            )}
+            onClick={handleClick}
           />
         ) : (
           <div className="w-full h-full bg-muted flex items-center justify-center">
