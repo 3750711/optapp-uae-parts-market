@@ -239,21 +239,20 @@ export const useNewCloudinaryUpload = () => {
         });
       }
 
-      // Проверка формата файла
+      // ✅ FIX: ПРИОРИТЕТ - Проверяем расширение файла (надёжнее для iOS)
       const fileExtension = file.name.split('.').pop()?.toLowerCase() as any;
       if (!fileExtension || !CLOUDINARY_CONFIG.upload.allowedFormats.includes(fileExtension)) {
         errors.push({
           file: file.name,
           error: `Неподдерживаемый формат. Разрешены: ${CLOUDINARY_CONFIG.upload.allowedFormats.join(', ')}`
         });
+        return; // ✅ Не проверяем дальше, если расширение невалидно
       }
 
-      // Проверка типа MIME
-      if (!file.type.startsWith('image/')) {
-        errors.push({
-          file: file.name,
-          error: 'Файл должен быть изображением'
-        });
+      // ✅ FIX: ДОПОЛНИТЕЛЬНО - Проверяем MIME type, если он доступен (не на iOS)
+      if (file.type && !file.type.startsWith('image/')) {
+        console.warn(`⚠️ MIME type mismatch for ${file.name}: ${file.type} (но расширение валидно)`);
+        // НЕ добавляем в errors, т.к. расширение уже проверено
       }
     });
 
