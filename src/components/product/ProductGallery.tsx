@@ -370,9 +370,9 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
 
               {/* Main image carousel */}
               <div ref={zoomEmblaRef} className="absolute inset-0 overflow-hidden">
-                <div className="flex h-full">
+                <div className="flex h-full items-center">
                   {imageUrls.map((url, index) => (
-                    <div key={index} className="flex-[0_0_100%] min-w-0 flex items-center justify-center">
+                    <div key={index} className="flex-[0_0_100%] min-w-0 h-full flex items-center justify-center">
                       <ResponsivePicture
                         src={url}
                         alt={title}
@@ -416,9 +416,9 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               
               <div className="relative">
                 <div ref={zoomEmblaRef} className="overflow-hidden">
-                  <div className="flex">
+                  <div className="flex items-center min-h-[70vh]">
                     {imageUrls.map((url, index) => (
-                      <div key={index} className="flex-[0_0_100%] min-w-0">
+                      <div key={index} className="flex-[0_0_100%] min-w-0 flex items-center justify-center min-h-[70vh]">
                         <ResponsivePicture
                           src={url}
                           alt={title}
