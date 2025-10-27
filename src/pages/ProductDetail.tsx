@@ -1,65 +1,25 @@
-
-import React, { useState, useEffect } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/hooks/use-toast";
-import ProductBreadcrumb from "@/components/product/ProductBreadcrumb";
 import ProductSEO from "@/components/seo/ProductSEO";
 import ProductSkeleton from "@/components/product/ProductSkeleton";
-import ProductDetailHeader from "@/components/product/ProductDetailHeader";
-import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
-import ProductDetailContent from "@/components/product/ProductDetailContent";
 import { useOptimizedProductImages } from "@/hooks/useOptimizedProductImages";
-import SellerProducts from "@/components/product/SimilarProducts";
-import MobileProductLayout from "@/components/product/mobile/MobileProductLayout";
 import { Product } from "@/types/product";
 import Layout from "@/components/layout/Layout";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { useMobileLayout } from "@/hooks/useMobileLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Database } from "@/integrations/supabase/types";
-import { AuthPromptOverlay } from "@/components/product/AuthPromptOverlay";
 import { useLanguage } from "@/hooks/useLanguage";
+import ProductLayout from "@/components/product/ProductLayout";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const { isAdmin } = useAdminAccess();
-  const { isMobile } = useMobileLayout();
   const { language } = useLanguage();
-  const [searchParams] = useSearchParams();
-  const fromSeller = searchParams.get("from") === "seller";
-  
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [deliveryMethod, setDeliveryMethod] = useState<Database["public"]["Enums"]["delivery_method"]>("cargo_rf");
-  
-  const handleDeliveryMethodChange = (method: Database["public"]["Enums"]["delivery_method"]) => {
-    setDeliveryMethod(method);
-  };
-  
-  // Fixed back button functionality
-  const handleBack = () => {
-    try {
-      if (fromSeller) {
-        navigate('/seller/listings');
-      } else if (window.history.length > 2) {
-        navigate(-1);
-      } else {
-        navigate('/');
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка навигации",
-        description: "Не удалось вернуться назад. Перенаправляем на главную страницу.",
-        variant: "destructive"
-      });
-      navigate('/');
-    }
-  };
 
   // Product query - use products_public for unauthenticated users
   const { data: product, isLoading, error, isError } = useQuery({
@@ -175,10 +135,6 @@ const ProductDetail = () => {
   const optimizedImages = useOptimizedProductImages(product || null, { generateVariants: true, maxImages: 1 });
   const productPrimaryImage = optimizedImages[0]?.card || '/placeholder.svg';
   
-  const handleProductUpdate = () => {
-    // Product update handled by React Query cache invalidation
-  };
-  
   // Loading state
   if (authLoading || (isLoading && !product) || sellerLoading) {
     return (
@@ -211,15 +167,6 @@ const ProductDetail = () => {
   
   if (!product) return null;
   
-  // Set the first image as selected if none is selected
-  if (!selectedImage && productPrimaryImage) {
-    setSelectedImage(productPrimaryImage);
-  }
-  
-  const handleImageClick = (url: string) => {
-    setSelectedImage(url);
-  };
-  
   // Extract URLs for components
   const imageUrls = product.product_images 
     ? product.product_images.map(img => img.url) 
@@ -232,34 +179,11 @@ const ProductDetail = () => {
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
   const isOwner = user?.id === product.seller_id;
   
-  // Mobile Layout
-  if (isMobile) {
-    return (
-      <Layout>
-        <ProductSEO 
-          product={product}
-          sellerName={sellerName}
-          images={imageUrls}
-        />
-        
-        <MobileProductLayout
-          product={product}
-          imageUrls={imageUrls}
-          videoUrls={videoUrls}
-          selectedImage={selectedImage}
-          onImageClick={handleImageClick}
-          sellerProfile={sellerProfile}
-          sellerName={sellerName}
-          deliveryMethod={deliveryMethod}
-          onDeliveryMethodChange={handleDeliveryMethodChange}
-          onProductUpdate={handleProductUpdate}
-        />
-        
-      </Layout>
-    );
-  }
+  const handleProductUpdate = () => {
+    // Product update handled by React Query cache invalidation
+  };
   
-  // Desktop Layout
+  // Render layout
   return (
     <Layout>
       {/* SEO Component */}
@@ -269,59 +193,19 @@ const ProductDetail = () => {
         images={imageUrls}
       />
       
-      <div className="container mx-auto px-4 py-6 max-w-7xl">
-        {/* Breadcrumb Navigation */}
-        <ProductBreadcrumb
-          productTitle={product.title}
-          brand={product.brand}
-          model={product.model}
-        />
-        
-        {/* Header */}
-        <ProductDetailHeader 
-          product={product}
-          onBack={handleBack}
-        />
-        
-        {/* Status warnings */}
-        <ProductDetailAlerts 
-          product={product}
-          isOwner={isOwner}
-          isAdmin={isAdmin}
-        />
-        
-        {/* Main content */}
-        <ProductDetailContent 
-          product={product}
-          imageUrls={imageUrls}
-          videoUrls={videoUrls}
-          selectedImage={selectedImage}
-          onImageClick={handleImageClick}
-          onProductUpdate={handleProductUpdate}
-          sellerProfile={sellerProfile}
-          sellerName={sellerName}
-          deliveryMethod={deliveryMethod}
-          onDeliveryMethodChange={handleDeliveryMethodChange}
-          language={language}
-        />
-        
-
-        {/* Seller Products Section */}
-        <SellerProducts 
-          currentProductId={product.id}
-          sellerId={product.seller_id}
-          sellerName={sellerName}
-        />
-      </div>
-
-      {/* Auth Prompt Overlay for unauthenticated users */}
-      {!user && (
-        <AuthPromptOverlay 
-          language={language}
-          onLogin={() => navigate('/login')}
-          onRegister={() => navigate('/register')}
-        />
-      )}
+      {/* Layout component handles mobile/desktop rendering */}
+      <ProductLayout
+        product={product}
+        imageUrls={imageUrls}
+        videoUrls={videoUrls}
+        sellerProfile={sellerProfile}
+        sellerName={sellerName}
+        isOwner={isOwner}
+        isAdmin={isAdmin}
+        user={user}
+        language={language}
+        onProductUpdate={handleProductUpdate}
+      />
     </Layout>
   );
 };
