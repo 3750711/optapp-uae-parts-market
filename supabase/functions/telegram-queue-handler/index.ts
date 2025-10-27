@@ -1388,10 +1388,22 @@ Deno.serve(async (req) => {
     // Create supabase client
     const supabase = createServiceClient();
     
-    // ⚠️ TEMPORARY: QStash signature verification disabled for testing
-    // TODO: Enable after configuring URL endpoint in Upstash Console
-    /*
+    // ✅ ENABLE QStash signature verification
     const { verifyQStashSignature } = await import('../_shared/qstash-verify.ts');
+    
+    // Log incoming request to event_logs
+    await supabase.from('event_logs').insert({
+      action_type: 'qstash_webhook_received',
+      entity_type: 'telegram_queue_handler',
+      entity_id: null,
+      details: {
+        has_signature: !!signature,
+        has_timestamp: !!timestamp,
+        body_preview: bodyText.substring(0, 200),
+        timestamp: new Date().toISOString()
+      }
+    });
+    
     const isValid = await verifyQStashSignature(
       bodyText,
       signature,
@@ -1401,12 +1413,26 @@ Deno.serve(async (req) => {
     
     if (!isValid) {
       console.error('❌ Invalid QStash signature');
+      
+      // Log failed verification
+      await supabase.from('event_logs').insert({
+        action_type: 'qstash_signature_failed',
+        entity_type: 'telegram_queue_handler',
+        entity_id: null,
+        details: {
+          signature_present: !!signature,
+          timestamp_present: !!timestamp,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
       return new Response('Unauthorized', { 
         status: 401,
         headers: corsHeaders 
       });
     }
-    */
+    
+    console.log('✅ QStash signature verified');
     
     // Parse body after verification
     const data = JSON.parse(bodyText);
@@ -1425,6 +1451,21 @@ Deno.serve(async (req) => {
     console.log(`   Payload format:`, data.payload ? 'nested' : 'flat');
     console.log(`   Payload keys:`, Object.keys(payload));
     console.log(`   Payload preview:`, JSON.stringify(payload).substring(0, 200));
+    
+    // Log handler invocation to event_logs
+    await supabase.from('event_logs').insert({
+      action_type: 'telegram_queue_handler_invoked',
+      entity_type: 'notification',
+      entity_id: payload.orderId || payload.id || payload.productId || 'unknown',
+      details: {
+        notification_type: notificationType,
+        payload_format: data.payload ? 'nested' : 'flat',
+        has_signature: !!signature,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+    console.log('📝 [telegram-queue-handler] Logged invocation to event_logs');
     
     let result: any;
     

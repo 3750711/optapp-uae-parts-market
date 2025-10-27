@@ -1,6 +1,9 @@
 // QStash-based order notification handler
 // Routes order notifications through QStash queue system
 
+import { logTelegramNotification } from '../shared/telegram-logger.ts';
+import { REGISTERED_GROUP_CHAT_ID, ORDER_GROUP_CHAT_ID } from './config.ts';
+
 export async function handleOrderNotificationQStash(
   orderData: any,
   supabaseClient: any,
@@ -45,6 +48,43 @@ export async function handleOrderNotificationQStash(
     );
     
     console.log('✅ [OrderQStash] Order notification queued:', result.messageId);
+    
+    // Log successful queue to database
+    await logTelegramNotification(supabaseClient, {
+      function_name: 'order-notification-qstash',
+      notification_type: notificationType === 'registered' ? 'order_registered' : 'order_created',
+      recipient_type: 'group',
+      recipient_identifier: notificationType === 'registered' 
+        ? REGISTERED_GROUP_CHAT_ID 
+        : ORDER_GROUP_CHAT_ID,
+      message_text: `Order #${orderData.order_number} queued to QStash (${notificationType})`,
+      status: 'pending',
+      telegram_message_id: null,
+      related_entity_type: 'order',
+      related_entity_id: orderData.id,
+      metadata: {
+        qstash_message_id: result.messageId,
+        order_number: orderData.order_number,
+        notification_type: notificationType,
+        deduplication_id: deduplicationId
+      }
+    });
+
+    // Log to event_logs for debugging
+    await supabaseClient.from('event_logs').insert({
+      action_type: 'qstash_order_published',
+      entity_type: 'order',
+      entity_id: orderData.id,
+      details: {
+        notification_type: notificationType,
+        qstash_message_id: result.messageId,
+        order_number: orderData.order_number,
+        target_group: notificationType === 'registered' ? REGISTERED_GROUP_CHAT_ID : ORDER_GROUP_CHAT_ID,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+    console.log('📝 [OrderQStash] Logged to telegram_notifications_log and event_logs');
     
     return new Response(
       JSON.stringify({
