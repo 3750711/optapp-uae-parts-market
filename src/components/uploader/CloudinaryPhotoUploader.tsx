@@ -4,10 +4,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Upload, X, Camera } from 'lucide-react';
 import { useNewCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { cn } from '@/lib/utils';
 import { CloudinaryNormalized } from '@/types/cloudinary';
 import { useLanguage } from '@/hooks/useLanguage';
 import { getFormTranslations } from '@/utils/translations/forms';
+import { toast } from '@/hooks/use-toast';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface CloudinaryPhotoUploaderProps {
@@ -36,6 +38,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
   const { isUploading, uploadProgress, openUploadWidget } = useNewCloudinaryUpload();
   const [isWidgetOpen, setIsWidgetOpen] = useState(false);
   const isOpeningRef = useRef(false); // ✅ FIX: Синхронная защита от двойного клика на Android
+  const isOnline = useOnlineStatus(); // ✅ FIX: Отслеживание интернет-соединения
   const { language } = useLanguage();
   const t = getFormTranslations(language);
 
@@ -70,6 +73,16 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
   const remainingSlots = maxImages - images.length;
 
   const handleUpload = () => {
+    // ✅ FIX: НОВАЯ ПРОВЕРКА - Offline режим
+    if (!isOnline) {
+      toast({
+        title: "📡 Нет интернета",
+        description: "Проверьте подключение и попробуйте снова",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // ✅ FIX: Синхронная проверка через ref для защиты от touch/click race на Android
     if (!canUploadMore || disabled || isWidgetOpen || isOpeningRef.current) {
       console.log('🚫 Upload blocked:', {
@@ -142,7 +155,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
       <Button
         type="button"
         onClick={handleUpload}
-        disabled={!canUploadMore || disabled || isUploading || isWidgetOpen || isOpeningRef.current}
+        disabled={!canUploadMore || disabled || isUploading || isWidgetOpen || isOpeningRef.current || !isOnline}
         variant="outline"
         size="lg"
         className="flex items-center gap-2 w-full min-h-[48px] text-base touch-manipulation sm:w-auto sm:min-h-[40px] sm:text-sm"
