@@ -483,14 +483,37 @@ export const useNewCloudinaryUpload = () => {
               fullError: error
             });
             
+            // ✅ FIX: Классификация ошибок для понятного feedback
+            let userMessage = "Произошла ошибка при загрузке файла";
+            let errorType = 'unknown';
+            
+            if (error.message?.toLowerCase().includes('timeout') || error.code === 'ETIMEDOUT') {
+              userMessage = "⏱️ Загрузка превысила время ожидания. Попробуйте снова или выберите меньше фото";
+              errorType = 'timeout';
+            } else if (!navigator.onLine || error.message?.toLowerCase().includes('network')) {
+              userMessage = "📡 Нет подключения к интернету. Проверьте Wi-Fi или мобильные данные";
+              errorType = 'offline';
+            } else if (error.status === 413 || error.message?.toLowerCase().includes('too large')) {
+              userMessage = "📦 Файл слишком большой (максимум 10MB). Выберите фото меньшего размера";
+              errorType = 'size';
+            } else if (error.status === 401 || error.status === 403) {
+              userMessage = "🔒 Ошибка авторизации. Обновите страницу и попробуйте снова";
+              errorType = 'auth';
+            } else if (error.message?.toLowerCase().includes('cors')) {
+              userMessage = "🚫 Ошибка загрузки (CORS). Обратитесь в поддержку";
+              errorType = 'cors';
+            }
+            
+            console.log(`🔍 Error classified as: ${errorType}`);
+            
             setValidationErrors(prev => [...prev, {
               file: 'upload',
-              error: error.message || "Произошла ошибка при загрузке файла"
+              error: userMessage
             }]);
             
             toast({
               title: "Ошибка загрузки",
-              description: error.message || "Произошла ошибка при загрузке файла",
+              description: userMessage,
               variant: "destructive"
             });
           }
