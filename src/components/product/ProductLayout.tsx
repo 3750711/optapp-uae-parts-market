@@ -1,17 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import ProductBreadcrumb from "@/components/product/ProductBreadcrumb";
 import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import ProductDetailContent from "@/components/product/ProductDetailContent";
-import SellerProducts from "@/components/product/SimilarProducts";
 import MobileProductLayout from "@/components/product/mobile/MobileProductLayout";
 import { Product } from "@/types/product";
 import { useMobileLayout } from "@/hooks/useMobileLayout";
 import { Database } from "@/integrations/supabase/types";
 import { AuthPromptOverlay } from "@/components/product/AuthPromptOverlay";
 import { Lang } from "@/types/i18n";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Lazy load SellerProducts for better performance (desktop only)
+const SellerProducts = lazy(() => import("@/components/product/SimilarProducts"));
 
 interface ProductLayoutProps {
   product: Product;
@@ -130,12 +133,23 @@ const ProductLayout: React.FC<ProductLayoutProps> = ({
           language={language}
         />
         
-        {/* Seller Products Section */}
-        <SellerProducts 
-          currentProductId={product.id}
-          sellerId={product.seller_id}
-          sellerName={sellerName}
-        />
+        {/* Seller Products Section - Lazy loaded for better performance */}
+        <Suspense fallback={
+          <div className="mt-8 space-y-4">
+            <Skeleton className="h-8 w-64" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
+        }>
+          <SellerProducts 
+            currentProductId={product.id}
+            sellerId={product.seller_id}
+            sellerName={sellerName}
+          />
+        </Suspense>
       </div>
 
       {/* Auth Prompt Overlay for unauthenticated users */}

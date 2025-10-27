@@ -13,6 +13,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useLanguage } from "@/hooks/useLanguage";
 import ProductLayout from "@/components/product/ProductLayout";
+import { useProductViewTracking } from "@/hooks/useProductViewTracking";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -77,23 +78,8 @@ const ProductDetail = () => {
     },
   });
   
-  // Track product view
-  useEffect(() => {
-    const trackView = async () => {
-      if (product?.id && user) {
-        try {
-          // Only track views for authenticated users to avoid spam
-          await supabase.rpc('increment_product_view_count', { 
-            product_id: product.id 
-          });
-        } catch (error) {
-          // Silently fail view tracking
-        }
-      }
-    };
-    
-    trackView();
-  }, [product?.id, user]);
+  // Track product view with intelligent debouncing (once per 24h)
+  useProductViewTracking(product?.id, user?.id);
   
   // Navigate to 404 on error
   useEffect(() => {
