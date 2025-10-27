@@ -19,8 +19,8 @@ export async function handleOrderNotificationQStash(
     // Get QStash config from database
     const qstashConfig = await getQStashConfig();
     
-    // Use order ID for deduplication
-    const deduplicationId = generateDeduplicationId('order', orderData.id);
+    // Use order ID and notification type for deduplication to ensure different types get different IDs
+    const deduplicationId = generateDeduplicationId(`order-${notificationType}`, orderData.id);
     
     // Publish to queue
     const result = await publishToQueue(
