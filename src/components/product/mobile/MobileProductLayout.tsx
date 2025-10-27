@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import OrderConfirmationDialog from "@/components/product/OrderConfirmationDialog";
 import { CommunicationWarningDialog } from "@/components/product/seller/CommunicationWarningDialog";
 import { SimpleMakeOfferButton } from "@/components/price-offer/SimpleMakeOfferButton";
+import BackButton from "@/components/navigation/BackButton";
 
 interface MobileProductLayoutProps {
   product: Product;
@@ -167,6 +168,14 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
       {/* Sticky Header */}
       <div className="pwa-safe-sticky-top z-20 bg-white border-b shadow-sm">
         <div className="p-4">
+          {/* Back Button */}
+          <BackButton 
+            className="mb-3" 
+            fallback="/" 
+            variant="ghost" 
+            size="sm"
+          />
+          
           {/* Full title */}
           <h1 className="text-lg font-bold text-foreground mb-2">
             {[product.brand, product.model, product.title].filter(Boolean).join(' ')}
