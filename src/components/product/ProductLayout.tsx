@@ -12,6 +12,8 @@ import { Database } from "@/integrations/supabase/types";
 import { AuthPromptOverlay } from "@/components/product/AuthPromptOverlay";
 import { Lang } from "@/types/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
+import GalleryErrorBoundary from "@/components/error/GalleryErrorBoundary";
+import SellerProductsErrorBoundary from "@/components/error/SellerProductsErrorBoundary";
 
 // Lazy load SellerProducts for better performance (desktop only)
 const SellerProducts = lazy(() => import("@/components/product/SimilarProducts"));
@@ -119,37 +121,41 @@ const ProductLayout: React.FC<ProductLayoutProps> = ({
         />
         
         {/* Main content */}
-        <ProductDetailContent 
-          product={product}
-          imageUrls={imageUrls}
-          videoUrls={videoUrls}
-          selectedImage={selectedImage}
-          onImageClick={handleImageClick}
-          onProductUpdate={onProductUpdate}
-          sellerProfile={sellerProfile}
-          sellerName={sellerName}
-          deliveryMethod={deliveryMethod}
-          onDeliveryMethodChange={handleDeliveryMethodChange}
-          language={language}
-        />
+        <GalleryErrorBoundary>
+          <ProductDetailContent 
+            product={product}
+            imageUrls={imageUrls}
+            videoUrls={videoUrls}
+            selectedImage={selectedImage}
+            onImageClick={handleImageClick}
+            onProductUpdate={onProductUpdate}
+            sellerProfile={sellerProfile}
+            sellerName={sellerName}
+            deliveryMethod={deliveryMethod}
+            onDeliveryMethodChange={handleDeliveryMethodChange}
+            language={language}
+          />
+        </GalleryErrorBoundary>
         
         {/* Seller Products Section - Lazy loaded for better performance */}
-        <Suspense fallback={
-          <div className="mt-8 space-y-4">
-            <Skeleton className="h-8 w-64" />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-64 w-full" />
+        <SellerProductsErrorBoundary>
+          <Suspense fallback={
+            <div className="mt-8 space-y-4">
+              <Skeleton className="h-8 w-64" />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-64 w-full" />
+                <Skeleton className="h-64 w-full" />
+              </div>
             </div>
-          </div>
-        }>
-          <SellerProducts 
-            currentProductId={product.id}
-            sellerId={product.seller_id}
-            sellerName={sellerName}
-          />
-        </Suspense>
+          }>
+            <SellerProducts 
+              currentProductId={product.id}
+              sellerId={product.seller_id}
+              sellerName={sellerName}
+            />
+          </Suspense>
+        </SellerProductsErrorBoundary>
       </div>
 
       {/* Auth Prompt Overlay for unauthenticated users */}
