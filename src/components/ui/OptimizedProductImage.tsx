@@ -10,6 +10,7 @@ interface OptimizedProductImageProps {
   size?: 'thumbnail' | 'card' | 'gallery' | 'fullscreen';
   onLoad?: () => void;
   onError?: (error: React.SyntheticEvent<HTMLImageElement>) => void;
+  onClick?: () => void;
   'data-testid'?: string;
 }
 
@@ -35,6 +36,7 @@ export const OptimizedProductImage: React.FC<OptimizedProductImageProps> = ({
   size = 'card',
   onLoad,
   onError,
+  onClick,
   'data-testid': testId,
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -135,7 +137,11 @@ export const OptimizedProductImage: React.FC<OptimizedProductImageProps> = ({
   }
 
   return (
-    <div className="relative w-full h-full overflow-hidden">
+    <div 
+      className="relative w-full h-full overflow-hidden"
+      onClick={onClick}
+      style={{ cursor: onClick ? 'pointer' : 'default' }}
+    >
       {/* Blur placeholder (loads instantly, ~1-2KB) */}
       {image.blurDataUrl && (
         <img
