@@ -1388,9 +1388,14 @@ Deno.serve(async (req) => {
     // Create supabase client
     const supabase = createServiceClient();
     
-    // ⚠️ TEMPORARY: QStash signature verification disabled for debugging
-    // TODO: Enable after configuring signing keys in app_settings
-    // Reason: QStash not sending signature headers or keys not configured
+    // Check if signature verification should be skipped (temporary flag)
+    const { data: skipFlag } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'qstash_skip_verification')
+      .single();
+    
+    const shouldSkipVerification = skipFlag?.value === 'true';
     
     // Log incoming request to event_logs (keep for debugging)
     await supabase.from('event_logs').insert({
@@ -1401,12 +1406,47 @@ Deno.serve(async (req) => {
         has_signature: !!signature,
         has_timestamp: !!timestamp,
         body_preview: bodyText.substring(0, 200),
-        signature_verification: 'DISABLED',
+        signature_verification: shouldSkipVerification ? 'SKIPPED_BY_FLAG' : 'ENABLED',
         timestamp: new Date().toISOString()
       }
     });
     
-    console.log('⚠️ QStash signature verification DISABLED (temporary)');
+    if (shouldSkipVerification) {
+      console.log('⚠️ QStash signature verification SKIPPED (qstash_skip_verification=true)');
+    } else {
+      // ✅ ENABLE QStash signature verification
+      const { verifyQStashSignature } = await import('../_shared/qstash-verify.ts');
+      
+      const isValid = await verifyQStashSignature(
+        bodyText,
+        signature,
+        timestamp,
+        supabase
+      );
+      
+      if (!isValid) {
+        console.error('❌ Invalid QStash signature');
+        
+        // Log failed verification
+        await supabase.from('event_logs').insert({
+          action_type: 'qstash_signature_failed',
+          entity_type: 'telegram_queue_handler',
+          entity_id: null,
+          details: {
+            signature_present: !!signature,
+            timestamp_present: !!timestamp,
+            timestamp: new Date().toISOString()
+          }
+        });
+        
+        return new Response('Unauthorized', { 
+          status: 401,
+          headers: corsHeaders 
+        });
+      }
+      
+      console.log('✅ QStash signature verified');
+    }
     
     // Parse body after verification
     const data = JSON.parse(bodyText);
