@@ -31,6 +31,9 @@ export const useCloudinaryUpload = () => {
     fileId: string,
     options: CloudinaryUploadOptions = {}
   ): Promise<string> => {
+    // Create a blob URL for preview
+    const blobUrl = URL.createObjectURL(file);
+    
     try {
       console.log('🚀 Starting Cloudinary-only upload process for:', file.name);
 
@@ -40,9 +43,6 @@ export const useCloudinaryUpload = () => {
           ? { ...p, status: 'uploading', progress: 10 }
           : p
       ));
-
-      // Create a blob URL for preview
-      const blobUrl = URL.createObjectURL(file);
 
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
@@ -59,9 +59,6 @@ export const useCloudinaryUpload = () => {
 
       console.log('☁️ Starting Cloudinary upload...');
       const cloudinaryResult = await uploadToCloudinary(file, options.productId);
-
-      // Clean up blob URL
-      URL.revokeObjectURL(blobUrl);
 
       if (cloudinaryResult.success && cloudinaryResult.mainImageUrl) {
         console.log('✅ Cloudinary upload successful:', cloudinaryResult.publicId);
@@ -94,6 +91,10 @@ export const useCloudinaryUpload = () => {
       ));
 
       throw error;
+    } finally {
+      // ✅ FIX: Гарантированное удаление blob URL для предотвращения утечки памяти
+      URL.revokeObjectURL(blobUrl);
+      console.log('🧹 Blob URL revoked:', blobUrl);
     }
   }, []);
 
