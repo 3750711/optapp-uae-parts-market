@@ -293,6 +293,47 @@ export const useNewCloudinaryUpload = () => {
     } else {
       initializeWidget();
     }
+    
+    // ✅ Fallback: Прямая загрузка через API (обход Widget при ошибке 400)
+    async function fallbackDirectUpload(file: File): Promise<CloudinaryNormalized | null> {
+      console.log('🔄 [Fallback] Using direct upload API...', file.name);
+      
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', getUploadPreset('productUnsigned'));
+        formData.append('folder', options.folder || CLOUDINARY_CONFIG.upload.folder);
+        
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${CLOUDINARY_CONFIG.cloudName}/image/upload`,
+          {
+            method: 'POST',
+            body: formData
+          }
+        );
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ [Fallback] Upload failed:', response.status, errorText);
+          throw new Error(`Upload failed: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ [Fallback] Upload success:', data.secure_url);
+        
+        return {
+          url: data.secure_url,
+          publicId: data.public_id,
+          width: data.width,
+          height: data.height,
+          bytes: data.bytes,
+          raw: data
+        };
+      } catch (error) {
+        console.error('❌ [Fallback] Direct upload error:', error);
+        return null;
+      }
+    }
 
     async function initializeWidget() {
       const cloudinary = (window as any).cloudinary;
@@ -372,7 +413,7 @@ export const useNewCloudinaryUpload = () => {
             ]
           })
         },
-        (error: any, result: any) => {
+        async (error: any, result: any) => {
           // 🔍 Диагностика: Логируем ВСЕ события виджета с деталями ошибок
           console.log('🎬 [Cloudinary Widget] Event:', result?.event || 'unknown', {
             hasError: !!error,
@@ -505,6 +546,36 @@ export const useNewCloudinaryUpload = () => {
             } else if (error.message?.toLowerCase().includes('cors')) {
               userMessage = "🚫 Ошибка загрузки (CORS). Обратитесь в поддержку";
               errorType = 'cors';
+            } else if (error.status === 400) {
+              userMessage = "⚠️ Ошибка конфигурации (400). Попытка альтернативной загрузки...";
+              errorType = 'bad_request';
+              
+              // ✅ FIX: Попытка fallback загрузки для 400 ошибок
+              console.log('🔄 [400 Error] Attempting fallback upload...');
+              
+              // Если у нас есть информация о файле, пытаемся загрузить его напрямую
+              if (result?.info?.file) {
+                const fallbackResult = await fallbackDirectUpload(result.info.file);
+                
+                if (fallbackResult) {
+                  console.log('✅ [Fallback] Success! Using alternative upload method');
+                  successfulUploadsRef.current = [
+                    ...successfulUploadsRef.current,
+                    fallbackResult
+                  ];
+                  
+                  toast({
+                    title: "Загрузка завершена",
+                    description: "Файл загружен альтернативным методом",
+                  });
+                  
+                  // Закрываем виджет после успешного fallback
+                  if (widgetRef.current) {
+                    widgetRef.current.close();
+                  }
+                  return; // Выходим, не показывая ошибку
+                }
+              }
             }
             
             console.log(`🔍 Error classified as: ${errorType}`);
