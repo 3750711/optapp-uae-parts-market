@@ -297,9 +297,6 @@ export const useNewCloudinaryUpload = () => {
     async function initializeWidget() {
       const cloudinary = (window as any).cloudinary;
       
-      // Создаем публичный ID с учетом productId
-      const publicIdPrefix = options.productId ? `products/${options.productId}` : 'products';
-      
       // Получаем preset с валидацией
       const uploadPreset = getUploadPreset('productUnsigned');
       console.log('🔧 Cloudinary Widget: Using upload preset:', uploadPreset);
@@ -354,7 +351,6 @@ export const useNewCloudinaryUpload = () => {
           cloudName: CLOUDINARY_CONFIG.cloudName,
           uploadPreset: uploadPreset,
           folder: options.folder || CLOUDINARY_CONFIG.upload.folder,
-          publicIdPrefix: publicIdPrefix,
           multiple: options.multiple ?? true,
           maxFiles: options.maxFiles || CLOUDINARY_CONFIG.upload.maxFiles,
           maxFileSize: CLOUDINARY_CONFIG.upload.maxFileSize,
@@ -366,18 +362,25 @@ export const useNewCloudinaryUpload = () => {
           text: CLOUDINARY_CONFIG.widget.text,
           styles: widgetStyles,
           
-          // Автоматические трансформации при загрузке
-          transformation: [
-            {
-              quality: CLOUDINARY_CONFIG.upload.quality,
-              format: 'auto'
-            }
-          ]
+          // Условные трансформации (отключены для mobile для предотвращения таймаутов)
+          ...(isMobileWidget ? {} : {
+            transformation: [
+              {
+                quality: 'auto:good',
+                format: 'auto'
+              }
+            ]
+          })
         },
         (error: any, result: any) => {
-          // 🔍 Диагностика: Логируем ВСЕ события виджета
+          // 🔍 Диагностика: Логируем ВСЕ события виджета с деталями ошибок
           console.log('🎬 [Cloudinary Widget] Event:', result?.event || 'unknown', {
             hasError: !!error,
+            errorMessage: error?.message,
+            errorStatus: error?.status,
+            errorBody: error?.body,
+            uploadPreset: uploadPreset,
+            folder: options.folder || CLOUDINARY_CONFIG.upload.folder,
             event: result?.event,
             info: result?.info ? {
               filename: result.info.original_filename,
