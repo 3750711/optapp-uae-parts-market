@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, Save, X } from 'lucide-react';
+import { Package, Save, X, History } from 'lucide-react';
 import { useOrderShipments, OrderShipment } from '@/hooks/useOrderShipments';
 import { useContainers } from '@/hooks/useContainers';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PlacesOverview } from './PlacesOverview';
 import { PlaceRow } from './PlaceRow';
 import { BulkActions } from './BulkActions';
+import { ShipmentHistoryDialog } from './ShipmentHistoryDialog';
 
 interface OrderPlacesManagerProps {
   orderId: string;
@@ -28,6 +29,7 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
   const { isAdmin } = useAdminAccess();
   const { toast } = useToast();
   const [editedShipments, setEditedShipments] = useState<Record<string, Partial<OrderShipment>>>({});
+  const [showHistory, setShowHistory] = useState(false);
 
   // Admins can edit all fields, others only when status is partially_shipped
   const isFieldsDisabled = !isAdmin && (orderShipmentStatus !== 'partially_shipped');
@@ -142,9 +144,20 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
           <Package className="h-5 w-5" />
           {readOnly ? 'Просмотр мест заказа' : 'Управление местами заказа'}
         </CardTitle>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setShowHistory(true)}
+            className="gap-2"
+          >
+            <History className="h-4 w-4" />
+            История
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
@@ -213,6 +226,12 @@ export const OrderPlacesManager: React.FC<OrderPlacesManagerProps> = ({
           )}
         </div>
       </CardContent>
+
+      <ShipmentHistoryDialog 
+        orderId={orderId}
+        open={showHistory}
+        onOpenChange={setShowHistory}
+      />
     </Card>
   );
 };
