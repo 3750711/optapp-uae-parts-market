@@ -122,42 +122,80 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
   };
 
   const handleImageDelete = async (urlToDelete: string) => {
+    console.log('🔵 [DELETE START] Function called');
+    console.log('🔵 [DELETE] URL to delete:', urlToDelete);
+    console.log('🔵 [DELETE] Current images array:', images);
+    console.log('🔵 [DELETE] Current images length:', images.length);
+    console.log('🔵 [DELETE] Current videos array:', videos);
+    
+    const previousImages = images;
     const newImages = images.filter(url => url !== urlToDelete);
     
+    console.log('🔵 [DELETE] Previous images count:', previousImages.length);
+    console.log('🔵 [DELETE] New images count:', newImages.length);
+    console.log('🔵 [DELETE] New images array:', newImages);
+    console.log('🔵 [DELETE] Was URL found and removed?', previousImages.length !== newImages.length);
+    
     // Обновляем локальное состояние
+    console.log('🔵 [DELETE] Step 1: Updating UI with new images...');
     onImagesUpdate(newImages);
+    console.log('🔵 [DELETE] Step 1: UI update called (state should change)');
     
     // Сохраняем в базу данных
+    console.log('🔵 [DELETE] Step 2: Calling updateOrderMedia...');
+    console.log('🔵 [DELETE] Passing to updateOrderMedia: images=', newImages, 'videos=', videos);
+    
     const saved = await updateOrderMedia(newImages, videos);
     
+    console.log('🔵 [DELETE] Step 3: updateOrderMedia returned:', saved);
+    
     if (saved) {
+      console.log('🟢 [DELETE SUCCESS] Photo deleted successfully');
       toast({
         title: "Photo Deleted",
         description: "Photo removed from order",
       });
     } else {
-      // Откатываем локальное состояние при ошибке
-      onImagesUpdate(images);
+      console.log('🔴 [DELETE FAILED] Rolling back UI to previous state');
+      console.log('🔴 [DELETE] Rolling back to:', previousImages);
+      onImagesUpdate(previousImages);
+      console.log('🔴 [DELETE] Rollback complete');
     }
+    
+    console.log('🔵 [DELETE END] Function completed');
   };
 
   const handleVideoDelete = async (urlToDelete: string) => {
+    console.log('🔵 [VIDEO DELETE START] Function called');
+    console.log('🔵 [VIDEO DELETE] URL to delete:', urlToDelete);
+    console.log('🔵 [VIDEO DELETE] Current videos:', videos);
+    
+    const previousVideos = videos;
     const newVideos = videos.filter(url => url !== urlToDelete);
     
+    console.log('🔵 [VIDEO DELETE] Previous videos count:', previousVideos.length);
+    console.log('🔵 [VIDEO DELETE] New videos count:', newVideos.length);
+    console.log('🔵 [VIDEO DELETE] New videos array:', newVideos);
+    
     // Обновляем локальное состояние
+    console.log('🔵 [VIDEO DELETE] Updating UI...');
     onVideosUpdate(newVideos);
     
     // Сохраняем в базу данных
+    console.log('🔵 [VIDEO DELETE] Calling updateOrderMedia...');
     const saved = await updateOrderMedia(images, newVideos);
     
+    console.log('🔵 [VIDEO DELETE] updateOrderMedia returned:', saved);
+    
     if (saved) {
+      console.log('🟢 [VIDEO DELETE SUCCESS] Video deleted');
       toast({
         title: "Video Deleted",
         description: "Video removed from order",
       });
     } else {
-      // Откатываем локальное состояние при ошибке
-      onVideosUpdate(videos);
+      console.log('🔴 [VIDEO DELETE FAILED] Rolling back');
+      onVideosUpdate(previousVideos);
     }
   };
 
