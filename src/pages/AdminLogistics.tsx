@@ -157,6 +157,18 @@ const AdminLogistics = () => {
     setSelectedOrders([]);
   };
 
+  // Function to remove specific filter and apply immediately
+  const handleRemoveFilter = (key: keyof LogisticsFiltersType, value: string) => {
+    const currentValues = appliedFilters[key] as string[];
+    const newValues = currentValues.filter(v => v !== value);
+    const newFilters = { ...appliedFilters, [key]: newValues };
+    
+    // Update both pending and applied simultaneously
+    setPendingFilters(newFilters);
+    setAppliedFilters(newFilters);
+    setSelectedOrders([]);
+  };
+
   // Auto-refresh logistics data every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -761,6 +773,8 @@ const AdminLogistics = () => {
               appliedFilters={appliedFilters}
               onPendingFiltersChange={setPendingFilters}
               onApplyFilters={handleApplyFilters}
+              onRemoveFilter={handleRemoveFilter}
+              onClearFilters={handleClearFilters}
               sellers={uniqueSellers || []}
               buyers={uniqueBuyers || []}
               containers={containerOptions}

@@ -14,6 +14,8 @@ interface LogisticsFiltersProps {
   appliedFilters: LogisticsFiltersType;
   onPendingFiltersChange: (filters: LogisticsFiltersType) => void;
   onApplyFilters: () => void;
+  onRemoveFilter: (key: keyof LogisticsFiltersType, value: string) => void;
+  onClearFilters: () => void;
   sellers: FilterOption[];
   buyers: FilterOption[];
   containers: FilterOption[];
@@ -26,6 +28,8 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
   appliedFilters,
   onPendingFiltersChange,
   onApplyFilters,
+  onRemoveFilter,
+  onClearFilters,
   sellers,
   buyers,
   containers,
@@ -44,27 +48,14 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
     onPendingFiltersChange({ ...pendingFilters, [key]: newValues });
   };
 
-  // Очистить все фильтры (и pending, и applied)
+  // Очистить все фильтры - делегируем родителю
   const clearAllFilters = () => {
-    const emptyFilters = {
-      sellerIds: [],
-      buyerIds: [],
-      containerNumbers: [],
-      shipmentStatuses: [],
-      containerStatuses: [],
-      orderStatuses: [],
-      searchTerm: ''
-    };
-    onPendingFiltersChange(emptyFilters);
-    // Применяем пустые фильтры сразу
-    onApplyFilters();
+    onClearFilters();
   };
 
-  // Удалить конкретный фильтр из массива (pending)
+  // Удалить конкретный фильтр - делегируем родителю
   const removeFilter = (key: keyof LogisticsFiltersType, value: string) => {
-    const currentValues = pendingFilters[key] as string[];
-    const newValues = currentValues.filter(v => v !== value);
-    onPendingFiltersChange({ ...pendingFilters, [key]: newValues });
+    onRemoveFilter(key, value);
   };
 
   // Проверка, есть ли активные примененные фильтры
