@@ -19,12 +19,17 @@ export const useOrderUpdate = ({ orderId, onSuccess }: UseOrderUpdateProps) => {
 
     setIsUpdating(true);
     try {
-      console.log('🔄 Updating order media:', orderId, { images: images?.length, videos: videos?.length });
+      console.log('🔄 Updating order media:', orderId, { 
+        imagesCount: images?.length, 
+        videosCount: videos?.length,
+        imagesValue: images,
+        videosValue: videos
+      });
 
       const { data, error } = await supabase.rpc('update_order_media', {
         p_order_id: orderId,
-        p_images: images || null,
-        p_video_url: videos || null
+        p_images: images ?? null,
+        p_video_url: videos ?? null
       });
 
       if (error) {
