@@ -9,14 +9,14 @@ export const SHIPMENT_STATUS_OPTIONS: FilterOption[] = [
 export const CONTAINER_STATUS_OPTIONS: FilterOption[] = [
   { value: 'waiting', label: 'Ожидание' },
   { value: 'sent_from_uae', label: 'Отправлен из ОАЭ' },
-  { value: 'iran_transit', label: 'Транзит Иран' },
+  { value: 'transit_iran', label: 'Транзит Иран' },
+  { value: 'in_transit', label: 'В пути' },
+  { value: 'to_kazakhstan', label: 'В Казахстан' },
   { value: 'customs', label: 'Таможня' },
-  { value: 'customs_out', label: 'Вышел с таможни' },
-  { value: 'customs_holding', label: 'Таможня - удержание' },
-  { value: 'terminal', label: 'Терминал' },
-  { value: 'transit_to_warehouse', label: 'В пути на склад' },
+  { value: 'cleared_customs', label: 'Вышел с таможни' },
   { value: 'received', label: 'Получен' },
   { value: 'delivered', label: 'Доставлен' },
+  { value: 'lost', label: 'Потерян' },
 ];
 
 export const ORDER_STATUS_OPTIONS: FilterOption[] = [

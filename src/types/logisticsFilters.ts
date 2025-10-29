@@ -1,6 +1,6 @@
 export type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
-export type ContainerStatus = 'waiting' | 'sent_from_uae' | 'iran_transit' | 'customs' | 
-  'customs_out' | 'customs_holding' | 'terminal' | 'transit_to_warehouse' | 'received' | 'delivered';
+export type ContainerStatus = 'waiting' | 'sent_from_uae' | 'transit_iran' | 'in_transit' | 
+  'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received' | 'delivered' | 'lost';
 export type OrderStatus = 'created' | 'paid' | 'in_process' | 'shipped' | 'delivered' | 'cancelled';
 
 export interface LogisticsFilters {
