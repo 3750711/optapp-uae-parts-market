@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOrderConfirmationUpload } from '@/hooks/useOrderConfirmationUpload';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useConfirmationUpload = (
   open: boolean, 
@@ -13,6 +14,7 @@ export const useConfirmationUpload = (
   category?: 'chat_screenshot' | 'signed_product'
 ) => {
   const { isAdmin, user, profile } = useAuth();
+  const queryClient = useQueryClient();
   
   const [confirmImages, setConfirmImages] = useState<string[]>([]);
   const [confirmVideos, setConfirmVideos] = useState<string[]>([]);
@@ -133,6 +135,10 @@ export const useConfirmationUpload = (
       }
       
       console.log('✅ [handleImageDelete] Successfully deleted from database');
+      
+      // Инвалидировать кеш React Query
+      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
+      
       toast.success('Photo deleted');
     } catch (error) {
       console.error('🔴 [handleImageDelete] Failed to delete:', error);
@@ -142,7 +148,7 @@ export const useConfirmationUpload = (
       
       toast.error('Failed to delete photo');
     }
-  }, [orderId, category, confirmImages]);
+  }, [orderId, category, confirmImages, queryClient]);
 
   const handleVideoDelete = useCallback((url: string) => {
     setConfirmVideos(prev => prev.filter(videoUrl => videoUrl !== url));
@@ -248,6 +254,9 @@ export const useConfirmationUpload = (
         const newUrls = urls.filter(url => !prev.includes(url));
         return [...prev, ...newUrls];
       });
+      
+      // Инвалидировать кеш React Query
+      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
       
       toast.success(`${urls.length} photo${urls.length > 1 ? 's' : ''} saved successfully`);
     } catch (error) {
