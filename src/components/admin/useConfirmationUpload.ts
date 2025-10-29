@@ -105,9 +105,44 @@ export const useConfirmationUpload = (
     setUploadError(null);
   }, []);
 
-  const handleImageDelete = useCallback((url: string) => {
-    setConfirmImages(prev => prev.filter(imageUrl => imageUrl !== url));
-  }, []);
+  const handleImageDelete = useCallback(async (url: string) => {
+    console.log('🗑️ [handleImageDelete] Deleting image:', url);
+    console.log('🗑️ [handleImageDelete] Current images:', confirmImages);
+    console.log('🗑️ [handleImageDelete] Category:', category);
+    
+    // Немедленно обновляем UI (optimistic update)
+    setConfirmImages(prev => {
+      const newImages = prev.filter(imageUrl => imageUrl !== url);
+      console.log('🗑️ [handleImageDelete] New images after filter:', newImages);
+      return newImages;
+    });
+    
+    // Удаляем из базы данных
+    try {
+      console.log('🗑️ [handleImageDelete] Deleting from database...');
+      const { error } = await supabase
+        .from('confirm_images')
+        .delete()
+        .eq('order_id', orderId)
+        .eq('url', url)
+        .eq('category', category);
+      
+      if (error) {
+        console.error('🔴 [handleImageDelete] Database error:', error);
+        throw error;
+      }
+      
+      console.log('✅ [handleImageDelete] Successfully deleted from database');
+      toast.success('Photo deleted');
+    } catch (error) {
+      console.error('🔴 [handleImageDelete] Failed to delete:', error);
+      
+      // Откатываем изменения UI при ошибке
+      setConfirmImages(prev => [...prev, url]);
+      
+      toast.error('Failed to delete photo');
+    }
+  }, [orderId, category, confirmImages]);
 
   const handleVideoDelete = useCallback((url: string) => {
     setConfirmVideos(prev => prev.filter(videoUrl => videoUrl !== url));

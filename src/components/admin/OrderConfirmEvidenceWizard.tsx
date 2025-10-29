@@ -364,7 +364,13 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
                 <CloudinaryPhotoUploader
                   images={step1Images}
-                  onImageUpload={() => {}}
+                  onImageUpload={(newUrls) => {
+                    console.log('📸 [Step1] New images uploaded:', newUrls);
+                    setStep1Images(prev => {
+                      const allImages = [...prev, ...newUrls];
+                      return Array.from(new Set(allImages)); // Deduplicate
+                    });
+                  }}
                   onImageUploadWithCategory={step1Hook.handleWidgetUpload}
                   onImageDelete={step1Hook.handleImageDelete}
                   maxImages={50}
@@ -406,7 +412,13 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
 
                 <CloudinaryPhotoUploader
                   images={step2Images}
-                  onImageUpload={() => {}}
+                  onImageUpload={(newUrls) => {
+                    console.log('📸 [Step2] New images uploaded:', newUrls);
+                    setStep2Images(prev => {
+                      const allImages = [...prev, ...newUrls];
+                      return Array.from(new Set(allImages)); // Deduplicate
+                    });
+                  }}
                   onImageUploadWithCategory={step2Hook.handleWidgetUpload}
                   onImageDelete={step2Hook.handleImageDelete}
                   maxImages={50}
