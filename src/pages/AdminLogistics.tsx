@@ -237,29 +237,57 @@ const AdminLogistics = () => {
   const handleBulkUpdateContainerNumber = async () => {
     if (!selectedOrders.length || !bulkContainerNumber.trim()) return;
 
-    let hasError = false;
-    
-    // Use the sync function to update orders and their shipments
-    for (const orderId of selectedOrders) {
-      try {
-        await syncShipmentsWithOrder(orderId, undefined, bulkContainerNumber);
-      } catch (error) {
-        console.error('Error updating container number:', error);
-        hasError = true;
+    const BATCH_SIZE = 10;
+    const errors: string[] = [];
+    let processed = 0;
+    const totalOrders = selectedOrders.length;
+
+    // Process in batches
+    for (let i = 0; i < totalOrders; i += BATCH_SIZE) {
+      const batch = selectedOrders.slice(i, i + BATCH_SIZE);
+      
+      const results = await Promise.allSettled(
+        batch.map(orderId => 
+          syncShipmentsWithOrder(orderId, undefined, bulkContainerNumber)
+        )
+      );
+
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error('Error updating container:', result.reason);
+          errors.push(batch[index]);
+        } else {
+          processed++;
+        }
+      });
+
+      // Show progress toast
+      const currentProgress = Math.min(i + BATCH_SIZE, totalOrders);
+      toast({
+        title: "Обработка...",
+        description: `Обработано ${currentProgress} из ${totalOrders} заказов`,
+      });
+
+      // Small pause between batches to avoid overwhelming the database
+      if (i + BATCH_SIZE < totalOrders) {
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
 
-    if (hasError) {
+    // Invalidate queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
+
+    // Show final result
+    if (errors.length > 0) {
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось обновить номера контейнеров для некоторых заказов",
+        title: "Частичная ошибка",
+        description: `Успешно обновлено: ${processed}. Ошибок: ${errors.length}`,
       });
     } else {
-      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
       toast({
         title: "Успешно",
-        description: `Номер контейнера обновлен для ${selectedOrders.length} заказов`,
+        description: `Контейнер обновлен для ${processed} заказов`,
       });
     }
 
@@ -361,29 +389,57 @@ const AdminLogistics = () => {
   const handleBulkUpdateShipmentStatus = async () => {
     if (!selectedOrders.length) return;
 
-    let hasError = false;
-    
-    // Use the sync function to update orders and their shipments
-    for (const orderId of selectedOrders) {
-      try {
-        await syncShipmentsWithOrder(orderId, bulkShipmentStatus);
-      } catch (error) {
-        console.error('Error updating shipment status:', error);
-        hasError = true;
+    const BATCH_SIZE = 10;
+    const errors: string[] = [];
+    let processed = 0;
+    const totalOrders = selectedOrders.length;
+
+    // Process in batches
+    for (let i = 0; i < totalOrders; i += BATCH_SIZE) {
+      const batch = selectedOrders.slice(i, i + BATCH_SIZE);
+      
+      const results = await Promise.allSettled(
+        batch.map(orderId => 
+          syncShipmentsWithOrder(orderId, bulkShipmentStatus)
+        )
+      );
+
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error('Error updating shipment status:', result.reason);
+          errors.push(batch[index]);
+        } else {
+          processed++;
+        }
+      });
+
+      // Show progress toast
+      const currentProgress = Math.min(i + BATCH_SIZE, totalOrders);
+      toast({
+        title: "Обработка...",
+        description: `Обработано ${currentProgress} из ${totalOrders} заказов`,
+      });
+
+      // Small pause between batches to avoid overwhelming the database
+      if (i + BATCH_SIZE < totalOrders) {
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
     }
 
-    if (hasError) {
+    // Invalidate queries to refresh data
+    queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
+
+    // Show final result
+    if (errors.length > 0) {
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось обновить статусы отгрузки для некоторых заказов",
+        title: "Частичная ошибка",
+        description: `Успешно обновлено: ${processed}. Ошибок: ${errors.length}`,
       });
     } else {
-      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
       toast({
         title: "Успешно",
-        description: `Статус отгрузки обновлен для ${selectedOrders.length} заказов`,
+        description: `Статус отгрузки обновлен для ${processed} заказов`,
       });
     }
 
