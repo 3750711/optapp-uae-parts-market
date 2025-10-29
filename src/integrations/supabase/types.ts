@@ -3514,6 +3514,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_multiple_shipments: {
+        Args: { shipment_updates: Json }
+        Returns: undefined
+      }
       update_order_media: {
         Args: {
           p_images?: string[]

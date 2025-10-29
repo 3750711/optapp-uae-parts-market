@@ -10,6 +10,36 @@ export type IndividualShipmentStatus = 'not_shipped' | 'in_transit';
 export const useOrderPlacesSync = () => {
   const { toast } = useToast();
 
+  // Function to calculate order status from shipments
+  const calculateOrderStatusFromShipments = useCallback(async (orderId: string): Promise<ShipmentStatus> => {
+    try {
+      const { data: shipments, error } = await supabase
+        .from('order_shipments')
+        .select('shipment_status')
+        .eq('order_id', orderId);
+
+      if (error) throw error;
+
+      if (!shipments || shipments.length === 0) {
+        return 'not_shipped';
+      }
+
+      const shippedCount = shipments.filter(s => s.shipment_status === 'in_transit').length;
+      const totalCount = shipments.length;
+
+      if (shippedCount === 0) {
+        return 'not_shipped';
+      } else if (shippedCount === totalCount) {
+        return 'in_transit';
+      } else {
+        return 'partially_shipped';
+      }
+    } catch (error) {
+      console.error('Error calculating order status:', error);
+      return 'not_shipped';
+    }
+  }, []);
+
   // Function to ensure order_shipments exist for an order
   const ensureOrderShipments = useCallback(async (orderId: string) => {
     try {
@@ -169,36 +199,6 @@ export const useOrderPlacesSync = () => {
       throw error;
     }
   }, [ensureOrderShipments]);
-
-  // Function to calculate order status from shipments
-  const calculateOrderStatusFromShipments = useCallback(async (orderId: string): Promise<ShipmentStatus> => {
-    try {
-      const { data: shipments, error } = await supabase
-        .from('order_shipments')
-        .select('shipment_status')
-        .eq('order_id', orderId);
-
-      if (error) throw error;
-
-      if (!shipments || shipments.length === 0) {
-        return 'not_shipped';
-      }
-
-      const shippedCount = shipments.filter(s => s.shipment_status === 'in_transit').length;
-      const totalCount = shipments.length;
-
-      if (shippedCount === 0) {
-        return 'not_shipped';
-      } else if (shippedCount === totalCount) {
-        return 'in_transit';
-      } else {
-        return 'partially_shipped';
-      }
-    } catch (error) {
-      console.error('Error calculating order status:', error);
-      return 'not_shipped';
-    }
-  }, []);
 
   return {
     ensureOrderShipments,
