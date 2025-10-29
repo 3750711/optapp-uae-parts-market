@@ -113,7 +113,7 @@ export const useOrderPlacesSync = () => {
       console.error('Error ensuring order shipments:', error);
       throw error;
     }
-  }, [calculateOrderStatusFromShipments]);
+  }, []);
 
   // Function to sync shipments with order-level changes
   const syncShipmentsWithOrder = useCallback(async (
@@ -198,7 +198,7 @@ export const useOrderPlacesSync = () => {
       console.error('Error syncing shipments with order:', error);
       throw error;
     }
-  }, [ensureOrderShipments]);
+  }, []);
 
   return {
     ensureOrderShipments,
