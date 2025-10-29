@@ -3128,6 +3128,16 @@ export type Database = {
         }[]
       }
       get_next_order_number: { Args: never; Returns: number }
+      get_orders_shipment_summary: {
+        Args: { order_ids: string[] }
+        Returns: {
+          calculated_status: string
+          containers_info: Json
+          order_id: string
+          shipped_places: number
+          total_places: number
+        }[]
+      }
       get_product_content_for_embedding: {
         Args: { product_id: string }
         Returns: string

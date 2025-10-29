@@ -56,6 +56,7 @@ import { useContainers } from '@/hooks/useContainers';
 import { useOrderPlacesSync } from '@/hooks/useOrderPlacesSync';
 import { ContainersList } from "@/components/admin/logistics/ContainersList";
 import { ContainerEditableWrapper } from "@/components/admin/logistics/ContainerEditableWrapper";
+import { useBatchOrderShipmentSummary } from '@/hooks/useBatchOrderShipmentSummary';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -201,6 +202,13 @@ const AdminLogistics = () => {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const orders = data?.pages.flat() || [];
+
+  // Batch fetch shipment summaries for all orders to solve N+1 problem
+  const orderIds = orders.map(order => order.id);
+  const { data: shipmentSummaries } = useBatchOrderShipmentSummary({
+    orderIds,
+    enabled: orderIds.length > 0
+  });
 
   const selectedOrdersDeliverySum = orders
     ?.filter(order => selectedOrders.includes(order.id))
@@ -968,6 +976,7 @@ const AdminLogistics = () => {
                                  orderId={order.id}
                                  fallbackContainerNumber={order.container_number}
                                  shipmentStatus={order.shipment_status}
+                                 summary={shipmentSummaries?.get(order.id)}
                                  onEdit={() => {
                                    setEditingContainer(order.id);
                                    setTempContainerNumber(order.container_number || '');

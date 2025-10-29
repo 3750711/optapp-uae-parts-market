@@ -1,10 +1,11 @@
-import { useOrderShipmentSummary } from "@/hooks/useOrderShipmentSummary";
 import { ContainersList } from "./ContainersList";
+import { OrderShipmentSummary } from "@/hooks/useBatchOrderShipmentSummary";
 
 interface ContainerEditableWrapperProps {
   orderId: string;
   fallbackContainerNumber: string | null;
   shipmentStatus: string | null;
+  summary?: OrderShipmentSummary;
   onEdit: () => void;
 }
 
@@ -12,12 +13,12 @@ export const ContainerEditableWrapper: React.FC<ContainerEditableWrapperProps> =
   orderId,
   fallbackContainerNumber,
   shipmentStatus,
+  summary,
   onEdit
 }) => {
-  const { data: summary } = useOrderShipmentSummary(orderId);
   
   // Check if order has multiple containers
-  const hasMultipleContainers = summary?.containerInfo && summary.containerInfo.length > 1;
+  const hasMultipleContainers = summary?.containers_info && summary.containers_info.length > 1;
   
   // Block editing if:
   // 1. Order is partially_shipped (existing logic)
