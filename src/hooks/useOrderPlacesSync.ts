@@ -59,6 +59,15 @@ export const useOrderPlacesSync = () => {
           .in('place_number', placesToRemove);
 
         if (deleteError) throw deleteError;
+
+        // Fix #5: Recalculate order status after deleting places
+        const newStatus = await calculateOrderStatusFromShipments(orderId);
+        const { error: updateOrderError } = await supabase
+          .from('orders')
+          .update({ shipment_status: newStatus })
+          .eq('id', orderId);
+
+        if (updateOrderError) throw updateOrderError;
       }
 
       // Insert new shipments if any
@@ -74,7 +83,7 @@ export const useOrderPlacesSync = () => {
       console.error('Error ensuring order shipments:', error);
       throw error;
     }
-  }, []);
+  }, [calculateOrderStatusFromShipments]);
 
   // Function to sync shipments with order-level changes
   const syncShipmentsWithOrder = useCallback(async (

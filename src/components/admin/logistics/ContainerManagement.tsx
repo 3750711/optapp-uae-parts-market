@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useContainers } from '@/hooks/useContainers';
 import { Database } from '@/integrations/supabase/types';
+import { useToast } from '@/hooks/use-toast';
 
 type ContainerStatus = Database['public']['Enums']['container_status'];
 
@@ -52,6 +53,7 @@ interface ContainerManagementProps {
 }
 
 export const ContainerManagement: React.FC<ContainerManagementProps> = ({ onClose }) => {
+  const { toast } = useToast();
   const {
     containers,
     isLoading,
@@ -60,6 +62,7 @@ export const ContainerManagement: React.FC<ContainerManagementProps> = ({ onClos
     createContainer,
     updateContainerStatus,
     deleteContainer,
+    getOrdersCountForContainer,
     isCreating,
     isUpdating,
     isDeleting
@@ -116,8 +119,21 @@ export const ContainerManagement: React.FC<ContainerManagementProps> = ({ onClos
     }
   };
 
-  const handleDeleteContainer = async (id: string) => {
+  // Fix #7: Validate before deleting container
+  const handleDeleteContainer = async (id: string, containerNumber: string) => {
     try {
+      // Check if container is used in any orders
+      const ordersCount = await getOrdersCountForContainer(containerNumber);
+      
+      if (ordersCount > 0) {
+        toast({
+          variant: "destructive",
+          title: "Невозможно удалить",
+          description: `Контейнер ${containerNumber} используется в ${ordersCount} местах. Сначала удалите его из заказов.`,
+        });
+        return;
+      }
+
       await deleteContainer.mutateAsync(id);
     } catch (error) {
       console.error('Error deleting container:', error);
@@ -361,7 +377,7 @@ export const ContainerManagement: React.FC<ContainerManagementProps> = ({ onClos
                         <AlertDialogFooter>
                           <AlertDialogCancel>Отмена</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleDeleteContainer(container.id)}
+                            onClick={() => handleDeleteContainer(container.id, container.container_number)}
                             disabled={isDeleting}
                           >
                             {isDeleting ? 'Удаление...' : 'Удалить'}

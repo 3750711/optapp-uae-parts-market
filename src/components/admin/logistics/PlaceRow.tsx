@@ -69,12 +69,19 @@ export const PlaceRow: React.FC<PlaceRowProps> = ({
     const containerNumber = value === 'none' ? null : value;
     onFieldChange(shipment.id, 'container_number', containerNumber);
     
-    // Auto-set status to in_transit if container is selected
+    // Fix #8: Auto-set status to in_transit if container is selected, reset if cleared
     if (containerNumber && currentStatus === 'not_shipped') {
       onFieldChange(shipment.id, 'shipment_status', 'in_transit');
       toast({
         title: "Статус обновлен",
         description: "При выборе контейнера статус автоматически изменен на 'Отправлен'",
+      });
+    } else if (!containerNumber && currentStatus === 'in_transit') {
+      // Reset status to not_shipped when container is cleared
+      onFieldChange(shipment.id, 'shipment_status', 'not_shipped');
+      toast({
+        title: "Статус сброшен",
+        description: "При удалении контейнера статус автоматически изменен на 'Не отправлен'",
       });
     }
   };

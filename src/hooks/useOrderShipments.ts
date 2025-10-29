@@ -129,20 +129,46 @@ export const useOrderShipments = (orderId: string) => {
   ) => {
     setIsUpdating(true);
     try {
+      // Fix #1: Optimistic locking - check updated_at before updating
       for (const { id, updates: shipmentUpdates } of updates) {
-        // Ensure individual shipments can only have valid statuses
+        const currentShipment = shipments.find(s => s.id === id);
+        if (!currentShipment) {
+          throw new Error('Shipment not found. Please refresh the page.');
+        }
+
+        // Validate shipment status
         if (shipmentUpdates.shipment_status && 
             !['not_shipped', 'in_transit'].includes(shipmentUpdates.shipment_status)) {
           throw new Error(`Invalid shipment status for individual place: ${shipmentUpdates.shipment_status}`);
         }
         
-        const { error } = await supabase
+        // Check if the shipment was modified by another user
+        const { data: freshShipment, error: checkError } = await supabase
           .from('order_shipments')
-          .update(shipmentUpdates)
-          .eq('id', id);
+          .select('updated_at')
+          .eq('id', id)
+          .single();
 
-        if (error) throw error;
+        if (checkError) throw checkError;
+
+        if (freshShipment.updated_at !== currentShipment.updated_at) {
+          throw new Error(
+            'Запись была изменена другим пользователем. Пожалуйста, обновите страницу и попробуйте снова.'
+          );
+        }
       }
+
+      // Fix #4: Use RPC function for atomic batch updates with transaction
+      const shipmentUpdatesForRpc = updates.map(({ id, updates: shipmentUpdates }) => ({
+        id,
+        ...shipmentUpdates
+      }));
+
+      const { error } = await supabase.rpc('update_multiple_shipments', {
+        shipment_updates: shipmentUpdatesForRpc as any
+      });
+
+      if (error) throw error;
 
       // Sync the order status after updating shipments
       await syncOrderStatus();
@@ -154,18 +180,18 @@ export const useOrderShipments = (orderId: string) => {
         title: "Успешно",
         description: `Обновлено ${updates.length} мест`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating multiple shipments:', error);
       toast({
         variant: "destructive",
         title: "Ошибка",
-        description: "Не удалось обновить информацию о местах",
+        description: error.message || "Не удалось обновить информацию о местах",
       });
       throw error;
     } finally {
       setIsUpdating(false);
     }
-  }, [orderId, queryClient, toast, syncOrderStatus]);
+  }, [orderId, queryClient, toast, syncOrderStatus, shipments]);
 
   return {
     shipments,
