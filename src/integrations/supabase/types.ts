@@ -884,6 +884,47 @@ export type Database = {
           },
         ]
       }
+      order_shipment_history: {
+        Row: {
+          changed_at: string | null
+          changed_by: string | null
+          changed_field: string
+          id: string
+          metadata: Json | null
+          new_value: string | null
+          old_value: string | null
+          order_shipment_id: string
+        }
+        Insert: {
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_field: string
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          order_shipment_id: string
+        }
+        Update: {
+          changed_at?: string | null
+          changed_by?: string | null
+          changed_field?: string
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          order_shipment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_shipment_history_order_shipment_id_fkey"
+            columns: ["order_shipment_id"]
+            isOneToOne: false
+            referencedRelation: "order_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_shipments: {
         Row: {
           container_number: string | null
