@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import * as XLSX from 'xlsx';
@@ -58,24 +58,10 @@ import { ContainersList } from "@/components/admin/logistics/ContainersList";
 import { ContainerEditableWrapper } from "@/components/admin/logistics/ContainerEditableWrapper";
 import { useBatchOrderShipmentSummary } from '@/hooks/useBatchOrderShipmentSummary';
 import { LogisticsFilters } from "@/components/admin/logistics/LogisticsFilters";
-import { useFilteredOrders } from "@/hooks/useFilteredOrders";
 import { LogisticsFilters as LogisticsFiltersType, FilterOption } from "@/types/logisticsFilters";
-
-type Order = Database['public']['Tables']['orders']['Row'] & {
-  buyer: {
-    full_name: string | null;
-    location: string | null;
-    opt_id: string | null;
-  } | null;
-  seller: {
-    full_name: string | null;
-    location: string | null;
-    opt_id: string | null;
-  } | null;
-  containers: {
-    status: ContainerStatus | null;
-  } | null;
-};
+import { useServerFilteredOrders, Order } from "@/hooks/useServerFilteredOrders";
+import { useOrdersStatistics } from "@/hooks/useOrdersStatistics";
+import { useQuery } from "@tanstack/react-query";
 
 type ContainerStatus = 'waiting' | 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
 type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
@@ -123,8 +109,8 @@ const AdminLogistics = () => {
   const [managingPlacesOrderId, setManagingPlacesOrderId] = useState<string | null>(null);
   const [showContainerManagement, setShowContainerManagement] = useState(false);
 
-  // Filters state
-  const [filters, setFilters] = useState<LogisticsFiltersType>({
+  // Filters state - separate pending and applied
+  const [pendingFilters, setPendingFilters] = useState<LogisticsFiltersType>({
     sellerIds: [],
     buyerIds: [],
     containerNumbers: [],
@@ -133,6 +119,43 @@ const AdminLogistics = () => {
     orderStatuses: [],
     searchTerm: ''
   });
+
+  const [appliedFilters, setAppliedFilters] = useState<LogisticsFiltersType>({
+    sellerIds: [],
+    buyerIds: [],
+    containerNumbers: [],
+    shipmentStatuses: [],
+    containerStatuses: [],
+    orderStatuses: [],
+    searchTerm: ''
+  });
+
+  // Check if there are unapplied changes
+  const hasUnappliedChanges = useMemo(() => {
+    return JSON.stringify(pendingFilters) !== JSON.stringify(appliedFilters);
+  }, [pendingFilters, appliedFilters]);
+
+  // Function to apply filters
+  const handleApplyFilters = () => {
+    setAppliedFilters({ ...pendingFilters });
+    setSelectedOrders([]); // Clear selection when filters change
+  };
+
+  // Function to clear all filters
+  const handleClearFilters = () => {
+    const emptyFilters: LogisticsFiltersType = {
+      sellerIds: [],
+      buyerIds: [],
+      containerNumbers: [],
+      shipmentStatuses: [],
+      containerStatuses: [],
+      orderStatuses: [],
+      searchTerm: ''
+    };
+    setPendingFilters(emptyFilters);
+    setAppliedFilters(emptyFilters);
+    setSelectedOrders([]);
+  };
 
   // Auto-refresh logistics data every 60 seconds
   useEffect(() => {
@@ -145,6 +168,7 @@ const AdminLogistics = () => {
     };
   }, [queryClient]);
 
+  // Server-side filtered orders
   const {
     data,
     fetchNextPage,
@@ -152,47 +176,7 @@ const AdminLogistics = () => {
     isFetchingNextPage,
     isLoading,
     error
-  } = useInfiniteQuery({
-    queryKey: ['logistics-orders', sortConfig],
-    queryFn: async ({ pageParam = 0 }) => {
-      const from = pageParam * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-
-      let query = supabase
-        .from('orders')
-        .select(`
-          *,
-          buyer:profiles!orders_buyer_id_fkey (
-            full_name,
-            location,
-            opt_id
-          ),
-          seller:profiles!orders_seller_id_fkey (
-            full_name,
-            location,
-            opt_id
-          ),
-           containers(
-             status
-           )
-        `);
-
-      if (sortConfig.field && sortConfig.direction) {
-        query = query.order(sortConfig.field, { ascending: sortConfig.direction === 'asc' });
-      } else {
-        query = query.order('created_at', { ascending: false });
-      }
-
-      const { data: orders, error: ordersError } = await query.range(from, to);
-
-      if (ordersError) throw ordersError;
-      return orders as Order[];
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage?.length === ITEMS_PER_PAGE ? allPages.length : undefined;
-    },
-    initialPageParam: 0,
-  });
+  } = useServerFilteredOrders(appliedFilters, sortConfig);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -215,7 +199,8 @@ const AdminLogistics = () => {
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const orders = data?.pages.flat() || [];
+  const orders = data?.pages.flatMap(page => page.orders) || [];
+  const totalCount = data?.pages[0]?.totalCount || 0;
 
   // Batch fetch shipment summaries for all orders to solve N+1 problem
   const orderIds = orders.map(order => order.id);
@@ -224,52 +209,44 @@ const AdminLogistics = () => {
     enabled: orderIds.length > 0
   });
 
-  // Extract unique sellers and buyers from orders
-  const { uniqueSellers, uniqueBuyers } = useMemo(() => {
-    const sellersMap = new Map<string, FilterOption>();
-    const buyersMap = new Map<string, FilterOption>();
+  // Get unique sellers and buyers from ALL profiles (not just loaded orders)
+  const { data: uniqueSellers } = useQuery({
+    queryKey: ['unique-sellers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, opt_id')
+        .eq('role', 'seller')
+        .order('full_name');
+      
+      if (error) throw error;
+      
+      return (data || []).map(seller => ({
+        value: seller.id,
+        label: seller.opt_id ? `${seller.opt_id} - ${seller.full_name || 'Без имени'}` : (seller.full_name || 'Без имени'),
+        count: undefined
+      }));
+    }
+  });
 
-    orders.forEach(order => {
-      // Sellers
-      if (order.seller && order.seller_id) {
-        const sellerKey = order.seller_id;
-        if (!sellersMap.has(sellerKey)) {
-          const sellerLabel = order.seller.opt_id 
-            ? `${order.seller.opt_id} - ${order.seller.full_name || 'Без имени'}`
-            : (order.seller.full_name || 'Без имени');
-          sellersMap.set(sellerKey, {
-            value: sellerKey,
-            label: sellerLabel,
-            count: 0
-          });
-        }
-        const seller = sellersMap.get(sellerKey)!;
-        seller.count = (seller.count || 0) + 1;
-      }
-
-      // Buyers
-      if (order.buyer && order.buyer_id) {
-        const buyerKey = order.buyer_id;
-        if (!buyersMap.has(buyerKey)) {
-          const buyerLabel = order.buyer.opt_id 
-            ? `${order.buyer.opt_id} - ${order.buyer.full_name || 'Без имени'}`
-            : (order.buyer.full_name || 'Без имени');
-          buyersMap.set(buyerKey, {
-            value: buyerKey,
-            label: buyerLabel,
-            count: 0
-          });
-        }
-        const buyer = buyersMap.get(buyerKey)!;
-        buyer.count = (buyer.count || 0) + 1;
-      }
-    });
-
-    return {
-      uniqueSellers: Array.from(sellersMap.values()).sort((a, b) => a.label.localeCompare(b.label)),
-      uniqueBuyers: Array.from(buyersMap.values()).sort((a, b) => a.label.localeCompare(b.label))
-    };
-  }, [orders]);
+  const { data: uniqueBuyers } = useQuery({
+    queryKey: ['unique-buyers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, opt_id')
+        .eq('role', 'buyer')
+        .order('full_name');
+      
+      if (error) throw error;
+      
+      return (data || []).map(buyer => ({
+        value: buyer.id,
+        label: buyer.opt_id ? `${buyer.opt_id} - ${buyer.full_name || 'Без имени'}` : (buyer.full_name || 'Без имени'),
+        count: undefined
+      }));
+    }
+  });
 
   // Prepare container options for filter
   const containerOptions: FilterOption[] = useMemo(() => {
@@ -280,19 +257,10 @@ const AdminLogistics = () => {
     }));
   }, [containers]);
 
-  // Apply filters
-  const { filteredOrders, stats } = useFilteredOrders(
-    orders, 
-    filters, 
-    shipmentSummaries || new Map()
-  );
+  // Apply filters - now using server-side statistics
+  const { data: stats } = useOrdersStatistics(appliedFilters);
 
-  // Clear selection when filters change
-  useEffect(() => {
-    setSelectedOrders([]);
-  }, [filters]);
-
-  const selectedOrdersDeliverySum = filteredOrders
+  const selectedOrdersDeliverySum = orders
     ?.filter(order => selectedOrders.includes(order.id))
     .reduce((sum, order) => sum + (order.delivery_price_confirm || 0), 0);
 
@@ -397,11 +365,11 @@ const AdminLogistics = () => {
   };
 
   const handleSelectAll = () => {
-    if (filteredOrders) {
-      if (selectedOrders.length === filteredOrders.length) {
+    if (orders) {
+      if (selectedOrders.length === orders.length) {
         setSelectedOrders([]);
       } else {
-        setSelectedOrders(filteredOrders.map(order => order.id));
+        setSelectedOrders(orders.map(order => order.id));
       }
     }
   };
@@ -570,7 +538,7 @@ const AdminLogistics = () => {
       return;
     }
 
-    const selectedOrdersData = filteredOrders
+    const selectedOrdersData = orders
       .filter(order => selectedOrders.includes(order.id))
       .map(order => ({
         'Номер заказа': order.order_number,
@@ -789,12 +757,22 @@ const AdminLogistics = () => {
           </CardHeader>
           <CardContent>
             <LogisticsFilters
-              filters={filters}
-              onFiltersChange={setFilters}
-              sellers={uniqueSellers}
-              buyers={uniqueBuyers}
+              pendingFilters={pendingFilters}
+              appliedFilters={appliedFilters}
+              onPendingFiltersChange={setPendingFilters}
+              onApplyFilters={handleApplyFilters}
+              sellers={uniqueSellers || []}
+              buyers={uniqueBuyers || []}
               containers={containerOptions}
-              stats={stats}
+              stats={stats || {
+                totalOrders: 0,
+                filteredOrders: 0,
+                notShipped: 0,
+                partiallyShipped: 0,
+                inTransit: 0,
+                totalDeliveryPrice: 0
+              }}
+              hasUnappliedChanges={hasUnappliedChanges}
             />
             {selectedOrders.length > 0 && (
               <div className="mb-4 p-3 border rounded-lg bg-muted/50 flex items-center gap-4 text-sm">
@@ -840,9 +818,9 @@ const AdminLogistics = () => {
                       </SelectTrigger>
                        <SelectContent>
                          <SelectItem value="not_shipped">Не отправлен</SelectItem>
-                         {!filteredOrders.some(order => selectedOrders.includes(order.id) && order.place_number === 1) && (
-                           <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
-                         )}
+                          {!orders.some(order => selectedOrders.includes(order.id) && order.place_number === 1) && (
+                            <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
+                          )}
                          <SelectItem value="in_transit">Отправлен</SelectItem>
                       </SelectContent>
                     </Select>
@@ -903,7 +881,7 @@ const AdminLogistics = () => {
                   <TableRow>
                     <TableHead className="w-[40px]">
                       <Checkbox 
-                        checked={filteredOrders?.length > 0 && filteredOrders.length === selectedOrders.length}
+                        checked={orders?.length > 0 && orders.length === selectedOrders.length}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
@@ -996,8 +974,8 @@ const AdminLogistics = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order) => {
-                    const { buyerInfo, sellerInfo } = getCompactOrderInfo(order as Order);
+                  {orders.map((order) => {
+                    const { buyerInfo, sellerInfo } = getCompactOrderInfo(order);
                     return (
                       <TableRow key={order.id} className="text-sm">
                         <TableCell>

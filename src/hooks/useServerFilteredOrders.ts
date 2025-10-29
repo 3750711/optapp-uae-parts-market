@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { LogisticsFilters } from '@/types/logisticsFilters';
+import { Database } from "@/integrations/supabase/types";
 
 const ITEMS_PER_PAGE = 20;
 
@@ -9,26 +10,23 @@ export interface SortConfig {
   direction: 'asc' | 'desc';
 }
 
-export interface Order {
-  id: string;
-  order_number: string;
-  title: string;
-  seller_id: string;
-  buyer_id: string;
-  status: string;
-  delivery_price_confirm: number | null;
-  created_at: string;
-  buyer?: {
-    full_name: string;
-    location: string;
-    opt_id: string;
-  };
-  seller?: {
-    full_name: string;
-    location: string;
-    opt_id: string;
-  };
-}
+type ContainerStatus = 'waiting' | 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
+
+export type Order = Database['public']['Tables']['orders']['Row'] & {
+  buyer: {
+    full_name: string | null;
+    location: string | null;
+    opt_id: string | null;
+  } | null;
+  seller: {
+    full_name: string | null;
+    location: string | null;
+    opt_id: string | null;
+  } | null;
+  containers: {
+    status: ContainerStatus | null;
+  } | null;
+};
 
 export const useServerFilteredOrders = (
   appliedFilters: LogisticsFilters,
@@ -46,7 +44,8 @@ export const useServerFilteredOrders = (
         .select(`
           *,
           buyer:profiles!orders_buyer_id_fkey (full_name, location, opt_id),
-          seller:profiles!orders_seller_id_fkey (full_name, location, opt_id)
+          seller:profiles!orders_seller_id_fkey (full_name, location, opt_id),
+          containers(status)
         `, { count: 'exact' });
 
       // 2. ФИЛЬТР: Текстовый поиск
