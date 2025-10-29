@@ -310,7 +310,7 @@ const SellerOrders = () => {
       <ProtectedRoute allowedRoles={['seller']}>
         <Layout language={language}>
           <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
-            <BackButton fallback="/seller/dashboard" variant="outline" className="mb-6" />
+            <BackButton to="/seller" variant="outline" className="mb-6" />
             
             <div className="flex justify-center items-center min-h-[60vh]">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -326,7 +326,7 @@ const SellerOrders = () => {
       <Layout language={language}>
         <div className="container mx-auto px-4 md:px-8 py-6 md:py-8">
           <div className="flex flex-col gap-4 md:gap-6">
-            <BackButton fallback="/seller/dashboard" variant="outline" className="mb-4" />
+            <BackButton to="/seller" variant="outline" className="mb-4" />
             
             <div className="mb-6">
               <h1 className="text-2xl md:text-3xl font-bold mb-2">{t.pageTitle}</h1>

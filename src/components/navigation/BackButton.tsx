@@ -9,6 +9,7 @@ interface BackButtonProps {
   className?: string;
   label?: string;
   fallback?: string;
+  to?: string; // Explicit navigation path instead of browser history
   variant?: ButtonProps["variant"];
   size?: ButtonProps["size"];
 }
@@ -17,6 +18,7 @@ const BackButton: React.FC<BackButtonProps> = ({
   className,
   label,
   fallback = "/",
+  to,
   variant = "ghost",
   size = "sm",
 }) => {
@@ -33,14 +35,19 @@ const BackButton: React.FC<BackButtonProps> = ({
     setIsNavigating(true);
     
     try {
-      navigate(-1);
+      // If explicit 'to' path is provided, use it instead of browser history
+      if (to) {
+        navigate(to);
+      } else {
+        navigate(-1);
+      }
     } catch (e) {
       navigate(fallback);
     } finally {
       // Reset after navigation completes
       setTimeout(() => setIsNavigating(false), 500);
     }
-  }, [isNavigating, navigate, fallback]);
+  }, [isNavigating, navigate, fallback, to]);
 
   return (
     <Button
