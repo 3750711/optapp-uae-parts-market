@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -57,6 +57,9 @@ import { useOrderPlacesSync } from '@/hooks/useOrderPlacesSync';
 import { ContainersList } from "@/components/admin/logistics/ContainersList";
 import { ContainerEditableWrapper } from "@/components/admin/logistics/ContainerEditableWrapper";
 import { useBatchOrderShipmentSummary } from '@/hooks/useBatchOrderShipmentSummary';
+import { LogisticsFilters } from "@/components/admin/logistics/LogisticsFilters";
+import { useFilteredOrders } from "@/hooks/useFilteredOrders";
+import { LogisticsFilters as LogisticsFiltersType, FilterOption } from "@/types/logisticsFilters";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -119,6 +122,17 @@ const AdminLogistics = () => {
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [managingPlacesOrderId, setManagingPlacesOrderId] = useState<string | null>(null);
   const [showContainerManagement, setShowContainerManagement] = useState(false);
+
+  // Filters state
+  const [filters, setFilters] = useState<LogisticsFiltersType>({
+    sellerIds: [],
+    buyerIds: [],
+    containerNumbers: [],
+    shipmentStatuses: [],
+    containerStatuses: [],
+    orderStatuses: [],
+    searchTerm: ''
+  });
 
   // Auto-refresh logistics data every 60 seconds
   useEffect(() => {
@@ -210,7 +224,75 @@ const AdminLogistics = () => {
     enabled: orderIds.length > 0
   });
 
-  const selectedOrdersDeliverySum = orders
+  // Extract unique sellers and buyers from orders
+  const { uniqueSellers, uniqueBuyers } = useMemo(() => {
+    const sellersMap = new Map<string, FilterOption>();
+    const buyersMap = new Map<string, FilterOption>();
+
+    orders.forEach(order => {
+      // Sellers
+      if (order.seller && order.seller_id) {
+        const sellerKey = order.seller_id;
+        if (!sellersMap.has(sellerKey)) {
+          const sellerLabel = order.seller.opt_id 
+            ? `${order.seller.opt_id} - ${order.seller.full_name || 'Без имени'}`
+            : (order.seller.full_name || 'Без имени');
+          sellersMap.set(sellerKey, {
+            value: sellerKey,
+            label: sellerLabel,
+            count: 0
+          });
+        }
+        const seller = sellersMap.get(sellerKey)!;
+        seller.count = (seller.count || 0) + 1;
+      }
+
+      // Buyers
+      if (order.buyer && order.buyer_id) {
+        const buyerKey = order.buyer_id;
+        if (!buyersMap.has(buyerKey)) {
+          const buyerLabel = order.buyer.opt_id 
+            ? `${order.buyer.opt_id} - ${order.buyer.full_name || 'Без имени'}`
+            : (order.buyer.full_name || 'Без имени');
+          buyersMap.set(buyerKey, {
+            value: buyerKey,
+            label: buyerLabel,
+            count: 0
+          });
+        }
+        const buyer = buyersMap.get(buyerKey)!;
+        buyer.count = (buyer.count || 0) + 1;
+      }
+    });
+
+    return {
+      uniqueSellers: Array.from(sellersMap.values()).sort((a, b) => a.label.localeCompare(b.label)),
+      uniqueBuyers: Array.from(buyersMap.values()).sort((a, b) => a.label.localeCompare(b.label))
+    };
+  }, [orders]);
+
+  // Prepare container options for filter
+  const containerOptions: FilterOption[] = useMemo(() => {
+    return (containers || []).map(container => ({
+      value: container.container_number,
+      label: container.container_number,
+      count: undefined
+    }));
+  }, [containers]);
+
+  // Apply filters
+  const { filteredOrders, stats } = useFilteredOrders(
+    orders, 
+    filters, 
+    shipmentSummaries || new Map()
+  );
+
+  // Clear selection when filters change
+  useEffect(() => {
+    setSelectedOrders([]);
+  }, [filters]);
+
+  const selectedOrdersDeliverySum = filteredOrders
     ?.filter(order => selectedOrders.includes(order.id))
     .reduce((sum, order) => sum + (order.delivery_price_confirm || 0), 0);
 
@@ -315,11 +397,11 @@ const AdminLogistics = () => {
   };
 
   const handleSelectAll = () => {
-    if (orders) {
-      if (selectedOrders.length === orders.length) {
+    if (filteredOrders) {
+      if (selectedOrders.length === filteredOrders.length) {
         setSelectedOrders([]);
       } else {
-        setSelectedOrders(orders.map(order => order.id));
+        setSelectedOrders(filteredOrders.map(order => order.id));
       }
     }
   };
@@ -488,7 +570,7 @@ const AdminLogistics = () => {
       return;
     }
 
-    const selectedOrdersData = orders
+    const selectedOrdersData = filteredOrders
       .filter(order => selectedOrders.includes(order.id))
       .map(order => ({
         'Номер заказа': order.order_number,
@@ -706,6 +788,14 @@ const AdminLogistics = () => {
             </div>
           </CardHeader>
           <CardContent>
+            <LogisticsFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              sellers={uniqueSellers}
+              buyers={uniqueBuyers}
+              containers={containerOptions}
+              stats={stats}
+            />
             {selectedOrders.length > 0 && (
               <div className="mb-4 p-3 border rounded-lg bg-muted/50 flex items-center gap-4 text-sm">
                 <span>Выбрано: {selectedOrders.length}</span>
@@ -748,9 +838,9 @@ const AdminLogistics = () => {
                       <SelectTrigger className="w-[200px] h-8 text-sm">
                         <SelectValue>{getShipmentStatusLabel(bulkShipmentStatus)}</SelectValue>
                       </SelectTrigger>
-                      <SelectContent>
+                       <SelectContent>
                          <SelectItem value="not_shipped">Не отправлен</SelectItem>
-                         {!orders.some(order => selectedOrders.includes(order.id) && order.place_number === 1) && (
+                         {!filteredOrders.some(order => selectedOrders.includes(order.id) && order.place_number === 1) && (
                            <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
                          )}
                          <SelectItem value="in_transit">Отправлен</SelectItem>
@@ -813,7 +903,7 @@ const AdminLogistics = () => {
                   <TableRow>
                     <TableHead className="w-[40px]">
                       <Checkbox 
-                        checked={orders?.length > 0 && orders.length === selectedOrders.length}
+                        checked={filteredOrders?.length > 0 && filteredOrders.length === selectedOrders.length}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
@@ -906,8 +996,8 @@ const AdminLogistics = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map((order) => {
-                    const { buyerInfo, sellerInfo } = getCompactOrderInfo(order);
+                  {filteredOrders.map((order) => {
+                    const { buyerInfo, sellerInfo } = getCompactOrderInfo(order as Order);
                     return (
                       <TableRow key={order.id} className="text-sm">
                         <TableCell>
@@ -936,7 +1026,7 @@ const AdminLogistics = () => {
                           }
                         </TableCell>
                         <TableCell>
-                          <OrderStatusBadge status={order.status} />
+                          <OrderStatusBadge status={order.status as any} />
                         </TableCell>
                         <TableCell>
                            {editingContainer === order.id ? (
