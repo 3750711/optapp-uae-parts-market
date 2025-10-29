@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Dialog,
   DialogContent,
@@ -169,6 +170,15 @@ const AdminLogistics = () => {
     setSelectedOrders([]);
   };
 
+  // Debounced search - применяется автоматически
+  const debouncedSearchTerm = useDebounce(pendingFilters.searchTerm, 500);
+
+  useEffect(() => {
+    if (debouncedSearchTerm !== appliedFilters.searchTerm) {
+      setAppliedFilters(prev => ({ ...prev, searchTerm: debouncedSearchTerm }));
+    }
+  }, [debouncedSearchTerm, appliedFilters.searchTerm]);
+
   // Auto-refresh logistics data every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -191,23 +201,24 @@ const AdminLogistics = () => {
   } = useServerFilteredOrders(appliedFilters, sortConfig);
 
   useEffect(() => {
+    const currentRef = loadMoreRef.current; // Сохраняем ссылку
+    
+    if (!currentRef || !hasNextPage || isFetchingNextPage) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+        if (entries[0].isIntersecting) {
           fetchNextPage();
         }
       },
       { threshold: 0.5 }
     );
 
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
+    observer.observe(currentRef);
 
     return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
+      observer.unobserve(currentRef); // Используем сохраненную ссылку
+      observer.disconnect();
     };
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 

@@ -1,24 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 
-export const useDebounce = <T>(value: T, delay: number): T => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+/**
+ * Хук для debounce значения
+ * @param value - значение для debounce
+ * @param delay - задержка в миллисекундах (по умолчанию 500ms)
+ * @returns debounced значение
+ */
+export function useDebounce<T>(value: T, delay: number = 500): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
   useEffect(() => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    timeoutRef.current = setTimeout(() => {
+    const handler = setTimeout(() => {
       setDebouncedValue(value);
     }, delay);
 
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      clearTimeout(handler);
     };
   }, [value, delay]);
 
   return debouncedValue;
-};
+}

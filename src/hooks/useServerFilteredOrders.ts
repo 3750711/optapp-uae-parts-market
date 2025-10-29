@@ -69,55 +69,68 @@ export const useServerFilteredOrders = (
         query = query.in('status', appliedFilters.orderStatuses);
       }
 
-      // 6. ФИЛЬТР: Контейнеры (через RPC)
-      let containerFilteredIds: string[] | null = null;
+      // 6-8. ФИЛЬТРЫ через RPC (параллельно)
+      const rpcCalls: Promise<string[] | null>[] = [];
+
+      // Добавляем RPC вызов для контейнеров
       if (appliedFilters.containerNumbers.length > 0) {
-        const { data: orderIds, error } = await supabase
-          .rpc('filter_orders_by_containers', { 
+        rpcCalls.push(
+          supabase.rpc('filter_orders_by_containers', { 
             container_numbers: appliedFilters.containerNumbers 
-          });
-        
-        if (error) throw error;
-        
-        if (orderIds && orderIds.length > 0) {
-          containerFilteredIds = orderIds.map(row => row.order_id);
-        } else {
-          // Если нет заказов с такими контейнерами - возвращаем пустой результат
-          return { orders: [], totalCount: 0 };
-        }
+          }).then(({ data, error }) => {
+            if (error) throw error;
+            return data && data.length > 0 ? data.map(row => row.order_id) : [];
+          })
+        );
       }
 
-      // 7. ФИЛЬТР: Статусы контейнеров (через RPC)
-      let containerStatusFilteredIds: string[] | null = null;
+      // Добавляем RPC вызов для статусов контейнеров
       if (appliedFilters.containerStatuses.length > 0) {
-        const { data: orderIds, error } = await supabase
-          .rpc('filter_orders_by_container_statuses', { 
+        rpcCalls.push(
+          supabase.rpc('filter_orders_by_container_statuses', { 
             container_statuses: appliedFilters.containerStatuses 
-          });
-        
-        if (error) throw error;
-        
-        if (orderIds && orderIds.length > 0) {
-          containerStatusFilteredIds = orderIds.map(row => row.order_id);
-        } else {
-          return { orders: [], totalCount: 0 };
-        }
+          }).then(({ data, error }) => {
+            if (error) throw error;
+            return data && data.length > 0 ? data.map(row => row.order_id) : [];
+          })
+        );
       }
 
-      // 8. ФИЛЬТР: Статусы отгрузки (через RPC)
-      let shipmentStatusFilteredIds: string[] | null = null;
+      // Добавляем RPC вызов для статусов отгрузки
       if (appliedFilters.shipmentStatuses.length > 0) {
-        const { data: orderIds, error } = await supabase
-          .rpc('filter_orders_by_shipment_statuses', { 
+        rpcCalls.push(
+          supabase.rpc('filter_orders_by_shipment_statuses', { 
             shipment_statuses: appliedFilters.shipmentStatuses 
-          });
+          }).then(({ data, error }) => {
+            if (error) throw error;
+            return data && data.length > 0 ? data.map(row => row.order_id) : [];
+          })
+        );
+      }
+
+      let containerFilteredIds: string[] | null = null;
+      let containerStatusFilteredIds: string[] | null = null;
+      let shipmentStatusFilteredIds: string[] | null = null;
+
+      // Выполняем все RPC параллельно
+      if (rpcCalls.length > 0) {
+        const results = await Promise.all(rpcCalls);
         
-        if (error) throw error;
-        
-        if (orderIds && orderIds.length > 0) {
-          shipmentStatusFilteredIds = orderIds.map(row => row.order_id);
-        } else {
+        // Если хоть один вернул пустой массив - нет пересечения
+        if (results.some(r => r.length === 0)) {
           return { orders: [], totalCount: 0 };
+        }
+
+        // Распределяем результаты по переменным
+        let resultIndex = 0;
+        if (appliedFilters.containerNumbers.length > 0) {
+          containerFilteredIds = results[resultIndex++];
+        }
+        if (appliedFilters.containerStatuses.length > 0) {
+          containerStatusFilteredIds = results[resultIndex++];
+        }
+        if (appliedFilters.shipmentStatuses.length > 0) {
+          shipmentStatusFilteredIds = results[resultIndex++];
         }
       }
 

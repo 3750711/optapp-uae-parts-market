@@ -44,70 +44,76 @@ export const useOrdersStatistics = (appliedFilters: LogisticsFilters) => {
         query = query.in('status', appliedFilters.orderStatuses);
       }
 
-      // Применяем RPC фильтры
-      let containerFilteredIds: string[] | null = null;
+      // RPC фильтры (параллельно для производительности)
+      const rpcCalls: Promise<string[] | null>[] = [];
+      const emptyStats = {
+        totalOrders: totalCount || 0,
+        filteredOrders: 0,
+        notShipped: 0,
+        partiallyShipped: 0,
+        inTransit: 0,
+        totalDeliveryPrice: 0
+      };
+
+      // Добавляем RPC вызов для контейнеров
       if (appliedFilters.containerNumbers.length > 0) {
-        const { data: orderIds, error } = await supabase
-          .rpc('filter_orders_by_containers', { 
+        rpcCalls.push(
+          supabase.rpc('filter_orders_by_containers', { 
             container_numbers: appliedFilters.containerNumbers 
-          });
-        
-        if (error) throw error;
-        if (orderIds && orderIds.length > 0) {
-          containerFilteredIds = orderIds.map(row => row.order_id);
-        } else {
-          return {
-            totalOrders: 0,
-            filteredOrders: 0,
-            notShipped: 0,
-            partiallyShipped: 0,
-            inTransit: 0,
-            totalDeliveryPrice: 0
-          };
-        }
+          }).then(({ data, error }) => {
+            if (error) throw error;
+            return data && data.length > 0 ? data.map(row => row.order_id) : [];
+          })
+        );
       }
 
-      let containerStatusFilteredIds: string[] | null = null;
+      // Добавляем RPC вызов для статусов контейнеров
       if (appliedFilters.containerStatuses.length > 0) {
-        const { data: orderIds, error } = await supabase
-          .rpc('filter_orders_by_container_statuses', { 
+        rpcCalls.push(
+          supabase.rpc('filter_orders_by_container_statuses', { 
             container_statuses: appliedFilters.containerStatuses 
-          });
-        
-        if (error) throw error;
-        if (orderIds && orderIds.length > 0) {
-          containerStatusFilteredIds = orderIds.map(row => row.order_id);
-        } else {
-          return {
-            totalOrders: 0,
-            filteredOrders: 0,
-            notShipped: 0,
-            partiallyShipped: 0,
-            inTransit: 0,
-            totalDeliveryPrice: 0
-          };
-        }
+          }).then(({ data, error }) => {
+            if (error) throw error;
+            return data && data.length > 0 ? data.map(row => row.order_id) : [];
+          })
+        );
       }
 
-      let shipmentStatusFilteredIds: string[] | null = null;
+      // Добавляем RPC вызов для статусов отгрузки
       if (appliedFilters.shipmentStatuses.length > 0) {
-        const { data: orderIds, error } = await supabase
-          .rpc('filter_orders_by_shipment_statuses', { 
+        rpcCalls.push(
+          supabase.rpc('filter_orders_by_shipment_statuses', { 
             shipment_statuses: appliedFilters.shipmentStatuses 
-          });
+          }).then(({ data, error }) => {
+            if (error) throw error;
+            return data && data.length > 0 ? data.map(row => row.order_id) : [];
+          })
+        );
+      }
+
+      let containerFilteredIds: string[] | null = null;
+      let containerStatusFilteredIds: string[] | null = null;
+      let shipmentStatusFilteredIds: string[] | null = null;
+
+      // Выполняем все RPC параллельно
+      if (rpcCalls.length > 0) {
+        const results = await Promise.all(rpcCalls);
         
-        if (error) throw error;
-        if (orderIds && orderIds.length > 0) {
-          shipmentStatusFilteredIds = orderIds.map(row => row.order_id);
-        } else {
-          return {
-            totalOrders: 0,
-            filteredOrders: 0,
-            notShipped: 0,
-            partiallyShipped: 0,
-            inTransit: 0,
-            totalDeliveryPrice: 0
-          };
+        // Если хоть один вернул пустой массив - нет результатов
+        if (results.some(r => r.length === 0)) {
+          return emptyStats;
+        }
+
+        // Распределяем результаты по переменным
+        let resultIndex = 0;
+        if (appliedFilters.containerNumbers.length > 0) {
+          containerFilteredIds = results[resultIndex++];
+        }
+        if (appliedFilters.containerStatuses.length > 0) {
+          containerStatusFilteredIds = results[resultIndex++];
+        }
+        if (appliedFilters.shipmentStatuses.length > 0) {
+          shipmentStatusFilteredIds = results[resultIndex++];
         }
       }
 
@@ -127,14 +133,7 @@ export const useOrdersStatistics = (appliedFilters: LogisticsFilters) => {
         if (intersectedIds && intersectedIds.length > 0) {
           query = query.in('id', intersectedIds);
         } else {
-          return {
-            totalOrders: 0,
-            filteredOrders: 0,
-            notShipped: 0,
-            partiallyShipped: 0,
-            inTransit: 0,
-            totalDeliveryPrice: 0
-          };
+          return emptyStats;
         }
       }
 
@@ -145,14 +144,7 @@ export const useOrdersStatistics = (appliedFilters: LogisticsFilters) => {
       const orderIds = orders?.map(o => o.id) || [];
       
       if (orderIds.length === 0) {
-        return {
-          totalOrders: 0,
-          filteredOrders: 0,
-          notShipped: 0,
-          partiallyShipped: 0,
-          inTransit: 0,
-          totalDeliveryPrice: 0
-        };
+        return emptyStats;
       }
 
       const { data: shipmentStatuses, error: statusError } = await supabase

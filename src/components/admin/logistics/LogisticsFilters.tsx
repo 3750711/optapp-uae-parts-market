@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, X, Users, User, Package, Box, Ship, FileText, CheckCircle2 } from 'lucide-react';
+import { Search, X, Users, User, Package, Box, Ship, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -76,6 +76,9 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
   const getContainerStatusLabel = (status: string) => CONTAINER_STATUS_OPTIONS.find(s => s.value === status)?.label || status;
   const getOrderStatusLabel = (status: string) => ORDER_STATUS_OPTIONS.find(s => s.value === status)?.label || status;
 
+  // Индикатор загрузки поиска
+  const isSearching = pendingFilters.searchTerm !== appliedFilters.searchTerm;
+
   return (
     <div className="space-y-4 mb-6">
       {/* 1. ПОИСК, КНОПКА ПРИМЕНИТЬ И ОЧИСТКА */}
@@ -86,8 +89,11 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
             placeholder="Поиск по номеру заказа или названию товара..."
             value={pendingFilters.searchTerm}
             onChange={(e) => onPendingFiltersChange({ ...pendingFilters, searchTerm: e.target.value })}
-            className="pl-9"
+            className="pl-9 pr-9"
           />
+          {isSearching && (
+            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+          )}
         </div>
         
         {/* КНОПКА "ПРИМЕНИТЬ ФИЛЬТРЫ" */}
