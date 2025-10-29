@@ -208,7 +208,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
               {onImageDelete && (
                 <button
                   onClick={() => handleDelete(imageUrl)}
-                  className="absolute -top-2 -right-2 w-8 h-8 sm:w-6 sm:h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 sm:opacity-0 touch-manipulation transition-opacity shadow-lg hover:bg-destructive/90 active:scale-95"
+                  className="absolute -top-2 -right-2 w-8 h-8 sm:w-6 sm:h-6 bg-destructive text-destructive-foreground rounded-full flex items-center justify-center shadow-lg hover:bg-destructive/90 active:scale-95 touch-manipulation transition-all sm:opacity-0 sm:group-hover:opacity-100"
                   aria-label="Удалить фото"
                 >
                   <X className="w-4 h-4 sm:w-3 sm:h-3" />
