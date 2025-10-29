@@ -2954,9 +2954,20 @@ export type Database = {
         Args: { p_limit?: number; p_text: string }
         Returns: string
       }
+      batch_calculate_shipment_status: {
+        Args: { order_ids: string[] }
+        Returns: {
+          order_id: string
+          status: string
+        }[]
+      }
       calculate_content_hash: { Args: { content: string }; Returns: string }
       calculate_order_shipment_status: {
         Args: { p_order_id: string }
+        Returns: string
+      }
+      calculate_shipment_status: {
+        Args: { order_id_param: string }
         Returns: string
       }
       cancel_price_offers_for_sold_product: {
@@ -3147,6 +3158,24 @@ export type Database = {
       extract_translation_rules: {
         Args: { p_ai_suggestion: string; p_moderator_correction: string }
         Returns: Json
+      }
+      filter_orders_by_container_statuses: {
+        Args: { container_statuses: string[] }
+        Returns: {
+          order_id: string
+        }[]
+      }
+      filter_orders_by_containers: {
+        Args: { container_numbers: string[] }
+        Returns: {
+          order_id: string
+        }[]
+      }
+      filter_orders_by_shipment_statuses: {
+        Args: { shipment_statuses: string[] }
+        Returns: {
+          order_id: string
+        }[]
       }
       force_user_logout: { Args: never; Returns: undefined }
       functions_url: { Args: { p_path: string }; Returns: string }
