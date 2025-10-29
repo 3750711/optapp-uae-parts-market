@@ -1,7 +1,7 @@
 // Minimal Service Worker - Enhanced privacy + route warming
-// Version: 3.7.0-unified - Prefetch protection, WARM_ROUTE support, single SW architecture
+// Version: 3.7.1-cloudinary-fix - Prefetch protection, WARM_ROUTE support, Cloudinary widget fix
 
-const CACHE_NAME = 'offline-fallback-v3-7-0-unified';
+const CACHE_NAME = 'offline-fallback-v3-7-1-cloudinary';
 const OFFLINE_HTML = '/index.html';
 
 // 🚨 CRITICAL: Enhanced private request detection - never intercept these

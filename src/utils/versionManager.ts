@@ -1,5 +1,5 @@
 // Simple version management for critical updates
-const CURRENT_VERSION = '3.7.0-sw-unified';
+const CURRENT_VERSION = '3.7.1-cloudinary-fix';
 const VERSION_KEY = 'pb_app_version';
 
 export function checkAppVersion(): void {
@@ -15,6 +15,28 @@ export function checkAppVersion(): void {
   // Version changed - need update
   if (savedVersion !== CURRENT_VERSION) {
     console.log('🔄 New version detected:', CURRENT_VERSION, 'was:', savedVersion);
+    
+    // ✅ Агрессивная очистка для Cloudinary SDK
+    try {
+      // Очистить sessionStorage (может содержать старые данные виджета)
+      if ('sessionStorage' in window) {
+        sessionStorage.clear();
+        console.log('🗑️ SessionStorage cleared');
+      }
+      
+      // Очистить специфичные ключи localStorage для Cloudinary
+      const cloudinaryKeys = Object.keys(localStorage).filter(key => 
+        key.includes('cloudinary') || 
+        key.includes('cld-') ||
+        key.includes('upload-widget')
+      );
+      cloudinaryKeys.forEach(key => {
+        localStorage.removeItem(key);
+        console.log('🗑️ Cleared Cloudinary key:', key);
+      });
+    } catch (e) {
+      console.warn('⚠️ Storage cleanup error:', e);
+    }
     
     // Clear all caches
     if ('caches' in window) {
