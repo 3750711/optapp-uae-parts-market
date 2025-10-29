@@ -216,7 +216,7 @@ const AdminLogistics = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, opt_id')
-        .eq('role', 'seller')
+        .eq('user_type', 'seller')
         .order('full_name');
       
       if (error) throw error;
@@ -235,7 +235,7 @@ const AdminLogistics = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, opt_id')
-        .eq('role', 'buyer')
+        .eq('user_type', 'buyer')
         .order('full_name');
       
       if (error) throw error;

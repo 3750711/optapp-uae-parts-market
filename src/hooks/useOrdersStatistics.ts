@@ -15,10 +15,16 @@ export const useOrdersStatistics = (appliedFilters: LogisticsFilters) => {
   return useQuery({
     queryKey: ['orders-statistics', appliedFilters],
     queryFn: async () => {
-      // 1. Получить все IDs заказов с учетом базовых фильтров
+      // 1. Получить общее количество всех заказов в БД
+      const { count: totalCount } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true });
+
+      // 2. Получить отфильтрованные заказы с увеличенным лимитом
       let query = supabase
         .from('orders')
-        .select('id, status, delivery_price_confirm');
+        .select('id, status, delivery_price_confirm', { count: 'exact' })
+        .limit(10000);
 
       // Применяем базовые фильтры
       if (appliedFilters.searchTerm) {
@@ -132,7 +138,7 @@ export const useOrdersStatistics = (appliedFilters: LogisticsFilters) => {
         }
       }
 
-      const { data: orders, error } = await query;
+      const { data: orders, count: filteredCount, error } = await query;
       if (error) throw error;
 
       // 2. Получить статусы отгрузки для всех отфильтрованных заказов
@@ -160,8 +166,8 @@ export const useOrdersStatistics = (appliedFilters: LogisticsFilters) => {
       );
 
       const stats = {
-        totalOrders: orders?.length || 0,
-        filteredOrders: orders?.length || 0,
+        totalOrders: totalCount || 0,
+        filteredOrders: filteredCount || 0,
         notShipped: 0,
         partiallyShipped: 0,
         inTransit: 0,
