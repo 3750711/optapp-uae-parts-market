@@ -103,10 +103,25 @@ export const useOrderPlacesSync = () => {
     // If the newStatus is 'partially_shipped', it only updates the order status
     // Individual shipments can only be 'not_shipped' or 'in_transit'
     if (newStatus === 'partially_shipped') {
-      // Only update the order status, don't touch individual shipments
+      const orderUpdates: any = { shipment_status: newStatus };
+      
+      // Handle container_number update for partially_shipped status
+      if (newContainerNumber !== undefined) {
+        orderUpdates.container_number = newContainerNumber;
+        
+        // Update container_number for all shipments
+        const { error: shipmentError } = await supabase
+          .from('order_shipments')
+          .update({ container_number: newContainerNumber })
+          .eq('order_id', orderId);
+        
+        if (shipmentError) throw shipmentError;
+      }
+      
+      // Update the order
       const { error: orderError } = await supabase
         .from('orders')
-        .update({ shipment_status: newStatus })
+        .update(orderUpdates)
         .eq('id', orderId);
 
       if (orderError) throw orderError;
