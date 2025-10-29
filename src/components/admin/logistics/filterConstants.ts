@@ -20,10 +20,8 @@ export const CONTAINER_STATUS_OPTIONS: FilterOption[] = [
 ];
 
 export const ORDER_STATUS_OPTIONS: FilterOption[] = [
-  { value: 'created', label: 'Создан' },
-  { value: 'paid', label: 'Оплачен' },
-  { value: 'in_process', label: 'В обработке' },
-  { value: 'shipped', label: 'Отправлен' },
-  { value: 'delivered', label: 'Доставлен' },
-  { value: 'cancelled', label: 'Отменен' },
+  { value: 'seller_confirmed', label: '📝 Зарегистрирован' },
+  { value: 'admin_confirmed', label: '✅ Подтвержден админом' },
+  { value: 'processed', label: '⚙️ Обработан' },
+  { value: 'cancelled', label: '❌ Отменен' },
 ];
