@@ -25,7 +25,7 @@ export type Order = Database['public']['Tables']['orders']['Row'] & {
   } | null;
   containers: {
     status: ContainerStatus | null;
-  } | null;
+  }[] | null;
 };
 
 export const useServerFilteredOrders = (

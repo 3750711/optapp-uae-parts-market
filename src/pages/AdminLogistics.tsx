@@ -182,7 +182,8 @@ const AdminLogistics = () => {
   // Auto-refresh logistics data every 60 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['logistics-orders-filtered'] });
+      queryClient.invalidateQueries({ queryKey: ['orders-statistics'] });
     }, 60000);
 
     return () => {
@@ -1077,11 +1078,16 @@ const AdminLogistics = () => {
                                />
                             )}
                          </TableCell>
-                         <TableCell>
-                           <div className={`text-sm ${getStatusColor(order.containers?.status as ContainerStatus)}`}>
-                             {getStatusLabel(order.containers?.status as ContainerStatus)}
-                          </div>
-                        </TableCell>
+                          <TableCell>
+                            <div className={`text-sm ${getStatusColor(order.containers?.[0]?.status as ContainerStatus)}`}>
+                              {getStatusLabel(order.containers?.[0]?.status as ContainerStatus)}
+                              {order.containers && order.containers.length > 1 && (
+                                <span className="text-xs text-muted-foreground ml-1">
+                                  +{order.containers.length - 1}
+                                </span>
+                              )}
+                           </div>
+                         </TableCell>
                          <TableCell>
                            <SmartShipmentStatus
                              orderId={order.id}
