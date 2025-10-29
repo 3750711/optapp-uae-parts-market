@@ -367,7 +367,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   onImageUpload={() => {}}
                   onImageUploadWithCategory={step1Hook.handleWidgetUpload}
                   onImageDelete={step1Hook.handleImageDelete}
-                  maxImages={20}
+                  maxImages={50}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
                   category="chat_screenshot"
                 />
@@ -409,7 +409,7 @@ export const OrderConfirmEvidenceWizard: React.FC<OrderConfirmEvidenceWizardProp
                   onImageUpload={() => {}}
                   onImageUploadWithCategory={step2Hook.handleWidgetUpload}
                   onImageDelete={step2Hook.handleImageDelete}
-                  maxImages={20}
+                  maxImages={50}
                   disabled={!currentHook.isComponentReady || currentHook.sessionLost || currentHook.isUploading}
                   category="signed_product"
                 />

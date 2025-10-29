@@ -268,7 +268,7 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       <div className="text-xs text-gray-500 space-y-1">
         <p>• Photos are automatically compressed to 400KB and converted to WebP</p>
         <p>• Supports JPG, PNG, GIF for photos • MP4, MOV, AVI for videos</p>
-        <p>• Maximum 25 photos and 5 videos per order</p>
+        <p>• Maximum 50 photos and 5 videos per order</p>
       </div>
     </div>
   );

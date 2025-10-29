@@ -28,7 +28,7 @@ export const CloudinaryPhotoUploader: React.FC<CloudinaryPhotoUploaderProps> = (
   images = [],
   onImageUpload,
   onImageDelete,
-  maxImages = 10,
+  maxImages = 50,
   className,
   disabled = false,
   onWidgetStateChange,
