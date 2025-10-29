@@ -4,18 +4,19 @@ export type ContainerStatus = 'waiting' | 'sent_from_uae' | 'iran_transit' | 'cu
 export type OrderStatus = 'created' | 'paid' | 'in_process' | 'shipped' | 'delivered' | 'cancelled';
 
 export interface LogisticsFilters {
-  // Множественный выбор
-  sellerIds: string[];           // UUID продавцов
-  buyerIds: string[];            // UUID покупателей
-  containerNumbers: string[];    // Номера контейнеров
-  
-  // Статусы (множественный выбор)
-  shipmentStatuses: ShipmentStatus[];     
-  containerStatuses: ContainerStatus[];   
-  orderStatuses: OrderStatus[];           
-  
-  // Текстовый поиск
-  searchTerm: string;             // Поиск по номеру/названию
+  sellerIds: string[];
+  buyerIds: string[];
+  containerNumbers: string[];
+  shipmentStatuses: ShipmentStatus[];
+  containerStatuses: ContainerStatus[];
+  orderStatuses: OrderStatus[];
+  searchTerm: string;
+}
+
+// Состояние фильтров с pending/applied для кнопки "Применить"
+export interface LogisticsFiltersState {
+  pending: LogisticsFilters;   // То, что пользователь выбирает
+  applied: LogisticsFilters;   // То, что применено к запросу
 }
 
 export interface FilterOption {
