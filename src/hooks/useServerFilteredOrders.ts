@@ -48,10 +48,26 @@ export const useServerFilteredOrders = (
           containers(status)
         `, { count: 'exact' });
 
-      // 2. ФИЛЬТР: Текстовый поиск
-      if (appliedFilters.searchTerm) {
-        const term = appliedFilters.searchTerm;
-        query = query.or(`order_number.ilike.%${term}%,title.ilike.%${term}%`);
+      // === 2. SEARCH TERM (по 7 полям) ===
+      if (appliedFilters.searchTerm.trim()) {
+        const term = appliedFilters.searchTerm.trim();
+        const isNumeric = /^\d+$/.test(term);
+        
+        if (isNumeric) {
+          // Точный поиск по номеру заказа (оптимизация для чисел)
+          query = query.eq('order_number', term);
+        } else {
+          // Полнотекстовый поиск по 7 полям
+          query = query.or(`
+            title.ilike.%${term}%,
+            brand.ilike.%${term}%,
+            model.ilike.%${term}%,
+            article_number.ilike.%${term}%,
+            description.ilike.%${term}%,
+            container_number.ilike.%${term}%,
+            order_number.ilike.%${term}%
+          `.replace(/\s+/g, ''));
+        }
       }
 
       // 3. ФИЛЬТР: Продавцы

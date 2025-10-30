@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDebounce } from "@/hooks/useDebounce";
+// useDebounce removed - search now applied manually via button
 import {
   Dialog,
   DialogContent,
@@ -161,10 +161,26 @@ const AdminLogistics = () => {
     return JSON.stringify(pendingFilters) !== JSON.stringify(appliedFilters);
   }, [pendingFilters, appliedFilters]);
 
+  // Check if search term is unapplied
+  const hasUnappliedSearch = useMemo(() => {
+    return pendingFilters.searchTerm !== appliedFilters.searchTerm;
+  }, [pendingFilters.searchTerm, appliedFilters.searchTerm]);
+
   // Function to apply filters
   const handleApplyFilters = () => {
     setAppliedFilters({ ...pendingFilters });
     setSelectedOrders([]); // Clear selection when filters change
+  };
+
+  // Function to apply only search term
+  const handleApplySearch = () => {
+    setAppliedFilters(prev => ({ ...prev, searchTerm: pendingFilters.searchTerm }));
+  };
+
+  // Function to clear search
+  const handleClearSearch = () => {
+    setPendingFilters(prev => ({ ...prev, searchTerm: '' }));
+    setAppliedFilters(prev => ({ ...prev, searchTerm: '' }));
   };
 
   // Function to clear all filters
@@ -195,14 +211,7 @@ const AdminLogistics = () => {
     setSelectedOrders([]);
   };
 
-  // Debounced search - применяется автоматически
-  const debouncedSearchTerm = useDebounce(pendingFilters.searchTerm, 500);
-
-  useEffect(() => {
-    if (debouncedSearchTerm !== appliedFilters.searchTerm) {
-      setAppliedFilters(prev => ({ ...prev, searchTerm: debouncedSearchTerm }));
-    }
-  }, [debouncedSearchTerm, appliedFilters.searchTerm]);
+  // Search now applied manually via button - no debounce
 
   // Auto-refresh logistics data every 60 seconds
   useEffect(() => {
@@ -813,6 +822,8 @@ const AdminLogistics = () => {
               appliedFilters={appliedFilters}
               onPendingFiltersChange={setPendingFilters}
               onApplyFilters={handleApplyFilters}
+              onApplySearch={handleApplySearch}
+              onClearSearch={handleClearSearch}
               onRemoveFilter={handleRemoveFilter}
               onClearFilters={handleClearFilters}
               sellers={uniqueSellers || []}
@@ -827,6 +838,7 @@ const AdminLogistics = () => {
                 totalDeliveryPrice: 0
               }}
               hasUnappliedChanges={hasUnappliedChanges}
+              hasUnappliedSearch={hasUnappliedSearch}
             />
             {selectedOrders.length > 0 && (
               <div className="mb-4 p-3 border rounded-lg bg-muted/50 flex items-center gap-4 text-sm">

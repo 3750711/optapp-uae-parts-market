@@ -14,6 +14,8 @@ interface LogisticsFiltersProps {
   appliedFilters: LogisticsFiltersType;
   onPendingFiltersChange: (filters: LogisticsFiltersType) => void;
   onApplyFilters: () => void;
+  onApplySearch: () => void;
+  onClearSearch: () => void;
   onRemoveFilter: (key: keyof LogisticsFiltersType, value: string) => void;
   onClearFilters: () => void;
   sellers: FilterOption[];
@@ -21,6 +23,7 @@ interface LogisticsFiltersProps {
   containers: FilterOption[];
   stats: FilterStats;
   hasUnappliedChanges: boolean;
+  hasUnappliedSearch: boolean;
 }
 
 export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
@@ -28,13 +31,16 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
   appliedFilters,
   onPendingFiltersChange,
   onApplyFilters,
+  onApplySearch,
+  onClearSearch,
   onRemoveFilter,
   onClearFilters,
   sellers,
   buyers,
   containers,
   stats,
-  hasUnappliedChanges
+  hasUnappliedChanges,
+  hasUnappliedSearch
 }) => {
   const [openPopover, setOpenPopover] = useState<string | null>(null);
 
@@ -76,25 +82,46 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
   const getContainerStatusLabel = (status: string) => CONTAINER_STATUS_OPTIONS.find(s => s.value === status)?.label || status;
   const getOrderStatusLabel = (status: string) => ORDER_STATUS_OPTIONS.find(s => s.value === status)?.label || status;
 
-  // Индикатор загрузки поиска
-  const isSearching = pendingFilters.searchTerm !== appliedFilters.searchTerm;
-
   return (
     <div className="space-y-4 mb-6">
-      {/* 1. ПОИСК, КНОПКА ПРИМЕНИТЬ И ОЧИСТКА */}
+      {/* 1. ПОИСК, КНОПКА "НАЙТИ" И ОЧИСТКА */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Поиск по номеру заказа или названию товара..."
+            placeholder="Поиск по номеру заказа, названию товара, артикулу..."
             value={pendingFilters.searchTerm}
             onChange={(e) => onPendingFiltersChange({ ...pendingFilters, searchTerm: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && hasUnappliedSearch) {
+                onApplySearch();
+              }
+            }}
             className="pl-9 pr-9"
           />
-          {isSearching && (
-            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+          {pendingFilters.searchTerm && (
+            <X 
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 cursor-pointer text-muted-foreground hover:text-foreground" 
+              onClick={onClearSearch}
+            />
           )}
         </div>
+        
+        {/* КНОПКА "НАЙТИ" */}
+        <Button 
+          onClick={onApplySearch}
+          disabled={!hasUnappliedSearch}
+          variant={hasUnappliedSearch ? "default" : "outline"}
+          size="default"
+        >
+          <Search className="h-4 w-4 mr-2" />
+          Найти
+          {hasUnappliedSearch && (
+            <Badge variant="secondary" className="ml-2 bg-orange-500 text-white">
+              !
+            </Badge>
+          )}
+        </Button>
         
         {/* КНОПКА "ПРИМЕНИТЬ ФИЛЬТРЫ" */}
         <Button 
@@ -124,6 +151,17 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
       {hasActiveFilters && (
         <div className="flex flex-wrap gap-2 p-3 bg-muted/50 rounded-lg">
           <span className="text-sm font-medium text-muted-foreground">Активные фильтры:</span>
+          
+          {/* Badge для поиска */}
+          {appliedFilters.searchTerm && (
+            <Badge variant="secondary" className="gap-1">
+              🔍 "{appliedFilters.searchTerm}"
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                onClick={onClearSearch}
+              />
+            </Badge>
+          )}
           
           {/* Продавцы */}
           {appliedFilters.sellerIds.map(sellerId => (
