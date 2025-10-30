@@ -256,13 +256,23 @@ const AdminLogistics = () => {
   }, [data, appliedFilters.searchTerm]);
 
   useEffect(() => {
-    const currentRef = loadMoreRef.current; // Сохраняем ссылку
+    const currentRef = loadMoreRef.current;
     
-    if (!currentRef || !hasNextPage || isFetchingNextPage) return;
+    if (!currentRef || !hasNextPage || isFetchingNextPage) {
+      console.log('⏸️ [Infinite Scroll] Observer disabled:', {
+        hasRef: !!currentRef,
+        hasNextPage,
+        isFetchingNextPage
+      });
+      return;
+    }
+
+    console.log('👀 [Infinite Scroll] Observer enabled');
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          console.log('🔽 [Infinite Scroll] Loading next page...');
           fetchNextPage();
         }
       },
@@ -272,13 +282,24 @@ const AdminLogistics = () => {
     observer.observe(currentRef);
 
     return () => {
-      observer.unobserve(currentRef); // Используем сохраненную ссылку
+      observer.unobserve(currentRef);
       observer.disconnect();
     };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage]);
 
   const orders = data?.pages.flatMap(page => page.orders) || [];
   const totalCount = data?.pages[0]?.totalCount || 0;
+
+  // Debug: track hasNextPage changes
+  useEffect(() => {
+    console.log('🔄 [Pagination Status]', {
+      hasNextPage,
+      isFetchingNextPage,
+      loadedOrders: orders.length,
+      totalCount,
+      pages: data?.pages.length || 0
+    });
+  }, [hasNextPage, isFetchingNextPage, orders.length, totalCount, data?.pages.length]);
 
   // Batch fetch shipment summaries for all orders to solve N+1 problem
   const orderIds = orders.map(order => order.id);
@@ -1266,16 +1287,19 @@ const AdminLogistics = () => {
             )}
             <div ref={loadMoreRef} className="py-4 text-center">
               {isFetchingNextPage ? (
-                <div className="flex justify-center items-center py-4">
+                <div className="flex justify-center items-center py-4 gap-2">
                   <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="text-sm text-muted-foreground">
+                    Загрузка заказов...
+                  </span>
                 </div>
               ) : hasNextPage ? (
                 <div className="text-sm text-muted-foreground">
-                  Прокрутите вниз для загрузки дополнительных заказов
+                  Прокрутите вниз для загрузки дополнительных заказов ({orders.length} из {totalCount})
                 </div>
               ) : orders.length > 0 ? (
                 <div className="text-sm text-muted-foreground">
-                  Все заказы загружены
+                  ✅ Все заказы загружены ({orders.length} из {totalCount})
                 </div>
               ) : null}
             </div>

@@ -209,10 +209,23 @@ export const useServerFilteredOrders = (
       };
     },
     getNextPageParam: (lastPage, allPages) => {
-      return lastPage?.orders.length === ITEMS_PER_PAGE ? allPages.length : undefined;
+      const loadedOrders = allPages.reduce((acc, page) => acc + page.orders.length, 0);
+      const totalCount = lastPage?.totalCount || 0;
+      
+      console.log('🔄 [Pagination] getNextPageParam:', {
+        loadedOrders,
+        totalCount,
+        hasMore: loadedOrders < totalCount,
+        nextPageParam: loadedOrders < totalCount ? allPages.length : undefined
+      });
+      
+      // Есть еще страницы только если загружено меньше чем totalCount
+      return loadedOrders < totalCount ? allPages.length : undefined;
     },
     initialPageParam: 0,
     staleTime: 30000, // 30 секунд
     gcTime: 5 * 60 * 1000, // 5 минут
+    refetchOnWindowFocus: false,
+    refetchOnMount: false
   });
 };
