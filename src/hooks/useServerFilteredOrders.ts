@@ -102,27 +102,15 @@ export const useServerFilteredOrders = (
           });
           
           // 1️⃣ Базовый поиск С оригинальными пробелами
-          let searchConditions = `
-            title.ilike.%${term}%,
-            brand.ilike.%${term}%,
-            model.ilike.%${term}%,
-            description.ilike.%${term}%,
-            container_number.ilike.%${term}%
-          `;
-          
+          let searchConditions = `title.ilike.%${term}%,brand.ilike.%${term}%,model.ilike.%${term}%,description.ilike.%${term}%,container_number.ilike.%${term}%`;
+
           // 2️⃣ Если есть пробелы, добавляем дополнительный поиск БЕЗ пробелов
           const termWithoutSpaces = term.replace(/\s+/g, '');
           if (termWithoutSpaces !== term) {
             console.log('📝 [Search] Adding no-space fallback:', termWithoutSpaces);
-            searchConditions += `,
-              title.ilike.%${termWithoutSpaces}%,
-              brand.ilike.%${termWithoutSpaces}%,
-              model.ilike.%${termWithoutSpaces}%,
-              description.ilike.%${termWithoutSpaces}%,
-              container_number.ilike.%${termWithoutSpaces}%
-            `;
+            searchConditions += `,title.ilike.%${termWithoutSpaces}%,brand.ilike.%${termWithoutSpaces}%,model.ilike.%${termWithoutSpaces}%,description.ilike.%${termWithoutSpaces}%,container_number.ilike.%${termWithoutSpaces}%`;
           }
-          
+
           // 3️⃣ Если есть числовая часть, добавляем поиск по числовым полям
           const numericPart = term.match(/\d+(\.\d+)?/)?.[0];
           if (numericPart) {
@@ -131,8 +119,9 @@ export const useServerFilteredOrders = (
             console.log('🔢 [Search] Adding numeric search:', { intValue, numValue });
             searchConditions += `,order_number.eq.${intValue},price.eq.${numValue},delivery_price_confirm.eq.${numValue}`;
           }
-          
-          query = query.or(searchConditions.replace(/\s+/g, ''));
+
+          // Передаём без дополнительной обработки
+          query = query.or(searchConditions);
         }
       }
 
