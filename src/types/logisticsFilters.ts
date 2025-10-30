@@ -11,6 +11,7 @@ export interface LogisticsFilters {
   containerStatuses: ContainerStatus[];
   orderStatuses: OrderStatus[];
   searchTerm: string;
+  readyForShipment: boolean | null;
 }
 
 // Состояние фильтров с pending/applied для кнопки "Применить"

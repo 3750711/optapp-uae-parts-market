@@ -121,7 +121,12 @@ export const useServerFilteredOrders = (
         query = query.in('status', appliedFilters.orderStatuses);
       }
 
-      // 6-8. ФИЛЬТРЫ через RPC (параллельно)
+      // 6. ФИЛЬТР: Готовность к отправке
+      if (appliedFilters.readyForShipment !== null) {
+        query = query.eq('ready_for_shipment', appliedFilters.readyForShipment);
+      }
+
+      // 7-9. ФИЛЬТРЫ через RPC (параллельно)
       const rpcCalls: Promise<string[] | null>[] = [];
 
       // Добавляем RPC вызов для контейнеров

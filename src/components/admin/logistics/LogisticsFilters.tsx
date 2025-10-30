@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, X, Users, User, Package, Box, Ship, FileText, CheckCircle2, Loader2 } from 'lucide-react';
+import { Search, X, Users, User, Package, Box, Ship, FileText, CheckCircle2, Loader2, CheckSquare } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -72,7 +72,8 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
     appliedFilters.shipmentStatuses.length > 0 ||
     appliedFilters.containerStatuses.length > 0 ||
     appliedFilters.orderStatuses.length > 0 ||
-    appliedFilters.searchTerm.length > 0;
+    appliedFilters.searchTerm.length > 0 ||
+    appliedFilters.readyForShipment !== null;
 
   // Функции для получения label по value
   const getSellerLabel = (id: string) => sellers.find(s => s.value === id)?.label || id;
@@ -234,6 +235,21 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
               />
             </Badge>
           ))}
+
+          {/* Готовность к отправке */}
+          {appliedFilters.readyForShipment !== null && (
+            <Badge variant="secondary" className="gap-1">
+              ✅ {appliedFilters.readyForShipment ? 'Готовые к отправке' : 'Неготовые'}
+              <X 
+                className="h-3 w-3 cursor-pointer hover:text-destructive" 
+                onClick={() => {
+                  const newFilters = { ...appliedFilters, readyForShipment: null };
+                  onPendingFiltersChange(newFilters);
+                  onApplyFilters();
+                }}
+              />
+            </Badge>
+          )}
         </div>
       )}
 
@@ -374,6 +390,65 @@ export const LogisticsFilters: React.FC<LogisticsFiltersProps> = ({
               selectedValues={pendingFilters.orderStatuses}
               onToggle={(value) => toggleFilter('orderStatuses', value)}
             />
+          </PopoverContent>
+        </Popover>
+
+        {/* Готовность к отправке */}
+        <Popover open={openPopover === 'readyForShipment'} onOpenChange={(open) => setOpenPopover(open ? 'readyForShipment' : null)}>
+          <PopoverTrigger asChild>
+            <Button 
+              variant={pendingFilters.readyForShipment !== null ? "default" : "outline"} 
+              size="sm"
+              className={pendingFilters.readyForShipment === true ? "bg-green-600 hover:bg-green-700" : ""}
+            >
+              <CheckSquare className="h-4 w-4 mr-2" />
+              Готовые к отправке
+              {pendingFilters.readyForShipment !== null && (
+                <Badge variant="secondary" className="ml-2 bg-white text-black">
+                  {pendingFilters.readyForShipment ? 'Да' : 'Нет'}
+                </Badge>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64">
+            <div className="space-y-3">
+              <h4 className="font-medium text-sm">Готовность к отправке</h4>
+              <div className="space-y-2">
+                <Button
+                  variant={pendingFilters.readyForShipment === null ? "default" : "outline"}
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    onPendingFiltersChange({ ...pendingFilters, readyForShipment: null });
+                    setOpenPopover(null);
+                  }}
+                >
+                  Все заказы
+                </Button>
+                <Button
+                  variant={pendingFilters.readyForShipment === true ? "default" : "outline"}
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    onPendingFiltersChange({ ...pendingFilters, readyForShipment: true });
+                    setOpenPopover(null);
+                  }}
+                >
+                  ✅ Только готовые
+                </Button>
+                <Button
+                  variant={pendingFilters.readyForShipment === false ? "default" : "outline"}
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    onPendingFiltersChange({ ...pendingFilters, readyForShipment: false });
+                    setOpenPopover(null);
+                  }}
+                >
+                  ❌ Только неготовые
+                </Button>
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
       </div>

@@ -21,7 +21,8 @@ const defaultSettings: LogisticsSettings = {
     shipmentStatuses: [],
     containerStatuses: [],
     orderStatuses: [],
-    searchTerm: ''
+    searchTerm: '',
+    readyForShipment: null
   },
   sortConfig: {
     field: null,
