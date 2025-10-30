@@ -88,6 +88,8 @@ const AdminLogistics = () => {
   const [bulkEditingShipmentStatus, setBulkEditingShipmentStatus] = useState(false);
   const [bulkShipmentStatus, setBulkShipmentStatus] = useState<ShipmentStatus>('not_shipped');
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const lastFetchTimeRef = useRef<number>(0);
+  const isLoadingRef = useRef<boolean>(false);
   const { toast } = useToast();
   const { profile } = useAuth();
   const { containers, isLoading: containersLoading } = useContainers();
@@ -255,14 +257,18 @@ const AdminLogistics = () => {
     });
   }, [data, appliedFilters.searchTerm]);
 
+  const orders = data?.pages.flatMap(page => page.orders) || [];
+  const totalCount = data?.pages[0]?.totalCount || 0;
+
   useEffect(() => {
     const currentRef = loadMoreRef.current;
     
-    if (!currentRef || !hasNextPage || isFetchingNextPage) {
+    if (!currentRef || !hasNextPage || isFetchingNextPage || totalCount === 0) {
       console.log('⏸️ [Infinite Scroll] Observer disabled:', {
         hasRef: !!currentRef,
         hasNextPage,
-        isFetchingNextPage
+        isFetchingNextPage,
+        totalCount
       });
       return;
     }
@@ -271,12 +277,36 @@ const AdminLogistics = () => {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          console.log('🔽 [Infinite Scroll] Loading next page...');
-          fetchNextPage();
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage && !isLoadingRef.current) {
+          const now = Date.now();
+          const timeSinceLastFetch = now - lastFetchTimeRef.current;
+          
+          // 🔴 RATE LIMITING: не чаще чем раз в 300мс
+          if (timeSinceLastFetch > 300) {
+            console.log('🔽 [Infinite Scroll] Threshold reached - loading next page', {
+              loadedOrders: orders.length,
+              totalCount,
+              timeSinceLastFetch
+            });
+            
+            isLoadingRef.current = true;
+            lastFetchTimeRef.current = now;
+            
+            fetchNextPage().finally(() => {
+              isLoadingRef.current = false;
+            });
+          } else {
+            console.log('⏱️ [Infinite Scroll] Rate limited', {
+              timeSinceLastFetch,
+              nextAvailableIn: 300 - timeSinceLastFetch
+            });
+          }
         }
       },
-      { threshold: 0.5 }
+      { 
+        threshold: 0.5,
+        rootMargin: '100px' // Начинаем загружать за 100px до конца
+      }
     );
 
     observer.observe(currentRef);
@@ -285,10 +315,7 @@ const AdminLogistics = () => {
       observer.unobserve(currentRef);
       observer.disconnect();
     };
-  }, [hasNextPage, isFetchingNextPage]);
-
-  const orders = data?.pages.flatMap(page => page.orders) || [];
-  const totalCount = data?.pages[0]?.totalCount || 0;
+  }, [hasNextPage, isFetchingNextPage, totalCount, orders.length, fetchNextPage]);
 
   // Debug: track hasNextPage changes
   useEffect(() => {
@@ -1287,19 +1314,19 @@ const AdminLogistics = () => {
             )}
             <div ref={loadMoreRef} className="py-4 text-center">
               {isFetchingNextPage ? (
-                <div className="flex justify-center items-center py-4 gap-2">
+                <div className="flex justify-center items-center gap-2">
                   <Loader2 className="h-6 w-6 animate-spin" />
                   <span className="text-sm text-muted-foreground">
-                    Загрузка заказов...
+                    Загрузка... ({orders.length}/{totalCount})
                   </span>
                 </div>
               ) : hasNextPage ? (
                 <div className="text-sm text-muted-foreground">
-                  Прокрутите вниз для загрузки дополнительных заказов ({orders.length} из {totalCount})
+                  Прокрутите вниз для загрузки ({orders.length}/{totalCount})
                 </div>
               ) : orders.length > 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  ✅ Все заказы загружены ({orders.length} из {totalCount})
+                <div className="text-sm text-green-600 font-medium">
+                  ✅ Все {totalCount} заказов загружены
                 </div>
               ) : null}
             </div>

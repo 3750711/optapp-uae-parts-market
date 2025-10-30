@@ -44,6 +44,14 @@ export const useServerFilteredOrders = (
       const from = pageParam * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
+      console.log('📍 [Pagination] Offset calculation:', {
+        pageParam,
+        ITEMS_PER_PAGE,
+        from,
+        to,
+        willFetch: `orders[${from}...${to}]`
+      });
+
       // 1. Базовый запрос
       let query = supabase
         .from('orders')
@@ -209,23 +217,29 @@ export const useServerFilteredOrders = (
       };
     },
     getNextPageParam: (lastPage, allPages) => {
-      const loadedOrders = allPages.reduce((acc, page) => acc + page.orders.length, 0);
       const totalCount = lastPage?.totalCount || 0;
+      const loadedOrders = allPages.reduce((acc, page) => acc + (page.orders?.length || 0), 0);
+      
+      // Простое правило: если загружено >= всего, больше страниц нет
+      const hasMore = totalCount > 0 && loadedOrders < totalCount;
+      const nextPageParam = hasMore ? allPages.length : undefined;
       
       console.log('🔄 [Pagination] getNextPageParam:', {
         loadedOrders,
         totalCount,
-        hasMore: loadedOrders < totalCount,
-        nextPageParam: loadedOrders < totalCount ? allPages.length : undefined
+        currentPages: allPages.length,
+        hasMore,
+        nextPageParam,
+        calculation: hasMore ? `${allPages.length} × 20 = ${allPages.length * 20} offset` : 'no more pages'
       });
       
-      // Есть еще страницы только если загружено меньше чем totalCount
-      return loadedOrders < totalCount ? allPages.length : undefined;
+      return nextPageParam;
     },
     initialPageParam: 0,
     staleTime: 30000, // 30 секунд
     gcTime: 5 * 60 * 1000, // 5 минут
     refetchOnWindowFocus: false,
-    refetchOnMount: false
+    refetchOnMount: false,
+    maxPages: 100 // Максимум 2000 заказов (100 страниц × 20 товаров)
   });
 };
