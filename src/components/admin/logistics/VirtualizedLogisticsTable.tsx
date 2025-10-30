@@ -320,7 +320,7 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
               <ResizableTableHead
                 columnId="title"
                 width={columnWidths.title}
-                minWidth={150}
+                minWidth={115}
                 onResize={onResizeColumn}
                 className="border-0"
               >

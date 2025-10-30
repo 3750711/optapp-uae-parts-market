@@ -1014,7 +1014,7 @@ const AdminLogistics = () => {
                       <ResizableTableHead 
                         columnId="title"
                         width={columnWidths.title}
-                        minWidth={150}
+                        minWidth={115}
                         onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'title' ? sortConfig.direction : null}
