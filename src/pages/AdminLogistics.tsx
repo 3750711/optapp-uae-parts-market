@@ -87,9 +87,6 @@ const AdminLogistics = () => {
   const [bulkContainerNumber, setBulkContainerNumber] = useState('');
   const [bulkEditingShipmentStatus, setBulkEditingShipmentStatus] = useState(false);
   const [bulkShipmentStatus, setBulkShipmentStatus] = useState<ShipmentStatus>('not_shipped');
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const lastFetchTimeRef = useRef<number>(0);
-  const isLoadingRef = useRef<boolean>(false);
   const { toast } = useToast();
   const { profile } = useAuth();
   const { containers, isLoading: containersLoading } = useContainers();
@@ -260,89 +257,6 @@ const AdminLogistics = () => {
     });
   }, [data, appliedFilters.searchTerm, orders.length, totalCount]);
 
-  useEffect(() => {
-    const currentRef = loadMoreRef.current;
-    
-    // Не активируем observer пока не загружена хотя бы первая страница
-    if (!currentRef || !hasNextPage || isFetchingNextPage || totalCount === 0 || orders.length === 0) {
-      console.log('⏸️ [Infinite Scroll] Observer disabled:', {
-        hasRef: !!currentRef,
-        hasNextPage,
-        isFetchingNextPage,
-        totalCount,
-        ordersLoaded: orders.length
-      });
-      return;
-    }
-
-    console.log('👀 [Infinite Scroll] Observer enabled', {
-      loadedOrders: orders.length,
-      totalCount,
-      hasNextPage,
-      isFetchingNextPage,
-      lastFetchTime: lastFetchTimeRef.current,
-      isLoading: isLoadingRef.current
-    });
-
-    let fetchTimeout: NodeJS.Timeout | null = null;
-
-    const debouncedFetchNextPage = () => {
-      if (fetchTimeout) {
-        clearTimeout(fetchTimeout);
-      }
-      
-      fetchTimeout = setTimeout(() => {
-        if (hasNextPage && !isFetchingNextPage && !isLoadingRef.current) {
-          isLoadingRef.current = true;
-          lastFetchTimeRef.current = Date.now();
-          
-          fetchNextPage().finally(() => {
-            isLoadingRef.current = false;
-            fetchTimeout = null;
-          });
-        }
-      }, 100);
-    };
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage && !isLoadingRef.current) {
-          const now = Date.now();
-          const timeSinceLastFetch = now - lastFetchTimeRef.current;
-          
-          // 🔴 RATE LIMITING: не чаще чем раз в 500мс
-          if (timeSinceLastFetch > 500) {
-            console.log('🔽 [Infinite Scroll] Threshold reached - loading next page', {
-              loadedOrders: orders.length,
-              totalCount,
-              timeSinceLastFetch
-            });
-            
-            debouncedFetchNextPage();
-          } else {
-            console.log('⏱️ [Infinite Scroll] Rate limited', {
-              timeSinceLastFetch,
-              nextAvailableIn: 500 - timeSinceLastFetch
-            });
-          }
-        }
-      },
-      { 
-        threshold: 0.5,
-        rootMargin: '100px' // Начинаем загружать за 100px до конца
-      }
-    );
-
-    observer.observe(currentRef);
-
-    return () => {
-      if (fetchTimeout) {
-        clearTimeout(fetchTimeout);
-      }
-      observer.unobserve(currentRef);
-      observer.disconnect();
-    };
-  }, [hasNextPage, isFetchingNextPage, totalCount]);
 
   // Debug: track hasNextPage changes
   useEffect(() => {
@@ -1339,18 +1253,28 @@ const AdminLogistics = () => {
                 </Table>
               </div>
             )}
-            <div ref={loadMoreRef} className="py-4 text-center">
+            <div className="py-8 flex items-center justify-center flex-col gap-4">
               {isFetchingNextPage ? (
-                <div className="flex justify-center items-center gap-2">
-                  <Loader2 className="h-6 w-6 animate-spin" />
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
                   <span className="text-sm text-muted-foreground">
                     Загрузка... ({orders.length}/{totalCount})
                   </span>
                 </div>
               ) : hasNextPage ? (
-                <div className="text-sm text-muted-foreground">
-                  Прокрутите вниз для загрузки ({orders.length}/{totalCount})
-                </div>
+                <>
+                  <div className="text-sm text-muted-foreground mb-2">
+                    Показано {orders.length} из {totalCount} заказов
+                  </div>
+                  <Button 
+                    onClick={() => fetchNextPage()}
+                    variant="secondary"
+                    className="px-6 py-2"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Загрузить еще
+                  </Button>
+                </>
               ) : orders.length > 0 ? (
                 <div className="text-sm text-green-600 font-medium">
                   ✅ Все {totalCount} заказов загружены
