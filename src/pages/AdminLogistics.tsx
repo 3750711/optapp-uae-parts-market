@@ -1098,7 +1098,7 @@ const AdminLogistics = () => {
                           </TableCell>
                           <TableCell style={{ width: columnWidths.price, minWidth: columnWidths.price }}>
                             {order.price ? 
-                              order.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                              `$${Number(order.price) % 1 === 0 ? Math.floor(Number(order.price)) : Number(order.price)}`
                               : '-'
                             }
                           </TableCell>
