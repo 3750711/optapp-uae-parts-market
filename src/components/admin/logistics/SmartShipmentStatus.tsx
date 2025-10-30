@@ -113,7 +113,15 @@ export const SmartShipmentStatus: React.FC<SmartShipmentStatusProps> = ({
           {(isAdmin || (summary && summary.totalPlaces > 1)) && (
             <SelectItem value="partially_shipped">Частично отправлен</SelectItem>
           )}
-          <SelectItem value="in_transit">Отправлен</SelectItem>
+          <SelectItem 
+            value="in_transit"
+            disabled={displayStatus === 'partially_shipped'}
+          >
+            {displayStatus === 'partially_shipped' 
+              ? 'Отправлен (откройте менеджер мест)' 
+              : 'Отправлен'
+            }
+          </SelectItem>
         </SelectContent>
       </Select>
       {renderCompactInfo()}
