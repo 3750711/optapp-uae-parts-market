@@ -37,9 +37,11 @@ export const ResizableTableHead = React.forwardRef<
     const [isResizing, setIsResizing] = React.useState(false);
     const [showTooltip, setShowTooltip] = React.useState(false);
     const [currentWidth, setCurrentWidth] = React.useState(width);
+    const currentWidthRef = React.useRef(width);
 
     React.useEffect(() => {
       setCurrentWidth(width);
+      currentWidthRef.current = width;
     }, [width]);
 
     const handleMouseDown = React.useCallback(
@@ -59,12 +61,13 @@ export const ResizableTableHead = React.forwardRef<
             Math.min(maxWidth, startWidth + diff)
           );
           setCurrentWidth(newWidth);
+          currentWidthRef.current = newWidth;
         };
 
         const handleMouseUp = () => {
           setIsResizing(false);
           setShowTooltip(false);
-          onResize(columnId, currentWidth);
+          onResize(columnId, currentWidthRef.current);
           document.removeEventListener("mousemove", handleMouseMove);
           document.removeEventListener("mouseup", handleMouseUp);
         };
