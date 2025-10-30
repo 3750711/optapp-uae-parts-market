@@ -63,6 +63,7 @@ import { LogisticsFilters as LogisticsFiltersType, FilterOption } from "@/types/
 import { useServerFilteredOrders, Order } from "@/hooks/useServerFilteredOrders";
 import { useOrdersStatistics } from "@/hooks/useOrdersStatistics";
 import { useQuery } from "@tanstack/react-query";
+import { VirtualizedLogisticsTable } from "@/components/admin/logistics/VirtualizedLogisticsTable";
 
 type ContainerStatus = 'waiting' | 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
 type ShipmentStatus = 'not_shipped' | 'partially_shipped' | 'in_transit';
@@ -901,230 +902,229 @@ const AdminLogistics = () => {
                 )}
               </div>
             )}
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]">
-                      <Checkbox 
-                        checked={orders?.length > 0 && orders.length === selectedOrders.length}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead 
-                      className="w-[100px]"
-                      sortable
-                      sorted={sortConfig.field === 'order_number' ? sortConfig.direction : null}
-                      onSort={() => handleSort('order_number')}
-                    >
-                      № заказа
-                    </TableHead>
-                    <TableHead 
-                      className="min-w-[200px]"
-                      sortable
-                      sorted={sortConfig.field === 'seller_opt_id' ? sortConfig.direction : null}
-                      onSort={() => handleSort('seller_opt_id')}
-                    >
-                      Продавец
-                    </TableHead>
-                    <TableHead 
-                      className="min-w-[200px]"
-                      sortable
-                      sorted={sortConfig.field === 'buyer_opt_id' ? sortConfig.direction : null}
-                      onSort={() => handleSort('buyer_opt_id')}
-                    >
-                      Покупатель
-                    </TableHead>
-                    <TableHead 
-                      className="min-w-[200px]"
-                      sortable
-                      sorted={sortConfig.field === 'title' ? sortConfig.direction : null}
-                      onSort={() => handleSort('title')}
-                    >
-                      Наименование
-                    </TableHead>
-                    <TableHead 
-                      className="w-[100px]"
-                      sortable
-                      sorted={sortConfig.field === 'price' ? sortConfig.direction : null}
-                      onSort={() => handleSort('price')}
-                    >
-                      Цена ($)
-                    </TableHead>
-                    <TableHead 
-                      className="w-[80px]"
-                      sortable
-                      sorted={sortConfig.field === 'place_number' ? sortConfig.direction : null}
-                      onSort={() => handleSort('place_number')}
-                    >
-                      Мест
-                    </TableHead>
-                    <TableHead 
-                      className="w-[100px]"
-                      sortable
-                      sorted={sortConfig.field === 'delivery_price_confirm' ? sortConfig.direction : null}
-                      onSort={() => handleSort('delivery_price_confirm')}
-                    >
-                      Цена дост.
-                    </TableHead>
-                    <TableHead 
-                      className="w-[120px]"
-                      sortable
-                      sorted={sortConfig.field === 'status' ? sortConfig.direction : null}
-                      onSort={() => handleSort('status')}
-                    >
-                      Статус
-                    </TableHead>
-                    <TableHead 
-                      className="min-w-[150px]"
-                      sortable
-                      sorted={sortConfig.field === 'container_number' ? sortConfig.direction : null}
-                      onSort={() => handleSort('container_number')}
-                    >
-                      Контейнер
-                    </TableHead>
-                     <TableHead 
-                       className="min-w-[180px]"
-                     >
-                       Статус контейнера
-                     </TableHead>
-                    <TableHead 
-                      className="min-w-[150px]"
-                      sortable
-                      sorted={sortConfig.field === 'shipment_status' ? sortConfig.direction : null}
-                      onSort={() => handleSort('shipment_status')}
-                    >
-                      Статус отгрузки
-                    </TableHead>
-                    <TableHead className="w-[80px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order) => {
-                    const { buyerInfo, sellerInfo } = getCompactOrderInfo(order);
-                    return (
-                      <TableRow key={order.id} className="text-sm">
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedOrders.includes(order.id)}
-                            onCheckedChange={() => handleSelectOrder(order.id)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{order.order_number}</TableCell>
-                        <TableCell>{sellerInfo}</TableCell>
-                        <TableCell>{buyerInfo}</TableCell>
-                        <TableCell className="max-w-[200px] truncate" title={order.title}>
-                          {order.title || 'Нет названия'}
-                        </TableCell>
-                        <TableCell>
-                          {order.price ? 
-                            order.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                            : '-'
-                          }
-                        </TableCell>
-                        <TableCell>{order.place_number}</TableCell>
-                        <TableCell>
-                          {order.delivery_price_confirm ? 
-                            `$${order.delivery_price_confirm}` : 
-                            '-'
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <OrderStatusBadge status={order.status as any} />
-                        </TableCell>
-                        <TableCell>
-                           {editingContainer === order.id ? (
-                             <div className="flex items-center space-x-2">
-                               <Select
-                 value={tempContainerNumber || order.container_number || 'none'}
-                 onValueChange={(value) => setTempContainerNumber(value === 'none' ? '' : value)}
-                               >
-                                 <SelectTrigger className="w-32 h-8 text-sm">
-                                   <SelectValue placeholder="Контейнер" />
-                                 </SelectTrigger>
-                                 <SelectContent>
-                                   <SelectItem value="none">Не указан</SelectItem>
-                                   {containers?.map((container) => (
-                                     <SelectItem key={container.id} value={container.container_number}>
-                                       <div className="flex items-center justify-between w-full">
-                                         <span>{container.container_number}</span>
-                                         <span className="text-xs text-muted-foreground ml-2">
-                                           ({getStatusLabel(container.status as any)})
-                                         </span>
-                                       </div>
-                                     </SelectItem>
-                                   ))}
-                                 </SelectContent>
-                               </Select>
-                               <Button 
-                                 variant="ghost" 
-                                 size="icon"
-                                 className="h-8 w-8"
-                                 onClick={() => initiateContainerNumberChange(order.id, tempContainerNumber)}
-                               >
-                                 <Save className="h-4 w-4" />
-                               </Button>
-                             </div>
-                            ) : (
-                               <ContainerEditableWrapper
-                                 orderId={order.id}
-                                 fallbackContainerNumber={order.container_number}
-                                 shipmentStatus={order.shipment_status}
-                                 summary={shipmentSummaries?.get(order.id)}
-                                 onEdit={() => {
-                                   setEditingContainer(order.id);
-                                   setTempContainerNumber(order.container_number || '');
-                                 }}
-                               />
-                            )}
-                         </TableCell>
+            {orders.length > 50 ? (
+              <VirtualizedLogisticsTable
+                orders={orders}
+                selectedOrders={selectedOrders}
+                onSelectOrder={handleSelectOrder}
+                onViewDetails={handleViewDetails}
+                onManagePlaces={setManagingPlacesOrderId}
+                editingContainer={editingContainer}
+                tempContainerNumber={tempContainerNumber}
+                onEditContainer={(orderId, containerNumber) => {
+                  setEditingContainer(orderId);
+                  setTempContainerNumber(containerNumber);
+                }}
+                onSaveContainer={initiateContainerNumberChange}
+                onTempContainerChange={(value) => setTempContainerNumber(value === 'none' ? '' : value)}
+                containers={containers}
+                getStatusColor={getStatusColor}
+                getStatusLabel={getStatusLabel}
+                shipmentSummaries={shipmentSummaries}
+                onUpdateShipmentStatus={handleUpdateShipmentStatus}
+                getCompactOrderInfo={getCompactOrderInfo}
+              />
+            ) : (
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[40px]">
+                        <Checkbox 
+                          checked={orders?.length > 0 && orders.length === selectedOrders.length}
+                          onCheckedChange={handleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead 
+                        className="w-[100px]"
+                        sortable
+                        sorted={sortConfig.field === 'order_number' ? sortConfig.direction : null}
+                        onSort={() => handleSort('order_number')}
+                      >
+                        № заказа
+                      </TableHead>
+                      <TableHead 
+                        className="min-w-[200px]"
+                        sortable
+                        sorted={sortConfig.field === 'seller_opt_id' ? sortConfig.direction : null}
+                        onSort={() => handleSort('seller_opt_id')}
+                      >
+                        Продавец
+                      </TableHead>
+                      <TableHead 
+                        className="min-w-[200px]"
+                        sortable
+                        sorted={sortConfig.field === 'buyer_opt_id' ? sortConfig.direction : null}
+                        onSort={() => handleSort('buyer_opt_id')}
+                      >
+                        Покупатель
+                      </TableHead>
+                      <TableHead 
+                        className="min-w-[200px]"
+                        sortable
+                        sorted={sortConfig.field === 'title' ? sortConfig.direction : null}
+                        onSort={() => handleSort('title')}
+                      >
+                        Наименование
+                      </TableHead>
+                      <TableHead 
+                        className="w-[100px]"
+                        sortable
+                        sorted={sortConfig.field === 'price' ? sortConfig.direction : null}
+                        onSort={() => handleSort('price')}
+                      >
+                        Цена ($)
+                      </TableHead>
+                      <TableHead 
+                        className="w-[80px]"
+                        sortable
+                        sorted={sortConfig.field === 'place_number' ? sortConfig.direction : null}
+                        onSort={() => handleSort('place_number')}
+                      >
+                        Мест
+                      </TableHead>
+                      <TableHead 
+                        className="w-[100px]"
+                        sortable
+                        sorted={sortConfig.field === 'delivery_price_confirm' ? sortConfig.direction : null}
+                        onSort={() => handleSort('delivery_price_confirm')}
+                      >
+                        Доставка
+                      </TableHead>
+                      <TableHead className="w-[120px]">Статус заказа</TableHead>
+                      <TableHead className="min-w-[200px]">Контейнер</TableHead>
+                      <TableHead className="min-w-[150px]">Статус контейнера</TableHead>
+                      <TableHead className="min-w-[150px]">Статус отгрузки</TableHead>
+                      <TableHead className="w-[100px]">Действия</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((order) => {
+                      const { buyerInfo, sellerInfo } = getCompactOrderInfo(order);
+                      return (
+                        <TableRow key={order.id} className="text-sm">
                           <TableCell>
-                            <div className={`text-sm ${getStatusColor(order.containers?.[0]?.status as ContainerStatus)}`}>
-                              {getStatusLabel(order.containers?.[0]?.status as ContainerStatus)}
-                              {order.containers && order.containers.length > 1 && (
-                                <span className="text-xs text-muted-foreground ml-1">
-                                  +{order.containers.length - 1}
-                                </span>
-                              )}
-                           </div>
-                         </TableCell>
-                         <TableCell>
-                           <SmartShipmentStatus
-                             orderId={order.id}
-                             fallbackStatus={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
-                             placeNumber={order.place_number || 1}
-                             onStatusChange={(status) => handleUpdateShipmentStatus(order.id, status)}
-                           />
-                         </TableCell>
-                         <TableCell>
-                           <div className="flex items-center gap-1">
-                             <Button
-                               variant="ghost"
-                               size="icon"
-                               className="h-8 w-8"
-                               onClick={() => handleViewDetails(order.id)}
-                             >
-                               <Eye className="h-4 w-4" />
-                             </Button>
-                                {(order.shipment_status === 'partially_shipped' || order.shipment_status === 'not_shipped' || order.shipment_status === 'in_transit') && (
-                                 <Button
-                                   variant="ghost"
+                            <Checkbox
+                              checked={selectedOrders.includes(order.id)}
+                              onCheckedChange={() => handleSelectOrder(order.id)}
+                            />
+                          </TableCell>
+                          <TableCell className="font-medium">{order.order_number}</TableCell>
+                          <TableCell>{sellerInfo}</TableCell>
+                          <TableCell>{buyerInfo}</TableCell>
+                          <TableCell className="max-w-[200px] truncate" title={order.title}>
+                            {order.title || 'Нет названия'}
+                          </TableCell>
+                          <TableCell>
+                            {order.price ? 
+                              order.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                              : '-'
+                            }
+                          </TableCell>
+                          <TableCell>{order.place_number}</TableCell>
+                          <TableCell>
+                            {order.delivery_price_confirm ? 
+                              `$${order.delivery_price_confirm}` : 
+                              '-'
+                            }
+                          </TableCell>
+                          <TableCell>
+                            <OrderStatusBadge status={order.status as any} />
+                          </TableCell>
+                          <TableCell>
+                             {editingContainer === order.id ? (
+                               <div className="flex items-center space-x-2">
+                                 <Select
+                   value={tempContainerNumber || order.container_number || 'none'}
+                   onValueChange={(value) => setTempContainerNumber(value === 'none' ? '' : value)}
+                                 >
+                                   <SelectTrigger className="w-32 h-8 text-sm">
+                                     <SelectValue placeholder="Контейнер" />
+                                   </SelectTrigger>
+                                   <SelectContent>
+                                     <SelectItem value="none">Не указан</SelectItem>
+                                     {containers?.map((container) => (
+                                       <SelectItem key={container.id} value={container.container_number}>
+                                         <div className="flex items-center justify-between w-full">
+                                           <span>{container.container_number}</span>
+                                           <span className="text-xs text-muted-foreground ml-2">
+                                             ({getStatusLabel(container.status as any)})
+                                           </span>
+                                         </div>
+                                       </SelectItem>
+                                     ))}
+                                   </SelectContent>
+                                 </Select>
+                                 <Button 
+                                   variant="ghost" 
                                    size="icon"
                                    className="h-8 w-8"
-                                   onClick={() => setManagingPlacesOrderId(order.id)}
-                                   title={order.shipment_status === 'partially_shipped' ? "Управлять местами" : "Просмотр мест"}
+                                   onClick={() => initiateContainerNumberChange(order.id, tempContainerNumber)}
                                  >
-                                   <Package className="h-4 w-4" />
+                                   <Save className="h-4 w-4" />
                                  </Button>
-                               )}
-                           </div>
-                         </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                               </div>
+                              ) : (
+                                 <ContainerEditableWrapper
+                                   orderId={order.id}
+                                   fallbackContainerNumber={order.container_number}
+                                   shipmentStatus={order.shipment_status}
+                                   summary={shipmentSummaries?.get(order.id)}
+                                   onEdit={() => {
+                                     setEditingContainer(order.id);
+                                     setTempContainerNumber(order.container_number || '');
+                                   }}
+                                 />
+                              )}
+                           </TableCell>
+                            <TableCell>
+                              <div className={`text-sm ${getStatusColor(order.containers?.[0]?.status as ContainerStatus)}`}>
+                                {getStatusLabel(order.containers?.[0]?.status as ContainerStatus)}
+                                {order.containers && order.containers.length > 1 && (
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    +{order.containers.length - 1}
+                                  </span>
+                                )}
+                             </div>
+                           </TableCell>
+                           <TableCell>
+                             <SmartShipmentStatus
+                               orderId={order.id}
+                               fallbackStatus={(order.shipment_status as ShipmentStatus) || 'not_shipped'}
+                               placeNumber={order.place_number || 1}
+                               onStatusChange={(status) => handleUpdateShipmentStatus(order.id, status)}
+                             />
+                           </TableCell>
+                           <TableCell>
+                             <div className="flex items-center gap-1">
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 className="h-8 w-8"
+                                 onClick={() => handleViewDetails(order.id)}
+                               >
+                                 <Eye className="h-4 w-4" />
+                               </Button>
+                                  {(order.shipment_status === 'partially_shipped' || order.shipment_status === 'not_shipped' || order.shipment_status === 'in_transit') && (
+                                   <Button
+                                     variant="ghost"
+                                     size="icon"
+                                     className="h-8 w-8"
+                                     onClick={() => setManagingPlacesOrderId(order.id)}
+                                     title={order.shipment_status === 'partially_shipped' ? "Управлять местами" : "Просмотр мест"}
+                                   >
+                                     <Package className="h-4 w-4" />
+                                   </Button>
+                                 )}
+                             </div>
+                           </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
             <div ref={loadMoreRef} className="py-4 text-center">
               {isFetchingNextPage ? (
                 <div className="flex justify-center items-center py-4">
