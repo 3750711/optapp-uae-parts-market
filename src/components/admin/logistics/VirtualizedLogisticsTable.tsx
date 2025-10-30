@@ -302,20 +302,20 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
               <ResizableTableHead
                 columnId="seller"
                 width={columnWidths.seller}
-                minWidth={150}
+                minWidth={10}
                 onResize={onResizeColumn}
                 className="border-0"
               >
-                Продавец
+                Прод.
               </ResizableTableHead>
               <ResizableTableHead
                 columnId="buyer"
                 width={columnWidths.buyer}
-                minWidth={150}
+                minWidth={10}
                 onResize={onResizeColumn}
                 className="border-0"
               >
-                Покупатель
+                Пок.
               </ResizableTableHead>
               <ResizableTableHead
                 columnId="title"
@@ -338,11 +338,11 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
               <ResizableTableHead
                 columnId="placeNumber"
                 width={columnWidths.placeNumber}
-                minWidth={60}
+                minWidth={10}
                 onResize={onResizeColumn}
                 className="border-0"
               >
-                Мест
+                М
               </ResizableTableHead>
               <ResizableTableHead
                 columnId="deliveryPrice"
@@ -365,29 +365,29 @@ export const VirtualizedLogisticsTable = memo<VirtualizedLogisticsTableProps>(({
               <ResizableTableHead
                 columnId="containerNumber"
                 width={columnWidths.containerNumber}
-                minWidth={150}
+                minWidth={10}
                 onResize={onResizeColumn}
                 className="border-0"
               >
-                Контейнер
+                Конт.
               </ResizableTableHead>
               <ResizableTableHead
                 columnId="containerStatus"
                 width={columnWidths.containerStatus}
-                minWidth={120}
+                minWidth={10}
                 onResize={onResizeColumn}
                 className="border-0"
               >
-                Статус контейнера
+                Ст.конт.
               </ResizableTableHead>
               <ResizableTableHead
                 columnId="shipmentStatus"
                 width={columnWidths.shipmentStatus}
-                minWidth={120}
+                minWidth={10}
                 onResize={onResizeColumn}
                 className="border-0"
               >
-                Статус отгрузки
+                Ст.отгр.
               </ResizableTableHead>
               <ResizableTableHead
                 columnId="actions"

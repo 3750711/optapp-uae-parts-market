@@ -32,21 +32,22 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status }) =>
   };
 
   const getStatusLabel = (status: OrderStatus) => {
+    // Сокращенные названия для минимальной ширины столбцов
     switch (status) {
       case 'created':
-        return 'Создан';
+        return 'Созд.';
       case 'seller_confirmed':
-        return 'Подтвержден продавцом';
+        return 'Прод.';
       case 'admin_confirmed':
-        return 'Подтвержден администратором';
+        return 'Адм.';
       case 'processed':
-        return 'Зарегистрирован';
+        return 'Зарег.';
       case 'shipped':
-        return 'Отправлен';
+        return 'Отпр.';
       case 'delivered':
-        return 'Доставлен';
+        return 'Дост.';
       case 'cancelled':
-        return 'Отменен';
+        return 'Отм.';
       default:
         return status;
     }

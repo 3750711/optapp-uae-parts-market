@@ -93,20 +93,20 @@ const AdminLogistics = () => {
   const { containers, isLoading: containersLoading } = useContainers();
   const { syncShipmentsWithOrder } = useOrderPlacesSync();
 
-  // Resizable columns
+  // Resizable columns (минимальные ширины для opt_id и сокращенных статусов)
   const DEFAULT_COLUMN_WIDTHS = {
     checkbox: 40,
     orderNumber: 100,
-    seller: 200,
-    buyer: 200,
+    seller: 80,
+    buyer: 80,
     title: 250,
     price: 100,
-    placeNumber: 80,
+    placeNumber: 50,
     deliveryPrice: 100,
     orderStatus: 120,
-    containerNumber: 200,
-    containerStatus: 150,
-    shipmentStatus: 150,
+    containerNumber: 100,
+    containerStatus: 80,
+    shipmentStatus: 100,
     actions: 100,
   };
 
@@ -447,36 +447,38 @@ const AdminLogistics = () => {
   };
 
   const getStatusLabel = (status: ContainerStatus | null) => {
+    // Сокращенные названия для минимальной ширины столбцов
     switch (status) {
       case 'waiting':
-        return 'Ожидание';
+        return 'Ожид.';
       case 'sent_from_uae':
-        return 'Отправлен из ОАЭ';
+        return 'ОАЭ';
       case 'transit_iran':
-        return 'Транзит Иран';
+        return 'Иран';
       case 'to_kazakhstan':
-        return 'Следует в Казахстан';
+        return 'КЗ';
       case 'customs':
-        return 'Таможня';
+        return 'Там.';
       case 'cleared_customs':
-        return 'Вышел с таможни';
+        return 'Выш.';
       case 'received':
-        return 'Получен';
+        return 'Получ.';
       default:
-        return 'Не указан';
+        return 'N/A';
     }
   };
 
   const getShipmentStatusLabel = (status: ShipmentStatus | null) => {
+    // Сокращенные названия для минимальной ширины столбцов
     switch (status) {
       case 'not_shipped':
-        return 'Не отправлен';
+        return 'Не отпр.';
       case 'partially_shipped':
-        return 'Частично отправлен';
+        return 'Частич.';
       case 'in_transit':
-        return 'Отправлен';
+        return 'Отправ.';
       default:
-        return 'Не указан';
+        return 'N/A';
     }
   };
 
@@ -729,11 +731,12 @@ const AdminLogistics = () => {
   }
 
   const getCompactOrderInfo = (order: Order) => {
-    const buyer = order.buyer?.full_name || 'Не указано';
-    const seller = order.seller?.full_name || 'Не указано';
+    // Показываем только opt_id без имен для минимальной ширины столбцов
+    const buyerOptId = order.buyer?.opt_id || 'N/A';
+    const sellerOptId = order.seller?.opt_id || 'N/A';
     return {
-      buyerInfo: `${buyer} ${order.buyer?.opt_id ? `(${order.buyer.opt_id})` : ''}`,
-      sellerInfo: `${seller} ${order.seller?.opt_id ? `(${order.seller.opt_id})` : ''}`
+      buyerInfo: buyerOptId,
+      sellerInfo: sellerOptId
     };
   };
 
@@ -989,24 +992,24 @@ const AdminLogistics = () => {
                       <ResizableTableHead 
                         columnId="seller"
                         width={columnWidths.seller}
-                        minWidth={150}
+                        minWidth={10}
                         onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'seller_opt_id' ? sortConfig.direction : null}
                         onSort={() => handleSort('seller_opt_id')}
                       >
-                        Продавец
+                        Прод.
                       </ResizableTableHead>
                       <ResizableTableHead 
                         columnId="buyer"
                         width={columnWidths.buyer}
-                        minWidth={150}
+                        minWidth={10}
                         onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'buyer_opt_id' ? sortConfig.direction : null}
                         onSort={() => handleSort('buyer_opt_id')}
                       >
-                        Покупатель
+                        Пок.
                       </ResizableTableHead>
                       <ResizableTableHead 
                         columnId="title"
@@ -1033,13 +1036,13 @@ const AdminLogistics = () => {
                       <ResizableTableHead 
                         columnId="placeNumber"
                         width={columnWidths.placeNumber}
-                        minWidth={60}
+                        minWidth={10}
                         onResize={handleResize}
                         sortable
                         sorted={sortConfig.field === 'place_number' ? sortConfig.direction : null}
                         onSort={() => handleSort('place_number')}
                       >
-                        Мест
+                        М
                       </ResizableTableHead>
                       <ResizableTableHead 
                         columnId="deliveryPrice"
@@ -1063,26 +1066,26 @@ const AdminLogistics = () => {
                       <ResizableTableHead 
                         columnId="containerNumber"
                         width={columnWidths.containerNumber}
-                        minWidth={150}
+                        minWidth={10}
                         onResize={handleResize}
                       >
-                        Контейнер
+                        Конт.
                       </ResizableTableHead>
                       <ResizableTableHead 
                         columnId="containerStatus"
                         width={columnWidths.containerStatus}
-                        minWidth={120}
+                        minWidth={10}
                         onResize={handleResize}
                       >
-                        Статус контейнера
+                        Ст.конт.
                       </ResizableTableHead>
                       <ResizableTableHead 
                         columnId="shipmentStatus"
                         width={columnWidths.shipmentStatus}
-                        minWidth={120}
+                        minWidth={10}
                         onResize={handleResize}
                       >
-                        Статус отгрузки
+                        Ст.отгр.
                       </ResizableTableHead>
                       <ResizableTableHead 
                         columnId="actions"
